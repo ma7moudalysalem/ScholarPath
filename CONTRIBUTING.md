@@ -225,6 +225,7 @@ dotnet test
 # Frontend
 cd client
 npm run lint
+npm test
 npm run build
 ```
 

@@ -27,6 +27,16 @@ ScholarPath is an intelligent scholarship discovery platform that helps students
 - **Advisor / Consultant Marketplace** -- Book consultations with verified advisors for application reviews, essay feedback, and scholarship guidance
 - **Bilingual Support** -- Full English and Arabic localization with proper RTL layout rendering
 - **Profile-Based Matching** -- Intelligent scholarship filtering based on GPA, field of study, nationality, and other profile attributes
+- **Health Check & Rate Limiting** -- `/health` endpoint for monitoring and built-in rate limiting to protect API resources
+
+### Auth Lifecycle (Current Behavior)
+
+- New users register with **no platform role** (`Unassigned`) and `IsOnboardingComplete=false`
+- During onboarding:
+  - Selecting **Student** activates the account immediately (`Role=Student`, `AccountStatus=Active`)
+  - Selecting **Consultant** or **Company** creates an upgrade request and keeps the account `Role=Unassigned`, `AccountStatus=Pending`
+- Admin approval is required before consultant/company users receive their requested role
+- While onboarding is incomplete or account status is pending, frontend route guards keep the user on the onboarding/pending state
 
 ---
 
@@ -51,7 +61,7 @@ ScholarPath follows **Clean Architecture** principles, organized into four disti
 | **Infrastructure** | EF Core DbContext, repository implementations, external service integrations, caching (Redis), background jobs (Hangfire) |
 | **API** | ASP.NET Core controllers, middleware, filters, dependency injection composition root |
 
-The backend uses the **CQRS pattern** with MediatR to separate read and write operations, ensuring clear separation of concerns and maintainable business logic.
+The backend is designed for the **CQRS pattern** with MediatR to separate read and write operations. Currently, the Auth and Admin controllers implement business logic directly at the controller level for bootstrapping speed; these will be migrated to MediatR handlers as the domain stabilizes. All other feature controllers will follow the CQRS pattern from the start.
 
 ---
 
@@ -77,6 +87,7 @@ ScholarPath/
 │       ├── theme/                     # MUI theming
 │       ├── i18n/                      # Internationalization
 │       ├── hooks/                     # Custom React hooks
+│       ├── utils/                     # Utility functions and helpers
 │       ├── test/                      # Test utilities and setup
 │       └── types/                     # TypeScript type definitions
 ├── docs/                              # Documentation & Diagrams
@@ -90,7 +101,7 @@ ScholarPath/
 ### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- [Node.js 22+](https://nodejs.org/)
+- [Node.js 20+](https://nodejs.org/)
 - [SQL Server](https://www.microsoft.com/sql-server) or [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
 ### Infrastructure Setup
@@ -116,7 +127,7 @@ dotnet ef database update --project ../ScholarPath.Infrastructure
 dotnet run
 ```
 
-The API will be available at `https://localhost:7001` by default.
+The API will be available at `http://localhost:5100` by default.
 
 ### Frontend Setup
 
@@ -130,7 +141,23 @@ npm install
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:5173` by default.
+The frontend will be available at `http://localhost:3000` by default.
+
+### Run Tests
+
+Backend tests:
+
+```bash
+cd server
+dotnet test
+```
+
+Frontend tests:
+
+```bash
+cd client
+npm test
+```
 
 ### Environment Variables
 
@@ -139,7 +166,7 @@ Create an `appsettings.Development.json` in `server/src/ScholarPath.API/` with t
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost,1433;Database=ScholarPath;User Id=sa;Password=YourPassword;TrustServerCertificate=true"
+    "DefaultConnection": "Server=localhost,1433;Database=ScholarPathDb;User Id=sa;Password=YourPassword;TrustServerCertificate=true"
   },
   "Redis": {
     "ConnectionString": "localhost:6379",
@@ -148,8 +175,9 @@ Create an `appsettings.Development.json` in `server/src/ScholarPath.API/` with t
   "JwtSettings": {
     "SecretKey": "your-secret-key-here",
     "Issuer": "ScholarPath",
-    "Audience": "ScholarPath",
-    "AccessTokenExpirationMinutes": 60
+    "Audience": "ScholarPathApp",
+    "AccessTokenExpirationMinutes": 60,
+    "RefreshTokenExpirationDays": 7
   }
 }
 ```
@@ -157,7 +185,7 @@ Create an `appsettings.Development.json` in `server/src/ScholarPath.API/` with t
 Create a `.env` file in `client/` for frontend configuration:
 
 ```env
-VITE_API_URL=https://localhost:7001/api
+VITE_API_URL=http://localhost:5100/api/v1
 ```
 
 ---
@@ -167,7 +195,7 @@ VITE_API_URL=https://localhost:7001/api
 Interactive API documentation is available via Swagger UI when the backend is running in Development mode:
 
 ```
-https://localhost:7001/swagger
+http://localhost:5100/swagger
 ```
 
 ---

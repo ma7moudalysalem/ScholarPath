@@ -2,13 +2,13 @@
 
 ## Overview
 
-ScholarPath uses JWT-based stateless authentication with refresh token rotation. ASP.NET Identity handles user management and password hashing. Authorization is role-based with four roles: Student, Consultant, Company, and Admin.
+ScholarPath uses JWT-based stateless authentication with refresh token rotation. ASP.NET Identity handles user management and password hashing. Authorization is role-based with an onboarding state role (`Unassigned`) and four platform roles: Student, Consultant, Company, and Admin.
 
 ---
 
 ## 1. Registration and Onboarding Flow
 
-New users register with first name, last name, email, and password. They then complete an onboarding step where they select their role. Students are activated immediately. Consultants and Companies require admin approval.
+New users register with first name, last name, email, and password. They are created with an `Unassigned` role. They then complete onboarding and select their role. Students are activated immediately. Consultants and Companies require admin approval and remain `Unassigned` until approved.
 
 ```mermaid
 sequenceDiagram
@@ -22,7 +22,7 @@ sequenceDiagram
     User->>Frontend: Fill registration form<br/>(firstName, lastName, email, password, confirmPassword)
     Frontend->>API: POST /api/v1/auth/register<br/>{ firstName, lastName, email,<br/>password, confirmPassword }
     API->>Identity: CreateAsync(user, password)
-    Identity->>DB: Insert ApplicationUser<br/>(Role=Student, Status=Active,<br/>IsOnboardingComplete=false)
+    Identity->>DB: Insert ApplicationUser<br/>(Role=Unassigned, Status=Active,<br/>IsOnboardingComplete=false)
     DB-->>Identity: User created
     Identity-->>API: Success
     API->>DB: Create RefreshToken
@@ -33,18 +33,17 @@ sequenceDiagram
 
     Frontend->>Frontend: Redirect to /onboarding
     User->>Frontend: Select desired role + optional details<br/>(selectedRole, companyName?, expertiseArea?, bio?)
-    Frontend->>API: POST /api/v1/auth/complete-onboarding<br/>{ selectedRole, companyName?,<br/>expertiseArea?, bio? }
+    Frontend->>API: POST /api/v1/auth/onboarding<br/>{ selectedRole, companyName?,<br/>expertiseArea?, bio? }
 
     alt Role = Student
-        API->>DB: Update user<br/>(IsOnboardingComplete=true)
+        API->>DB: Update user<br/>(Role=Student, AccountStatus=Active,<br/>IsOnboardingComplete=true)
         API-->>Frontend: 200 OK - Account active
         Frontend->>Frontend: Redirect to /dashboard
     else Role = Consultant or Company
-        API->>DB: Update user<br/>(IsOnboardingComplete=true)
+        API->>DB: Update user<br/>(Role=Unassigned,<br/>IsOnboardingComplete=true)
         API->>DB: Create UpgradeRequest<br/>(Status=Pending, RequestedRole)
         API->>DB: Set AccountStatus=Pending
         API->>DB: Create Notification for Admins
-        API->>Email: Send admin notification email
         API-->>Frontend: 200 OK - Pending approval
         Frontend->>Frontend: Show "pending approval" screen
     end
@@ -107,7 +106,7 @@ sequenceDiagram
     Frontend->>API: Any authenticated request
     API-->>Frontend: 401 Unauthorized (token expired)
 
-    Frontend->>API: POST /api/v1/auth/refresh-token<br/>{ refreshToken }
+    Frontend->>API: POST /api/v1/auth/refresh<br/>{ refreshToken }
     API->>DB: Find RefreshToken by value
 
     alt Token not found or revoked
@@ -200,13 +199,12 @@ sequenceDiagram
 
     Note over Student,Admin: Step 1 - Submit Request
 
-    Student->>Frontend: Navigate to profile settings
-    Student->>Frontend: Click "Upgrade to Consultant"<br/>Fill justification form
-    Frontend->>API: POST /api/v1/profile/upgrade-request/consultant<br/>{ justification, documents }
+    Student->>Frontend: Navigate to onboarding
+    Student->>Frontend: Select "Consultant" role<br/>Fill expertise and bio
+    Frontend->>API: POST /api/v1/auth/onboarding<br/>{ selectedRole, companyName?, expertiseArea?, bio? }
     API->>DB: Create UpgradeRequest<br/>(Status=Pending)
-    API->>DB: Create Notification for all Admins<br/>(Type=System)
-    API->>Email: Notify admins of new request
-    API-->>Frontend: 200 OK "Request submitted"
+    API->>DB: Create in-app Notification for all Admins<br/>(Type=System)
+    API-->>Frontend: 200 OK { UserDto with accountStatus=Pending }
 
     Note over Student,Admin: Step 2 - Admin Review
 
@@ -221,24 +219,21 @@ sequenceDiagram
         Admin->>Frontend: Click Approve
         Frontend->>API: PUT /api/v1/admin/upgrade-requests/{id}/approve
         API->>DB: Update UpgradeRequest (Status=Approved)
-        API->>DB: Update User Role to Consultant
+        API->>DB: Update User Role to RequestedRole
         API->>DB: Update AccountStatus to Active
-        API->>DB: Create Notification for Student<br/>(Type=UpgradeStatus)
-        API->>Email: Send approval email to student
+        API->>DB: Create in-app Notification for Student<br/>(Type=UpgradeStatus)
         API-->>Frontend: 200 OK
     else Reject
         Admin->>Frontend: Click Reject + add reason
-        Frontend->>API: PUT /api/v1/admin/upgrade-requests/{id}/reject<br/>{ reviewNotes }
+        Frontend->>API: PUT /api/v1/admin/upgrade-requests/{id}/reject<br/>{ adminNotes }
         API->>DB: Update UpgradeRequest (Status=Rejected)
-        API->>DB: Create Notification for Student<br/>(Type=UpgradeStatus)
-        API->>Email: Send rejection email to student
+        API->>DB: Create in-app Notification for Student<br/>(Type=UpgradeStatus)
         API-->>Frontend: 200 OK
     else Request More Info
         Admin->>Frontend: Click "Request More Info" + add notes
-        Frontend->>API: PUT /api/v1/admin/upgrade-requests/{id}/request-info<br/>{ reviewNotes }
+        Frontend->>API: PUT /api/v1/admin/upgrade-requests/{id}/request-info<br/>{ adminNotes }
         API->>DB: Update UpgradeRequest<br/>(Status=NeedsMoreInfo)
-        API->>DB: Create Notification for Student<br/>(Type=UpgradeStatus)
-        API->>Email: Send info-request email to student
+        API->>DB: Create in-app Notification for Student<br/>(Type=UpgradeStatus)
         API-->>Frontend: 200 OK
     end
 
@@ -264,7 +259,7 @@ sequenceDiagram
 | Refresh Token Lifetime | 7 days | Rotated on each use |
 | Password Reset Token | 24 hours | Single use |
 | JWT Signing Algorithm | HS256 | HMAC with symmetric key |
-| Token Storage (Frontend) | Memory + httpOnly cookie | Prevents XSS access |
+| Token Storage (Frontend) | Zustand persisted state (localStorage) | Current implementation; consider migrating to httpOnly cookies for stronger XSS resilience |
 
 ---
 
@@ -272,7 +267,7 @@ sequenceDiagram
 
 | Measure | Implementation |
 |---|---|
-| Password Hashing | ASP.NET Identity (PBKDF2 with HMAC-SHA256) |
+| Password Hashing | ASP.NET Identity (PBKDF2 with HMAC-SHA512) |
 | Refresh Token Rotation | Old token revoked on each refresh |
 | Email Enumeration Prevention | Generic responses on forgot-password and registration |
 | Brute Force Protection | Account lockout after N failed attempts (ASP.NET Identity) |

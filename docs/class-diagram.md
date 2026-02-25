@@ -303,10 +303,11 @@ classDiagram
 classDiagram
     class UserRole {
         <<enumeration>>
-        Student = 0
-        Consultant = 1
-        Company = 2
-        Admin = 3
+        Unassigned = 0
+        Student = 1
+        Consultant = 2
+        Company = 3
+        Admin = 4
     }
 
     class AccountStatus {

@@ -1,6 +1,6 @@
 # ScholarPath API Endpoints Reference
 
-> **Note:** These endpoints are planned specifications. Implementation is in progress — currently only the abstract `BaseController` exists in the codebase.
+> **Note:** This document mixes implemented and planned endpoints. `AuthController` and `AdminController` are implemented; other sections may still be roadmap/specification and should be validated against Swagger.
 
 ## Overview
 
@@ -51,13 +51,15 @@ Base path: `/api/v1/auth`
 |---|---|---|---|---|
 | POST | `/register` | No | -- | Register a new user account |
 | POST | `/login` | No | -- | Authenticate and receive JWT + refresh token |
-| POST | `/refresh-token` | No | -- | Exchange a valid refresh token for new tokens |
+| POST | `/refresh` | No | -- | Exchange a valid refresh token for new tokens |
 | POST | `/logout` | Yes | All | Revoke the current refresh token |
-| POST | `/forgot-password` | No | -- | Request a password reset email |
-| POST | `/reset-password` | No | -- | Reset password using emailed token |
-| POST | `/change-password` | Yes | All | Change password (requires current password) |
-| POST | `/complete-onboarding` | Yes | All | Select role and complete onboarding |
+| POST | `/forgot-password` | No | -- | **Planned** -- Request a password reset email |
+| POST | `/reset-password` | No | -- | **Planned** -- Reset password using emailed token |
+| POST | `/change-password` | Yes | All | **Planned** -- Change password (requires current password) |
+| POST | `/onboarding` | Yes | All | Select role and complete onboarding |
 | GET | `/me` | Yes | All | Get current authenticated user info |
+
+> **Note:** `/forgot-password`, `/reset-password`, and `/change-password` have DTOs and validators defined in the Application layer but the controller endpoints are not yet implemented.
 
 ### Request/Response Details
 
@@ -83,7 +85,7 @@ Response:
     "firstName": "string",
     "lastName": "string",
     "email": "string",
-    "role": "Student|Consultant|Company|Admin",
+    "role": "Unassigned|Student|Consultant|Company|Admin",
     "accountStatus": "Active|Pending|Suspended|Rejected",
     "profileImageUrl": "string?",
     "isOnboardingComplete": false
@@ -111,7 +113,7 @@ Response:
     "firstName": "string",
     "lastName": "string",
     "email": "string",
-    "role": "Student|Consultant|Company|Admin",
+    "role": "Unassigned|Student|Consultant|Company|Admin",
     "accountStatus": "Active|Pending|Suspended|Rejected",
     "profileImageUrl": "string?",
     "isOnboardingComplete": true
@@ -119,7 +121,7 @@ Response:
 }
 ```
 
-**POST /refresh-token**
+**POST /refresh**
 
 ```
 Request:
@@ -137,7 +139,7 @@ Response:
     "firstName": "string",
     "lastName": "string",
     "email": "string",
-    "role": "Student|Consultant|Company|Admin",
+    "role": "Unassigned|Student|Consultant|Company|Admin",
     "accountStatus": "Active|Pending|Suspended|Rejected",
     "profileImageUrl": "string?",
     "isOnboardingComplete": true
@@ -199,7 +201,7 @@ Request:
 Response: 204 No Content
 ```
 
-**POST /complete-onboarding**
+**POST /onboarding**
 
 ```
 Request:
@@ -210,10 +212,28 @@ Request:
   "bio": "string?"
 }
 
-Response:
+Response (Student - immediate activation):
 {
-  "message": "string",
-  "accountStatus": "Active|Pending"
+  "id": "guid",
+  "firstName": "string",
+  "lastName": "string",
+  "email": "string",
+  "role": "Student",
+  "accountStatus": "Active",
+  "profileImageUrl": "string?",
+  "isOnboardingComplete": true
+}
+
+Response (Consultant/Company - pending approval):
+{
+  "id": "guid",
+  "firstName": "string",
+  "lastName": "string",
+  "email": "string",
+  "role": "Unassigned",
+  "accountStatus": "Pending",
+  "profileImageUrl": "string?",
+  "isOnboardingComplete": true
 }
 ```
 
@@ -226,12 +246,16 @@ Response:
   "firstName": "string",
   "lastName": "string",
   "email": "string",
-  "role": "Student|Consultant|Company|Admin",
+  "role": "Unassigned|Student|Consultant|Company|Admin",
   "accountStatus": "Active|Pending|Suspended|Rejected",
   "profileImageUrl": "string?",
   "isOnboardingComplete": true
 }
 ```
+
+---
+
+> **The following sections (Profile, Scholarships, Community, Notifications) are planned specifications. No controllers are implemented yet. These contracts are subject to change during implementation.**
 
 ---
 
@@ -491,13 +515,15 @@ Base path: `/api/v1/admin`
 | PUT | `/success-stories/{id}/approve` | Yes | Admin | Approve a success story |
 | PUT | `/success-stories/{id}/reject` | Yes | Admin | Reject a success story |
 
+> **Currently implemented:** `GET /upgrade-requests`, `PUT .../approve`, `PUT .../reject`, `PUT .../request-info`. Other admin endpoints listed above are planned.
+
 ### Request/Response Details
 
 **GET /admin/upgrade-requests**
 
 ```
 Query:    { status?, page, pageSize }
-Response: { items: [{ id, userId, userName, userEmail, requestedRole, status, justification, createdAt }], ... }
+Response: { items: [{ id, userId, userName, userEmail, requestedRole, status, adminNotes, createdAt }], page, pageSize, totalCount, totalPages }
 ```
 
 **PUT /admin/upgrade-requests/{id}/approve**
@@ -509,15 +535,15 @@ Response: { id, status: "Approved", reviewedAt }
 **PUT /admin/upgrade-requests/{id}/reject**
 
 ```
-Request:  { reviewNotes }
-Response: { id, status: "Rejected", reviewNotes, reviewedAt }
+Request:  { adminNotes }
+Response: { id, status: "Rejected", adminNotes, reviewedAt }
 ```
 
 **PUT /admin/upgrade-requests/{id}/request-info**
 
 ```
-Request:  { reviewNotes }
-Response: { id, status: "NeedsMoreInfo", reviewNotes, reviewedAt }
+Request:  { adminNotes }
+Response: { id, status: "NeedsMoreInfo", adminNotes, reviewedAt }
 ```
 
 **POST /admin/scholarships**
@@ -531,7 +557,7 @@ Response: { id, title, ... , createdAt }
 
 ## Error Response Format
 
-All error responses follow a consistent structure:
+> **Note:** There is currently an inconsistency in error responses. Controller-level errors (e.g., validation, business logic) return `{ "error": "..." }` format, while unhandled exceptions and framework-level errors use the standard ProblemDetails format shown below. This will be unified in a future update.
 
 ```json
 {

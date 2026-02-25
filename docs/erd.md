@@ -350,3 +350,5 @@ erDiagram
 - **Resource** has no navigation properties to other entities (no `UploadedById` FK) and no foreign key relationships in the current model.
 - Several entities use Arabic-language fields (`TitleAr`, `DescriptionAr`, `NameAr`, `ContentAr`, `MessageAr`) for bilingual support.
 - **UpgradeRequest** contains role-specific fields: consultant fields (`ExperienceSummary`, `LinkedInUrl`, etc.) and company fields (`CompanyName`, `CompanyWebsite`, etc.).
+- **UserRole enum values:** `Unassigned=0`, `Student=1`, `Consultant=2`, `Company=3`, `Admin=4`.
+- During onboarding, users start as `Unassigned`; consultant/company requests keep `Role=Unassigned` until admin approval updates the role.
