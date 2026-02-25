@@ -4,7 +4,8 @@ namespace ScholarPath.Domain.Interfaces;
 
 public interface ICurrentUserService
 {
-    string? UserId { get; }
+    Guid? UserId { get; }
+    string? UserEmail { get; }
     UserRole? UserRole { get; }
     bool IsAuthenticated { get; }
 }
