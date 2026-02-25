@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ScholarPath.Domain.Entities;
@@ -14,32 +13,23 @@ namespace ScholarPath.Infrastructure.Services;
 public class TokenService : ITokenService
 {
     private readonly JwtSettings _jwtSettings;
-    private readonly UserManager<ApplicationUser> _userManager;
 
-    public TokenService(
-        IOptions<JwtSettings> jwtSettings,
-        UserManager<ApplicationUser> userManager)
+    public TokenService(IOptions<JwtSettings> jwtSettings)
     {
         _jwtSettings = jwtSettings.Value;
-        _userManager = userManager;
     }
 
-    public async Task<string> GenerateAccessToken(ApplicationUser user)
+    public Task<string> GenerateAccessToken(ApplicationUser user)
     {
-        var roles = await _userManager.GetRolesAsync(user);
-
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new("role", user.Role.ToString()),
+            new(ClaimTypes.Role, user.Role.ToString()),
         };
-
-        foreach (var role in roles)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -51,7 +41,7 @@ public class TokenService : ITokenService
             expires: DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
             signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
     }
 
     public string GenerateRefreshToken()

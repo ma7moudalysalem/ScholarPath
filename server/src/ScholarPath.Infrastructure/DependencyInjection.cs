@@ -24,7 +24,10 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         // Settings
-        services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+        services.AddOptions<JwtSettings>()
+            .Bind(configuration.GetSection(JwtSettings.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
         services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
 
         // Database
@@ -70,17 +73,7 @@ public static class DependencyInjection
         .AddDefaultTokenProviders();
 
         // JWT Authentication
-        var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
-            ?? throw new InvalidOperationException(
-                $"'{JwtSettings.SectionName}' configuration section is missing. " +
-                "Ensure appsettings.json contains a valid JwtSettings block.");
-
-        if (string.IsNullOrWhiteSpace(jwtSettings.SecretKey) || jwtSettings.SecretKey.Length < 32)
-        {
-            throw new InvalidOperationException(
-                "JWT SecretKey must be at least 32 characters long. " +
-                "Set a secure key via environment variable or user secrets.");
-        }
+        var jwtSettings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()!;
 
         services.AddAuthentication(options =>
         {
@@ -127,7 +120,7 @@ public static class DependencyInjection
         // Services
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IEmailService, EmailService>();
-        services.AddSingleton<ICachingService, CachingService>();
+        services.AddScoped<ICachingService, CachingService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
         services.AddHttpContextAccessor();
