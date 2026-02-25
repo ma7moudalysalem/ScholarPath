@@ -8,6 +8,7 @@ public class RefreshTokenRequestValidator : AbstractValidator<RefreshTokenReques
     public RefreshTokenRequestValidator()
     {
         RuleFor(x => x.RefreshToken)
-            .NotEmpty().WithMessage("Refresh token is required.");
+            .NotEmpty().WithMessage("errors.validation.refreshTokenRequired")
+            .MaximumLength(2048).WithMessage("errors.validation.maxLength");
     }
 }

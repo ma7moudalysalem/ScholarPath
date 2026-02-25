@@ -8,31 +8,33 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
     public RegisterRequestValidator()
     {
         RuleFor(x => x.FirstName)
-            .NotEmpty().WithMessage("First name is required.")
-            .MinimumLength(2).WithMessage("First name must be at least 2 characters.")
-            .MaximumLength(50).WithMessage("First name must not exceed 50 characters.");
+            .NotEmpty().WithMessage("errors.validation.firstNameRequired")
+            .MinimumLength(2).WithMessage("errors.validation.firstNameMinLength")
+            .MaximumLength(50).WithMessage("errors.validation.firstNameMaxLength")
+            .Matches(@"^[\p{L}\s\-'.]+$").WithMessage("errors.validation.invalidNameCharacters");
 
         RuleFor(x => x.LastName)
-            .NotEmpty().WithMessage("Last name is required.")
-            .MinimumLength(2).WithMessage("Last name must be at least 2 characters.")
-            .MaximumLength(50).WithMessage("Last name must not exceed 50 characters.");
+            .NotEmpty().WithMessage("errors.validation.lastNameRequired")
+            .MinimumLength(2).WithMessage("errors.validation.lastNameMinLength")
+            .MaximumLength(50).WithMessage("errors.validation.lastNameMaxLength")
+            .Matches(@"^[\p{L}\s\-'.]+$").WithMessage("errors.validation.invalidNameCharacters");
 
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required.")
-            .EmailAddress().WithMessage("A valid email address is required.")
-            .MaximumLength(256).WithMessage("Email must not exceed 256 characters.");
+            .NotEmpty().WithMessage("errors.validation.emailRequired")
+            .EmailAddress().WithMessage("errors.validation.emailInvalid")
+            .MaximumLength(256).WithMessage("errors.validation.emailMaxLength");
 
         RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("Password is required.")
-            .MinimumLength(8).WithMessage("Password must be at least 8 characters.")
-            .MaximumLength(128).WithMessage("Password must not exceed 128 characters.")
-            .Matches(@"[A-Z]").WithMessage("Password must contain at least one uppercase letter.")
-            .Matches(@"[a-z]").WithMessage("Password must contain at least one lowercase letter.")
-            .Matches(@"[0-9]").WithMessage("Password must contain at least one digit.")
-            .Matches(@"[\W_]").WithMessage("Password must contain at least one special character.");
+            .NotEmpty().WithMessage("errors.validation.passwordRequired")
+            .MinimumLength(8).WithMessage("errors.validation.passwordMinLength")
+            .MaximumLength(256).WithMessage("errors.validation.maxLength")
+            .Matches(@"[A-Z]").WithMessage("errors.validation.passwordUppercase")
+            .Matches(@"[a-z]").WithMessage("errors.validation.passwordLowercase")
+            .Matches(@"[0-9]").WithMessage("errors.validation.passwordDigit")
+            .Matches(@"[\W_]").WithMessage("errors.validation.passwordSpecialChar");
 
         RuleFor(x => x.ConfirmPassword)
-            .NotEmpty().WithMessage("Password confirmation is required.")
-            .Equal(x => x.Password).WithMessage("Passwords do not match.");
+            .NotEmpty().WithMessage("errors.validation.confirmPasswordRequired")
+            .Equal(x => x.Password).WithMessage("errors.validation.passwordsMismatch");
     }
 }

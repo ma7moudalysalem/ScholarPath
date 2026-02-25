@@ -8,10 +8,11 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
     public LoginRequestValidator()
     {
         RuleFor(x => x.Identifier)
-            .NotEmpty().WithMessage("Email or username is required.")
-            .MaximumLength(256).WithMessage("Identifier must not exceed 256 characters.");
+            .NotEmpty().WithMessage("errors.validation.identifierRequired")
+            .MaximumLength(256).WithMessage("errors.validation.identifierMaxLength");
 
         RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("Password is required.");
+            .NotEmpty().WithMessage("errors.validation.passwordRequired")
+            .MaximumLength(256).WithMessage("errors.validation.maxLength");
     }
 }

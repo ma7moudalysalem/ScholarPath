@@ -8,8 +8,8 @@ public class ForgotPasswordRequestValidator : AbstractValidator<ForgotPasswordRe
     public ForgotPasswordRequestValidator()
     {
         RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("Email is required.")
-            .EmailAddress().WithMessage("A valid email address is required.")
-            .MaximumLength(256).WithMessage("Email must not exceed 256 characters.");
+            .NotEmpty().WithMessage("errors.validation.emailRequired")
+            .EmailAddress().WithMessage("errors.validation.emailInvalid")
+            .MaximumLength(256).WithMessage("errors.validation.emailMaxLength");
     }
 }

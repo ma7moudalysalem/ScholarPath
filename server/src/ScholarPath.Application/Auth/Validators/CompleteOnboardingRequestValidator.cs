@@ -9,30 +9,25 @@ public class CompleteOnboardingRequestValidator : AbstractValidator<CompleteOnbo
     public CompleteOnboardingRequestValidator()
     {
         RuleFor(x => x.SelectedRole)
-            .IsInEnum().WithMessage("Invalid role selected.")
-            .Must(role => role != UserRole.Admin)
-            .WithMessage("Admin role cannot be selected during onboarding.");
-
-        RuleFor(x => x.SelectedRole)
             .Must(role => role == UserRole.Student || role == UserRole.Consultant || role == UserRole.Company)
-            .WithMessage("Selected role must be Student, Consultant, or Company.");
+            .WithMessage("errors.validation.roleNotAllowed");
 
-        When(x => x.SelectedRole == UserRole.Company, () =>
-        {
-            RuleFor(x => x.CompanyName)
-                .NotEmpty().WithMessage("Company name is required for Company accounts.")
-                .MaximumLength(200).WithMessage("Company name must not exceed 200 characters.");
-        });
+        // Company-specific: CompanyName is required when role is Company
+        RuleFor(x => x.CompanyName)
+            .NotEmpty().WithMessage("errors.validation.companyNameRequired")
+            .MinimumLength(2).WithMessage("errors.validation.companyNameMinLength")
+            .MaximumLength(200).WithMessage("errors.validation.companyNameMaxLength")
+            .When(x => x.SelectedRole == UserRole.Company);
 
-        When(x => x.SelectedRole == UserRole.Consultant, () =>
-        {
-            RuleFor(x => x.ExpertiseArea)
-                .NotEmpty().WithMessage("Expertise area is required for Consultant accounts.")
-                .MaximumLength(500).WithMessage("Expertise area must not exceed 500 characters.");
+        // Consultant-specific: ExpertiseArea is required when role is Consultant
+        RuleFor(x => x.ExpertiseArea)
+            .NotEmpty().WithMessage("errors.validation.expertiseAreaRequired")
+            .MaximumLength(500).WithMessage("errors.validation.expertiseAreaMaxLength")
+            .When(x => x.SelectedRole == UserRole.Consultant);
 
-            RuleFor(x => x.Bio)
-                .NotEmpty().WithMessage("Bio is required for Consultant accounts.")
-                .MaximumLength(2000).WithMessage("Bio must not exceed 2000 characters.");
-        });
+        RuleFor(x => x.Bio)
+            .NotEmpty().WithMessage("errors.validation.bioRequired")
+            .MaximumLength(2000).WithMessage("errors.validation.bioMaxLength")
+            .When(x => x.SelectedRole == UserRole.Consultant);
     }
 }
