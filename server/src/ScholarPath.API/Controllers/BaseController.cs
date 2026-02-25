@@ -43,4 +43,9 @@ public abstract class BaseController : ControllerBase
     {
         return StatusCode(StatusCodes.Status403Forbidden, new { Error = message });
     }
+
+    protected ActionResult ConflictResult(string error)
+    {
+        return Conflict(new { Error = error });
+    }
 }

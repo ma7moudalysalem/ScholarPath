@@ -27,6 +27,14 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogDebug("Request was cancelled by the client");
+            if (!context.Response.HasStarted)
+            {
+                context.Response.StatusCode = 499; // Client Closed Request
+            }
+        }
         catch (Exception ex)
         {
             await HandleExceptionAsync(context, ex);
@@ -35,6 +43,12 @@ public class ExceptionHandlingMiddleware
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        if (context.Response.HasStarted)
+        {
+            _logger.LogWarning(exception, "Response has already started, cannot write error response for: {Message}", exception.Message);
+            return;
+        }
+
         var (statusCode, title, detail, errors) = exception switch
         {
             ValidationException validationEx => (
@@ -53,18 +67,6 @@ public class ExceptionHandlingMiddleware
                 StatusCodes.Status404NotFound,
                 "Not Found",
                 notFoundEx.Message.Length > 0 ? notFoundEx.Message : "The requested resource was not found.",
-                Array.Empty<string>()
-            ),
-            ArgumentException => (
-                StatusCodes.Status400BadRequest,
-                "Bad Request",
-                "The request contains invalid parameters.",
-                Array.Empty<string>()
-            ),
-            InvalidOperationException => (
-                StatusCodes.Status409Conflict,
-                "Conflict",
-                "The request could not be completed due to a conflict with the current state.",
                 Array.Empty<string>()
             ),
             _ => (

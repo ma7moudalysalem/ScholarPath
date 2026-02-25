@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Hangfire;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi;
 using ScholarPath.API.Middleware;
@@ -14,7 +15,7 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .WriteTo.Console()
     .WriteTo.File("logs/scholarpath-.log", rollingInterval: RollingInterval.Day)
-    .CreateBootstrapLogger();
+    .CreateLogger();
 
 try
 {
@@ -103,14 +104,6 @@ try
     {
         options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-        options.AddFixedWindowLimiter("fixed", limiterOptions =>
-        {
-            limiterOptions.PermitLimit = 100;
-            limiterOptions.Window = TimeSpan.FromMinutes(1);
-            limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-            limiterOptions.QueueLimit = 10;
-        });
-
         options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
             RateLimitPartition.GetFixedWindowLimiter(
                 partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "anonymous",
@@ -132,6 +125,9 @@ try
     // Exception handling middleware
     app.UseMiddleware<ExceptionHandlingMiddleware>();
 
+    // Security headers middleware
+    app.UseMiddleware<SecurityHeadersMiddleware>();
+
     // Serilog request logging
     app.UseSerilogRequestLogging();
 
@@ -149,9 +145,17 @@ try
         var hangfireEnabled = builder.Configuration.GetValue<bool>("Hangfire:Enabled");
         if (hangfireEnabled)
         {
-            app.UseHangfireDashboard("/hangfire");
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            {
+                Authorization = [new Hangfire.Dashboard.LocalRequestsOnlyAuthorizationFilter()]
+            });
         }
     }
+
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    });
 
     app.UseHttpsRedirection();
 
@@ -176,8 +180,11 @@ try
 catch (Exception ex)
 {
     Log.Fatal(ex, "Application terminated unexpectedly");
+    throw;
 }
 finally
 {
     Log.CloseAndFlush();
 }
+
+public partial class Program;
