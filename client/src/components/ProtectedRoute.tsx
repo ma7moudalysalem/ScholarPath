@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore, selectIsAdmin } from '@/stores/authStore';
-import { UserRole } from '@/types';
+import { AccountStatus, UserRole } from '@/types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -21,6 +21,14 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   // (unless they're already on the onboarding page)
   if (user && !user.isOnboardingComplete && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
+  }
+
+  if (user && user.accountStatus === AccountStatus.Pending && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  if (user && user.isOnboardingComplete && user.accountStatus === AccountStatus.Active && location.pathname === '/onboarding') {
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Check role requirement

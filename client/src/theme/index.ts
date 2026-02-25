@@ -109,4 +109,3 @@ export function createScholarPathTheme(direction: 'ltr' | 'rtl', mode: PaletteMo
   });
 }
 
-export const defaultTheme = createScholarPathTheme('ltr', 'light');

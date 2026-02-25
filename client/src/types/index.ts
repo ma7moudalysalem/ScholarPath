@@ -1,10 +1,11 @@
 // ─── Enums (mirroring backend) ───────────────────────────────────────────────
 
 export enum UserRole {
-  Student = 0,
-  Consultant = 1,
-  Company = 2,
-  Admin = 3,
+  Unassigned = 0,
+  Student = 1,
+  Consultant = 2,
+  Company = 3,
+  Admin = 4,
 }
 
 export enum AccountStatus {
@@ -22,25 +23,27 @@ export enum UpgradeRequestStatus {
 }
 
 export enum NotificationType {
-  General = 0,
-  ScholarshipDeadline = 1,
-  ApplicationUpdate = 2,
-  CommunityActivity = 3,
-  AccountUpgrade = 4,
+  System = 0,
+  UpgradeStatus = 1,
+  ScholarshipAlert = 2,
+  CommunityMention = 3,
+  Message = 4,
+  SessionReminder = 5,
 }
 
 export enum ScholarshipFundingType {
   FullyFunded = 0,
   PartiallyFunded = 1,
   SelfFunded = 2,
+  Other = 3,
 }
 
 export enum DegreeLevel {
-  Bachelor = 0,
-  Master = 1,
+  Bachelors = 0,
+  Masters = 1,
   PhD = 2,
   Diploma = 3,
-  Certificate = 4,
+  Other = 4,
 }
 
 // ─── DTOs ────────────────────────────────────────────────────────────────────
@@ -54,19 +57,19 @@ export interface UserDto {
   role: UserRole;
   accountStatus: AccountStatus;
   isOnboardingComplete: boolean;
-  createdAt: string;
-  lastLoginAt: string | null;
 }
 
 export interface AuthResponse {
   user: UserDto;
   accessToken: string;
   refreshToken: string;
+  expiresAt: string;
 }
 
 export interface LoginRequest {
-  email: string;
+  identifier: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterRequest {
@@ -78,10 +81,10 @@ export interface RegisterRequest {
 }
 
 export interface OnboardingRequest {
-  role: UserRole;
+  selectedRole: UserRole;
+  companyName?: string;
+  expertiseArea?: string;
   bio?: string;
-  organization?: string;
-  fieldOfStudy?: string;
 }
 
 export interface ForgotPasswordRequest {
@@ -89,16 +92,15 @@ export interface ForgotPasswordRequest {
 }
 
 export interface ResetPasswordRequest {
-  email: string;
   token: string;
   newPassword: string;
-  confirmPassword: string;
+  confirmNewPassword: string;
 }
 
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
-  confirmPassword: string;
+  confirmNewPassword: string;
 }
 
 export interface ScholarshipDto {
@@ -165,24 +167,24 @@ export interface UserProfileDto {
   id: string;
   userId: string;
   bio: string | null;
-  organization: string | null;
   fieldOfStudy: string | null;
   country: string | null;
   dateOfBirth: string | null;
   phoneNumber: string | null;
-  linkedInUrl: string | null;
-  websiteUrl: string | null;
+  gpa?: number;
+  interests?: string;
+  targetCountry?: string;
 }
 
 export interface UpdateProfileRequest {
   bio?: string;
-  organization?: string;
   fieldOfStudy?: string;
   country?: string;
   dateOfBirth?: string;
   phoneNumber?: string;
-  linkedInUrl?: string;
-  websiteUrl?: string;
+  gpa?: number;
+  interests?: string;
+  targetCountry?: string;
 }
 
 export interface UpgradeRequestDto {
@@ -192,7 +194,6 @@ export interface UpgradeRequestDto {
   userName: string;
   requestedRole: UserRole;
   status: UpgradeRequestStatus;
-  reason: string;
   adminNotes: string | null;
   createdAt: string;
   reviewedAt: string | null;

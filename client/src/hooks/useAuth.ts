@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore, selectIsAdmin, selectRole, selectIsOnboarded } from '@/stores/authStore';
 import { authService } from '@/services/authService';
 import type { LoginRequest, RegisterRequest, OnboardingRequest } from '@/types';
-import { UserRole } from '@/types';
+import { AccountStatus, UserRole } from '@/types';
 
 export function useAuth() {
   const navigate = useNavigate();
@@ -33,7 +33,7 @@ export function useAuth() {
         const response = await authService.login(data);
         setAuth(response.user, response.accessToken, response.refreshToken);
 
-        if (!response.user.isOnboardingComplete) {
+        if (!response.user.isOnboardingComplete || response.user.accountStatus === AccountStatus.Pending) {
           navigate('/onboarding');
         } else {
           navigate('/dashboard');
@@ -76,7 +76,11 @@ export function useAuth() {
       try {
         const updatedUser = await authService.completeOnboarding(data);
         setUser(updatedUser);
-        navigate('/dashboard');
+        if (updatedUser.accountStatus === AccountStatus.Pending) {
+          navigate('/onboarding');
+        } else {
+          navigate('/dashboard');
+        }
       } finally {
         setLoading(false);
       }

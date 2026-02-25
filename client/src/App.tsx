@@ -1,7 +1,9 @@
 import { useMemo, lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, CircularProgress, Box } from '@mui/material';
+import { CacheProvider } from '@emotion/react';
 import { createScholarPathTheme } from '@/theme';
+import { rtlCache, ltrCache } from '@/theme/rtlCache';
 import { useUiStore } from '@/stores/uiStore';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
@@ -44,10 +46,13 @@ export default function App() {
     [direction, themeMode]
   );
 
+  const emotionCache = direction === 'rtl' ? rtlCache : ltrCache;
+
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <ErrorBoundary>
+    <CacheProvider value={emotionCache}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Public routes */}
@@ -57,6 +62,7 @@ export default function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
 
             {/* Onboarding (protected, no layout chrome) */}
@@ -97,11 +103,11 @@ export default function App() {
               />
             </Route>
 
-            {/* 404 page */}
-            <Route path="*" element={<NotFound />} />
+
           </Routes>
         </Suspense>
       </ErrorBoundary>
-    </ThemeProvider>
+      </ThemeProvider>
+    </CacheProvider>
   );
 }

@@ -34,9 +34,13 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            if (id.includes("@mui") || id.includes("@emotion")) return "vendor-mui";
-            if (id.includes("react")) return "vendor-react";
-            return "vendor-lib";
+            if (id.includes("@mui")) return "vendor-mui";
+            if (
+              id.includes("@emotion") ||
+              id.includes("stylis")
+            )
+              return "vendor-emotion";
+            return "vendor";
           }
         },
       },
