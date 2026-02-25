@@ -38,5 +38,5 @@ public class Scholarship : AuditableEntity, ISoftDeletable
 
     // Navigation properties
     public Category? Category { get; set; }
-    public ICollection<SavedScholarship> SavedScholarships { get; set; } = new List<SavedScholarship>();
+    public ICollection<SavedScholarship> SavedScholarships { get; set; } = [];
 }

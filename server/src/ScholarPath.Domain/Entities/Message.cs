@@ -8,7 +8,6 @@ public class Message : BaseEntity, ISoftDeletable
     public Guid? ReceiverId { get; set; }
     public Guid? GroupId { get; set; }
     public string Content { get; set; } = string.Empty;
-    public DateTime SentAt { get; set; } = DateTime.UtcNow;
     public bool IsRead { get; set; }
     public DateTime? ReadAt { get; set; }
 

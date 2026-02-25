@@ -15,5 +15,5 @@ public class Category : BaseEntity, ISoftDeletable
     public string? DeletedBy { get; set; }
 
     // Navigation properties
-    public ICollection<Scholarship> Scholarships { get; set; } = new List<Scholarship>();
+    public ICollection<Scholarship> Scholarships { get; set; } = [];
 }

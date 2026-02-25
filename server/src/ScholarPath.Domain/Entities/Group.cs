@@ -20,6 +20,7 @@ public class Group : AuditableEntity, ISoftDeletable
 
     // Navigation properties
     public ApplicationUser Creator { get; set; } = null!;
-    public ICollection<GroupMember> Members { get; set; } = new List<GroupMember>();
-    public ICollection<Post> Posts { get; set; } = new List<Post>();
+    public ICollection<GroupMember> Members { get; set; } = [];
+    public ICollection<Post> Posts { get; set; } = [];
+    public ICollection<Message> Messages { get; set; } = [];
 }

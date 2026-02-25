@@ -17,6 +17,6 @@ public class Post : AuditableEntity, ISoftDeletable
     // Navigation properties
     public Group Group { get; set; } = null!;
     public ApplicationUser Author { get; set; } = null!;
-    public ICollection<Comment> Comments { get; set; } = new List<Comment>();
-    public ICollection<Like> Likes { get; set; } = new List<Like>();
+    public ICollection<Comment> Comments { get; set; } = [];
+    public ICollection<Like> Likes { get; set; } = [];
 }

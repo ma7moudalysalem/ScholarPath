@@ -11,7 +11,6 @@ public class UserProfile : AuditableEntity
     public string? Country { get; set; }
     public string? TargetCountry { get; set; }
     public string? Bio { get; set; }
-    public string? PhoneNumber { get; set; }
     public DateTime? DateOfBirth { get; set; }
 
     // Navigation properties

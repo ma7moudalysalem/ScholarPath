@@ -18,5 +18,6 @@ public class Comment : AuditableEntity, ISoftDeletable
     public Post Post { get; set; } = null!;
     public ApplicationUser Author { get; set; } = null!;
     public Comment? ParentComment { get; set; }
-    public ICollection<Comment> Replies { get; set; } = new List<Comment>();
+    public ICollection<Comment> Replies { get; set; } = [];
+    public ICollection<Like> Likes { get; set; } = [];
 }
