@@ -11,6 +11,7 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
         builder.HasKey(p => p.Id);
 
         builder.Property(p => p.Content)
+            .HasMaxLength(10000)
             .IsRequired();
 
         builder.Property(p => p.ImageUrl)
@@ -21,6 +22,9 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
 
         builder.HasIndex(p => p.AuthorId)
             .HasDatabaseName("IX_Posts_AuthorId");
+
+        builder.HasIndex(p => new { p.GroupId, p.CreatedAt })
+            .HasDatabaseName("IX_Posts_GroupId_CreatedAt");
 
         builder.HasOne(p => p.Author)
             .WithMany()
@@ -62,6 +66,11 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
             .WithMany(c => c.Replies)
             .HasForeignKey(c => c.ParentCommentId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(c => c.Likes)
+            .WithOne(l => l.Comment)
+            .HasForeignKey(l => l.CommentId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

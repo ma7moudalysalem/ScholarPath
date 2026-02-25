@@ -74,6 +74,12 @@ public class ScholarshipConfiguration : IEntityTypeConfiguration<Scholarship>
         builder.HasIndex(s => s.IsActive)
             .HasDatabaseName("IX_Scholarships_IsActive");
 
+        builder.HasIndex(s => s.DegreeLevel)
+            .HasDatabaseName("IX_Scholarships_DegreeLevel");
+
+        builder.HasIndex(s => s.FundingType)
+            .HasDatabaseName("IX_Scholarships_FundingType");
+
         // Relationships
         builder.HasOne(s => s.Category)
             .WithMany(c => c.Scholarships)

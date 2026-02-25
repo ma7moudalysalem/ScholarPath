@@ -11,6 +11,7 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.HasKey(m => m.Id);
 
         builder.Property(m => m.Content)
+            .HasMaxLength(5000)
             .IsRequired();
 
         builder.HasIndex(m => m.SenderId)
@@ -22,8 +23,8 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.HasIndex(m => m.GroupId)
             .HasDatabaseName("IX_Messages_GroupId");
 
-        builder.HasIndex(m => m.SentAt)
-            .HasDatabaseName("IX_Messages_SentAt");
+        builder.HasIndex(m => m.CreatedAt)
+            .HasDatabaseName("IX_Messages_CreatedAt");
 
         // A message targets either a user (DM) or a group, never both or neither
         builder.ToTable(t => t.HasCheckConstraint("CK_Messages_ReceiverOrGroup",
@@ -40,7 +41,7 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(m => m.Group)
-            .WithMany()
+            .WithMany(g => g.Messages)
             .HasForeignKey(m => m.GroupId)
             .OnDelete(DeleteBehavior.Cascade);
     }

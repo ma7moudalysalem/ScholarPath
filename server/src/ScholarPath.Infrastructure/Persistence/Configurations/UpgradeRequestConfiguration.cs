@@ -232,9 +232,6 @@ public class UserProfileConfiguration : IEntityTypeConfiguration<UserProfile>
         builder.Property(up => up.Bio)
             .HasMaxLength(2000);
 
-        builder.Property(up => up.PhoneNumber)
-            .HasMaxLength(50);
-
         builder.HasIndex(up => up.UserId)
             .IsUnique()
             .HasDatabaseName("IX_UserProfiles_UserId");
