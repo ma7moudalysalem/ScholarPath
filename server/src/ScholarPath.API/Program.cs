@@ -35,6 +35,15 @@ try
     builder.Services.AddApplicationServices();
     builder.Services.AddInfrastructureServices(builder.Configuration);
 
+    // Account Lockout 
+    builder.Services.Configure<Microsoft.AspNetCore.Identity.IdentityOptions>(options =>
+
+    { 
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        options.Lockout.AllowedForNewUsers = true;
+    });
+
     // Controllers
     builder.Services.AddControllers();
 

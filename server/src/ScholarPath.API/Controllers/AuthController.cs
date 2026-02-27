@@ -114,7 +114,19 @@ public class AuthController : BaseController
             return ForbiddenResult("errors.auth.accountNotActive");
         }
 
+        /*  var signInResult = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+          if (!signInResult.Succeeded)
+          {
+              return UnauthorizedResult("errors.auth.invalidCredentials");
+          }*/
+
         var signInResult = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+
+        if (signInResult.IsLockedOut)
+        {
+            return BadRequestResult("errors.auth.accountLockedOut");
+        }
+
         if (!signInResult.Succeeded)
         {
             return UnauthorizedResult("errors.auth.invalidCredentials");
