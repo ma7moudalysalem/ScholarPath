@@ -20,7 +20,6 @@ public class AdminController : BaseController
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
 
-    // Valid rejection reason codes
     private static readonly HashSet<string> ValidRejectionCodes =
     [
         "missing_crn",
@@ -51,7 +50,6 @@ public class AdminController : BaseController
         if (pageSize < 1) pageSize = 20;
         if (pageSize > 100) pageSize = 100;
 
-
         IQueryable<UpgradeRequest> query = _dbContext.UpgradeRequests.AsNoTracking();
 
         if (status.HasValue)
@@ -80,13 +78,57 @@ public class AdminController : BaseController
         return Ok(requests);
     }
 
+    [HttpPut("upgrade-requests/{id:guid}/approve")]
+    public async Task<IActionResult> ApproveUpgradeRequest(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        var upgradeRequest = await _dbContext.UpgradeRequests
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        if (upgradeRequest is null)
+            return NotFoundResult("errors.admin.upgradeRequestNotFound");
+
+        if (upgradeRequest.Status != UpgradeRequestStatus.Pending)
+            return BadRequestResult("errors.admin.onlyPendingCanBeApproved");
+
+        var adminUser = await _userManager.GetUserAsync(User);
+
+        upgradeRequest.Status = UpgradeRequestStatus.Approved;
+        upgradeRequest.ReviewedAt = DateTime.UtcNow;
+        upgradeRequest.ReviewedBy = adminUser?.Email;
+
+        upgradeRequest.User.Role = upgradeRequest.RequestedRole;
+        upgradeRequest.User.AccountStatus = AccountStatus.Active;
+        upgradeRequest.User.IsOnboardingComplete = true;
+
+        _dbContext.Notifications.Add(new Notification
+        {
+            UserId = upgradeRequest.UserId,
+            Type = NotificationType.UpgradeStatus,
+            Title = "Upgrade approved",
+            Message = "Your upgrade request has been approved. Welcome to your new role!",
+            RelatedEntityId = upgradeRequest.Id,
+            RelatedEntityType = nameof(UpgradeRequest)
+        });
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return Ok(new
+        {
+            upgradeRequest.Id,
+            upgradeRequest.Status,
+            upgradeRequest.ReviewedAt
+        });
+    }
+
     [HttpPut("upgrade-requests/{id:guid}/reject")]
     public async Task<IActionResult> RejectUpgradeRequest(
-    Guid id,
-    [FromBody] RejectUpgradeRequestDto request,
-    CancellationToken cancellationToken = default)
+        Guid id,
+        [FromBody] RejectUpgradeRequestDto request,
+        CancellationToken cancellationToken = default)
     {
-        // Reasons list validation
         if (request.Reasons is null || request.Reasons.Count == 0)
             return BadRequestResult("errors.admin.rejectionReasonsRequired");
 
@@ -115,7 +157,7 @@ public class AdminController : BaseController
 
         upgradeRequest.Status = UpgradeRequestStatus.Rejected;
         upgradeRequest.RejectionReasons = reasonsJson;
-        upgradeRequest.RejectionReason = string.Join(", ", request.Reasons.Select(r => r.Code)); // backward compat
+        upgradeRequest.RejectionReason = string.Join(", ", request.Reasons.Select(r => r.Code));
         upgradeRequest.AdminNotes = request.ReviewNotes?.Trim();
         upgradeRequest.ReviewedAt = DateTime.UtcNow;
         upgradeRequest.ReviewedBy = adminUser?.Email;
@@ -212,14 +254,11 @@ public class AdminController : BaseController
         return true;
     }
 
-    // Request Records
-
     public record UpgradeReviewRequest(string? ReviewNotes);
 
-
     public record RejectUpgradeRequestDto(
-     List<RejectionReasonDto> Reasons,
-     string? ReviewNotes
+        List<RejectionReasonDto> Reasons,
+        string? ReviewNotes
     );
 
     public record RejectionReasonDto(
