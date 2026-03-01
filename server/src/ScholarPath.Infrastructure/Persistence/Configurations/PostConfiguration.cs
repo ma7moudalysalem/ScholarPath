@@ -28,18 +28,15 @@ public class PostConfiguration : IEntityTypeConfiguration<Post>
 
         builder.HasOne(p => p.Author)
             .WithMany()
-            .HasForeignKey(p => p.AuthorId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasForeignKey(p => p.AuthorId);
 
         builder.HasMany(p => p.Comments)
             .WithOne(c => c.Post)
-            .HasForeignKey(c => c.PostId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(c => c.PostId);
 
         builder.HasMany(p => p.Likes)
             .WithOne(l => l.Post)
-            .HasForeignKey(l => l.PostId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(l => l.PostId);
     }
 }
 
@@ -58,19 +55,16 @@ public class CommentConfiguration : IEntityTypeConfiguration<Comment>
 
         builder.HasOne(c => c.Author)
             .WithMany()
-            .HasForeignKey(c => c.AuthorId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasForeignKey(c => c.AuthorId);
 
         // Self-referencing relationship for replies
         builder.HasOne(c => c.ParentComment)
             .WithMany(c => c.Replies)
-            .HasForeignKey(c => c.ParentCommentId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasForeignKey(c => c.ParentCommentId);
 
         builder.HasMany(c => c.Likes)
             .WithOne(l => l.Comment)
-            .HasForeignKey(l => l.CommentId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(l => l.CommentId);
     }
 }
 
@@ -98,7 +92,6 @@ public class LikeConfiguration : IEntityTypeConfiguration<Like>
 
         builder.HasOne(l => l.User)
             .WithMany()
-            .HasForeignKey(l => l.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(l => l.UserId);
     }
 }

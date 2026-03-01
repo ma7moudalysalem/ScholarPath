@@ -32,17 +32,14 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
 
         builder.HasOne(m => m.Sender)
             .WithMany()
-            .HasForeignKey(m => m.SenderId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasForeignKey(m => m.SenderId);
 
         builder.HasOne(m => m.Receiver)
             .WithMany()
-            .HasForeignKey(m => m.ReceiverId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasForeignKey(m => m.ReceiverId);
 
         builder.HasOne(m => m.Group)
             .WithMany(g => g.Messages)
-            .HasForeignKey(m => m.GroupId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(m => m.GroupId);
     }
 }

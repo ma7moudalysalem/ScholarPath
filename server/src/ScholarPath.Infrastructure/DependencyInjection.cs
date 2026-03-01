@@ -31,23 +31,10 @@ public static class DependencyInjection
         services.Configure<EmailSettings>(configuration.GetSection(EmailSettings.SectionName));
 
         // Database
-        var useSqlite = configuration.GetValue<bool>("DatabaseSettings:UseSqlite");
-
-        if (useSqlite)
-        {
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlite(
-                    configuration.GetConnectionString("DefaultConnection")
-                        ?? "Data Source=ScholarPath.db",
-                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
-        }
-        else
-        {
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
-                    configuration.GetConnectionString("DefaultConnection"),
-                    b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
-        }
+        services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlServer(
+                configuration.GetConnectionString("DefaultConnection"),
+                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
 
         // ASP.NET Identity
         services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
@@ -157,7 +144,7 @@ public static class DependencyInjection
         var hangfireEnabled = configuration.GetValue<bool>("Hangfire:Enabled");
         var hangfireConnectionString = configuration.GetConnectionString("DefaultConnection");
 
-        if (hangfireEnabled && !string.IsNullOrWhiteSpace(hangfireConnectionString) && !useSqlite)
+        if (hangfireEnabled && !string.IsNullOrWhiteSpace(hangfireConnectionString))
         {
             services.AddHangfire(config => config
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)

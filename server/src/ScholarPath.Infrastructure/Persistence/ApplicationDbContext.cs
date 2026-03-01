@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Domain.Common;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
+using ScholarPath.Infrastructure.Persistence.Seeds;
 
 namespace ScholarPath.Infrastructure.Persistence;
 
@@ -46,6 +47,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
 
         // Apply all configurations from this assembly
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        // Default all FK delete behaviors to NoAction to prevent circular cascade paths
+        foreach (var foreignKey in builder.Model.GetEntityTypes()
+                     .SelectMany(e => e.GetForeignKeys()))
+        {
+            foreignKey.DeleteBehavior = DeleteBehavior.NoAction;
+        }
+
+        // Seed data
+        SeedData.Apply(builder);
 
         // Global query filters for soft-deletable entities
         foreach (var entityType in builder.Model.GetEntityTypes())

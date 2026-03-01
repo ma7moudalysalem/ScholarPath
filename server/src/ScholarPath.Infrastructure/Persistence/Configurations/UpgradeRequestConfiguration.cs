@@ -171,8 +171,7 @@ public class SuccessStoryConfiguration : IEntityTypeConfiguration<SuccessStory>
 
         builder.HasOne(ss => ss.User)
             .WithMany()
-            .HasForeignKey(ss => ss.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(ss => ss.UserId);
     }
 }
 

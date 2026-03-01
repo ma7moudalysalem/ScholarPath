@@ -83,13 +83,11 @@ public class ScholarshipConfiguration : IEntityTypeConfiguration<Scholarship>
         // Relationships
         builder.HasOne(s => s.Category)
             .WithMany(c => c.Scholarships)
-            .HasForeignKey(s => s.CategoryId)
-            .OnDelete(DeleteBehavior.SetNull);
+            .HasForeignKey(s => s.CategoryId);
 
         builder.HasMany(s => s.SavedScholarships)
             .WithOne(ss => ss.Scholarship)
-            .HasForeignKey(ss => ss.ScholarshipId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(ss => ss.ScholarshipId);
     }
 }
 

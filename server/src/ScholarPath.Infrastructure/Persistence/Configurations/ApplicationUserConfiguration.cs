@@ -32,27 +32,22 @@ public class ApplicationUserConfiguration : IEntityTypeConfiguration<Application
 
         builder.HasOne(u => u.UserProfile)
             .WithOne(p => p.User)
-            .HasForeignKey<UserProfile>(p => p.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey<UserProfile>(p => p.UserId);
 
         builder.HasMany(u => u.RefreshTokens)
             .WithOne(rt => rt.User)
-            .HasForeignKey(rt => rt.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(rt => rt.UserId);
 
         builder.HasMany(u => u.Notifications)
             .WithOne(n => n.User)
-            .HasForeignKey(n => n.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(n => n.UserId);
 
         builder.HasMany(u => u.UpgradeRequests)
             .WithOne(ur => ur.User)
-            .HasForeignKey(ur => ur.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(ur => ur.UserId);
 
         builder.HasMany(u => u.SavedScholarships)
             .WithOne(ss => ss.User)
-            .HasForeignKey(ss => ss.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(ss => ss.UserId);
     }
 }

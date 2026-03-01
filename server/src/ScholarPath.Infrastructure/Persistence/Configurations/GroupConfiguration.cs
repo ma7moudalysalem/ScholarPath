@@ -31,18 +31,15 @@ public class GroupConfiguration : IEntityTypeConfiguration<Group>
 
         builder.HasOne(g => g.Creator)
             .WithMany()
-            .HasForeignKey(g => g.CreatorId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .HasForeignKey(g => g.CreatorId);
 
         builder.HasMany(g => g.Members)
             .WithOne(gm => gm.Group)
-            .HasForeignKey(gm => gm.GroupId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(gm => gm.GroupId);
 
         builder.HasMany(g => g.Posts)
             .WithOne(p => p.Group)
-            .HasForeignKey(p => p.GroupId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(p => p.GroupId);
     }
 }
 
@@ -62,7 +59,6 @@ public class GroupMemberConfiguration : IEntityTypeConfiguration<GroupMember>
 
         builder.HasOne(gm => gm.User)
             .WithMany()
-            .HasForeignKey(gm => gm.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(gm => gm.UserId);
     }
 }
