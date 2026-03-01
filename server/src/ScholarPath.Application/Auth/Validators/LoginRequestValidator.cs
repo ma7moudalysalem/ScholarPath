@@ -16,6 +16,6 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
             .NotEmpty().WithMessage("errors.validation.passwordRequired")
             .MaximumLength(256).WithMessage("errors.validation.maxLength");
 
-        
+
     }
 }

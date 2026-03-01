@@ -26,7 +26,7 @@ public class UpgradeRequestConfiguration : IEntityTypeConfiguration<UpgradeReque
         builder.Property(ur => ur.RejectionReason)
             .HasMaxLength(1000);
 
-        
+
         builder.Property(ur => ur.RejectionReasons)
             .HasMaxLength(4000);
 
@@ -153,7 +153,7 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
             .IsRequired()
             .HasMaxLength(500);
 
-      
+
         builder.Property(rt => rt.CreatedByIp)
             .HasMaxLength(50);
 

@@ -44,7 +44,7 @@ public class TokenService : ITokenService
         return Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
     }
 
-    
+
     public string GenerateRefreshToken(TimeSpan? extendedExpiry = null)
     {
         _ = extendedExpiry;

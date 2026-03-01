@@ -145,7 +145,7 @@ public class UpgradeRequestsController : BaseController
             latest.Status,
             latest.AdminNotes,
             latest.RejectionReason,
-            latest.RejectionReasons, 
+            latest.RejectionReasons,
             latest.ReviewedBy,
             latest.ReviewedAt,
             latest.CreatedAt

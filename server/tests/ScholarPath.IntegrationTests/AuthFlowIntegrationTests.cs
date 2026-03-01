@@ -137,7 +137,7 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
             bio = "Mentor"
         });
 
-        
+
         client.DefaultRequestHeaders.Authorization = null;
         var adminLogin = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {
@@ -182,7 +182,7 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
             companyName = "Acme Corp"
         });
 
-       
+
         client.DefaultRequestHeaders.Authorization = null;
         var adminLogin = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {

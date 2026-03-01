@@ -104,4 +104,4 @@ public static class SeedData
 
         await context.Categories.AddRangeAsync(categories);
     }
-} 
+}

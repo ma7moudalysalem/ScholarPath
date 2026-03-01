@@ -12,125 +12,125 @@ namespace ScholarPath.Infrastructure.Services;
 
 public class ExternalAuthService : IExternalAuthService
 {
-  private readonly IConfiguration _config;
-  private readonly IHostEnvironment _env;
+    private readonly IConfiguration _config;
+    private readonly IHostEnvironment _env;
 
-  public ExternalAuthService(IConfiguration config, IHostEnvironment env)
-  {
-    _config = config;
-    _env = env;
-  }
-
-  public async Task<ExternalUserInfo?> ValidateAsync(string provider, string providerToken, CancellationToken ct)
-  {
-    if (string.IsNullOrWhiteSpace(provider) || string.IsNullOrWhiteSpace(providerToken))
-      return null;
-
-    var p = provider.Trim().ToLowerInvariant();
-    var token = providerToken.Trim();
-
-    // DEV tokens (for local Swagger demo)
-    if (_env.IsDevelopment())
+    public ExternalAuthService(IConfiguration config, IHostEnvironment env)
     {
-      if (p == "google" && token == "DEV_GOOGLE_TOKEN")
-        return new ExternalUserInfo("Google", "google-dev-123", "tasneem.student@test.com", "Tasneem", "Student", true);
-
-      if ((p == "microsoft" || p == "ms") && token == "DEV_MS_TOKEN")
-        return new ExternalUserInfo("Microsoft", "ms-dev-456", "tasneem.student@test.com", "Tasneem", "Student", true);
+        _config = config;
+        _env = env;
     }
 
-    return p switch
+    public async Task<ExternalUserInfo?> ValidateAsync(string provider, string providerToken, CancellationToken ct)
     {
-      "google" => await ValidateGoogleIdToken(token, ct),
-      "microsoft" or "ms" => await ValidateMicrosoftIdToken(token, ct),
-      _ => null
-    };
-  }
+        if (string.IsNullOrWhiteSpace(provider) || string.IsNullOrWhiteSpace(providerToken))
+            return null;
 
-  private async Task<ExternalUserInfo?> ValidateGoogleIdToken(string idToken, CancellationToken ct)
-  {
-    var clientId = _config["ExternalAuth:Google:ClientId"];
-    if (string.IsNullOrWhiteSpace(clientId)) return null;
+        var p = provider.Trim().ToLowerInvariant();
+        var token = providerToken.Trim();
 
-    try
-    {
-      var payload = await GoogleJsonWebSignature.ValidateAsync(
-          idToken,
-          new GoogleJsonWebSignature.ValidationSettings { Audience = new[] { clientId } }
-      );
+        // DEV tokens (for local Swagger demo)
+        if (_env.IsDevelopment())
+        {
+            if (p == "google" && token == "DEV_GOOGLE_TOKEN")
+                return new ExternalUserInfo("Google", "google-dev-123", "tasneem.student@test.com", "Tasneem", "Student", true);
 
-      
-      return new ExternalUserInfo(
-          "Google",
-          payload.Subject,
-          payload.Email,
-          payload.GivenName,
-          payload.FamilyName,
-          payload.EmailVerified
-      );
+            if ((p == "microsoft" || p == "ms") && token == "DEV_MS_TOKEN")
+                return new ExternalUserInfo("Microsoft", "ms-dev-456", "tasneem.student@test.com", "Tasneem", "Student", true);
+        }
+
+        return p switch
+        {
+            "google" => await ValidateGoogleIdToken(token, ct),
+            "microsoft" or "ms" => await ValidateMicrosoftIdToken(token, ct),
+            _ => null
+        };
     }
-    catch
+
+    private async Task<ExternalUserInfo?> ValidateGoogleIdToken(string idToken, CancellationToken ct)
     {
-      return null;
+        var clientId = _config["ExternalAuth:Google:ClientId"];
+        if (string.IsNullOrWhiteSpace(clientId)) return null;
+
+        try
+        {
+            var payload = await GoogleJsonWebSignature.ValidateAsync(
+                idToken,
+                new GoogleJsonWebSignature.ValidationSettings { Audience = new[] { clientId } }
+            );
+
+
+            return new ExternalUserInfo(
+                "Google",
+                payload.Subject,
+                payload.Email,
+                payload.GivenName,
+                payload.FamilyName,
+                payload.EmailVerified
+            );
+        }
+        catch
+        {
+            return null;
+        }
     }
-  }
 
-  private async Task<ExternalUserInfo?> ValidateMicrosoftIdToken(string idToken, CancellationToken ct)
-  {
-    var clientId = _config["ExternalAuth:Microsoft:ClientId"];
-    var tenantId = _config["ExternalAuth:Microsoft:TenantId"] ?? "common";
-    if (string.IsNullOrWhiteSpace(clientId)) return null;
-
-    try
+    private async Task<ExternalUserInfo?> ValidateMicrosoftIdToken(string idToken, CancellationToken ct)
     {
-      var authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
-      var metadataAddress = $"{authority}/.well-known/openid-configuration";
+        var clientId = _config["ExternalAuth:Microsoft:ClientId"];
+        var tenantId = _config["ExternalAuth:Microsoft:TenantId"] ?? "common";
+        if (string.IsNullOrWhiteSpace(clientId)) return null;
 
-      var configManager = new ConfigurationManager<OpenIdConnectConfiguration>(
-          metadataAddress,
-          new OpenIdConnectConfigurationRetriever()
-      );
+        try
+        {
+            var authority = $"https://login.microsoftonline.com/{tenantId}/v2.0";
+            var metadataAddress = $"{authority}/.well-known/openid-configuration";
 
-      var oidc = await configManager.GetConfigurationAsync(ct);
+            var configManager = new ConfigurationManager<OpenIdConnectConfiguration>(
+                metadataAddress,
+                new OpenIdConnectConfigurationRetriever()
+            );
 
-      var parameters = new TokenValidationParameters
-      {
-        ValidateAudience = true,
-        ValidAudience = clientId,
-        ValidateIssuer = false,
-        ValidateLifetime = true,
-        ClockSkew = TimeSpan.FromMinutes(2),
-        IssuerSigningKeys = oidc.SigningKeys
-      };
+            var oidc = await configManager.GetConfigurationAsync(ct);
 
-      var handler = new JwtSecurityTokenHandler();
-      var principal = handler.ValidateToken(idToken, parameters, out _);
+            var parameters = new TokenValidationParameters
+            {
+                ValidateAudience = true,
+                ValidAudience = clientId,
+                ValidateIssuer = false,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(2),
+                IssuerSigningKeys = oidc.SigningKeys
+            };
 
-      var email =
-          principal.FindFirst("preferred_username")?.Value ??
-          principal.FindFirst(ClaimTypes.Email)?.Value ??
-          principal.FindFirst("email")?.Value;
+            var handler = new JwtSecurityTokenHandler();
+            var principal = handler.ValidateToken(idToken, parameters, out _);
 
-      if (string.IsNullOrWhiteSpace(email)) return null;
+            var email =
+                principal.FindFirst("preferred_username")?.Value ??
+                principal.FindFirst(ClaimTypes.Email)?.Value ??
+                principal.FindFirst("email")?.Value;
 
-      var providerUserId =
-          principal.FindFirst("oid")?.Value ??
-          principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
-          principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
-          Guid.NewGuid().ToString("N");
+            if (string.IsNullOrWhiteSpace(email)) return null;
 
-      return new ExternalUserInfo(
-          "Microsoft",
-          providerUserId,
-          email,
-          principal.FindFirst("given_name")?.Value,
-          principal.FindFirst("family_name")?.Value,
-          true
-      );
+            var providerUserId =
+                principal.FindFirst("oid")?.Value ??
+                principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ??
+                principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ??
+                Guid.NewGuid().ToString("N");
+
+            return new ExternalUserInfo(
+                "Microsoft",
+                providerUserId,
+                email,
+                principal.FindFirst("given_name")?.Value,
+                principal.FindFirst("family_name")?.Value,
+                true
+            );
+        }
+        catch
+        {
+            return null;
+        }
     }
-    catch
-    {
-      return null;
-    }
-  }
 }

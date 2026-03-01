@@ -1,7 +1,7 @@
 namespace ScholarPath.Domain.Interfaces;
 
 public record ExternalUserInfo(
-    string Provider,        
+    string Provider,
     string ProviderUserId,
     string Email,
     string? FirstName,
@@ -10,5 +10,5 @@ public record ExternalUserInfo(
 
 public interface IExternalAuthService
 {
-  Task<ExternalUserInfo?> ValidateAsync(string provider, string providerToken, CancellationToken ct);
+    Task<ExternalUserInfo?> ValidateAsync(string provider, string providerToken, CancellationToken ct);
 }
