@@ -32,15 +32,20 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            // Remove the SQL Server DbContext registration
+            // Remove the SQL Server DbContext options registration
             var descriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
             if (descriptor != null)
                 services.Remove(descriptor);
 
-            // Add SQLite for integration tests
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlite($"Data Source={_dbPath}"));
+            // Register pre-built SQLite options directly as a singleton.
+            // Using AddDbContext here would ADD another IDbContextOptionsConfiguration
+            // callback alongside the SQL Server one, causing a dual-provider conflict.
+            // Registering pre-built options bypasses that pipeline entirely.
+            services.AddSingleton<DbContextOptions<ApplicationDbContext>>(
+                new DbContextOptionsBuilder<ApplicationDbContext>()
+                    .UseSqlite($"Data Source={_dbPath}")
+                    .Options);
 
             using var scope = services.BuildServiceProvider().CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
