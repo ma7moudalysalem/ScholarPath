@@ -3,12 +3,15 @@ using Asp.Versioning;
 using Hangfire;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.OpenApi;
+using Microsoft.OpenApi.Models;
 using ScholarPath.API.Middleware;
 using ScholarPath.Application;
 using ScholarPath.Infrastructure;
 using ScholarPath.Infrastructure.Persistence;
 using Serilog;
+using FluentValidation;
+using ScholarPath.Application.Auth.DTOs;
+using ScholarPath.Application.Auth.Validators;
 
 // Serilog bootstrap logger
 Log.Logger = new LoggerConfiguration()
@@ -37,6 +40,37 @@ try
 
     // Controllers
     builder.Services.AddControllers();
+
+    // SSO Validators
+    builder.Services.AddScoped<IValidator<ExternalLoginRequest>, ExternalLoginRequestValidator>();
+    builder.Services.AddScoped<IValidator<LinkProviderRequest>, LinkProviderRequestValidator>();
+
+    // Register Google/Microsoft OAuth schemes 
+    var authBuilder = builder.Services.AddAuthentication();
+
+    var googleClientId = builder.Configuration["ExternalAuth:Google:ClientId"];
+    var googleClientSecret = builder.Configuration["ExternalAuth:Google:ClientSecret"];
+    if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
+    {
+        authBuilder.AddGoogle("Google", options =>
+        {
+            options.ClientId = googleClientId;
+            options.ClientSecret = googleClientSecret;
+            options.SaveTokens = true;
+        });
+    }
+
+    var msClientId = builder.Configuration["ExternalAuth:Microsoft:ClientId"];
+    var msClientSecret = builder.Configuration["ExternalAuth:Microsoft:ClientSecret"];
+    if (!string.IsNullOrWhiteSpace(msClientId) && !string.IsNullOrWhiteSpace(msClientSecret))
+    {
+        authBuilder.AddMicrosoftAccount("Microsoft", options =>
+        {
+            options.ClientId = msClientId;
+            options.ClientSecret = msClientSecret;
+            options.SaveTokens = true;
+        });
+    }
 
     // CORS
     builder.Services.AddCors(options =>
@@ -71,34 +105,35 @@ try
 
     // Swagger
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen(options =>
+    builder.Services.AddSwaggerGen(c =>
     {
-        options.SwaggerDoc("v1", new OpenApiInfo
-        {
-            Title = "ScholarPath API",
-            Version = "v1",
-            Description = "Scholarship platform API with role-based access for Students, Consultants, Companies, and Admins."
-        });
+        c.SwaggerDoc("v1", new OpenApiInfo { Title = "ScholarPath API", Version = "v1" });
 
-        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
             Name = "Authorization",
             Type = SecuritySchemeType.Http,
             Scheme = "bearer",
             BearerFormat = "JWT",
             In = ParameterLocation.Header,
-            Description = "Enter your JWT token"
+            Description = "Enter: Bearer {your JWT token}"
         });
 
-        options.AddSecurityRequirement(_ => new OpenApiSecurityRequirement
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
         {
+            new OpenApiSecurityScheme
             {
-                new OpenApiSecuritySchemeReference("Bearer"),
-                new List<string>()
-            }
-        });
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
     });
-
+    });
     // Rate Limiting
     builder.Services.AddRateLimiter(options =>
     {
@@ -166,16 +201,23 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
+    // DEV DB bootstrap
+    if (app.Environment.IsDevelopment())
+    {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.Database.EnsureCreated();
+
+        // Seed Data
+        await SeedData.InitializeAsync(scope.ServiceProvider);
+    }
+
     app.MapControllers();
 
     // Health checks
     app.MapHealthChecks("/health");
 
-    // SignalR hubs
-    // app.MapHub<NotificationHub>("/hubs/notifications");
-    // app.MapHub<ChatHub>("/hubs/chat");
-
-    app.Run();
+    await app.RunAsync();
 }
 catch (Exception ex)
 {

@@ -10,6 +10,10 @@ public class UpgradeRequest : AuditableEntity
     public UpgradeRequestStatus Status { get; set; } = UpgradeRequestStatus.Pending;
     public string? AdminNotes { get; set; }
     public string? RejectionReason { get; set; }
+
+    // rejection reasons 
+    public string? RejectionReasons { get; set; }
+
     public string? ReviewedBy { get; set; }
     public DateTime? ReviewedAt { get; set; }
 

@@ -12,7 +12,7 @@ public class RefreshToken : BaseEntity
     public string? ReplacedByToken { get; set; }
     public bool IsRevoked => RevokedAt is not null;
     public bool IsExpired => DateTime.UtcNow >= ExpiresAt;
-
+    public string? DeviceType { get; set; }
     public Guid UserId { get; set; }
 
     // Navigation properties

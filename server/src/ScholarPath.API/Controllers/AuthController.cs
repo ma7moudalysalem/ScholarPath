@@ -14,6 +14,7 @@ using ScholarPath.Infrastructure.Settings;
 
 namespace ScholarPath.API.Controllers;
 
+
 [Route("api/v{version:apiVersion}/auth")]
 public class AuthController : BaseController
 {
@@ -23,10 +24,16 @@ public class AuthController : BaseController
     private readonly ApplicationDbContext _dbContext;
     private readonly IMapper _mapper;
     private readonly JwtSettings _jwtSettings;
+
     private readonly IValidator<RegisterRequest> _registerValidator;
     private readonly IValidator<LoginRequest> _loginValidator;
     private readonly IValidator<RefreshTokenRequest> _refreshTokenValidator;
     private readonly IValidator<CompleteOnboardingRequest> _completeOnboardingValidator;
+
+    // SSO
+    private readonly IExternalAuthService _externalAuthService;
+    private readonly IValidator<ExternalLoginRequest> _externalLoginValidator;
+    private readonly IValidator<LinkProviderRequest> _linkProviderValidator;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
@@ -38,7 +45,12 @@ public class AuthController : BaseController
         IValidator<RegisterRequest> registerValidator,
         IValidator<LoginRequest> loginValidator,
         IValidator<RefreshTokenRequest> refreshTokenValidator,
-        IValidator<CompleteOnboardingRequest> completeOnboardingValidator)
+        IValidator<CompleteOnboardingRequest> completeOnboardingValidator,
+
+
+        IExternalAuthService externalAuthService,
+        IValidator<ExternalLoginRequest> externalLoginValidator,
+        IValidator<LinkProviderRequest> linkProviderValidator)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -46,10 +58,16 @@ public class AuthController : BaseController
         _dbContext = dbContext;
         _mapper = mapper;
         _jwtSettings = jwtSettings.Value;
+
         _registerValidator = registerValidator;
         _loginValidator = loginValidator;
         _refreshTokenValidator = refreshTokenValidator;
         _completeOnboardingValidator = completeOnboardingValidator;
+
+
+        _externalAuthService = externalAuthService;
+        _externalLoginValidator = externalLoginValidator;
+        _linkProviderValidator = linkProviderValidator;
     }
 
     [HttpPost("register")]
@@ -100,9 +118,9 @@ public class AuthController : BaseController
             return BadRequestResult(validationResult.Errors.Select(error => error.ErrorMessage));
         }
 
-        var normalizedIdentifier = request.Identifier.Trim().ToLowerInvariant();
-        var user = await _userManager.FindByEmailAsync(normalizedIdentifier)
-            ?? await _userManager.FindByNameAsync(normalizedIdentifier);
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var user = await _userManager.FindByEmailAsync(normalizedEmail)
+            ?? await _userManager.FindByNameAsync(normalizedEmail);
 
         if (user is null)
         {
@@ -127,7 +145,11 @@ public class AuthController : BaseController
             return BadRequestResult(loginUpdateResult.Errors.Select(error => error.Description));
         }
 
-        var authResponse = await CreateAuthResponseAsync(user, cancellationToken);
+        // ✅ RememberMe: 30 days if true, default 7 days if false/null
+        var rememberMe = request.RememberMe ?? false;
+        TimeSpan? extendedExpiry = rememberMe ? TimeSpan.FromDays(30) : null;
+
+        var authResponse = await CreateAuthResponseAsync(user, cancellationToken, extendedExpiry);
         return OkResult(authResponse);
     }
 
@@ -307,6 +329,118 @@ public class AuthController : BaseController
         return OkResult(_mapper.Map<UserDto>(user));
     }
 
+    [HttpPost("external-login")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponse>> ExternalLogin([FromBody] ExternalLoginRequest request, CancellationToken cancellationToken)
+    {
+        var validationResult = await _externalLoginValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            return BadRequestResult(validationResult.Errors.Select(e => e.ErrorMessage));
+        }
+
+        var info = await _externalAuthService.ValidateAsync(request.Provider, request.ProviderToken, cancellationToken);
+        if (info is null || string.IsNullOrWhiteSpace(info.Email))
+        {
+            return UnauthorizedResult("errors.auth.invalidExternalToken");
+        }
+
+
+        var userByLogin = await _userManager.FindByLoginAsync(info.Provider, info.ProviderUserId);
+        if (userByLogin is not null)
+        {
+            if (userByLogin.AccountStatus is AccountStatus.Suspended or AccountStatus.Rejected || !userByLogin.IsActive)
+                return ForbiddenResult("errors.auth.accountNotActive");
+
+            userByLogin.LastLoginAt = DateTime.UtcNow;
+            await _userManager.UpdateAsync(userByLogin);
+
+            return OkResult(await CreateAuthResponseAsync(userByLogin, cancellationToken));
+        }
+
+        var email = info.Email.Trim().ToLowerInvariant();
+
+
+        var userByEmail = await _userManager.FindByEmailAsync(email);
+        if (userByEmail is not null)
+        {
+            return ConflictResult("errors.auth.accountNotLinked");
+        }
+
+
+        var newUser = new ApplicationUser
+        {
+            FirstName = (info.FirstName ?? "Student").Trim(),
+            LastName = (info.LastName ?? "User").Trim(),
+            Email = email,
+            UserName = email,
+            EmailConfirmed = info.EmailVerified,
+            Role = UserRole.Student,
+            AccountStatus = AccountStatus.Active,
+            IsOnboardingComplete = true,
+            IsActive = true,
+            LastLoginAt = DateTime.UtcNow
+        };
+
+        var createResult = await _userManager.CreateAsync(newUser);
+        if (!createResult.Succeeded)
+        {
+            return BadRequestResult(createResult.Errors.Select(e => e.Description));
+        }
+
+        var addLogin = await _userManager.AddLoginAsync(newUser, new UserLoginInfo(info.Provider, info.ProviderUserId, info.Provider));
+        if (!addLogin.Succeeded)
+        {
+            return BadRequestResult(addLogin.Errors.Select(e => e.Description));
+        }
+
+        return OkResult(await CreateAuthResponseAsync(newUser, cancellationToken));
+    }
+
+
+    [HttpPost("link-provider")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> LinkProvider([FromBody] LinkProviderRequest request, CancellationToken cancellationToken)
+    {
+        var validationResult = await _linkProviderValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            return BadRequestResult(validationResult.Errors.Select(e => e.ErrorMessage));
+        }
+
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null)
+        {
+            return UnauthorizedResult("errors.auth.userNotFound");
+        }
+
+        var info = await _externalAuthService.ValidateAsync(request.Provider, request.ProviderToken, cancellationToken);
+        if (info is null || string.IsNullOrWhiteSpace(info.Email))
+        {
+            return UnauthorizedResult("errors.auth.invalidExternalToken");
+        }
+
+        if (!string.Equals(user.Email, info.Email, StringComparison.OrdinalIgnoreCase))
+        {
+            return ForbiddenResult("errors.auth.emailMismatch");
+        }
+
+
+        var existing = await _userManager.FindByLoginAsync(info.Provider, info.ProviderUserId);
+        if (existing is not null && existing.Id != user.Id)
+        {
+            return ConflictResult("errors.auth.providerAlreadyLinked");
+        }
+
+        var result = await _userManager.AddLoginAsync(user, new UserLoginInfo(info.Provider, info.ProviderUserId, info.Provider));
+        if (!result.Succeeded)
+        {
+            return BadRequestResult(result.Errors.Select(e => e.Description));
+        }
+
+        return OkResult(_mapper.Map<UserDto>(user));
+    }
+
     [HttpGet("me")]
     [Authorize]
     public async Task<ActionResult<UserDto>> Me(CancellationToken cancellationToken)
@@ -320,11 +454,11 @@ public class AuthController : BaseController
         return OkResult(_mapper.Map<UserDto>(user));
     }
 
-    private async Task<AuthResponse> CreateAuthResponseAsync(ApplicationUser user, CancellationToken cancellationToken)
+    private async Task<AuthResponse> CreateAuthResponseAsync(ApplicationUser user, CancellationToken cancellationToken, TimeSpan? extendedExpiry = null)
     {
         var accessToken = await _tokenService.GenerateAccessToken(user);
-        var refreshTokenValue = _tokenService.GenerateRefreshToken();
-        var refreshToken = CreateRefreshToken(user.Id, refreshTokenValue);
+        var refreshTokenValue = _tokenService.GenerateRefreshToken(extendedExpiry);
+        var refreshToken = CreateRefreshToken(user.Id, refreshTokenValue, extendedExpiry);
 
         _dbContext.RefreshTokens.Add(refreshToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -336,13 +470,15 @@ public class AuthController : BaseController
             _mapper.Map<UserDto>(user));
     }
 
-    private RefreshToken CreateRefreshToken(Guid userId, string token)
+    private RefreshToken CreateRefreshToken(Guid userId, string token, TimeSpan? extendedExpiry = null)
     {
+        var ttl = extendedExpiry ?? TimeSpan.FromDays(_jwtSettings.RefreshTokenExpirationDays);
+
         return new RefreshToken
         {
             UserId = userId,
             Token = token,
-            ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
+            ExpiresAt = DateTime.UtcNow.Add(ttl),
             CreatedByIp = GetRequestIp()
         };
     }

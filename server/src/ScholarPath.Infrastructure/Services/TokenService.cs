@@ -44,8 +44,11 @@ public class TokenService : ITokenService
         return Task.FromResult(new JwtSecurityTokenHandler().WriteToken(token));
     }
 
-    public string GenerateRefreshToken()
+    
+    public string GenerateRefreshToken(TimeSpan? extendedExpiry = null)
     {
+        _ = extendedExpiry;
+
         var randomBytes = new byte[64];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomBytes);
@@ -54,8 +57,6 @@ public class TokenService : ITokenService
 
     public Task<bool> ValidateRefreshToken(string token)
     {
-        // Validation is handled by checking the token in the database
-        // This method validates the token format
         if (string.IsNullOrWhiteSpace(token))
             return Task.FromResult(false);
 

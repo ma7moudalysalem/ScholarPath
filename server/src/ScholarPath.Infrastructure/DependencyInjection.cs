@@ -125,6 +125,8 @@ public static class DependencyInjection
 
         services.AddHttpContextAccessor();
 
+        services.AddScoped<IExternalAuthService, ExternalAuthService>();
+
         // Distributed Cache (Redis or in-memory fallback)
         var redisEnabled = configuration.GetValue<bool>("Redis:Enabled");
 

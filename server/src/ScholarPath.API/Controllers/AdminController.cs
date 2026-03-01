@@ -1,3 +1,8 @@
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +20,18 @@ public class AdminController : BaseController
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
 
+    // Valid rejection reason codes
+    private static readonly HashSet<string> ValidRejectionCodes =
+    [
+        "missing_crn",
+        "proof_not_clear",
+        "suspicious_request",
+        "incomplete_profile",
+        "invalid_documents",
+        "duplicate_request",
+        "other"
+    ];
+
     public AdminController(
         ApplicationDbContext dbContext,
         UserManager<ApplicationUser> userManager)
@@ -30,109 +47,76 @@ public class AdminController : BaseController
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.UpgradeRequests
-            .AsNoTracking()
-            .OrderByDescending(upgradeRequest => upgradeRequest.CreatedAt);
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 20;
+        if (pageSize > 100) pageSize = 100;
+
+
+        IQueryable<UpgradeRequest> query = _dbContext.UpgradeRequests.AsNoTracking();
 
         if (status.HasValue)
-        {
-            query = (IOrderedQueryable<UpgradeRequest>)query.Where(upgradeRequest => upgradeRequest.Status == status.Value);
-        }
+            query = query.Where(r => r.Status == status.Value);
+
+        query = query.OrderByDescending(r => r.CreatedAt);
 
         var requests = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(upgradeRequest => new
+            .Select(r => new
             {
-                upgradeRequest.Id,
-                upgradeRequest.UserId,
-                UserEmail = upgradeRequest.User.Email,
-                UserName = $"{upgradeRequest.User.FirstName} {upgradeRequest.User.LastName}",
-                upgradeRequest.RequestedRole,
-                upgradeRequest.Status,
-                upgradeRequest.AdminNotes,
-                upgradeRequest.CreatedAt,
-                upgradeRequest.ReviewedAt
+                r.Id,
+                r.UserId,
+                UserEmail = r.User.Email,
+                UserName = $"{r.User.FirstName} {r.User.LastName}",
+                r.RequestedRole,
+                r.Status,
+                r.AdminNotes,
+                r.RejectionReasons,
+                r.CreatedAt,
+                r.ReviewedAt
             })
             .ToListAsync(cancellationToken);
 
         return Ok(requests);
     }
 
-    [HttpPut("upgrade-requests/{id:guid}/approve")]
-    public async Task<IActionResult> ApproveUpgradeRequest(Guid id, [FromBody] UpgradeReviewRequest? request = null, CancellationToken cancellationToken = default)
-    {
-        var upgradeRequest = await _dbContext.UpgradeRequests
-            .Include(item => item.User)
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
-
-        if (upgradeRequest is null)
-        {
-            return NotFoundResult("errors.admin.upgradeRequestNotFound");
-        }
-
-        if (upgradeRequest.Status != UpgradeRequestStatus.Pending)
-        {
-            return BadRequestResult("errors.admin.onlyPendingCanBeApproved");
-        }
-
-        var adminUser = await _userManager.GetUserAsync(User);
-
-        upgradeRequest.Status = UpgradeRequestStatus.Approved;
-        upgradeRequest.ReviewedAt = DateTime.UtcNow;
-        upgradeRequest.ReviewedBy = adminUser?.Email;
-        upgradeRequest.AdminNotes = request?.ReviewNotes?.Trim() ?? "Approved by admin.";
-
-        upgradeRequest.User.Role = upgradeRequest.RequestedRole;
-        upgradeRequest.User.AccountStatus = AccountStatus.Active;
-
-        _dbContext.Notifications.Add(new Notification
-        {
-            UserId = upgradeRequest.UserId,
-            Type = NotificationType.UpgradeStatus,
-            Title = "Upgrade approved",
-            Message = $"Your request for {upgradeRequest.RequestedRole} access has been approved.",
-            RelatedEntityId = upgradeRequest.Id,
-            RelatedEntityType = nameof(UpgradeRequest)
-        });
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return Ok(new
-        {
-            upgradeRequest.Id,
-            upgradeRequest.Status,
-            upgradeRequest.ReviewedAt
-        });
-    }
-
     [HttpPut("upgrade-requests/{id:guid}/reject")]
-    public async Task<IActionResult> RejectUpgradeRequest(Guid id, [FromBody] UpgradeReviewRequest request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> RejectUpgradeRequest(
+    Guid id,
+    [FromBody] RejectUpgradeRequestDto request,
+    CancellationToken cancellationToken = default)
     {
-        if (!TryNormalizeReviewNotes(request, out var reviewNotes, out var validationError))
-        {
-            return BadRequestResult(validationError!);
-        }
+        // Reasons list validation
+        if (request.Reasons is null || request.Reasons.Count == 0)
+            return BadRequestResult("errors.admin.rejectionReasonsRequired");
+
+        var invalidCodes = request.Reasons
+            .Where(r => !ValidRejectionCodes.Contains(r.Code))
+            .Select(r => r.Code)
+            .Distinct()
+            .ToList();
+
+        if (invalidCodes.Count > 0)
+            return BadRequestResult($"errors.admin.invalidRejectionCodes: {string.Join(", ", invalidCodes)}");
 
         var upgradeRequest = await _dbContext.UpgradeRequests
-            .Include(item => item.User)
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
         if (upgradeRequest is null)
-        {
             return NotFoundResult("errors.admin.upgradeRequestNotFound");
-        }
 
         if (upgradeRequest.Status != UpgradeRequestStatus.Pending)
-        {
             return BadRequestResult("errors.admin.onlyPendingCanBeRejected");
-        }
 
         var adminUser = await _userManager.GetUserAsync(User);
+
+        var reasonsJson = JsonSerializer.Serialize(request.Reasons);
 
         upgradeRequest.Status = UpgradeRequestStatus.Rejected;
-        upgradeRequest.AdminNotes = reviewNotes;
-        upgradeRequest.RejectionReason = reviewNotes;
+        upgradeRequest.RejectionReasons = reasonsJson;
+        upgradeRequest.RejectionReason = string.Join(", ", request.Reasons.Select(r => r.Code)); // backward compat
+        upgradeRequest.AdminNotes = request.ReviewNotes?.Trim();
         upgradeRequest.ReviewedAt = DateTime.UtcNow;
         upgradeRequest.ReviewedBy = adminUser?.Email;
 
@@ -155,32 +139,30 @@ public class AdminController : BaseController
         {
             upgradeRequest.Id,
             upgradeRequest.Status,
+            upgradeRequest.RejectionReasons,
             upgradeRequest.AdminNotes,
             upgradeRequest.ReviewedAt
         });
     }
 
     [HttpPut("upgrade-requests/{id:guid}/request-info")]
-    public async Task<IActionResult> RequestMoreInfo(Guid id, [FromBody] UpgradeReviewRequest request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> RequestMoreInfo(
+        Guid id,
+        [FromBody] UpgradeReviewRequest request,
+        CancellationToken cancellationToken = default)
     {
         if (!TryNormalizeReviewNotes(request, out var reviewNotes, out var validationError))
-        {
             return BadRequestResult(validationError!);
-        }
 
         var upgradeRequest = await _dbContext.UpgradeRequests
-            .Include(item => item.User)
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
         if (upgradeRequest is null)
-        {
             return NotFoundResult("errors.admin.upgradeRequestNotFound");
-        }
 
         if (upgradeRequest.Status != UpgradeRequestStatus.Pending)
-        {
             return BadRequestResult("errors.admin.onlyPendingCanBeUpdated");
-        }
 
         var adminUser = await _userManager.GetUserAsync(User);
 
@@ -213,9 +195,13 @@ public class AdminController : BaseController
         });
     }
 
-    private static bool TryNormalizeReviewNotes(UpgradeReviewRequest request, out string? reviewNotes, out string? validationError)
+    private static bool TryNormalizeReviewNotes(
+        UpgradeReviewRequest request,
+        out string? reviewNotes,
+        out string? validationError)
     {
         reviewNotes = request.ReviewNotes?.Trim();
+
         if (string.IsNullOrWhiteSpace(reviewNotes))
         {
             validationError = "errors.admin.reviewNotesRequired";
@@ -226,5 +212,18 @@ public class AdminController : BaseController
         return true;
     }
 
+    // Request Records
+
     public record UpgradeReviewRequest(string? ReviewNotes);
+
+
+    public record RejectUpgradeRequestDto(
+     List<RejectionReasonDto> Reasons,
+     string? ReviewNotes
+    );
+
+    public record RejectionReasonDto(
+        string Code,
+        string? Note
+    );
 }
