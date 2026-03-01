@@ -26,10 +26,13 @@ public class UpgradeRequestConfiguration : IEntityTypeConfiguration<UpgradeReque
         builder.Property(ur => ur.RejectionReason)
             .HasMaxLength(1000);
 
+
+        builder.Property(ur => ur.RejectionReasons)
+            .HasMaxLength(4000);
+
         builder.Property(ur => ur.ReviewedBy)
             .HasMaxLength(200);
 
-        // Consultant fields
         builder.Property(ur => ur.ExperienceSummary)
             .HasMaxLength(2000);
 
@@ -45,7 +48,6 @@ public class UpgradeRequestConfiguration : IEntityTypeConfiguration<UpgradeReque
         builder.Property(ur => ur.PortfolioUrl)
             .HasMaxLength(500);
 
-        // Company fields
         builder.Property(ur => ur.CompanyName)
             .HasMaxLength(300);
 
@@ -138,41 +140,6 @@ public class ResourceConfiguration : IEntityTypeConfiguration<Resource>
 
         builder.Property(r => r.Type)
             .HasMaxLength(50);
-
-        builder.Property(r => r.Category)
-            .HasMaxLength(100);
-    }
-}
-
-public class SuccessStoryConfiguration : IEntityTypeConfiguration<SuccessStory>
-{
-    public void Configure(EntityTypeBuilder<SuccessStory> builder)
-    {
-        builder.HasKey(ss => ss.Id);
-
-        builder.Property(ss => ss.Title)
-            .HasMaxLength(300)
-            .IsRequired();
-
-        builder.Property(ss => ss.TitleAr)
-            .HasMaxLength(300);
-
-        builder.Property(ss => ss.Content)
-            .IsRequired();
-
-        builder.Property(ss => ss.ImageUrl)
-            .HasMaxLength(500);
-
-        builder.Property(ss => ss.ApprovedBy)
-            .HasMaxLength(200);
-
-        builder.HasIndex(ss => ss.IsApproved)
-            .HasDatabaseName("IX_SuccessStories_IsApproved");
-
-        builder.HasOne(ss => ss.User)
-            .WithMany()
-            .HasForeignKey(ss => ss.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -183,8 +150,9 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.HasKey(rt => rt.Id);
 
         builder.Property(rt => rt.Token)
-            .HasMaxLength(500)
-            .IsRequired();
+            .IsRequired()
+            .HasMaxLength(500);
+
 
         builder.Property(rt => rt.CreatedByIp)
             .HasMaxLength(50);
@@ -195,6 +163,9 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.Property(rt => rt.ReplacedByToken)
             .HasMaxLength(500);
 
+        builder.Property(rt => rt.DeviceType)
+            .HasMaxLength(100);
+
         builder.HasIndex(rt => rt.Token)
             .IsUnique()
             .HasDatabaseName("IX_RefreshTokens_Token");
@@ -202,7 +173,6 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
         builder.HasIndex(rt => rt.UserId)
             .HasDatabaseName("IX_RefreshTokens_UserId");
 
-        // Ignore computed properties
         builder.Ignore(rt => rt.IsRevoked);
         builder.Ignore(rt => rt.IsExpired);
     }

@@ -1,6 +1,7 @@
 namespace ScholarPath.Application.Auth.DTOs;
 
 public record LoginRequest(
-    string Identifier,
+    string Email,
     string Password,
-    bool RememberMe = false);
+    bool? RememberMe = null
+);

@@ -122,12 +122,10 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
     {
         using var client = _factory.CreateClient();
 
-        // Seed admin
         const string adminEmail = "admin@test.local";
         const string adminPassword = "AdminPass1!";
         await _factory.SeedAdminAsync(adminEmail, adminPassword);
 
-        // Register and onboard as consultant (creates pending upgrade request)
         var register = await RegisterAsync(client);
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", register.AccessToken);
@@ -139,11 +137,11 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
             bio = "Mentor"
         });
 
-        // Login as admin
+
         client.DefaultRequestHeaders.Authorization = null;
         var adminLogin = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            identifier = adminEmail,
+            email = adminEmail,
             password = adminPassword
         });
         adminLogin.EnsureSuccessStatusCode();
@@ -153,14 +151,13 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
 
-        // Get pending upgrade requests
         var listResponse = await client.GetAsync("/api/v1/admin/upgrade-requests?status=0");
         listResponse.EnsureSuccessStatusCode();
         var listJson = await ReadJsonAsync(listResponse);
         var requestId = listJson.EnumerateArray().First().GetProperty("id").GetString()!;
 
-        // Approve
-        var approveResponse = await client.PutAsJsonAsync($"/api/v1/admin/upgrade-requests/{requestId}/approve", new { });
+        var approveResponse = await client.PutAsJsonAsync(
+            $"/api/v1/admin/upgrade-requests/{requestId}/approve", new { });
         approveResponse.EnsureSuccessStatusCode();
         var approveJson = await ReadJsonAsync(approveResponse);
         Assert.Equal((int)UpgradeRequestStatus.Approved, approveJson.GetProperty("status").GetInt32());
@@ -185,11 +182,11 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
             companyName = "Acme Corp"
         });
 
-        // Login as admin
+
         client.DefaultRequestHeaders.Authorization = null;
         var adminLogin = await client.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            identifier = adminEmail,
+            email = adminEmail,
             password = adminPassword
         });
         adminLogin.EnsureSuccessStatusCode();
@@ -204,11 +201,13 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
         var listJson = await ReadJsonAsync(listResponse);
         var requestId = listJson.EnumerateArray().First().GetProperty("id").GetString()!;
 
-        // Reject with empty notes should fail
-        var rejectResponse = await client.PutAsJsonAsync($"/api/v1/admin/upgrade-requests/{requestId}/reject", new
-        {
-            reviewNotes = ""
-        });
+        // Reject with empty reasons should return 400
+        var rejectResponse = await client.PutAsJsonAsync(
+            $"/api/v1/admin/upgrade-requests/{requestId}/reject", new
+            {
+                reasons = new List<object>(),
+                reviewNotes = ""
+            });
 
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, rejectResponse.StatusCode);
     }

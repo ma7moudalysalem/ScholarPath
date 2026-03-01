@@ -10,4 +10,7 @@ public record UserDto(
     UserRole Role,
     AccountStatus AccountStatus,
     string? ProfileImageUrl,
-    bool IsOnboardingComplete);
+    bool IsOnboardingComplete)
+{
+    public bool HasPassword { get; init; }
+}
