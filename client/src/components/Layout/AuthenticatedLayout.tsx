@@ -36,6 +36,7 @@ import {
 import { useAuthStore, selectIsAdmin } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useAuth } from '@/hooks/useAuth';
+import { UpgradeRequestBanner } from '@/components/common/UpgradeRequestBanner';
 
 const DRAWER_WIDTH = 260;
 
@@ -191,12 +192,16 @@ export function AuthenticatedLayout() {
           component="main"
           sx={{
             flex: 1,
-            p: 3,
+            display: 'flex',
+            flexDirection: 'column',
             ml: isMobile ? 0 : `${DRAWER_WIDTH}px`,
             width: isMobile ? '100%' : `calc(100% - ${DRAWER_WIDTH}px)`,
           }}
         >
-          <Outlet />
+          <UpgradeRequestBanner />
+          <Box sx={{ p: 3, flex: 1 }}>
+            <Outlet />
+          </Box>
         </Box>
       </Box>
     </Box>

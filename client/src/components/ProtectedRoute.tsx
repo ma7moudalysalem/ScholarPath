@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore, selectIsAdmin } from '@/stores/authStore';
 import { AccountStatus, UserRole } from '@/types';
+import { setIntendedDestination } from '@/utils/navigation';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,6 +15,8 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   const location = useLocation();
 
   if (!isAuthenticated) {
+    // Save the intended destination so they can be redirected back after login
+    setIntendedDestination(location.pathname + location.search);
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

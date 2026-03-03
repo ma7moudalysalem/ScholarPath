@@ -2,16 +2,16 @@ import { createTheme, type ThemeOptions, type PaletteMode } from '@mui/material/
 
 const lightPalette = {
   primary: {
-    main: '#1976d2',
+    main: '#1976d2', // Blue
     light: '#42a5f5',
     dark: '#1565c0',
     contrastText: '#ffffff',
   },
   secondary: {
-    main: '#f50057',
-    light: '#ff4081',
-    dark: '#c51162',
-    contrastText: '#ffffff',
+    main: '#ffd600', // Pure Yellow
+    light: '#ffff52',
+    dark: '#c7a500',
+    contrastText: '#000000',
   },
   background: {
     default: '#f5f5f5',
@@ -21,20 +21,24 @@ const lightPalette = {
 
 const darkPalette = {
   primary: {
-    main: '#90caf9',
+    main: '#90caf9', // Light Blue
     light: '#e3f2fd',
     dark: '#42a5f5',
     contrastText: '#000000',
   },
   secondary: {
-    main: '#f48fb1',
-    light: '#fce4ec',
-    dark: '#f50057',
+    main: '#ffe082', // Light Yellow
+    light: '#fff8e1',
+    dark: '#ffca28',
     contrastText: '#000000',
   },
   background: {
     default: '#121212',
     paper: '#1e1e1e',
+  },
+  text: {
+    primary: '#ffffff',
+    secondary: 'rgba(255, 255, 255, 0.7)',
   },
 };
 

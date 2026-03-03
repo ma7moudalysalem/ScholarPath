@@ -87,8 +87,51 @@
     "hero": "Your gateway to scholarship opportunities worldwide",
     "featureScholarships": "Discover thousands of scholarship opportunities worldwide.",
     "featureCommunity": "Connect with students, consultants, and organizations.",
-    "featureTracking": "Track your applications and stay on top of deadlines."
+    "featureTracking": "Track your applications and stay on top of deadlines.",
+    "slider": {
+      "slide1": {
+        "title": "Discover Your Dream Scholarship",
+        "description": "AI-powered match-making for global opportunities."
+      },
+      "slide2": {
+        "title": "Join a Thriving Community",
+        "description": "Connect with peers and mentors worldwide."
+      },
+      "slide3": {
+        "title": "Expert Mentorship",
+        "description": "Get guidance from verified advisors on your applications."
+      },
+      "unavailable": "Intro content is currently unavailable. Please check back later.",
+      "ctaAuthenticated": "Go to Dashboard",
+      "ctaUnauthenticated": "Get Started"
+    },
+    "services": {
+      "title": "Our Services",
+      "scholarshipsDesc": "Discover worldwide scholarships matching your profile and background.",
+      "communityDesc": "Connect, collaborate, and share knowledge with peers.",
+      "mentorship": "Mentorship",
+      "mentorshipDesc": "Schedule consultations with expert advisors to review your application.",
+      "opportunities": "Opportunities",
+      "opportunitiesDesc": "Find internships and job placements sponsored by companies.",
+      "unavailable": "Services are currently unavailable. Please check back later."
+    },
+    "trust": {
+      "title": "Trusted by Thousands",
+      "subtitle": "Join the fastest-growing community of students achieving their academic dreams.",
+      "unavailable": "Testimonials are currently unavailable."
+    }
   },
+  "footer": {
+    "description": "Empowering students globally with AI-driven scholarship discovery, mentorship, and community support.",
+    "quickLinks": "Quick Links",
+    "legal": "Legal & Contact",
+    "email": "Email: support@scholarpath.com",
+    "phone": "Phone: +1 234 567 890"
+  },
+  "about": "About Us",
+  "contact": "Contact",
+  "terms": "Terms of Service",
+  "privacy": "Privacy Policy",
   "welcomeBack": "Welcome back, {{name}}!",
   "retry": "Retry",
   "allRightsReserved": "All rights reserved.",

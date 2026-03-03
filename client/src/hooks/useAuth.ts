@@ -5,6 +5,7 @@ import { useAuthStore, selectIsAdmin, selectRole, selectIsOnboarded } from '@/st
 import { authService } from '@/services/authService';
 import type { LoginRequest, RegisterRequest, OnboardingRequest } from '@/types';
 import { AccountStatus, UserRole } from '@/types';
+import { getIntendedDestination, clearIntendedDestination } from '@/utils/navigation';
 
 export function useAuth() {
   const navigate = useNavigate();
@@ -33,7 +34,12 @@ export function useAuth() {
         const response = await authService.login(data);
         setAuth(response.user, response.accessToken, response.refreshToken);
 
-        if (!response.user.isOnboardingComplete || response.user.accountStatus === AccountStatus.Pending) {
+        const destination = getIntendedDestination();
+        clearIntendedDestination();
+
+        if (destination) {
+          navigate(destination);
+        } else if (!response.user.isOnboardingComplete || response.user.accountStatus === AccountStatus.Pending) {
           navigate('/onboarding');
         } else {
           navigate('/dashboard');

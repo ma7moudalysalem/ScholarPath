@@ -29,9 +29,10 @@ function processQueue(error: unknown, token: string | null = null) {
   failedQueue = [];
 }
 
-function clearAuth() {
-  useAuthStore.getState().logout();
-  window.location.href = '/login';
+function handleSessionExpiry() {
+  if (typeof window !== 'undefined') {
+    useAuthStore.getState().setSessionExpired(true);
+  }
 }
 
 // Request interceptor: attach Bearer token
@@ -58,7 +59,7 @@ api.interceptors.response.use(
 
     // Avoid infinite loop on refresh endpoint
     if (originalRequest.url?.includes('/auth/refresh')) {
-      clearAuth();
+      handleSessionExpiry();
       return Promise.reject(error);
     }
 
@@ -76,7 +77,7 @@ api.interceptors.response.use(
     try {
       const { refreshToken } = useAuthStore.getState();
       if (!refreshToken) {
-        clearAuth();
+        handleSessionExpiry();
         return Promise.reject(error);
       }
 
@@ -91,7 +92,7 @@ api.interceptors.response.use(
       return api(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
-      clearAuth();
+      handleSessionExpiry();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

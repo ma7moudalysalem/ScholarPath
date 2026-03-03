@@ -9,6 +9,7 @@ interface AuthState {
   refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isSessionExpired: boolean;
 }
 
 interface AuthActions {
@@ -17,6 +18,7 @@ interface AuthActions {
   updateTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: UserDto) => void;
   setLoading: (isLoading: boolean) => void;
+  setSessionExpired: (expired: boolean) => void;
 }
 
 type AuthStore = AuthState & AuthActions;
@@ -27,6 +29,7 @@ const initialState: AuthState = {
   refreshToken: null,
   isAuthenticated: false,
   isLoading: false,
+  isSessionExpired: false,
 };
 
 export const useAuthStore = create<AuthStore>()(
@@ -41,6 +44,7 @@ export const useAuthStore = create<AuthStore>()(
           refreshToken,
           isAuthenticated: true,
           isLoading: false,
+          isSessionExpired: false, // Clear expiry flag on fresh auth
         }),
 
       logout: () => set({ ...initialState }),
@@ -51,6 +55,8 @@ export const useAuthStore = create<AuthStore>()(
       setUser: (user) => set({ user }),
 
       setLoading: (isLoading) => set({ isLoading }),
+
+      setSessionExpired: (expired) => set({ isSessionExpired: expired }),
     }),
     {
       name: 'scholarpath-auth',
