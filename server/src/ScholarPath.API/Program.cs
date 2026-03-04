@@ -55,10 +55,9 @@ try
 
         options.AddPolicy("DefaultCors", policy =>
         {
-            policy.WithOrigins(allowedOrigins)
+            policy.AllowAnyOrigin()
                 .AllowAnyMethod()
-                .AllowAnyHeader()
-                .AllowCredentials();
+                .AllowAnyHeader();
         });
     });
 

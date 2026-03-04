@@ -14,9 +14,11 @@ public class UpgradeRequest : AuditableEntity
     public DateTime? ReviewedAt { get; set; }
 
     // Consultant-specific fields
-    public string? ExperienceSummary { get; set; }
+    public string? ExperienceSummary { get; set; } = string.Empty;
     public string? ExpertiseTags { get; set; }
-    public string? Languages { get; set; }
+    public virtual ICollection<string> Languages { get; set; } = new List<string>();
+    public virtual ICollection<EducationEntry> EducationEntries { get; set; } = new List<EducationEntry>();
+   public ICollection<UpgradeRequestLink> upgradeRequestLinks { get; set; } = new List<UpgradeRequestLink>();
     public string? LinkedInUrl { get; set; }
     public string? PortfolioUrl { get; set; }
 
