@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="ScholarPath - Your gateway to scholarship opportunities worldwide" />
+    <meta name="theme-color" content="#1976d2" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cairo:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>ScholarPath</title>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <script>
+      // Apply saved language/direction before React renders to prevent RTL flash
+      try {
+        var ui = JSON.parse(localStorage.getItem('scholarpath-ui') || '{}');
+        var s = ui.state || {};
+        if (s.direction) document.documentElement.setAttribute('dir', s.direction);
+        if (s.language) document.documentElement.setAttribute('lang', s.language);
+      } catch(e) {}
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
