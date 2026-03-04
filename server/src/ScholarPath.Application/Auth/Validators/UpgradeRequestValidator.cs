@@ -18,14 +18,14 @@ public class UpgradeRequestValidator : AbstractValidator<UpgradeRequest>
             .Must(l => l != null && l.Count <= 5)
             .WithMessage("You can add up to 5 languages only.");
 
-        // التحقق من قائمة التعليم
+        // valedat -- list of Education
         RuleForEach(x => x.EducationEntries).ChildRules(edu => {
             edu.RuleFor(e => e.InstitutionName).NotEmpty();
             edu.RuleFor(e => e.DegreeName).NotEmpty();
             edu.RuleFor(e => e.StartYear).LessThanOrEqualTo(DateTime.Now.Year);
         });
 
-        // التحقق من الروابط
+        // validate links
         RuleForEach(x => x.upgradeRequestLinks).ChildRules(link => {
             link.RuleFor(l => l.Url).NotEmpty().Must(uri => Uri.TryCreate(uri, UriKind.Absolute, out _));
         });

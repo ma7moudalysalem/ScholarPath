@@ -17,6 +17,7 @@ public class UpgradeRequest : AuditableEntity
     public string? ExperienceSummary { get; set; } = string.Empty;
     public string? ExpertiseTags { get; set; }
     public virtual ICollection<string> Languages { get; set; } = new List<string>();
+    //Lazy loding
     public virtual ICollection<EducationEntry> EducationEntries { get; set; } = new List<EducationEntry>();
    public ICollection<UpgradeRequestLink> upgradeRequestLinks { get; set; } = new List<UpgradeRequestLink>();
     public string? LinkedInUrl { get; set; }

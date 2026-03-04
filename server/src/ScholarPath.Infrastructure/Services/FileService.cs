@@ -19,16 +19,15 @@ namespace ScholarPath.Infrastructure.Services
 
         public async Task<string> SaveFileAsync(IFormFile file, string folderName)
         {
-            // 1. التحقق من الامتدادات المسموحة (Security)
+            // Security
             var allowedExtensions = new[] { ".pdf", ".jpg", ".png", ".docx" };
             var extension = Path.GetExtension(file.FileName).ToLower();
             if (!allowedExtensions.Contains(extension)) throw new Exception("Invalid file type.");
-
-            // 2. إنشاء المسار
+            
             var targetPath = Path.Combine(_basePath, folderName);
             if (!Directory.Exists(targetPath)) Directory.CreateDirectory(targetPath);
 
-            // 3. توليد اسم فريد للملف لمنع التكرار
+            // Generate a unique file name
             var uniqueFileName = $"{Guid.NewGuid()}{extension}";
             var filePath = Path.Combine(targetPath, uniqueFileName);
 
@@ -41,12 +40,9 @@ namespace ScholarPath.Infrastructure.Services
         public void DeleteFile(string filePath) { 
         
             if (string.IsNullOrEmpty(filePath)) return;
-
-            // 1. تحويل المسار النسبي (المخزن في القاعدة) إلى مسار كامل على الجهاز
-            // filePath عادة يكون: "uploads/upgrades/filename.jpg"
+            // "uploads/upgrades/filename.jpg"
             var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", filePath);
 
-            // 2. التحقق من وجود الملف قبل محاولة حذفه لتجنب الأخطاء
             if (File.Exists(fullPath))
             {
                 try
@@ -55,7 +51,6 @@ namespace ScholarPath.Infrastructure.Services
                 }
                 catch (IOException ex)
                 {
-                    // هنا يمكنك تسجيل الخطأ (Logging) إذا كان الملف قيد الاستخدام مثلاً
                     throw new Exception("Error deleting file: " + ex.Message);
                 }
             }
