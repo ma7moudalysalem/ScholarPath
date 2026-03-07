@@ -167,7 +167,8 @@
       "userNotFound": "المستخدم غير موجود.",
       "accountNotEligibleForOnboarding": "حسابك غير مؤهل لإكمال التسجيل.",
       "pendingUpgradeExists": "لديك طلب ترقية معلق بالفعل.",
-      "onboardingAlreadyComplete": "تم إكمال عملية التهيئة بالفعل"
+      "onboardingAlreadyComplete": "تم إكمال عملية التهيئة بالفعل",
+      "accountLockedOut": "تم قفل حسابك مؤقتاً بسبب محاولات تسجيل دخول فاشلة متعددة. يرجى المحاولة لاحقاً."
     },
     "admin": {
       "upgradeRequestNotFound": "طلب الترقية غير موجود.",

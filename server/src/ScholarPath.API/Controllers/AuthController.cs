@@ -115,6 +115,11 @@ public class AuthController : BaseController
         }
 
         var signInResult = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
+        if (signInResult.IsLockedOut)
+        {
+            return UnauthorizedResult("errors.auth.accountLockedOut");
+        }
+
         if (!signInResult.Succeeded)
         {
             return UnauthorizedResult("errors.auth.invalidCredentials");

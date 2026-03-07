@@ -167,7 +167,8 @@
       "userNotFound": "User not found.",
       "accountNotEligibleForOnboarding": "Your account is not eligible for onboarding.",
       "pendingUpgradeExists": "You already have a pending upgrade request.",
-      "onboardingAlreadyComplete": "Onboarding has already been completed"
+      "onboardingAlreadyComplete": "Onboarding has already been completed",
+      "accountLockedOut": "Your account has been temporarily locked due to multiple failed login attempts. Please try again later."
     },
     "admin": {
       "upgradeRequestNotFound": "Upgrade request not found.",

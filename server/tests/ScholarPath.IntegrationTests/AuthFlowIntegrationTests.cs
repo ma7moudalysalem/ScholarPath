@@ -213,6 +213,34 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal(System.Net.HttpStatusCode.BadRequest, rejectResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task Login_returns_locked_out_error_after_max_failed_attempts()
+    {
+        using var client = _factory.CreateClient();
+        var register = await RegisterAsync(client);
+
+        // Attempt login with wrong password 5 times to trigger lockout
+        for (var i = 0; i < 5; i++)
+        {
+            await client.PostAsJsonAsync("/api/v1/auth/login", new
+            {
+                identifier = register.Email,
+                password = "WrongPassword1!"
+            });
+        }
+
+        // The 6th attempt should return lockout error
+        var lockedResponse = await client.PostAsJsonAsync("/api/v1/auth/login", new
+        {
+            identifier = register.Email,
+            password = "WrongPassword1!"
+        });
+
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, lockedResponse.StatusCode);
+        var json = await ReadJsonAsync(lockedResponse);
+        Assert.Equal("errors.auth.accountLockedOut", json.GetProperty("error").GetString());
+    }
+
     private Task<(string AccessToken, string RefreshToken, string Email)> RegisterAsync()
         => RegisterAsync(_client);
 
