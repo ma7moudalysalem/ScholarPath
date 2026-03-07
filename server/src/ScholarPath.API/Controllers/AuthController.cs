@@ -132,7 +132,7 @@ public class AuthController : BaseController
             return BadRequestResult(loginUpdateResult.Errors.Select(error => error.Description));
         }
 
-        var authResponse = await CreateAuthResponseAsync(user, cancellationToken);
+        var authResponse = await CreateAuthResponseAsync(user, cancellationToken, request.RememberMe);
         return OkResult(authResponse);
     }
 
@@ -325,11 +325,11 @@ public class AuthController : BaseController
         return OkResult(_mapper.Map<UserDto>(user));
     }
 
-    private async Task<AuthResponse> CreateAuthResponseAsync(ApplicationUser user, CancellationToken cancellationToken)
+    private async Task<AuthResponse> CreateAuthResponseAsync(ApplicationUser user, CancellationToken cancellationToken, bool rememberMe = false)
     {
         var accessToken = await _tokenService.GenerateAccessToken(user);
         var refreshTokenValue = _tokenService.GenerateRefreshToken();
-        var refreshToken = CreateRefreshToken(user.Id, refreshTokenValue);
+        var refreshToken = CreateRefreshToken(user.Id, refreshTokenValue, rememberMe);
 
         _dbContext.RefreshTokens.Add(refreshToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -341,13 +341,14 @@ public class AuthController : BaseController
             _mapper.Map<UserDto>(user));
     }
 
-    private RefreshToken CreateRefreshToken(Guid userId, string token)
+    private RefreshToken CreateRefreshToken(Guid userId, string token, bool rememberMe = false)
     {
+        var expirationDays = rememberMe ? 30 : _jwtSettings.RefreshTokenExpirationDays;
         return new RefreshToken
         {
             UserId = userId,
             Token = token,
-            ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
+            ExpiresAt = DateTime.UtcNow.AddDays(expirationDays),
             CreatedByIp = GetRequestIp()
         };
     }
