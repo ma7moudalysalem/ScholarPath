@@ -7,6 +7,7 @@ import type {
   ForgotPasswordRequest,
   ResetPasswordRequest,
   ChangePasswordRequest,
+  ExternalLoginRequest,
   UserDto,
 } from '@/types';
 
@@ -49,6 +50,11 @@ export const authService = {
 
   async getMe(): Promise<UserDto> {
     const response = await api.get<UserDto>('/auth/me');
+    return response.data;
+  },
+
+  async externalLogin(data: ExternalLoginRequest): Promise<AuthResponse> {
+    const response = await api.post<AuthResponse>('/auth/external/login', data);
     return response.data;
   },
 };

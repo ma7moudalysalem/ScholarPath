@@ -14,6 +14,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   const location = useLocation();
 
   if (!isAuthenticated) {
+    sessionStorage.setItem('intendedDestination', location.pathname);
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

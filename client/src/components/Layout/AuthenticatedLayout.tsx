@@ -1,22 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  Alert,
   AppBar,
+  Avatar,
+  Badge,
   Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Divider,
   Drawer,
   IconButton,
   List,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Toolbar,
-  Typography,
-  Avatar,
   Menu,
   MenuItem,
-  Divider,
-  Badge,
+  Toolbar,
+  Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -32,10 +39,14 @@ import {
   Translate as TranslateIcon,
   DarkMode as DarkModeIcon,
   LightMode as LightModeIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material';
 import { useAuthStore, selectIsAdmin } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useAuth } from '@/hooks/useAuth';
+import { UpgradeRequestStatus, UserRole } from '@/types';
+import type { UpgradeRequestDto } from '@/types';
+import { upgradeService } from '@/services/upgradeService';
 
 const DRAWER_WIDTH = 260;
 
@@ -52,6 +63,15 @@ export function AuthenticatedLayout() {
   const { logout } = useAuth();
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [upgradeStatus, setUpgradeStatus] = useState<UpgradeRequestDto | null>(null);
+
+  // Fetch upgrade status for non-admin users
+  useEffect(() => {
+    if (user && user.role !== UserRole.Admin) {
+      upgradeService.getMyStatus().then(setUpgradeStatus).catch(() => {});
+    }
+  }, [user]);
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -62,6 +82,7 @@ export function AuthenticatedLayout() {
   };
 
   const handleLogout = async () => {
+    setLogoutDialogOpen(false);
     handleProfileMenuClose();
     await logout();
   };
@@ -85,6 +106,44 @@ export function AuthenticatedLayout() {
       icon: <AdminIcon />,
     });
   }
+
+  const getUpgradeBanner = () => {
+    if (!upgradeStatus) return null;
+    const { status } = upgradeStatus;
+
+    const bannerConfig: Record<number, { severity: 'info' | 'success' | 'error' | 'warning'; message: string; action?: React.ReactNode }> = {
+      [UpgradeRequestStatus.Pending]: {
+        severity: 'info',
+        message: t('upgrade.statusPending'),
+      },
+      [UpgradeRequestStatus.Approved]: {
+        severity: 'success',
+        message: t('upgrade.statusApproved'),
+      },
+      [UpgradeRequestStatus.Rejected]: {
+        severity: 'error',
+        message: t('upgrade.statusRejected'),
+      },
+      [UpgradeRequestStatus.NeedsMoreInfo]: {
+        severity: 'warning',
+        message: t('upgrade.statusNeedsInfo'),
+        action: (
+          <Button color="inherit" size="small" onClick={() => navigate('/profile?tab=upgrade')}>
+            {t('upgrade.reapply')}
+          </Button>
+        ),
+      },
+    };
+
+    const config = bannerConfig[status];
+    if (!config) return null;
+
+    return (
+      <Alert severity={config.severity} icon={<InfoIcon />} action={config.action} sx={{ borderRadius: 0 }}>
+        {config.message}
+      </Alert>
+    );
+  };
 
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -178,13 +237,18 @@ export function AuthenticatedLayout() {
                 {t('nav.profile')}
               </MenuItem>
               <Divider />
-              <MenuItem onClick={handleLogout}>
+              <MenuItem onClick={() => { handleProfileMenuClose(); setLogoutDialogOpen(true); }}>
                 <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
                 {t('logout')}
               </MenuItem>
             </Menu>
           </Toolbar>
         </AppBar>
+
+        {/* Upgrade status banner */}
+        <Box sx={{ ml: isMobile ? 0 : `${DRAWER_WIDTH}px`, width: isMobile ? '100%' : `calc(100% - ${DRAWER_WIDTH}px)` }}>
+          {getUpgradeBanner()}
+        </Box>
 
         {/* Page content */}
         <Box
@@ -199,6 +263,20 @@ export function AuthenticatedLayout() {
           <Outlet />
         </Box>
       </Box>
+
+      {/* Logout confirmation dialog */}
+      <Dialog open={logoutDialogOpen} onClose={() => setLogoutDialogOpen(false)}>
+        <DialogTitle>{t('auth.logoutConfirmTitle')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{t('auth.logoutConfirmMessage')}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLogoutDialogOpen(false)}>{t('cancel')}</Button>
+          <Button onClick={handleLogout} color="error" variant="contained">
+            {t('logout')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

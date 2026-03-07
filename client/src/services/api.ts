@@ -31,7 +31,8 @@ function processQueue(error: unknown, token: string | null = null) {
 
 function clearAuth() {
   useAuthStore.getState().logout();
-  window.location.href = '/login';
+  sessionStorage.setItem('sessionExpired', 'true');
+  window.location.href = '/';
 }
 
 // Request interceptor: attach Bearer token

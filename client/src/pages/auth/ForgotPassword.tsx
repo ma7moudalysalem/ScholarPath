@@ -1,18 +1,14 @@
-import { useTranslation } from 'react-i18next';
-import { Box, Container, Paper, Typography } from '@mui/material';
+import { Container, Paper } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { ForgotPasswordForm } from '@/components/auth/ForgotPasswordForm';
 
 export default function ForgotPassword() {
-  const { t } = useTranslation();
+  const navigate = useNavigate();
 
   return (
-    <Container maxWidth="sm" sx={{ py: 8 }}>
-      <Paper sx={{ p: 4, textAlign: 'center' }}>
-        <Typography variant="h4" gutterBottom>
-          {t('forgotPassword')}
-        </Typography>
-        <Box sx={{ mt: 2 }}>
-          <Typography color="text.secondary">{t('comingSoon')}</Typography>
-        </Box>
+    <Container maxWidth="xs" sx={{ py: 8 }}>
+      <Paper sx={{ p: 4 }}>
+        <ForgotPasswordForm onSwitchToLogin={() => navigate('/login')} />
       </Paper>
     </Container>
   );

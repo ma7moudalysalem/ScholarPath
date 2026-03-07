@@ -7,4 +7,7 @@ public interface IEmailService
     Task SendEmailAsync(string to, string subject, string htmlBody, CancellationToken cancellationToken = default);
     Task SendPasswordResetEmailAsync(string to, string resetLink, CancellationToken cancellationToken = default);
     Task SendUpgradeStatusEmailAsync(string to, UpgradeRequestStatus status, string? reason = null, CancellationToken cancellationToken = default);
+    Task SendUpgradeApprovedEmailAsync(string to, string userName, UserRole role, string language = "en", CancellationToken cancellationToken = default);
+    Task SendUpgradeRejectedEmailAsync(string to, string userName, string? reasons = null, string language = "en", CancellationToken cancellationToken = default);
+    Task SendNeedsMoreInfoEmailAsync(string to, string userName, string? notes = null, string language = "en", CancellationToken cancellationToken = default);
 }

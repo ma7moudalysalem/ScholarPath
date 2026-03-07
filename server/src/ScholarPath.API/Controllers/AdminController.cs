@@ -1,9 +1,12 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.UpgradeRequests.DTOs;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
 
 namespace ScholarPath.API.Controllers;
@@ -14,49 +17,103 @@ public class AdminController : BaseController
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IEmailService _emailService;
 
     public AdminController(
         ApplicationDbContext dbContext,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IEmailService emailService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
+        _emailService = emailService;
     }
 
     [HttpGet("upgrade-requests")]
     public async Task<IActionResult> GetUpgradeRequests(
         [FromQuery] UpgradeRequestStatus? status = null,
+        [FromQuery] UserRole? type = null,
+        [FromQuery] string? search = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
         var query = _dbContext.UpgradeRequests
             .AsNoTracking()
-            .OrderByDescending(upgradeRequest => upgradeRequest.CreatedAt);
+            .AsQueryable();
 
         if (status.HasValue)
+            query = query.Where(r => r.Status == status.Value);
+
+        if (type.HasValue)
+            query = query.Where(r => r.RequestedRole == type.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
         {
-            query = (IOrderedQueryable<UpgradeRequest>)query.Where(upgradeRequest => upgradeRequest.Status == status.Value);
+            var term = search.Trim().ToLower();
+            query = query.Where(r =>
+                r.User.FirstName.ToLower().Contains(term) ||
+                r.User.LastName.ToLower().Contains(term) ||
+                (r.User.Email != null && r.User.Email.ToLower().Contains(term)));
         }
 
+        var total = await query.CountAsync(cancellationToken);
+
         var requests = await query
+            .OrderByDescending(r => r.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(upgradeRequest => new
+            .Select(r => new
             {
-                upgradeRequest.Id,
-                upgradeRequest.UserId,
-                UserEmail = upgradeRequest.User.Email,
-                UserName = $"{upgradeRequest.User.FirstName} {upgradeRequest.User.LastName}",
-                upgradeRequest.RequestedRole,
-                upgradeRequest.Status,
-                upgradeRequest.AdminNotes,
-                upgradeRequest.CreatedAt,
-                upgradeRequest.ReviewedAt
+                r.Id,
+                r.UserId,
+                UserEmail = r.User.Email,
+                UserName = r.User.FirstName + " " + r.User.LastName,
+                r.RequestedRole,
+                r.Status,
+                r.AdminNotes,
+                r.RejectionReasons,
+                r.ReviewedBy,
+                r.ReviewedById,
+                r.ReviewedAt,
+                r.CreatedAt
             })
             .ToListAsync(cancellationToken);
 
-        return Ok(requests);
+        var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+        return Ok(new { items = requests, totalCount = total, page, pageSize, totalPages });
+    }
+
+    [HttpGet("upgrade-requests/{id:guid}")]
+    public async Task<IActionResult> GetUpgradeRequestDetail(Guid id, CancellationToken cancellationToken)
+    {
+        var r = await _dbContext.UpgradeRequests
+            .AsNoTracking()
+            .Include(x => x.User)
+            .Include(x => x.EducationEntries)
+            .Include(x => x.ExpertiseTagsList)
+            .Include(x => x.Links)
+            .Include(x => x.Files)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        if (r is null) return NotFoundResult("errors.admin.upgradeRequestNotFound");
+
+        var detail = new UpgradeRequestDetailDto(
+            r.Id, r.UserId, r.User.Email!, $"{r.User.FirstName} {r.User.LastName}",
+            r.RequestedRole, r.Status, r.AdminNotes, r.RejectionReason, r.RejectionReasons,
+            r.ReviewedBy, r.ReviewedAt, r.CreatedAt,
+            r.ExperienceSummary,
+            r.EducationEntries.Select(e => new EducationEntryDto(
+                e.InstitutionName, e.DegreeName, e.FieldOfStudy,
+                e.StartYear, e.EndYear, e.IsCurrentlyStudying)).ToList(),
+            r.ExpertiseTagsList.Select(t => t.Name).ToList(),
+            r.Languages?.Split(",", StringSplitOptions.RemoveEmptyEntries).ToList(),
+            r.Links.Select(l => new UpgradeRequestLinkDto(l.Url, l.Label.ToString())).ToList(),
+            r.Files.Select(f => new UpgradeRequestFileDto(f.Id, f.FileName, f.ContentType, f.FileSize, f.UploadedAt)).ToList(),
+            r.CompanyName, r.CompanyCountry, r.CompanyWebsite,
+            r.ContactPersonName, r.ContactEmail, r.ContactPhone, r.CompanyRegistrationNumber);
+
+        return Ok(detail);
     }
 
     [HttpPut("upgrade-requests/{id:guid}/approve")]
@@ -67,20 +124,17 @@ public class AdminController : BaseController
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
         if (upgradeRequest is null)
-        {
             return NotFoundResult("errors.admin.upgradeRequestNotFound");
-        }
 
         if (upgradeRequest.Status != UpgradeRequestStatus.Pending)
-        {
             return BadRequestResult("errors.admin.onlyPendingCanBeApproved");
-        }
 
         var adminUser = await _userManager.GetUserAsync(User);
 
         upgradeRequest.Status = UpgradeRequestStatus.Approved;
         upgradeRequest.ReviewedAt = DateTime.UtcNow;
         upgradeRequest.ReviewedBy = adminUser?.Email;
+        upgradeRequest.ReviewedById = adminUser?.Id;
         upgradeRequest.AdminNotes = request?.ReviewNotes?.Trim() ?? "Approved by admin.";
 
         upgradeRequest.User.Role = upgradeRequest.RequestedRole;
@@ -98,43 +152,61 @@ public class AdminController : BaseController
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
+        // Fire-and-forget email notification
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var user = upgradeRequest.User;
+                await _emailService.SendUpgradeApprovedEmailAsync(
+                    user.Email!,
+                    $"{user.FirstName} {user.LastName}",
+                    upgradeRequest.RequestedRole);
+            }
+            catch (Exception)
+            {
+                // Email failure should not affect the response
+            }
+        });
+
         return Ok(new
         {
             upgradeRequest.Id,
             upgradeRequest.Status,
-            upgradeRequest.ReviewedAt
+            upgradeRequest.ReviewedAt,
+            upgradeRequest.ReviewedById
         });
     }
 
     [HttpPut("upgrade-requests/{id:guid}/reject")]
-    public async Task<IActionResult> RejectUpgradeRequest(Guid id, [FromBody] UpgradeReviewRequest request, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> RejectUpgradeRequest(Guid id, [FromBody] UpgradeRejectRequest request, CancellationToken cancellationToken = default)
     {
-        if (!TryNormalizeReviewNotes(request, out var reviewNotes, out var validationError))
-        {
-            return BadRequestResult(validationError!);
-        }
+        if (string.IsNullOrWhiteSpace(request.ReviewNotes))
+            return BadRequestResult("errors.admin.reviewNotesRequired");
 
         var upgradeRequest = await _dbContext.UpgradeRequests
             .Include(item => item.User)
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
         if (upgradeRequest is null)
-        {
             return NotFoundResult("errors.admin.upgradeRequestNotFound");
-        }
 
         if (upgradeRequest.Status != UpgradeRequestStatus.Pending)
-        {
             return BadRequestResult("errors.admin.onlyPendingCanBeRejected");
-        }
 
         var adminUser = await _userManager.GetUserAsync(User);
 
         upgradeRequest.Status = UpgradeRequestStatus.Rejected;
-        upgradeRequest.AdminNotes = reviewNotes;
-        upgradeRequest.RejectionReason = reviewNotes;
+        upgradeRequest.AdminNotes = request.ReviewNotes.Trim();
+        upgradeRequest.RejectionReason = request.ReviewNotes.Trim();
         upgradeRequest.ReviewedAt = DateTime.UtcNow;
         upgradeRequest.ReviewedBy = adminUser?.Email;
+        upgradeRequest.ReviewedById = adminUser?.Id;
+
+        if (request.RejectionReasons is { Count: > 0 })
+        {
+            upgradeRequest.RejectionReasons = JsonSerializer.Serialize(request.RejectionReasons);
+        }
 
         upgradeRequest.User.Role = UserRole.Unassigned;
         upgradeRequest.User.AccountStatus = AccountStatus.Rejected;
@@ -151,43 +223,57 @@ public class AdminController : BaseController
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
+        // Fire-and-forget email notification
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var user = upgradeRequest.User;
+                await _emailService.SendUpgradeRejectedEmailAsync(
+                    user.Email!,
+                    $"{user.FirstName} {user.LastName}",
+                    upgradeRequest.RejectionReasons);
+            }
+            catch (Exception)
+            {
+                // Email failure should not affect the response
+            }
+        });
+
         return Ok(new
         {
             upgradeRequest.Id,
             upgradeRequest.Status,
             upgradeRequest.AdminNotes,
-            upgradeRequest.ReviewedAt
+            upgradeRequest.RejectionReasons,
+            upgradeRequest.ReviewedAt,
+            upgradeRequest.ReviewedById
         });
     }
 
     [HttpPut("upgrade-requests/{id:guid}/request-info")]
     public async Task<IActionResult> RequestMoreInfo(Guid id, [FromBody] UpgradeReviewRequest request, CancellationToken cancellationToken = default)
     {
-        if (!TryNormalizeReviewNotes(request, out var reviewNotes, out var validationError))
-        {
-            return BadRequestResult(validationError!);
-        }
+        if (string.IsNullOrWhiteSpace(request.ReviewNotes))
+            return BadRequestResult("errors.admin.reviewNotesRequired");
 
         var upgradeRequest = await _dbContext.UpgradeRequests
             .Include(item => item.User)
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
         if (upgradeRequest is null)
-        {
             return NotFoundResult("errors.admin.upgradeRequestNotFound");
-        }
 
         if (upgradeRequest.Status != UpgradeRequestStatus.Pending)
-        {
             return BadRequestResult("errors.admin.onlyPendingCanBeUpdated");
-        }
 
         var adminUser = await _userManager.GetUserAsync(User);
 
         upgradeRequest.Status = UpgradeRequestStatus.NeedsMoreInfo;
-        upgradeRequest.AdminNotes = reviewNotes;
+        upgradeRequest.AdminNotes = request.ReviewNotes.Trim();
         upgradeRequest.ReviewedAt = DateTime.UtcNow;
         upgradeRequest.ReviewedBy = adminUser?.Email;
+        upgradeRequest.ReviewedById = adminUser?.Id;
 
         upgradeRequest.User.Role = UserRole.Unassigned;
         upgradeRequest.User.AccountStatus = AccountStatus.Pending;
@@ -204,27 +290,33 @@ public class AdminController : BaseController
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
+        // Fire-and-forget email notification
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var user = upgradeRequest.User;
+                await _emailService.SendNeedsMoreInfoEmailAsync(
+                    user.Email!,
+                    $"{user.FirstName} {user.LastName}",
+                    upgradeRequest.AdminNotes);
+            }
+            catch (Exception)
+            {
+                // Email failure should not affect the response
+            }
+        });
+
         return Ok(new
         {
             upgradeRequest.Id,
             upgradeRequest.Status,
             upgradeRequest.AdminNotes,
-            upgradeRequest.ReviewedAt
+            upgradeRequest.ReviewedAt,
+            upgradeRequest.ReviewedById
         });
     }
 
-    private static bool TryNormalizeReviewNotes(UpgradeReviewRequest request, out string? reviewNotes, out string? validationError)
-    {
-        reviewNotes = request.ReviewNotes?.Trim();
-        if (string.IsNullOrWhiteSpace(reviewNotes))
-        {
-            validationError = "errors.admin.reviewNotesRequired";
-            return false;
-        }
-
-        validationError = null;
-        return true;
-    }
-
     public record UpgradeReviewRequest(string? ReviewNotes);
+    public record UpgradeRejectRequest(string? ReviewNotes, List<string>? RejectionReasons);
 }

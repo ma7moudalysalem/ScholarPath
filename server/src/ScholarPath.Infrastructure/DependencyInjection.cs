@@ -98,7 +98,32 @@ public static class DependencyInjection
                     return Task.CompletedTask;
                 }
             };
-        });
+        })
+        ;
+
+        // Google OAuth (only if configured)
+        var googleClientId = configuration["Authentication:Google:ClientId"];
+        if (!string.IsNullOrWhiteSpace(googleClientId))
+        {
+            services.AddAuthentication()
+                .AddGoogle(options =>
+                {
+                    options.ClientId = googleClientId;
+                    options.ClientSecret = configuration["Authentication:Google:ClientSecret"] ?? "";
+                });
+        }
+
+        // Microsoft OAuth (only if configured)
+        var microsoftClientId = configuration["Authentication:Microsoft:ClientId"];
+        if (!string.IsNullOrWhiteSpace(microsoftClientId))
+        {
+            services.AddAuthentication()
+                .AddMicrosoftAccount(options =>
+                {
+                    options.ClientId = microsoftClientId;
+                    options.ClientSecret = configuration["Authentication:Microsoft:ClientSecret"] ?? "";
+                });
+        }
 
         // Repositories
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));

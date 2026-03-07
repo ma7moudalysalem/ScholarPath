@@ -6,6 +6,8 @@ import { authService } from '@/services/authService';
 import type { LoginRequest, RegisterRequest, OnboardingRequest } from '@/types';
 import { AccountStatus, UserRole } from '@/types';
 
+const INTENDED_DESTINATION_KEY = 'intendedDestination';
+
 export function useAuth() {
   const navigate = useNavigate();
 
@@ -26,23 +28,37 @@ export function useAuth() {
   const role = useAuthStore(selectRole);
   const isOnboarded = useAuthStore(selectIsOnboarded);
 
+  const navigateAfterAuth = useCallback(
+    (user: { isOnboardingComplete: boolean; accountStatus: AccountStatus }) => {
+      if (!user.isOnboardingComplete || user.accountStatus === AccountStatus.Pending) {
+        navigate('/onboarding');
+        return;
+      }
+
+      // Check for intended destination
+      const intended = sessionStorage.getItem(INTENDED_DESTINATION_KEY);
+      if (intended) {
+        sessionStorage.removeItem(INTENDED_DESTINATION_KEY);
+        navigate(intended);
+      } else {
+        navigate('/dashboard');
+      }
+    },
+    [navigate]
+  );
+
   const login = useCallback(
     async (data: LoginRequest) => {
       setLoading(true);
       try {
         const response = await authService.login(data);
         setAuth(response.user, response.accessToken, response.refreshToken);
-
-        if (!response.user.isOnboardingComplete || response.user.accountStatus === AccountStatus.Pending) {
-          navigate('/onboarding');
-        } else {
-          navigate('/dashboard');
-        }
+        navigateAfterAuth(response.user);
       } finally {
         setLoading(false);
       }
     },
-    [setAuth, setLoading, navigate]
+    [setAuth, setLoading, navigateAfterAuth]
   );
 
   const register = useCallback(
@@ -66,7 +82,7 @@ export function useAuth() {
       // Ignore errors during logout
     } finally {
       storeLogout();
-      navigate('/login');
+      navigate('/');
     }
   }, [storeLogout, navigate]);
 
@@ -97,6 +113,10 @@ export function useAuth() {
     }
   }, [setUser, storeLogout]);
 
+  const saveIntendedDestination = useCallback((path: string) => {
+    sessionStorage.setItem(INTENDED_DESTINATION_KEY, path);
+  }, []);
+
   return {
     user,
     isAuthenticated,
@@ -112,5 +132,6 @@ export function useAuth() {
     logout,
     completeOnboarding,
     refreshCurrentUser,
+    saveIntendedDestination,
   };
 }

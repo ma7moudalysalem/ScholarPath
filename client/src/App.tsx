@@ -9,6 +9,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { AuthenticatedLayout } from '@/components/Layout/AuthenticatedLayout';
 import { PublicLayout } from '@/components/Layout/PublicLayout';
+import { AuthModalProvider } from '@/components/auth/AuthModalProvider';
 import { UserRole } from '@/types';
 
 // Lazy-loaded pages for code-splitting
@@ -20,7 +21,6 @@ const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword'));
 const Onboarding = lazy(() => import('@/pages/auth/Onboarding'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Profile = lazy(() => import('@/pages/profile/Profile'));
-const Security = lazy(() => import('@/pages/profile/Security'));
 const ScholarshipList = lazy(() => import('@/pages/scholarships/ScholarshipList'));
 const ScholarshipDetail = lazy(() => import('@/pages/scholarships/ScholarshipDetail'));
 const Community = lazy(() => import('@/pages/community/Community'));
@@ -53,6 +53,7 @@ export default function App() {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <ErrorBoundary>
+        <AuthModalProvider />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Public routes */}
@@ -85,7 +86,6 @@ export default function App() {
             >
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/profile/security" element={<Security />} />
               <Route path="/scholarships" element={<ScholarshipList />} />
               <Route path="/scholarships/:id" element={<ScholarshipDetail />} />
               <Route path="/community" element={<Community />} />

@@ -157,7 +157,7 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
         var listResponse = await client.GetAsync("/api/v1/admin/upgrade-requests?status=0");
         listResponse.EnsureSuccessStatusCode();
         var listJson = await ReadJsonAsync(listResponse);
-        var requestId = listJson.EnumerateArray().First().GetProperty("id").GetString()!;
+        var requestId = listJson.GetProperty("items").EnumerateArray().First().GetProperty("id").GetString()!;
 
         // Approve
         var approveResponse = await client.PutAsJsonAsync($"/api/v1/admin/upgrade-requests/{requestId}/approve", new { });
@@ -202,7 +202,7 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
         var listResponse = await client.GetAsync("/api/v1/admin/upgrade-requests?status=0");
         listResponse.EnsureSuccessStatusCode();
         var listJson = await ReadJsonAsync(listResponse);
-        var requestId = listJson.EnumerateArray().First().GetProperty("id").GetString()!;
+        var requestId = listJson.GetProperty("items").EnumerateArray().First().GetProperty("id").GetString()!;
 
         // Reject with empty notes should fail
         var rejectResponse = await client.PutAsJsonAsync($"/api/v1/admin/upgrade-requests/{requestId}/reject", new

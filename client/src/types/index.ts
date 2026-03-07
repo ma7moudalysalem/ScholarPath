@@ -57,6 +57,7 @@ export interface UserDto {
   role: UserRole;
   accountStatus: AccountStatus;
   isOnboardingComplete: boolean;
+  hasPassword?: boolean;
 }
 
 export interface AuthResponse {
@@ -98,7 +99,7 @@ export interface ResetPasswordRequest {
 }
 
 export interface ChangePasswordRequest {
-  currentPassword: string;
+  currentPassword?: string;
   newPassword: string;
   confirmNewPassword: string;
 }
@@ -203,4 +204,102 @@ export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;
   statusCode?: number;
+}
+
+// ─── External Auth ──────────────────────────────────────────────────────────
+
+export interface ExternalLoginRequest {
+  provider: string;
+  idToken: string;
+  providerKey?: string;
+}
+
+export interface LinkProviderRequest {
+  provider: string;
+  providerKey: string;
+}
+
+// ─── Upgrade Request (Consultant) ───────────────────────────────────────────
+
+export interface EducationEntryDto {
+  id?: string;
+  institutionName: string;
+  degreeName: string;
+  fieldOfStudy: string;
+  startYear: number;
+  endYear?: number;
+  isCurrentlyStudying: boolean;
+}
+
+export interface UpgradeRequestLinkDto {
+  url: string;
+  label: 'LinkedIn' | 'Portfolio' | 'Website' | 'Other';
+}
+
+export interface UpgradeRequestFileDto {
+  id: string;
+  fileName: string;
+  contentType: string;
+  fileSize: number;
+  uploadedAt: string;
+}
+
+export interface ConsultantUpgradeRequest {
+  education: EducationEntryDto[];
+  experienceSummary: string;
+  expertiseTags: string[];
+  languages: string[];
+  links: UpgradeRequestLinkDto[];
+}
+
+// ─── Upgrade Request (Company) ──────────────────────────────────────────────
+
+export interface CompanyUpgradeRequest {
+  companyName: string;
+  country: string;
+  website?: string;
+  contactPersonName: string;
+  contactEmail: string;
+  contactPhone?: string;
+  companyRegistrationNumber: string;
+}
+
+// ─── Upgrade Request Detail (Admin) ─────────────────────────────────────────
+
+export interface UpgradeRequestDetailDto {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  requestedRole: UserRole;
+  status: UpgradeRequestStatus;
+  adminNotes: string | null;
+  rejectionReasons: string[] | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  reviewedBy: string | null;
+  // Consultant fields
+  experienceSummary: string | null;
+  expertiseTags: string[];
+  languages: string[];
+  education: EducationEntryDto[];
+  links: UpgradeRequestLinkDto[];
+  files: UpgradeRequestFileDto[];
+  // Company fields
+  companyName: string | null;
+  country: string | null;
+  website: string | null;
+  contactPersonName: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  companyRegistrationNumber: string | null;
+}
+
+export interface UpgradeReviewRequest {
+  reviewNotes?: string;
+}
+
+export interface UpgradeRejectRequest {
+  reviewNotes: string;
+  rejectionReasons: string[];
 }
