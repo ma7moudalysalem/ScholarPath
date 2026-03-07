@@ -10,12 +10,14 @@ public class UpgradeRequest : AuditableEntity
     public UpgradeRequestStatus Status { get; set; } = UpgradeRequestStatus.Pending;
     public string? AdminNotes { get; set; }
     public string? RejectionReason { get; set; }
+    public string? RejectionReasons { get; set; } // JSON array of structured rejection codes
     public string? ReviewedBy { get; set; }
+    public Guid? ReviewedById { get; set; }
     public DateTime? ReviewedAt { get; set; }
 
     // Consultant-specific fields
     public string? ExperienceSummary { get; set; }
-    public string? ExpertiseTags { get; set; }
+    public string? ExpertiseTags { get; set; } // Legacy: comma-separated tags
     public string? Languages { get; set; }
     public string? LinkedInUrl { get; set; }
     public string? PortfolioUrl { get; set; }
@@ -29,9 +31,13 @@ public class UpgradeRequest : AuditableEntity
     public string? ContactPhone { get; set; }
     public string? CompanyRegistrationNumber { get; set; }
 
-    // Proof document
+    // Proof document (legacy single URL)
     public string? ProofDocumentUrl { get; set; }
 
     // Navigation properties
     public ApplicationUser User { get; set; } = null!;
+    public ICollection<EducationEntry> EducationEntries { get; set; } = new List<EducationEntry>();
+    public ICollection<ExpertiseTag> ExpertiseTagsList { get; set; } = new List<ExpertiseTag>();
+    public ICollection<UpgradeRequestLink> Links { get; set; } = new List<UpgradeRequestLink>();
+    public ICollection<UpgradeRequestFile> Files { get; set; } = new List<UpgradeRequestFile>();
 }

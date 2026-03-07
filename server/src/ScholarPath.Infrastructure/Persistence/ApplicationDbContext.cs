@@ -31,6 +31,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<UpgradeRequest> UpgradeRequests => Set<UpgradeRequest>();
+    public DbSet<EducationEntry> EducationEntries => Set<EducationEntry>();
+    public DbSet<ExpertiseTag> ExpertiseTags => Set<ExpertiseTag>();
+    public DbSet<UpgradeRequestLink> UpgradeRequestLinks => Set<UpgradeRequestLink>();
+    public DbSet<UpgradeRequestFile> UpgradeRequestFiles => Set<UpgradeRequestFile>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();

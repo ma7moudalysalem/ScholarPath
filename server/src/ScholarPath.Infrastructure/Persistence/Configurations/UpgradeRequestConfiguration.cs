@@ -26,12 +26,15 @@ public class UpgradeRequestConfiguration : IEntityTypeConfiguration<UpgradeReque
         builder.Property(ur => ur.RejectionReason)
             .HasMaxLength(1000);
 
+        builder.Property(ur => ur.RejectionReasons)
+            .HasMaxLength(2000);
+
         builder.Property(ur => ur.ReviewedBy)
             .HasMaxLength(200);
 
         // Consultant fields
         builder.Property(ur => ur.ExperienceSummary)
-            .HasMaxLength(2000);
+            .HasMaxLength(1500);
 
         builder.Property(ur => ur.ExpertiseTags)
             .HasMaxLength(500);
@@ -56,16 +59,16 @@ public class UpgradeRequestConfiguration : IEntityTypeConfiguration<UpgradeReque
             .HasMaxLength(500);
 
         builder.Property(ur => ur.ContactPersonName)
-            .HasMaxLength(200);
+            .HasMaxLength(120);
 
         builder.Property(ur => ur.ContactEmail)
-            .HasMaxLength(200);
+            .HasMaxLength(150);
 
         builder.Property(ur => ur.ContactPhone)
-            .HasMaxLength(50);
+            .HasMaxLength(20);
 
         builder.Property(ur => ur.CompanyRegistrationNumber)
-            .HasMaxLength(100);
+            .HasMaxLength(30);
 
         builder.Property(ur => ur.ProofDocumentUrl)
             .HasMaxLength(500);
@@ -75,6 +78,103 @@ public class UpgradeRequestConfiguration : IEntityTypeConfiguration<UpgradeReque
 
         builder.HasIndex(ur => ur.UserId)
             .HasDatabaseName("IX_UpgradeRequests_UserId");
+
+        builder.HasMany(ur => ur.EducationEntries)
+            .WithOne(e => e.UpgradeRequest)
+            .HasForeignKey(e => e.UpgradeRequestId);
+
+        builder.HasMany(ur => ur.ExpertiseTagsList)
+            .WithMany(t => t.UpgradeRequests)
+            .UsingEntity("UpgradeRequestExpertiseTag");
+
+        builder.HasMany(ur => ur.Links)
+            .WithOne(l => l.UpgradeRequest)
+            .HasForeignKey(l => l.UpgradeRequestId);
+
+        builder.HasMany(ur => ur.Files)
+            .WithOne(f => f.UpgradeRequest)
+            .HasForeignKey(f => f.UpgradeRequestId);
+    }
+}
+
+public class EducationEntryConfiguration : IEntityTypeConfiguration<EducationEntry>
+{
+    public void Configure(EntityTypeBuilder<EducationEntry> builder)
+    {
+        builder.HasKey(e => e.Id);
+
+        builder.Property(e => e.InstitutionName)
+            .HasMaxLength(300)
+            .IsRequired();
+
+        builder.Property(e => e.DegreeName)
+            .HasMaxLength(200)
+            .IsRequired();
+
+        builder.Property(e => e.FieldOfStudy)
+            .HasMaxLength(200)
+            .IsRequired();
+
+        builder.HasIndex(e => e.UpgradeRequestId)
+            .HasDatabaseName("IX_EducationEntries_UpgradeRequestId");
+    }
+}
+
+public class ExpertiseTagConfiguration : IEntityTypeConfiguration<ExpertiseTag>
+{
+    public void Configure(EntityTypeBuilder<ExpertiseTag> builder)
+    {
+        builder.HasKey(t => t.Id);
+
+        builder.Property(t => t.Name)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.HasIndex(t => t.Name)
+            .IsUnique()
+            .HasDatabaseName("IX_ExpertiseTags_Name");
+    }
+}
+
+public class UpgradeRequestLinkConfiguration : IEntityTypeConfiguration<UpgradeRequestLink>
+{
+    public void Configure(EntityTypeBuilder<UpgradeRequestLink> builder)
+    {
+        builder.HasKey(l => l.Id);
+
+        builder.Property(l => l.Url)
+            .HasMaxLength(500)
+            .IsRequired();
+
+        builder.Property(l => l.Label)
+            .HasConversion<string>()
+            .HasMaxLength(20);
+
+        builder.HasIndex(l => l.UpgradeRequestId)
+            .HasDatabaseName("IX_UpgradeRequestLinks_UpgradeRequestId");
+    }
+}
+
+public class UpgradeRequestFileConfiguration : IEntityTypeConfiguration<UpgradeRequestFile>
+{
+    public void Configure(EntityTypeBuilder<UpgradeRequestFile> builder)
+    {
+        builder.HasKey(f => f.Id);
+
+        builder.Property(f => f.FileName)
+            .HasMaxLength(300)
+            .IsRequired();
+
+        builder.Property(f => f.FilePath)
+            .HasMaxLength(500)
+            .IsRequired();
+
+        builder.Property(f => f.ContentType)
+            .HasMaxLength(100)
+            .IsRequired();
+
+        builder.HasIndex(f => f.UpgradeRequestId)
+            .HasDatabaseName("IX_UpgradeRequestFiles_UpgradeRequestId");
     }
 }
 
