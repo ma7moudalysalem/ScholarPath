@@ -9,10 +9,13 @@ public class Scholarship : AuditableEntity, ISoftDeletable
     public string? TitleAr { get; set; }
     public string Description { get; set; } = string.Empty;
     public string? DescriptionAr { get; set; }
+    public string ProviderName { get; set; } = string.Empty;
+    public string? ProviderNameAr { get; set; }
     public string? Country { get; set; }
     public string? FieldOfStudy { get; set; }
     public ScholarshipFundingType FundingType { get; set; }
     public DegreeLevel DegreeLevel { get; set; }
+    public ScholarshipStatus Status { get; set; } = ScholarshipStatus.Published;
     public decimal? AwardAmount { get; set; }
     public string? Currency { get; set; }
     public DateTime? Deadline { get; set; }
@@ -21,6 +24,11 @@ public class Scholarship : AuditableEntity, ISoftDeletable
     public string? OfficialLink { get; set; }
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
+    public int ViewCount { get; set; }
+    public string? Tags { get; set; } // JSON array
+    public string? OverviewHtml { get; set; }
+    public string? HowToApplyHtml { get; set; }
+    public string? DocumentsChecklist { get; set; } // JSON array
 
     // Eligibility criteria
     public decimal? MinGPA { get; set; }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Infrastructure.Persistence.Configurations;
 
@@ -20,6 +21,13 @@ public class ScholarshipConfiguration : IEntityTypeConfiguration<Scholarship>
         builder.Property(s => s.Description)
             .IsRequired();
 
+        builder.Property(s => s.ProviderName)
+            .HasMaxLength(200)
+            .HasDefaultValue(string.Empty);
+
+        builder.Property(s => s.ProviderNameAr)
+            .HasMaxLength(200);
+
         builder.Property(s => s.Country)
             .HasMaxLength(100);
 
@@ -33,6 +41,11 @@ public class ScholarshipConfiguration : IEntityTypeConfiguration<Scholarship>
         builder.Property(s => s.DegreeLevel)
             .HasConversion<string>()
             .HasMaxLength(30);
+
+        builder.Property(s => s.Status)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .HasDefaultValue(ScholarshipStatus.Published);
 
         builder.Property(s => s.AwardAmount)
             .HasPrecision(18, 2);
@@ -51,6 +64,15 @@ public class ScholarshipConfiguration : IEntityTypeConfiguration<Scholarship>
 
         builder.Property(s => s.ImageUrl)
             .HasMaxLength(500);
+
+        builder.Property(s => s.ViewCount)
+            .HasDefaultValue(0);
+
+        builder.Property(s => s.Tags)
+            .HasMaxLength(2000);
+
+        builder.Property(s => s.DocumentsChecklist)
+            .HasMaxLength(4000);
 
         builder.Property(s => s.MinGPA)
             .HasPrecision(4, 2);
@@ -79,6 +101,18 @@ public class ScholarshipConfiguration : IEntityTypeConfiguration<Scholarship>
 
         builder.HasIndex(s => s.FundingType)
             .HasDatabaseName("IX_Scholarships_FundingType");
+
+        builder.HasIndex(s => s.Status)
+            .HasDatabaseName("IX_Scholarships_Status");
+
+        builder.HasIndex(s => new { s.Country, s.DegreeLevel })
+            .HasDatabaseName("IX_Scholarships_Country_DegreeLevel");
+
+        builder.HasIndex(s => new { s.FieldOfStudy, s.Deadline })
+            .HasDatabaseName("IX_Scholarships_FieldOfStudy_Deadline");
+
+        builder.HasIndex(s => new { s.Status, s.IsDeleted })
+            .HasDatabaseName("IX_Scholarships_Status_IsDeleted");
 
         // Relationships
         builder.HasOne(s => s.Category)
