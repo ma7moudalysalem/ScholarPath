@@ -412,6 +412,33 @@ export interface TrackApplicationResponse {
   alreadyExisted: boolean;
 }
 
+export interface ApplicationListItemDto {
+  id: string;
+  scholarshipId: string;
+  scholarshipTitle: string;
+  scholarshipTitleAr: string | null;
+  providerName: string | null;
+  deadline: string | null;
+  deadlineCountdownDays: number | null;
+  status: ApplicationStatus;
+  notesPreview: string | null;
+  hasReminders: boolean;
+  isOverdue: boolean;
+  updatedAt: string | null;
+  createdAt: string;
+}
+
+export interface ChecklistItem {
+  text: string;
+  isChecked: boolean;
+}
+
+export interface UpdateRemindersRequest {
+  presets: number[];
+  channels: { inApp: boolean; email: boolean };
+  paused: boolean;
+}
+
 // ─── Dashboard ─────────────────────────────────────────────────────────────
 
 export interface DashboardSummaryDto {

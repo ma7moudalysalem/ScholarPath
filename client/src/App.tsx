@@ -2,6 +2,7 @@ import { useMemo, lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, CircularProgress, Box } from '@mui/material';
 import { CacheProvider } from '@emotion/react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { createScholarPathTheme } from '@/theme';
 import { rtlCache, ltrCache } from '@/theme/rtlCache';
 import { useUiStore } from '@/stores/uiStore';
@@ -11,6 +12,7 @@ import { AuthenticatedLayout } from '@/components/Layout/AuthenticatedLayout';
 import { PublicLayout } from '@/components/Layout/PublicLayout';
 import { AuthModalProvider } from '@/components/auth/AuthModalProvider';
 import { UserRole } from '@/types';
+import { GOOGLE_CLIENT_ID } from '@/config/oauth';
 
 // Lazy-loaded pages for code-splitting
 const Home = lazy(() => import('@/pages/Home'));
@@ -27,6 +29,7 @@ const Community = lazy(() => import('@/pages/community/Community'));
 const GroupDetail = lazy(() => import('@/pages/community/GroupDetail'));
 const Notifications = lazy(() => import('@/pages/Notifications'));
 const UpgradeRequests = lazy(() => import('@/pages/admin/UpgradeRequests'));
+const Tracker = lazy(() => import('@/pages/dashboard/Tracker'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
 function PageLoader() {
@@ -49,6 +52,7 @@ export default function App() {
   const emotionCache = direction === 'rtl' ? rtlCache : ltrCache;
 
   return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || 'not-configured'}>
     <CacheProvider value={emotionCache}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
@@ -85,6 +89,7 @@ export default function App() {
               }
             >
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/tracker" element={<Tracker />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/scholarships" element={<ScholarshipList />} />
               <Route path="/scholarships/:id" element={<ScholarshipDetail />} />
@@ -109,5 +114,6 @@ export default function App() {
       </ErrorBoundary>
       </ThemeProvider>
     </CacheProvider>
+    </GoogleOAuthProvider>
   );
 }
