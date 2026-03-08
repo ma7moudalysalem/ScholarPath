@@ -411,3 +411,21 @@ export interface TrackApplicationResponse {
   status: ApplicationStatus;
   alreadyExisted: boolean;
 }
+
+// ─── Dashboard ─────────────────────────────────────────────────────────────
+
+export interface DashboardSummaryDto {
+  statusCounts: Record<string, number>;
+  deadlinesSoon: UpcomingDeadlineDto[];
+  recommendedActions: string[];
+}
+
+export interface UpcomingDeadlineDto {
+  scholarshipId: string;
+  title: string;
+  titleAr: string | null;
+  providerName: string | null;
+  deadline: string;
+  countdownDays: number;
+  status: ApplicationStatus;
+}

@@ -289,6 +289,27 @@
     "contactUs": "تواصل معنا"
   },
 
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "saved": "المحفوظة",
+    "planned": "مخطط لها",
+    "applied": "تم التقديم",
+    "pending": "قيد الانتظار",
+    "accepted": "مقبولة",
+    "rejected": "مرفوضة",
+    "upcomingDeadlines": "المواعيد النهائية القادمة",
+    "noDeadlines": "لا توجد مواعيد نهائية قادمة",
+    "viewAll": "عرض الكل",
+    "daysLeft": "{{count}} يوم متبقي",
+    "recommendedActions": "الإجراءات الموصى بها",
+    "browseScholarships": "تصفح المنح الدراسية",
+    "browseScholarshipsDesc": "اكتشف المنح الدراسية التي تناسب ملفك الشخصي",
+    "completeProfile": "أكمل ملفك الشخصي",
+    "completeProfileDesc": "احصل على توصيات مخصصة بإكمال ملفك الشخصي",
+    "noDataYet": "مرحبًا بك في لوحة التحكم!",
+    "noDataDesc": "ابدأ بتصفح المنح الدراسية أو إكمال ملفك الشخصي"
+  },
+
   "welcomeBack": "مرحبًا بعودتك، {{name}}!",
   "retry": "إعادة المحاولة",
   "allRightsReserved": "جميع الحقوق محفوظة.",

@@ -289,6 +289,27 @@
     "contactUs": "Contact Us"
   },
 
+  "dashboard": {
+    "title": "Dashboard",
+    "saved": "Saved",
+    "planned": "Planned",
+    "applied": "Applied",
+    "pending": "Pending",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "upcomingDeadlines": "Upcoming Deadlines",
+    "noDeadlines": "No upcoming deadlines",
+    "viewAll": "View All",
+    "daysLeft": "{{count}} days left",
+    "recommendedActions": "Recommended Actions",
+    "browseScholarships": "Browse Scholarships",
+    "browseScholarshipsDesc": "Discover scholarships that match your profile",
+    "completeProfile": "Complete Your Profile",
+    "completeProfileDesc": "Get personalized recommendations by completing your profile",
+    "noDataYet": "Welcome to your dashboard!",
+    "noDataDesc": "Start by browsing scholarships or completing your profile"
+  },
+
   "welcomeBack": "Welcome back, {{name}}!",
   "retry": "Retry",
   "allRightsReserved": "All rights reserved.",
