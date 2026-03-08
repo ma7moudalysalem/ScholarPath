@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Common;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
@@ -8,7 +9,7 @@ using ScholarPath.Infrastructure.Persistence.Seeds;
 
 namespace ScholarPath.Infrastructure.Persistence;
 
-public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>, IApplicationDbContext
 {
     private readonly ICurrentUserService? _currentUserService;
 
