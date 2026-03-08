@@ -142,6 +142,56 @@ export interface ScholarshipFilters {
   pageSize?: number;
 }
 
+export enum ScholarshipSortBy {
+  Relevance = 0,
+  DeadlineSoonest = 1,
+  Newest = 2,
+  HighestFunding = 3,
+}
+
+export interface ScholarshipSearchFilters {
+  search?: string;
+  country?: string;
+  degreeLevel?: DegreeLevel;
+  fieldOfStudy?: string;
+  fundingType?: ScholarshipFundingType;
+  deadlineFrom?: string;
+  deadlineTo?: string;
+  page?: number;
+  pageSize?: number;
+  sortBy?: ScholarshipSortBy;
+  includeExpired?: boolean;
+}
+
+export interface ScholarshipListItemDto {
+  id: string;
+  title: string;
+  titleAr: string | null;
+  providerName: string | null;
+  providerNameAr: string | null;
+  country: string | null;
+  degreeLevel: DegreeLevel;
+  fundingType: ScholarshipFundingType;
+  awardAmount: number | null;
+  currency: string | null;
+  deadline: string | null;
+  deadlineCountdownDays: number | null;
+  isExpiringSoon: boolean;
+  isSaved: boolean;
+  imageUrl: string | null;
+  createdAt: string;
+}
+
+export interface RecommendedScholarshipDto extends ScholarshipListItemDto {
+  score: number;
+  matchReasons: string[];
+}
+
+export interface RecommendedResponse {
+  items: RecommendedScholarshipDto[];
+  profileIncomplete: boolean;
+}
+
 export interface PaginatedResponse<T> {
   items: T[];
   totalCount: number;

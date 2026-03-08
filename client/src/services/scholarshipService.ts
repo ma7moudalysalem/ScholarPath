@@ -1,24 +1,19 @@
 import api from './api';
-import type { ScholarshipDto, ScholarshipFilters, PaginatedResponse } from '@/types';
+import type {
+  ScholarshipDto,
+  ScholarshipSearchFilters,
+  ScholarshipListItemDto,
+  PaginatedResponse,
+  RecommendedResponse,
+} from '@/types';
 
 export const scholarshipService = {
   async getScholarships(
-    filters: ScholarshipFilters = {}
-  ): Promise<PaginatedResponse<ScholarshipDto>> {
-    const params = new URLSearchParams();
-
-    if (filters.search) params.append('search', filters.search);
-    if (filters.country) params.append('country', filters.country);
-    if (filters.fieldOfStudy) params.append('fieldOfStudy', filters.fieldOfStudy);
-    if (filters.fundingType !== undefined)
-      params.append('fundingType', String(filters.fundingType));
-    if (filters.degreeLevel !== undefined)
-      params.append('degreeLevel', String(filters.degreeLevel));
-    if (filters.page !== undefined) params.append('page', String(filters.page));
-    if (filters.pageSize !== undefined) params.append('pageSize', String(filters.pageSize));
-
-    const response = await api.get<PaginatedResponse<ScholarshipDto>>(
-      `/scholarships?${params.toString()}`
+    filters: ScholarshipSearchFilters = {}
+  ): Promise<PaginatedResponse<ScholarshipListItemDto>> {
+    const response = await api.get<PaginatedResponse<ScholarshipListItemDto>>(
+      '/scholarships',
+      { params: filters }
     );
     return response.data;
   },
@@ -28,11 +23,29 @@ export const scholarshipService = {
     return response.data;
   },
 
+  async getRecommended(): Promise<RecommendedResponse> {
+    const response = await api.get<RecommendedResponse>(
+      '/scholarships/recommended'
+    );
+    return response.data;
+  },
+
   async saveScholarship(scholarshipId: string): Promise<void> {
     await api.post(`/scholarships/${scholarshipId}/save`);
   },
 
   async unsaveScholarship(scholarshipId: string): Promise<void> {
     await api.delete(`/scholarships/${scholarshipId}/save`);
+  },
+
+  async getSavedScholarships(
+    page = 1,
+    pageSize = 20
+  ): Promise<PaginatedResponse<ScholarshipListItemDto>> {
+    const response = await api.get<PaginatedResponse<ScholarshipListItemDto>>(
+      '/saved-scholarships',
+      { params: { page, pageSize } }
+    );
+    return response.data;
   },
 };
