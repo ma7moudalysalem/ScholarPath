@@ -353,3 +353,61 @@ export interface UpgradeRejectRequest {
   reviewNotes: string;
   rejectionReasons: string[];
 }
+
+// ─── Application Tracking ───────────────────────────────────────────────────
+
+export enum ApplicationStatus {
+  Planned = 0,
+  Applied = 1,
+  Pending = 2,
+  Accepted = 3,
+  Rejected = 4,
+}
+
+export interface ScholarshipDetailDto {
+  id: string;
+  title: string;
+  titleAr: string | null;
+  description: string;
+  descriptionAr: string | null;
+  providerName: string | null;
+  providerNameAr: string | null;
+  country: string | null;
+  fieldOfStudy: string | null;
+  degreeLevel: DegreeLevel;
+  fundingType: ScholarshipFundingType;
+  awardAmount: number | null;
+  currency: string | null;
+  deadline: string | null;
+  deadlineCountdownDays: number | null;
+  eligibilityDescription: string | null;
+  requiredDocuments: string | null;
+  overviewHtml: string | null;
+  howToApplyHtml: string | null;
+  documentsChecklist: string | null;
+  officialLink: string | null;
+  imageUrl: string | null;
+  minGPA: number | null;
+  maxAge: number | null;
+  eligibleCountries: string | null;
+  eligibleMajors: string | null;
+  tags: string | null;
+  viewCount: number;
+  categoryId: string | null;
+  categoryName: string | null;
+  isSaved: boolean;
+  isTracked: boolean;
+  createdAt: string;
+}
+
+export interface TrackApplicationRequest {
+  scholarshipId: string;
+  status?: ApplicationStatus;
+  notes?: string;
+}
+
+export interface TrackApplicationResponse {
+  id: string;
+  status: ApplicationStatus;
+  alreadyExisted: boolean;
+}

@@ -1,6 +1,6 @@
 import api from './api';
 import type {
-  ScholarshipDto,
+  ScholarshipDetailDto,
   ScholarshipSearchFilters,
   ScholarshipListItemDto,
   PaginatedResponse,
@@ -18,8 +18,8 @@ export const scholarshipService = {
     return response.data;
   },
 
-  async getScholarshipById(id: string): Promise<ScholarshipDto> {
-    const response = await api.get<ScholarshipDto>(`/scholarships/${id}`);
+  async getScholarshipById(id: string): Promise<ScholarshipDetailDto> {
+    const response = await api.get<ScholarshipDetailDto>(`/scholarships/${id}`);
     return response.data;
   },
 
