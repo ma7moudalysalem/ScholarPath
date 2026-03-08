@@ -318,4 +318,127 @@ public class ScholarshipsController : BaseController
 
         return Ok(result);
     }
+
+    [HttpPost("{id:guid}/save")]
+    [Authorize]
+    public async Task<IActionResult> SaveScholarship(Guid id, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null)
+            return Unauthorized();
+
+        var scholarshipExists = await _dbContext.Scholarships
+            .AnyAsync(s => s.Id == id, cancellationToken);
+        if (!scholarshipExists)
+            return NotFoundResult("Scholarship not found.");
+
+        var alreadySaved = await _dbContext.SavedScholarships
+            .AnyAsync(ss => ss.UserId == user.Id && ss.ScholarshipId == id, cancellationToken);
+
+        if (!alreadySaved)
+        {
+            var savedScholarship = new SavedScholarship
+            {
+                UserId = user.Id,
+                ScholarshipId = id
+            };
+            _dbContext.SavedScholarships.Add(savedScholarship);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return Ok();
+    }
+
+    [HttpDelete("{id:guid}/save")]
+    [Authorize]
+    public async Task<IActionResult> UnsaveScholarship(Guid id, CancellationToken cancellationToken)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null)
+            return Unauthorized();
+
+        var saved = await _dbContext.SavedScholarships
+            .FirstOrDefaultAsync(ss => ss.UserId == user.Id && ss.ScholarshipId == id, cancellationToken);
+
+        if (saved is not null)
+        {
+            _dbContext.SavedScholarships.Remove(saved);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return Ok();
+    }
+
+    [HttpGet("/api/v{version:apiVersion}/saved-scholarships")]
+    [Authorize]
+    public async Task<IActionResult> GetSavedScholarships(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null)
+            return Unauthorized();
+
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 1;
+        if (pageSize > 100) pageSize = 100;
+
+        var query = _dbContext.SavedScholarships
+            .AsNoTracking()
+            .Where(ss => ss.UserId == user.Id)
+            .Join(
+                _dbContext.Scholarships.AsNoTracking()
+                    .Where(s => s.Status == ScholarshipStatus.Published && s.IsActive),
+                ss => ss.ScholarshipId,
+                s => s.Id,
+                (ss, s) => s);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var today = DateTime.UtcNow.Date;
+
+        var items = await query
+            .OrderByDescending(s => s.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(s => new ScholarshipListItemDto
+            {
+                Id = s.Id,
+                Title = s.Title,
+                TitleAr = s.TitleAr,
+                ProviderName = s.ProviderName,
+                ProviderNameAr = s.ProviderNameAr,
+                Country = s.Country,
+                DegreeLevel = s.DegreeLevel,
+                FundingType = s.FundingType,
+                AwardAmount = s.AwardAmount,
+                Currency = s.Currency,
+                Deadline = s.Deadline,
+                ImageUrl = s.ImageUrl,
+                CreatedAt = s.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        foreach (var item in items)
+        {
+            if (item.Deadline.HasValue)
+            {
+                item.DeadlineCountdownDays = (item.Deadline.Value.Date - today).Days;
+                item.IsExpiringSoon = item.DeadlineCountdownDays is > 0 and <= 7;
+            }
+
+            item.IsSaved = true;
+        }
+
+        var response = new PaginatedResponse<ScholarshipListItemDto>
+        {
+            Items = items,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+
+        return Ok(response);
+    }
 }
