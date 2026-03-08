@@ -1,4 +1,6 @@
+using System.Text.Json;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +8,7 @@ using ScholarPath.Application.Common;
 using ScholarPath.Application.Scholarships.DTOs;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
 
 namespace ScholarPath.API.Controllers;
@@ -15,15 +18,18 @@ public class ScholarshipsController : BaseController
     private readonly ApplicationDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IValidator<ScholarshipSearchRequest> _searchValidator;
+    private readonly ICachingService _cachingService;
 
     public ScholarshipsController(
         ApplicationDbContext dbContext,
         UserManager<ApplicationUser> userManager,
-        IValidator<ScholarshipSearchRequest> searchValidator)
+        IValidator<ScholarshipSearchRequest> searchValidator,
+        ICachingService cachingService)
     {
         _dbContext = dbContext;
         _userManager = userManager;
         _searchValidator = searchValidator;
+        _cachingService = cachingService;
     }
 
     [HttpGet]
@@ -139,5 +145,177 @@ public class ScholarshipsController : BaseController
         };
 
         return Ok(response);
+    }
+
+    [HttpGet("recommended")]
+    [Authorize]
+    public async Task<IActionResult> GetRecommended(CancellationToken cancellationToken)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null)
+            return Unauthorized();
+
+        // Check cache first
+        var cacheKey = $"recommendations:{user.Id}";
+        var cached = await _cachingService.GetAsync<RecommendedResponse>(cacheKey, cancellationToken);
+        if (cached is not null)
+            return Ok(cached);
+
+        // Load user profile
+        var profile = await _dbContext.UserProfiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.UserId == user.Id, cancellationToken);
+
+        if (profile is null || profile.FieldOfStudy is null)
+        {
+            var incompleteResponse = new RecommendedResponse
+            {
+                Items = [],
+                ProfileIncomplete = true
+            };
+            return Ok(incompleteResponse);
+        }
+
+        // Load active, non-expired, published scholarships
+        var today = DateTime.UtcNow.Date;
+        var scholarships = await _dbContext.Scholarships
+            .AsNoTracking()
+            .Where(s => s.Status == ScholarshipStatus.Published
+                        && s.IsActive
+                        && (s.Deadline == null || s.Deadline >= today))
+            .ToListAsync(cancellationToken);
+
+        // Parse profile interests (JSON array)
+        var profileInterests = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(profile.Interests))
+        {
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<string[]>(profile.Interests);
+                if (parsed is not null)
+                {
+                    foreach (var tag in parsed)
+                        profileInterests.Add(tag);
+                }
+            }
+            catch (JsonException)
+            {
+                // Ignore malformed JSON
+            }
+        }
+
+        var profileFieldOfStudy = profile.FieldOfStudy.Trim();
+
+        // Score each scholarship
+        var scored = new List<(Scholarship Scholarship, int Score, List<string> Reasons)>();
+
+        foreach (var s in scholarships)
+        {
+            var score = 0;
+            var reasons = new List<string>();
+
+            // FieldOfStudy match (+3): case-insensitive contains
+            if (!string.IsNullOrWhiteSpace(s.FieldOfStudy) &&
+                s.FieldOfStudy.Contains(profileFieldOfStudy, StringComparison.OrdinalIgnoreCase))
+            {
+                score += 3;
+                reasons.Add("Field match");
+            }
+
+            // Country match (+2): profile.Country or profile.TargetCountry matches scholarship.Country
+            if (!string.IsNullOrWhiteSpace(s.Country))
+            {
+                var countryMatch = false;
+                if (!string.IsNullOrWhiteSpace(profile.Country) &&
+                    string.Equals(s.Country, profile.Country, StringComparison.OrdinalIgnoreCase))
+                {
+                    countryMatch = true;
+                }
+                if (!string.IsNullOrWhiteSpace(profile.TargetCountry) &&
+                    string.Equals(s.Country, profile.TargetCountry, StringComparison.OrdinalIgnoreCase))
+                {
+                    countryMatch = true;
+                }
+
+                if (countryMatch)
+                {
+                    score += 2;
+                    reasons.Add("Country match");
+                }
+            }
+
+            // Tag overlap (+1 per match)
+            if (!string.IsNullOrWhiteSpace(s.Tags) && profileInterests.Count > 0)
+            {
+                try
+                {
+                    var scholarshipTags = JsonSerializer.Deserialize<string[]>(s.Tags);
+                    if (scholarshipTags is not null)
+                    {
+                        foreach (var tag in scholarshipTags)
+                        {
+                            if (profileInterests.Contains(tag))
+                            {
+                                score += 1;
+                                reasons.Add($"Tag: {tag}");
+                            }
+                        }
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Ignore malformed JSON
+                }
+            }
+
+            if (score > 0)
+                scored.Add((s, score, reasons));
+        }
+
+        // Sort by score descending, take top 10
+        var top = scored
+            .OrderByDescending(x => x.Score)
+            .Take(10)
+            .ToList();
+
+        var recommendedItems = top.Select(x =>
+        {
+            var dto = new RecommendedScholarshipDto
+            {
+                Id = x.Scholarship.Id,
+                Title = x.Scholarship.Title,
+                TitleAr = x.Scholarship.TitleAr,
+                ProviderName = x.Scholarship.ProviderName,
+                ProviderNameAr = x.Scholarship.ProviderNameAr,
+                Country = x.Scholarship.Country,
+                DegreeLevel = x.Scholarship.DegreeLevel,
+                FundingType = x.Scholarship.FundingType,
+                AwardAmount = x.Scholarship.AwardAmount,
+                Currency = x.Scholarship.Currency,
+                Deadline = x.Scholarship.Deadline,
+                ImageUrl = x.Scholarship.ImageUrl,
+                Score = x.Score,
+                MatchReasons = x.Reasons.ToArray()
+            };
+
+            if (dto.Deadline.HasValue)
+            {
+                dto.DeadlineCountdownDays = (dto.Deadline.Value.Date - today).Days;
+                dto.IsExpiringSoon = dto.DeadlineCountdownDays is > 0 and <= 7;
+            }
+
+            return dto;
+        }).ToList();
+
+        var result = new RecommendedResponse
+        {
+            Items = recommendedItems,
+            ProfileIncomplete = false
+        };
+
+        // Cache for 5 minutes
+        await _cachingService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5), cancellationToken);
+
+        return Ok(result);
     }
 }
