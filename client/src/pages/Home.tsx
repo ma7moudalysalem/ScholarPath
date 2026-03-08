@@ -91,6 +91,9 @@ export default function Home() {
         }}
       >
         <Container maxWidth="md" sx={{ textAlign: 'center' }}>
+          <Typography variant="h2" fontWeight={700} gutterBottom>
+            ScholarPath
+          </Typography>
           <Typography variant="h3" fontWeight={700} gutterBottom>
             {slides[activeSlide]?.title}
           </Typography>
