@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using Asp.Versioning;
 using Hangfire;
 using Microsoft.AspNetCore.HttpOverrides;
+using ScholarPath.Infrastructure.Jobs;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi;
 using ScholarPath.API.Middleware;
@@ -149,6 +150,11 @@ try
             {
                 Authorization = [new Hangfire.Dashboard.LocalRequestsOnlyAuthorizationFilter()]
             });
+
+            RecurringJob.AddOrUpdate<DeadlineReminderJob>(
+                "deadline-reminders",
+                job => job.ExecuteAsync(),
+                Cron.Hourly);
         }
     }
 

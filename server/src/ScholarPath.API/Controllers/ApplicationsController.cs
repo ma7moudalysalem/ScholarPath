@@ -6,6 +6,7 @@ using ScholarPath.Application.Applications.Commands.TrackApplication;
 using ScholarPath.Application.Applications.Commands.UpdateApplicationChecklist;
 using ScholarPath.Application.Applications.Commands.UpdateApplicationNotes;
 using ScholarPath.Application.Applications.Commands.UpdateApplicationStatus;
+using ScholarPath.Application.Applications.Commands.UpdateReminders;
 using ScholarPath.Application.Applications.DTOs;
 using ScholarPath.Application.Applications.Queries.GetApplications;
 using ScholarPath.Domain.Entities;
@@ -110,6 +111,26 @@ public class ApplicationsController : BaseController
 
         var result = await Mediator.Send(new UpdateApplicationChecklistCommand(
             id, user.Id, request.Items
+        ), ct);
+
+        if (!result.IsSuccess)
+            return NotFoundResult(result.Error!);
+
+        return Ok(result.Value!);
+    }
+
+    [HttpPut("{id:guid}/reminders")]
+    public async Task<IActionResult> UpdateReminders(
+        Guid id,
+        [FromBody] UpdateRemindersRequest request,
+        CancellationToken ct)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user is null)
+            return UnauthorizedResult("errors.auth.unauthorized");
+
+        var result = await Mediator.Send(new UpdateRemindersCommand(
+            id, user.Id, request.Presets, request.Channels, request.Paused
         ), ct);
 
         if (!result.IsSuccess)
