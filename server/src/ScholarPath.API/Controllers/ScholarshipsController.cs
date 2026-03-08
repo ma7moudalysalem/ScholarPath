@@ -7,6 +7,7 @@ using ScholarPath.Application.Scholarships.Commands.UnsaveScholarship;
 using ScholarPath.Application.Scholarships.DTOs;
 using ScholarPath.Application.Scholarships.Queries.GetRecommendedScholarships;
 using ScholarPath.Application.Scholarships.Queries.GetSavedScholarships;
+using ScholarPath.Application.Scholarships.Queries.GetScholarshipDetail;
 using ScholarPath.Application.Scholarships.Queries.SearchScholarships;
 using ScholarPath.Domain.Entities;
 
@@ -56,6 +57,21 @@ public class ScholarshipsController : BaseController
         ), cancellationToken);
 
         return Ok(result);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetDetail(Guid id, CancellationToken ct)
+    {
+        Guid? userId = User.Identity?.IsAuthenticated == true
+            ? (await _userManager.GetUserAsync(User))?.Id
+            : null;
+
+        var result = await Mediator.Send(new GetScholarshipDetailQuery(id, userId), ct);
+
+        if (!result.IsSuccess)
+            return NotFoundResult(result.Error!);
+
+        return Ok(result.Value!);
     }
 
     [HttpGet("recommended")]
