@@ -29,6 +29,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<Scholarship> Scholarships => Set<Scholarship>();
     public DbSet<SavedScholarship> SavedScholarships => Set<SavedScholarship>();
+    public DbSet<ApplicationTracker> ApplicationTrackers => Set<ApplicationTracker>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<UpgradeRequest> UpgradeRequests => Set<UpgradeRequest>();

@@ -7,6 +7,7 @@ public interface IApplicationDbContext
 {
     DbSet<Scholarship> Scholarships { get; }
     DbSet<SavedScholarship> SavedScholarships { get; }
+    DbSet<ApplicationTracker> ApplicationTrackers { get; }
     DbSet<UserProfile> UserProfiles { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

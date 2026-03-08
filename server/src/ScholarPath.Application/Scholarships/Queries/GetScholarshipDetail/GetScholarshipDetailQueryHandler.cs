@@ -76,8 +76,14 @@ public class GetScholarshipDetailQueryHandler
                     && ss.UserId == request.CurrentUserId.Value, cancellationToken);
         }
 
-        // IsTracked: ApplicationTrackers table not yet available (Task 3.2), default to false
-        dto.IsTracked = false;
+        // Check if the scholarship is tracked by the current user
+        if (request.CurrentUserId.HasValue)
+        {
+            dto.IsTracked = await _dbContext.ApplicationTrackers
+                .AsNoTracking()
+                .AnyAsync(at => at.ScholarshipId == request.ScholarshipId
+                    && at.UserId == request.CurrentUserId.Value, cancellationToken);
+        }
 
         // Increment ViewCount fire-and-forget
         _ = Task.Run(async () =>
