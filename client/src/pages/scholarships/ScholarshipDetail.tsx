@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams, Link as RouterLink } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import {
   Box,
@@ -133,9 +133,11 @@ export default function ScholarshipDetail() {
   const language = useUiStore((s) => s.language);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const openAuthModal = useAuthModal((s) => s.open);
+  const queryClient = useQueryClient();
 
   const [tabValue, setTabValue] = useState(0);
-  const [isSaved, setIsSaved] = useState(false);
+  // null = not yet overridden by user; read from server data instead
+  const [isSavedOverride, setIsSavedOverride] = useState<boolean | null>(null);
   const [saving, setSaving] = useState(false);
   const [trackingOpen, setTrackingOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{
@@ -152,12 +154,10 @@ export default function ScholarshipDetail() {
     queryKey: ['scholarship', id],
     queryFn: () => scholarshipService.getScholarshipById(id!),
     enabled: !!id,
-    select: (data) => {
-      // Initialize isSaved from server data on first load
-      setIsSaved(data.isSaved);
-      return data;
-    },
   });
+
+  // Derive isSaved: prefer local override (from user action), fall back to server data
+  const isSaved = isSavedOverride ?? scholarship?.isSaved ?? false;
 
   const title =
     language === 'ar' && scholarship?.titleAr
@@ -185,7 +185,7 @@ export default function ScholarshipDetail() {
     if (!scholarship) return;
 
     const previousState = isSaved;
-    setIsSaved(!isSaved);
+    setIsSavedOverride(!isSaved);
     setSaving(true);
 
     try {
@@ -204,8 +204,13 @@ export default function ScholarshipDetail() {
           severity: 'success',
         });
       }
+      // Keep dashboard count and saved list in sync
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['dashboard', 'summary'] }),
+        queryClient.invalidateQueries({ queryKey: ['scholarships'] }),
+      ]);
     } catch {
-      setIsSaved(previousState);
+      setIsSavedOverride(previousState);
     } finally {
       setSaving(false);
     }

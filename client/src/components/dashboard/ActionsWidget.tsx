@@ -1,24 +1,25 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { alpha } from '@mui/material/styles';
 import {
-  Paper,
+  Box,
   Typography,
-  List,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
   Skeleton,
+  useTheme,
 } from '@mui/material';
-import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
+import { ArrowForwardIos } from '@mui/icons-material';
 
-function getActionLink(action: string): string {
-  const lower = action.toLowerCase();
-  if (lower.includes('complete') && lower.includes('profile')) return '/profile';
-  if (lower.includes('start tracking')) return '/scholarships';
-  if (lower.includes('browse') && lower.includes('save')) return '/scholarships';
-  if (lower.includes('deadline') && lower.includes('reminder')) return '/dashboard/tracker';
-  if (lower.includes('browse')) return '/scholarships';
-  return '/dashboard';
+
+// Maps backend i18n action keys (returned by the API) to their navigation targets
+const ACTION_ROUTES: Record<string, string> = {
+  'action.completeProfile': '/profile',
+  'action.startTracking':   '/scholarships',
+  'action.browseAndSave':   '/scholarships',
+  'action.setReminders':    '/dashboard/tracker',
+};
+
+function getActionLink(actionKey: string): string {
+  return ACTION_ROUTES[actionKey] ?? '/dashboard';
 }
 
 interface ActionsWidgetProps {
@@ -29,40 +30,83 @@ interface ActionsWidgetProps {
 export default function ActionsWidget({ actions, isLoading }: ActionsWidgetProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const primary = theme.palette.primary.main;
+  const displayFont = theme.typography.h2.fontFamily as string;
 
   if (isLoading) {
     return (
-      <Paper sx={{ p: 3 }}>
-        <Skeleton width={200} height={32} sx={{ mb: 2 }} />
+      <Box sx={{ p: 3, borderRadius: 3, border: `1px solid ${alpha(primary, 0.09)}`, bgcolor: 'background.paper' }}>
+        <Skeleton width={160} height={28} sx={{ mb: 2.5 }} />
         {[1, 2, 3].map((i) => (
-          <Skeleton key={i} height={48} sx={{ mb: 1 }} />
+          <Skeleton key={i} height={52} sx={{ mb: 1, borderRadius: 2 }} />
         ))}
-      </Paper>
+      </Box>
     );
   }
 
   if (actions.length === 0) return null;
 
   return (
-    <Paper sx={{ p: 3 }}>
-      <Typography variant="h6" gutterBottom>
+    <Box sx={{
+      p: 3,
+      borderRadius: 3,
+      border: `1px solid ${alpha(primary, 0.09)}`,
+      bgcolor: 'background.paper',
+    }}>
+      <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
         {t('dashboard.recommendedActions')}
       </Typography>
 
-      <List disablePadding>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
         {actions.map((action, index) => (
-          <ListItemButton
+          <Box
             key={index}
             onClick={() => navigate(getActionLink(action))}
-            sx={{ borderRadius: 1, mb: 0.5 }}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              p: '12px 16px',
+              borderRadius: 2.5,
+              cursor: 'pointer',
+              border: `1px solid ${alpha(primary, 0.09)}`,
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                bgcolor: alpha(primary, 0.07),
+                borderColor: alpha(primary, 0.24),
+                transform: 'translateX(2px)',
+              },
+            }}
           >
-            <ListItemIcon sx={{ minWidth: 36 }}>
-              <LightbulbOutlinedIcon color="warning" />
-            </ListItemIcon>
-            <ListItemText primary={action} />
-          </ListItemButton>
+            {/* Index bullet */}
+            <Box sx={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: alpha(primary, 0.1),
+              flexShrink: 0,
+            }}>
+              <Typography sx={{
+                fontFamily: displayFont,
+                fontSize: '0.9rem',
+                fontWeight: 700,
+                color: primary,
+                lineHeight: 1,
+              }}>
+                {index + 1}
+              </Typography>
+            </Box>
+            <Typography variant="body2" sx={{ flex: 1, fontWeight: 400, lineHeight: 1.5 }}>
+              {t(action)}
+            </Typography>
+            <ArrowForwardIos sx={{ fontSize: 12, color: 'text.secondary', opacity: 0.4, flexShrink: 0 }} />
+          </Box>
         ))}
-      </List>
-    </Paper>
+      </Box>
+    </Box>
   );
 }

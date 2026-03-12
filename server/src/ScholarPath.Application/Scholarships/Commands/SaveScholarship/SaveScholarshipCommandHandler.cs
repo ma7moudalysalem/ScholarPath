@@ -34,8 +34,17 @@ public class SaveScholarshipCommandHandler : IRequestHandler<SaveScholarshipComm
                 UserId = request.UserId,
                 ScholarshipId = request.ScholarshipId
             };
-            _dbContext.SavedScholarships.Add(savedScholarship);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            
+            try
+            {
+                _dbContext.SavedScholarships.Add(savedScholarship);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Unique constraint violation means it was already saved by a concurrent request.
+                // We can safely treat this as a success.
+            }
         }
 
         return Result<bool>.Success(true);

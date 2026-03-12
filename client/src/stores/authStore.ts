@@ -5,16 +5,13 @@ import { UserRole } from '@/types';
 
 interface AuthState {
   user: UserDto | null;
-  accessToken: string | null;
-  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
 
 interface AuthActions {
-  setAuth: (user: UserDto, accessToken: string, refreshToken: string) => void;
+  setAuth: (user: UserDto) => void;
   logout: () => void;
-  updateTokens: (accessToken: string, refreshToken: string) => void;
   setUser: (user: UserDto) => void;
   setLoading: (isLoading: boolean) => void;
 }
@@ -23,8 +20,6 @@ type AuthStore = AuthState & AuthActions;
 
 const initialState: AuthState = {
   user: null,
-  accessToken: null,
-  refreshToken: null,
   isAuthenticated: false,
   isLoading: false,
 };
@@ -34,19 +29,14 @@ export const useAuthStore = create<AuthStore>()(
     (set) => ({
       ...initialState,
 
-      setAuth: (user, accessToken, refreshToken) =>
+      setAuth: (user) =>
         set({
           user,
-          accessToken,
-          refreshToken,
           isAuthenticated: true,
           isLoading: false,
         }),
 
       logout: () => set({ ...initialState }),
-
-      updateTokens: (accessToken, refreshToken) =>
-        set({ accessToken, refreshToken }),
 
       setUser: (user) => set({ user }),
 
@@ -56,8 +46,6 @@ export const useAuthStore = create<AuthStore>()(
       name: 'scholarpath-auth',
       partialize: (state) => ({
         user: state.user,
-        accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
     }

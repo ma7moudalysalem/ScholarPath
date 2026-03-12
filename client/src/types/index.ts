@@ -62,8 +62,6 @@ export interface UserDto {
 
 export interface AuthResponse {
   user: UserDto;
-  accessToken: string;
-  refreshToken: string;
   expiresAt: string;
 }
 

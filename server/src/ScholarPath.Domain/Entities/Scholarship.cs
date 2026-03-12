@@ -25,16 +25,16 @@ public class Scholarship : AuditableEntity, ISoftDeletable
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public int ViewCount { get; set; }
-    public string? Tags { get; set; } // JSON array
+    public ICollection<ScholarshipTag> Tags { get; set; } = [];
     public string? OverviewHtml { get; set; }
     public string? HowToApplyHtml { get; set; }
-    public string? DocumentsChecklist { get; set; } // JSON array
+    public ICollection<ScholarshipDocumentChecklist> DocumentsChecklist { get; set; } = [];
 
     // Eligibility criteria
     public decimal? MinGPA { get; set; }
     public int? MaxAge { get; set; }
-    public string? EligibleCountries { get; set; } // JSON array
-    public string? EligibleMajors { get; set; } // JSON array
+    public ICollection<ScholarshipEligibleCountry> EligibleCountries { get; set; } = [];
+    public ICollection<ScholarshipEligibleMajor> EligibleMajors { get; set; } = [];
 
     // Category
     public Guid? CategoryId { get; set; }

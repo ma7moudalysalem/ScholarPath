@@ -52,7 +52,7 @@ export function useAuth() {
       setLoading(true);
       try {
         const response = await authService.login(data);
-        setAuth(response.user, response.accessToken, response.refreshToken);
+        setAuth(response.user);
         navigateAfterAuth(response.user);
       } finally {
         setLoading(false);
@@ -66,7 +66,7 @@ export function useAuth() {
       setLoading(true);
       try {
         const response = await authService.register(data);
-        setAuth(response.user, response.accessToken, response.refreshToken);
+        setAuth(response.user);
         navigate('/onboarding');
       } finally {
         setLoading(false);

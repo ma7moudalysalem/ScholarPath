@@ -10,7 +10,12 @@ using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
-using ScholarPath.Infrastructure.Settings;
+using ScholarPath.Application.Common.Models;
+using ScholarPath.Application.Auth.Commands.Login;
+using ScholarPath.Application.Auth.Commands.Register;
+using ScholarPath.Application.Auth.Commands.CompleteOnboarding;
+using ScholarPath.Application.Auth.Commands.RefreshToken;
+using ScholarPath.Application.Auth.Queries.GetMe;
 
 namespace ScholarPath.API.Controllers;
 
@@ -25,8 +30,8 @@ public class AuthController : BaseController
     private readonly JwtSettings _jwtSettings;
     private readonly IValidator<RegisterRequest> _registerValidator;
     private readonly IValidator<LoginRequest> _loginValidator;
-    private readonly IValidator<RefreshTokenRequest> _refreshTokenValidator;
     private readonly IValidator<CompleteOnboardingRequest> _completeOnboardingValidator;
+    private readonly IWebHostEnvironment _env;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
@@ -37,8 +42,8 @@ public class AuthController : BaseController
         IOptions<JwtSettings> jwtSettings,
         IValidator<RegisterRequest> registerValidator,
         IValidator<LoginRequest> loginValidator,
-        IValidator<RefreshTokenRequest> refreshTokenValidator,
-        IValidator<CompleteOnboardingRequest> completeOnboardingValidator)
+        IValidator<CompleteOnboardingRequest> completeOnboardingValidator,
+        IWebHostEnvironment env)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -48,8 +53,8 @@ public class AuthController : BaseController
         _jwtSettings = jwtSettings.Value;
         _registerValidator = registerValidator;
         _loginValidator = loginValidator;
-        _refreshTokenValidator = refreshTokenValidator;
         _completeOnboardingValidator = completeOnboardingValidator;
+        _env = env;
     }
 
     [HttpPost("register")]
@@ -62,32 +67,17 @@ public class AuthController : BaseController
             return BadRequestResult(validationResult.Errors.Select(error => error.ErrorMessage));
         }
 
-        var existingUser = await _userManager.FindByEmailAsync(request.Email);
-        if (existingUser is not null)
+        try
         {
-            return Conflict(new { Error = "errors.auth.emailAlreadyExists" });
+            var command = new RegisterCommand(request.FirstName, request.LastName, request.Email, request.Password);
+            var result = await Mediator.Send(command, cancellationToken);
+            SetTokenCookies(result.AccessToken, result.RefreshToken);
+            return CreatedAtAction(nameof(Me), result.Response);
         }
-
-        var user = new ApplicationUser
+        catch (InvalidOperationException ex)
         {
-            FirstName = request.FirstName.Trim(),
-            LastName = request.LastName.Trim(),
-            Email = request.Email.Trim().ToLowerInvariant(),
-            UserName = request.Email.Trim().ToLowerInvariant(),
-            Role = UserRole.Unassigned,
-            AccountStatus = AccountStatus.Active,
-            IsOnboardingComplete = false,
-            IsActive = true
-        };
-
-        var createResult = await _userManager.CreateAsync(user, request.Password);
-        if (!createResult.Succeeded)
-        {
-            return BadRequestResult(createResult.Errors.Select(error => error.Description));
+            return BadRequestResult(new[] { ex.Message });
         }
-
-        var authResponse = await CreateAuthResponseAsync(user, cancellationToken);
-        return CreatedAtAction(nameof(Me), authResponse);
     }
 
     [HttpPost("login")]
@@ -100,92 +90,59 @@ public class AuthController : BaseController
             return BadRequestResult(validationResult.Errors.Select(error => error.ErrorMessage));
         }
 
-        var normalizedIdentifier = request.Identifier.Trim().ToLowerInvariant();
-        var user = await _userManager.FindByEmailAsync(normalizedIdentifier)
-            ?? await _userManager.FindByNameAsync(normalizedIdentifier);
-
-        if (user is null)
+        try
         {
+            var command = new LoginCommand(request.Identifier, request.Password, request.RememberMe);
+            var result = await Mediator.Send(command, cancellationToken);
+            SetTokenCookies(result.AccessToken, result.RefreshToken);
+            return OkResult(result.Response);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            if (ex.Message == "errors.auth.accountLockedOut")
+            {
+                 return UnauthorizedResult("errors.auth.accountLockedOut");
+            }
+            if (ex.Message == "errors.auth.accountNotActive")
+            {
+                 return ForbiddenResult("errors.auth.accountNotActive");
+            }
+            
             return UnauthorizedResult("errors.auth.invalidCredentials");
         }
-
-        if (user.AccountStatus is AccountStatus.Suspended or AccountStatus.Rejected || !user.IsActive)
-        {
-            return ForbiddenResult("errors.auth.accountNotActive");
-        }
-
-        var signInResult = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-        if (signInResult.IsLockedOut)
-        {
-            return UnauthorizedResult("errors.auth.accountLockedOut");
-        }
-
-        if (!signInResult.Succeeded)
-        {
-            return UnauthorizedResult("errors.auth.invalidCredentials");
-        }
-
-        user.LastLoginAt = DateTime.UtcNow;
-        var loginUpdateResult = await _userManager.UpdateAsync(user);
-        if (!loginUpdateResult.Succeeded)
-        {
-            return BadRequestResult(loginUpdateResult.Errors.Select(error => error.Description));
-        }
-
-        var authResponse = await CreateAuthResponseAsync(user, cancellationToken, request.RememberMe);
-        return OkResult(authResponse);
     }
 
     [HttpPost("refresh")]
     [AllowAnonymous]
-    public async Task<ActionResult<AuthResponse>> RefreshToken([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<AuthResponse>> RefreshToken(CancellationToken cancellationToken)
     {
-        var validationResult = await _refreshTokenValidator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            return BadRequestResult(validationResult.Errors.Select(error => error.ErrorMessage));
-        }
-
-        var refreshToken = await _dbContext.RefreshTokens
-            .Include(token => token.User)
-            .FirstOrDefaultAsync(token => token.Token == request.RefreshToken, cancellationToken);
-
-        if (refreshToken is null || refreshToken.IsRevoked || refreshToken.IsExpired)
+        // Read the refresh token from the HttpOnly cookie
+        var refreshTokenValue = Request.Cookies["RefreshToken"];
+        if (string.IsNullOrWhiteSpace(refreshTokenValue))
         {
             return UnauthorizedResult("errors.auth.invalidRefreshToken");
         }
 
-        if (!refreshToken.User.IsActive || refreshToken.User.AccountStatus is AccountStatus.Suspended or AccountStatus.Rejected)
+        try
         {
-            refreshToken.RevokedAt = DateTime.UtcNow;
-            refreshToken.RevokedByIp = GetRequestIp();
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            return ForbiddenResult("errors.auth.accountNotActive");
+            var command = new RefreshTokenCommand(refreshTokenValue);
+            var result = await Mediator.Send(command, cancellationToken);
+            SetTokenCookies(result.AccessToken, result.RefreshToken);
+            return OkResult(result.Response);
         }
-
-        refreshToken.RevokedAt = DateTime.UtcNow;
-        refreshToken.RevokedByIp = GetRequestIp();
-
-        var newRefreshTokenValue = _tokenService.GenerateRefreshToken();
-        refreshToken.ReplacedByToken = newRefreshTokenValue;
-
-        var replacementToken = CreateRefreshToken(refreshToken.UserId, newRefreshTokenValue);
-        _dbContext.RefreshTokens.Add(replacementToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        var accessToken = await _tokenService.GenerateAccessToken(refreshToken.User);
-        var response = new AuthResponse(
-            accessToken,
-            replacementToken.Token,
-            DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
-            _mapper.Map<UserDto>(refreshToken.User));
-
-        return OkResult(response);
+        catch (UnauthorizedAccessException ex)
+        {
+            if (ex.Message == "errors.auth.accountNotActive")
+            {
+                return ForbiddenResult(ex.Message);
+            }
+            return UnauthorizedResult(ex.Message);
+        }
     }
 
     [HttpPost("logout")]
     [Authorize]
-    public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest? request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
         var userId = _userManager.GetUserId(User);
         if (!Guid.TryParse(userId, out var parsedUserId))
@@ -193,12 +150,15 @@ public class AuthController : BaseController
             return UnauthorizedResult("errors.auth.invalidAuthenticatedUser");
         }
 
+        // Revoke the specific refresh token from the cookie, or all tokens for this user
+        var refreshTokenValue = Request.Cookies["RefreshToken"];
+
         var tokensQuery = _dbContext.RefreshTokens
             .Where(token => token.UserId == parsedUserId && !token.IsRevoked && !token.IsExpired);
 
-        if (!string.IsNullOrWhiteSpace(request?.RefreshToken))
+        if (!string.IsNullOrWhiteSpace(refreshTokenValue))
         {
-            tokensQuery = tokensQuery.Where(token => token.Token == request.RefreshToken);
+            tokensQuery = tokensQuery.Where(token => token.Token == refreshTokenValue);
         }
 
         var tokensToRevoke = await tokensQuery.ToListAsync(cancellationToken);
@@ -209,6 +169,10 @@ public class AuthController : BaseController
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        Response.Cookies.Delete("AccessToken");
+        Response.Cookies.Delete("RefreshToken");
+
         return NoContent();
     }
 
@@ -222,139 +186,91 @@ public class AuthController : BaseController
             return BadRequestResult(validationResult.Errors.Select(error => error.ErrorMessage));
         }
 
-        var user = await _userManager.GetUserAsync(User);
-        if (user is null)
+        try
         {
-            return UnauthorizedResult("errors.auth.userNotFound");
+            var command = new CompleteOnboardingCommand(
+                request.SelectedRole,
+                request.CompanyName,
+                request.ExpertiseArea,
+                request.Bio);
+                
+            var result = await Mediator.Send(command, cancellationToken);
+            return OkResult(result);
         }
-
-        if (user.IsOnboardingComplete)
+        catch (UnauthorizedAccessException ex)
         {
-            return ConflictResult("errors.auth.onboardingAlreadyComplete");
+            if (ex.Message == "errors.auth.userNotFound") return UnauthorizedResult(ex.Message);
+            if (ex.Message == "errors.auth.accountNotEligibleForOnboarding") return ForbiddenResult(ex.Message);
+            return UnauthorizedResult(ex.Message);
         }
-
-        if (user.AccountStatus is AccountStatus.Suspended or AccountStatus.Rejected)
+        catch (InvalidOperationException ex)
         {
-            return ForbiddenResult("errors.auth.accountNotEligibleForOnboarding");
-        }
-
-        if (request.SelectedRole == UserRole.Student)
-        {
-            user.Role = UserRole.Student;
-            user.AccountStatus = AccountStatus.Active;
-            user.IsOnboardingComplete = true;
-
-            var studentUpdateResult = await _userManager.UpdateAsync(user);
-            if (!studentUpdateResult.Succeeded)
+            if (ex.Message == "errors.auth.onboardingAlreadyComplete" || 
+                ex.Message == "errors.auth.pendingUpgradeExists")
             {
-                return BadRequestResult(studentUpdateResult.Errors.Select(error => error.Description));
+                return Conflict(new { Error = ex.Message });
             }
-
-            return OkResult(_mapper.Map<UserDto>(user));
+            return BadRequestResult(new[] { ex.Message });
         }
-
-        var existingPendingRequest = await _dbContext.UpgradeRequests
-            .AnyAsync(upgradeRequest =>
-                upgradeRequest.UserId == user.Id &&
-                upgradeRequest.Status == UpgradeRequestStatus.Pending, cancellationToken);
-
-        if (existingPendingRequest)
-        {
-            return Conflict(new { Error = "errors.auth.pendingUpgradeExists" });
-        }
-
-        user.Role = UserRole.Unassigned;
-        user.AccountStatus = AccountStatus.Pending;
-        user.IsOnboardingComplete = true;
-
-        var upgradeRequest = new UpgradeRequest
-        {
-            UserId = user.Id,
-            RequestedRole = request.SelectedRole,
-            Status = UpgradeRequestStatus.Pending,
-            CompanyName = request.CompanyName,
-            ExpertiseTags = request.ExpertiseArea,
-            ExperienceSummary = request.Bio
-        };
-
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-
-        _dbContext.UpgradeRequests.Add(upgradeRequest);
-
-        var adminIds = await _dbContext.Users
-            .Where(applicationUser => applicationUser.Role == UserRole.Admin && applicationUser.IsActive)
-            .Select(applicationUser => applicationUser.Id)
-            .ToListAsync(cancellationToken);
-
-        foreach (var adminId in adminIds)
-        {
-            _dbContext.Notifications.Add(new Notification
-            {
-                UserId = adminId,
-                Type = NotificationType.System,
-                Title = "New upgrade request",
-                Message = $"{user.FirstName} {user.LastName} requested {request.SelectedRole} access.",
-                RelatedEntityId = upgradeRequest.Id,
-                RelatedEntityType = nameof(UpgradeRequest)
-            });
-        }
-
-        var upgradeUpdateResult = await _userManager.UpdateAsync(user);
-        if (!upgradeUpdateResult.Succeeded)
-        {
-            await transaction.RollbackAsync(cancellationToken);
-            return BadRequestResult(upgradeUpdateResult.Errors.Select(error => error.Description));
-        }
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-
-        return OkResult(_mapper.Map<UserDto>(user));
     }
 
     [HttpGet("me")]
     [Authorize]
     public async Task<ActionResult<UserDto>> Me(CancellationToken cancellationToken)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user is null)
+        var userId = _userManager.GetUserId(User);
+        if (string.IsNullOrEmpty(userId))
         {
             return UnauthorizedResult("errors.auth.userNotFound");
         }
 
-        return OkResult(_mapper.Map<UserDto>(user));
-    }
-
-    private async Task<AuthResponse> CreateAuthResponseAsync(ApplicationUser user, CancellationToken cancellationToken, bool rememberMe = false)
-    {
-        var accessToken = await _tokenService.GenerateAccessToken(user);
-        var refreshTokenValue = _tokenService.GenerateRefreshToken();
-        var refreshToken = CreateRefreshToken(user.Id, refreshTokenValue, rememberMe);
-
-        _dbContext.RefreshTokens.Add(refreshToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return new AuthResponse(
-            accessToken,
-            refreshToken.Token,
-            DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
-            _mapper.Map<UserDto>(user));
-    }
-
-    private RefreshToken CreateRefreshToken(Guid userId, string token, bool rememberMe = false)
-    {
-        var expirationDays = rememberMe ? 30 : _jwtSettings.RefreshTokenExpirationDays;
-        return new RefreshToken
+        try
         {
-            UserId = userId,
-            Token = token,
-            ExpiresAt = DateTime.UtcNow.AddDays(expirationDays),
-            CreatedByIp = GetRequestIp()
-        };
+            var query = new GetMeQuery(userId);
+            var result = await Mediator.Send(query, cancellationToken);
+            return OkResult(result);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return UnauthorizedResult(ex.Message);
+        }
     }
+
+
 
     private string GetRequestIp()
     {
         return HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    }
+
+    private void SetTokenCookies(string accessToken, string refreshToken)
+    {
+        var isProduction = !_env.IsDevelopment();
+
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = isProduction,       // false on http://localhost, true in production
+            SameSite = SameSiteMode.Lax, // Lax allows top-level navigations; Strict was blocking refresh
+            IsEssential = true
+        };
+
+        Response.Cookies.Append("AccessToken", accessToken, new CookieOptions
+        {
+            HttpOnly = cookieOptions.HttpOnly,
+            Secure = cookieOptions.Secure,
+            SameSite = cookieOptions.SameSite,
+            IsEssential = cookieOptions.IsEssential,
+            Expires = DateTimeOffset.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes)
+        });
+
+        Response.Cookies.Append("RefreshToken", refreshToken, new CookieOptions
+        {
+            HttpOnly = cookieOptions.HttpOnly,
+            Secure = cookieOptions.Secure,
+            SameSite = cookieOptions.SameSite,
+            IsEssential = cookieOptions.IsEssential,
+            Expires = DateTimeOffset.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays)
+        });
     }
 }

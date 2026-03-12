@@ -1,18 +1,17 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Dialog, DialogContent, IconButton, Snackbar, Alert } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { useAuthModal } from '@/hooks/useAuthModal';
 import { useAuth } from '@/hooks/useAuth';
+import { useSsoAuth } from '@/hooks/useSsoAuth';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
+import { translateError } from '@/utils/errorUtils';
 
 export function AuthModalProvider() {
-  const { t } = useTranslation();
   const { view, close, switchTo } = useAuthModal();
   const { login, register } = useAuth();
-  const [ssoToast, setSsoToast] = useState(false);
+  const { handleExternalLogin, error: ssoError, setError: setSsoError } = useSsoAuth(close);
 
   const handleLogin = async (data: { identifier: string; password: string; rememberMe: boolean }) => {
     await login(data);
@@ -28,10 +27,6 @@ export function AuthModalProvider() {
   }) => {
     await register(data);
     close();
-  };
-
-  const handleExternalLogin = (_provider: string) => {
-    setSsoToast(true);
   };
 
   return (
@@ -78,13 +73,13 @@ export function AuthModalProvider() {
       </Dialog>
 
       <Snackbar
-        open={ssoToast}
+        open={!!ssoError}
         autoHideDuration={4000}
-        onClose={() => setSsoToast(false)}
+        onClose={() => setSsoError(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity="info" onClose={() => setSsoToast(false)} variant="filled">
-          {t('auth.ssoComingSoon')}
+        <Alert severity="error" onClose={() => setSsoError(null)} variant="filled">
+          {ssoError ? translateError(ssoError) : ''}
         </Alert>
       </Snackbar>
     </>

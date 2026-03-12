@@ -2,7 +2,7 @@
 
 ## Overview
 
-ScholarPath uses JWT-based stateless authentication with refresh token rotation. ASP.NET Identity handles user management and password hashing. Authorization is role-based with an onboarding state role (`Unassigned`) and four platform roles: Student, Consultant, Company, and Admin.
+ScholarPath uses JWT-based stateless authentication with refresh token rotation. Both the access token and refresh token are stored in **HttpOnly, Secure cookies** — they are never exposed to JavaScript, eliminating XSS token theft. ASP.NET Identity handles user management and password hashing. Authorization is role-based with an onboarding state role (`Unassigned`) and four platform roles: Student, Consultant, Company, and Admin.
 
 ---
 
@@ -81,11 +81,13 @@ sequenceDiagram
         Identity-->>API: Success
         API->>JWT: GenerateAccessToken(user)
         JWT-->>API: JWT access token (short-lived)
-        API->>DB: Create RefreshToken (long-lived)
+        API->>DB: Create RefreshToken record
         DB-->>API: Token stored
-        API-->>Frontend: 200 OK<br/>{ accessToken, refreshToken,<br/>expiresAt, user: UserDto }
-        Note over API,Frontend: UserDto: { id, firstName, lastName,<br/>email, role, accountStatus,<br/>profileImageUrl, isOnboardingComplete }
-        Frontend->>Frontend: Store tokens in memory / secure storage
+        API-->>Frontend: 200 OK — sets HttpOnly cookies:
+        Note over API,Frontend: Set-Cookie: access_token (HttpOnly, Secure, SameSite=Lax)
+        Note over API,Frontend: Set-Cookie: refresh_token (HttpOnly, Secure, SameSite=Lax)
+        Note over API,Frontend: Body: { user: UserDto }
+        Frontend->>Frontend: Axios auto-sends cookies on next request
         Frontend->>Frontend: Redirect to /dashboard
     end
 ```
@@ -122,9 +124,9 @@ sequenceDiagram
         JWT-->>API: New JWT access token
         API->>DB: Create new RefreshToken
         DB-->>API: New token stored
-        API-->>Frontend: 200 OK<br/>{ accessToken, refreshToken,<br/>expiresAt, user: UserDto }
-        Frontend->>Frontend: Update stored tokens
-        Frontend->>API: Retry original request with new access token
+        API-->>Frontend: 200 OK — rotates HttpOnly cookies
+        Note over API,Frontend: New access_token + refresh_token cookies set
+        Frontend->>API: Retry original request (cookies sent automatically)
         API-->>Frontend: Original response
     end
 ```
@@ -259,7 +261,8 @@ sequenceDiagram
 | Refresh Token Lifetime | 7 days | Rotated on each use |
 | Password Reset Token | 24 hours | Single use |
 | JWT Signing Algorithm | HS256 | HMAC with symmetric key |
-| Token Storage (Frontend) | Zustand persisted state (localStorage) | Current implementation; consider migrating to httpOnly cookies for stronger XSS resilience |
+| Token Storage | HttpOnly, Secure cookies | Not accessible via JavaScript — prevents XSS token theft |
+| Axios Config | `withCredentials: true` | Axios sends cookies automatically on all API requests |
 
 ---
 
@@ -269,8 +272,11 @@ sequenceDiagram
 |---|---|
 | Password Hashing | ASP.NET Identity (PBKDF2 with HMAC-SHA512) |
 | Refresh Token Rotation | Old token revoked on each refresh |
-| Email Enumeration Prevention | Generic responses on forgot-password and registration |
-| Brute Force Protection | Account lockout after N failed attempts (ASP.NET Identity) |
+| Email Enumeration Prevention | Generic responses on forgot-password and registration (`errors.auth.registrationFailed`) |
+| Brute Force Protection | Account lockout after N failed attempts (ASP.NET Identity); structured login-failure logging via `ILogger` |
 | Token Revocation on Password Reset | All refresh tokens invalidated when password changes |
 | Role-Based Authorization | `[Authorize(Roles = "Admin")]` attributes on protected endpoints |
 | HTTPS Only | Enforced in production |
+| HttpOnly Cookie Storage | Access and refresh tokens are stored in HttpOnly cookies — never accessible to JavaScript |
+| External Auth Linking Validation | `LinkProviderCommandHandler` validates the `IdToken` via Google/Microsoft token-info endpoints before linking an external account (S4 fix) |
+| Security Headers | `SecurityHeadersMiddleware` injects HSTS, CSP, X-Frame-Options, X-Content-Type-Options on every response |

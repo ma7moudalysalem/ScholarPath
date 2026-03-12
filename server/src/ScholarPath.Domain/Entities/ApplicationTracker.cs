@@ -9,8 +9,8 @@ public class ApplicationTracker : AuditableEntity, ISoftDeletable
     public Guid ScholarshipId { get; set; }
     public ApplicationStatus Status { get; set; } = ApplicationStatus.Planned;
     public string? Notes { get; set; }
-    public string? ChecklistJson { get; set; } // JSON array of {text, isChecked}
-    public string? RemindersJson { get; set; } // JSON array of reminder presets
+    public ICollection<ApplicationTrackerChecklistItem> ChecklistItems { get; set; } = [];
+    public ICollection<ApplicationTrackerReminder> Reminders { get; set; } = [];
     public bool RemindersPaused { get; set; }
 
     // Soft delete

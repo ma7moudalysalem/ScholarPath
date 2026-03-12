@@ -9,9 +9,9 @@ The solution is organized into four distinct projects:
 | Layer | Project | Responsibility |
 |---|---|---|
 | Domain | `ScholarPath.Domain` | Entities, enums, value objects, domain interfaces |
-| Application | `ScholarPath.Application` | CQRS commands/queries (handlers to be implemented by team), DTOs, validators, service interfaces |
-| Infrastructure | `ScholarPath.Infrastructure` | EF Core DbContext, repository implementations, external services |
-| API | `ScholarPath.API` | Controllers, middleware, DI composition root, Swagger |
+| Application | `ScholarPath.Application` | CQRS commands/queries with MediatR handlers, DTOs, validators, service interfaces |
+| Infrastructure | `ScholarPath.Infrastructure` | EF Core DbContext, token service, caching (Redis), background jobs (Hangfire) |
+| API | `ScholarPath.API` | Controllers, middleware pipeline, DI composition root, Swagger |
 
 ---
 
@@ -89,6 +89,7 @@ MediatR pipeline behaviors intercept every command/query before it reaches the h
 
 1. **ValidationBehavior** -- Runs FluentValidation rules. Returns 400 if validation fails.
 2. **LoggingBehavior** -- Logs request metadata for observability.
+3. **Handlers** -- Execute business logic. Read handlers use `.AsNoTracking()` and Redis caching. Write handlers validate state transitions and handle `DbUpdateException` for concurrency.
 
 ---
 
@@ -111,23 +112,42 @@ ScholarPath/
   server/
     src/
       ScholarPath.Domain/
-        Common/
-        Entities/
-        Enums/
-        Interfaces/
+        Common/           # BaseEntity, AuditableEntity, ISoftDeletable
+        Entities/         # ApplicationUser, Scholarship, ApplicationTracker, etc.
+        Enums/            # UserRole, AccountStatus, ApplicationStatus, etc.
+        Interfaces/       # IApplicationDbContext, ICachingService, ITokenService
       ScholarPath.Application/
         Auth/
+          Commands/       # Register, Login, Logout, Refresh, ForgotPassword, LinkProvider, etc.
+          Queries/        # GetMe
           DTOs/
           Validators/
-        Common/
+        Scholarships/
+          Commands/       # SaveScholarship, DeleteSavedScholarship
+          Queries/        # SearchScholarships, GetScholarshipDetail, GetRecommendedScholarships, GetSavedScholarships
+          DTOs/
+        Applications/
+          Commands/       # TrackApplication, UpdateApplicationStatus, DeleteApplicationTracker
+          Queries/        # GetApplications
+          DTOs/
+        Dashboard/
+          Queries/        # GetDashboardSummary
+          DTOs/
+        Admin/
+          Commands/       # ApproveUpgradeRequest, RejectUpgradeRequest, RequestMoreInfo
+          Queries/
+        Common/           # PaginatedResponse, Result, ICachingService interface
       ScholarPath.Infrastructure/
         Persistence/
-        Repositories/
-        Services/
-        Settings/
+          ApplicationDbContext.cs
+          Configurations/  # EF Core entity configurations
+          Seeds/           # SeedData.cs
+        Migrations/
+        Services/          # TokenService, EmailService, CachingService
+        Settings/          # JwtSettings, RedisSettings
       ScholarPath.API/
-        Controllers/
-        Middleware/
+        Controllers/       # AuthController, ExternalAuthController, ScholarshipsController, ApplicationsController, AdminController, DashboardController
+        Middleware/        # SecurityHeadersMiddleware, ExceptionHandlingMiddleware
     tests/
       ScholarPath.UnitTests/
       ScholarPath.IntegrationTests/
@@ -143,11 +163,14 @@ ScholarPath/
 | Decision | Rationale |
 |---|---|
 | Clean Architecture | Enforces testability and framework independence |
-| CQRS via MediatR | Separates read and write concerns; simplifies handler logic |
+| CQRS via MediatR | Separates read and write concerns; all controllers delegate to MediatR handlers |
 | FluentValidation | Declarative validation rules, separated from handler logic |
-| EF Core with SQL Server | Mature ORM with strong migration support; SQL Server for production, SQLite for local development |
+| EF Core with SQL Server | Mature ORM with strong migration support |
 | ASP.NET Identity | Built-in user management, password hashing, role-based auth |
-| JWT + Refresh Tokens | Stateless authentication with secure token rotation |
+| HttpOnly Cookie Auth | JWT access token + refresh token stored in HttpOnly cookies; prevents XSS token theft |
+| Redis Caching | Read-heavy query handlers (recommendations, scholarship detail, dashboard) cache results with short TTL |
+| `.AsNoTracking()` on queries | All read-only handlers use `AsNoTracking()` to reduce EF Core overhead |
 | Soft Deletes | Data recovery and audit compliance via `ISoftDeletable` |
+| Relational child tables | `ScholarshipEligibleCountry`, `ScholarshipEligibleMajor`, `ScholarshipDocumentItem` replaced JSON columns for queryability (D2 audit fix) |
 | Domain IdentityUser Dependency | Pragmatic trade-off: Domain depends on `Microsoft.Extensions.Identity.Stores` to use `IdentityUser<Guid>` as the base class for `ApplicationUser`, avoiding a separate mapping layer |
-| SignalR via Shared Framework | SignalR is part of `Microsoft.AspNetCore.App` shared framework -- no separate NuGet package required, referenced via `<FrameworkReference>` in Infrastructure |
+| SignalR via Shared Framework | SignalR is part of `Microsoft.AspNetCore.App` shared framework — no separate NuGet package required, referenced via `<FrameworkReference>` in Infrastructure |

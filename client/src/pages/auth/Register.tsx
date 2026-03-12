@@ -1,15 +1,14 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Container, Paper, Snackbar, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { RegisterForm } from '@/components/auth/RegisterForm';
 import { useAuth } from '@/hooks/useAuth';
+import { useSsoAuth } from '@/hooks/useSsoAuth';
+import { translateError } from '@/utils/errorUtils';
 
 export default function Register() {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const { register } = useAuth();
-  const [ssoToast, setSsoToast] = useState(false);
+  const { handleExternalLogin, error: ssoError, setError: setSsoError } = useSsoAuth();
 
   const handleRegister = async (data: {
     firstName: string;
@@ -19,10 +18,6 @@ export default function Register() {
     confirmPassword: string;
   }) => {
     await register(data);
-  };
-
-  const handleExternalLogin = (_provider: string) => {
-    setSsoToast(true);
   };
 
   return (
@@ -36,13 +31,13 @@ export default function Register() {
       </Paper>
 
       <Snackbar
-        open={ssoToast}
+        open={!!ssoError}
         autoHideDuration={4000}
-        onClose={() => setSsoToast(false)}
+        onClose={() => setSsoError(null)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity="info" onClose={() => setSsoToast(false)} variant="filled">
-          {t('auth.ssoComingSoon')}
+        <Alert severity="error" onClose={() => setSsoError(null)} variant="filled">
+          {ssoError ? translateError(ssoError) : ''}
         </Alert>
       </Snackbar>
     </Container>

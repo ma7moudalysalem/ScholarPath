@@ -11,6 +11,7 @@ interface UiState {
   direction: Direction;
   sidebarOpen: boolean;
   themeMode: ThemeMode;
+  designTheme: number;
 }
 
 interface UiActions {
@@ -20,6 +21,7 @@ interface UiActions {
   setSidebarOpen: (open: boolean) => void;
   toggleTheme: () => void;
   setThemeMode: (mode: ThemeMode) => void;
+  setDesignTheme: (id: number) => void;
 }
 
 type UiStore = UiState & UiActions;
@@ -41,6 +43,7 @@ export const useUiStore = create<UiStore>()(
       direction: 'ltr',
       sidebarOpen: true,
       themeMode: 'light',
+      designTheme: 0,
 
       toggleLanguage: () => {
         const newLang: Language = get().language === 'en' ? 'ar' : 'en';
@@ -65,6 +68,8 @@ export const useUiStore = create<UiStore>()(
         set((s) => ({ themeMode: s.themeMode === 'light' ? 'dark' : 'light' })),
 
       setThemeMode: (mode) => set({ themeMode: mode }),
+
+      setDesignTheme: (id) => set({ designTheme: id }),
     }),
     {
       name: 'scholarpath-ui',
@@ -72,6 +77,7 @@ export const useUiStore = create<UiStore>()(
         language: state.language,
         direction: state.direction,
         themeMode: state.themeMode,
+        designTheme: state.designTheme,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

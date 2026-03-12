@@ -54,7 +54,7 @@ public class GetApplicationsQueryHandler
                 NotesPreview = a.Notes != null
                     ? (a.Notes.Length > 100 ? a.Notes.Substring(0, 100) : a.Notes)
                     : null,
-                HasReminders = a.RemindersJson != null,
+                HasReminders = a.Reminders.Any(),
                 UpdatedAt = a.UpdatedAt,
                 CreatedAt = a.CreatedAt
             })

@@ -8,6 +8,9 @@ using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
+using ScholarPath.Application.UpgradeRequests.Commands.RejectUpgradeRequest;
+using ScholarPath.Application.UpgradeRequests.Commands.ApproveUpgradeRequest;
+using ScholarPath.Application.UpgradeRequests.Commands.RequestMoreInfoUpgradeRequest;
 
 namespace ScholarPath.API.Controllers;
 
@@ -119,136 +122,43 @@ public class AdminController : BaseController
     [HttpPut("upgrade-requests/{id:guid}/approve")]
     public async Task<IActionResult> ApproveUpgradeRequest(Guid id, [FromBody] UpgradeReviewRequest? request = null, CancellationToken cancellationToken = default)
     {
-        var upgradeRequest = await _dbContext.UpgradeRequests
-            .Include(item => item.User)
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
-
-        if (upgradeRequest is null)
-            return NotFoundResult("errors.admin.upgradeRequestNotFound");
-
-        if (upgradeRequest.Status != UpgradeRequestStatus.Pending)
-            return BadRequestResult("errors.admin.onlyPendingCanBeApproved");
-
-        var adminUser = await _userManager.GetUserAsync(User);
-
-        upgradeRequest.Status = UpgradeRequestStatus.Approved;
-        upgradeRequest.ReviewedAt = DateTime.UtcNow;
-        upgradeRequest.ReviewedBy = adminUser?.Email;
-        upgradeRequest.ReviewedById = adminUser?.Id;
-        upgradeRequest.AdminNotes = request?.ReviewNotes?.Trim() ?? "Approved by admin.";
-
-        upgradeRequest.User.Role = upgradeRequest.RequestedRole;
-        upgradeRequest.User.AccountStatus = AccountStatus.Active;
-
-        _dbContext.Notifications.Add(new Notification
+        try
         {
-            UserId = upgradeRequest.UserId,
-            Type = NotificationType.UpgradeStatus,
-            Title = "Upgrade approved",
-            Message = $"Your request for {upgradeRequest.RequestedRole} access has been approved.",
-            RelatedEntityId = upgradeRequest.Id,
-            RelatedEntityType = nameof(UpgradeRequest)
-        });
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        // Fire-and-forget email notification
-        _ = Task.Run(async () =>
+            var command = new ApproveUpgradeRequestCommand(id, request?.ReviewNotes);
+            var result = await Mediator.Send(command, cancellationToken);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
         {
-            try
-            {
-                var user = upgradeRequest.User;
-                await _emailService.SendUpgradeApprovedEmailAsync(
-                    user.Email!,
-                    $"{user.FirstName} {user.LastName}",
-                    upgradeRequest.RequestedRole);
-            }
-            catch (Exception)
-            {
-                // Email failure should not affect the response
-            }
-        });
-
-        return Ok(new
+            return NotFoundResult(ex.Message);
+        }
+        catch (InvalidOperationException ex)
         {
-            upgradeRequest.Id,
-            upgradeRequest.Status,
-            upgradeRequest.ReviewedAt,
-            upgradeRequest.ReviewedById
-        });
+            return BadRequestResult(ex.Message);
+        }
     }
 
     [HttpPut("upgrade-requests/{id:guid}/reject")]
     public async Task<IActionResult> RejectUpgradeRequest(Guid id, [FromBody] UpgradeRejectRequest request, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.ReviewNotes))
-            return BadRequestResult("errors.admin.reviewNotesRequired");
-
-        var upgradeRequest = await _dbContext.UpgradeRequests
-            .Include(item => item.User)
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
-
-        if (upgradeRequest is null)
-            return NotFoundResult("errors.admin.upgradeRequestNotFound");
-
-        if (upgradeRequest.Status != UpgradeRequestStatus.Pending)
-            return BadRequestResult("errors.admin.onlyPendingCanBeRejected");
-
-        var adminUser = await _userManager.GetUserAsync(User);
-
-        upgradeRequest.Status = UpgradeRequestStatus.Rejected;
-        upgradeRequest.AdminNotes = request.ReviewNotes.Trim();
-        upgradeRequest.RejectionReason = request.ReviewNotes.Trim();
-        upgradeRequest.ReviewedAt = DateTime.UtcNow;
-        upgradeRequest.ReviewedBy = adminUser?.Email;
-        upgradeRequest.ReviewedById = adminUser?.Id;
-
-        if (request.RejectionReasons is { Count: > 0 })
+        try
         {
-            upgradeRequest.RejectionReasons = JsonSerializer.Serialize(request.RejectionReasons);
+            var command = new RejectUpgradeRequestCommand(id, request.ReviewNotes, request.RejectionReasons);
+            var result = await Mediator.Send(command, cancellationToken);
+            return Ok(result);
         }
-
-        upgradeRequest.User.Role = UserRole.Unassigned;
-        upgradeRequest.User.AccountStatus = AccountStatus.Rejected;
-
-        _dbContext.Notifications.Add(new Notification
+        catch (ArgumentException ex)
         {
-            UserId = upgradeRequest.UserId,
-            Type = NotificationType.UpgradeStatus,
-            Title = "Upgrade rejected",
-            Message = "Your upgrade request was rejected. Please review admin notes and submit again.",
-            RelatedEntityId = upgradeRequest.Id,
-            RelatedEntityType = nameof(UpgradeRequest)
-        });
-
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        // Fire-and-forget email notification
-        _ = Task.Run(async () =>
+            return BadRequestResult(ex.Message);
+        }
+        catch (KeyNotFoundException ex)
         {
-            try
-            {
-                var user = upgradeRequest.User;
-                await _emailService.SendUpgradeRejectedEmailAsync(
-                    user.Email!,
-                    $"{user.FirstName} {user.LastName}",
-                    upgradeRequest.RejectionReasons);
-            }
-            catch (Exception)
-            {
-                // Email failure should not affect the response
-            }
-        });
-
-        return Ok(new
+            return NotFoundResult(ex.Message);
+        }
+        catch (InvalidOperationException ex)
         {
-            upgradeRequest.Id,
-            upgradeRequest.Status,
-            upgradeRequest.AdminNotes,
-            upgradeRequest.RejectionReasons,
-            upgradeRequest.ReviewedAt,
-            upgradeRequest.ReviewedById
-        });
+            return BadRequestResult(ex.Message);
+        }
     }
 
     [HttpPut("upgrade-requests/{id:guid}/request-info")]

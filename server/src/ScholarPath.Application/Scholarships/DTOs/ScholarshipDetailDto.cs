@@ -23,14 +23,14 @@ public class ScholarshipDetailDto
     public string? RequiredDocuments { get; set; }
     public string? OverviewHtml { get; set; }
     public string? HowToApplyHtml { get; set; }
-    public string? DocumentsChecklist { get; set; }
+    public string[] DocumentsChecklist { get; set; } = [];
     public string? OfficialLink { get; set; }
     public string? ImageUrl { get; set; }
     public decimal? MinGPA { get; set; }
     public int? MaxAge { get; set; }
-    public string? EligibleCountries { get; set; }
-    public string? EligibleMajors { get; set; }
-    public string? Tags { get; set; }
+    public string[] EligibleCountries { get; set; } = [];
+    public string[] EligibleMajors { get; set; } = [];
+    public string[] Tags { get; set; } = [];
     public int ViewCount { get; set; }
     public Guid? CategoryId { get; set; }
     public string? CategoryName { get; set; }

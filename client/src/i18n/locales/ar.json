@@ -3,10 +3,7 @@
   "login": "تسجيل الدخول",
   "register": "إنشاء حساب",
   "logout": "تسجيل الخروج",
-  "dashboard": "لوحة التحكم",
-  "scholarships": "المنح الدراسية",
   "community": "المجتمع",
-  "profile": "الملف الشخصي",
   "notifications": "الإشعارات",
   "security": "الأمان",
   "search": "بحث",
@@ -286,7 +283,26 @@
     "testimonial3Text": "كشركة، وجدنا مواهب مذهلة من خلال منصة سكولار باث.",
     "footerDesc": "منصتك الموثوقة لاكتشاف فرص المنح الدراسية والتواصل مع المجتمع الأكاديمي.",
     "quickLinks": "روابط سريعة",
-    "contactUs": "تواصل معنا"
+    "contactUs": "تواصل معنا",
+    "eyebrowHero": "رحلتك نحو المنح تبدأ هنا",
+    "liveStats": "إحصاءات حية",
+    "statsScholarships": "منحة دراسية",
+    "statsCountries": "دولة",
+    "statsSuccess": "معدل النجاح",
+    "statsFree": "مجاني",
+    "servicesEyebrow": "كل ما تحتاجه",
+    "howItWorksTitle": "كيف يعمل",
+    "howItWorksEyebrow": "عملية بسيطة",
+    "stepTitle1": "أنشئ ملفك الشخصي",
+    "stepDesc1": "سجّل وشارك خلفيتك الأكاديمية وأهدافك ومجالات اهتمامك.",
+    "stepTitle2": "اكتشف الفرص",
+    "stepDesc2": "تصفح آلاف المنح المطابقة لملفك الشخصي بذكاء.",
+    "stepTitle3": "تابع رحلتك",
+    "stepDesc3": "أدر كل طلب باستخدام متتبع كانبان والتذكيرات بالمواعيد النهائية.",
+    "testimonialsEyebrow": "قصص الطلاب",
+    "ctaTitle": "ابدأ رحلتك اليوم",
+    "ctaSubtitle": "انضم إلى آلاف الطلاب الذين وجدوا منح أحلامهم. مجاني دائمًا.",
+    "scrollDown": "تمرير"
   },
 
   "dashboard": {
@@ -308,6 +324,13 @@
     "completeProfileDesc": "احصل على توصيات مخصصة بإكمال ملفك الشخصي",
     "noDataYet": "مرحبًا بك في لوحة التحكم!",
     "noDataDesc": "ابدأ بتصفح المنح الدراسية أو إكمال ملفك الشخصي"
+  },
+
+  "action": {
+    "completeProfile": "أكمل ملفك الشخصي للحصول على توصيات أفضل",
+    "startTracking": "ابدأ بمتابعة المنح الدراسية التي تهمك",
+    "browseAndSave": "تصفح المنح الدراسية واحفظ ما يناسبك",
+    "setReminders": "اضبط تذكيرات للمواعيد النهائية لمنحك المتابَعة"
   },
 
   "tracker": {
@@ -367,7 +390,8 @@
     "admin": "الإدارة",
     "menu": "القائمة",
     "toggleLanguage": "تبديل اللغة",
-    "toggleTheme": "تبديل المظهر"
+    "toggleTheme": "تبديل المظهر",
+    "sidebarLabel": "التنقل"
   },
   "errors": {
     "validation": {

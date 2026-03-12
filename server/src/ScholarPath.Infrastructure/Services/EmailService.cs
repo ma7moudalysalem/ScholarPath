@@ -212,22 +212,30 @@ public class EmailService : IEmailService
     {
         try
         {
-            using var message = new MailMessage();
-            message.From = new MailAddress(_emailSettings.FromEmail, _emailSettings.FromName);
-            message.To.Add(new MailAddress(to));
+            var message = new MimeKit.MimeMessage();
+            message.From.Add(new MimeKit.MailboxAddress(_emailSettings.FromName, _emailSettings.FromEmail));
+            message.To.Add(MimeKit.MailboxAddress.Parse(to));
             message.Subject = subject;
-            message.Body = htmlBody;
-            message.IsBodyHtml = true;
 
-            using var client = new SmtpClient(_emailSettings.SmtpHost, _emailSettings.SmtpPort);
-            client.EnableSsl = _emailSettings.EnableSsl;
+            var builder = new MimeKit.BodyBuilder { HtmlBody = htmlBody };
+            message.Body = builder.ToMessageBody();
 
+            using var client = new MailKit.Net.Smtp.SmtpClient();
+            
+            // For testing environments, you might want to bypass certificate validation:
+            // client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+
+            await client.ConnectAsync(_emailSettings.SmtpHost, _emailSettings.SmtpPort, 
+                _emailSettings.EnableSsl ? MailKit.Security.SecureSocketOptions.StartTls : MailKit.Security.SecureSocketOptions.Auto, cancellationToken);
+            
             if (!string.IsNullOrWhiteSpace(_emailSettings.SmtpUser))
             {
-                client.Credentials = new NetworkCredential(_emailSettings.SmtpUser, _emailSettings.SmtpPassword);
+                await client.AuthenticateAsync(_emailSettings.SmtpUser, _emailSettings.SmtpPassword, cancellationToken);
             }
 
-            await client.SendMailAsync(message, cancellationToken);
+            await client.SendAsync(message, cancellationToken);
+            await client.DisconnectAsync(true, cancellationToken);
+            
             _logger.LogInformation("[EMAIL:SMTP] Sent email to {To}, Subject: {Subject}", to, subject);
         }
         catch (Exception ex)

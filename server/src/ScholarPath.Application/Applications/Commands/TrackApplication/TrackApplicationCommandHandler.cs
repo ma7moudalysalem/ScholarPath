@@ -54,14 +54,38 @@ public class TrackApplicationCommandHandler
             Notes = request.Notes
         };
 
-        _dbContext.ApplicationTrackers.Add(tracker);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return Result<TrackApplicationResponse>.Success(new TrackApplicationResponse
+        try
         {
-            Id = tracker.Id,
-            Status = tracker.Status,
-            AlreadyExisted = false
-        });
+            _dbContext.ApplicationTrackers.Add(tracker);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return Result<TrackApplicationResponse>.Success(new TrackApplicationResponse
+            {
+                Id = tracker.Id,
+                Status = tracker.Status,
+                AlreadyExisted = false
+            });
+        }
+        catch (DbUpdateException)
+        {
+            // Unique constraint violation means it was inserted by a concurrent request
+            existing = await _dbContext.ApplicationTrackers
+                .FirstOrDefaultAsync(at =>
+                    at.UserId == request.UserId &&
+                    at.ScholarshipId == request.ScholarshipId,
+                    cancellationToken);
+
+            if (existing is null)
+            {
+                return Result<TrackApplicationResponse>.Failure("Failed to track application due to concurrent modification.");
+            }
+
+            return Result<TrackApplicationResponse>.Success(new TrackApplicationResponse
+            {
+                Id = existing.Id,
+                Status = existing.Status,
+                AlreadyExisted = true
+            });
+        }
     }
 }

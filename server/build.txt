@@ -1,0 +1,20 @@
+﻿  Determining projects to restore...
+  All projects are up-to-date for restore.
+  ScholarPath.Domain -> D:\Projects\ScholarPath\server\src\ScholarPath.Domain\bin\Debug\net10.0\ScholarPath.Domain.dll
+  ScholarPath.Application -> D:\Projects\ScholarPath\server\src\ScholarPath.Application\bin\Debug\net10.0\ScholarPath.Application.dll
+  ScholarPath.UnitTests -> D:\Projects\ScholarPath\server\tests\ScholarPath.UnitTests\bin\Debug\net10.0\ScholarPath.UnitTests.dll
+D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\Persistence\Configurations\UpgradeRequestConfiguration.cs(181,14): error CS0101: The namespace 'ScholarPath.Infrastructure.Persistence.Configurations' already contains a definition for 'NotificationConfiguration' [D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\ScholarPath.Infrastructure.csproj]
+D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\Persistence\Configurations\UpgradeRequestConfiguration.cs(216,14): error CS0101: The namespace 'ScholarPath.Infrastructure.Persistence.Configurations' already contains a definition for 'ResourceConfiguration' [D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\ScholarPath.Infrastructure.csproj]
+D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\Persistence\Configurations\UpgradeRequestConfiguration.cs(183,17): error CS0111: Type 'NotificationConfiguration' already defines a member called 'Configure' with the same parameter types [D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\ScholarPath.Infrastructure.csproj]
+D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\Persistence\Configurations\UpgradeRequestConfiguration.cs(218,17): error CS0111: Type 'ResourceConfiguration' already defines a member called 'Configure' with the same parameter types [D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\ScholarPath.Infrastructure.csproj]
+
+Build FAILED.
+
+D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\Persistence\Configurations\UpgradeRequestConfiguration.cs(181,14): error CS0101: The namespace 'ScholarPath.Infrastructure.Persistence.Configurations' already contains a definition for 'NotificationConfiguration' [D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\ScholarPath.Infrastructure.csproj]
+D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\Persistence\Configurations\UpgradeRequestConfiguration.cs(216,14): error CS0101: The namespace 'ScholarPath.Infrastructure.Persistence.Configurations' already contains a definition for 'ResourceConfiguration' [D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\ScholarPath.Infrastructure.csproj]
+D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\Persistence\Configurations\UpgradeRequestConfiguration.cs(183,17): error CS0111: Type 'NotificationConfiguration' already defines a member called 'Configure' with the same parameter types [D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\ScholarPath.Infrastructure.csproj]
+D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\Persistence\Configurations\UpgradeRequestConfiguration.cs(218,17): error CS0111: Type 'ResourceConfiguration' already defines a member called 'Configure' with the same parameter types [D:\Projects\ScholarPath\server\src\ScholarPath.Infrastructure\ScholarPath.Infrastructure.csproj]
+    0 Warning(s)
+    4 Error(s)
+
+Time Elapsed 00:00:01.51

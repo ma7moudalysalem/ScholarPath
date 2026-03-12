@@ -27,6 +27,13 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 ["JwtSettings:Audience"] = "ScholarPathApp",
                 ["JwtSettings:AccessTokenExpirationMinutes"] = "60",
                 ["JwtSettings:RefreshTokenExpirationDays"] = "7",
+                ["EmailSettings:Provider"] = "none",
+                ["EmailSettings:FromEmail"] = "test@scholarpath.local",
+                ["EmailSettings:FromName"] = "Test System",
+                ["Authentication:Google:ClientId"] = "test-google-client-id",
+                ["Authentication:Google:ClientSecret"] = "test-google-client-secret",
+                ["Authentication:Facebook:AppId"] = "test-facebook-app-id",
+                ["Authentication:Facebook:AppSecret"] = "test-facebook-app-secret"
             });
         });
 

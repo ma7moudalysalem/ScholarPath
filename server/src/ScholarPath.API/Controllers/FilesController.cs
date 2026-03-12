@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
+using ScholarPath.Application.Files.Commands.UploadProofDocument;
+using Microsoft.AspNetCore.Http;
 
 namespace ScholarPath.API.Controllers;
 
@@ -12,28 +14,8 @@ namespace ScholarPath.API.Controllers;
 [Authorize]
 public class FilesController : BaseController
 {
-    private static readonly HashSet<string> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    public FilesController()
     {
-        "application/pdf",
-        "image/jpeg",
-        "image/png"
-    };
-
-    private const long MaxFileSize = 5 * 1024 * 1024; // 5 MB
-    private const int MaxFilesPerRequest = 5;
-
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly ApplicationDbContext _dbContext;
-    private readonly IWebHostEnvironment _env;
-
-    public FilesController(
-        UserManager<ApplicationUser> userManager,
-        ApplicationDbContext dbContext,
-        IWebHostEnvironment env)
-    {
-        _userManager = userManager;
-        _dbContext = dbContext;
-        _env = env;
     }
 
     [HttpPost("upload")]
@@ -43,77 +25,24 @@ public class FilesController : BaseController
         [FromForm] Guid? upgradeRequestId,
         CancellationToken cancellationToken)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user is null) return UnauthorizedResult("errors.auth.userNotFound");
-
-        if (files.Count == 0)
-            return BadRequestResult("errors.validation.noFilesProvided");
-
-        if (files.Count > MaxFilesPerRequest)
-            return BadRequestResult("errors.validation.tooManyFiles");
-
-        foreach (var file in files)
+        try
         {
-            if (file.Length > MaxFileSize)
-                return BadRequestResult("errors.validation.fileTooLarge");
-
-            if (!AllowedContentTypes.Contains(file.ContentType))
-                return BadRequestResult("errors.validation.invalidFileType");
+            var fileDtos = files.Select(f => new FileDto(f.FileName, f.ContentType, f.Length, f.OpenReadStream())).ToList();
+            var command = new UploadProofDocumentCommand(fileDtos, upgradeRequestId);
+            var result = await Mediator.Send(command, cancellationToken);
+            return Ok(result);
         }
-
-        // Verify upgrade request ownership if specified
-        if (upgradeRequestId.HasValue)
+        catch (UnauthorizedAccessException ex)
         {
-            var owns = await _dbContext.UpgradeRequests
-                .AnyAsync(r => r.Id == upgradeRequestId.Value && r.UserId == user.Id, cancellationToken);
-            if (!owns) return NotFoundResult("errors.admin.upgradeRequestNotFound");
+            return UnauthorizedResult(ex.Message);
         }
-
-        var uploadDir = Path.Combine(_env.ContentRootPath, "uploads", "upgrade-requests", user.Id.ToString());
-        Directory.CreateDirectory(uploadDir);
-
-        var uploadedFiles = new List<object>();
-
-        foreach (var file in files)
+        catch (KeyNotFoundException ex)
         {
-            var sanitizedName = Path.GetFileNameWithoutExtension(file.FileName)
-                .Replace(" ", "_")
-                .Replace("..", "");
-            var extension = Path.GetExtension(file.FileName);
-            var uniqueName = $"{sanitizedName}_{Guid.NewGuid():N}{extension}";
-            var filePath = Path.Combine(uploadDir, uniqueName);
-
-            await using var stream = new FileStream(filePath, FileMode.Create);
-            await file.CopyToAsync(stream, cancellationToken);
-
-            var fileEntity = new UpgradeRequestFile
-            {
-                UpgradeRequestId = upgradeRequestId ?? Guid.Empty,
-                FileName = file.FileName,
-                FilePath = filePath,
-                FileSize = file.Length,
-                ContentType = file.ContentType,
-                UploadedAt = DateTime.UtcNow
-            };
-
-            if (upgradeRequestId.HasValue)
-            {
-                _dbContext.UpgradeRequestFiles.Add(fileEntity);
-            }
-
-            uploadedFiles.Add(new
-            {
-                fileEntity.Id,
-                fileEntity.FileName,
-                fileEntity.ContentType,
-                fileEntity.FileSize,
-                Path = $"/uploads/upgrade-requests/{user.Id}/{uniqueName}"
-            });
+            return NotFoundResult(ex.Message);
         }
-
-        if (upgradeRequestId.HasValue)
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-        return Ok(new { Files = uploadedFiles });
+        catch (InvalidOperationException ex)
+        {
+            return BadRequestResult(ex.Message);
+        }
     }
 }

@@ -45,15 +45,6 @@ public class GetRecommendedScholarshipsQueryHandler
             };
         }
 
-        // Load active, non-expired, published scholarships
-        var today = DateTime.UtcNow.Date;
-        var scholarships = await _dbContext.Scholarships
-            .AsNoTracking()
-            .Where(s => s.Status == ScholarshipStatus.Published
-                        && s.IsActive
-                        && (s.Deadline == null || s.Deadline >= today))
-            .ToListAsync(cancellationToken);
-
         // Parse profile interests (JSON array)
         var profileInterests = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (!string.IsNullOrWhiteSpace(profile.Interests))
@@ -62,20 +53,45 @@ public class GetRecommendedScholarshipsQueryHandler
             {
                 var parsed = JsonSerializer.Deserialize<string[]>(profile.Interests);
                 if (parsed is not null)
-                {
                     foreach (var tag in parsed)
                         profileInterests.Add(tag);
-                }
             }
-            catch (JsonException)
-            {
-                // Ignore malformed JSON
-            }
+            catch (JsonException) { /* Ignore malformed JSON */ }
         }
 
         var profileFieldOfStudy = profile.FieldOfStudy.Trim();
+        var today = DateTime.UtcNow.Date;
 
-        // Score each scholarship
+        // ── Push filters to the database (P1 Fix) ─────────────────────────
+        // Only load scholarships where the field of study OR country OR target country match.
+        // This ensures we never load the full table into memory.
+        var query = _dbContext.Scholarships
+            .AsNoTracking()
+            .Where(s => s.Status == ScholarshipStatus.Published
+                        && s.IsActive
+                        && (s.Deadline == null || s.Deadline >= today));
+
+        // Apply at least one server-side filter to limit the candidate set
+        var fieldOfStudyFilter = !string.IsNullOrWhiteSpace(profileFieldOfStudy);
+        var countryFilter = !string.IsNullOrWhiteSpace(profile.Country);
+        var targetCountryFilter = !string.IsNullOrWhiteSpace(profile.TargetCountry);
+
+        if (fieldOfStudyFilter || countryFilter || targetCountryFilter)
+        {
+            query = query.Where(s =>
+                (fieldOfStudyFilter && s.FieldOfStudy != null && s.FieldOfStudy.Contains(profileFieldOfStudy)) ||
+                (countryFilter && s.Country != null && s.Country == profile.Country) ||
+                (targetCountryFilter && s.Country != null && s.Country == profile.TargetCountry)
+            );
+        }
+
+        // Fetch top 50 candidates from the DB with their tags — enough to score and return top 10
+        var scholarships = await query
+            .Include(s => s.Tags)
+            .Take(50)
+            .ToListAsync(cancellationToken);
+
+        // ── Score each candidate in-memory (small, bounded list) ──────────
         var scored = new List<(Domain.Entities.Scholarship Scholarship, int Score, List<string> Reasons)>();
 
         foreach (var s in scholarships)
@@ -83,7 +99,7 @@ public class GetRecommendedScholarshipsQueryHandler
             var score = 0;
             var reasons = new List<string>();
 
-            // FieldOfStudy match (+3): case-insensitive contains
+            // FieldOfStudy match (+3)
             if (!string.IsNullOrWhiteSpace(s.FieldOfStudy) &&
                 s.FieldOfStudy.Contains(profileFieldOfStudy, StringComparison.OrdinalIgnoreCase))
             {
@@ -91,21 +107,14 @@ public class GetRecommendedScholarshipsQueryHandler
                 reasons.Add("Field match");
             }
 
-            // Country match (+2): profile.Country or profile.TargetCountry matches scholarship.Country
+            // Country match (+2)
             if (!string.IsNullOrWhiteSpace(s.Country))
             {
-                var countryMatch = false;
-                if (!string.IsNullOrWhiteSpace(profile.Country) &&
-                    string.Equals(s.Country, profile.Country, StringComparison.OrdinalIgnoreCase))
-                {
-                    countryMatch = true;
-                }
-                if (!string.IsNullOrWhiteSpace(profile.TargetCountry) &&
-                    string.Equals(s.Country, profile.TargetCountry, StringComparison.OrdinalIgnoreCase))
-                {
-                    countryMatch = true;
-                }
-
+                var countryMatch =
+                    (!string.IsNullOrWhiteSpace(profile.Country) &&
+                     string.Equals(s.Country, profile.Country, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(profile.TargetCountry) &&
+                     string.Equals(s.Country, profile.TargetCountry, StringComparison.OrdinalIgnoreCase));
                 if (countryMatch)
                 {
                     score += 2;
@@ -114,26 +123,15 @@ public class GetRecommendedScholarshipsQueryHandler
             }
 
             // Tag overlap (+1 per match)
-            if (!string.IsNullOrWhiteSpace(s.Tags) && profileInterests.Count > 0)
+            if (s.Tags.Count > 0 && profileInterests.Count > 0)
             {
-                try
+                foreach (var tag in s.Tags)
                 {
-                    var scholarshipTags = JsonSerializer.Deserialize<string[]>(s.Tags);
-                    if (scholarshipTags is not null)
+                    if (profileInterests.Contains(tag.Name))
                     {
-                        foreach (var tag in scholarshipTags)
-                        {
-                            if (profileInterests.Contains(tag))
-                            {
-                                score += 1;
-                                reasons.Add($"Tag: {tag}");
-                            }
-                        }
+                        score += 1;
+                        reasons.Add($"Tag: {tag.Name}");
                     }
-                }
-                catch (JsonException)
-                {
-                    // Ignore malformed JSON
                 }
             }
 

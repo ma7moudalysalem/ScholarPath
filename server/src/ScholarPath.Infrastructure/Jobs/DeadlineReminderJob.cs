@@ -24,60 +24,28 @@ public class DeadlineReminderJob
     {
         var today = DateTime.UtcNow.Date;
 
-        var trackers = await _dbContext.ApplicationTrackers
-            .Include(a => a.Scholarship)
-            .Include(a => a.User)
-            .Where(a => !a.RemindersPaused
-                && a.RemindersJson != null
-                && !a.IsDeleted
-                && a.Scholarship.Deadline != null
-                && a.Scholarship.Deadline >= today)
+        var dueReminders = await _dbContext.ApplicationTrackerReminders
+            .Include(r => r.ApplicationTracker)
+            .ThenInclude(at => at.Scholarship)
+            .Include(r => r.ApplicationTracker.User)
+            .Where(r => 
+                !r.IsSent &&
+                !r.ApplicationTracker.RemindersPaused &&
+                !r.ApplicationTracker.IsDeleted &&
+                r.ScheduledFor.Date <= today)
             .ToListAsync();
 
-        foreach (var tracker in trackers)
+        foreach (var reminder in dueReminders)
         {
-            try
-            {
-                var reminders = JsonSerializer.Deserialize<ReminderSettings>(
-                    tracker.RemindersJson!, JsonOptions);
+            var tracker = reminder.ApplicationTracker;
 
-                if (reminders?.Presets == null || reminders.Presets.Length == 0)
-                    continue;
+            _logger.LogInformation(
+                "Deadline reminder due: User {UserId}, Scholarship {ScholarshipId}, type: {ReminderType}",
+                tracker.UserId, tracker.ScholarshipId, reminder.ReminderType);
 
-                foreach (var preset in reminders.Presets)
-                {
-                    var reminderDate = tracker.Scholarship.Deadline!.Value.AddDays(-preset).Date;
-                    if (reminderDate == today)
-                    {
-                        _logger.LogInformation(
-                            "Deadline reminder due: User {UserId}, Scholarship {ScholarshipId}, {Days} days before deadline",
-                            tracker.UserId, tracker.ScholarshipId, preset);
-
-                        // TODO: Create notification via NotificationService (Module 9)
-                    }
-                }
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogWarning(ex, "Invalid reminder JSON for tracker {TrackerId}", tracker.Id);
-            }
+            // TODO: Create notification via NotificationService (Module 9)
+            
+            reminder.IsSent = true;
         }
-    }
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
-    private sealed class ReminderSettings
-    {
-        public int[]? Presets { get; set; }
-        public ChannelSettings? Channels { get; set; }
-    }
-
-    private sealed class ChannelSettings
-    {
-        public bool InApp { get; set; }
-        public bool Email { get; set; }
     }
 }

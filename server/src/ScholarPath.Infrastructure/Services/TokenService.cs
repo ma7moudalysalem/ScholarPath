@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
-using ScholarPath.Infrastructure.Settings;
+using ScholarPath.Application.Common.Models;
 
 namespace ScholarPath.Infrastructure.Services;
 

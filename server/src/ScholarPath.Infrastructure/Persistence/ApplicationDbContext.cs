@@ -38,14 +38,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<UpgradeRequestLink> UpgradeRequestLinks => Set<UpgradeRequestLink>();
     public DbSet<UpgradeRequestFile> UpgradeRequestFiles => Set<UpgradeRequestFile>();
     public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<Group> Groups => Set<Group>();
-    public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
-    public DbSet<Post> Posts => Set<Post>();
-    public DbSet<Comment> Comments => Set<Comment>();
-    public DbSet<Like> Likes => Set<Like>();
-    public DbSet<Message> Messages => Set<Message>();
     public DbSet<Resource> Resources => Set<Resource>();
+    public DbSet<ResourceBookmark> ResourceBookmarks => Set<ResourceBookmark>();
+    public DbSet<ResourceProgress> ResourceProgresses => Set<ResourceProgress>();
     public DbSet<SuccessStory> SuccessStories => Set<SuccessStory>();
+
+    // Phase 13 JSON to Tables
+    public DbSet<ApplicationTrackerChecklistItem> ApplicationTrackerChecklistItems => Set<ApplicationTrackerChecklistItem>();
+    public DbSet<ApplicationTrackerReminder> ApplicationTrackerReminders => Set<ApplicationTrackerReminder>();
+    public DbSet<ScholarshipTag> ScholarshipTags => Set<ScholarshipTag>();
+    public DbSet<ScholarshipEligibleCountry> ScholarshipEligibleCountries => Set<ScholarshipEligibleCountry>();
+    public DbSet<ScholarshipEligibleMajor> ScholarshipEligibleMajors => Set<ScholarshipEligibleMajor>();
+    public DbSet<ScholarshipDocumentChecklist> ScholarshipDocumentChecklists => Set<ScholarshipDocumentChecklist>();
+    public DbSet<ResourceAttachment> ResourceAttachments => Set<ResourceAttachment>();
+    public DbSet<ResourceCompletedItem> ResourceCompletedItems => Set<ResourceCompletedItem>();
+
+    public new Microsoft.EntityFrameworkCore.Infrastructure.DatabaseFacade Database => base.Database;
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

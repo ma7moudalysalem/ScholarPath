@@ -41,9 +41,6 @@ public static class SeedData
     private static readonly Guid Resource3 = Guid.Parse("50000000-0000-0000-0000-000000000003");
     private static readonly Guid Resource4 = Guid.Parse("50000000-0000-0000-0000-000000000004");
 
-    // Groups
-    private static readonly Guid Group1 = Guid.Parse("60000000-0000-0000-0000-000000000001");
-    private static readonly Guid Group2 = Guid.Parse("60000000-0000-0000-0000-000000000002");
 
     // Notifications
     private static readonly Guid Notification1 = Guid.Parse("70000000-0000-0000-0000-000000000001");
@@ -59,9 +56,11 @@ public static class SeedData
         SeedCategories(builder);
         SeedUserProfiles(builder);
         SeedScholarships(builder);
+        SeedScholarshipChildren(builder);
         SeedResources(builder);
-        SeedGroups(builder);
+
         SeedNotifications(builder);
+        SeedExpertiseTags(builder);
     }
 
     // ── Users ────────────────────────────────────────────────────────────
@@ -288,8 +287,7 @@ public static class SeedData
                 OfficialLink = "https://www.daad.de/en/study-and-research-in-germany/scholarships/",
                 IsActive = true,
                 MinGPA = 3.0m,
-                EligibleCountries = "[\"Egypt\",\"Jordan\",\"Morocco\",\"Tunisia\",\"Lebanon\"]",
-                EligibleMajors = "[\"Computer Science\",\"Engineering\",\"Natural Sciences\",\"Mathematics\"]",
+
                 CategoryId = CatStem,
                 CreatedAt = SeedDate
             },
@@ -312,7 +310,7 @@ public static class SeedData
                 OfficialLink = "https://www.chevening.org/",
                 IsActive = true,
                 MinGPA = 3.0m,
-                EligibleCountries = "[\"Egypt\",\"Jordan\",\"Iraq\",\"Saudi Arabia\",\"UAE\"]",
+
                 CategoryId = CatBusiness,
                 CreatedAt = SeedDate
             },
@@ -335,7 +333,7 @@ public static class SeedData
                 OfficialLink = "https://www.turkiyeburslari.gov.tr/",
                 IsActive = true,
                 MaxAge = 21,
-                EligibleCountries = "[\"Egypt\",\"Palestine\",\"Syria\",\"Yemen\",\"Somalia\"]",
+
                 CategoryId = CatEducation,
                 CreatedAt = SeedDate
             },
@@ -358,8 +356,7 @@ public static class SeedData
                 OfficialLink = "https://foreign.fulbrightonline.org/",
                 IsActive = true,
                 MinGPA = 3.0m,
-                EligibleCountries = "[\"Egypt\",\"Lebanon\",\"Jordan\",\"Morocco\",\"Tunisia\",\"Iraq\"]",
-                EligibleMajors = "[\"Public Policy\",\"Engineering\",\"Sciences\",\"Education\",\"Arts\"]",
+
                 CategoryId = CatSocialSciences,
                 CreatedAt = SeedDate
             },
@@ -382,11 +379,70 @@ public static class SeedData
                 OfficialLink = "https://erasmus-plus.ec.europa.eu/",
                 IsActive = true,
                 MinGPA = 3.2m,
-                EligibleCountries = "[\"Egypt\",\"Algeria\",\"Libya\",\"Sudan\",\"Mauritania\"]",
-                EligibleMajors = "[\"Environmental Science\",\"Public Health\",\"Data Science\",\"Urban Planning\"]",
+
                 CategoryId = CatEngineering,
                 CreatedAt = SeedDate
             }
+        );
+    }
+
+    // ── Scholarship Child Entities ──────────────────────────────────────
+
+    private static void SeedScholarshipChildren(ModelBuilder builder)
+    {
+        // EligibleCountries
+        builder.Entity<ScholarshipEligibleCountry>().HasData(
+            // Scholarship 1
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0001-000000000001"), ScholarshipId = Scholarship1, CountryCode = "Egypt", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0001-000000000002"), ScholarshipId = Scholarship1, CountryCode = "Jordan", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0001-000000000003"), ScholarshipId = Scholarship1, CountryCode = "Morocco", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0001-000000000004"), ScholarshipId = Scholarship1, CountryCode = "Tunisia", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0001-000000000005"), ScholarshipId = Scholarship1, CountryCode = "Lebanon", CreatedAt = SeedDate },
+            // Scholarship 2
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0002-000000000001"), ScholarshipId = Scholarship2, CountryCode = "Egypt", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0002-000000000002"), ScholarshipId = Scholarship2, CountryCode = "Jordan", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0002-000000000003"), ScholarshipId = Scholarship2, CountryCode = "Iraq", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0002-000000000004"), ScholarshipId = Scholarship2, CountryCode = "Saudi Arabia", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0002-000000000005"), ScholarshipId = Scholarship2, CountryCode = "UAE", CreatedAt = SeedDate },
+            // Scholarship 3
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0003-000000000001"), ScholarshipId = Scholarship3, CountryCode = "Egypt", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0003-000000000002"), ScholarshipId = Scholarship3, CountryCode = "Palestine", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0003-000000000003"), ScholarshipId = Scholarship3, CountryCode = "Syria", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0003-000000000004"), ScholarshipId = Scholarship3, CountryCode = "Yemen", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0003-000000000005"), ScholarshipId = Scholarship3, CountryCode = "Somalia", CreatedAt = SeedDate },
+            // Scholarship 4
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0004-000000000001"), ScholarshipId = Scholarship4, CountryCode = "Egypt", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0004-000000000002"), ScholarshipId = Scholarship4, CountryCode = "Lebanon", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0004-000000000003"), ScholarshipId = Scholarship4, CountryCode = "Jordan", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0004-000000000004"), ScholarshipId = Scholarship4, CountryCode = "Morocco", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0004-000000000005"), ScholarshipId = Scholarship4, CountryCode = "Tunisia", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0004-000000000006"), ScholarshipId = Scholarship4, CountryCode = "Iraq", CreatedAt = SeedDate },
+            // Scholarship 5
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0005-000000000001"), ScholarshipId = Scholarship5, CountryCode = "Egypt", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0005-000000000002"), ScholarshipId = Scholarship5, CountryCode = "Algeria", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0005-000000000003"), ScholarshipId = Scholarship5, CountryCode = "Libya", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0005-000000000004"), ScholarshipId = Scholarship5, CountryCode = "Sudan", CreatedAt = SeedDate },
+            new ScholarshipEligibleCountry { Id = Guid.Parse("31000000-0000-0000-0005-000000000005"), ScholarshipId = Scholarship5, CountryCode = "Mauritania", CreatedAt = SeedDate }
+        );
+
+        // EligibleMajors
+        builder.Entity<ScholarshipEligibleMajor>().HasData(
+            // Scholarship 1
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0001-000000000001"), ScholarshipId = Scholarship1, MajorName = "Computer Science", CreatedAt = SeedDate },
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0001-000000000002"), ScholarshipId = Scholarship1, MajorName = "Engineering", CreatedAt = SeedDate },
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0001-000000000003"), ScholarshipId = Scholarship1, MajorName = "Natural Sciences", CreatedAt = SeedDate },
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0001-000000000004"), ScholarshipId = Scholarship1, MajorName = "Mathematics", CreatedAt = SeedDate },
+            // Scholarship 4
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0004-000000000001"), ScholarshipId = Scholarship4, MajorName = "Public Policy", CreatedAt = SeedDate },
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0004-000000000002"), ScholarshipId = Scholarship4, MajorName = "Engineering", CreatedAt = SeedDate },
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0004-000000000003"), ScholarshipId = Scholarship4, MajorName = "Sciences", CreatedAt = SeedDate },
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0004-000000000004"), ScholarshipId = Scholarship4, MajorName = "Education", CreatedAt = SeedDate },
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0004-000000000005"), ScholarshipId = Scholarship4, MajorName = "Arts", CreatedAt = SeedDate },
+            // Scholarship 5
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0005-000000000001"), ScholarshipId = Scholarship5, MajorName = "Environmental Science", CreatedAt = SeedDate },
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0005-000000000002"), ScholarshipId = Scholarship5, MajorName = "Public Health", CreatedAt = SeedDate },
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0005-000000000003"), ScholarshipId = Scholarship5, MajorName = "Data Science", CreatedAt = SeedDate },
+            new ScholarshipEligibleMajor { Id = Guid.Parse("32000000-0000-0000-0005-000000000004"), ScholarshipId = Scholarship5, MajorName = "Urban Planning", CreatedAt = SeedDate }
         );
     }
 
@@ -402,9 +458,6 @@ public static class SeedData
                 TitleAr = "كيف تكتب مقالة منحة دراسية ناجحة",
                 Description = "A comprehensive guide covering structure, tone, and common mistakes to avoid when writing scholarship personal statements.",
                 DescriptionAr = "دليل شامل يغطي الهيكل والأسلوب والأخطاء الشائعة التي يجب تجنبها عند كتابة بيانات المنح الشخصية.",
-                Url = "https://scholarpath.com/resources/scholarship-essay-guide",
-                Type = "Article",
-                Category = "Application Tips",
                 CreatedAt = SeedDate
             },
             new Resource
@@ -414,9 +467,6 @@ public static class SeedData
                 TitleAr = "التحضير لامتحان IELTS: خطة دراسية مجانية",
                 Description = "A 30-day structured study plan for IELTS preparation with practice materials and tips for each section.",
                 DescriptionAr = "خطة دراسية منظمة لمدة 30 يومًا للتحضير لامتحان IELTS مع مواد تدريبية ونصائح لكل قسم.",
-                Url = "https://scholarpath.com/resources/ielts-study-plan",
-                Type = "Guide",
-                Category = "Test Preparation",
                 CreatedAt = SeedDate
             },
             new Resource
@@ -426,9 +476,6 @@ public static class SeedData
                 TitleAr = "أفضل 10 قواعد بيانات للمنح الدراسية للطلاب العرب",
                 Description = "A curated list of the best online scholarship search engines and databases specifically useful for students from the Arab region.",
                 DescriptionAr = "قائمة منسقة لأفضل محركات البحث وقواعد البيانات للمنح الدراسية المفيدة تحديدًا للطلاب من المنطقة العربية.",
-                Url = "https://scholarpath.com/resources/scholarship-databases",
-                Type = "Article",
-                Category = "Scholarship Search",
                 CreatedAt = SeedDate
             },
             new Resource
@@ -438,81 +485,11 @@ public static class SeedData
                 TitleAr = "نموذج طلب خطاب التوصية",
                 Description = "Professional email templates and tips for requesting strong recommendation letters from professors and employers.",
                 DescriptionAr = "قوالب بريد إلكتروني احترافية ونصائح لطلب خطابات توصية قوية من الأساتذة وأصحاب العمل.",
-                Url = "https://scholarpath.com/resources/recommendation-letter-template",
-                Type = "Template",
-                Category = "Application Tips",
                 CreatedAt = SeedDate
             }
         );
     }
 
-    // ── Groups ───────────────────────────────────────────────────────────
-
-    private static void SeedGroups(ModelBuilder builder)
-    {
-        builder.Entity<Group>().HasData(
-            new Group
-            {
-                Id = Group1,
-                Name = "DAAD Scholarship Applicants",
-                NameAr = "متقدمو منحة DAAD",
-                Description = "A community for students applying to DAAD scholarships. Share tips, experiences, and support each other through the application process.",
-                DescriptionAr = "مجتمع للطلاب المتقدمين لمنح DAAD. شاركوا النصائح والخبرات وادعموا بعضكم البعض خلال عملية التقديم.",
-                CreatorId = ConsultantId,
-                IsPrivate = false,
-                MaxMembers = 200,
-                CreatedAt = SeedDate
-            },
-            new Group
-            {
-                Id = Group2,
-                Name = "Study in the UK",
-                NameAr = "الدراسة في بريطانيا",
-                Description = "Everything about studying in the United Kingdom: university selection, visa process, living costs, and scholarship opportunities.",
-                DescriptionAr = "كل ما يتعلق بالدراسة في المملكة المتحدة: اختيار الجامعة وإجراءات التأشيرة وتكاليف المعيشة وفرص المنح الدراسية.",
-                CreatorId = AdminId,
-                IsPrivate = false,
-                MaxMembers = 500,
-                CreatedAt = SeedDate
-            }
-        );
-
-        // Group Members
-        builder.Entity<GroupMember>().HasData(
-            new GroupMember
-            {
-                Id = Guid.Parse("61000000-0000-0000-0000-000000000001"),
-                GroupId = Group1,
-                UserId = ConsultantId,
-                Role = GroupRole.Admin,
-                CreatedAt = SeedDate
-            },
-            new GroupMember
-            {
-                Id = Guid.Parse("61000000-0000-0000-0000-000000000002"),
-                GroupId = Group1,
-                UserId = StudentId,
-                Role = GroupRole.Member,
-                CreatedAt = SeedDate
-            },
-            new GroupMember
-            {
-                Id = Guid.Parse("61000000-0000-0000-0000-000000000003"),
-                GroupId = Group2,
-                UserId = AdminId,
-                Role = GroupRole.Admin,
-                CreatedAt = SeedDate
-            },
-            new GroupMember
-            {
-                Id = Guid.Parse("61000000-0000-0000-0000-000000000004"),
-                GroupId = Group2,
-                UserId = StudentId,
-                Role = GroupRole.Member,
-                CreatedAt = SeedDate
-            }
-        );
-    }
 
     // ── Notifications ────────────────────────────────────────────────────
 
@@ -545,6 +522,20 @@ public static class SeedData
                 RelatedEntityType = "Scholarship",
                 CreatedAt = SeedDate
             }
+        );
+    }
+
+    // ── Expertise Tags ───────────────────────────────────────────────────
+
+    private static void SeedExpertiseTags(ModelBuilder builder)
+    {
+        builder.Entity<ExpertiseTag>().HasData(
+            new ExpertiseTag { Id = Guid.Parse("80000000-0000-0000-0000-000000000001"), Name = "Essay Writing", CreatedAt = SeedDate },
+            new ExpertiseTag { Id = Guid.Parse("80000000-0000-0000-0000-000000000002"), Name = "Interview Prep", CreatedAt = SeedDate },
+            new ExpertiseTag { Id = Guid.Parse("80000000-0000-0000-0000-000000000003"), Name = "Visa Application", CreatedAt = SeedDate },
+            new ExpertiseTag { Id = Guid.Parse("80000000-0000-0000-0000-000000000004"), Name = "University Selection", CreatedAt = SeedDate },
+            new ExpertiseTag { Id = Guid.Parse("80000000-0000-0000-0000-000000000005"), Name = "Career Counseling", CreatedAt = SeedDate },
+            new ExpertiseTag { Id = Guid.Parse("80000000-0000-0000-0000-000000000006"), Name = "Portfolio Review", CreatedAt = SeedDate }
         );
     }
 }

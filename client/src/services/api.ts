@@ -1,5 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
-import type { AuthResponse, ApiError } from '@/types';
+import type { ApiError } from '@/types';
 import { useAuthStore } from '@/stores/authStore';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api/v1';
@@ -9,21 +9,22 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
   timeout: 30000,
 });
 
 let isRefreshing = false;
 let failedQueue: Array<{
-  resolve: (token: string) => void;
+  resolve: () => void;
   reject: (error: unknown) => void;
 }> = [];
 
-function processQueue(error: unknown, token: string | null = null) {
+function processQueue(error: unknown) {
   failedQueue.forEach((promise) => {
     if (error) {
       promise.reject(error);
-    } else if (token) {
-      promise.resolve(token);
+    } else {
+      promise.resolve();
     }
   });
   failedQueue = [];
@@ -35,13 +36,9 @@ function clearAuth() {
   window.location.href = '/';
 }
 
-// Request interceptor: attach Bearer token
+// Request interceptor: attach dynamic logic if required, cookies handle Bearer token
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const { accessToken } = useAuthStore.getState();
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -64,10 +61,9 @@ api.interceptors.response.use(
     }
 
     if (isRefreshing) {
-      return new Promise<string>((resolve, reject) => {
+      return new Promise<void>((resolve, reject) => {
         failedQueue.push({ resolve, reject });
-      }).then((token) => {
-        originalRequest.headers.Authorization = `Bearer ${token}`;
+      }).then(() => {
         return api(originalRequest);
       });
     }
@@ -75,23 +71,11 @@ api.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const { refreshToken } = useAuthStore.getState();
-      if (!refreshToken) {
-        clearAuth();
-        return Promise.reject(error);
-      }
-
-      const { data } = await axios.post<AuthResponse>(`${API_URL}/auth/refresh`, {
-        refreshToken,
-      });
-
-      useAuthStore.getState().updateTokens(data.accessToken, data.refreshToken);
-      processQueue(null, data.accessToken);
-
-      originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+      await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
+      processQueue(null);
       return api(originalRequest);
     } catch (refreshError) {
-      processQueue(refreshError, null);
+      processQueue(refreshError);
       clearAuth();
       return Promise.reject(refreshError);
     } finally {

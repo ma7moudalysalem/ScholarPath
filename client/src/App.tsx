@@ -11,6 +11,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { AuthenticatedLayout } from '@/components/Layout/AuthenticatedLayout';
 import { PublicLayout } from '@/components/Layout/PublicLayout';
 import { AuthModalProvider } from '@/components/auth/AuthModalProvider';
+import DesignSwitcher from '@/components/DesignSwitcher';
 import { UserRole } from '@/types';
 import { GOOGLE_CLIENT_ID } from '@/config/oauth';
 
@@ -43,10 +44,11 @@ function PageLoader() {
 export default function App() {
   const direction = useUiStore((s) => s.direction);
   const themeMode = useUiStore((s) => s.themeMode);
+  const designTheme = useUiStore((s) => s.designTheme);
 
   const theme = useMemo(
-    () => createScholarPathTheme(direction, themeMode),
-    [direction, themeMode]
+    () => createScholarPathTheme(direction, themeMode, designTheme),
+    [direction, themeMode, designTheme]
   );
 
   const emotionCache = direction === 'rtl' ? rtlCache : ltrCache;
@@ -58,6 +60,7 @@ export default function App() {
         <CssBaseline />
         <ErrorBoundary>
         <AuthModalProvider />
+        <DesignSwitcher />
         <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Public routes */}

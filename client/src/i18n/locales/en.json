@@ -3,10 +3,7 @@
   "login": "Login",
   "register": "Register",
   "logout": "Logout",
-  "dashboard": "Dashboard",
-  "scholarships": "Scholarships",
   "community": "Community",
-  "profile": "Profile",
   "notifications": "Notifications",
   "security": "Security",
   "search": "Search",
@@ -286,7 +283,26 @@
     "testimonial3Text": "As a company, we found incredible talent through ScholarPath's platform.",
     "footerDesc": "Your trusted platform for discovering scholarship opportunities and connecting with the academic community.",
     "quickLinks": "Quick Links",
-    "contactUs": "Contact Us"
+    "contactUs": "Contact Us",
+    "eyebrowHero": "Your Scholarship Journey Starts Here",
+    "liveStats": "Live Statistics",
+    "statsScholarships": "Scholarships",
+    "statsCountries": "Countries",
+    "statsSuccess": "Success Rate",
+    "statsFree": "Free",
+    "servicesEyebrow": "Everything You Need",
+    "howItWorksTitle": "How It Works",
+    "howItWorksEyebrow": "Simple Process",
+    "stepTitle1": "Create Your Profile",
+    "stepDesc1": "Sign up and share your academic background, goals, and areas of interest.",
+    "stepTitle2": "Discover Opportunities",
+    "stepDesc2": "Browse thousands of scholarships intelligently matched to your unique profile.",
+    "stepTitle3": "Track Your Journey",
+    "stepDesc3": "Manage every application with our Kanban tracker and deadline reminders.",
+    "testimonialsEyebrow": "Student Stories",
+    "ctaTitle": "Start Your Journey Today",
+    "ctaSubtitle": "Join thousands of students who have already found their dream scholarships. Free, forever.",
+    "scrollDown": "Scroll"
   },
 
   "dashboard": {
@@ -308,6 +324,13 @@
     "completeProfileDesc": "Get personalized recommendations by completing your profile",
     "noDataYet": "Welcome to your dashboard!",
     "noDataDesc": "Start by browsing scholarships or completing your profile"
+  },
+
+  "action": {
+    "completeProfile": "Complete your profile for better recommendations",
+    "startTracking": "Start tracking scholarships you're interested in",
+    "browseAndSave": "Browse and save scholarships that interest you",
+    "setReminders": "Set deadline reminders for your tracked scholarships"
   },
 
   "tracker": {
@@ -367,7 +390,8 @@
     "admin": "Admin",
     "menu": "Menu",
     "toggleLanguage": "Toggle language",
-    "toggleTheme": "Toggle theme"
+    "toggleTheme": "Toggle theme",
+    "sidebarLabel": "Navigation"
   },
   "errors": {
     "validation": {

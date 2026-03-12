@@ -205,11 +205,8 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(n => n.RelatedEntityType)
             .HasMaxLength(100);
 
-        builder.HasIndex(n => n.UserId)
-            .HasDatabaseName("IX_Notifications_UserId");
-
-        builder.HasIndex(n => n.IsRead)
-            .HasDatabaseName("IX_Notifications_IsRead");
+        builder.HasIndex(n => new { n.UserId, n.IsRead })
+            .HasDatabaseName("IX_Notifications_UserId_IsRead");
     }
 }
 
@@ -232,15 +229,8 @@ public class ResourceConfiguration : IEntityTypeConfiguration<Resource>
         builder.Property(r => r.DescriptionAr)
             .HasMaxLength(1000);
 
-        builder.Property(r => r.Url)
-            .HasMaxLength(500)
-            .IsRequired();
-
-        builder.Property(r => r.Type)
-            .HasMaxLength(50);
-
-        builder.Property(r => r.Category)
-            .HasMaxLength(100);
+        builder.HasIndex(r => r.IsDeleted)
+            .HasDatabaseName("IX_Resources_IsDeleted");
     }
 }
 
@@ -334,5 +324,29 @@ public class UserProfileConfiguration : IEntityTypeConfiguration<UserProfile>
         builder.HasIndex(up => up.UserId)
             .IsUnique()
             .HasDatabaseName("IX_UserProfiles_UserId");
+    }
+}
+
+public class ResourceBookmarkConfiguration : IEntityTypeConfiguration<ResourceBookmark>
+{
+    public void Configure(EntityTypeBuilder<ResourceBookmark> builder)
+    {
+        builder.HasKey(rb => rb.Id);
+
+        builder.HasIndex(rb => new { rb.UserId, rb.ResourceId })
+            .IsUnique()
+            .HasDatabaseName("IX_ResourceBookmarks_UserId_ResourceId");
+    }
+}
+
+public class ResourceProgressConfiguration : IEntityTypeConfiguration<ResourceProgress>
+{
+    public void Configure(EntityTypeBuilder<ResourceProgress> builder)
+    {
+        builder.HasKey(rp => rp.Id);
+
+        builder.HasIndex(rp => new { rp.UserId, rp.ResourceId })
+            .IsUnique()
+            .HasDatabaseName("IX_ResourceProgresses_UserId_ResourceId");
     }
 }

@@ -15,7 +15,7 @@ using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Infrastructure.Repositories;
 using ScholarPath.Infrastructure.Services;
 using ScholarPath.Infrastructure.Settings;
-
+using ScholarPath.Application.Common.Models;
 namespace ScholarPath.Infrastructure;
 
 public static class DependencyInjection
@@ -91,8 +91,18 @@ public static class DependencyInjection
             {
                 OnMessageReceived = context =>
                 {
-                    var accessToken = context.Request.Query["access_token"];
+                    // 1. Read from cookie (HttpOnly cookie auth flow)
+                    if (string.IsNullOrEmpty(context.Token))
+                    {
+                        var cookieToken = context.Request.Cookies["AccessToken"];
+                        if (!string.IsNullOrEmpty(cookieToken))
+                        {
+                            context.Token = cookieToken;
+                        }
+                    }
 
+                    // 2. Support JWT in SignalR query string
+                    var accessToken = context.Request.Query["access_token"];
                     var path = context.HttpContext.Request.Path;
                     if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
                     {
@@ -105,27 +115,29 @@ public static class DependencyInjection
         })
         ;
 
-        // Google OAuth (only if configured)
+        // Google OAuth (only if fully configured)
         var googleClientId = configuration["Authentication:Google:ClientId"];
-        if (!string.IsNullOrWhiteSpace(googleClientId))
+        var googleClientSecret = configuration["Authentication:Google:ClientSecret"];
+        if (!string.IsNullOrWhiteSpace(googleClientId) && !string.IsNullOrWhiteSpace(googleClientSecret))
         {
             services.AddAuthentication()
                 .AddGoogle(options =>
                 {
                     options.ClientId = googleClientId;
-                    options.ClientSecret = configuration["Authentication:Google:ClientSecret"] ?? "";
+                    options.ClientSecret = googleClientSecret;
                 });
         }
 
-        // Microsoft OAuth (only if configured)
+        // Microsoft OAuth (only if fully configured)
         var microsoftClientId = configuration["Authentication:Microsoft:ClientId"];
-        if (!string.IsNullOrWhiteSpace(microsoftClientId))
+        var microsoftClientSecret = configuration["Authentication:Microsoft:ClientSecret"];
+        if (!string.IsNullOrWhiteSpace(microsoftClientId) && !string.IsNullOrWhiteSpace(microsoftClientSecret))
         {
             services.AddAuthentication()
                 .AddMicrosoftAccount(options =>
                 {
                     options.ClientId = microsoftClientId;
-                    options.ClientSecret = configuration["Authentication:Microsoft:ClientSecret"] ?? "";
+                    options.ClientSecret = microsoftClientSecret;
                 });
         }
 

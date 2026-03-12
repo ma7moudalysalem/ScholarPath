@@ -19,11 +19,15 @@ public class ApplicationTrackerConfiguration : IEntityTypeConfiguration<Applicat
         builder.Property(at => at.Notes)
             .HasMaxLength(2000);
 
-        builder.Property(at => at.ChecklistJson)
-            .HasMaxLength(4000);
+        builder.HasMany(at => at.ChecklistItems)
+            .WithOne(c => c.ApplicationTracker)
+            .HasForeignKey(c => c.ApplicationTrackerId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(at => at.RemindersJson)
-            .HasMaxLength(1000);
+        builder.HasMany(at => at.Reminders)
+            .WithOne(r => r.ApplicationTracker)
+            .HasForeignKey(r => r.ApplicationTrackerId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Unique index on (UserId, ScholarshipId) excluding soft-deleted records
         builder.HasIndex(at => new { at.UserId, at.ScholarshipId })

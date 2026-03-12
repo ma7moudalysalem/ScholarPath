@@ -51,12 +51,13 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
         refreshResponse.EnsureSuccessStatusCode();
         var refreshBody = await ReadJsonAsync(refreshResponse);
 
-        var newAccessToken = refreshBody.GetProperty("accessToken").GetString();
-        var newRefreshToken = refreshBody.GetProperty("refreshToken").GetString();
+        var newCookies = refreshResponse.Headers.GetValues("Set-Cookie").ToList();
+        var newAccessTokenMatch = System.Text.RegularExpressions.Regex.Match(string.Join(";", newCookies), @"AccessToken=([^;]+)");
+        var newRefreshTokenMatch = System.Text.RegularExpressions.Regex.Match(string.Join(";", newCookies), @"RefreshToken=([^;]+)");
 
-        Assert.False(string.IsNullOrWhiteSpace(newAccessToken));
-        Assert.False(string.IsNullOrWhiteSpace(newRefreshToken));
-        Assert.NotEqual(register.RefreshToken, newRefreshToken);
+        Assert.True(newAccessTokenMatch.Success);
+        Assert.True(newRefreshTokenMatch.Success);
+        Assert.NotEqual(register.RefreshToken, newRefreshTokenMatch.Groups[1].Value);
     }
 
     [Fact]
@@ -147,8 +148,9 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
             password = adminPassword
         });
         adminLogin.EnsureSuccessStatusCode();
-        var adminJson = await ReadJsonAsync(adminLogin);
-        var adminToken = adminJson.GetProperty("accessToken").GetString()!;
+        var adminCookies = adminLogin.Headers.GetValues("Set-Cookie").ToList();
+        var adminTokenMatch = System.Text.RegularExpressions.Regex.Match(string.Join(";", adminCookies), @"AccessToken=([^;]+)");
+        var adminToken = Uri.UnescapeDataString(adminTokenMatch.Groups[1].Value);
 
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
@@ -163,7 +165,7 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
         var approveResponse = await client.PutAsJsonAsync($"/api/v1/admin/upgrade-requests/{requestId}/approve", new { });
         approveResponse.EnsureSuccessStatusCode();
         var approveJson = await ReadJsonAsync(approveResponse);
-        Assert.Equal((int)UpgradeRequestStatus.Approved, approveJson.GetProperty("status").GetInt32());
+        Assert.Equal(UpgradeRequestStatus.Approved.ToString(), approveJson.GetProperty("status").GetString());
     }
 
     [Fact]
@@ -193,8 +195,9 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
             password = adminPassword
         });
         adminLogin.EnsureSuccessStatusCode();
-        var adminJson = await ReadJsonAsync(adminLogin);
-        var adminToken = adminJson.GetProperty("accessToken").GetString()!;
+        var adminCookies = adminLogin.Headers.GetValues("Set-Cookie").ToList();
+        var adminTokenMatch = System.Text.RegularExpressions.Regex.Match(string.Join(";", adminCookies), @"AccessToken=([^;]+)");
+        var adminToken = Uri.UnescapeDataString(adminTokenMatch.Groups[1].Value);
 
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
@@ -257,10 +260,13 @@ public class AuthFlowIntegrationTests : IClassFixture<TestWebApplicationFactory>
         });
 
         response.EnsureSuccessStatusCode();
-        var json = await ReadJsonAsync(response);
+        var cookies = response.Headers.GetValues("Set-Cookie").ToList();
+        var accessTokenMatch = System.Text.RegularExpressions.Regex.Match(string.Join(";", cookies), @"AccessToken=([^;]+)");
+        var refreshTokenMatch = System.Text.RegularExpressions.Regex.Match(string.Join(";", cookies), @"RefreshToken=([^;]+)");
+
         return (
-            json.GetProperty("accessToken").GetString()!,
-            json.GetProperty("refreshToken").GetString()!,
+            accessTokenMatch.Success ? Uri.UnescapeDataString(accessTokenMatch.Groups[1].Value) : string.Empty,
+            refreshTokenMatch.Success ? Uri.UnescapeDataString(refreshTokenMatch.Groups[1].Value) : string.Empty,
             email);
     }
 

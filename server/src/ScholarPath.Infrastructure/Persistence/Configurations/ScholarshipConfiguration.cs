@@ -68,20 +68,26 @@ public class ScholarshipConfiguration : IEntityTypeConfiguration<Scholarship>
         builder.Property(s => s.ViewCount)
             .HasDefaultValue(0);
 
-        builder.Property(s => s.Tags)
-            .HasMaxLength(2000);
+        // Collections mapping
+        builder.HasMany(s => s.Tags)
+            .WithOne(t => t.Scholarship)
+            .HasForeignKey(t => t.ScholarshipId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(s => s.DocumentsChecklist)
-            .HasMaxLength(4000);
+        builder.HasMany(s => s.DocumentsChecklist)
+            .WithOne(d => d.Scholarship)
+            .HasForeignKey(d => d.ScholarshipId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(s => s.MinGPA)
-            .HasPrecision(4, 2);
+        builder.HasMany(s => s.EligibleCountries)
+            .WithOne(c => c.Scholarship)
+            .HasForeignKey(c => c.ScholarshipId)
+            .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Property(s => s.EligibleCountries)
-            .HasMaxLength(2000);
-
-        builder.Property(s => s.EligibleMajors)
-            .HasMaxLength(2000);
+        builder.HasMany(s => s.EligibleMajors)
+            .WithOne(m => m.Scholarship)
+            .HasForeignKey(m => m.ScholarshipId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Indexes
         builder.HasIndex(s => s.Deadline)

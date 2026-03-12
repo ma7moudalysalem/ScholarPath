@@ -1,0 +1,10 @@
+﻿d:\Projects\ScholarPath\server\src\ScholarPath.Application\Auth\Commands\Register\RegisterCommandHandler.cs(71,32): error CS0118: 'RefreshToken' is a namespace but is used like a type [d:\Projects\ScholarPath\server\src\ScholarPath.Application\ScholarPath.Application.csproj]
+d:\Projects\ScholarPath\server\src\ScholarPath.Application\Auth\Commands\CompleteOnboarding\CompleteOnboardingCommandHandler.cs(100,56): error CS1061: 'IApplicationDbContext' does not contain a definition for 'Database' and no accessible extension method 'Database' accepting a first argument of type 'IApplicationDbContext' could be found (are you missing a using directive or an assembly reference?) [d:\Projects\ScholarPath\server\src\ScholarPath.Application\ScholarPath.Application.csproj]
+d:\Projects\ScholarPath\server\src\ScholarPath.Application\Auth\Commands\CompleteOnboarding\CompleteOnboardingCommandHandler.cs(106,24): error CS1061: 'IApplicationDbContext' does not contain a definition for 'Notifications' and no accessible extension method 'Notifications' accepting a first argument of type 'IApplicationDbContext' could be found (are you missing a using directive or an assembly reference?) [d:\Projects\ScholarPath\server\src\ScholarPath.Application\ScholarPath.Application.csproj]
+d:\Projects\ScholarPath\server\src\ScholarPath.Application\Auth\Commands\ExternalLogin\ExternalLoginCommandHandler.cs(122,32): error CS0118: 'RefreshToken' is a namespace but is used like a type [d:\Projects\ScholarPath\server\src\ScholarPath.Application\ScholarPath.Application.csproj]
+
+Build FAILED.
+    0 Warning(s)
+    4 Error(s)
+
+Time Elapsed 00:00:01.29
