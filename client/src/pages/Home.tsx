@@ -211,6 +211,7 @@ export default function Home() {
                   {slides[activeSlide]?.title}
                 </Typography>
                 <Typography
+                  component="h2"
                   sx={{
                     fontFamily: displayFont,
                     fontSize: { xs: '2.6rem', sm: '3.4rem', md: '4.5rem', lg: '5.2rem' },
