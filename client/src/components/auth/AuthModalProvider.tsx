@@ -13,7 +13,11 @@ export function AuthModalProvider() {
   const { login, register } = useAuth();
   const { handleExternalLogin, error: ssoError, setError: setSsoError } = useSsoAuth(close);
 
-  const handleLogin = async (data: { identifier: string; password: string; rememberMe: boolean }) => {
+  const handleLogin = async (data: {
+    identifier: string;
+    password: string;
+    rememberMe: boolean;
+  }) => {
     await login(data);
     close();
   };
@@ -38,11 +42,7 @@ export function AuthModalProvider() {
         fullWidth
         PaperProps={{ sx: { position: 'relative' } }}
       >
-        <IconButton
-          onClick={close}
-          sx={{ position: 'absolute', top: 8, right: 8 }}
-          size="small"
-        >
+        <IconButton onClick={close} sx={{ position: 'absolute', top: 8, right: 8 }} size="small">
           <CloseIcon />
         </IconButton>
 
@@ -65,9 +65,7 @@ export function AuthModalProvider() {
             />
           )}
           {view === 'forgotPassword' && (
-            <ForgotPasswordForm
-              onSwitchToLogin={() => switchTo('login')}
-            />
+            <ForgotPasswordForm onSwitchToLogin={() => switchTo('login')} />
           )}
         </DialogContent>
       </Dialog>

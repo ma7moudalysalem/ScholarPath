@@ -1,13 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link as RouterLink } from 'react-router-dom';
-import {
-  Box,
-  Typography,
-  Alert,
-  Button,
-  IconButton,
-} from '@mui/material';
+import { Box, Typography, Alert, Button, IconButton } from '@mui/material';
 import {
   VisibilityOff as VisibilityOffIcon,
   Visibility as VisibilityIcon,
@@ -23,9 +17,7 @@ export function RecommendedCarousel() {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
-  const [hidden, setHidden] = useState(
-    () => localStorage.getItem(STORAGE_KEY) === 'true'
-  );
+  const [hidden, setHidden] = useState(() => localStorage.getItem(STORAGE_KEY) === 'true');
 
   const { data, isLoading } = useQuery({
     queryKey: ['scholarships', 'recommended'],
@@ -112,12 +104,7 @@ export function RecommendedCarousel() {
           severity="info"
           sx={{ mb: 2 }}
           action={
-            <Button
-              component={RouterLink}
-              to="/profile"
-              size="small"
-              color="inherit"
-            >
+            <Button component={RouterLink} to="/profile" size="small" color="inherit">
               {t('scholarshipPage.completeProfileCta')}
             </Button>
           }
@@ -140,14 +127,8 @@ export function RecommendedCarousel() {
         }}
       >
         {data.items.map((scholarship) => (
-          <Box
-            key={scholarship.id}
-            sx={{ minWidth: 300, maxWidth: 340, flexShrink: 0 }}
-          >
-            <ScholarshipCard
-              scholarship={scholarship}
-              matchReasons={scholarship.matchReasons}
-            />
+          <Box key={scholarship.id} sx={{ minWidth: 300, maxWidth: 340, flexShrink: 0 }}>
+            <ScholarshipCard scholarship={scholarship} matchReasons={scholarship.matchReasons} />
           </Box>
         ))}
       </Box>

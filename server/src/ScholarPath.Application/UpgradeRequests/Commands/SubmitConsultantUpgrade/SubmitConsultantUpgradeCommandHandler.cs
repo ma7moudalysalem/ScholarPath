@@ -28,7 +28,7 @@ public class SubmitConsultantUpgradeCommandHandler : IRequestHandler<SubmitConsu
     {
         var userIdStr = _currentUserService.UserId?.ToString();
         var user = await _userManager.FindByIdAsync(userIdStr ?? "00000000-0000-0000-0000-000000000000");
-        
+
         if (user == null)
         {
             throw new UnauthorizedAccessException("errors.auth.userNotFound");
@@ -36,7 +36,7 @@ public class SubmitConsultantUpgradeCommandHandler : IRequestHandler<SubmitConsu
 
         var hasPending = await _dbContext.UpgradeRequests
             .AnyAsync(r => r.UserId == user.Id && r.Status == UpgradeRequestStatus.Pending, cancellationToken);
-            
+
         if (hasPending)
         {
             throw new InvalidOperationException("errors.auth.pendingUpgradeExists");
@@ -71,7 +71,7 @@ public class SubmitConsultantUpgradeCommandHandler : IRequestHandler<SubmitConsu
         user.AccountStatus = AccountStatus.Pending;
 
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-        
+
         try
         {
             _dbContext.UpgradeRequests.Add(upgradeRequest);
@@ -96,7 +96,7 @@ public class SubmitConsultantUpgradeCommandHandler : IRequestHandler<SubmitConsu
         {
             var existing = await _dbContext.ExpertiseTags
                 .FirstOrDefaultAsync(t => t.Name == name, cancellationToken);
-            
+
             if (existing != null)
             {
                 result.Add(existing);

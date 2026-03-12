@@ -221,13 +221,13 @@ public class EmailService : IEmailService
             message.Body = builder.ToMessageBody();
 
             using var client = new MailKit.Net.Smtp.SmtpClient();
-            
+
             // For testing environments, you might want to bypass certificate validation:
             // client.ServerCertificateValidationCallback = (s, c, h, e) => true;
 
-            await client.ConnectAsync(_emailSettings.SmtpHost, _emailSettings.SmtpPort, 
+            await client.ConnectAsync(_emailSettings.SmtpHost, _emailSettings.SmtpPort,
                 _emailSettings.EnableSsl ? MailKit.Security.SecureSocketOptions.StartTls : MailKit.Security.SecureSocketOptions.Auto, cancellationToken);
-            
+
             if (!string.IsNullOrWhiteSpace(_emailSettings.SmtpUser))
             {
                 await client.AuthenticateAsync(_emailSettings.SmtpUser, _emailSettings.SmtpPassword, cancellationToken);
@@ -235,7 +235,7 @@ public class EmailService : IEmailService
 
             await client.SendAsync(message, cancellationToken);
             await client.DisconnectAsync(true, cancellationToken);
-            
+
             _logger.LogInformation("[EMAIL:SMTP] Sent email to {To}, Subject: {Subject}", to, subject);
         }
         catch (Exception ex)

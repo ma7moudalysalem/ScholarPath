@@ -25,16 +25,10 @@ import {
 } from '@/components/scholarships/ScholarshipCard';
 import { ScholarshipFilters } from '@/components/scholarships/ScholarshipFilters';
 import { RecommendedCarousel } from '@/components/scholarships/RecommendedCarousel';
-import {
-  ScholarshipSortBy,
-  DegreeLevel,
-  ScholarshipFundingType,
-} from '@/types';
+import { ScholarshipSortBy, DegreeLevel, ScholarshipFundingType } from '@/types';
 import type { ScholarshipSearchFilters } from '@/types';
 
-function parseFiltersFromParams(
-  params: URLSearchParams
-): ScholarshipSearchFilters {
+function parseFiltersFromParams(params: URLSearchParams): ScholarshipSearchFilters {
   const filters: ScholarshipSearchFilters = {};
 
   const search = params.get('search');
@@ -80,17 +74,13 @@ function filtersToParams(filters: ScholarshipSearchFilters): URLSearchParams {
   const params = new URLSearchParams();
   if (filters.search) params.set('search', filters.search);
   if (filters.country) params.set('country', filters.country);
-  if (filters.degreeLevel !== undefined)
-    params.set('degreeLevel', String(filters.degreeLevel));
+  if (filters.degreeLevel !== undefined) params.set('degreeLevel', String(filters.degreeLevel));
   if (filters.fieldOfStudy) params.set('fieldOfStudy', filters.fieldOfStudy);
-  if (filters.fundingType !== undefined)
-    params.set('fundingType', String(filters.fundingType));
+  if (filters.fundingType !== undefined) params.set('fundingType', String(filters.fundingType));
   if (filters.deadlineFrom) params.set('deadlineFrom', filters.deadlineFrom);
   if (filters.deadlineTo) params.set('deadlineTo', filters.deadlineTo);
-  if (filters.page && filters.page > 1)
-    params.set('page', String(filters.page));
-  if (filters.sortBy !== undefined)
-    params.set('sortBy', String(filters.sortBy));
+  if (filters.page && filters.page > 1) params.set('page', String(filters.page));
+  if (filters.sortBy !== undefined) params.set('sortBy', String(filters.sortBy));
   if (filters.includeExpired) params.set('includeExpired', 'true');
   return params;
 }
@@ -105,10 +95,7 @@ export default function ScholarshipList() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const filters = useMemo(
-    () => parseFiltersFromParams(searchParams),
-    [searchParams]
-  );
+  const filters = useMemo(() => parseFiltersFromParams(searchParams), [searchParams]);
 
   const savedOnly = searchParams.get('savedOnly') === 'true';
 
@@ -141,21 +128,13 @@ export default function ScholarshipList() {
   );
 
   // Main scholarships query
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: savedOnly
       ? ['scholarships', 'saved', queryFilters.page]
       : ['scholarships', 'list', queryFilters],
     queryFn: () =>
       savedOnly
-        ? scholarshipService.getSavedScholarships(
-            queryFilters.page,
-            queryFilters.pageSize
-          )
+        ? scholarshipService.getSavedScholarships(queryFilters.page, queryFilters.pageSize)
         : scholarshipService.getScholarships(queryFilters),
     staleTime: 2 * 60 * 1000,
   });
@@ -218,8 +197,7 @@ export default function ScholarshipList() {
               )}
               {data && !isLoading && (
                 <Typography variant="body2" color="text.secondary">
-                  {data.totalCount}{' '}
-                  {t('scholarshipPage.title').toLowerCase()}
+                  {data.totalCount} {t('scholarshipPage.title').toLowerCase()}
                 </Typography>
               )}
             </Box>
@@ -229,9 +207,7 @@ export default function ScholarshipList() {
               <Select
                 value={filters.sortBy ?? ScholarshipSortBy.Relevance}
                 label={t('scholarshipPage.sortBy')}
-                onChange={(e) =>
-                  handleSortChange(e.target.value as ScholarshipSortBy)
-                }
+                onChange={(e) => handleSortChange(e.target.value as ScholarshipSortBy)}
               >
                 <MenuItem value={ScholarshipSortBy.Relevance}>
                   {t('scholarshipPage.relevance')}
@@ -239,9 +215,7 @@ export default function ScholarshipList() {
                 <MenuItem value={ScholarshipSortBy.DeadlineSoonest}>
                   {t('scholarshipPage.deadlineSoonest')}
                 </MenuItem>
-                <MenuItem value={ScholarshipSortBy.Newest}>
-                  {t('scholarshipPage.newest')}
-                </MenuItem>
+                <MenuItem value={ScholarshipSortBy.Newest}>{t('scholarshipPage.newest')}</MenuItem>
                 <MenuItem value={ScholarshipSortBy.HighestFunding}>
                   {t('scholarshipPage.highestFunding')}
                 </MenuItem>
@@ -266,11 +240,7 @@ export default function ScholarshipList() {
               severity="error"
               sx={{ mb: 2 }}
               action={
-                <Button
-                  color="inherit"
-                  size="small"
-                  onClick={() => void refetch()}
-                >
+                <Button color="inherit" size="small" onClick={() => void refetch()}>
                   {t('retry')}
                 </Button>
               }
@@ -290,11 +260,7 @@ export default function ScholarshipList() {
               <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
                 {t('scholarshipPage.noResults')}
               </Typography>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mb: 3 }}
-              >
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 {t('scholarshipPage.noResultsHint')}
               </Typography>
               <Button variant="outlined" onClick={resetFilters}>

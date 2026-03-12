@@ -72,10 +72,11 @@ export default function SecurityTab() {
     }
   };
 
-  const isSubmitDisabled = loading
-    || !form.newPassword
-    || !form.confirmNewPassword
-    || (!isSsoOnly && !form.currentPassword);
+  const isSubmitDisabled =
+    loading ||
+    !form.newPassword ||
+    !form.confirmNewPassword ||
+    (!isSsoOnly && !form.currentPassword);
 
   return (
     <Card>
@@ -116,7 +117,11 @@ export default function SecurityTab() {
                 input: {
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
+                      <IconButton
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        size="small"
+                      >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
                     </InputAdornment>
@@ -148,13 +153,14 @@ export default function SecurityTab() {
             required
           />
 
-          <Button
-            type="submit"
-            variant="contained"
-            disabled={isSubmitDisabled}
-            sx={{ mt: 2 }}
-          >
-            {loading ? <CircularProgress size={24} /> : (isSsoOnly ? t('securityPage.setPassword') : t('changePassword'))}
+          <Button type="submit" variant="contained" disabled={isSubmitDisabled} sx={{ mt: 2 }}>
+            {loading ? (
+              <CircularProgress size={24} />
+            ) : isSsoOnly ? (
+              t('securityPage.setPassword')
+            ) : (
+              t('changePassword')
+            )}
           </Button>
         </Box>
       </CardContent>

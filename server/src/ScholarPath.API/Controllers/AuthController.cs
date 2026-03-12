@@ -101,13 +101,13 @@ public class AuthController : BaseController
         {
             if (ex.Message == "errors.auth.accountLockedOut")
             {
-                 return UnauthorizedResult("errors.auth.accountLockedOut");
+                return UnauthorizedResult("errors.auth.accountLockedOut");
             }
             if (ex.Message == "errors.auth.accountNotActive")
             {
-                 return ForbiddenResult("errors.auth.accountNotActive");
+                return ForbiddenResult("errors.auth.accountNotActive");
             }
-            
+
             return UnauthorizedResult("errors.auth.invalidCredentials");
         }
     }
@@ -193,7 +193,7 @@ public class AuthController : BaseController
                 request.CompanyName,
                 request.ExpertiseArea,
                 request.Bio);
-                
+
             var result = await Mediator.Send(command, cancellationToken);
             return OkResult(result);
         }
@@ -205,7 +205,7 @@ public class AuthController : BaseController
         }
         catch (InvalidOperationException ex)
         {
-            if (ex.Message == "errors.auth.onboardingAlreadyComplete" || 
+            if (ex.Message == "errors.auth.onboardingAlreadyComplete" ||
                 ex.Message == "errors.auth.pendingUpgradeExists")
             {
                 return Conflict(new { Error = ex.Message });

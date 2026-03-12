@@ -87,12 +87,24 @@ export function PublicLayout() {
             {/* Logo */}
             <Box
               onClick={() => navigate('/')}
-              sx={{ cursor: 'pointer', mr: 'auto', display: 'flex', alignItems: 'baseline', gap: 0.5 }}
+              sx={{
+                cursor: 'pointer',
+                mr: 'auto',
+                display: 'flex',
+                alignItems: 'baseline',
+                gap: 0.5,
+              }}
             >
-              <Typography sx={{
-                fontFamily: displayFont, fontSize: '1.7rem', fontWeight: 600,
-                color: primary, lineHeight: 1, letterSpacing: '-0.01em',
-              }}>
+              <Typography
+                sx={{
+                  fontFamily: displayFont,
+                  fontSize: '1.7rem',
+                  fontWeight: 600,
+                  color: primary,
+                  lineHeight: 1,
+                  letterSpacing: '-0.01em',
+                }}
+              >
                 {t('appName')}
               </Typography>
             </Box>
@@ -117,7 +129,11 @@ export function PublicLayout() {
                 aria-label={t('nav.toggleTheme')}
                 sx={{ opacity: 0.65, '&:hover': { opacity: 1, color: primary } }}
               >
-                {themeMode === 'light' ? <DarkModeIcon fontSize="small" /> : <LightModeIcon fontSize="small" />}
+                {themeMode === 'light' ? (
+                  <DarkModeIcon fontSize="small" />
+                ) : (
+                  <LightModeIcon fontSize="small" />
+                )}
               </IconButton>
 
               <IconButton
@@ -130,17 +146,30 @@ export function PublicLayout() {
 
               {isAuthenticated ? (
                 <IconButton onClick={() => navigate('/dashboard')} sx={{ p: 0.5 }}>
-                  <Avatar src={user?.profileImageUrl ?? undefined} sx={{ width: 34, height: 34, fontSize: '0.875rem' }}>
+                  <Avatar
+                    src={user?.profileImageUrl ?? undefined}
+                    sx={{ width: 34, height: 34, fontSize: '0.875rem' }}
+                  >
                     {user?.firstName?.[0]}
                   </Avatar>
                 </IconButton>
               ) : (
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button variant="outlined" size="small" onClick={() => openAuthModal('login')} sx={{ borderRadius: 50, px: 2.5 }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => openAuthModal('login')}
+                    sx={{ borderRadius: 50, px: 2.5 }}
+                  >
                     {t('login')}
                   </Button>
                   {!isMobile && (
-                    <Button variant="contained" size="small" onClick={() => openAuthModal('register')} sx={{ borderRadius: 50, px: 2.5 }}>
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={() => openAuthModal('register')}
+                      sx={{ borderRadius: 50, px: 2.5 }}
+                    >
                       {t('register')}
                     </Button>
                   )}
@@ -167,33 +196,67 @@ export function PublicLayout() {
           },
         }}
       >
-        <Box sx={{ px: 2, pb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography sx={{ fontFamily: displayFont, fontSize: '1.6rem', fontWeight: 600, color: primary }}>
+        <Box
+          sx={{
+            px: 2,
+            pb: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Typography
+            sx={{ fontFamily: displayFont, fontSize: '1.6rem', fontWeight: 600, color: primary }}
+          >
             {t('appName')}
           </Typography>
-          <IconButton onClick={() => setMobileMenuOpen(false)} sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}>
+          <IconButton
+            onClick={() => setMobileMenuOpen(false)}
+            sx={{ opacity: 0.5, '&:hover': { opacity: 1 } }}
+          >
             <CloseIcon />
           </IconButton>
         </Box>
         <Divider sx={{ mb: 1 }} />
         <List sx={{ px: 1 }}>
           <ListItemButton
-            onClick={() => { navigate('/'); setMobileMenuOpen(false); }}
-            sx={{ borderRadius: 2, color: 'rgba(255,255,255,0.75)', '&:hover': { color: primary, bgcolor: alpha(primary, 0.08) } }}
+            onClick={() => {
+              navigate('/');
+              setMobileMenuOpen(false);
+            }}
+            sx={{
+              borderRadius: 2,
+              color: 'rgba(255,255,255,0.75)',
+              '&:hover': { color: primary, bgcolor: alpha(primary, 0.08) },
+            }}
           >
             <ListItemText primary={t('nav.home')} />
           </ListItemButton>
           {!isAuthenticated && (
             <>
               <ListItemButton
-                onClick={() => { openAuthModal('login'); setMobileMenuOpen(false); }}
-                sx={{ borderRadius: 2, color: 'rgba(255,255,255,0.75)', '&:hover': { color: primary, bgcolor: alpha(primary, 0.08) } }}
+                onClick={() => {
+                  openAuthModal('login');
+                  setMobileMenuOpen(false);
+                }}
+                sx={{
+                  borderRadius: 2,
+                  color: 'rgba(255,255,255,0.75)',
+                  '&:hover': { color: primary, bgcolor: alpha(primary, 0.08) },
+                }}
               >
                 <ListItemText primary={t('login')} />
               </ListItemButton>
               <ListItemButton
-                onClick={() => { openAuthModal('register'); setMobileMenuOpen(false); }}
-                sx={{ borderRadius: 2, color: 'rgba(255,255,255,0.75)', '&:hover': { color: primary, bgcolor: alpha(primary, 0.08) } }}
+                onClick={() => {
+                  openAuthModal('register');
+                  setMobileMenuOpen(false);
+                }}
+                sx={{
+                  borderRadius: 2,
+                  color: 'rgba(255,255,255,0.75)',
+                  '&:hover': { color: primary, bgcolor: alpha(primary, 0.08) },
+                }}
               >
                 <ListItemText primary={t('register')} />
               </ListItemButton>
@@ -201,8 +264,15 @@ export function PublicLayout() {
           )}
           {isAuthenticated && (
             <ListItemButton
-              onClick={() => { navigate('/dashboard'); setMobileMenuOpen(false); }}
-              sx={{ borderRadius: 2, color: 'rgba(255,255,255,0.75)', '&:hover': { color: primary, bgcolor: alpha(primary, 0.08) } }}
+              onClick={() => {
+                navigate('/dashboard');
+                setMobileMenuOpen(false);
+              }}
+              sx={{
+                borderRadius: 2,
+                color: 'rgba(255,255,255,0.75)',
+                '&:hover': { color: primary, bgcolor: alpha(primary, 0.08) },
+              }}
             >
               <ListItemText primary={t('dashboard')} />
             </ListItemButton>

@@ -14,10 +14,10 @@ interface StatusTileConfig {
 }
 
 const STATUS_TILES: StatusTileConfig[] = [
-  { key: 'Saved',    i18nKey: 'dashboard.saved',    color: '#2D5BE3', darkColor: '#4F7EF5' },
-  { key: 'Planned',  i18nKey: 'dashboard.planned',  color: '#5A6878', darkColor: '#8A9BB5' },
-  { key: 'Applied',  i18nKey: 'dashboard.applied',  color: '#0369A1', darkColor: '#38BDF8' },
-  { key: 'Pending',  i18nKey: 'dashboard.pending',  color: '#B45309', darkColor: '#F59E0B' },
+  { key: 'Saved', i18nKey: 'dashboard.saved', color: '#2D5BE3', darkColor: '#4F7EF5' },
+  { key: 'Planned', i18nKey: 'dashboard.planned', color: '#5A6878', darkColor: '#8A9BB5' },
+  { key: 'Applied', i18nKey: 'dashboard.applied', color: '#0369A1', darkColor: '#38BDF8' },
+  { key: 'Pending', i18nKey: 'dashboard.pending', color: '#B45309', darkColor: '#F59E0B' },
   { key: 'Accepted', i18nKey: 'dashboard.accepted', color: '#047857', darkColor: '#34D399' },
   { key: 'Rejected', i18nKey: 'dashboard.rejected', color: '#B91C1C', darkColor: '#F87171' },
 ];
@@ -91,22 +91,27 @@ export default function StatusTiles({ statusCounts, isLoading }: StatusTilesProp
                 },
               }}
             >
-              <Typography sx={{
-                fontFamily: SERIF,
-                fontSize: '2.6rem',
-                fontWeight: 700,
-                color: accentColor,
-                lineHeight: 1,
-                mb: 0.75,
-              }}>
+              <Typography
+                sx={{
+                  fontFamily: SERIF,
+                  fontSize: '2.6rem',
+                  fontWeight: 700,
+                  color: accentColor,
+                  lineHeight: 1,
+                  mb: 0.75,
+                }}
+              >
                 {count}
               </Typography>
-              <Typography variant="caption" sx={{
-                color: 'text.secondary',
-                fontWeight: 500,
-                letterSpacing: '0.03em',
-                display: 'block',
-              }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'text.secondary',
+                  fontWeight: 500,
+                  letterSpacing: '0.03em',
+                  display: 'block',
+                }}
+              >
                 {t(tile.i18nKey)}
               </Typography>
             </Box>

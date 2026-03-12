@@ -63,7 +63,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResult>
         }
 
         var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
-        
+
         if (!isPasswordValid)
         {
             await _userManager.AccessFailedAsync(user);
@@ -90,16 +90,16 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResult>
     {
         var accessToken = await _tokenService.GenerateAccessToken(user);
         var refreshTokenValue = _tokenService.GenerateRefreshToken();
-        
+
         var expirationDays = rememberMe ? 30 : _jwtSettings.RefreshTokenExpirationDays;
-        
+
         var refreshToken = new ScholarPath.Domain.Entities.RefreshToken
         {
             UserId = user.Id,
             Token = refreshTokenValue,
             ExpiresAt = DateTime.UtcNow.AddDays(expirationDays),
             // CreatedByIp should be injected via a service if needed, falling back to empty for MediatR context
-            CreatedByIp = "unknown" 
+            CreatedByIp = "unknown"
         };
 
         _dbContext.RefreshTokens.Add(refreshToken);

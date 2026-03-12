@@ -1,9 +1,5 @@
 import api from './api';
-import type {
-  ConsultantUpgradeRequest,
-  CompanyUpgradeRequest,
-  UpgradeRequestDto,
-} from '@/types';
+import type { ConsultantUpgradeRequest, CompanyUpgradeRequest, UpgradeRequestDto } from '@/types';
 
 export const upgradeService = {
   async submitConsultant(data: ConsultantUpgradeRequest): Promise<void> {
@@ -21,7 +17,10 @@ export const upgradeService = {
     return response.data;
   },
 
-  async resubmit(id: string, data: Partial<ConsultantUpgradeRequest & CompanyUpgradeRequest>): Promise<void> {
+  async resubmit(
+    id: string,
+    data: Partial<ConsultantUpgradeRequest & CompanyUpgradeRequest>
+  ): Promise<void> {
     await api.put(`/upgrade-requests/${id}/resubmit`, data);
   },
 

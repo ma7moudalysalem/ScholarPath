@@ -1,7 +1,12 @@
 import { useCallback, useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { PublicClientApplication } from '@azure/msal-browser';
-import { GOOGLE_CLIENT_ID, MICROSOFT_CLIENT_ID, msalConfig, msalLoginRequest } from '@/config/oauth';
+import {
+  GOOGLE_CLIENT_ID,
+  MICROSOFT_CLIENT_ID,
+  msalConfig,
+  msalLoginRequest,
+} from '@/config/oauth';
 import { authService } from '@/services/authService';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
@@ -34,7 +39,10 @@ export function useSsoAuth(onSuccess?: () => void) {
         setAuth(response.user);
         onSuccess?.();
 
-        if (!response.user.isOnboardingComplete || response.user.accountStatus === AccountStatus.Pending) {
+        if (
+          !response.user.isOnboardingComplete ||
+          response.user.accountStatus === AccountStatus.Pending
+        ) {
           navigate('/onboarding');
         } else {
           const intended = sessionStorage.getItem(INTENDED_DESTINATION_KEY);

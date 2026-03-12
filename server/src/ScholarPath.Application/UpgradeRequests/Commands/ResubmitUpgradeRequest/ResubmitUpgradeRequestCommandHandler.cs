@@ -78,7 +78,7 @@ public class ResubmitUpgradeRequestCommandHandler : IRequestHandler<ResubmitUpgr
         {
             var linksToRemove = await _dbContext.UpgradeRequestLinks.Where(l => l.UpgradeRequestId == upgradeRequest.Id).ToListAsync(cancellationToken);
             _dbContext.UpgradeRequestLinks.RemoveRange(linksToRemove);
-            
+
             upgradeRequest.Links = request.Links.Select(l => new UpgradeRequestLink
             {
                 Url = l.Url,
@@ -109,7 +109,7 @@ public class ResubmitUpgradeRequestCommandHandler : IRequestHandler<ResubmitUpgr
         {
             var existing = await _dbContext.ExpertiseTags
                 .FirstOrDefaultAsync(t => t.Name == name, cancellationToken);
-            
+
             if (existing != null)
             {
                 result.Add(existing);

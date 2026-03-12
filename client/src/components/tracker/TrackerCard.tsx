@@ -32,7 +32,10 @@ const STATUS_OPTIONS = [
   { value: ApplicationStatus.Rejected, labelKey: 'tracker.rejected' },
 ];
 
-function getDeadlineColor(days: number | null, isOverdue: boolean): 'error' | 'warning' | 'default' {
+function getDeadlineColor(
+  days: number | null,
+  isOverdue: boolean
+): 'error' | 'warning' | 'default' {
   if (isOverdue) return 'error';
   if (days !== null && days <= 7) return 'warning';
   return 'default';

@@ -1,16 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Box,
-  Card,
-  CardActionArea,
-  CardContent,
-  Typography,
-} from '@mui/material';
-import {
-  School as ConsultantIcon,
-  Business as CompanyIcon,
-} from '@mui/icons-material';
+import { Box, Card, CardActionArea, CardContent, Typography } from '@mui/material';
+import { School as ConsultantIcon, Business as CompanyIcon } from '@mui/icons-material';
 import { ConsultantUpgradeForm } from '@/components/upgrade/ConsultantUpgradeForm';
 import { CompanyUpgradeForm } from '@/components/upgrade/CompanyUpgradeForm';
 

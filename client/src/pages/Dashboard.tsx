@@ -2,12 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { alpha } from '@mui/material/styles';
-import {
-  Box,
-  Typography,
-  Button,
-  useTheme,
-} from '@mui/material';
+import { Box, Typography, Button, useTheme } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import SchoolOutlinedIcon from '@mui/icons-material/SchoolOutlined';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
@@ -16,7 +11,6 @@ import { dashboardService } from '@/services/dashboardService';
 import StatusTiles from '@/components/dashboard/StatusTiles';
 import DeadlinesWidget from '@/components/dashboard/DeadlinesWidget';
 import ActionsWidget from '@/components/dashboard/ActionsWidget';
-
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -82,30 +76,40 @@ export default function Dashboard() {
               },
             ].map((card) => (
               <Grid key={card.title} size={{ xs: 12, sm: 6, md: 4 }}>
-                <Box sx={{
-                  p: 4,
-                  textAlign: 'center',
-                  borderRadius: 3,
-                  border: `1px solid ${alpha(primary, 0.1)}`,
-                  bgcolor: 'background.paper',
-                  transition: 'all 0.25s ease',
-                  '&:hover': {
-                    borderColor: alpha(primary, 0.28),
-                    transform: 'translateY(-3px)',
-                    boxShadow: isDark ? '0 12px 32px rgba(0,0,0,0.45)' : '0 8px 24px rgba(0,0,0,0.08)',
-                  },
-                }}>
+                <Box
+                  sx={{
+                    p: 4,
+                    textAlign: 'center',
+                    borderRadius: 3,
+                    border: `1px solid ${alpha(primary, 0.1)}`,
+                    bgcolor: 'background.paper',
+                    transition: 'all 0.25s ease',
+                    '&:hover': {
+                      borderColor: alpha(primary, 0.28),
+                      transform: 'translateY(-3px)',
+                      boxShadow: isDark
+                        ? '0 12px 32px rgba(0,0,0,0.45)'
+                        : '0 8px 24px rgba(0,0,0,0.08)',
+                    },
+                  }}
+                >
                   <Box sx={{ mb: 2 }}>{card.icon}</Box>
-                  <Typography sx={{
-                    fontFamily: displayFont,
-                    fontSize: '1.5rem',
-                    fontWeight: 600,
-                    mb: 1,
-                    color: 'text.primary',
-                  }}>
+                  <Typography
+                    sx={{
+                      fontFamily: displayFont,
+                      fontSize: '1.5rem',
+                      fontWeight: 600,
+                      mb: 1,
+                      color: 'text.primary',
+                    }}
+                  >
                     {card.title}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3, lineHeight: 1.7 }}>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 3, lineHeight: 1.7 }}
+                  >
                     {card.desc}
                   </Typography>
                   <Button

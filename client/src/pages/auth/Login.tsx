@@ -10,7 +10,11 @@ export default function Login() {
   const { login } = useAuth();
   const { handleExternalLogin, error: ssoError, setError: setSsoError } = useSsoAuth();
 
-  const handleLogin = async (data: { identifier: string; password: string; rememberMe: boolean }) => {
+  const handleLogin = async (data: {
+    identifier: string;
+    password: string;
+    rememberMe: boolean;
+  }) => {
     await login(data);
   };
 

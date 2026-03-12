@@ -73,7 +73,10 @@ export function AuthenticatedLayout() {
 
   useEffect(() => {
     if (user && user.role !== UserRole.Admin) {
-      upgradeService.getMyStatus().then(setUpgradeStatus).catch(() => {});
+      upgradeService
+        .getMyStatus()
+        .then(setUpgradeStatus)
+        .catch(() => {});
     }
   }, [user]);
 
@@ -101,9 +104,19 @@ export function AuthenticatedLayout() {
 
   const getUpgradeBanner = () => {
     if (!upgradeStatus) return null;
-    const bannerConfig: Record<number, { severity: 'info' | 'success' | 'error' | 'warning'; message: string; action?: React.ReactNode }> = {
+    const bannerConfig: Record<
+      number,
+      {
+        severity: 'info' | 'success' | 'error' | 'warning';
+        message: string;
+        action?: React.ReactNode;
+      }
+    > = {
       [UpgradeRequestStatus.Pending]: { severity: 'info', message: t('upgrade.statusPending') },
-      [UpgradeRequestStatus.Approved]: { severity: 'success', message: t('upgrade.statusApproved') },
+      [UpgradeRequestStatus.Approved]: {
+        severity: 'success',
+        message: t('upgrade.statusApproved'),
+      },
       [UpgradeRequestStatus.Rejected]: { severity: 'error', message: t('upgrade.statusRejected') },
       [UpgradeRequestStatus.NeedsMoreInfo]: {
         severity: 'warning',
@@ -118,7 +131,12 @@ export function AuthenticatedLayout() {
     const config = bannerConfig[upgradeStatus.status];
     if (!config) return null;
     return (
-      <Alert severity={config.severity} icon={<InfoIcon />} action={config.action} sx={{ borderRadius: 0 }}>
+      <Alert
+        severity={config.severity}
+        icon={<InfoIcon />}
+        action={config.action}
+        sx={{ borderRadius: 0 }}
+      >
         {config.message}
       </Alert>
     );
@@ -128,38 +146,60 @@ export function AuthenticatedLayout() {
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Logo */}
-      <Box 
+      <Box
         onClick={() => navigate('/')}
         sx={{
-          px: 3, py: 3,
-          display: 'flex', alignItems: 'center', gap: 1,
+          px: 3,
+          py: 3,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
           borderBottom: `1px solid ${alpha(primary, 0.12)}`,
           cursor: 'pointer',
           transition: 'opacity 0.2s',
-          '&:hover': { opacity: 0.8 }
+          '&:hover': { opacity: 0.8 },
         }}
       >
-        <Box sx={{
-          width: 32, height: 32, borderRadius: 2,
-          background: `linear-gradient(135deg, ${primary}, ${alpha(primary, 0.55)})`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
+        <Box
+          sx={{
+            width: 32,
+            height: 32,
+            borderRadius: 2,
+            background: `linear-gradient(135deg, ${primary}, ${alpha(primary, 0.55)})`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
           <SchoolIcon sx={{ fontSize: 18, color: theme.palette.primary.contrastText }} />
         </Box>
-        <Typography sx={{
-          fontFamily: displayFont, fontSize: '1.35rem', fontWeight: 600,
-          color: primary, lineHeight: 1, letterSpacing: '-0.01em',
-        }}>
+        <Typography
+          sx={{
+            fontFamily: displayFont,
+            fontSize: '1.35rem',
+            fontWeight: 600,
+            color: primary,
+            lineHeight: 1,
+            letterSpacing: '-0.01em',
+          }}
+        >
           {t('appName')}
         </Typography>
       </Box>
 
       {/* Section label */}
       <Box sx={{ px: 3, pt: 3, pb: 1 }}>
-        <Typography variant="caption" sx={{
-          color: 'rgba(255,255,255,0.3)', letterSpacing: '0.12em',
-          textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 600,
-        }}>
+        <Typography
+          variant="caption"
+          sx={{
+            color: 'rgba(255,255,255,0.3)',
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            fontSize: '0.65rem',
+            fontWeight: 600,
+          }}
+        >
           {t('nav.sidebarLabel')}
         </Typography>
       </Box>
@@ -174,7 +214,8 @@ export function AuthenticatedLayout() {
               selected={isActive}
               onClick={() => handleNavigate(item.path)}
               sx={{
-                borderRadius: 2, mb: 0.5,
+                borderRadius: 2,
+                mb: 0.5,
                 color: isActive ? primary : 'rgba(255,255,255,0.55)',
                 '& .MuiListItemIcon-root': { color: isActive ? primary : 'rgba(255,255,255,0.4)' },
                 '&:hover': {
@@ -194,7 +235,9 @@ export function AuthenticatedLayout() {
                 primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: isActive ? 600 : 400 }}
               />
               {isActive && (
-                <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: primary, flexShrink: 0 }} />
+                <Box
+                  sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: primary, flexShrink: 0 }}
+                />
               )}
             </ListItemButton>
           );
@@ -202,31 +245,50 @@ export function AuthenticatedLayout() {
       </List>
 
       {/* User card */}
-      <Box sx={{
-        p: 2, mx: 1.5, mb: 2, borderRadius: 2.5,
-        border: `1px solid ${alpha(primary, 0.15)}`,
-        bgcolor: alpha(primary, 0.05),
-        cursor: 'pointer', transition: 'all 0.2s',
-        '&:hover': { borderColor: alpha(primary, 0.3), bgcolor: alpha(primary, 0.1) },
-      }}
+      <Box
+        sx={{
+          p: 2,
+          mx: 1.5,
+          mb: 2,
+          borderRadius: 2.5,
+          border: `1px solid ${alpha(primary, 0.15)}`,
+          bgcolor: alpha(primary, 0.05),
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          '&:hover': { borderColor: alpha(primary, 0.3), bgcolor: alpha(primary, 0.1) },
+        }}
         onClick={() => navigate('/profile')}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Avatar src={user?.profileImageUrl ?? undefined} sx={{ width: 36, height: 36, fontSize: '0.875rem', flexShrink: 0 }}>
+          <Avatar
+            src={user?.profileImageUrl ?? undefined}
+            sx={{ width: 36, height: 36, fontSize: '0.875rem', flexShrink: 0 }}
+          >
             {user?.firstName?.[0]}
           </Avatar>
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography sx={{
-              fontSize: '0.875rem', fontWeight: 600,
-              color: 'rgba(255,255,255,0.9)', lineHeight: 1.2,
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
+            <Typography
+              sx={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.9)',
+                lineHeight: 1.2,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {user?.firstName} {user?.lastName}
             </Typography>
-            <Typography sx={{
-              fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>
+            <Typography
+              sx={{
+                fontSize: '0.72rem',
+                color: 'rgba(255,255,255,0.35)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {user?.email}
             </Typography>
           </Box>
@@ -254,21 +316,39 @@ export function AuthenticatedLayout() {
       {/* ─── MAIN AREA ─── */}
       <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         {/* Top bar — colors come from MuiAppBar theme override */}
-        <AppBar position="sticky" sx={{ width: '100%', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: 'none' }}>
+        <AppBar
+          position="sticky"
+          sx={{
+            width: '100%',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            boxShadow: 'none',
+          }}
+        >
           <Toolbar sx={{ minHeight: 60 }}>
             {isMobile && (
-              <IconButton edge="start" onClick={toggleSidebar} sx={{ mr: 1 }} aria-label={t('nav.menu')}>
+              <IconButton
+                edge="start"
+                onClick={toggleSidebar}
+                sx={{ mr: 1 }}
+                aria-label={t('nav.menu')}
+              >
                 <MenuIcon />
               </IconButton>
             )}
 
             {isMobile && (
-              <Typography 
+              <Typography
                 onClick={() => navigate('/')}
-                sx={{ 
-                  fontFamily: displayFont, fontSize: '1.3rem', fontWeight: 600, 
-                  color: primary, mr: 'auto', cursor: 'pointer',
-                  transition: 'opacity 0.2s', '&:hover': { opacity: 0.8 }
+                sx={{
+                  fontFamily: displayFont,
+                  fontSize: '1.3rem',
+                  fontWeight: 600,
+                  color: primary,
+                  mr: 'auto',
+                  cursor: 'pointer',
+                  transition: 'opacity 0.2s',
+                  '&:hover': { opacity: 0.8 },
                 }}
               >
                 {t('appName')}
@@ -278,15 +358,34 @@ export function AuthenticatedLayout() {
             <Box sx={{ flex: 1 }} />
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <IconButton onClick={toggleTheme} aria-label={t('nav.toggleTheme')} size="small" sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}>
-                {themeMode === 'light' ? <DarkModeIcon fontSize="small" /> : <LightModeIcon fontSize="small" />}
+              <IconButton
+                onClick={toggleTheme}
+                aria-label={t('nav.toggleTheme')}
+                size="small"
+                sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}
+              >
+                {themeMode === 'light' ? (
+                  <DarkModeIcon fontSize="small" />
+                ) : (
+                  <LightModeIcon fontSize="small" />
+                )}
               </IconButton>
 
-              <IconButton onClick={toggleLanguage} aria-label={t('nav.toggleLanguage')} size="small" sx={{ opacity: 0.6, '&:hover': { opacity: 1 }, mr: 0.5 }}>
+              <IconButton
+                onClick={toggleLanguage}
+                aria-label={t('nav.toggleLanguage')}
+                size="small"
+                sx={{ opacity: 0.6, '&:hover': { opacity: 1 }, mr: 0.5 }}
+              >
                 <TranslateIcon fontSize="small" />
               </IconButton>
 
-              <IconButton size="small" onClick={() => navigate('/notifications')} aria-label={t('nav.notifications')} sx={{ mr: 0.5 }}>
+              <IconButton
+                size="small"
+                onClick={() => navigate('/notifications')}
+                aria-label={t('nav.notifications')}
+                sx={{ mr: 0.5 }}
+              >
                 <Badge badgeContent={0} showZero={false} color="error">
                   <NotificationsIcon fontSize="small" />
                 </Badge>
@@ -296,18 +395,36 @@ export function AuthenticatedLayout() {
               <Box
                 onClick={(e) => setAnchorEl(e.currentTarget)}
                 sx={{
-                  display: 'flex', alignItems: 'center', gap: 1,
-                  pl: 1, pr: 0.5, py: 0.5, borderRadius: 50, cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  pl: 1,
+                  pr: 0.5,
+                  py: 0.5,
+                  borderRadius: 50,
+                  cursor: 'pointer',
                   border: `1px solid ${alpha(primary, 0.18)}`,
                   transition: 'all 0.2s',
                   '&:hover': { borderColor: alpha(primary, 0.4), bgcolor: alpha(primary, 0.06) },
                 }}
               >
-                <Avatar src={user?.profileImageUrl ?? undefined} sx={{ width: 28, height: 28, fontSize: '0.75rem' }}>
+                <Avatar
+                  src={user?.profileImageUrl ?? undefined}
+                  sx={{ width: 28, height: 28, fontSize: '0.75rem' }}
+                >
                   {user?.firstName?.[0]}
                 </Avatar>
                 {!isMobile && (
-                  <Typography variant="body2" sx={{ fontWeight: 500, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 500,
+                      maxWidth: 100,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
                     {user?.firstName}
                   </Typography>
                 )}
@@ -323,13 +440,28 @@ export function AuthenticatedLayout() {
               anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
               sx={{ mt: 1 }}
             >
-              <MenuItem onClick={() => { setAnchorEl(null); navigate('/profile'); }}>
-                <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
+              <MenuItem
+                onClick={() => {
+                  setAnchorEl(null);
+                  navigate('/profile');
+                }}
+              >
+                <ListItemIcon>
+                  <PersonIcon fontSize="small" />
+                </ListItemIcon>
                 {t('nav.profile')}
               </MenuItem>
               <Divider sx={{ my: 0.5 }} />
-              <MenuItem onClick={() => { setAnchorEl(null); setLogoutDialogOpen(true); }} sx={{ color: 'error.main' }}>
-                <ListItemIcon><LogoutIcon fontSize="small" sx={{ color: 'error.main' }} /></ListItemIcon>
+              <MenuItem
+                onClick={() => {
+                  setAnchorEl(null);
+                  setLogoutDialogOpen(true);
+                }}
+                sx={{ color: 'error.main' }}
+              >
+                <ListItemIcon>
+                  <LogoutIcon fontSize="small" sx={{ color: 'error.main' }} />
+                </ListItemIcon>
                 {t('logout')}
               </MenuItem>
             </Menu>
@@ -338,13 +470,21 @@ export function AuthenticatedLayout() {
 
         {getUpgradeBanner()}
 
-        <Box component="main" sx={{ flex: 1, p: { xs: 2.5, md: 3.5 }, bgcolor: 'background.default' }}>
+        <Box
+          component="main"
+          sx={{ flex: 1, p: { xs: 2.5, md: 3.5 }, bgcolor: 'background.default' }}
+        >
           <Outlet />
         </Box>
       </Box>
 
       {/* Logout dialog */}
-      <Dialog open={logoutDialogOpen} onClose={() => setLogoutDialogOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog
+        open={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle sx={{ fontFamily: displayFont, fontSize: '1.5rem', fontWeight: 600 }}>
           {t('auth.logoutConfirmTitle')}
         </DialogTitle>
@@ -352,10 +492,19 @@ export function AuthenticatedLayout() {
           <DialogContentText>{t('auth.logoutConfirmMessage')}</DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-          <Button onClick={() => setLogoutDialogOpen(false)} variant="outlined" sx={{ borderRadius: 50 }}>
+          <Button
+            onClick={() => setLogoutDialogOpen(false)}
+            variant="outlined"
+            sx={{ borderRadius: 50 }}
+          >
             {t('cancel')}
           </Button>
-          <Button onClick={handleLogout} color="error" variant="contained" sx={{ borderRadius: 50 }}>
+          <Button
+            onClick={handleLogout}
+            color="error"
+            variant="contained"
+            sx={{ borderRadius: 50 }}
+          >
             {t('logout')}
           </Button>
         </DialogActions>

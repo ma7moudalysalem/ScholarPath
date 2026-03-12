@@ -74,9 +74,7 @@ function getDegreeLevelKey(level: DegreeLevel): string {
   }
 }
 
-function getFundingColor(
-  type: ScholarshipFundingType
-): 'success' | 'warning' | 'info' | 'default' {
+function getFundingColor(type: ScholarshipFundingType): 'success' | 'warning' | 'info' | 'default' {
   switch (type) {
     case ScholarshipFundingType.FullyFunded:
       return 'success';
@@ -106,9 +104,34 @@ function TabPanel({ children, value, index }: TabPanelProps) {
 function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
-      'p', 'br', 'b', 'i', 'em', 'strong', 'a', 'ul', 'ol', 'li',
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code',
-      'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'div', 'hr',
+      'p',
+      'br',
+      'b',
+      'i',
+      'em',
+      'strong',
+      'a',
+      'ul',
+      'ol',
+      'li',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'blockquote',
+      'pre',
+      'code',
+      'table',
+      'thead',
+      'tbody',
+      'tr',
+      'th',
+      'td',
+      'span',
+      'div',
+      'hr',
     ],
     ALLOWED_ATTR: ['href', 'target', 'rel', 'class'],
   });
@@ -160,9 +183,7 @@ export default function ScholarshipDetail() {
   const isSaved = isSavedOverride ?? scholarship?.isSaved ?? false;
 
   const title =
-    language === 'ar' && scholarship?.titleAr
-      ? scholarship.titleAr
-      : scholarship?.title;
+    language === 'ar' && scholarship?.titleAr ? scholarship.titleAr : scholarship?.title;
   const description =
     language === 'ar' && scholarship?.descriptionAr
       ? scholarship.descriptionAr
@@ -259,11 +280,7 @@ export default function ScholarshipDetail() {
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
               {t('scholarshipDetail.scholarshipNotFoundDesc')}
             </Typography>
-            <Button
-              variant="contained"
-              component={RouterLink}
-              to="/scholarships"
-            >
+            <Button variant="contained" component={RouterLink} to="/scholarships">
               {t('scholarshipDetail.backToScholarships')}
             </Button>
           </Paper>
@@ -276,11 +293,7 @@ export default function ScholarshipDetail() {
           <Typography variant="h5" gutterBottom>
             {t('error')}
           </Typography>
-          <Button
-            variant="contained"
-            component={RouterLink}
-            to="/scholarships"
-          >
+          <Button variant="contained" component={RouterLink} to="/scholarships">
             {t('scholarshipDetail.backToScholarships')}
           </Button>
         </Paper>
@@ -321,12 +334,7 @@ export default function ScholarshipDetail() {
           <Link component={RouterLink} to="/" underline="hover" color="inherit">
             {t('scholarshipDetail.breadcrumbHome')}
           </Link>
-          <Link
-            component={RouterLink}
-            to="/scholarships"
-            underline="hover"
-            color="inherit"
-          >
+          <Link component={RouterLink} to="/scholarships" underline="hover" color="inherit">
             {t('scholarshipDetail.breadcrumbScholarships')}
           </Link>
           <Typography color="text.primary" sx={{ maxWidth: 300 }} noWrap>
@@ -376,7 +384,13 @@ export default function ScholarshipDetail() {
 
           {!isMobile && (
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Tooltip title={isSaved ? t('scholarshipDetail.unsaveScholarship') : t('scholarshipDetail.saveScholarship')}>
+              <Tooltip
+                title={
+                  isSaved
+                    ? t('scholarshipDetail.unsaveScholarship')
+                    : t('scholarshipDetail.saveScholarship')
+                }
+              >
                 <IconButton
                   onClick={handleBookmarkClick}
                   disabled={saving}
@@ -439,9 +453,7 @@ export default function ScholarshipDetail() {
                   )}
                 </Box>
               ) : (
-                <Typography variant="body1">
-                  {t('scholarshipDetail.notSpecified')}
-                </Typography>
+                <Typography variant="body1">{t('scholarshipDetail.notSpecified')}</Typography>
               )}
             </Box>
 
@@ -485,19 +497,11 @@ export default function ScholarshipDetail() {
         {!isMobile && (
           <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
             {scholarship.officialLink && (
-              <Button
-                variant="contained"
-                startIcon={<OpenInNew />}
-                onClick={handleApplyNow}
-              >
+              <Button variant="contained" startIcon={<OpenInNew />} onClick={handleApplyNow}>
                 {t('scholarshipDetail.applyNow')}
               </Button>
             )}
-            <Button
-              variant="outlined"
-              startIcon={<PlaylistAdd />}
-              onClick={handleAddToTracking}
-            >
+            <Button variant="outlined" startIcon={<PlaylistAdd />} onClick={handleAddToTracking}>
               {t('scholarshipDetail.addToTracking')}
             </Button>
           </Box>
@@ -538,9 +542,7 @@ export default function ScholarshipDetail() {
                   {description}
                 </Typography>
               ) : (
-                <Typography color="text.secondary">
-                  {t('scholarshipDetail.notProvided')}
-                </Typography>
+                <Typography color="text.secondary">{t('scholarshipDetail.notProvided')}</Typography>
               )}
             </TabPanel>
 
@@ -590,9 +592,7 @@ export default function ScholarshipDetail() {
                     <Typography variant="subtitle2" color="text.secondary">
                       {t('scholarshipDetail.eligibleCountries')}
                     </Typography>
-                    <Typography variant="body1">
-                      {scholarship.eligibleCountries}
-                    </Typography>
+                    <Typography variant="body1">{scholarship.eligibleCountries}</Typography>
                   </Box>
                 )}
                 {scholarship.eligibleMajors && (
@@ -600,9 +600,7 @@ export default function ScholarshipDetail() {
                     <Typography variant="subtitle2" color="text.secondary">
                       {t('scholarshipDetail.eligibleMajors')}
                     </Typography>
-                    <Typography variant="body1">
-                      {scholarship.eligibleMajors}
-                    </Typography>
+                    <Typography variant="body1">{scholarship.eligibleMajors}</Typography>
                   </Box>
                 )}
               </Box>
@@ -615,9 +613,7 @@ export default function ScholarshipDetail() {
                   {scholarship.requiredDocuments}
                 </Typography>
               ) : (
-                <Typography color="text.secondary">
-                  {t('scholarshipDetail.notProvided')}
-                </Typography>
+                <Typography color="text.secondary">{t('scholarshipDetail.notProvided')}</Typography>
               )}
             </TabPanel>
 
@@ -635,9 +631,7 @@ export default function ScholarshipDetail() {
                   }}
                 />
               ) : (
-                <Typography color="text.secondary">
-                  {t('scholarshipDetail.notProvided')}
-                </Typography>
+                <Typography color="text.secondary">{t('scholarshipDetail.notProvided')}</Typography>
               )}
             </TabPanel>
 
@@ -655,9 +649,7 @@ export default function ScholarshipDetail() {
                   ))}
                 </List>
               ) : (
-                <Typography color="text.secondary">
-                  {t('scholarshipDetail.notProvided')}
-                </Typography>
+                <Typography color="text.secondary">{t('scholarshipDetail.notProvided')}</Typography>
               )}
             </TabPanel>
           </Box>

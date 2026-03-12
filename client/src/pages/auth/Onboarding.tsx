@@ -67,9 +67,7 @@ export default function Onboarding() {
           <Typography variant="h4" gutterBottom>
             {t('onboarding.title')}
           </Typography>
-          <Typography color="text.secondary">
-            {t('onboarding.subtitle')}
-          </Typography>
+          <Typography color="text.secondary">{t('onboarding.subtitle')}</Typography>
         </Box>
 
         <Grid container spacing={3}>

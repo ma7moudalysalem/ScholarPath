@@ -91,7 +91,9 @@ export default function UpgradeRequests() {
   const [reviewNotes, setReviewNotes] = useState('');
   const [rejectionReasons, setRejectionReasons] = useState<string[]>([]);
   const [decisionLoading, setDecisionLoading] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
+    null
+  );
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
@@ -187,7 +189,9 @@ export default function UpgradeRequests() {
             <Select
               value={filters.status ?? ''}
               label={t('admin.filterStatus')}
-              onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value || undefined, page: 1 }))}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, status: e.target.value || undefined, page: 1 }))
+              }
             >
               <MenuItem value="">{t('admin.all')}</MenuItem>
               <MenuItem value="Pending">Pending</MenuItem>
@@ -201,7 +205,9 @@ export default function UpgradeRequests() {
             <Select
               value={filters.type ?? ''}
               label={t('admin.filterType')}
-              onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value || undefined, page: 1 }))}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, type: e.target.value || undefined, page: 1 }))
+              }
             >
               <MenuItem value="">{t('admin.all')}</MenuItem>
               <MenuItem value="Consultant">Consultant</MenuItem>
@@ -285,7 +291,9 @@ export default function UpgradeRequests() {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <DialogTitle
+          sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+        >
           {t('admin.requestDetail')}
           <IconButton onClick={() => setSelectedDetail(null)} size="small">
             <CloseIcon />
@@ -296,106 +304,139 @@ export default function UpgradeRequests() {
             <Box textAlign="center" py={4}>
               <CircularProgress />
             </Box>
-          ) : selectedDetail && (
-            <Box>
-              <Typography variant="subtitle2" color="text.secondary">
-                {t('admin.applicant')}
-              </Typography>
-              <Typography>{selectedDetail.userName} ({selectedDetail.userEmail})</Typography>
-              <Typography variant="body2">
-                {t('admin.requestedRole')}: {roleLabels[selectedDetail.requestedRole]}
-              </Typography>
-              <Chip
-                label={statusLabels[selectedDetail.status]}
-                color={statusColors[selectedDetail.status]}
-                size="small"
-                sx={{ mt: 0.5 }}
-              />
+          ) : (
+            selectedDetail && (
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  {t('admin.applicant')}
+                </Typography>
+                <Typography>
+                  {selectedDetail.userName} ({selectedDetail.userEmail})
+                </Typography>
+                <Typography variant="body2">
+                  {t('admin.requestedRole')}: {roleLabels[selectedDetail.requestedRole]}
+                </Typography>
+                <Chip
+                  label={statusLabels[selectedDetail.status]}
+                  color={statusColors[selectedDetail.status]}
+                  size="small"
+                  sx={{ mt: 0.5 }}
+                />
 
-              <Divider sx={{ my: 2 }} />
+                <Divider sx={{ my: 2 }} />
 
-              {/* Consultant fields */}
-              {selectedDetail.requestedRole === UserRole.Consultant && (
-                <>
-                  {selectedDetail.education.length > 0 && (
-                    <>
-                      <Typography variant="subtitle2" fontWeight={600}>{t('upgrade.education')}</Typography>
-                      {selectedDetail.education.map((edu, i) => (
-                        <Typography key={i} variant="body2" sx={{ ml: 1 }}>
-                          {edu.degreeName} in {edu.fieldOfStudy} — {edu.institutionName} ({edu.startYear}–{edu.endYear ?? 'present'})
+                {/* Consultant fields */}
+                {selectedDetail.requestedRole === UserRole.Consultant && (
+                  <>
+                    {selectedDetail.education.length > 0 && (
+                      <>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          {t('upgrade.education')}
                         </Typography>
-                      ))}
-                      <Divider sx={{ my: 1 }} />
-                    </>
-                  )}
-                  {selectedDetail.experienceSummary && (
-                    <>
-                      <Typography variant="subtitle2" fontWeight={600}>{t('upgrade.experience')}</Typography>
-                      <Typography variant="body2">{selectedDetail.experienceSummary}</Typography>
-                      <Divider sx={{ my: 1 }} />
-                    </>
-                  )}
-                  {selectedDetail.expertiseTags.length > 0 && (
-                    <>
-                      <Typography variant="subtitle2" fontWeight={600}>{t('upgrade.expertiseTags')}</Typography>
-                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
-                        {selectedDetail.expertiseTags.map((tag) => (
-                          <Chip key={tag} label={tag} size="small" />
+                        {selectedDetail.education.map((edu, i) => (
+                          <Typography key={i} variant="body2" sx={{ ml: 1 }}>
+                            {edu.degreeName} in {edu.fieldOfStudy} — {edu.institutionName} (
+                            {edu.startYear}–{edu.endYear ?? 'present'})
+                          </Typography>
                         ))}
-                      </Box>
-                      <Divider sx={{ my: 1 }} />
-                    </>
-                  )}
-                  {selectedDetail.links.length > 0 && (
-                    <>
-                      <Typography variant="subtitle2" fontWeight={600}>{t('upgrade.links')}</Typography>
-                      {selectedDetail.links.map((link, i) => (
-                        <Typography key={i} variant="body2">
-                          {link.label}: <Link href={link.url} target="_blank" rel="noopener">{link.url}</Link>
+                        <Divider sx={{ my: 1 }} />
+                      </>
+                    )}
+                    {selectedDetail.experienceSummary && (
+                      <>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          {t('upgrade.experience')}
                         </Typography>
-                      ))}
-                      <Divider sx={{ my: 1 }} />
-                    </>
-                  )}
-                </>
-              )}
+                        <Typography variant="body2">{selectedDetail.experienceSummary}</Typography>
+                        <Divider sx={{ my: 1 }} />
+                      </>
+                    )}
+                    {selectedDetail.expertiseTags.length > 0 && (
+                      <>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          {t('upgrade.expertiseTags')}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
+                          {selectedDetail.expertiseTags.map((tag) => (
+                            <Chip key={tag} label={tag} size="small" />
+                          ))}
+                        </Box>
+                        <Divider sx={{ my: 1 }} />
+                      </>
+                    )}
+                    {selectedDetail.links.length > 0 && (
+                      <>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          {t('upgrade.links')}
+                        </Typography>
+                        {selectedDetail.links.map((link, i) => (
+                          <Typography key={i} variant="body2">
+                            {link.label}:{' '}
+                            <Link href={link.url} target="_blank" rel="noopener">
+                              {link.url}
+                            </Link>
+                          </Typography>
+                        ))}
+                        <Divider sx={{ my: 1 }} />
+                      </>
+                    )}
+                  </>
+                )}
 
-              {/* Company fields */}
-              {selectedDetail.requestedRole === UserRole.Company && (
-                <>
-                  <Typography variant="subtitle2" fontWeight={600}>{t('upgrade.companyName')}</Typography>
-                  <Typography variant="body2">{selectedDetail.companyName}</Typography>
-                  {selectedDetail.country && <Typography variant="body2">{t('upgrade.country')}: {selectedDetail.country}</Typography>}
-                  {selectedDetail.website && (
-                    <Typography variant="body2">
-                      {t('upgrade.website')}: <Link href={selectedDetail.website} target="_blank" rel="noopener">{selectedDetail.website}</Link>
+                {/* Company fields */}
+                {selectedDetail.requestedRole === UserRole.Company && (
+                  <>
+                    <Typography variant="subtitle2" fontWeight={600}>
+                      {t('upgrade.companyName')}
                     </Typography>
-                  )}
-                  {selectedDetail.contactPersonName && (
-                    <Typography variant="body2">{t('upgrade.contactName')}: {selectedDetail.contactPersonName}</Typography>
-                  )}
-                  {selectedDetail.contactEmail && (
-                    <Typography variant="body2">{t('upgrade.contactEmail')}: {selectedDetail.contactEmail}</Typography>
-                  )}
-                  {selectedDetail.companyRegistrationNumber && (
-                    <Typography variant="body2">{t('upgrade.crn')}: {selectedDetail.companyRegistrationNumber}</Typography>
-                  )}
-                  <Divider sx={{ my: 1 }} />
-                </>
-              )}
+                    <Typography variant="body2">{selectedDetail.companyName}</Typography>
+                    {selectedDetail.country && (
+                      <Typography variant="body2">
+                        {t('upgrade.country')}: {selectedDetail.country}
+                      </Typography>
+                    )}
+                    {selectedDetail.website && (
+                      <Typography variant="body2">
+                        {t('upgrade.website')}:{' '}
+                        <Link href={selectedDetail.website} target="_blank" rel="noopener">
+                          {selectedDetail.website}
+                        </Link>
+                      </Typography>
+                    )}
+                    {selectedDetail.contactPersonName && (
+                      <Typography variant="body2">
+                        {t('upgrade.contactName')}: {selectedDetail.contactPersonName}
+                      </Typography>
+                    )}
+                    {selectedDetail.contactEmail && (
+                      <Typography variant="body2">
+                        {t('upgrade.contactEmail')}: {selectedDetail.contactEmail}
+                      </Typography>
+                    )}
+                    {selectedDetail.companyRegistrationNumber && (
+                      <Typography variant="body2">
+                        {t('upgrade.crn')}: {selectedDetail.companyRegistrationNumber}
+                      </Typography>
+                    )}
+                    <Divider sx={{ my: 1 }} />
+                  </>
+                )}
 
-              {/* Files */}
-              {selectedDetail.files.length > 0 && (
-                <>
-                  <Typography variant="subtitle2" fontWeight={600}>{t('upgrade.proofDocuments')}</Typography>
-                  {selectedDetail.files.map((file) => (
-                    <Typography key={file.id} variant="body2">
-                      {file.fileName} ({(file.fileSize / 1024).toFixed(0)} KB)
+                {/* Files */}
+                {selectedDetail.files.length > 0 && (
+                  <>
+                    <Typography variant="subtitle2" fontWeight={600}>
+                      {t('upgrade.proofDocuments')}
                     </Typography>
-                  ))}
-                </>
-              )}
-            </Box>
+                    {selectedDetail.files.map((file) => (
+                      <Typography key={file.id} variant="body2">
+                        {file.fileName} ({(file.fileSize / 1024).toFixed(0)} KB)
+                      </Typography>
+                    ))}
+                  </>
+                )}
+              </Box>
+            )
           )}
         </DialogContent>
         {selectedDetail && selectedDetail.status === UpgradeRequestStatus.Pending && (
@@ -454,9 +495,7 @@ export default function UpgradeRequests() {
                     color={rejectionReasons.includes(reason) ? 'error' : 'default'}
                     onClick={() =>
                       setRejectionReasons((prev) =>
-                        prev.includes(reason)
-                          ? prev.filter((r) => r !== reason)
-                          : [...prev, reason]
+                        prev.includes(reason) ? prev.filter((r) => r !== reason) : [...prev, reason]
                       )
                     }
                   />

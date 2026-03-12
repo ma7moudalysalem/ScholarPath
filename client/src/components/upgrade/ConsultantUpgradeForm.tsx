@@ -30,12 +30,28 @@ interface Props {
 }
 
 const EXPERTISE_OPTIONS = [
-  'Academic Writing', 'Research', 'STEM', 'Business', 'Law', 'Medicine',
-  'Engineering', 'Arts', 'Social Sciences', 'Education', 'Technology',
+  'Academic Writing',
+  'Research',
+  'STEM',
+  'Business',
+  'Law',
+  'Medicine',
+  'Engineering',
+  'Arts',
+  'Social Sciences',
+  'Education',
+  'Technology',
 ];
 
 const LANGUAGE_OPTIONS = [
-  'English', 'Arabic', 'French', 'Spanish', 'German', 'Chinese', 'Japanese', 'Other',
+  'English',
+  'Arabic',
+  'French',
+  'Spanish',
+  'German',
+  'Chinese',
+  'Japanese',
+  'Other',
 ];
 
 const LINK_LABELS: UpgradeRequestLinkDto['label'][] = ['LinkedIn', 'Portfolio', 'Website', 'Other'];
@@ -99,7 +115,11 @@ export function ConsultantUpgradeForm({ onBack }: Props) {
 
   const toggleLanguage = (lang: string) => {
     setLanguages((prev) =>
-      prev.includes(lang) ? prev.filter((l) => l !== lang) : prev.length < 5 ? [...prev, lang] : prev
+      prev.includes(lang)
+        ? prev.filter((l) => l !== lang)
+        : prev.length < 5
+          ? [...prev, lang]
+          : prev
     );
   };
 
@@ -227,7 +247,13 @@ export function ConsultantUpgradeForm({ onBack }: Props) {
                   label={t('upgrade.endYear')}
                   type="number"
                   value={edu.endYear ?? ''}
-                  onChange={(e) => updateEducation(idx, 'endYear', e.target.value ? parseInt(e.target.value) : undefined)}
+                  onChange={(e) =>
+                    updateEducation(
+                      idx,
+                      'endYear',
+                      e.target.value ? parseInt(e.target.value) : undefined
+                    )
+                  }
                   size="small"
                   disabled={edu.isCurrentlyStudying}
                   sx={{ width: 110 }}
@@ -311,7 +337,9 @@ export function ConsultantUpgradeForm({ onBack }: Props) {
                 sx={{ width: 140 }}
               >
                 {LINK_LABELS.map((l) => (
-                  <MenuItem key={l} value={l}>{l}</MenuItem>
+                  <MenuItem key={l} value={l}>
+                    {l}
+                  </MenuItem>
                 ))}
               </TextField>
               <TextField
@@ -375,7 +403,12 @@ export function ConsultantUpgradeForm({ onBack }: Props) {
             type="submit"
             variant="contained"
             size="large"
-            disabled={loading || expertiseTags.length === 0 || languages.length === 0 || !experienceSummary.trim()}
+            disabled={
+              loading ||
+              expertiseTags.length === 0 ||
+              languages.length === 0 ||
+              !experienceSummary.trim()
+            }
             fullWidth
           >
             {loading ? <CircularProgress size={24} /> : t('upgrade.submitRequest')}

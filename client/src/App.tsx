@@ -55,68 +55,66 @@ export default function App() {
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || 'not-configured'}>
-    <CacheProvider value={emotionCache}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <ErrorBoundary>
-        <AuthModalProvider />
-        <DesignSwitcher />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Public routes */}
-            <Route element={<PublicLayout />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
+      <CacheProvider value={emotionCache}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <ErrorBoundary>
+            <AuthModalProvider />
+            <DesignSwitcher />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Public routes */}
+                <Route element={<PublicLayout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
 
-            {/* Onboarding (protected, no layout chrome) */}
-            <Route
-              path="/onboarding"
-              element={
-                <ProtectedRoute>
-                  <Onboarding />
-                </ProtectedRoute>
-              }
-            />
+                {/* Onboarding (protected, no layout chrome) */}
+                <Route
+                  path="/onboarding"
+                  element={
+                    <ProtectedRoute>
+                      <Onboarding />
+                    </ProtectedRoute>
+                  }
+                />
 
-            {/* Authenticated routes */}
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AuthenticatedLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/dashboard/tracker" element={<Tracker />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/scholarships" element={<ScholarshipList />} />
-              <Route path="/scholarships/:id" element={<ScholarshipDetail />} />
-              <Route path="/community" element={<Community />} />
-              <Route path="/community/groups/:id" element={<GroupDetail />} />
-              <Route path="/notifications" element={<Notifications />} />
+                {/* Authenticated routes */}
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <AuthenticatedLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/dashboard/tracker" element={<Tracker />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/scholarships" element={<ScholarshipList />} />
+                  <Route path="/scholarships/:id" element={<ScholarshipDetail />} />
+                  <Route path="/community" element={<Community />} />
+                  <Route path="/community/groups/:id" element={<GroupDetail />} />
+                  <Route path="/notifications" element={<Notifications />} />
 
-              {/* Admin routes */}
-              <Route
-                path="/admin/upgrade-requests"
-                element={
-                  <ProtectedRoute requiredRole={UserRole.Admin}>
-                    <UpgradeRequests />
-                  </ProtectedRoute>
-                }
-              />
-            </Route>
-
-
-          </Routes>
-        </Suspense>
-      </ErrorBoundary>
-      </ThemeProvider>
-    </CacheProvider>
+                  {/* Admin routes */}
+                  <Route
+                    path="/admin/upgrade-requests"
+                    element={
+                      <ProtectedRoute requiredRole={UserRole.Admin}>
+                        <UpgradeRequests />
+                      </ProtectedRoute>
+                    }
+                  />
+                </Route>
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </ThemeProvider>
+      </CacheProvider>
     </GoogleOAuthProvider>
   );
 }

@@ -34,7 +34,7 @@ public class SaveScholarshipCommandHandler : IRequestHandler<SaveScholarshipComm
                 UserId = request.UserId,
                 ScholarshipId = request.ScholarshipId
             };
-            
+
             try
             {
                 _dbContext.SavedScholarships.Add(savedScholarship);

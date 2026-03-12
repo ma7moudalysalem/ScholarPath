@@ -70,7 +70,7 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthResul
     {
         var accessToken = await _tokenService.GenerateAccessToken(user);
         var refreshTokenValue = _tokenService.GenerateRefreshToken();
-        
+
         var refreshToken = new ScholarPath.Domain.Entities.RefreshToken
         {
             UserId = user.Id,

@@ -93,9 +93,7 @@ export default function Profile() {
             <Typography variant="h6" gutterBottom>
               {t('profile.overview')}
             </Typography>
-            <Typography color="text.secondary">
-              {t('profile.overviewDesc')}
-            </Typography>
+            <Typography color="text.secondary">{t('profile.overviewDesc')}</Typography>
           </CardContent>
         </Card>
       )}

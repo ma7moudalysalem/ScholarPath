@@ -407,80 +407,80 @@ namespace ScholarPath.Infrastructure.Migrations
                             Id = new Guid("20000000-0000-0000-0000-000000000001"),
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Science, Technology, Engineering, and Mathematics scholarships",
-                            DescriptionAr = "منح العلوم والتكنولوجيا والهندسة والرياضيات",
+                            DescriptionAr = "Ù…Ù†Ø­ Ø§Ù„Ø¹Ù„ÙˆÙ… ÙˆØ§Ù„ØªÙƒÙ†ÙˆÙ„ÙˆØ¬ÙŠØ§ ÙˆØ§Ù„Ù‡Ù†Ø¯Ø³Ø© ÙˆØ§Ù„Ø±ÙŠØ§Ø¶ÙŠØ§Øª",
                             IsDeleted = false,
                             Name = "STEM",
-                            NameAr = "العلوم والتكنولوجيا"
+                            NameAr = "Ø§Ù„Ø¹Ù„ÙˆÙ… ÙˆØ§Ù„ØªÙƒÙ†ÙˆÙ„ÙˆØ¬ÙŠØ§"
                         },
                         new
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000002"),
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Scholarships for arts, literature, history, and philosophy",
-                            DescriptionAr = "منح الفنون والأدب والتاريخ والفلسفة",
+                            DescriptionAr = "Ù…Ù†Ø­ Ø§Ù„ÙÙ†ÙˆÙ† ÙˆØ§Ù„Ø£Ø¯Ø¨ ÙˆØ§Ù„ØªØ§Ø±ÙŠØ® ÙˆØ§Ù„ÙÙ„Ø³ÙØ©",
                             IsDeleted = false,
                             Name = "Arts & Humanities",
-                            NameAr = "الفنون والعلوم الإنسانية"
+                            NameAr = "Ø§Ù„ÙÙ†ÙˆÙ† ÙˆØ§Ù„Ø¹Ù„ÙˆÙ… Ø§Ù„Ø¥Ù†Ø³Ø§Ù†ÙŠØ©"
                         },
                         new
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000003"),
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Business administration, finance, and economics scholarships",
-                            DescriptionAr = "منح إدارة الأعمال والمالية والاقتصاد",
+                            DescriptionAr = "Ù…Ù†Ø­ Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø£Ø¹Ù…Ø§Ù„ ÙˆØ§Ù„Ù…Ø§Ù„ÙŠØ© ÙˆØ§Ù„Ø§Ù‚ØªØµØ§Ø¯",
                             IsDeleted = false,
                             Name = "Business & Economics",
-                            NameAr = "الأعمال والاقتصاد"
+                            NameAr = "Ø§Ù„Ø£Ø¹Ù…Ø§Ù„ ÙˆØ§Ù„Ø§Ù‚ØªØµØ§Ø¯"
                         },
                         new
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000004"),
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Medical, nursing, pharmacy, and public health scholarships",
-                            DescriptionAr = "منح الطب والتمريض والصيدلة والصحة العامة",
+                            DescriptionAr = "Ù…Ù†Ø­ Ø§Ù„Ø·Ø¨ ÙˆØ§Ù„ØªÙ…Ø±ÙŠØ¶ ÙˆØ§Ù„ØµÙŠØ¯Ù„Ø© ÙˆØ§Ù„ØµØ­Ø© Ø§Ù„Ø¹Ø§Ù…Ø©",
                             IsDeleted = false,
                             Name = "Medicine & Health Sciences",
-                            NameAr = "الطب والعلوم الصحية"
+                            NameAr = "Ø§Ù„Ø·Ø¨ ÙˆØ§Ù„Ø¹Ù„ÙˆÙ… Ø§Ù„ØµØ­ÙŠØ©"
                         },
                         new
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000005"),
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Civil, mechanical, electrical, and software engineering scholarships",
-                            DescriptionAr = "منح الهندسة المدنية والميكانيكية والكهربائية وهندسة البرمجيات",
+                            DescriptionAr = "Ù…Ù†Ø­ Ø§Ù„Ù‡Ù†Ø¯Ø³Ø© Ø§Ù„Ù…Ø¯Ù†ÙŠØ© ÙˆØ§Ù„Ù…ÙŠÙƒØ§Ù†ÙŠÙƒÙŠØ© ÙˆØ§Ù„ÙƒÙ‡Ø±Ø¨Ø§Ø¦ÙŠØ© ÙˆÙ‡Ù†Ø¯Ø³Ø© Ø§Ù„Ø¨Ø±Ù…Ø¬ÙŠØ§Øª",
                             IsDeleted = false,
                             Name = "Engineering",
-                            NameAr = "الهندسة"
+                            NameAr = "Ø§Ù„Ù‡Ù†Ø¯Ø³Ø©"
                         },
                         new
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000006"),
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Legal studies and international law scholarships",
-                            DescriptionAr = "منح الدراسات القانونية والقانون الدولي",
+                            DescriptionAr = "Ù…Ù†Ø­ Ø§Ù„Ø¯Ø±Ø§Ø³Ø§Øª Ø§Ù„Ù‚Ø§Ù†ÙˆÙ†ÙŠØ© ÙˆØ§Ù„Ù‚Ø§Ù†ÙˆÙ† Ø§Ù„Ø¯ÙˆÙ„ÙŠ",
                             IsDeleted = false,
                             Name = "Law",
-                            NameAr = "القانون"
+                            NameAr = "Ø§Ù„Ù‚Ø§Ù†ÙˆÙ†"
                         },
                         new
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000007"),
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Teaching, pedagogy, and educational leadership scholarships",
-                            DescriptionAr = "منح التدريس والتربية والقيادة التعليمية",
+                            DescriptionAr = "Ù…Ù†Ø­ Ø§Ù„ØªØ¯Ø±ÙŠØ³ ÙˆØ§Ù„ØªØ±Ø¨ÙŠØ© ÙˆØ§Ù„Ù‚ÙŠØ§Ø¯Ø© Ø§Ù„ØªØ¹Ù„ÙŠÙ…ÙŠØ©",
                             IsDeleted = false,
                             Name = "Education",
-                            NameAr = "التعليم"
+                            NameAr = "Ø§Ù„ØªØ¹Ù„ÙŠÙ…"
                         },
                         new
                         {
                             Id = new Guid("20000000-0000-0000-0000-000000000008"),
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Psychology, sociology, political science, and anthropology scholarships",
-                            DescriptionAr = "منح علم النفس والاجتماع والعلوم السياسية والأنثروبولوجيا",
+                            DescriptionAr = "Ù…Ù†Ø­ Ø¹Ù„Ù… Ø§Ù„Ù†ÙØ³ ÙˆØ§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹ ÙˆØ§Ù„Ø¹Ù„ÙˆÙ… Ø§Ù„Ø³ÙŠØ§Ø³ÙŠØ© ÙˆØ§Ù„Ø£Ù†Ø«Ø±ÙˆØ¨ÙˆÙ„ÙˆØ¬ÙŠØ§",
                             IsDeleted = false,
                             Name = "Social Sciences",
-                            NameAr = "العلوم الاجتماعية"
+                            NameAr = "Ø§Ù„Ø¹Ù„ÙˆÙ… Ø§Ù„Ø§Ø¬ØªÙ…Ø§Ø¹ÙŠØ©"
                         });
                 });
 
@@ -610,12 +610,12 @@ namespace ScholarPath.Infrastructure.Migrations
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatorId = new Guid("10000000-0000-0000-0000-000000000003"),
                             Description = "A community for students applying to DAAD scholarships. Share tips, experiences, and support each other through the application process.",
-                            DescriptionAr = "مجتمع للطلاب المتقدمين لمنح DAAD. شاركوا النصائح والخبرات وادعموا بعضكم البعض خلال عملية التقديم.",
+                            DescriptionAr = "Ù…Ø¬ØªÙ…Ø¹ Ù„Ù„Ø·Ù„Ø§Ø¨ Ø§Ù„Ù…ØªÙ‚Ø¯Ù…ÙŠÙ† Ù„Ù…Ù†Ø­ DAAD. Ø´Ø§Ø±ÙƒÙˆØ§ Ø§Ù„Ù†ØµØ§Ø¦Ø­ ÙˆØ§Ù„Ø®Ø¨Ø±Ø§Øª ÙˆØ§Ø¯Ø¹Ù…ÙˆØ§ Ø¨Ø¹Ø¶ÙƒÙ… Ø§Ù„Ø¨Ø¹Ø¶ Ø®Ù„Ø§Ù„ Ø¹Ù…Ù„ÙŠØ© Ø§Ù„ØªÙ‚Ø¯ÙŠÙ….",
                             IsDeleted = false,
                             IsPrivate = false,
                             MaxMembers = 200,
                             Name = "DAAD Scholarship Applicants",
-                            NameAr = "متقدمو منحة DAAD"
+                            NameAr = "Ù…ØªÙ‚Ø¯Ù…Ùˆ Ù…Ù†Ø­Ø© DAAD"
                         },
                         new
                         {
@@ -623,12 +623,12 @@ namespace ScholarPath.Infrastructure.Migrations
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatorId = new Guid("10000000-0000-0000-0000-000000000001"),
                             Description = "Everything about studying in the United Kingdom: university selection, visa process, living costs, and scholarship opportunities.",
-                            DescriptionAr = "كل ما يتعلق بالدراسة في المملكة المتحدة: اختيار الجامعة وإجراءات التأشيرة وتكاليف المعيشة وفرص المنح الدراسية.",
+                            DescriptionAr = "ÙƒÙ„ Ù…Ø§ ÙŠØªØ¹Ù„Ù‚ Ø¨Ø§Ù„Ø¯Ø±Ø§Ø³Ø© ÙÙŠ Ø§Ù„Ù…Ù…Ù„ÙƒØ© Ø§Ù„Ù…ØªØ­Ø¯Ø©: Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ø¬Ø§Ù…Ø¹Ø© ÙˆØ¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø§Ù„ØªØ£Ø´ÙŠØ±Ø© ÙˆØªÙƒØ§Ù„ÙŠÙ Ø§Ù„Ù…Ø¹ÙŠØ´Ø© ÙˆÙØ±Øµ Ø§Ù„Ù…Ù†Ø­ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ©.",
                             IsDeleted = false,
                             IsPrivate = false,
                             MaxMembers = 500,
                             Name = "Study in the UK",
-                            NameAr = "الدراسة في بريطانيا"
+                            NameAr = "Ø§Ù„Ø¯Ø±Ø§Ø³Ø© ÙÙŠ Ø¨Ø±ÙŠØ·Ø§Ù†ÙŠØ§"
                         });
                 });
 
@@ -872,9 +872,9 @@ namespace ScholarPath.Infrastructure.Migrations
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsRead = false,
                             Message = "Your account has been activated. Start exploring scholarships and join communities to connect with fellow students.",
-                            MessageAr = "تم تفعيل حسابك. ابدأ في استكشاف المنح الدراسية وانضم إلى المجتمعات للتواصل مع زملائك الطلاب.",
+                            MessageAr = "ØªÙ… ØªÙØ¹ÙŠÙ„ Ø­Ø³Ø§Ø¨Ùƒ. Ø§Ø¨Ø¯Ø£ ÙÙŠ Ø§Ø³ØªÙƒØ´Ø§Ù Ø§Ù„Ù…Ù†Ø­ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ© ÙˆØ§Ù†Ø¶Ù… Ø¥Ù„Ù‰ Ø§Ù„Ù…Ø¬ØªÙ…Ø¹Ø§Øª Ù„Ù„ØªÙˆØ§ØµÙ„ Ù…Ø¹ Ø²Ù…Ù„Ø§Ø¦Ùƒ Ø§Ù„Ø·Ù„Ø§Ø¨.",
                             Title = "Welcome to ScholarPath!",
-                            TitleAr = "مرحبًا بك في ScholarPath!",
+                            TitleAr = "Ù…Ø±Ø­Ø¨Ù‹Ø§ Ø¨Ùƒ ÙÙŠ ScholarPath!",
                             Type = "System",
                             UserId = new Guid("10000000-0000-0000-0000-000000000002")
                         },
@@ -884,11 +884,11 @@ namespace ScholarPath.Infrastructure.Migrations
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsRead = false,
                             Message = "A new fully-funded scholarship matching your profile has been posted. Check it out before the deadline!",
-                            MessageAr = "تم نشر منحة ممولة بالكامل جديدة تتوافق مع ملفك الشخصي. تحقق منها قبل الموعد النهائي!",
+                            MessageAr = "ØªÙ… Ù†Ø´Ø± Ù…Ù†Ø­Ø© Ù…Ù…ÙˆÙ„Ø© Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ø¬Ø¯ÙŠØ¯Ø© ØªØªÙˆØ§ÙÙ‚ Ù…Ø¹ Ù…Ù„ÙÙƒ Ø§Ù„Ø´Ø®ØµÙŠ. ØªØ­Ù‚Ù‚ Ù…Ù†Ù‡Ø§ Ù‚Ø¨Ù„ Ø§Ù„Ù…ÙˆØ¹Ø¯ Ø§Ù„Ù†Ù‡Ø§Ø¦ÙŠ!",
                             RelatedEntityId = new Guid("30000000-0000-0000-0000-000000000001"),
                             RelatedEntityType = "Scholarship",
                             Title = "New Scholarship: DAAD Graduate Scholarship",
-                            TitleAr = "منحة جديدة: منحة DAAD للدراسات العليا",
+                            TitleAr = "Ù…Ù†Ø­Ø© Ø¬Ø¯ÙŠØ¯Ø©: Ù…Ù†Ø­Ø© DAAD Ù„Ù„Ø¯Ø±Ø§Ø³Ø§Øª Ø§Ù„Ø¹Ù„ÙŠØ§",
                             Type = "ScholarshipAlert",
                             UserId = new Guid("10000000-0000-0000-0000-000000000002")
                         });
@@ -1068,10 +1068,10 @@ namespace ScholarPath.Infrastructure.Migrations
                             Category = "Application Tips",
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "A comprehensive guide covering structure, tone, and common mistakes to avoid when writing scholarship personal statements.",
-                            DescriptionAr = "دليل شامل يغطي الهيكل والأسلوب والأخطاء الشائعة التي يجب تجنبها عند كتابة بيانات المنح الشخصية.",
+                            DescriptionAr = "Ø¯Ù„ÙŠÙ„ Ø´Ø§Ù…Ù„ ÙŠØºØ·ÙŠ Ø§Ù„Ù‡ÙŠÙƒÙ„ ÙˆØ§Ù„Ø£Ø³Ù„ÙˆØ¨ ÙˆØ§Ù„Ø£Ø®Ø·Ø§Ø¡ Ø§Ù„Ø´Ø§Ø¦Ø¹Ø© Ø§Ù„ØªÙŠ ÙŠØ¬Ø¨ ØªØ¬Ù†Ø¨Ù‡Ø§ Ø¹Ù†Ø¯ ÙƒØªØ§Ø¨Ø© Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ù†Ø­ Ø§Ù„Ø´Ø®ØµÙŠØ©.",
                             IsDeleted = false,
                             Title = "How to Write a Winning Scholarship Essay",
-                            TitleAr = "كيف تكتب مقالة منحة دراسية ناجحة",
+                            TitleAr = "ÙƒÙŠÙ ØªÙƒØªØ¨ Ù…Ù‚Ø§Ù„Ø© Ù…Ù†Ø­Ø© Ø¯Ø±Ø§Ø³ÙŠØ© Ù†Ø§Ø¬Ø­Ø©",
                             Type = "Article",
                             Url = "https://scholarpath.com/resources/scholarship-essay-guide"
                         },
@@ -1081,10 +1081,10 @@ namespace ScholarPath.Infrastructure.Migrations
                             Category = "Test Preparation",
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "A 30-day structured study plan for IELTS preparation with practice materials and tips for each section.",
-                            DescriptionAr = "خطة دراسية منظمة لمدة 30 يومًا للتحضير لامتحان IELTS مع مواد تدريبية ونصائح لكل قسم.",
+                            DescriptionAr = "Ø®Ø·Ø© Ø¯Ø±Ø§Ø³ÙŠØ© Ù…Ù†Ø¸Ù…Ø© Ù„Ù…Ø¯Ø© 30 ÙŠÙˆÙ…Ù‹Ø§ Ù„Ù„ØªØ­Ø¶ÙŠØ± Ù„Ø§Ù…ØªØ­Ø§Ù† IELTS Ù…Ø¹ Ù…ÙˆØ§Ø¯ ØªØ¯Ø±ÙŠØ¨ÙŠØ© ÙˆÙ†ØµØ§Ø¦Ø­ Ù„ÙƒÙ„ Ù‚Ø³Ù….",
                             IsDeleted = false,
                             Title = "IELTS Preparation: Free Study Plan",
-                            TitleAr = "التحضير لامتحان IELTS: خطة دراسية مجانية",
+                            TitleAr = "Ø§Ù„ØªØ­Ø¶ÙŠØ± Ù„Ø§Ù…ØªØ­Ø§Ù† IELTS: Ø®Ø·Ø© Ø¯Ø±Ø§Ø³ÙŠØ© Ù…Ø¬Ø§Ù†ÙŠØ©",
                             Type = "Guide",
                             Url = "https://scholarpath.com/resources/ielts-study-plan"
                         },
@@ -1094,10 +1094,10 @@ namespace ScholarPath.Infrastructure.Migrations
                             Category = "Scholarship Search",
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "A curated list of the best online scholarship search engines and databases specifically useful for students from the Arab region.",
-                            DescriptionAr = "قائمة منسقة لأفضل محركات البحث وقواعد البيانات للمنح الدراسية المفيدة تحديدًا للطلاب من المنطقة العربية.",
+                            DescriptionAr = "Ù‚Ø§Ø¦Ù…Ø© Ù…Ù†Ø³Ù‚Ø© Ù„Ø£ÙØ¶Ù„ Ù…Ø­Ø±ÙƒØ§Øª Ø§Ù„Ø¨Ø­Ø« ÙˆÙ‚ÙˆØ§Ø¹Ø¯ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª Ù„Ù„Ù…Ù†Ø­ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ© Ø§Ù„Ù…ÙÙŠØ¯Ø© ØªØ­Ø¯ÙŠØ¯Ù‹Ø§ Ù„Ù„Ø·Ù„Ø§Ø¨ Ù…Ù† Ø§Ù„Ù…Ù†Ø·Ù‚Ø© Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©.",
                             IsDeleted = false,
                             Title = "Top 10 Scholarship Databases for Arab Students",
-                            TitleAr = "أفضل 10 قواعد بيانات للمنح الدراسية للطلاب العرب",
+                            TitleAr = "Ø£ÙØ¶Ù„ 10 Ù‚ÙˆØ§Ø¹Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª Ù„Ù„Ù…Ù†Ø­ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ© Ù„Ù„Ø·Ù„Ø§Ø¨ Ø§Ù„Ø¹Ø±Ø¨",
                             Type = "Article",
                             Url = "https://scholarpath.com/resources/scholarship-databases"
                         },
@@ -1107,10 +1107,10 @@ namespace ScholarPath.Infrastructure.Migrations
                             Category = "Application Tips",
                             CreatedAt = new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Description = "Professional email templates and tips for requesting strong recommendation letters from professors and employers.",
-                            DescriptionAr = "قوالب بريد إلكتروني احترافية ونصائح لطلب خطابات توصية قوية من الأساتذة وأصحاب العمل.",
+                            DescriptionAr = "Ù‚ÙˆØ§Ù„Ø¨ Ø¨Ø±ÙŠØ¯ Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ Ø§Ø­ØªØ±Ø§ÙÙŠØ© ÙˆÙ†ØµØ§Ø¦Ø­ Ù„Ø·Ù„Ø¨ Ø®Ø·Ø§Ø¨Ø§Øª ØªÙˆØµÙŠØ© Ù‚ÙˆÙŠØ© Ù…Ù† Ø§Ù„Ø£Ø³Ø§ØªØ°Ø© ÙˆØ£ØµØ­Ø§Ø¨ Ø§Ù„Ø¹Ù…Ù„.",
                             IsDeleted = false,
                             Title = "Recommendation Letter Request Template",
-                            TitleAr = "نموذج طلب خطاب التوصية",
+                            TitleAr = "Ù†Ù…ÙˆØ°Ø¬ Ø·Ù„Ø¨ Ø®Ø·Ø§Ø¨ Ø§Ù„ØªÙˆØµÙŠØ©",
                             Type = "Template",
                             Url = "https://scholarpath.com/resources/recommendation-letter-template"
                         });
@@ -1290,7 +1290,7 @@ namespace ScholarPath.Infrastructure.Migrations
                             Deadline = new DateTime(2026, 10, 15, 0, 0, 0, 0, DateTimeKind.Utc),
                             DegreeLevel = "Masters",
                             Description = "The German Academic Exchange Service (DAAD) offers fully funded scholarships for international students pursuing Master's or PhD degrees in Germany. The scholarship covers tuition, monthly stipend, health insurance, and travel costs.",
-                            DescriptionAr = "تقدم هيئة التبادل الأكاديمي الألمانية (DAAD) منحًا ممولة بالكامل للطلاب الدوليين لمتابعة درجة الماجستير أو الدكتوراه في ألمانيا. تغطي المنحة الرسوم الدراسية والراتب الشهري والتأمين الصحي وتكاليف السفر.",
+                            DescriptionAr = "ØªÙ‚Ø¯Ù… Ù‡ÙŠØ¦Ø© Ø§Ù„ØªØ¨Ø§Ø¯Ù„ Ø§Ù„Ø£ÙƒØ§Ø¯ÙŠÙ…ÙŠ Ø§Ù„Ø£Ù„Ù…Ø§Ù†ÙŠØ© (DAAD) Ù…Ù†Ø­Ù‹Ø§ Ù…Ù…ÙˆÙ„Ø© Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ù„Ù„Ø·Ù„Ø§Ø¨ Ø§Ù„Ø¯ÙˆÙ„ÙŠÙŠÙ† Ù„Ù…ØªØ§Ø¨Ø¹Ø© Ø¯Ø±Ø¬Ø© Ø§Ù„Ù…Ø§Ø¬Ø³ØªÙŠØ± Ø£Ùˆ Ø§Ù„Ø¯ÙƒØªÙˆØ±Ø§Ù‡ ÙÙŠ Ø£Ù„Ù…Ø§Ù†ÙŠØ§. ØªØºØ·ÙŠ Ø§Ù„Ù…Ù†Ø­Ø© Ø§Ù„Ø±Ø³ÙˆÙ… Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ© ÙˆØ§Ù„Ø±Ø§ØªØ¨ Ø§Ù„Ø´Ù‡Ø±ÙŠ ÙˆØ§Ù„ØªØ£Ù…ÙŠÙ† Ø§Ù„ØµØ­ÙŠ ÙˆØªÙƒØ§Ù„ÙŠÙ Ø§Ù„Ø³ÙØ±.",
                             EligibilityDescription = "Open to graduates from developing countries with excellent academic records. Applicants must hold a Bachelor's degree and have at least 2 years of work experience.",
                             EligibleCountries = "[\"Egypt\",\"Jordan\",\"Morocco\",\"Tunisia\",\"Lebanon\"]",
                             EligibleMajors = "[\"Computer Science\",\"Engineering\",\"Natural Sciences\",\"Mathematics\"]",
@@ -1302,7 +1302,7 @@ namespace ScholarPath.Infrastructure.Migrations
                             OfficialLink = "https://www.daad.de/en/study-and-research-in-germany/scholarships/",
                             RequiredDocuments = "CV, motivation letter, academic transcripts, recommendation letters, language certificate",
                             Title = "DAAD Graduate Scholarship",
-                            TitleAr = "منحة DAAD للدراسات العليا"
+                            TitleAr = "Ù…Ù†Ø­Ø© DAAD Ù„Ù„Ø¯Ø±Ø§Ø³Ø§Øª Ø§Ù„Ø¹Ù„ÙŠØ§"
                         },
                         new
                         {
@@ -1315,7 +1315,7 @@ namespace ScholarPath.Infrastructure.Migrations
                             Deadline = new DateTime(2026, 11, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             DegreeLevel = "Masters",
                             Description = "Chevening is the UK government's international awards programme offering fully funded Master's degrees at any UK university. It provides a unique opportunity for future leaders and decision-makers.",
-                            DescriptionAr = "تشيفنينج هو برنامج المنح الدولي للحكومة البريطانية الذي يقدم درجات ماجستير ممولة بالكامل في أي جامعة بريطانية. يوفر فرصة فريدة للقادة وصناع القرار المستقبليين.",
+                            DescriptionAr = "ØªØ´ÙŠÙÙ†ÙŠÙ†Ø¬ Ù‡Ùˆ Ø¨Ø±Ù†Ø§Ù…Ø¬ Ø§Ù„Ù…Ù†Ø­ Ø§Ù„Ø¯ÙˆÙ„ÙŠ Ù„Ù„Ø­ÙƒÙˆÙ…Ø© Ø§Ù„Ø¨Ø±ÙŠØ·Ø§Ù†ÙŠØ© Ø§Ù„Ø°ÙŠ ÙŠÙ‚Ø¯Ù… Ø¯Ø±Ø¬Ø§Øª Ù…Ø§Ø¬Ø³ØªÙŠØ± Ù…Ù…ÙˆÙ„Ø© Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ ÙÙŠ Ø£ÙŠ Ø¬Ø§Ù…Ø¹Ø© Ø¨Ø±ÙŠØ·Ø§Ù†ÙŠØ©. ÙŠÙˆÙØ± ÙØ±ØµØ© ÙØ±ÙŠØ¯Ø© Ù„Ù„Ù‚Ø§Ø¯Ø© ÙˆØµÙ†Ø§Ø¹ Ø§Ù„Ù‚Ø±Ø§Ø± Ø§Ù„Ù…Ø³ØªÙ‚Ø¨Ù„ÙŠÙŠÙ†.",
                             EligibilityDescription = "Applicants must have at least 2 years of work experience, hold an undergraduate degree, and return to their home country for at least 2 years after the scholarship.",
                             EligibleCountries = "[\"Egypt\",\"Jordan\",\"Iraq\",\"Saudi Arabia\",\"UAE\"]",
                             FieldOfStudy = "All Fields",
@@ -1326,7 +1326,7 @@ namespace ScholarPath.Infrastructure.Migrations
                             OfficialLink = "https://www.chevening.org/",
                             RequiredDocuments = "Personal statement, reference letters, academic transcripts, English language test",
                             Title = "Chevening Scholarship",
-                            TitleAr = "منحة تشيفنينج"
+                            TitleAr = "Ù…Ù†Ø­Ø© ØªØ´ÙŠÙÙ†ÙŠÙ†Ø¬"
                         },
                         new
                         {
@@ -1339,7 +1339,7 @@ namespace ScholarPath.Infrastructure.Migrations
                             Deadline = new DateTime(2026, 2, 20, 0, 0, 0, 0, DateTimeKind.Utc),
                             DegreeLevel = "Bachelors",
                             Description = "The Turkish Government offers fully funded scholarships for international students at all academic levels. The program includes Turkish language preparation, tuition waiver, monthly stipend, accommodation, and health insurance.",
-                            DescriptionAr = "تقدم الحكومة التركية منحًا ممولة بالكامل للطلاب الدوليين في جميع المراحل الأكاديمية. يشمل البرنامج إعداد اللغة التركية والإعفاء من الرسوم والراتب الشهري والسكن والتأمين الصحي.",
+                            DescriptionAr = "ØªÙ‚Ø¯Ù… Ø§Ù„Ø­ÙƒÙˆÙ…Ø© Ø§Ù„ØªØ±ÙƒÙŠØ© Ù…Ù†Ø­Ù‹Ø§ Ù…Ù…ÙˆÙ„Ø© Ø¨Ø§Ù„ÙƒØ§Ù…Ù„ Ù„Ù„Ø·Ù„Ø§Ø¨ Ø§Ù„Ø¯ÙˆÙ„ÙŠÙŠÙ† ÙÙŠ Ø¬Ù…ÙŠØ¹ Ø§Ù„Ù…Ø±Ø§Ø­Ù„ Ø§Ù„Ø£ÙƒØ§Ø¯ÙŠÙ…ÙŠØ©. ÙŠØ´Ù…Ù„ Ø§Ù„Ø¨Ø±Ù†Ø§Ù…Ø¬ Ø¥Ø¹Ø¯Ø§Ø¯ Ø§Ù„Ù„ØºØ© Ø§Ù„ØªØ±ÙƒÙŠØ© ÙˆØ§Ù„Ø¥Ø¹ÙØ§Ø¡ Ù…Ù† Ø§Ù„Ø±Ø³ÙˆÙ… ÙˆØ§Ù„Ø±Ø§ØªØ¨ Ø§Ù„Ø´Ù‡Ø±ÙŠ ÙˆØ§Ù„Ø³ÙƒÙ† ÙˆØ§Ù„ØªØ£Ù…ÙŠÙ† Ø§Ù„ØµØ­ÙŠ.",
                             EligibilityDescription = "Open to citizens of all countries except Turkey. Undergraduate applicants must be under 21, Master's under 30, and PhD under 35.",
                             EligibleCountries = "[\"Egypt\",\"Palestine\",\"Syria\",\"Yemen\",\"Somalia\"]",
                             FieldOfStudy = "All Fields",
@@ -1350,7 +1350,7 @@ namespace ScholarPath.Infrastructure.Migrations
                             OfficialLink = "https://www.turkiyeburslari.gov.tr/",
                             RequiredDocuments = "National ID, photo, high school diploma, transcripts, language certificate (optional)",
                             Title = "Turkish Government Scholarship (Turkiye Burslari)",
-                            TitleAr = "المنحة التركية الحكومية"
+                            TitleAr = "Ø§Ù„Ù…Ù†Ø­Ø© Ø§Ù„ØªØ±ÙƒÙŠØ© Ø§Ù„Ø­ÙƒÙˆÙ…ÙŠØ©"
                         },
                         new
                         {
@@ -1363,7 +1363,7 @@ namespace ScholarPath.Infrastructure.Migrations
                             Deadline = new DateTime(2026, 5, 31, 0, 0, 0, 0, DateTimeKind.Utc),
                             DegreeLevel = "Masters",
                             Description = "The Fulbright Program provides grants for graduate students to study, conduct research, or teach English in the United States. It is one of the most prestigious scholarship programs in the world.",
-                            DescriptionAr = "يقدم برنامج فولبرايت منحًا لطلاب الدراسات العليا للدراسة أو إجراء البحوث أو تدريس اللغة الإنجليزية في الولايات المتحدة. وهو واحد من أكثر برامج المنح الدراسية المرموقة في العالم.",
+                            DescriptionAr = "ÙŠÙ‚Ø¯Ù… Ø¨Ø±Ù†Ø§Ù…Ø¬ ÙÙˆÙ„Ø¨Ø±Ø§ÙŠØª Ù…Ù†Ø­Ù‹Ø§ Ù„Ø·Ù„Ø§Ø¨ Ø§Ù„Ø¯Ø±Ø§Ø³Ø§Øª Ø§Ù„Ø¹Ù„ÙŠØ§ Ù„Ù„Ø¯Ø±Ø§Ø³Ø© Ø£Ùˆ Ø¥Ø¬Ø±Ø§Ø¡ Ø§Ù„Ø¨Ø­ÙˆØ« Ø£Ùˆ ØªØ¯Ø±ÙŠØ³ Ø§Ù„Ù„ØºØ© Ø§Ù„Ø¥Ù†Ø¬Ù„ÙŠØ²ÙŠØ© ÙÙŠ Ø§Ù„ÙˆÙ„Ø§ÙŠØ§Øª Ø§Ù„Ù…ØªØ­Ø¯Ø©. ÙˆÙ‡Ùˆ ÙˆØ§Ø­Ø¯ Ù…Ù† Ø£ÙƒØ«Ø± Ø¨Ø±Ø§Ù…Ø¬ Ø§Ù„Ù…Ù†Ø­ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ© Ø§Ù„Ù…Ø±Ù…ÙˆÙ‚Ø© ÙÙŠ Ø§Ù„Ø¹Ø§Ù„Ù….",
                             EligibilityDescription = "Candidates must hold a Bachelor's degree, demonstrate English proficiency, and have a strong academic and professional record.",
                             EligibleCountries = "[\"Egypt\",\"Lebanon\",\"Jordan\",\"Morocco\",\"Tunisia\",\"Iraq\"]",
                             EligibleMajors = "[\"Public Policy\",\"Engineering\",\"Sciences\",\"Education\",\"Arts\"]",
@@ -1375,7 +1375,7 @@ namespace ScholarPath.Infrastructure.Migrations
                             OfficialLink = "https://foreign.fulbrightonline.org/",
                             RequiredDocuments = "Application form, personal statement, study plan, recommendation letters, TOEFL/IELTS score",
                             Title = "Fulbright Foreign Student Program",
-                            TitleAr = "برنامج فولبرايت للطلاب الأجانب"
+                            TitleAr = "Ø¨Ø±Ù†Ø§Ù…Ø¬ ÙÙˆÙ„Ø¨Ø±Ø§ÙŠØª Ù„Ù„Ø·Ù„Ø§Ø¨ Ø§Ù„Ø£Ø¬Ø§Ù†Ø¨"
                         },
                         new
                         {
@@ -1388,7 +1388,7 @@ namespace ScholarPath.Infrastructure.Migrations
                             Deadline = new DateTime(2026, 1, 15, 0, 0, 0, 0, DateTimeKind.Utc),
                             DegreeLevel = "Masters",
                             Description = "Erasmus Mundus Joint Master Degrees are prestigious integrated study programmes delivered by international consortia of higher education institutions. Students study in at least two different European countries.",
-                            DescriptionAr = "درجات ماجستير إيراسموس موندوس المشتركة هي برامج دراسية متكاملة مرموقة تقدمها اتحادات دولية لمؤسسات التعليم العالي. يدرس الطلاب في دولتين أوروبيتين على الأقل.",
+                            DescriptionAr = "Ø¯Ø±Ø¬Ø§Øª Ù…Ø§Ø¬Ø³ØªÙŠØ± Ø¥ÙŠØ±Ø§Ø³Ù…ÙˆØ³ Ù…ÙˆÙ†Ø¯ÙˆØ³ Ø§Ù„Ù…Ø´ØªØ±ÙƒØ© Ù‡ÙŠ Ø¨Ø±Ø§Ù…Ø¬ Ø¯Ø±Ø§Ø³ÙŠØ© Ù…ØªÙƒØ§Ù…Ù„Ø© Ù…Ø±Ù…ÙˆÙ‚Ø© ØªÙ‚Ø¯Ù…Ù‡Ø§ Ø§ØªØ­Ø§Ø¯Ø§Øª Ø¯ÙˆÙ„ÙŠØ© Ù„Ù…Ø¤Ø³Ø³Ø§Øª Ø§Ù„ØªØ¹Ù„ÙŠÙ… Ø§Ù„Ø¹Ø§Ù„ÙŠ. ÙŠØ¯Ø±Ø³ Ø§Ù„Ø·Ù„Ø§Ø¨ ÙÙŠ Ø¯ÙˆÙ„ØªÙŠÙ† Ø£ÙˆØ±ÙˆØ¨ÙŠØªÙŠÙ† Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.",
                             EligibilityDescription = "Open to students and scholars worldwide. Applicants must hold a recognized Bachelor's degree. Partner country applicants receive higher funding.",
                             EligibleCountries = "[\"Egypt\",\"Algeria\",\"Libya\",\"Sudan\",\"Mauritania\"]",
                             EligibleMajors = "[\"Environmental Science\",\"Public Health\",\"Data Science\",\"Urban Planning\"]",
@@ -1400,7 +1400,7 @@ namespace ScholarPath.Infrastructure.Migrations
                             OfficialLink = "https://erasmus-plus.ec.europa.eu/",
                             RequiredDocuments = "Online application, academic transcripts, CV, motivation letter, language proficiency proof, recommendation letters",
                             Title = "Erasmus Mundus Joint Masters",
-                            TitleAr = "منح إيراسموس موندوس للماجستير المشترك"
+                            TitleAr = "Ù…Ù†Ø­ Ø¥ÙŠØ±Ø§Ø³Ù…ÙˆØ³ Ù…ÙˆÙ†Ø¯ÙˆØ³ Ù„Ù„Ù…Ø§Ø¬Ø³ØªÙŠØ± Ø§Ù„Ù…Ø´ØªØ±Ùƒ"
                         });
                 });
 

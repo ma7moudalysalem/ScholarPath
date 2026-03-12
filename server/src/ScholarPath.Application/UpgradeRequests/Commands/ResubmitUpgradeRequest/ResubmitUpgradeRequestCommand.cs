@@ -11,7 +11,7 @@ public record ResubmitUpgradeRequestCommand(
     List<EducationEntryDto>? Education,
     List<string>? ExpertiseTags,
     List<UpgradeRequestLinkDto>? Links,
-    
+
     // Company properties
     string? CompanyName,
     string? Country,

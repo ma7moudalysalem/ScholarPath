@@ -16,7 +16,9 @@ export interface UpgradeRequestFilters {
 }
 
 export const adminService = {
-  async getUpgradeRequests(filters: UpgradeRequestFilters = {}): Promise<PaginatedResponse<UpgradeRequestDto>> {
+  async getUpgradeRequests(
+    filters: UpgradeRequestFilters = {}
+  ): Promise<PaginatedResponse<UpgradeRequestDto>> {
     const params = new URLSearchParams();
     if (filters.status) params.set('status', filters.status);
     if (filters.type) params.set('type', filters.type);

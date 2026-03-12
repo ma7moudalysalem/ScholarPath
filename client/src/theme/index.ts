@@ -4,12 +4,18 @@ import { DESIGNS, ARABIC_FONT, type DesignTokens } from './designs';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Build the contained button background/shadow based on design style */
-function containedButtonStyles(design: DesignTokens, primary: string, primaryLight: string, primaryDark: string, isDark: boolean) {
+function containedButtonStyles(
+  design: DesignTokens,
+  primary: string,
+  primaryLight: string,
+  primaryDark: string,
+  isDark: boolean
+) {
   if (design.buttonStyle === 'gradient') {
     const from = isDark ? primary : primaryDark;
-    const to   = isDark ? primaryLight : primary;
+    const to = isDark ? primaryLight : primary;
     const fromHover = isDark ? primaryLight : primary;
-    const toHover   = isDark ? `${primaryLight}CC` : primaryLight;
+    const toHover = isDark ? `${primaryLight}CC` : primaryLight;
     return {
       background: `linear-gradient(135deg, ${from} 0%, ${to} 100%)`,
       boxShadow: `0 4px 20px ${primary}40`,
@@ -35,7 +41,12 @@ function containedButtonStyles(design: DesignTokens, primary: string, primaryLig
 }
 
 /** Card hover styles — with optional glow */
-function cardHoverStyles(design: DesignTokens, primary: string, cardBorderHover: string, isDark: boolean) {
+function cardHoverStyles(
+  design: DesignTokens,
+  primary: string,
+  cardBorderHover: string,
+  isDark: boolean
+) {
   const baseHover = {
     borderColor: cardBorderHover,
     transform: 'translateY(-2px)',
@@ -45,9 +56,7 @@ function cardHoverStyles(design: DesignTokens, primary: string, cardBorderHover:
     // Neon Brutalist: sharp offset shadow, no blur
     return {
       ...baseHover,
-      boxShadow: isDark
-        ? `4px 4px 0 ${primary}`
-        : `4px 4px 0 ${primary}`,
+      boxShadow: isDark ? `4px 4px 0 ${primary}` : `4px 4px 0 ${primary}`,
       transform: 'translate(-2px, -2px)',
     };
   }
@@ -119,22 +128,22 @@ function activeIndicatorStyles(design: DesignTokens, primary: string) {
 export function createScholarPathTheme(
   direction: 'ltr' | 'rtl',
   mode: PaletteMode = 'light',
-  designId: number = 0,
+  designId: number = 0
 ) {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const design: DesignTokens = (DESIGNS[designId] ?? DESIGNS[0])!;
-  const pal    = mode === 'dark' ? design.dark : design.light;
+  const pal = mode === 'dark' ? design.dark : design.light;
   const isDark = mode === 'dark';
-  const isRTL  = direction === 'rtl';
+  const isRTL = direction === 'rtl';
 
   // ── Typography fonts ────────────────────────────────────────────────────
-  const bodyFont    = isRTL ? ARABIC_FONT : design.bodyFontLTR;
+  const bodyFont = isRTL ? ARABIC_FONT : design.bodyFontLTR;
   const displayFont = isRTL ? ARABIC_FONT : design.displayFontLTR;
   const displayWeight = isRTL ? 700 : design.displayWeightLTR;
   const hls = isRTL ? '0' : design.headingLetterSpacing;
 
   // ── Status colours (standard MUI defaults, mode-adjusted) ───────────────
-  const error   = isDark
+  const error = isDark
     ? { main: '#EF4444', light: '#F87171', dark: '#B91C1C', contrastText: '#fff' }
     : { main: '#DC2626', light: '#EF4444', dark: '#991B1B', contrastText: '#fff' };
   const warning = isDark
@@ -143,7 +152,7 @@ export function createScholarPathTheme(
   const success = isDark
     ? { main: '#10B981', light: '#34D399', dark: '#047857', contrastText: '#fff' }
     : { main: '#059669', light: '#10B981', dark: '#065F46', contrastText: '#fff' };
-  const info    = isDark
+  const info = isDark
     ? { main: '#38BDF8', light: '#7DD3FC', dark: '#0284C7', contrastText: '#fff' }
     : { main: '#0284C7', light: '#38BDF8', dark: '#075985', contrastText: '#fff' };
 
@@ -157,7 +166,7 @@ export function createScholarPathTheme(
     pal.primary,
     pal.primaryLight,
     pal.primaryDark,
-    isDark,
+    isDark
   );
 
   return createTheme({
@@ -216,7 +225,9 @@ export function createScholarPathTheme(
       },
       h3: {
         fontFamily: displayFont,
-        fontWeight: isRTL ? Math.max(displayWeight - 100, 400) : Math.max(design.displayWeightLTR - 100, 400),
+        fontWeight: isRTL
+          ? Math.max(displayWeight - 100, 400)
+          : Math.max(design.displayWeightLTR - 100, 400),
         fontSize: '2.125rem',
         lineHeight: 1.2,
         letterSpacing: hls,
@@ -314,7 +325,9 @@ export function createScholarPathTheme(
               : isDark
                 ? '0 4px 24px rgba(0,0,0,0.4)'
                 : '0 2px 16px rgba(0,0,0,0.06)',
-            transition: isBrutalist ? 'border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease' : 'all 0.25s ease',
+            transition: isBrutalist
+              ? 'border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease'
+              : 'all 0.25s ease',
             '&:hover': cardHoverStyles(design, pal.primary, pal.cardBorderHover, isDark),
           },
         },
@@ -374,9 +387,7 @@ export function createScholarPathTheme(
             backgroundImage: 'none',
             backgroundColor: pal.sidebarBg,
             borderRight: 'none',
-            boxShadow: isBrutalist
-              ? `4px 0 0 ${pal.primary}`
-              : '4px 0 32px rgba(0,0,0,0.6)',
+            boxShadow: isBrutalist ? `4px 0 0 ${pal.primary}` : '4px 0 32px rgba(0,0,0,0.6)',
           },
         },
       },
@@ -448,9 +459,10 @@ export function createScholarPathTheme(
       MuiAvatar: {
         styleOverrides: {
           root: {
-            background: design.buttonStyle === 'gradient'
-              ? `linear-gradient(135deg, ${pal.primary}, ${pal.primaryDark})`
-              : pal.primary,
+            background:
+              design.buttonStyle === 'gradient'
+                ? `linear-gradient(135deg, ${pal.primary}, ${pal.primaryDark})`
+                : pal.primary,
             color: pal.primaryContrast,
             fontWeight: 700,
           },
@@ -502,9 +514,7 @@ export function createScholarPathTheme(
             backgroundColor: isDark ? pal.elevated : pal.textPrimary,
             color: isDark ? pal.textPrimary : pal.bg,
             fontSize: '0.75rem',
-            boxShadow: isBrutalist
-              ? `2px 2px 0 ${pal.primary}`
-              : '0 4px 12px rgba(0,0,0,0.25)',
+            boxShadow: isBrutalist ? `2px 2px 0 ${pal.primary}` : '0 4px 12px rgba(0,0,0,0.25)',
             border: isBrutalist ? `1px solid ${pal.primary}` : undefined,
           },
           arrow: {

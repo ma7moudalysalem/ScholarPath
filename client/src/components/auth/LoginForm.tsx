@@ -13,11 +13,7 @@ import {
   Divider,
   CircularProgress,
 } from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  Google as GoogleIcon,
-} from '@mui/icons-material';
+import { Visibility, VisibilityOff, Google as GoogleIcon } from '@mui/icons-material';
 import { translateError } from '@/utils/errorUtils';
 import type { AxiosError } from 'axios';
 

@@ -79,7 +79,7 @@ export default function CardDetailDrawer({
   const title =
     i18n.language === 'ar' && application?.scholarshipTitleAr
       ? application.scholarshipTitleAr
-      : application?.scholarshipTitle ?? '';
+      : (application?.scholarshipTitle ?? '');
 
   // Reset state when application changes
   useEffect(() => {
@@ -158,7 +158,7 @@ export default function CardDetailDrawer({
         notesMutation.mutate({ id: application.id, notesVal });
       }, 1000);
     },
-    [application, notesMutation],
+    [application, notesMutation]
   );
 
   const handleNotesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -175,12 +175,12 @@ export default function CardDetailDrawer({
         checklistMutation.mutate({ id: application.id, items });
       }, 500);
     },
-    [application, checklistMutation],
+    [application, checklistMutation]
   );
 
   const handleCheckItem = (index: number) => {
     const updated = checklist.map((item, i) =>
-      i === index ? { ...item, isChecked: !item.isChecked } : item,
+      i === index ? { ...item, isChecked: !item.isChecked } : item
     );
     setChecklist(updated);
     saveChecklist(updated);
@@ -208,7 +208,7 @@ export default function CardDetailDrawer({
         reminderMutation.mutate({ id: application.id, presets, ch, p });
       }, 1000);
     },
-    [application, reminderMutation],
+    [application, reminderMutation]
   );
 
   const handlePresetToggle = (days: number) => {

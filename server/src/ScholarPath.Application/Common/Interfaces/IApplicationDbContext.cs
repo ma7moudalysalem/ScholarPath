@@ -19,7 +19,7 @@ public interface IApplicationDbContext
     DbSet<ExpertiseTag> ExpertiseTags { get; }
     DbSet<EducationEntry> EducationEntries { get; }
     DbSet<Notification> Notifications { get; }
-    
+
     // Phase 13 JSON to Tables
     DbSet<ApplicationTrackerChecklistItem> ApplicationTrackerChecklistItems { get; }
     DbSet<ApplicationTrackerReminder> ApplicationTrackerReminders { get; }

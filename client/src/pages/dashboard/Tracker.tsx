@@ -41,7 +41,10 @@ const STATUS_OPTIONS = [
   { value: ApplicationStatus.Rejected, labelKey: 'tracker.rejected' },
 ];
 
-function getDeadlineColor(days: number | null, isOverdue: boolean): 'error' | 'warning' | 'default' {
+function getDeadlineColor(
+  days: number | null,
+  isOverdue: boolean
+): 'error' | 'warning' | 'default' {
   if (isOverdue) return 'error';
   if (days !== null && days <= 7) return 'warning';
   return 'default';
@@ -77,9 +80,7 @@ export default function Tracker() {
   // Filter if status param present and in list view
   const filteredApplications =
     statusFilter && viewMode === 'list'
-      ? applications.filter(
-          (a) => ApplicationStatus[a.status] === statusFilter,
-        )
+      ? applications.filter((a) => ApplicationStatus[a.status] === statusFilter)
       : applications;
 
   // Mutations
@@ -98,14 +99,14 @@ export default function Tracker() {
     (id: string, status: ApplicationStatus) => {
       statusMutation.mutate({ id, status });
     },
-    [statusMutation],
+    [statusMutation]
   );
 
   const handleDelete = useCallback(
     (id: string) => {
       deleteMutation.mutate(id);
     },
-    [deleteMutation],
+    [deleteMutation]
   );
 
   const handleCardClick = useCallback((app: ApplicationListItemDto) => {
@@ -181,10 +182,7 @@ export default function Tracker() {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {/* Sort */}
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <Select
-              value={sortBy}
-              onChange={(e: SelectChangeEvent) => setSortBy(e.target.value)}
-            >
+            <Select value={sortBy} onChange={(e: SelectChangeEvent) => setSortBy(e.target.value)}>
               <MenuItem value="deadline">{t('tracker.sortByDeadline')}</MenuItem>
               <MenuItem value="updatedAt">{t('tracker.sortByUpdated')}</MenuItem>
             </Select>
@@ -192,12 +190,7 @@ export default function Tracker() {
 
           {/* View toggle (desktop only) */}
           {!isMobile && (
-            <ToggleButtonGroup
-              value={viewMode}
-              exclusive
-              onChange={handleViewChange}
-              size="small"
-            >
+            <ToggleButtonGroup value={viewMode} exclusive onChange={handleViewChange} size="small">
               <ToggleButton value="kanban">
                 <ViewColumnIcon />
               </ToggleButton>
@@ -272,9 +265,7 @@ export default function Tracker() {
                       />
                     )}
                     {app.hasReminders && (
-                      <NotificationsActiveIcon
-                        sx={{ fontSize: 16, color: 'primary.main' }}
-                      />
+                      <NotificationsActiveIcon sx={{ fontSize: 16, color: 'primary.main' }} />
                     )}
                   </Box>
 
@@ -310,11 +301,7 @@ export default function Tracker() {
                   {/* Delete */}
                   <Box onClick={(e) => e.stopPropagation()} sx={{ flexShrink: 0 }}>
                     <Tooltip title={t('tracker.deleteApplication')}>
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => handleDelete(app.id)}
-                      >
+                      <IconButton size="small" color="error" onClick={() => handleDelete(app.id)}>
                         <DeleteOutlineIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>

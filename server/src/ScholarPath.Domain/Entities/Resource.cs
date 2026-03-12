@@ -18,7 +18,7 @@ public class Resource : AuditableEntity, ISoftDeletable
     public string? DifficultyLevel { get; set; }
     public ResourceStatus Status { get; set; } = ResourceStatus.Published;
     public int ViewCount { get; set; }
-    
+
     public ICollection<ResourceAttachment> Attachments { get; set; } = [];
 
     // Soft delete

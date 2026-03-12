@@ -28,7 +28,12 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     return <Navigate to="/onboarding" replace />;
   }
 
-  if (user && user.isOnboardingComplete && user.accountStatus === AccountStatus.Active && location.pathname === '/onboarding') {
+  if (
+    user &&
+    user.isOnboardingComplete &&
+    user.accountStatus === AccountStatus.Active &&
+    location.pathname === '/onboarding'
+  ) {
     return <Navigate to="/dashboard" replace />;
   }
 

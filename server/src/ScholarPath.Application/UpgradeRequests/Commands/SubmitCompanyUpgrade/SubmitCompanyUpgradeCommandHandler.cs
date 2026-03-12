@@ -37,7 +37,7 @@ public class SubmitCompanyUpgradeCommandHandler : IRequestHandler<SubmitCompanyU
 
         var hasPending = await _dbContext.UpgradeRequests
             .AnyAsync(r => r.UserId == user.Id && r.Status == UpgradeRequestStatus.Pending, cancellationToken);
-            
+
         if (hasPending)
         {
             throw new InvalidOperationException("errors.auth.pendingUpgradeExists");
@@ -60,7 +60,7 @@ public class SubmitCompanyUpgradeCommandHandler : IRequestHandler<SubmitCompanyU
         user.AccountStatus = AccountStatus.Pending;
 
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-        
+
         try
         {
             _dbContext.UpgradeRequests.Add(upgradeRequest);

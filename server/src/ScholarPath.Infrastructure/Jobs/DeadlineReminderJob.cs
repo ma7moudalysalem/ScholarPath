@@ -28,7 +28,7 @@ public class DeadlineReminderJob
             .Include(r => r.ApplicationTracker)
             .ThenInclude(at => at.Scholarship)
             .Include(r => r.ApplicationTracker.User)
-            .Where(r => 
+            .Where(r =>
                 !r.IsSent &&
                 !r.ApplicationTracker.RemindersPaused &&
                 !r.ApplicationTracker.IsDeleted &&
@@ -44,7 +44,7 @@ public class DeadlineReminderJob
                 tracker.UserId, tracker.ScholarshipId, reminder.ReminderType);
 
             // TODO: Create notification via NotificationService (Module 9)
-            
+
             reminder.IsSent = true;
         }
     }

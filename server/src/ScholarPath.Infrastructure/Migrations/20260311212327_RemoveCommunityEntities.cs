@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -236,8 +236,8 @@ namespace ScholarPath.Infrastructure.Migrations
                 columns: new[] { "Id", "CreatedAt", "CreatedBy", "CreatorId", "DeletedAt", "DeletedBy", "Description", "DescriptionAr", "ImageUrl", "IsDeleted", "IsPrivate", "MaxMembers", "Name", "NameAr", "UpdatedAt", "UpdatedBy" },
                 values: new object[,]
                 {
-                    { new Guid("60000000-0000-0000-0000-000000000001"), new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new Guid("10000000-0000-0000-0000-000000000003"), null, null, "A community for students applying to DAAD scholarships. Share tips, experiences, and support each other through the application process.", "مجتمع للطلاب المتقدمين لمنح DAAD. شاركوا النصائح والخبرات وادعموا بعضكم البعض خلال عملية التقديم.", null, false, false, 200, "DAAD Scholarship Applicants", "متقدمو منحة DAAD", null, null },
-                    { new Guid("60000000-0000-0000-0000-000000000002"), new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new Guid("10000000-0000-0000-0000-000000000001"), null, null, "Everything about studying in the United Kingdom: university selection, visa process, living costs, and scholarship opportunities.", "كل ما يتعلق بالدراسة في المملكة المتحدة: اختيار الجامعة وإجراءات التأشيرة وتكاليف المعيشة وفرص المنح الدراسية.", null, false, false, 500, "Study in the UK", "الدراسة في بريطانيا", null, null }
+                    { new Guid("60000000-0000-0000-0000-000000000001"), new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new Guid("10000000-0000-0000-0000-000000000003"), null, null, "A community for students applying to DAAD scholarships. Share tips, experiences, and support each other through the application process.", "Ù…Ø¬ØªÙ…Ø¹ Ù„Ù„Ø·Ù„Ø§Ø¨ Ø§Ù„Ù…ØªÙ‚Ø¯Ù…ÙŠÙ† Ù„Ù…Ù†Ø­ DAAD. Ø´Ø§Ø±ÙƒÙˆØ§ Ø§Ù„Ù†ØµØ§Ø¦Ø­ ÙˆØ§Ù„Ø®Ø¨Ø±Ø§Øª ÙˆØ§Ø¯Ø¹Ù…ÙˆØ§ Ø¨Ø¹Ø¶ÙƒÙ… Ø§Ù„Ø¨Ø¹Ø¶ Ø®Ù„Ø§Ù„ Ø¹Ù…Ù„ÙŠØ© Ø§Ù„ØªÙ‚Ø¯ÙŠÙ….", null, false, false, 200, "DAAD Scholarship Applicants", "Ù…ØªÙ‚Ø¯Ù…Ùˆ Ù…Ù†Ø­Ø© DAAD", null, null },
+                    { new Guid("60000000-0000-0000-0000-000000000002"), new DateTime(2026, 3, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new Guid("10000000-0000-0000-0000-000000000001"), null, null, "Everything about studying in the United Kingdom: university selection, visa process, living costs, and scholarship opportunities.", "ÙƒÙ„ Ù…Ø§ ÙŠØªØ¹Ù„Ù‚ Ø¨Ø§Ù„Ø¯Ø±Ø§Ø³Ø© ÙÙŠ Ø§Ù„Ù…Ù…Ù„ÙƒØ© Ø§Ù„Ù…ØªØ­Ø¯Ø©: Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ø¬Ø§Ù…Ø¹Ø© ÙˆØ¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø§Ù„ØªØ£Ø´ÙŠØ±Ø© ÙˆØªÙƒØ§Ù„ÙŠÙ Ø§Ù„Ù…Ø¹ÙŠØ´Ø© ÙˆÙØ±Øµ Ø§Ù„Ù…Ù†Ø­ Ø§Ù„Ø¯Ø±Ø§Ø³ÙŠØ©.", null, false, false, 500, "Study in the UK", "Ø§Ù„Ø¯Ø±Ø§Ø³Ø© ÙÙŠ Ø¨Ø±ÙŠØ·Ø§Ù†ÙŠØ§", null, null }
                 });
 
             migrationBuilder.InsertData(

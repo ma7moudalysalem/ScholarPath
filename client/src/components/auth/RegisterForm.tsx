@@ -13,11 +13,7 @@ import {
   Checkbox,
   CircularProgress,
 } from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  Google as GoogleIcon,
-} from '@mui/icons-material';
+import { Visibility, VisibilityOff, Google as GoogleIcon } from '@mui/icons-material';
 import { translateError } from '@/utils/errorUtils';
 import type { AxiosError } from 'axios';
 
@@ -66,7 +62,8 @@ export function RegisterForm({
     if (!form.email.trim()) errors.email = t('errors.validation.emailRequired');
     if (!form.password) errors.password = t('errors.validation.passwordRequired');
     else if (form.password.length < 8) errors.password = t('errors.validation.passwordMinLength');
-    if (form.password !== form.confirmPassword) errors.confirmPassword = t('errors.validation.passwordsMismatch');
+    if (form.password !== form.confirmPassword)
+      errors.confirmPassword = t('errors.validation.passwordsMismatch');
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -193,9 +190,7 @@ export function RegisterForm({
             size="small"
           />
         }
-        label={
-          <Typography variant="body2">{t('auth.agreeToTerms')}</Typography>
-        }
+        label={<Typography variant="body2">{t('auth.agreeToTerms')}</Typography>}
         sx={{ mt: 1 }}
       />
 

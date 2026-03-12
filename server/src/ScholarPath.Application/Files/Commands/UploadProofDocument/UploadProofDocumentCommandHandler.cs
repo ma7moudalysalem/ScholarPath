@@ -65,7 +65,7 @@ public class UploadProofDocumentCommandHandler : IRequestHandler<UploadProofDocu
         {
             var owns = await _dbContext.UpgradeRequests
                 .AnyAsync(r => r.Id == request.UpgradeRequestId.Value && r.UserId == userId.Value, cancellationToken);
-            
+
             if (!owns)
             {
                 throw new KeyNotFoundException("errors.admin.upgradeRequestNotFound");

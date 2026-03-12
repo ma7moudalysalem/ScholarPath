@@ -8,12 +8,7 @@ interface ErrorMessageProps {
   severity?: 'error' | 'warning' | 'info';
 }
 
-export function ErrorMessage({
-  message,
-  title,
-  onRetry,
-  severity = 'error',
-}: ErrorMessageProps) {
+export function ErrorMessage({ message, title, onRetry, severity = 'error' }: ErrorMessageProps) {
   const { t } = useTranslation();
 
   return (

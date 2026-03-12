@@ -19,10 +19,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import {
-  FilterList as FilterListIcon,
-  Close as CloseIcon,
-} from '@mui/icons-material';
+import { FilterList as FilterListIcon, Close as CloseIcon } from '@mui/icons-material';
 import { DegreeLevel, ScholarshipFundingType } from '@/types';
 import type { ScholarshipSearchFilters } from '@/types';
 
@@ -31,10 +28,7 @@ interface ScholarshipFiltersProps {
   onFilterChange: (filters: ScholarshipSearchFilters) => void;
 }
 
-export function ScholarshipFilters({
-  filters,
-  onFilterChange,
-}: ScholarshipFiltersProps) {
+export function ScholarshipFilters({ filters, onFilterChange }: ScholarshipFiltersProps) {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -133,30 +127,17 @@ export function ScholarshipFilters({
           label={t('scholarshipPage.degreeLevel')}
           onChange={(e) => {
             const val = e.target.value;
-            updateFilter(
-              'degreeLevel',
-              val === '' ? undefined : (val as DegreeLevel)
-            );
+            updateFilter('degreeLevel', val === '' ? undefined : (val as DegreeLevel));
           }}
         >
           <MenuItem value="">
             <em>-</em>
           </MenuItem>
-          <MenuItem value={DegreeLevel.Bachelors}>
-            {t('scholarshipPage.bachelors')}
-          </MenuItem>
-          <MenuItem value={DegreeLevel.Masters}>
-            {t('scholarshipPage.masters')}
-          </MenuItem>
-          <MenuItem value={DegreeLevel.PhD}>
-            {t('scholarshipPage.phd')}
-          </MenuItem>
-          <MenuItem value={DegreeLevel.Diploma}>
-            {t('scholarshipPage.diploma')}
-          </MenuItem>
-          <MenuItem value={DegreeLevel.Other}>
-            {t('scholarshipPage.other')}
-          </MenuItem>
+          <MenuItem value={DegreeLevel.Bachelors}>{t('scholarshipPage.bachelors')}</MenuItem>
+          <MenuItem value={DegreeLevel.Masters}>{t('scholarshipPage.masters')}</MenuItem>
+          <MenuItem value={DegreeLevel.PhD}>{t('scholarshipPage.phd')}</MenuItem>
+          <MenuItem value={DegreeLevel.Diploma}>{t('scholarshipPage.diploma')}</MenuItem>
+          <MenuItem value={DegreeLevel.Other}>{t('scholarshipPage.other')}</MenuItem>
         </Select>
       </FormControl>
 
@@ -168,20 +149,14 @@ export function ScholarshipFilters({
           updateFilter('country', value || undefined);
         }}
         renderInput={(params) => (
-          <TextField
-            {...params}
-            label={t('scholarshipPage.country')}
-            size="small"
-          />
+          <TextField {...params} label={t('scholarshipPage.country')} size="small" />
         )}
       />
 
       <TextField
         label={t('scholarshipPage.fieldOfStudy')}
         value={filters.fieldOfStudy || ''}
-        onChange={(e) =>
-          updateFilter('fieldOfStudy', e.target.value || undefined)
-        }
+        onChange={(e) => updateFilter('fieldOfStudy', e.target.value || undefined)}
         size="small"
         fullWidth
       />
@@ -193,10 +168,7 @@ export function ScholarshipFilters({
           label={t('scholarshipPage.fundingType')}
           onChange={(e) => {
             const val = e.target.value;
-            updateFilter(
-              'fundingType',
-              val === '' ? undefined : (val as ScholarshipFundingType)
-            );
+            updateFilter('fundingType', val === '' ? undefined : (val as ScholarshipFundingType));
           }}
         >
           <MenuItem value="">
@@ -211,9 +183,7 @@ export function ScholarshipFilters({
           <MenuItem value={ScholarshipFundingType.SelfFunded}>
             {t('scholarshipPage.selfFunded')}
           </MenuItem>
-          <MenuItem value={ScholarshipFundingType.Other}>
-            {t('scholarshipPage.other')}
-          </MenuItem>
+          <MenuItem value={ScholarshipFundingType.Other}>{t('scholarshipPage.other')}</MenuItem>
         </Select>
       </FormControl>
 
@@ -227,9 +197,7 @@ export function ScholarshipFilters({
         label={t('scholarshipPage.from')}
         type="date"
         value={filters.deadlineFrom || ''}
-        onChange={(e) =>
-          updateFilter('deadlineFrom', e.target.value || undefined)
-        }
+        onChange={(e) => updateFilter('deadlineFrom', e.target.value || undefined)}
         size="small"
         fullWidth
         slotProps={{ inputLabel: { shrink: true } }}
@@ -239,9 +207,7 @@ export function ScholarshipFilters({
         label={t('scholarshipPage.to')}
         type="date"
         value={filters.deadlineTo || ''}
-        onChange={(e) =>
-          updateFilter('deadlineTo', e.target.value || undefined)
-        }
+        onChange={(e) => updateFilter('deadlineTo', e.target.value || undefined)}
         size="small"
         fullWidth
         slotProps={{ inputLabel: { shrink: true } }}
@@ -272,15 +238,8 @@ export function ScholarshipFilters({
   if (isMobile) {
     return (
       <>
-        <Badge
-          badgeContent={activeFilterCount}
-          color="primary"
-          sx={{ mr: 1 }}
-        >
-          <IconButton
-            onClick={() => setDrawerOpen(true)}
-            color="primary"
-          >
+        <Badge badgeContent={activeFilterCount} color="primary" sx={{ mr: 1 }}>
+          <IconButton onClick={() => setDrawerOpen(true)} color="primary">
             <FilterListIcon />
           </IconButton>
         </Badge>

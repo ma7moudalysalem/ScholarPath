@@ -13,10 +13,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import {
-  ArrowBack as BackIcon,
-  CloudUpload as UploadIcon,
-} from '@mui/icons-material';
+import { ArrowBack as BackIcon, CloudUpload as UploadIcon } from '@mui/icons-material';
 import { upgradeService } from '@/services/upgradeService';
 import { translateError } from '@/utils/errorUtils';
 import type { AxiosError } from 'axios';

@@ -46,7 +46,10 @@ export const applicationService = {
     return response.data;
   },
 
-  async updateReminders(id: string, request: UpdateRemindersRequest): Promise<{ updatedAt: string }> {
+  async updateReminders(
+    id: string,
+    request: UpdateRemindersRequest
+  ): Promise<{ updatedAt: string }> {
     const response = await api.put<{ updatedAt: string }>(`/applications/${id}/reminders`, request);
     return response.data;
   },

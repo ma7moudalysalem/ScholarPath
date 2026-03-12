@@ -46,7 +46,7 @@ public class ExternalAuthController : BaseController
             return Unauthorized(new { detail = "errors.auth.invalidAuthenticatedUser" });
 
         await _mediator.Send(new LinkProviderCommand(request.Provider, request.IdToken, userId));
-        
+
         return Ok(new { Message = "Provider linked successfully." });
     }
 

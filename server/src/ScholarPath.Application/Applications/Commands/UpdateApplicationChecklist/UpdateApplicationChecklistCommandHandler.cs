@@ -28,7 +28,7 @@ public class UpdateApplicationChecklistCommandHandler
             return Result<UpdateApplicationChecklistResponse>.Failure("Application not found or access denied");
 
         _dbContext.ApplicationTrackerChecklistItems.RemoveRange(tracker.ChecklistItems);
-        
+
         var newItems = request.Items.Select(i => new ApplicationTrackerChecklistItem
         {
             ApplicationTrackerId = tracker.Id,
@@ -37,7 +37,7 @@ public class UpdateApplicationChecklistCommandHandler
         }).ToList();
 
         _dbContext.ApplicationTrackerChecklistItems.AddRange(newItems);
-        
+
         tracker.UpdatedAt = DateTime.UtcNow;
 
         await _dbContext.SaveChangesAsync(cancellationToken);

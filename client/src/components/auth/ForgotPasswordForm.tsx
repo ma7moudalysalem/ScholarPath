@@ -1,13 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
+import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
 import { authService } from '@/services/authService';
 
 interface ForgotPasswordFormProps {

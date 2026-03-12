@@ -1,13 +1,10 @@
 import { useState } from 'react';
+import { Box, Drawer, IconButton, Typography, Tooltip, useTheme } from '@mui/material';
 import {
-  Box,
-  Drawer,
-  IconButton,
-  Typography,
-  Tooltip,
-  useTheme,
-} from '@mui/material';
-import { Palette as PaletteIcon, Close as CloseIcon, Check as CheckIcon } from '@mui/icons-material';
+  Palette as PaletteIcon,
+  Close as CloseIcon,
+  Check as CheckIcon,
+} from '@mui/icons-material';
 import { useUiStore } from '@/stores/uiStore';
 import { DESIGNS } from '@/theme/designs';
 
@@ -69,22 +66,26 @@ export default function DesignSwitcher() {
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
           <Box>
-            <Typography sx={{
-              fontSize: '0.65rem',
-              fontWeight: 700,
-              letterSpacing: '0.14em',
-              textTransform: 'uppercase',
-              color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)',
-              mb: 0.5,
-            }}>
+            <Typography
+              sx={{
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+                color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.35)',
+                mb: 0.5,
+              }}
+            >
               Design System
             </Typography>
-            <Typography sx={{
-              fontSize: '1.25rem',
-              fontWeight: 700,
-              color: isDark ? '#fff' : '#000',
-              lineHeight: 1,
-            }}>
+            <Typography
+              sx={{
+                fontSize: '1.25rem',
+                fontWeight: 700,
+                color: isDark ? '#fff' : '#000',
+                lineHeight: 1,
+              }}
+            >
               Choose Theme
             </Typography>
           </Box>
@@ -104,7 +105,9 @@ export default function DesignSwitcher() {
             return (
               <Box
                 key={design.id}
-                onClick={() => { setDesignTheme(design.id); }}
+                onClick={() => {
+                  setDesignTheme(design.id);
+                }}
                 sx={{
                   p: 2,
                   borderRadius: 2,
@@ -114,7 +117,9 @@ export default function DesignSwitcher() {
                     : `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
                   bgcolor: isActive
                     ? `${design.previewAccent}10`
-                    : isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
+                    : isDark
+                      ? 'rgba(255,255,255,0.02)'
+                      : 'rgba(0,0,0,0.02)',
                   transition: 'all 0.18s ease',
                   position: 'relative',
                   overflow: 'hidden',
@@ -126,37 +131,48 @@ export default function DesignSwitcher() {
                 }}
               >
                 {/* Accent bar */}
-                <Box sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  bottom: 0,
-                  width: 3,
-                  bgcolor: design.previewAccent,
-                  borderRadius: '2px 0 0 2px',
-                }} />
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    width: 3,
+                    bgcolor: design.previewAccent,
+                    borderRadius: '2px 0 0 2px',
+                  }}
+                />
 
-                <Box sx={{ pl: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box
+                  sx={{
+                    pl: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
                   <Box>
                     {/* Design name + tagline */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Typography sx={{
-                        fontWeight: 700,
-                        fontSize: '0.9rem',
-                        color: isActive ? design.previewAccent : isDark ? '#fff' : '#000',
-                        lineHeight: 1,
-                      }}>
+                      <Typography
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: '0.9rem',
+                          color: isActive ? design.previewAccent : isDark ? '#fff' : '#000',
+                          lineHeight: 1,
+                        }}
+                      >
                         {design.name}
                       </Typography>
-                      {isActive && (
-                        <CheckIcon sx={{ fontSize: 14, color: design.previewAccent }} />
-                      )}
+                      {isActive && <CheckIcon sx={{ fontSize: 14, color: design.previewAccent }} />}
                     </Box>
-                    <Typography sx={{
-                      fontSize: '0.7rem',
-                      color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)',
-                      mb: 1.5,
-                    }}>
+                    <Typography
+                      sx={{
+                        fontSize: '0.7rem',
+                        color: isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.4)',
+                        mb: 1.5,
+                      }}
+                    >
                       {design.tagline}
                     </Typography>
 
@@ -178,21 +194,30 @@ export default function DesignSwitcher() {
                   </Box>
 
                   {/* Font badge */}
-                  <Box sx={{
-                    px: 1,
-                    py: 0.5,
-                    borderRadius: 1,
-                    bgcolor: `${design.previewAccent}18`,
-                    border: `1px solid ${design.previewAccent}30`,
-                  }}>
-                    <Typography sx={{
-                      fontSize: '0.6rem',
-                      fontWeight: 600,
-                      color: design.previewAccent,
-                      letterSpacing: '0.05em',
-                      lineHeight: 1,
-                    }}>
-                      {(design.displayFontLTR.split(',')[0] ?? '').replace(/"/g, '').trim().split(' ')[0]}
+                  <Box
+                    sx={{
+                      px: 1,
+                      py: 0.5,
+                      borderRadius: 1,
+                      bgcolor: `${design.previewAccent}18`,
+                      border: `1px solid ${design.previewAccent}30`,
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: '0.6rem',
+                        fontWeight: 600,
+                        color: design.previewAccent,
+                        letterSpacing: '0.05em',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {
+                        (design.displayFontLTR.split(',')[0] ?? '')
+                          .replace(/"/g, '')
+                          .trim()
+                          .split(' ')[0]
+                      }
                     </Typography>
                   </Box>
                 </Box>
@@ -202,13 +227,15 @@ export default function DesignSwitcher() {
         </Box>
 
         {/* Footer hint */}
-        <Typography sx={{
-          mt: 3,
-          fontSize: '0.68rem',
-          color: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)',
-          textAlign: 'center',
-          lineHeight: 1.6,
-        }}>
+        <Typography
+          sx={{
+            mt: 3,
+            fontSize: '0.68rem',
+            color: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)',
+            textAlign: 'center',
+            lineHeight: 1.6,
+          }}
+        >
           Design preference is saved locally and persists across sessions.
         </Typography>
       </Drawer>

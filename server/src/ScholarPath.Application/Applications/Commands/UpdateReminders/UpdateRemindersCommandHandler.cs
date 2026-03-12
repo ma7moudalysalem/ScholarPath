@@ -34,11 +34,11 @@ public class UpdateRemindersCommandHandler
         // as dedicated boolean columns on the ApplicationTracker entity if they were in the JSON.
         // For now, let's add the presets as reminder entities, but we don't have columns for channels yet.
         // We will store presets as new ApplicationTrackerReminder entities.
-        
+
         _dbContext.ApplicationTrackerReminders.RemoveRange(tracker.Reminders);
 
         var newReminders = new List<ApplicationTrackerReminder>();
-        
+
         // Calculate ScheduledFor based on Application Deadline and Presets (days before)
         // Since we don't eagerly load scholarship deadline here, we might just store the preset day count in ReminderType
         // and calculate the exact date in a background job or fetch the deadline first.
@@ -46,11 +46,11 @@ public class UpdateRemindersCommandHandler
         var scholarship = await _dbContext.Scholarships
             .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == tracker.ScholarshipId, cancellationToken);
-            
-        foreach(var daysBefore in request.Presets)
+
+        foreach (var daysBefore in request.Presets)
         {
             var scheduledFor = scholarship?.Deadline?.AddDays(-daysBefore) ?? DateTime.UtcNow.AddDays(1);
-            
+
             newReminders.Add(new ApplicationTrackerReminder
             {
                 ApplicationTrackerId = tracker.Id,
@@ -59,7 +59,7 @@ public class UpdateRemindersCommandHandler
                 IsSent = false
             });
         }
-        
+
         _dbContext.ApplicationTrackerReminders.AddRange(newReminders);
 
         tracker.RemindersPaused = request.Paused;

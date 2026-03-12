@@ -106,7 +106,7 @@ public class UpgradeRequestsController : BaseController
         {
             var query = new GetMyUpgradeRequestQuery();
             var result = await Mediator.Send(query, cancellationToken);
-            
+
             if (result is null) return Ok(new { });
             return Ok(result);
         }

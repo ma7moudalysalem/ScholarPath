@@ -18,9 +18,7 @@ export function LoadingSpinner({ message, size = 40, fullPage = false }: Loading
         alignItems: 'center',
         justifyContent: 'center',
         gap: 2,
-        ...(fullPage
-          ? { minHeight: '100vh' }
-          : { py: 6 }),
+        ...(fullPage ? { minHeight: '100vh' } : { py: 6 }),
       }}
     >
       <CircularProgress size={size} />

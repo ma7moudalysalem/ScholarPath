@@ -11,10 +11,9 @@ export const scholarshipService = {
   async getScholarships(
     filters: ScholarshipSearchFilters = {}
   ): Promise<PaginatedResponse<ScholarshipListItemDto>> {
-    const response = await api.get<PaginatedResponse<ScholarshipListItemDto>>(
-      '/scholarships',
-      { params: filters }
-    );
+    const response = await api.get<PaginatedResponse<ScholarshipListItemDto>>('/scholarships', {
+      params: filters,
+    });
     return response.data;
   },
 
@@ -24,9 +23,7 @@ export const scholarshipService = {
   },
 
   async getRecommended(): Promise<RecommendedResponse> {
-    const response = await api.get<RecommendedResponse>(
-      '/scholarships/recommended'
-    );
+    const response = await api.get<RecommendedResponse>('/scholarships/recommended');
     return response.data;
   },
 

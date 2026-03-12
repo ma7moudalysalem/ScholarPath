@@ -15,13 +15,7 @@ import {
   Alert,
   Skeleton,
 } from '@mui/material';
-import {
-  Bookmark,
-  BookmarkBorder,
-  AccessTime,
-  LocationOn,
-  School,
-} from '@mui/icons-material';
+import { Bookmark, BookmarkBorder, AccessTime, LocationOn, School } from '@mui/icons-material';
 import { useAuthStore } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useAuthModal } from '@/hooks/useAuthModal';
@@ -63,9 +57,7 @@ function getDegreeLevelKey(level: DegreeLevel): string {
   }
 }
 
-function getFundingColor(
-  type: ScholarshipFundingType
-): 'success' | 'warning' | 'info' | 'default' {
+function getFundingColor(type: ScholarshipFundingType): 'success' | 'warning' | 'info' | 'default' {
   switch (type) {
     case ScholarshipFundingType.FullyFunded:
       return 'success';
@@ -96,10 +88,7 @@ export function ScholarshipCard({
     severity: 'success' | 'info';
   }>({ open: false, message: '', severity: 'success' });
 
-  const title =
-    language === 'ar' && scholarship.titleAr
-      ? scholarship.titleAr
-      : scholarship.title;
+  const title = language === 'ar' && scholarship.titleAr ? scholarship.titleAr : scholarship.title;
   const providerName =
     language === 'ar' && scholarship.providerNameAr
       ? scholarship.providerNameAr
@@ -187,9 +176,7 @@ export function ScholarshipCard({
             </Typography>
             <Tooltip
               title={
-                isSaved
-                  ? t('scholarshipPage.removedFromSaved')
-                  : t('scholarshipPage.savedToList')
+                isSaved ? t('scholarshipPage.removedFromSaved') : t('scholarshipPage.savedToList')
               }
             >
               <IconButton
@@ -214,9 +201,7 @@ export function ScholarshipCard({
 
           {scholarship.country && (
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-              <LocationOn
-                sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }}
-              />
+              <LocationOn sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
               <Typography variant="body2" color="text.secondary">
                 {scholarship.country}
               </Typography>
@@ -225,9 +210,7 @@ export function ScholarshipCard({
 
           {scholarship.deadline && (
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-              <AccessTime
-                sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }}
-              />
+              <AccessTime sx={{ fontSize: 16, mr: 0.5, color: 'text.secondary' }} />
               <Typography variant="body2" color="text.secondary">
                 {t('scholarshipPage.deadline')}:{' '}
                 {new Date(scholarship.deadline).toLocaleDateString()}
@@ -247,13 +230,8 @@ export function ScholarshipCard({
           )}
 
           {scholarship.awardAmount != null && (
-            <Typography
-              variant="body2"
-              color="primary"
-              sx={{ fontWeight: 600, mb: 1 }}
-            >
-              {scholarship.currency || 'USD'}{' '}
-              {scholarship.awardAmount.toLocaleString()}
+            <Typography variant="body2" color="primary" sx={{ fontWeight: 600, mb: 1 }}>
+              {scholarship.currency || 'USD'} {scholarship.awardAmount.toLocaleString()}
             </Typography>
           )}
 
@@ -270,11 +248,7 @@ export function ScholarshipCard({
               variant="outlined"
             />
             {scholarship.isExpiringSoon && (
-              <Chip
-                label={t('scholarshipPage.expiringSoon')}
-                size="small"
-                color="warning"
-              />
+              <Chip label={t('scholarshipPage.expiringSoon')} size="small" color="warning" />
             )}
           </Box>
 

@@ -1,14 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
-import {
-  Box,
-  Typography,
-  Chip,
-  Button,
-  Skeleton,
-  useTheme,
-} from '@mui/material';
+import { Box, Typography, Chip, Button, Skeleton, useTheme } from '@mui/material';
 import { AccessTime, ArrowForward } from '@mui/icons-material';
 import { ApplicationStatus } from '@/types';
 import type { UpcomingDeadlineDto } from '@/types';
@@ -42,7 +35,14 @@ export default function DeadlinesWidget({ deadlines, isLoading }: DeadlinesWidge
 
   if (isLoading) {
     return (
-      <Box sx={{ p: 3, borderRadius: 3, border: `1px solid ${alpha(primary, 0.09)}`, bgcolor: 'background.paper' }}>
+      <Box
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          border: `1px solid ${alpha(primary, 0.09)}`,
+          bgcolor: 'background.paper',
+        }}
+      >
         <Skeleton width={180} height={28} sx={{ mb: 2.5 }} />
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} height={60} sx={{ mb: 1, borderRadius: 2 }} />
@@ -55,12 +55,14 @@ export default function DeadlinesWidget({ deadlines, isLoading }: DeadlinesWidge
   const hasMore = deadlines.length > 5;
 
   return (
-    <Box sx={{
-      p: 3,
-      borderRadius: 3,
-      border: `1px solid ${alpha(primary, 0.09)}`,
-      bgcolor: 'background.paper',
-    }}>
+    <Box
+      sx={{
+        p: 3,
+        borderRadius: 3,
+        border: `1px solid ${alpha(primary, 0.09)}`,
+        bgcolor: 'background.paper',
+      }}
+    >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <AccessTime sx={{ fontSize: 18, color: 'text.secondary', opacity: 0.6 }} />
@@ -109,7 +111,15 @@ export default function DeadlinesWidget({ deadlines, isLoading }: DeadlinesWidge
               }}
             >
               <Box sx={{ minWidth: 0, flex: 1, mr: 2 }}>
-                <Typography variant="body2" sx={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 500,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {isAr && deadline.titleAr ? deadline.titleAr : deadline.title}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">

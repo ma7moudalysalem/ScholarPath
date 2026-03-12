@@ -61,12 +61,12 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, A
             ExpiresAt = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
             CreatedByIp = "unknown"
         };
-        
+
         _dbContext.RefreshTokens.Add(replacementToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         var accessToken = await _tokenService.GenerateAccessToken(refreshToken.User);
-        
+
         var response = new AuthResponse(
             DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes),
             _mapper.Map<UserDto>(refreshToken.User));
