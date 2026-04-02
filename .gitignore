@@ -1,0 +1,99 @@
+# ============================== .NET ==============================
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+project.lock.json
+*.csproj.user
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# ============================== Node.js ==============================
+node_modules/
+dist/
+dist-ssr/
+.cache/
+.parcel-cache/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.vite/
+.turbo/
+
+# ============================== Environment ==============================
+.env
+.env.*
+!.env.example
+secrets.json
+user-secrets/
+
+# ============================== IDEs / editors ==============================
+.vs/
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.history/
+
+# ============================== OS ==============================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ============================== Logs / diagnostics ==============================
+logs/
+*.log
+*.bak
+*.tmp
+*.d.ts.map
+
+# ============================== Build artifacts ==============================
+publish/
+out/
+*.nupkg
+artifacts/
+
+# ============================== Docker ==============================
+docker-compose.override.yml
+
+# ============================== Databases (local dev) ==============================
+*.db
+*.db-shm
+*.db-wal
+*.mdf
+*.ldf
+
+# ============================== Playwright / test artifacts ==============================
+playwright-report/
+playwright/.cache/
+test-results/
+
+# ============================== Spec Kit working files ==============================
+.specify/scripts/tmp/
+.specify/.cache/
+
+# ============================== AI agent / editor local caches ==============================
+.claude/
+.cursor/
+.aider*
+.vs/
+
+# ============================== Misc ==============================
+*.orig
+.nyc_output/
+coverage-reports/
