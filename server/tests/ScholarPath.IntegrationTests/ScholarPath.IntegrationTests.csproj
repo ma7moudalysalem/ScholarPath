@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="Respawn" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="FluentAssertions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ScholarPath.API\ScholarPath.API.csproj" />
+    <ProjectReference Include="..\..\src\ScholarPath.Application\ScholarPath.Application.csproj" />
+    <ProjectReference Include="..\..\src\ScholarPath.Domain\ScholarPath.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ScholarPath.Infrastructure\ScholarPath.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
