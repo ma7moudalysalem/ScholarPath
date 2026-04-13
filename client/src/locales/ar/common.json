@@ -1,0 +1,43 @@
+{
+  "appName": "سكولار باث",
+  "tagline": "طريقك إلى المنحة، مرشَد.",
+  "cta": {
+    "getStarted": "ابدأ الآن",
+    "learnMore": "اعرف المزيد",
+    "continue": "متابعة",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "submit": "إرسال",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "retry": "حاول مرة أخرى",
+    "goHome": "العودة للرئيسية",
+    "signIn": "تسجيل الدخول",
+    "signOut": "تسجيل الخروج",
+    "register": "إنشاء حساب"
+  },
+  "status": {
+    "loading": "جارٍ التحميل...",
+    "saving": "جارٍ الحفظ...",
+    "saved": "تم الحفظ",
+    "error": "حدث خطأ ما"
+  },
+  "language": {
+    "label": "اللغة",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "theme": {
+    "label": "المظهر",
+    "light": "فاتح",
+    "dark": "داكن",
+    "system": "تلقائي"
+  },
+  "role": {
+    "switcher": "الدور",
+    "student": "طالب",
+    "consultant": "مستشار",
+    "company": "شركة",
+    "admin": "مشرف"
+  }
+}

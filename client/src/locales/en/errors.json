@@ -1,0 +1,10 @@
+{
+  "generic": "Something went wrong. Please try again.",
+  "network": "Network error. Check your connection and retry.",
+  "unauthorized": "Session expired. Please sign in again.",
+  "forbidden": "You don't have permission to perform this action.",
+  "notFound": "We couldn't find what you were looking for.",
+  "validation": "Please correct the highlighted fields.",
+  "rateLimit": "Too many attempts. Please wait a moment and try again.",
+  "serverError": "Our servers are having a moment. We're on it."
+}

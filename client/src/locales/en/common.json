@@ -1,0 +1,43 @@
+{
+  "appName": "ScholarPath",
+  "tagline": "Your path to a scholarship, guided.",
+  "cta": {
+    "getStarted": "Get started",
+    "learnMore": "Learn more",
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "save": "Save",
+    "submit": "Submit",
+    "delete": "Delete",
+    "edit": "Edit",
+    "retry": "Try again",
+    "goHome": "Go home",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "register": "Register"
+  },
+  "status": {
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "error": "Something went wrong"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "ar": "العربية"
+  },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "role": {
+    "switcher": "Role",
+    "student": "Student",
+    "consultant": "Consultant",
+    "company": "Company",
+    "admin": "Admin"
+  }
+}

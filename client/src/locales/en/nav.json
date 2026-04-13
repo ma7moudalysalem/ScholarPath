@@ -1,0 +1,49 @@
+{
+  "public": {
+    "home": "Home",
+    "about": "About",
+    "login": "Sign in",
+    "register": "Get started"
+  },
+  "student": {
+    "dashboard": "Dashboard",
+    "scholarships": "Scholarships",
+    "applications": "Applications",
+    "bookmarks": "Saved",
+    "consultants": "Consultants",
+    "bookings": "Bookings",
+    "community": "Community",
+    "resources": "Resources",
+    "ai": "AI",
+    "messages": "Messages"
+  },
+  "company": {
+    "dashboard": "Dashboard",
+    "scholarships": "My scholarships",
+    "applicationsReview": "Applications",
+    "billing": "Billing"
+  },
+  "consultant": {
+    "dashboard": "Dashboard",
+    "availability": "Availability",
+    "bookings": "Bookings",
+    "earnings": "Earnings"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "onboarding": "Onboarding queue",
+    "scholarships": "Scholarships",
+    "articles": "Articles",
+    "community": "Community",
+    "payments": "Payments",
+    "profitShare": "Profit share",
+    "auditLog": "Audit log",
+    "settings": "Settings"
+  },
+  "common": {
+    "profile": "Profile",
+    "settings": "Settings",
+    "notifications": "Notifications"
+  }
+}

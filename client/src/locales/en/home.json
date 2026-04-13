@@ -1,0 +1,32 @@
+{
+  "hero": {
+    "eyebrow": "Gated. Personalized. Bilingual.",
+    "title": "The scholarship platform built around you.",
+    "subtitle": "Discover, track, and secure scholarships with AI-matched recommendations and verified consultants — all in one gated workspace.",
+    "primaryCta": "Create your account",
+    "secondaryCta": "See how it works"
+  },
+  "pillars": {
+    "discovery": {
+      "title": "Smart discovery",
+      "body": "Search 100K+ opportunities and see AI match scores personalized to your profile."
+    },
+    "tracking": {
+      "title": "In-app tracking",
+      "body": "Apply directly or self-track external applications in a single unified kanban."
+    },
+    "consultants": {
+      "title": "Verified consultants",
+      "body": "Book one-to-one sessions with secure Stripe-held payments and transparent refunds."
+    },
+    "community": {
+      "title": "Trusted community",
+      "body": "Real-time 1:1 chat, a moderated forum, and curated resources from alumni and experts."
+    }
+  },
+  "ready": {
+    "title": "Ready to start?",
+    "body": "Register in less than a minute. No credit card required.",
+    "primaryCta": "Get started free"
+  }
+}

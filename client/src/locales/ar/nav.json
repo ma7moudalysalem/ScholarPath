@@ -1,0 +1,49 @@
+{
+  "public": {
+    "home": "الرئيسية",
+    "about": "عن المنصة",
+    "login": "تسجيل الدخول",
+    "register": "ابدأ الآن"
+  },
+  "student": {
+    "dashboard": "لوحة التحكم",
+    "scholarships": "المنح",
+    "applications": "الطلبات",
+    "bookmarks": "المحفوظة",
+    "consultants": "المستشارون",
+    "bookings": "الحجوزات",
+    "community": "المجتمع",
+    "resources": "الموارد",
+    "ai": "الذكاء الاصطناعي",
+    "messages": "الرسائل"
+  },
+  "company": {
+    "dashboard": "لوحة التحكم",
+    "scholarships": "منحي",
+    "applicationsReview": "الطلبات",
+    "billing": "الفواتير"
+  },
+  "consultant": {
+    "dashboard": "لوحة التحكم",
+    "availability": "الأوقات المتاحة",
+    "bookings": "الحجوزات",
+    "earnings": "الأرباح"
+  },
+  "admin": {
+    "dashboard": "لوحة التحكم",
+    "users": "المستخدمون",
+    "onboarding": "طابور القبول",
+    "scholarships": "المنح",
+    "articles": "المقالات",
+    "community": "المجتمع",
+    "payments": "المدفوعات",
+    "profitShare": "حصة المنصة",
+    "auditLog": "سجل التدقيق",
+    "settings": "الإعدادات"
+  },
+  "common": {
+    "profile": "الملف الشخصي",
+    "settings": "الإعدادات",
+    "notifications": "الإشعارات"
+  }
+}

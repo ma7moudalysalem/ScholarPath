@@ -1,0 +1,9 @@
+{
+  "generic": {
+    "title": "This area is being built",
+    "body": "This module is scaffolded. The team will bring it to life during the upcoming iterations.",
+    "ownerLabel": "Owner",
+    "moduleLabel": "Module",
+    "specLink": "View spec"
+  }
+}
