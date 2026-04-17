@@ -823,49 +823,73 @@ Use Case Diagrams
 
 View home page:
 
+![SRS figure](srs-images/image1.png)
+
 Figure 1: View home page
 
 Register Account:
+
+![SRS figure](srs-images/image2.png)
 
 Figure 2: Diagram
 
  Log In:
 
+![SRS figure](srs-images/image3.png)
+
 Figure 3: Register Account
 
 Authenticate via Google:
+
+![SRS figure](srs-images/image4.png)
 
 Figure 4: Diagram
 
 Authenticate via Microsoft:
 
+![SRS figure](srs-images/image5.png)
+
 Figure 5: Diagram
 
 Request Password Reset:
 
+![SRS figure](srs-images/image6.png)
+
 Figure 6: Diagram
 
- Complete Onboarding:
+![SRS figure](srs-images/image7.png)
+
+*Complete Onboarding:*
 
 Figure 7: Diagram
 
  Select Student Role:
 
+![SRS figure](srs-images/image8.png)
+
 Figure 8: Diagram
 
 Submit Company Onboarding Request:
+
+![SRS figure](srs-images/image9.png)
 
 Figure 9: Diagram
 
  Submit Consultant Onboarding Request:
 
+![SRS figure](srs-images/image10.png)
+
 Figure 10: Diagram
 
 Submit Student-to-Consultant Upgrade Request:
 
+![SRS figure](srs-images/image11.png)
+
 Figure 11: Diagram
 
 Switch Active Role:
+
+![SRS figure](srs-images/image12.png)
 
 Figure 12: Figure 8: Diagram
 
@@ -873,91 +897,137 @@ Manage User Profile:
 
 1-
 
+![SRS figure](srs-images/image13.png)
+
 Figure 13: Diagram
 
 2-
+
+![SRS figure](srs-images/image14.png)
 
 Figure 14: Figure 13: Diagram
 
 Browse/Search Scholarships:
 
+![SRS figure](srs-images/image15.png)
+
 Figure 15: Diagram
 
  View Scholarship Details:
+
+![SRS figure](srs-images/image16.png)
 
 Figure 16: Diagram
 
 Scholarship Management Flow : 
 
+![SRS figure](srs-images/image17.jpg)
+
 Figure 17: Browse/Search Scholarships
 
 Application Management Flow:
+
+![SRS figure](srs-images/image18.jpg)
 
 Figure 18: Figure 15: Diagram
 
 In-APP & External Application:
 
+![SRS figure](srs-images/image19.jpg)
+
 Figure 19: Application Management Flow
 
 Track and Manage Application:
+
+![SRS figure](srs-images/image20.png)
 
 Figure 20: Diagram
 
 Initiate and Track External Application:
 
+![SRS figure](srs-images/image21.png)
+
 Figure 21: Diagram
 
 Review Applications and Update Status:
+
+![SRS figure](srs-images/image22.png)
 
 Figure 22: Track and Manage Application
 
 Company Review and Payment:
 
+![SRS figure](srs-images/image23.png)
+
 Figure 23: Figure 20: Diagram
 
 Consultant Booking and Payment system:
+
+![SRS figure](srs-images/image24.jpg)
 
 Figure 24: Figure 20: Diagram
 
 Rating and Reviews Management:
 
+![SRS figure](srs-images/image25.png)
+
 Figure 25: Review Applications and Update Status
 
 Community:
+
+![SRS figure](srs-images/image26.png)
 
 Figure 26: Diagram
 
 Chat:
 
+![SRS figure](srs-images/image27.png)
+
 Figure 27: Diagram
 
 AI Features Flow :
+
+![SRS figure](srs-images/image28.png)
 
 Figure 28: Diagram
 
 ## Resources hub:
 
+![SRS figure](srs-images/image29.png)
+
 Figure 29: Diagram
 
 ##  Notifications:
 
+![SRS figure](srs-images/image30.png)
+
 Figure 30: Figure 25: Review Applications and Update Status
+
+![SRS figure](srs-images/image30.png)
 
 Figure 31: Figure 27: Diagram
 
 Administer Dashboard:
 
+![SRS figure](srs-images/image31.png)
+
 Figure 32: Diagram
 
 Moderate Content and Users:
+
+![SRS figure](srs-images/image32.png)
 
 Figure 33: Diagram
 
 Configure Financial Rules and Portal Profit Share:
 
+![SRS figure](srs-images/image33.png)
+
 Figure 34: Diagram
 
 View Analytics and Reports:
+
+![SRS figure](srs-images/image34.png)
 
 Figure 35: Diagram
 
@@ -4487,141 +4557,211 @@ Activity Diagrams :
 
 Register Account:
 
+![SRS figure](srs-images/image35.png)
+
 Figure 36: 7.2 Traceability Matrix — Block B
 
 Login Flow:
+
+![SRS figure](srs-images/image36.png)
 
 Figure 37: 7.2 Traceability Matrix — Block B
 
 SSO Login:
 
+![SRS figure](srs-images/image37.png)
+
 Figure 38: 7.3 Traceability Matrix — Block C
 
 Edit Profile:
+
+![SRS figure](srs-images/image38.png)
 
 Figure 39: 7.4 Traceability Matrix — Block D
 
 Reset Password Flow:
 
+![SRS figure](srs-images/image39.png)
+
 Figure 40: Activity Diagrams
 
 Student to Consultant Upgrade Flow:
+
+![SRS figure](srs-images/image40.png)
 
 Figure 41: Diagram
 
 Preserve Student History:
 
+![SRS figure](srs-images/image41.png)
+
 Figure 42: Diagram
 
 Scholarships Listing Flow:
+
+![SRS figure](srs-images/image42.jpg)
 
 Figure 43: Diagram
 
 View Scholarship Details:
 
+![SRS figure](srs-images/image43.jpg)
+
 Figure 44: Edit Profile
 
 Scholarship Bookmark:
+
+![SRS figure](srs-images/image44.jpg)
 
 Figure 45: Figure 39: 7.4 Traceability Matrix — Block D
 
 In-App Scholarship:
 
+![SRS figure](srs-images/image45.jpg)
+
 Figure 46: Reset Password Flow
 
 External Scholarship Application:
+
+![SRS figure](srs-images/image46.jpg)
 
 Figure 47: Diagram
 
 Track & Manage Application:
 
+![SRS figure](srs-images/image47.jpg)
+
 Figure 48: Diagram
 
 Application Review:
+
+![SRS figure](srs-images/image48.jpg)
 
 Figure 49: Figure 44: Edit Profile
 
 Company Application Review:
 
+![SRS figure](srs-images/image49.png)
+
 Figure 50: Scholarship Bookmark
 
 Application Review Payment Flow:
+
+![SRS figure](srs-images/image50.png)
 
 Figure 51: In-App Scholarship
 
 Company Rating Flow:
 
+![SRS figure](srs-images/image51.png)
+
 Figure 52: Diagram
 
 Consultation Booking:
+
+![SRS figure](srs-images/image52.jpg)
 
 Figure 53: Diagram
 
 Manage Availability and Booking Decision:
 
+![SRS figure](srs-images/image53.jpg)
+
 Figure 54: Figure 51: In-App Scholarship
 
 Rating and reviews management:
+
+![SRS figure](srs-images/image54.jpg)
 
 Figure 55: Diagram
 
 Community Posting:
 
+![SRS figure](srs-images/image55.png)
+
 Figure 56: Company Rating Flow
 
 Community Flagging and Voting Flow:
+
+![SRS figure](srs-images/image56.png)
 
 Figure 57: Diagram
 
 Chat Flow:
 
+![SRS figure](srs-images/image57.png)
+
 Figure 58: Diagram
 
 Start Chat and View History:
+
+![SRS figure](srs-images/image58.png)
 
 Figure 59: Diagram
 
 Block Flow:
 
+![SRS figure](srs-images/image59.png)
+
 Figure 60: Diagram
 
 Admin Moderation Flow:
+
+![SRS figure](srs-images/image60.png)
 
 Figure 61: Diagram
 
 AI Recommendations Flow:
 
+![SRS figure](srs-images/image61.png)
+
 Figure 62: Diagram
 
 Check Eligibility Flow:
+
+![SRS figure](srs-images/image62.png)
 
 Figure 63: Diagram
 
 AI Chatbot:
 
+![SRS figure](srs-images/image63.png)
+
 Figure 64: Diagram
 
 Resource Hub:
+
+![SRS figure](srs-images/image64.png)
 
 Figure 65: Diagram
 
 Publish Articles:
 
+![SRS figure](srs-images/image65.png)
+
 Figure 66: Figure 62: Diagram
 
 Articles Moderation and Features :
+
+![SRS figure](srs-images/image66.png)
 
 Figure 67: Figure 63: Diagram
 
 Admin Dashboard:
 
+![SRS figure](srs-images/image67.png)
+
 Figure 68: Figure 64: Diagram
 
 Admin Account Management:
 
+![SRS figure](srs-images/image68.png)
+
 Figure 69: Diagram
 
 Admin Content Management:
+
+![SRS figure](srs-images/image69.png)
 
 Figure 70: Diagram
 
@@ -4629,29 +4769,45 @@ Notifications Flow:
 
 1-Admin
 
+![SRS figure](srs-images/image70.png)
+
+![SRS figure](srs-images/image71.png)
+
 Figure 71: Articles Moderation and Features
 
 2-Student:
+
+![SRS figure](srs-images/image72.png)
 
 Figure 72: Figure 67: Figure 63: Diagram
 
 Student Booking Notification:
 
+![SRS figure](srs-images/image73.png)
+
 Figure 73: Figure 68: Figure 64: Diagram
 
 3-Company:
+
+![SRS figure](srs-images/image74.png)
 
 Figure 74: Diagram
 
 4-Consultant:
 
+![SRS figure](srs-images/image75.png)
+
 Figure 75: Diagram
 
 Admin dashboard Analytics:
 
+![SRS figure](srs-images/image76.png)
+
 Figure 76: Diagram
 
 System Audit:
+
+![SRS figure](srs-images/image77.png)
 
 Figure 77: Diagram
 
@@ -4659,21 +4815,31 @@ Payment Flow:
 
 1-Student payment to company:
 
+![SRS figure](srs-images/image78.png)
+
 Figure 78: Diagram
 
 2-Student payment to Consultant:
+
+![SRS figure](srs-images/image79.png)
 
 Figure 79: Diagram
 
 3-Student Refund flow of Consultant payment:
 
+![SRS figure](srs-images/image80.png)
+
 Figure 80: Diagram
 
 Export Account Data:
 
+![SRS figure](srs-images/image81.png)
+
 Figure 81: Diagram
 
 Delete Account Data:
+
+![SRS figure](srs-images/image82.png)
 
 Figure 82: Diagram
 
@@ -4681,153 +4847,229 @@ Sequence Diagrams:
 
 Login:
 
+![SRS figure](srs-images/image83.png)
+
 Figure 83: Diagram
 
 Access Control:
+
+![SRS figure](srs-images/image84.png)
 
 Figure 84: Diagram
 
 Onboarding:
 
+![SRS figure](srs-images/image85.png)
+
 Figure 85: Figure 76: Diagram
 
 View Profile Completeness:
+
+![SRS figure](srs-images/image86.png)
 
 Figure 86: Figure 77: Diagram
 
 Change Password:
 
+![SRS figure](srs-images/image87.png)
+
 Figure 87: Diagram
 
 Edit Student Profile:
+
+![SRS figure](srs-images/image88.png)
 
 Figure 88: Diagram
 
 Manage Company Profile:
 
+![SRS figure](srs-images/image89.png)
+
 Figure 89: Diagram
 
 Manage Consultant Profile:
+
+![SRS figure](srs-images/image90.png)
 
 Figure 90: Login
 
 Scholarship Search And Filleration:
 
+![SRS figure](srs-images/image91.png)
+
 Figure 91: Diagram
 
 Scholarships View and Bookmark:
+
+![SRS figure](srs-images/image92.png)
 
 Figure 92: Diagram
 
 In-App Scholarship Creation:
 
+![SRS figure](srs-images/image93.png)
+
 Figure 93: Figure 87: Diagram
 
 Edit In-App Scholarship Listing:
+
+![SRS figure](srs-images/image94.png)
 
 Figure 94: Figure 89: Diagram
 
 Scholarship Archive:
 
+![SRS figure](srs-images/image95.png)
+
 Figure 95: Manage Consultant Profile
 
 External Scholarship Listing:
+
+![SRS figure](srs-images/image96.png)
 
 Figure 96: Figure 91: Diagram
 
 Scholarship Featuring:
 
+![SRS figure](srs-images/image97.png)
+
 Figure 97: Diagram
 
 Student Apply for  In-App Application:
+
+![SRS figure](srs-images/image98.png)
 
 Figure 98: Diagram
 
 Company Application Review:
 
+![SRS figure](srs-images/image99.png)
+
 Figure 99: Edit In-App Scholarship Listing
 
 Withdrawal and Re-Application For Scholarships:
+
+![SRS figure](srs-images/image100.png)
 
 Figure 100: Diagram
 
 External Application Flow:
 
+![SRS figure](srs-images/image101.png)
+
 Figure 101: Diagram
 
 Company Review:
+
+![SRS figure](srs-images/image102.png)
 
 Figure 102: Diagram
 
 Company Review Payment:
 
+![SRS figure](srs-images/image103.png)
+
 Figure 103: Diagram
 
 Company Rating:
+
+![SRS figure](srs-images/image104.png)
 
 Figure 104: Diagram
 
 Browse Consultant Profile:
 
+![SRS figure](srs-images/image105.png)
+
 Figure 105: Diagram
 
 Manage Consultant Availability:
+
+![SRS figure](srs-images/image106.png)
 
 Figure 106: Figure 99: Edit In-App Scholarship Listing
 
 Request Consultant Booking:
 
+![SRS figure](srs-images/image107.png)
+
 Figure 107: Figure 101: Diagram
 
 Booking and Refund Statuses:
+
+![SRS figure](srs-images/image108.png)
 
 Figure 108: Figure 102: Diagram
 
 Create a Post:
 
+![SRS figure](srs-images/image109.png)
+
 Figure 109: Company Review Payment
 
 Community Flag Content:
+
+![SRS figure](srs-images/image110.png)
 
 Figure 110: Diagram
 
 Admin Community Moderation:
 
+![SRS figure](srs-images/image111.png)
+
 Figure 111: Browse Consultant Profile
 
 Chat one-to-one:
+
+![SRS figure](srs-images/image112.png)
 
 Figure 112: Figure 105: Diagram
 
 Block User in Chat:
 
+![SRS figure](srs-images/image113.png)
+
 Figure 113: Diagram
 
 Reply to Post:
+
+![SRS figure](srs-images/image114.png)
 
 Figure 114: Diagram
 
 Vote:
 
+![SRS figure](srs-images/image115.png)
+
 Figure 115: Booking and Refund Statuses
 
 AI Scholarship Recommendation:
+
+![SRS figure](srs-images/image116.png)
 
 Figure 116: Diagram
 
 AI Eligibility Checker:
 
+![SRS figure](srs-images/image117.png)
+
 Figure 117: Diagram
 
 AI Chatbot:
+
+![SRS figure](srs-images/image118.png)
 
 Figure 118: Chat one-to-one
 
 Publish Article:
 
+![SRS figure](srs-images/image119.png)
+
 Figure 119: Figure 113: Diagram
 
 Browse/Search Articles:
+
+![SRS figure](srs-images/image120.png)
 
 Figure 120: Figure 114: Diagram
 
@@ -4835,17 +5077,25 @@ Notifications:
 
 Students Notifications:
 
+![SRS figure](srs-images/image121.png)
+
 Figure 121: Diagram
 
 Company Notification:
+
+![SRS figure](srs-images/image122.png)
 
 Figure 122: Diagram
 
 Consultant Notification:
 
+![SRS figure](srs-images/image123.png)
+
 Figure 123: Diagram
 
 Admin Broadcast:
+
+![SRS figure](srs-images/image124.png)
 
 Figure 124: Diagram
 
