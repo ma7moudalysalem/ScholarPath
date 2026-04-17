@@ -1,0 +1,94 @@
+# ScholarPath code owners — auto-assigns reviewers on every PR.
+# Enable branch protection to enforce owner approval before merge.
+#
+# Format: <path> <@owner1> <@owner2>
+
+# ─── Default (catch-all, team lead) ─────────────────────────
+*                                                           @ma7moudalysalem
+
+# ─── Specs and architecture ────────────────────────────────
+/.specify/memory/constitution.md                            @ma7moudalysalem
+/docs/                                                      @ma7moudalysalem
+
+# ─── PB-001 Auth, Access, Onboarding (Mimi) ────────────────
+/.specify/specs/PB-001-auth-access-onboarding/              @Madiha6776
+/server/src/ScholarPath.Application/Auth/                   @Madiha6776
+/server/src/ScholarPath.API/Controllers/AuthController.cs   @Madiha6776
+/client/src/pages/auth/                                     @Madiha6776
+
+# ─── PB-002 Profile (Mimi) ─────────────────────────────────
+/.specify/specs/PB-002-profile-account/                     @Madiha6776
+/server/src/ScholarPath.Application/Profiles/               @Madiha6776
+/client/src/pages/profile/                                  @Madiha6776
+
+# ─── PB-003 Scholarship Discovery (Nora) ───────────────────
+/.specify/specs/PB-003-scholarship-discovery/               @norra-mmhamed
+/server/src/ScholarPath.Application/Scholarships/           @norra-mmhamed
+/client/src/pages/student/Scholarships*                     @norra-mmhamed
+/client/src/pages/company/Scholarships*                     @norra-mmhamed
+
+# ─── PB-004 Applications (Nora) ────────────────────────────
+/.specify/specs/PB-004-application-tracking/                @norra-mmhamed
+/server/src/ScholarPath.Application/Applications/           @norra-mmhamed
+/client/src/pages/student/Applications*                     @norra-mmhamed
+
+# ─── PB-005 Company Review + Rating (Yosra) ────────────────
+/.specify/specs/PB-005-company-review-payment/              @yousra-elnoby
+/server/src/ScholarPath.Application/CompanyReviews/         @yousra-elnoby
+/client/src/pages/company/                                  @yousra-elnoby
+
+# ─── PB-006 Consultant Booking (Tasneem) ───────────────────
+/.specify/specs/PB-006-consultant-booking/                  @TasneemShaaban
+/server/src/ScholarPath.Application/ConsultantBookings/     @TasneemShaaban
+/client/src/pages/consultant/                               @TasneemShaaban
+/client/src/pages/student/Consultants*                      @TasneemShaaban
+
+# ─── PB-007 Community + Chat (Yosra) ───────────────────────
+/.specify/specs/PB-007-community-chat/                      @yousra-elnoby
+/server/src/ScholarPath.Application/Community/              @yousra-elnoby
+/server/src/ScholarPath.Infrastructure/Hubs/                @yousra-elnoby @ma7moudalysalem
+/client/src/pages/student/Community*                        @yousra-elnoby
+/client/src/services/signalR/                               @yousra-elnoby @ma7moudalysalem
+
+# ─── PB-008 AI Features (Mahmoud — team lead) ──────────────
+/.specify/specs/PB-008-ai-features/                         @ma7moudalysalem
+/server/src/ScholarPath.Application/AI/                     @ma7moudalysalem
+/client/src/pages/student/Ai*                               @ma7moudalysalem
+
+# ─── PB-009 Resources Hub (Yosra) ──────────────────────────
+/.specify/specs/PB-009-resources-hub/                       @yousra-elnoby
+/server/src/ScholarPath.Application/Resources/              @yousra-elnoby
+
+# ─── PB-010 Notifications (Mimi) ───────────────────────────
+/.specify/specs/PB-010-notifications/                       @Madiha6776
+/server/src/ScholarPath.Application/Notifications/          @Madiha6776
+
+# ─── PB-011 Admin Portal (Mahmoud — team lead) ─────────────
+/.specify/specs/PB-011-admin-portal/                        @ma7moudalysalem
+/server/src/ScholarPath.Application/Admin/                  @ma7moudalysalem
+/client/src/pages/admin/                                    @ma7moudalysalem
+
+# ─── PB-012 Audit (Mahmoud — team lead) ────────────────────
+/.specify/specs/PB-012-audit-compliance/                    @ma7moudalysalem
+/server/src/ScholarPath.Application/Audit/                  @ma7moudalysalem
+
+# ─── PB-013 Payments (Nora) ────────────────────────────────
+/.specify/specs/PB-013-payment-processing/                  @norra-mmhamed
+/server/src/ScholarPath.Application/Payments/               @norra-mmhamed
+/server/src/ScholarPath.Infrastructure/Webhooks/            @norra-mmhamed @ma7moudalysalem
+/server/src/ScholarPath.Infrastructure/Services/Stripe*     @norra-mmhamed @ma7moudalysalem
+
+# ─── PB-014 Profit Share (Tasneem) ─────────────────────────
+/.specify/specs/PB-014-profit-share/                        @TasneemShaaban
+/server/src/ScholarPath.Application/ProfitShare/            @TasneemShaaban
+
+# ─── Shared infra — team lead reviewer required ────────────
+/server/Directory.Build.props                               @ma7moudalysalem
+/server/Directory.Packages.props                            @ma7moudalysalem
+/server/src/ScholarPath.Infrastructure/Persistence/         @ma7moudalysalem
+/server/src/ScholarPath.Infrastructure/Migrations/          @ma7moudalysalem
+/server/src/ScholarPath.API/Program.cs                      @ma7moudalysalem
+/client/package.json                                        @ma7moudalysalem
+/client/src/theme/                                          @ma7moudalysalem
+/client/src/routes/                                         @ma7moudalysalem
+/.github/                                                   @ma7moudalysalem

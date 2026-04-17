@@ -1,0 +1,91 @@
+name: scholarpath
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: scholarpath-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "YourStrong(!)Password"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "YourStrong(!)Password" -C -Q "SELECT 1" || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: scholarpath-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: scholarpath-mailhog
+    ports:
+      - "1025:1025" # SMTP
+      - "8025:8025" # Web UI (http://localhost:8025)
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: scholarpath-api
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      mailhog:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ScholarPath;User Id=sa;Password=YourStrong(!)Password;TrustServerCertificate=true;MultipleActiveResultSets=true"
+      Email__Provider: "MailKit"
+      Email__MailKit__Host: "mailhog"
+      Email__MailKit__Port: "1025"
+      Redis__Enabled: "false"
+      Redis__ConnectionString: "redis:6379"
+      Hangfire__Enabled: "false"
+      Cors__AllowedOrigins__0: "http://localhost:5173"
+      Jwt__SigningKey: "DEV_ONLY_JWT_SIGNING_KEY_64_CHARS_PLACEHOLDER_____xxxxxxxxxxxxxxxxx"
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    profiles:
+      - full
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: scholarpath-client
+    depends_on:
+      - api
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+    profiles:
+      - full
+
+volumes:
+  sqlserver-data:
+  redis-data:

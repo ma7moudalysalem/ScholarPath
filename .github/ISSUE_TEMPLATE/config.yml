@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Module specs
+    url: https://github.com/ma7moudalysalem/ScholarPath/tree/main/.specify/specs
+    about: Reviewing spec.md / plan.md / tasks.md before opening work
+  - name: Constitution
+    url: https://github.com/ma7moudalysalem/ScholarPath/blob/main/.specify/memory/constitution.md
+    about: Non-negotiable principles

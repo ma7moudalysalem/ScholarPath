@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      client: ${{ steps.filter.outputs.client }}
+      docs: ${{ steps.filter.outputs.docs }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'server/**'
+              - '.github/workflows/ci.yml'
+            client:
+              - 'client/**'
+              - '.github/workflows/ci.yml'
+            docs:
+              - 'docs/**'
+              - '.specify/**'
+              - '**.md'
+
+  backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_SA_PASSWORD: YourStrong(!)Password
+        ports:
+          - 1433:1433
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore server/ScholarPath.slnx
+      - name: Format check
+        run: dotnet format server/ScholarPath.slnx --verify-no-changes --severity error
+        continue-on-error: true
+      - name: Build
+        run: dotnet build server/ScholarPath.slnx --no-restore --configuration Release
+      - name: Test (unit)
+        run: >
+          dotnet test server/tests/ScholarPath.UnitTests/ScholarPath.UnitTests.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=unit-results.trx"
+          --collect:"XPlat Code Coverage"
+      - name: Test (integration)
+        env:
+          ConnectionStrings__DefaultConnection: "Server=localhost,1433;Database=ScholarPath_CI;User Id=sa;Password=YourStrong(!)Password;TrustServerCertificate=true"
+        run: >
+          dotnet test server/tests/ScholarPath.IntegrationTests/ScholarPath.IntegrationTests.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=integration-results.trx"
+        continue-on-error: true
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: "**/TestResults/**/*.trx"
+
+  client:
+    needs: changes
+    if: needs.changes.outputs.client == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test -- --reporter=verbose
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-dist
+          path: client/dist
+          retention-days: 7
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+      - name: Gitleaks secret detection
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  status:
+    needs: [backend, client, security]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: CI outcome
+        run: |
+          echo "Backend: ${{ needs.backend.result }}"
+          echo "Client:  ${{ needs.client.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          if [[ "${{ needs.backend.result }}" == "failure" || "${{ needs.client.result }}" == "failure" ]]; then
+            exit 1
+          fi

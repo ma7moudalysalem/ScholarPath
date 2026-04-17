@@ -1,0 +1,43 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "API: debug",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/server/src/ScholarPath.API/bin/Debug/net10.0/ScholarPath.API.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/server/src/ScholarPath.API",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/scalar/v1"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5000"
+      },
+      "sourceFileMap": {
+        "/Views": "${workspaceFolder}/server/src/ScholarPath.API/Views"
+      }
+    },
+    {
+      "name": "Client: Chrome attach",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/client/src",
+      "preLaunchTask": "client:dev",
+      "sourceMaps": true,
+      "breakOnLoad": true
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full stack",
+      "configurations": ["API: debug", "Client: Chrome attach"]
+    }
+  ]
+}

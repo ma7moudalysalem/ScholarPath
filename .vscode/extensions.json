@@ -1,0 +1,17 @@
+{
+  "recommendations": [
+    "ms-dotnettools.csdevkit",
+    "ms-dotnettools.csharp",
+    "kreativ-software.csharpextensions",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "editorconfig.editorconfig",
+    "ms-azuretools.vscode-docker",
+    "github.vscode-github-actions",
+    "github.copilot",
+    "yzhang.markdown-all-in-one",
+    "tamasfe.even-better-toml",
+    "formulahendry.dotnet-test-explorer"
+  ]
+}

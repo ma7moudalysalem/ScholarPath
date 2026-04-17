@@ -1,0 +1,44 @@
+name: Bug report
+description: Something isn't working as expected
+labels: ["bug", "needs-triage"]
+body:
+  - type: input
+    id: module
+    attributes:
+      label: Module (PB-xxx)
+      placeholder: "PB-004 Applications"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Go to ... 2. Click ... 3. See error"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      value: |
+        - Browser:
+        - OS:
+        - Backend commit: `git rev-parse HEAD`
+        - Role signed in as (Student/Company/Consultant/Admin):
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / console output
+      render: shell

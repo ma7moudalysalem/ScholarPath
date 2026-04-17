@@ -1,0 +1,33 @@
+name: Feature request
+description: Propose a new feature or enhancement
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: input
+    id: module
+    attributes:
+      label: Module (PB-xxx)
+      placeholder: "PB-003 Scholarship Discovery"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / use case
+      placeholder: "As a <role>, I want <goal> so that <outcome>."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: srs
+    attributes:
+      label: SRS alignment
+      description: Which FR/US does this relate to? If new, note that this may require a constitution amendment.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

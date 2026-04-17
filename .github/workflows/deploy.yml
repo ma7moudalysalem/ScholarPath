@@ -1,0 +1,83 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "staging"
+        type: choice
+        options: [staging, production]
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  # TODO: configure Azure App Service / Static Web Apps credentials as repo secrets,
+  # then fill in the deploy steps below.
+
+  deploy-api:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish API
+        run: |
+          dotnet publish server/src/ScholarPath.API/ScholarPath.API.csproj \
+            --configuration Release \
+            --output ./publish \
+            -p:PublishTrimmed=false
+
+      # - uses: azure/login@v2
+      #   with:
+      #     client-id: ${{ secrets.AZURE_CLIENT_ID }}
+      #     tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+      #     subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      #
+      # - uses: azure/webapps-deploy@v3
+      #   with:
+      #     app-name: scholarpath-api-${{ inputs.environment }}
+      #     package: ./publish
+
+      - run: echo "Deploy step is stubbed. Uncomment Azure steps + add secrets."
+
+  deploy-client:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          VITE_MICROSOFT_CLIENT_ID: ${{ vars.VITE_MICROSOFT_CLIENT_ID }}
+
+      # - uses: Azure/static-web-apps-deploy@v1
+      #   with:
+      #     azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
+      #     action: upload
+      #     app_location: client/dist
+      #     output_location: ""
+
+      - run: echo "Deploy step is stubbed. Uncomment Azure Static Web Apps step + add secrets."

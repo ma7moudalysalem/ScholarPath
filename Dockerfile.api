@@ -1,0 +1,44 @@
+# ─── Build stage ──────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy solution + props files first for better layer caching
+COPY server/global.json server/
+COPY server/Directory.Build.props server/
+COPY server/Directory.Packages.props server/
+COPY server/ScholarPath.slnx server/
+COPY server/src/ScholarPath.Domain/*.csproj server/src/ScholarPath.Domain/
+COPY server/src/ScholarPath.Application/*.csproj server/src/ScholarPath.Application/
+COPY server/src/ScholarPath.Infrastructure/*.csproj server/src/ScholarPath.Infrastructure/
+COPY server/src/ScholarPath.API/*.csproj server/src/ScholarPath.API/
+COPY server/tests/ScholarPath.UnitTests/*.csproj server/tests/ScholarPath.UnitTests/
+COPY server/tests/ScholarPath.IntegrationTests/*.csproj server/tests/ScholarPath.IntegrationTests/
+
+RUN dotnet restore server/src/ScholarPath.API/ScholarPath.API.csproj
+
+# Copy the rest and publish
+COPY server/ server/
+RUN dotnet publish server/src/ScholarPath.API/ScholarPath.API.csproj \
+    --configuration Release \
+    --output /app/publish \
+    --no-restore
+
+# ─── Runtime stage ────────────────────────────────────────────────────────────
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+# Non-root user for security
+RUN groupadd -r scholarpath && useradd -r -g scholarpath scholarpath
+
+COPY --from=build --chown=scholarpath:scholarpath /app/publish .
+USER scholarpath
+
+EXPOSE 5000
+ENV ASPNETCORE_URLS=http://+:5000
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+
+ENTRYPOINT ["dotnet", "ScholarPath.API.dll"]

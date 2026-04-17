@@ -1,0 +1,56 @@
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "explicit"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[csharp]": {
+    "editor.defaultFormatter": "ms-dotnettools.csharp"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on"
+  },
+
+  "typescript.tsdk": "client/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  "eslint.workingDirectories": [{ "directory": "client", "changeProcessCwd": true }],
+
+  "files.associations": {
+    "*.props": "xml",
+    "*.slnx": "xml"
+  },
+
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/node_modules": false
+  },
+
+  "search.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/node_modules": true,
+    "**/dist": true
+  },
+
+  "dotnet.defaultSolution": "server/ScholarPath.slnx",
+  "omnisharp.enableRoslynAnalyzers": true,
+  "omnisharp.useEditorFormattingSettings": true,
+
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+  ],
+  "tailwindCSS.includeLanguages": { "typescript": "typescript", "typescriptreact": "typescriptreact" }
+}
