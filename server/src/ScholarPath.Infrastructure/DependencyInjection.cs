@@ -83,6 +83,8 @@ public static class DependencyInjection
         services.AddScoped<IStripePayoutJob, StripePayoutJob>();
         services.AddScoped<ISessionExpiryJob, SessionExpiryJob>();
         services.AddScoped<IIntegrityCheckJob, IntegrityCheckJob>();
+        services.AddScoped<IDataExportJob, DataExportJob>();
+        services.AddScoped<IDataDeleteJob, DataDeleteJob>();
 
         // Memory cache (Redis swap handled at deploy time)
         services.AddMemoryCache();
