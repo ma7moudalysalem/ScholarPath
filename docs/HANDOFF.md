@@ -165,27 +165,55 @@ Before opening a PR, verify:
 - [ ] Observability: handlers log structured entries; mutations raise audit events.
 - [ ] Empty page: if you add a route, either implement it or keep an `<EmptyState>` placeholder with owner tag.
 
-## Running locally (verified)
+## Running locally — one command
 
 ```bash
-# Infrastructure
-docker compose up -d sqlserver redis mailhog
+docker compose up -d --build
+```
 
-# Backend
-cd server
-dotnet ef database update --project src/ScholarPath.Infrastructure --startup-project src/ScholarPath.API
-dotnet run --project src/ScholarPath.API
-# Scalar → http://localhost:5000/scalar/v1
-# Health → http://localhost:5000/health
+That spins up all 5 services (SQL Server, Redis, MailHog, API, Client).
+First run builds the `api` + `client` images (~3-4 min); subsequent runs
+reuse the cached layers and come up in ~30 s.
 
-# Frontend (new terminal)
-cd client
-npm ci
-npm run dev
-# App   → http://localhost:5173
-# MailHog → http://localhost:8025
+| URL | What |
+|---|---|
+| http://localhost:5173 | Client (React SPA) |
+| http://localhost:5000 | API |
+| http://localhost:5000/health | `Healthy` |
+| http://localhost:5000/scalar/v1 | Scalar OpenAPI UI (35 endpoints) |
+| http://localhost:8025 | MailHog — every outgoing email lands here |
+| `localhost:1433` | SQL Server (`sa / YourStrong(!)Password`) |
 
-# Tests
+Prerequisite: Docker Desktop. **No** .NET SDK / Node toolchain / SQL
+install / Smart App Control config needed — everything runs in Linux
+containers so OS-level policies don't matter.
+
+```bash
+# Tail logs
+docker compose logs -f api
+docker compose logs -f client
+
+# Stop (data persists)
+docker compose down
+
+# Fresh start (drops the DB volume too)
+docker compose down -v && docker compose up -d --build
+```
+
+### Native dev loop (optional, faster hot reload)
+
+If you'd rather run the client with Vite HMR and the API with `dotnet watch`:
+
+```bash
+docker compose up -d sqlserver redis mailhog   # infra only
+cd server && dotnet ef database update --project src/ScholarPath.Infrastructure --startup-project src/ScholarPath.API
+dotnet run --project src/ScholarPath.API   # terminal 1
+cd client && npm ci && npm run dev         # terminal 2
+```
+
+### Tests
+
+```bash
 cd server && dotnet test
 cd client && npm run typecheck && npm run lint && npm test
 ```

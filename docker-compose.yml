@@ -70,8 +70,12 @@ services:
     ports:
       - "5000:5000"
     restart: unless-stopped
-    profiles:
-      - full
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5000/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
 
   client:
     build:
@@ -83,8 +87,11 @@ services:
     ports:
       - "5173:80"
     restart: unless-stopped
-    profiles:
-      - full
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
 volumes:
   sqlserver-data:

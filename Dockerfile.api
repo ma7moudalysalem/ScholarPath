@@ -27,8 +27,12 @@ RUN dotnet publish server/src/ScholarPath.API/ScholarPath.API.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
-# Non-root user for security
-RUN groupadd -r scholarpath && useradd -r -g scholarpath scholarpath
+# Non-root user for security + curl for the healthcheck (aspnet image ships minimal)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd -r scholarpath \
+    && useradd -r -g scholarpath scholarpath
 
 COPY --from=build --chown=scholarpath:scholarpath /app/publish .
 USER scholarpath
