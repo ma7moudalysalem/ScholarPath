@@ -190,6 +190,29 @@ cd server && dotnet test
 cd client && npm run typecheck && npm run lint && npm test
 ```
 
+## Recovering from a half-applied initial migration
+
+If you ever hit an error like `FK_ConsultantReviews_Users_StudentId may cause
+cycles or multiple cascade paths` or `Incorrect syntax near 'NOT'` during
+`dotnet ef database update`, the DB will be left in a half-built state. Reset
+it cleanly:
+
+```powershell
+# Drop whatever was half-built
+docker exec scholarpath-sql /opt/mssql-tools18/bin/sqlcmd `
+  -S localhost -U sa -P "YourStrong(!)Password" -C -d master `
+  -Q "IF DB_ID('ScholarPath') IS NOT NULL BEGIN ALTER DATABASE ScholarPath SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE ScholarPath; END"
+
+# Reapply the latest migration against a clean DB
+cd server
+dotnet ef database update --project src/ScholarPath.Infrastructure --startup-project src/ScholarPath.API
+```
+
+The current `InitialSchema` migration has already been validated end-to-end:
+50 tables, 3 filtered indexes, 52 unit tests green. The two bugs that caused
+those errors (multi-cascade-paths on `Users` FKs + `NOT IN` predicate inside
+a filtered index) are both fixed — see commit history under `fix(db)`.
+
 ## Known gotchas (save yourself some debugging)
 
 1. **MediatR v14** prints a dev-license notice on every run. Ignore in development; production will need a commercial license review.

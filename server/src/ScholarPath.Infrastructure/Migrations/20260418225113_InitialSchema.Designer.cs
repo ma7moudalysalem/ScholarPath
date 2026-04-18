@@ -12,7 +12,7 @@ using ScholarPath.Infrastructure.Persistence;
 namespace ScholarPath.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260418223828_InitialSchema")]
+    [Migration("20260418225113_InitialSchema")]
     partial class InitialSchema
     {
         /// <inheritdoc />
@@ -344,7 +344,7 @@ namespace ScholarPath.Infrastructure.Migrations
 
                     b.HasIndex("StudentId", "ScholarshipId")
                         .IsUnique()
-                        .HasFilter("[Status] NOT IN ('Withdrawn', 'Rejected', 'Accepted')");
+                        .HasFilter("[Status] <> 'Withdrawn' AND [Status] <> 'Rejected' AND [Status] <> 'Accepted'");
 
                     b.ToTable("Applications");
                 });

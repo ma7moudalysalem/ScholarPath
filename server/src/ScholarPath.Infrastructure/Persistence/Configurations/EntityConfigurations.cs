@@ -234,10 +234,17 @@ public sealed class ApplicationTrackerConfiguration : IEntityTypeConfiguration<A
 
         b.Ignore(a => a.IsActive);
 
-        // Single-active-application rule: unique filtered index
+        // Single-active-application rule: unique filtered index (FR-057).
+        // SQL Server filtered-index predicates do NOT accept `NOT IN` — only
+        // the limited set (=, <>, <, <=, >, >=, IS [NOT] NULL) combined with
+        // AND. So the original NOT IN predicate has to be expanded into
+        // three chained <> conjunctions. Same meaning, accepted syntax.
         b.HasIndex(a => new { a.StudentId, a.ScholarshipId })
             .IsUnique()
-            .HasFilter($"[Status] NOT IN ('{nameof(ApplicationStatus.Withdrawn)}', '{nameof(ApplicationStatus.Rejected)}', '{nameof(ApplicationStatus.Accepted)}')");
+            .HasFilter(
+                $"[Status] <> '{nameof(ApplicationStatus.Withdrawn)}' " +
+                $"AND [Status] <> '{nameof(ApplicationStatus.Rejected)}' " +
+                $"AND [Status] <> '{nameof(ApplicationStatus.Accepted)}'");
 
         b.HasIndex(a => a.Status);
         b.HasQueryFilter(a => !a.IsDeleted);

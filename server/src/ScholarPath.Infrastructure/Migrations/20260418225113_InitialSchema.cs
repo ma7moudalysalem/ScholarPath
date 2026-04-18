@@ -1444,7 +1444,7 @@ namespace ScholarPath.Infrastructure.Migrations
                 table: "Applications",
                 columns: new[] { "StudentId", "ScholarshipId" },
                 unique: true,
-                filter: "[Status] NOT IN ('Withdrawn', 'Rejected', 'Accepted')");
+                filter: "[Status] <> 'Withdrawn' AND [Status] <> 'Rejected' AND [Status] <> 'Accepted'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AuditLogs_ActorUserId",

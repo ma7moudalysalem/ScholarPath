@@ -341,7 +341,7 @@ namespace ScholarPath.Infrastructure.Migrations
 
                     b.HasIndex("StudentId", "ScholarshipId")
                         .IsUnique()
-                        .HasFilter("[Status] NOT IN ('Withdrawn', 'Rejected', 'Accepted')");
+                        .HasFilter("[Status] <> 'Withdrawn' AND [Status] <> 'Rejected' AND [Status] <> 'Accepted'");
 
                     b.ToTable("Applications");
                 });
