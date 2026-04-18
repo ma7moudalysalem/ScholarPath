@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 export function ForgotPassword() {
   const { t } = useTranslation(["auth", "common"]);
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-md flex-col justify-center px-4 py-12 sm:px-6">
+    <div className="mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-md flex-col [justify-content:safe_center] px-4 py-12 sm:px-6">
       <h1 className="mb-2 text-3xl">{t("auth:forgotPassword.title")}</h1>
       <p className="mb-8 text-text-secondary">{t("auth:forgotPassword.subtitle")}</p>
 

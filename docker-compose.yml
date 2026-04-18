@@ -88,7 +88,9 @@ services:
       - "5173:80"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "--quiet", "http://localhost/"]
+      # 127.0.0.1 forces IPv4 — nginx:alpine listens on v4 only and busybox
+      # wget's default resolution to ::1 makes the check fail with ECONNREFUSED
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
       interval: 30s
       timeout: 5s
       retries: 3
