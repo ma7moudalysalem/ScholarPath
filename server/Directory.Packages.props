@@ -4,7 +4,8 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
     <!-- AutoMapper 14.0.0 advisory GHSA-rvv3-g6hj-g44x affects DataReader features we don't use. Tracked in docs. -->
-    <NoWarn>$(NoWarn);NU1903</NoWarn>
+    <!-- MailKit 4.15.1 advisory GHSA-9j88-vvj5-vhgr — prod uses SendGrid; MailKit only runs against MailHog in dev. Tracked in docs. -->
+    <NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
   </PropertyGroup>
 
   <ItemGroup Label="ASP.NET Core / EF Core 10">

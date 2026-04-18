@@ -12,7 +12,7 @@ using ScholarPath.Infrastructure.Persistence;
 namespace ScholarPath.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260417164008_InitialSchema")]
+    [Migration("20260418223828_InitialSchema")]
     partial class InitialSchema
     {
         /// <inheritdoc />
@@ -2959,7 +2959,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
@@ -2968,7 +2968,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
@@ -2983,7 +2983,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
@@ -2992,7 +2992,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
@@ -3040,19 +3040,19 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationTracker", "ApplicationTracker")
                         .WithMany()
                         .HasForeignKey("ApplicationTrackerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Company")
                         .WithMany()
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Student")
                         .WithMany()
                         .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("ApplicationTracker");
@@ -3067,7 +3067,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Consultant")
                         .WithMany()
                         .HasForeignKey("ConsultantId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Consultant");
@@ -3104,19 +3104,19 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.ConsultantBooking", "Booking")
                         .WithMany()
                         .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Consultant")
                         .WithMany()
                         .HasForeignKey("ConsultantId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Student")
                         .WithMany()
                         .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Booking");
@@ -3201,7 +3201,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "User")
                         .WithMany("RefreshTokens")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -3292,7 +3292,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -3321,7 +3321,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "User")
                         .WithOne("Profile")
                         .HasForeignKey("ScholarPath.Domain.Entities.UserProfile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("User");

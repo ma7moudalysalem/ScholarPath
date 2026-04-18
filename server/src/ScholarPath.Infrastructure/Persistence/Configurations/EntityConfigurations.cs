@@ -271,6 +271,12 @@ public sealed class CompanyReviewConfiguration : IEntityTypeConfiguration<Compan
         b.HasIndex(r => new { r.CompanyId, r.IsHiddenByAdmin, r.IsDeleted });
         b.HasIndex(r => r.ApplicationTrackerId).IsUnique();
         b.HasQueryFilter(r => !r.IsDeleted);
+
+        // Two FKs to Users (Student + Company) — explicit Restrict to avoid
+        // SQL Server's multiple-cascade-paths error (1785).
+        b.HasOne(r => r.Student).WithMany().HasForeignKey(r => r.StudentId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.Company).WithMany().HasForeignKey(r => r.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.ApplicationTracker).WithMany().HasForeignKey(r => r.ApplicationTrackerId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -302,6 +308,12 @@ public sealed class ConsultantReviewConfiguration : IEntityTypeConfiguration<Con
         b.HasIndex(r => new { r.ConsultantId, r.IsHiddenByAdmin, r.IsDeleted });
         b.HasIndex(r => r.BookingId).IsUnique();
         b.HasQueryFilter(r => !r.IsDeleted);
+
+        // Two FKs to Users (Student + Consultant) + one to Booking — explicit
+        // Restrict to avoid SQL Server's multiple-cascade-paths error (1785).
+        b.HasOne(r => r.Student).WithMany().HasForeignKey(r => r.StudentId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.Consultant).WithMany().HasForeignKey(r => r.ConsultantId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.Booking).WithMany().HasForeignKey(r => r.BookingId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

@@ -105,6 +105,20 @@ public class ApplicationDbContext(
         builder.Entity<Microsoft.AspNetCore.Identity.IdentityUserLogin<Guid>>().ToTable("UserLogins");
         builder.Entity<Microsoft.AspNetCore.Identity.IdentityUserToken<Guid>>().ToTable("UserTokens");
         builder.Entity<Microsoft.AspNetCore.Identity.IdentityRoleClaim<Guid>>().ToTable("RoleClaims");
+
+        // SQL Server refuses multiple CASCADE paths to the same table — which
+        // any entity with 2+ FKs to ApplicationUser triggers. Rather than
+        // adding explicit Restrict clauses in every Configuration, we sweep
+        // every FK pointing at ApplicationUser and force DeleteBehavior.Restrict
+        // globally. Individual configurations can still override this for
+        // entities that truly want Cascade.
+        foreach (var fk in builder.Model.GetEntityTypes()
+            .SelectMany(e => e.GetForeignKeys())
+            .Where(fk => fk.PrincipalEntityType.ClrType == typeof(ApplicationUser)
+                      && fk.DeleteBehavior == DeleteBehavior.Cascade))
+        {
+            fk.DeleteBehavior = DeleteBehavior.Restrict;
+        }
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
