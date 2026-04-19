@@ -21,6 +21,7 @@ namespace ScholarPath.API.Controllers;
 
 using ScholarPath.Application.Auth.Commands.ForgotPassword;
 using ScholarPath.Application.Auth.Commands.ResetPassword;
+using ScholarPath.Application.Auth.Commands.ChangePassword;
 
 [Route("api/v{version:apiVersion}/auth")]
 public class AuthController : BaseController
@@ -196,7 +197,7 @@ public class AuthController : BaseController
     }
     [HttpPost("forgot-password")]
     [AllowAnonymous]
-    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<string>> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
         var command = new ForgotPasswordCommand(request.Email);
         await Mediator.Send(command, cancellationToken);
@@ -207,11 +208,12 @@ public class AuthController : BaseController
 
     [HttpPost("reset-password")]
     [AllowAnonymous]
-    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<string>> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
     {
         try
         {
             var command = new ResetPasswordCommand(request.Token, request.NewPassword);
+            await Mediator.Send(command, cancellationToken);
             return OkResult("success.auth.passwordReset");
         }
         catch (InvalidOperationException)
@@ -219,7 +221,25 @@ public class AuthController : BaseController
             return BadRequestResult(new[] { "errors.auth.invalidResetToken" });
         }
     }
-
+    [HttpPost("change-password")]
+    [Authorize]
+    public async Task<ActionResult<string>> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var command = new ChangePasswordCommand(request.CurrentPassword, request.NewPassword);
+            await Mediator.Send(command, cancellationToken);
+            return OkResult("success.auth.passwordChanged");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return UnauthorizedResult(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequestResult(new[] { ex.Message });
+        }
+    }
     [HttpGet("me")]
     [Authorize]
     public async Task<ActionResult<UserDto>> Me(CancellationToken cancellationToken)
@@ -241,8 +261,6 @@ public class AuthController : BaseController
             return UnauthorizedResult(ex.Message);
         }
     }
-
-
 
     private string GetRequestIp()
     {
