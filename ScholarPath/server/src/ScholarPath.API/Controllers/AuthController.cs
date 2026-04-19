@@ -19,6 +19,9 @@ using ScholarPath.Application.Auth.Queries.GetMe;
 using ScholarPath.Application.Auth.Commands.Logout;
 namespace ScholarPath.API.Controllers;
 
+using ScholarPath.Application.Auth.Commands.ForgotPassword;
+using ScholarPath.Application.Auth.Commands.ResetPassword;
+
 [Route("api/v{version:apiVersion}/auth")]
 public class AuthController : BaseController
 {
@@ -189,6 +192,31 @@ public class AuthController : BaseController
                 return Conflict(new { Error = ex.Message });
             }
             return BadRequestResult(new[] { ex.Message });
+        }
+    }
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var command = new ForgotPasswordCommand(request.Email);
+        await Mediator.Send(command, cancellationToken);
+
+        // Always return success (security: don't reveal if email exists)
+        return OkResult("success.auth.resetLinkSent");
+    }
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var command = new ResetPasswordCommand(request.Token, request.NewPassword);
+            return OkResult("success.auth.passwordReset");
+        }
+        catch (InvalidOperationException)
+        {
+            return BadRequestResult(new[] { "errors.auth.invalidResetToken" });
         }
     }
 
