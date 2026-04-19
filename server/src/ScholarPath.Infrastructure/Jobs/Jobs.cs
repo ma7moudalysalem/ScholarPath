@@ -65,11 +65,42 @@ public interface IIntegrityCheckJob
     Task RunAsync(CancellationToken ct);
 }
 
-public sealed class IntegrityCheckJob(ILogger<IntegrityCheckJob> logger) : IIntegrityCheckJob
+/// <summary>
+/// Daily sweep for orphan / inconsistent rows. Surfaces as warnings that
+/// the admin dashboard rolls up.
+/// </summary>
+public sealed class IntegrityCheckJob(
+    Persistence.ApplicationDbContext db,
+    ILogger<IntegrityCheckJob> logger) : IIntegrityCheckJob
 {
-    public Task RunAsync(CancellationToken ct)
+    public async Task RunAsync(CancellationToken ct)
     {
-        logger.LogInformation("[job] IntegrityCheckJob tick (stub)");
-        return Task.CompletedTask;
+        var orphanPayments = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .CountAsync(db.Payments
+                .Where(p => p.RelatedBookingId == null && p.RelatedApplicationId == null), ct)
+            .ConfigureAwait(false);
+
+        var now = DateTimeOffset.UtcNow;
+        var overdueBookings = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .CountAsync(db.Bookings
+                .Where(b => b.Status == Domain.Enums.BookingStatus.Confirmed
+                    && b.ScheduledEndAt < now.AddHours(-6)), ct)
+            .ConfigureAwait(false);
+
+        var stuckWebhooks = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions
+            .CountAsync(db.StripeWebhookEvents
+                .Where(e => !e.IsProcessed && e.ProcessingAttempts >= 5), ct)
+            .ConfigureAwait(false);
+
+        if (orphanPayments > 0 || overdueBookings > 0 || stuckWebhooks > 0)
+        {
+            logger.LogWarning(
+                "[integrity] orphanPayments={OrphanPayments} overdueBookings={OverdueBookings} stuckWebhooks={StuckWebhooks}",
+                orphanPayments, overdueBookings, stuckWebhooks);
+        }
+        else
+        {
+            logger.LogInformation("[integrity] clean sweep");
+        }
     }
 }
