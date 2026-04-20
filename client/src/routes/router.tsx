@@ -100,6 +100,9 @@ const AdminSettings = stub("@yousra-elnoby", "PB-011 Settings", ".specify/specs/
 
 const Profile = stub("@Madiha6776", "PB-002 Profile", ".specify/specs/PB-002-profile-account");
 const Notifications = stub("@Madiha6776", "PB-010 Notifications", ".specify/specs/PB-010-notifications");
+const DataPrivacy = lazy(() =>
+  import("@/pages/profile/DataPrivacy").then((m) => ({ default: m.DataPrivacy })),
+);
 
 function SuspenseOutlet({ children }: { children: React.ReactNode }) {
   return (
@@ -189,6 +192,7 @@ export function AppRouter() {
         >
           {/* Profile / Notifications — shared across roles */}
           <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/privacy" element={<DataPrivacy />} />
           <Route path="/notifications" element={<Notifications />} />
 
           {/* Student */}

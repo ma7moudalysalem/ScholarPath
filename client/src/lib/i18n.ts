@@ -8,6 +8,7 @@ import enHome from "@/locales/en/home.json";
 import enErrors from "@/locales/en/errors.json";
 import enNav from "@/locales/en/nav.json";
 import enEmptyStates from "@/locales/en/emptyStates.json";
+import enPrivacy from "@/locales/en/privacy.json";
 
 import arCommon from "@/locales/ar/common.json";
 import arAuth from "@/locales/ar/auth.json";
@@ -15,6 +16,7 @@ import arHome from "@/locales/ar/home.json";
 import arErrors from "@/locales/ar/errors.json";
 import arNav from "@/locales/ar/nav.json";
 import arEmptyStates from "@/locales/ar/emptyStates.json";
+import arPrivacy from "@/locales/ar/privacy.json";
 
 export const supportedLanguages = ["en", "ar"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -31,7 +33,7 @@ void i18n
   .init({
     fallbackLng: "en",
     supportedLngs: supportedLanguages,
-    ns: ["common", "auth", "home", "errors", "nav", "emptyStates"],
+    ns: ["common", "auth", "home", "errors", "nav", "emptyStates", "privacy"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {
@@ -47,6 +49,7 @@ void i18n
         errors: enErrors,
         nav: enNav,
         emptyStates: enEmptyStates,
+        privacy: enPrivacy,
       },
       ar: {
         common: arCommon,
@@ -55,6 +58,7 @@ void i18n
         errors: arErrors,
         nav: arNav,
         emptyStates: arEmptyStates,
+        privacy: arPrivacy,
       },
     },
   });

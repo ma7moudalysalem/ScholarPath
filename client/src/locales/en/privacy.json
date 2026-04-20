@@ -1,0 +1,36 @@
+{
+  "title": "Data & privacy",
+  "subtitle": "Request an export of your data, or delete your account. All requests are logged for audit.",
+  "export": {
+    "heading": "Export my data",
+    "body": "We'll collect your profile, applications, bookings, and notifications into a JSON file and email you a secure download link. It expires in 14 days.",
+    "cta": "Request export",
+    "pending": "An export is already in progress. You'll get an email when it's ready.",
+    "ready": "Ready to download (expires {{expires}})",
+    "download": "Download"
+  },
+  "delete": {
+    "heading": "Delete my account",
+    "body": "Your account is scheduled for deletion after a 30-day cooling-off window. You can cancel any time during that window by returning to this page.",
+    "warning": "This cannot be undone after the cooling-off window expires.",
+    "reasonLabel": "Reason (optional)",
+    "cta": "Request deletion",
+    "pending": "Scheduled for deletion on {{date}}.",
+    "cancel": "Cancel deletion"
+  },
+  "history": {
+    "heading": "Your requests",
+    "empty": "No requests yet.",
+    "requestedAt": "Requested",
+    "status": "Status",
+    "scheduledAt": "Processes at",
+    "type": "Type"
+  },
+  "status": {
+    "Pending": "Pending",
+    "Processing": "Processing",
+    "Completed": "Completed",
+    "Cancelled": "Cancelled",
+    "Failed": "Failed"
+  }
+}
