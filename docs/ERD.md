@@ -4,73 +4,36 @@ Source of truth: the EF migration files under `server/src/ScholarPath.Infrastruc
 
 40 entities grouped by bounded context.
 
-## Full ERD (condensed)
+## Bounded-context overview
+
+A single 40-entity ER diagram hits GitHub's Mermaid render limit. We group the
+schema into 5 bounded contexts, each diagrammed below. This overview shows how
+those contexts relate to one another; `ApplicationUser` is the shared aggregate
+root referenced by every context.
 
 ```mermaid
-erDiagram
-  ApplicationUser ||--o| UserProfile : "has"
-  ApplicationUser ||--o{ RefreshToken : "issues"
-  ApplicationUser ||--o{ LoginAttempt : "accumulates"
-  ApplicationUser ||--o{ UpgradeRequest : "submits"
-  ApplicationUser ||--o{ Scholarship : "Company owns"
-  ApplicationUser ||--o{ ApplicationTracker : "Student applies"
-  ApplicationUser ||--o{ ConsultantAvailability : "Consultant exposes"
-  ApplicationUser ||--o{ ConsultantBooking : "Student/Consultant party"
-  ApplicationUser ||--o{ CompanyReview : "Student writes"
-  ApplicationUser ||--o{ ConsultantReview : "Student writes"
-  ApplicationUser ||--o{ ForumPost : "authors"
-  ApplicationUser ||--o{ ForumVote : "casts"
-  ApplicationUser ||--o{ ForumFlag : "files"
-  ApplicationUser ||--o{ ChatConversation : "participates"
-  ApplicationUser ||--o{ ChatMessage : "sends"
-  ApplicationUser ||--o{ UserBlock : "blocker/blocked"
-  ApplicationUser ||--o{ Notification : "receives"
-  ApplicationUser ||--o{ NotificationPreference : "configures"
-  ApplicationUser ||--o{ AiInteraction : "starts"
-  ApplicationUser ||--o{ Resource : "authors"
-  ApplicationUser ||--o{ ResourceBookmark : "bookmarks"
-  ApplicationUser ||--o{ ResourceProgress : "tracks"
-  ApplicationUser ||--o{ SavedScholarship : "bookmarks"
-  ApplicationUser ||--o{ Payment : "payer/payee"
-  ApplicationUser ||--o{ Payout : "payee"
-  ApplicationUser ||--o{ UserDataRequest : "requests"
-  ApplicationUser ||--o{ AuditLog : "actor (nullable)"
+flowchart LR
+  classDef ctx fill:#eff6ff,stroke:#2563eb,stroke-width:2px,color:#1e3a8a
+  classDef shared fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f
 
-  UserProfile ||--o{ EducationEntry : "has"
+  User[Identity + Onboarding<br/>ApplicationUser · UserProfile · UpgradeRequest · RefreshToken]:::shared
 
-  UpgradeRequest ||--o{ UpgradeRequestFile : "uploads"
-  UpgradeRequest ||--o{ UpgradeRequestLink : "attaches"
+  Sch[Scholarships + Applications<br/>Scholarship · ApplicationTracker · Category · SavedScholarship]:::ctx
+  Book[Consultant Booking + Reviews + Payments<br/>ConsultantBooking · Availability · Review · Payment · Payout · ProfitShareConfig]:::ctx
+  Com[Community + Chat + Resources + AI<br/>ForumPost · ChatMessage · Resource · AiInteraction]:::ctx
+  Cross[Cross-cutting<br/>Notification · AuditLog · UserDataRequest · SuccessStory]:::ctx
 
-  Category ||--o{ Scholarship : "groups"
-  Scholarship ||--o{ ScholarshipChild : "has rows"
-  Scholarship ||--o{ SavedScholarship : "bookmarked by"
-  Scholarship ||--o{ ApplicationTracker : "receives"
-
-  ApplicationTracker ||--o{ ApplicationTrackerChild : "history/notes"
-  ApplicationTracker ||--o| CompanyReview : "rated via"
-  ApplicationTracker ||--o| CompanyReviewPayment : "paid for"
-
-  ConsultantBooking ||--o| Payment : "holds"
-  ConsultantBooking ||--o| ConsultantReview : "rated after"
-  ConsultantAvailability ||--o{ ConsultantBooking : "optional slot"
-
-  ForumCategory ||--o{ ForumPost : "contains"
-  ForumPost ||--o{ ForumPost : "reply parent"
-  ForumPost ||--o{ ForumPostAttachment : "has"
-  ForumPost ||--o{ ForumVote : "gets"
-  ForumPost ||--o{ ForumFlag : "flagged by"
-
-  ChatConversation ||--o{ ChatMessage : "contains"
-
-  Resource ||--o{ ResourceChild : "chapters"
-  Resource ||--o{ ResourceBookmark : "bookmarked by"
-  Resource ||--o{ ResourceProgress : "progressed by"
-  ResourceProgress ||--o{ ResourceProgressChild : "per chapter"
-
-  Payment ||--o{ Payout : "rolled into"
-  ProfitShareConfig }o--|| Payment : "applied to"
-  StripeWebhookEvent }o--|| Payment : "drives"
+  User --> Sch
+  User --> Book
+  User --> Com
+  User --> Cross
+  Sch --> Book
+  Sch --> Cross
+  Book --> Cross
+  Com --> Cross
 ```
+
+Detail diagrams below — one per context.
 
 ---
 
@@ -281,7 +244,7 @@ erDiagram
   }
   ConsultantReview {
     Guid Id PK
-    Guid BookingId FK UK
+    Guid BookingId "FK, UK"
     Guid StudentId FK
     Guid ConsultantId FK
     int Rating
@@ -290,7 +253,7 @@ erDiagram
   }
   CompanyReview {
     Guid Id PK
-    Guid ApplicationTrackerId FK UK
+    Guid ApplicationTrackerId "FK, UK"
     Guid StudentId FK
     Guid CompanyId FK
     int Rating
