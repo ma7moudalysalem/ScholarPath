@@ -76,6 +76,7 @@ public static class DependencyInjection
         services.AddSingleton<IAiService, StubAiService>();
         services.AddScoped<INotificationDispatcher, StubNotificationDispatcher>();
         services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IUserAdministration, UserAdministration>();
 
         // Jobs
         services.AddScoped<IDeadlineReminderJob, DeadlineReminderJob>();
