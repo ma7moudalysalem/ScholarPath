@@ -77,6 +77,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationDispatcher, StubNotificationDispatcher>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserAdministration, UserAdministration>();
+        services.AddScoped<IAdminReadService, AdminReadService>();
 
         // Jobs
         services.AddScoped<IDeadlineReminderJob, DeadlineReminderJob>();
