@@ -250,3 +250,15 @@ public enum AuditAction
     ConfigChanged = 13,
     BroadcastSent = 14,
 }
+public enum CancellationReason
+{
+    StudentCancelledBeforeAcceptance = 0,
+    StudentCancelledMoreThan24HoursBefore = 1,
+    StudentCancelledLessThan24HoursBefore = 2,
+    ConsultantCancelledAfterAcceptance = 3,
+    ConsultantNoShow = 4,
+    StudentNoShow = 5,
+    AutoExpiredNoResponse = 6,
+    RejectedByConsultant = 7,
+    Other = 99
+}

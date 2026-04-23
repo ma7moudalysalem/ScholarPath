@@ -331,7 +331,10 @@ public sealed class ConsultantAvailabilityConfiguration : IEntityTypeConfigurati
         b.Property(a => a.Timezone).IsRequired().HasMaxLength(64);
         b.Property(a => a.RowVersion).IsRowVersion();
         b.HasIndex(a => new { a.ConsultantId, a.IsActive });
+        b.HasIndex(a => new { a.ConsultantId, a.DayOfWeek, a.StartTime, a.IsActive });
+        b.HasIndex(a => new { a.ConsultantId, a.SpecificStartAt, a.IsActive });
         b.HasQueryFilter(a => !a.IsDeleted);
+        b.HasOne(a => a.Consultant).WithMany().HasForeignKey(a => a.ConsultantId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -341,17 +344,20 @@ public sealed class ConsultantBookingConfiguration : IEntityTypeConfiguration<Co
     {
         b.Property(bk => bk.Status).HasConversion<string>().HasMaxLength(24);
         b.Property(bk => bk.MeetingUrl).HasMaxLength(2048);
-        b.Property(bk => bk.CancellationReason).HasMaxLength(500);
+        b.Property(bk => bk.CancellationReason).HasConversion<string>().HasMaxLength(500); ;
         b.Property(bk => bk.StripePaymentIntentId).HasMaxLength(256);
         b.Property(bk => bk.PriceUsd).HasPrecision(10, 2);
         b.Property(bk => bk.RowVersion).IsRowVersion();
         b.HasIndex(bk => new { bk.ConsultantId, bk.ScheduledStartAt });
         b.HasIndex(bk => new { bk.StudentId, bk.Status });
+        b.HasIndex(bk => bk.StripePaymentIntentId);
+        b.HasIndex(bk => bk.AvailabilityId);
         b.HasIndex(bk => bk.Status);
         b.HasQueryFilter(bk => !bk.IsDeleted);
 
         b.HasOne(bk => bk.Student).WithMany().HasForeignKey(bk => bk.StudentId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(bk => bk.Consultant).WithMany().HasForeignKey(bk => bk.ConsultantId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(bk => bk.Availability).WithMany().HasForeignKey(bk => bk.AvailabilityId).OnDelete(DeleteBehavior.SetNull);
         b.HasOne(bk => bk.Payment).WithMany().HasForeignKey(bk => bk.PaymentId).OnDelete(DeleteBehavior.SetNull);
     }
 }
