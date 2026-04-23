@@ -45,6 +45,7 @@
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageVersion Include="HtmlSanitizer" Version="8.0.865" />
   </ItemGroup>
 
   <ItemGroup Label="OpenAPI / Scalar">

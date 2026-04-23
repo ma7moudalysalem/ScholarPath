@@ -102,6 +102,7 @@ public static class DependencyInjection
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserAdministration, UserAdministration>();
         services.AddScoped<IAdminReadService, AdminReadService>();
+        services.AddScoped<ScholarPath.Application.CompanyReviews.Services.ICompanyReviewPricingService, ScholarPath.Application.CompanyReviews.Services.CompanyReviewPricingService>();
         services.AddScoped<AiCostGate>();
 
         // Jobs
@@ -112,6 +113,7 @@ public static class DependencyInjection
         services.AddScoped<IIntegrityCheckJob, IntegrityCheckJob>();
         services.AddScoped<IDataExportJob, DataExportJob>();
         services.AddScoped<IDataDeleteJob, DataDeleteJob>();
+        services.AddScoped<ICompanyReviewTimeoutRefundJob, CompanyReviewTimeoutRefundJob>();
 
         // Memory cache (Redis swap handled at deploy time)
         services.AddMemoryCache();
