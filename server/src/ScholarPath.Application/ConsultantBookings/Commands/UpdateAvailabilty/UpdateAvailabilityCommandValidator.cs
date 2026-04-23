@@ -18,6 +18,10 @@ public sealed class UpdateAvailabilityCommandValidator : AbstractValidator<Updat
         RuleFor(x => x.Slots)
             .Must(NotHaveOverlappingRecurringSlots)
             .WithMessage("Recurring availability slots must not overlap.");
+
+        RuleFor(x => x.Slots)
+            .Must(NotHaveOverlappingAdHocSlots)
+            .WithMessage("Ad-hoc availability slots must not overlap.");
     }
 
     private static bool NotHaveOverlappingRecurringSlots(List<AvailabilityInputModel> slots)
@@ -41,6 +45,27 @@ public sealed class UpdateAvailabilityCommandValidator : AbstractValidator<Updat
                 {
                     return false;
                 }
+            }
+        }
+
+        return true;
+    }
+
+    private static bool NotHaveOverlappingAdHocSlots(List<AvailabilityInputModel> slots)
+    {
+        var adHocSlots = slots
+            .Where(x => !x.IsRecurring && x.SpecificStartAt.HasValue && x.SpecificEndAt.HasValue)
+            .OrderBy(x => x.SpecificStartAt!.Value)
+            .ToList();
+
+        for (var i = 0; i < adHocSlots.Count - 1; i++)
+        {
+            var current = adHocSlots[i];
+            var next = adHocSlots[i + 1];
+
+            if (current.SpecificEndAt!.Value > next.SpecificStartAt!.Value)
+            {
+                return false;
             }
         }
 
