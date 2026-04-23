@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ScholarPath.Application.ConsultantBookings.Commands.RequestBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
 
 namespace ScholarPath.API.Controllers;
@@ -15,6 +16,21 @@ public sealed class BookingsController : ControllerBase
     public BookingsController(ISender sender)
     {
         _sender = sender;
+    }
+
+    [HttpPost("/api/consultants/{id:guid}/book")]
+    public async Task<IActionResult> RequestBooking(
+        Guid id,
+        [FromBody] RequestBookingCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (id != command.ConsultantId)
+        {
+            return BadRequest("Route consultant id does not match body consultant id.");
+        }
+
+        var bookingId = await _sender.Send(command, cancellationToken);
+        return Ok(new { bookingId });
     }
 
     [HttpPatch("me/availability")]

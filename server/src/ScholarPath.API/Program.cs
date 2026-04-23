@@ -1,7 +1,5 @@
 using System.Text;
 using System.Text.Json.Serialization;
-using FluentValidation;
-using FluentValidation.AspNetCore;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Hangfire.SqlServer;
@@ -41,8 +39,6 @@ builder.Services
         opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         opts.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
-
-builder.Services.AddFluentValidationAutoValidation().AddFluentValidationClientsideAdapters();
 
 // ─── Application + Infrastructure DI ─────────────────────────────────────────
 builder.Services.AddApplicationServices();
@@ -218,9 +214,9 @@ if (hangfireOpts.Enabled)
     var recurring = app.Services.GetRequiredService<IRecurringJobManager>();
     recurring.AddOrUpdate<IDataExportJob>("data-export-sweep", j => j.RunAsync(CancellationToken.None), Cron.Hourly);
     recurring.AddOrUpdate<IDataDeleteJob>("data-delete-sweep", j => j.RunAsync(CancellationToken.None), Cron.Daily(3)); // 03:00 UTC
-    recurring.AddOrUpdate<IIntegrityCheckJob>("integrity-check",  j => j.RunAsync(CancellationToken.None), Cron.Daily(4));
-    recurring.AddOrUpdate<ISessionExpiryJob>("session-expiry",    j => j.RunAsync(CancellationToken.None), "*/15 * * * *"); // every 15 min
-    recurring.AddOrUpdate<IStripePayoutJob>("stripe-payouts",     j => j.RunAsync(CancellationToken.None), Cron.Daily(2));
+    recurring.AddOrUpdate<IIntegrityCheckJob>("integrity-check", j => j.RunAsync(CancellationToken.None), Cron.Daily(4));
+    recurring.AddOrUpdate<ISessionExpiryJob>("session-expiry", j => j.RunAsync(CancellationToken.None), "*/15 * * * *"); // every 15 min
+    recurring.AddOrUpdate<IStripePayoutJob>("stripe-payouts", j => j.RunAsync(CancellationToken.None), Cron.Daily(2));
     recurring.AddOrUpdate<IDeadlineReminderJob>("deadline-reminders", j => j.RunAsync(CancellationToken.None), Cron.Daily(9));
 }
 
