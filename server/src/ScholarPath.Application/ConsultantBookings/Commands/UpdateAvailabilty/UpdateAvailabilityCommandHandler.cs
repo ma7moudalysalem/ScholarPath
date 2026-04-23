@@ -1,8 +1,8 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Domain.Interfaces;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
 
@@ -14,7 +14,7 @@ public sealed class UpdateAvailabilityCommandHandler : IRequestHandler<UpdateAva
     public UpdateAvailabilityCommandHandler(IApplicationDbContext context, ICurrentUserService currentUser)
     {
         _context = context;
-        _currentUser = currentUser; 
+        _currentUser = currentUser;
     }
 
     public async Task<Unit> Handle(UpdateAvailabilityCommand request, CancellationToken cancellationToken)
@@ -32,12 +32,19 @@ public sealed class UpdateAvailabilityCommandHandler : IRequestHandler<UpdateAva
         var consultantId = _currentUser.UserId
             ?? throw new UnauthorizedAccessException("Authenticated user id is missing.");
 
-        var existingAvailabilities = _context.Availabilities
-            .Where(a => a.ConsultantId == consultantId && !a.IsDeleted);
+        var existingAvailabilities = await _context.Availabilities
+            .Where(a => a.ConsultantId == consultantId && !a.IsDeleted && a.IsActive)
+            .ToListAsync(cancellationToken);
+
+        if (!request.ReplaceExisting)
+        {
+            ValidateRecurringSlotsAgainstExisting(request.Slots, existingAvailabilities);
+            ValidateAdHocSlotsAgainstExisting(request.Slots, existingAvailabilities);
+        }
 
         if (request.ReplaceExisting)
         {
-            await foreach (var availability in existingAvailabilities.AsAsyncEnumerable().WithCancellation(cancellationToken))
+            foreach (var availability in existingAvailabilities)
             {
                 availability.IsDeleted = true;
                 availability.DeletedAt = DateTimeOffset.UtcNow;
@@ -70,5 +77,74 @@ public sealed class UpdateAvailabilityCommandHandler : IRequestHandler<UpdateAva
         await _context.SaveChangesAsync(cancellationToken);
 
         return Unit.Value;
+    }
+
+    private static void ValidateRecurringSlotsAgainstExisting(
+        List<AvailabilityInputModel> newSlots,
+        List<ConsultantAvailability> existingAvailabilities)
+    {
+        var newRecurringSlots = newSlots
+            .Where(x => x.IsRecurring && x.DayOfWeek.HasValue && x.StartTime.HasValue && x.EndTime.HasValue)
+            .ToList();
+
+        var existingRecurringSlots = existingAvailabilities
+            .Where(x => x.IsRecurring && x.DayOfWeek.HasValue && x.StartTime.HasValue && x.EndTime.HasValue)
+            .ToList();
+
+        foreach (var newSlot in newRecurringSlots)
+        {
+            foreach (var existingSlot in existingRecurringSlots)
+            {
+                if (newSlot.DayOfWeek != existingSlot.DayOfWeek)
+                {
+                    continue;
+                }
+
+                var newStart = newSlot.StartTime!.Value;
+                var newEnd = newSlot.EndTime!.Value;
+                var existingStart = existingSlot.StartTime!.Value;
+                var existingEnd = existingSlot.EndTime!.Value;
+
+                var overlaps = newStart < existingEnd && newEnd > existingStart;
+
+                if (overlaps)
+                {
+                    throw new InvalidOperationException(
+                        "One or more recurring availability slots overlap with existing saved availability.");
+                }
+            }
+        }
+    }
+
+    private static void ValidateAdHocSlotsAgainstExisting(
+        List<AvailabilityInputModel> newSlots,
+        List<ConsultantAvailability> existingAvailabilities)
+    {
+        var newAdHocSlots = newSlots
+            .Where(x => !x.IsRecurring && x.SpecificStartAt.HasValue && x.SpecificEndAt.HasValue)
+            .ToList();
+
+        var existingAdHocSlots = existingAvailabilities
+            .Where(x => !x.IsRecurring && x.SpecificStartAt.HasValue && x.SpecificEndAt.HasValue)
+            .ToList();
+
+        foreach (var newSlot in newAdHocSlots)
+        {
+            foreach (var existingSlot in existingAdHocSlots)
+            {
+                var newStart = newSlot.SpecificStartAt!.Value.ToUniversalTime();
+                var newEnd = newSlot.SpecificEndAt!.Value.ToUniversalTime();
+                var existingStart = existingSlot.SpecificStartAt!.Value.ToUniversalTime();
+                var existingEnd = existingSlot.SpecificEndAt!.Value.ToUniversalTime();
+
+                var overlaps = newStart < existingEnd && newEnd > existingStart;
+
+                if (overlaps)
+                {
+                    throw new InvalidOperationException(
+                        "One or more ad-hoc availability slots overlap with existing saved availability.");
+                }
+            }
+        }
     }
 }
