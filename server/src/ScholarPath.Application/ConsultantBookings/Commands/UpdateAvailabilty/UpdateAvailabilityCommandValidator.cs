@@ -1,4 +1,5 @@
 using FluentValidation;
+using System.Linq;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
 
@@ -13,6 +14,37 @@ public sealed class UpdateAvailabilityCommandValidator : AbstractValidator<Updat
 
         RuleForEach(x => x.Slots)
             .SetValidator(new AvailabilityInputModelValidator());
+
+        RuleFor(x => x.Slots)
+            .Must(NotHaveOverlappingRecurringSlots)
+            .WithMessage("Recurring availability slots must not overlap.");
+    }
+
+    private static bool NotHaveOverlappingRecurringSlots(List<AvailabilityInputModel> slots)
+    {
+        var recurringSlots = slots
+            .Where(x => x.IsRecurring && x.DayOfWeek.HasValue && x.StartTime.HasValue && x.EndTime.HasValue)
+            .GroupBy(x => x.DayOfWeek!.Value);
+
+        foreach (var dayGroup in recurringSlots)
+        {
+            var ordered = dayGroup
+                .OrderBy(x => x.StartTime!.Value)
+                .ToList();
+
+            for (var i = 0; i < ordered.Count - 1; i++)
+            {
+                var current = ordered[i];
+                var next = ordered[i + 1];
+
+                if (current.EndTime!.Value > next.StartTime!.Value)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }
 
