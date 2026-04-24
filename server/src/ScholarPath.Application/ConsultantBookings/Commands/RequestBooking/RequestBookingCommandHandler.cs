@@ -112,10 +112,6 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
                     throw new InvalidOperationException("Requested booking time is outside the selected availability range.");
                 }
             }
-
-            // For recurring slots, exact slot-shape validation can be tightened later
-            // against generated slots. For now we trust the selected availability id
-            // plus the overlap checks below.
         }
 
         var blockingStatuses = new[]
@@ -186,6 +182,34 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             throw new InvalidOperationException("Stripe payment intent was not created successfully.");
         }
 
+        var nowUtc = DateTimeOffset.UtcNow;
+
+        var payment = new Payment
+        {
+            Type = PaymentType.ConsultantBooking,
+            Status = PaymentStatus.Held,
+            AmountCents = amountCents,
+            Currency = "USD",
+            ProfitShareAmountCents = 0,
+            PayeeAmountCents = amountCents,
+            RefundedAmountCents = 0,
+            PayerUserId = studentId,
+            PayeeUserId = request.ConsultantId,
+            StripePaymentIntentId = paymentIntent.Id,
+            StripeChargeId = paymentIntent.LatestChargeId,
+            IdempotencyKey = idempotencyKey,
+            RelatedBookingId = null,
+            RelatedApplicationId = null,
+            HeldAt = nowUtc,
+            CapturedAt = null,
+            RefundedAt = null,
+            RefundReason = null,
+            FailureReason = null,
+            IsDeleted = false,
+            DeletedAt = null,
+            DeletedByUserId = null
+        };
+
         var booking = new ConsultantBooking
         {
             StudentId = studentId,
@@ -196,10 +220,10 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             DurationMinutes = durationMinutes,
             PriceUsd = priceUsd,
             Status = BookingStatus.Requested,
-            RequestedAt = DateTimeOffset.UtcNow,
+            RequestedAt = nowUtc,
             StripePaymentIntentId = paymentIntent.Id,
             MeetingUrl = null,
-            PaymentId = null,
+            Payment = payment,
             ConfirmedAt = null,
             RejectedAt = null,
             ExpiredAt = null,
@@ -216,6 +240,9 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
         };
 
         _context.Bookings.Add(booking);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        payment.RelatedBookingId = booking.Id;
         await _context.SaveChangesAsync(cancellationToken);
 
         return booking.Id;
