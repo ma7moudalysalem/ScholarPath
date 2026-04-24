@@ -1,4 +1,5 @@
 import { apiClient } from "@/services/api/client";
+import type { PagedResult } from "@/types/api";
 
 export type ApplicationStatus =
   | "Draft"
@@ -26,6 +27,17 @@ export interface UpdateStatusRequest {
   status: ApplicationStatus;
 }
 
+export interface CompanyApplicationRow {
+  id: string;
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  scholarshipId: string;
+  scholarshipTitle: string;
+  status: ApplicationStatus;
+  createdAt: string;
+}
+
 export const applicationsApi = {
   async getMyApplications(): Promise<StudentApplicationRow[]> {
     const { data } = await apiClient.get<StudentApplicationRow[]>("/api/applications/me");
@@ -45,15 +57,15 @@ export const applicationsApi = {
     });
   },
 
-  async getCompanyApplications(scholarshipId?: string, page = 1, pageSize = 25): Promise<any> {
-    const { data } = await apiClient.get("/api/applications/company", {
+  async getCompanyApplications(scholarshipId?: string, page = 1, pageSize = 25): Promise<PagedResult<CompanyApplicationRow>> {
+    const { data } = await apiClient.get<PagedResult<CompanyApplicationRow>>("/api/applications/company", {
       params: { scholarshipId, page, pageSize },
     });
     return data;
   },
 
-  async getCompanyApplicationDetails(id: string): Promise<any> {
-    const { data } = await apiClient.get(`/api/applications/company/${id}`);
+  async getCompanyApplicationDetails(id: string): Promise<CompanyApplicationRow> {
+    const { data } = await apiClient.get<CompanyApplicationRow>(`/api/applications/company/${id}`);
     return data;
   },
 

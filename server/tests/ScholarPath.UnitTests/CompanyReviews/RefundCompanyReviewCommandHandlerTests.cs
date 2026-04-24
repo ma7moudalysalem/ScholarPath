@@ -1,35 +1,36 @@
-using Moq;
-using Moq.EntityFrameworkCore;
+using NSubstitute;
 using Xunit;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Application.CompanyReviews.Commands.RefundCompanyReview;
 
 namespace ScholarPath.UnitTests.CompanyReviews;
 
 public class RefundCompanyReviewCommandHandlerTests
 {
-    private readonly Mock<IApplicationDbContext> _dbMock;
-    private readonly Mock<IStripeService> _stripeMock;
-    private readonly Mock<INotificationDispatcher> _notificationsMock;
-    private readonly Mock<ILogger<RefundCompanyReviewCommandHandler>> _loggerMock;
+    private readonly ApplicationDbContext _db;
+    private readonly IStripeService _stripe = Substitute.For<IStripeService>();
+    private readonly INotificationDispatcher _notifications = Substitute.For<INotificationDispatcher>();
+    private readonly ILogger<RefundCompanyReviewCommandHandler> _logger = Substitute.For<ILogger<RefundCompanyReviewCommandHandler>>();
     private readonly RefundCompanyReviewCommandHandler _handler;
 
     public RefundCompanyReviewCommandHandlerTests()
     {
-        _dbMock = new Mock<IApplicationDbContext>();
-        _stripeMock = new Mock<IStripeService>();
-        _notificationsMock = new Mock<INotificationDispatcher>();
-        _loggerMock = new Mock<ILogger<RefundCompanyReviewCommandHandler>>();
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        _db = new ApplicationDbContext(options);
 
         _handler = new RefundCompanyReviewCommandHandler(
-            _dbMock.Object,
-            _stripeMock.Object,
-            _notificationsMock.Object,
-            _loggerMock.Object);
+            _db,
+            _stripe,
+            _notifications,
+            _logger);
     }
 
     [Fact]
@@ -46,11 +47,8 @@ public class RefundCompanyReviewCommandHandlerTests
             AmountUsd = 100m
         };
 
-        _dbMock.Setup(db => db.CompanyReviewPayments)
-            .ReturnsDbSet(new List<CompanyReviewPayment> { payment });
-            
-        _dbMock.Setup(db => db.Applications)
-            .ReturnsDbSet(new List<ApplicationTracker>());
+        _db.CompanyReviewPayments.Add(payment);
+        await _db.SaveChangesAsync();
 
         var command = new RefundCompanyReviewCommand(appId, IsFullRefund: true);
 
@@ -61,7 +59,7 @@ public class RefundCompanyReviewCommandHandlerTests
         result.Should().BeTrue();
         payment.Status.Should().Be(PaymentStatus.Refunded);
         payment.RefundedAmountUsd.Should().Be(100m);
-        _stripeMock.Verify(s => s.CancelPaymentIntentAsync("pi_123", "requested_by_customer", It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        await _stripe.Received(1).CancelPaymentIntentAsync("pi_123", "requested_by_customer", Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -78,14 +76,11 @@ public class RefundCompanyReviewCommandHandlerTests
             AmountUsd = 100m
         };
 
-        _dbMock.Setup(db => db.CompanyReviewPayments)
-            .ReturnsDbSet(new List<CompanyReviewPayment> { payment });
-            
-        _dbMock.Setup(db => db.Applications)
-            .ReturnsDbSet(new List<ApplicationTracker>());
+        _db.CompanyReviewPayments.Add(payment);
+        await _db.SaveChangesAsync();
 
-        _stripeMock.Setup(s => s.CapturePaymentIntentAsync("pi_123", 5000, It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ScholarPath.Application.Common.Interfaces.StripePaymentIntentResponse("succeeded", "pi_123", 5000));
+        _stripe.CapturePaymentIntentAsync("pi_123", 5000, Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new StripePaymentIntentResult("pi_123", "succeeded", null, null));
 
         var command = new RefundCompanyReviewCommand(appId, IsFullRefund: false);
 
@@ -96,6 +91,6 @@ public class RefundCompanyReviewCommandHandlerTests
         result.Should().BeTrue();
         payment.Status.Should().Be(PaymentStatus.PartiallyRefunded);
         payment.RefundedAmountUsd.Should().Be(50m);
-        _stripeMock.Verify(s => s.CapturePaymentIntentAsync("pi_123", 5000, It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
+        await _stripe.Received(1).CapturePaymentIntentAsync("pi_123", 5000, Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 }

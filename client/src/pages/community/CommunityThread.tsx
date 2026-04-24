@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { 
@@ -8,65 +8,58 @@ import {
   MessageSquare, 
   Flag, 
   Send,
-  MoreVertical,
   Shield
 } from "lucide-react";
-import { communityApi, type ForumThread, type ForumPost } from "@/services/api/community";
+import { communityApi } from "@/services/api/community";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function CommunityThread() {
   const { id } = useParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   const dateLocale = isRtl ? ar : undefined;
+  const qc = useQueryClient();
 
-  const [thread, setThread] = useState<ForumThread | null>(null);
   const [replyBody, setReplyBody] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (id) loadThread(id);
-  }, [id]);
+  const { data: thread, isLoading: loading } = useQuery({
+    queryKey: ["community", "thread", id],
+    queryFn: () => communityApi.getPostDetails(id!),
+    enabled: !!id,
+  });
 
-  const loadThread = async (postId: string) => {
-    setLoading(true);
-    try {
-      const data = await communityApi.getPostDetails(postId);
-      setThread(data);
-    } catch (error) {
-      console.error("Failed to load thread", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVote = async (postId: string, type: "Upvote" | "Downvote") => {
-    try {
-      await communityApi.toggleVote(postId, type);
-      // Refresh thread
-      if (id) loadThread(id);
-    } catch (error) {
-      console.error("Failed to vote", error);
+  const voteMutation = useMutation({
+    mutationFn: ({ postId, type }: { postId: string; type: "Upvote" | "Downvote" }) => 
+      communityApi.toggleVote(postId, type),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
+    },
+    onError: () => {
       alert(t("community.vote_error", "You cannot vote on your own post."));
     }
+  });
+
+  const replyMutation = useMutation({
+    mutationFn: (body: string) => communityApi.createReply(id!, { bodyMarkdown: body }),
+    onSuccess: () => {
+      setReplyBody("");
+      void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
+    },
+    onError: (error) => {
+      console.error("Failed to reply", error);
+    }
+  });
+
+  const handleVote = (postId: string, type: "Upvote" | "Downvote") => {
+    voteMutation.mutate({ postId, type });
   };
 
-  const handleReply = async (e: React.FormEvent) => {
+  const handleReply = (e: React.FormEvent) => {
     e.preventDefault();
     if (!id || !replyBody.trim()) return;
-
-    setSubmitting(true);
-    try {
-      await communityApi.createReply(id, { bodyMarkdown: replyBody });
-      setReplyBody("");
-      loadThread(id);
-    } catch (error) {
-      console.error("Failed to reply", error);
-    } finally {
-      setSubmitting(false);
-    }
+    replyMutation.mutate(replyBody);
   };
 
   const handleFlag = async (postId: string) => {
@@ -159,8 +152,8 @@ export function CommunityThread() {
               </h1>
               
               <div className="prose prose-slate max-w-none text-text-secondary leading-relaxed mb-8">
-                {thread.post.bodyMarkdown.split('\n').map((line, i) => (
-                  <p key={i}>{line}</p>
+                {thread.post.bodyMarkdown.split('\n').map((line, idx) => (
+                  <p key={idx}>{line}</p>
                 ))}
               </div>
 
@@ -190,7 +183,7 @@ export function CommunityThread() {
           />
           <button
             type="submit"
-            disabled={submitting || !replyBody.trim()}
+            disabled={replyMutation.isPending || !replyBody.trim()}
             className="absolute right-4 bottom-4 p-3 bg-brand-500 text-white rounded-xl shadow-lg hover:bg-brand-600 disabled:opacity-50 disabled:shadow-none transition-all"
           >
             <Send size={20} />
@@ -230,8 +223,8 @@ export function CommunityThread() {
                 </div>
               </div>
               <div className="text-text-secondary text-sm leading-relaxed">
-                {reply.bodyMarkdown.split('\n').map((line, i) => (
-                  <p key={i}>{line}</p>
+                {reply.bodyMarkdown.split('\n').map((line, idx) => (
+                  <p key={idx}>{line}</p>
                 ))}
               </div>
             </div>

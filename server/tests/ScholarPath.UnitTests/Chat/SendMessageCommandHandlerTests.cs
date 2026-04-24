@@ -1,33 +1,32 @@
-using Moq;
-using Moq.EntityFrameworkCore;
+using NSubstitute;
 using Xunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Infrastructure.Hubs;
+using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Application.Chat.Commands.SendMessage;
 
 namespace ScholarPath.UnitTests.Chat;
 
 public class SendMessageCommandHandlerTests
 {
-    private readonly Mock<IApplicationDbContext> _dbMock;
-    private readonly Mock<ICurrentUserService> _currentUserMock;
-    private readonly Mock<IHubContext<ChatHub>> _hubContextMock;
+    private readonly ApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
+    private readonly IHubContext<ChatHub> _hubContext = Substitute.For<IHubContext<ChatHub>>();
     private readonly SendMessageCommandHandler _handler;
 
     public SendMessageCommandHandlerTests()
     {
-        _dbMock = new Mock<IApplicationDbContext>();
-        _currentUserMock = new Mock<ICurrentUserService>();
-        _hubContextMock = new Mock<IHubContext<ChatHub>>();
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        _db = new ApplicationDbContext(options);
 
-        _handler = new SendMessageCommandHandler(
-            _dbMock.Object,
-            _currentUserMock.Object,
-            _hubContextMock.Object);
+        _handler = new SendMessageCommandHandler(_db, _currentUser, _hubContext);
     }
 
     [Fact]
@@ -38,13 +37,14 @@ public class SendMessageCommandHandlerTests
         var recipientId = Guid.NewGuid();
         var conversationId = Guid.NewGuid();
 
-        _currentUserMock.Setup(c => c.UserId).Returns(currentUserId);
+        _currentUser.UserId.Returns(currentUserId);
 
         var conversation = new ChatConversation
         {
             Id = conversationId,
             ParticipantOneId = currentUserId,
-            ParticipantTwoId = recipientId
+            ParticipantTwoId = recipientId,
+            Messages = new List<ChatMessage>()
         };
 
         var block = new UserBlock
@@ -53,9 +53,9 @@ public class SendMessageCommandHandlerTests
             BlockedUserId = currentUserId
         };
 
-        _dbMock.Setup(db => db.ChatConversations).ReturnsDbSet(new List<ChatConversation> { conversation });
-        _dbMock.Setup(db => db.UserBlocks).ReturnsDbSet(new List<UserBlock> { block });
-        _dbMock.Setup(db => db.ChatMessages).ReturnsDbSet(new List<ChatMessage>());
+        _db.Conversations.Add(conversation);
+        _db.UserBlocks.Add(block);
+        await _db.SaveChangesAsync();
 
         var command = new SendMessageCommand(conversationId, "Hello");
 

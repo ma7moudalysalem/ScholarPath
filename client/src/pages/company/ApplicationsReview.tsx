@@ -3,11 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, Eye, Clock, Search, Filter } from 'lucide-react';
-import { applicationsApi } from '@/services/api/applications';
-import { queryKeys } from '@/lib/queryClient';
+import { applicationsApi, type CompanyApplicationRow, type ApplicationStatus } from '@/services/api/applications';
 
 export function ApplicationsReview() {
-  const { t } = useTranslation('applications');
+  useTranslation('applications');
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -17,7 +16,7 @@ export function ApplicationsReview() {
   });
 
   const reviewMutation = useMutation({
-    mutationFn: ({ id, status, reason }: { id: string; status: any; reason?: string }) =>
+    mutationFn: ({ id, status, reason }: { id: string; status: ApplicationStatus; reason?: string }) =>
       applicationsApi.reviewApplication(id, status, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company', 'applications'] });
@@ -34,9 +33,10 @@ export function ApplicationsReview() {
     reviewMutation.mutate({ id, status, reason });
   };
 
-  const filteredApps = applications.filter((app: any) => 
-    app.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.scholarshipTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredApps = applications.filter((app: CompanyApplicationRow) =>
+    app.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    app.studentEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    app.scholarshipTitle.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -96,7 +96,7 @@ export function ApplicationsReview() {
                   </td>
                 </tr>
               ) : (
-                filteredApps.map((app: any) => (
+                filteredApps.map((app: CompanyApplicationRow) => (
                   <tr key={app.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-medium text-slate-900 dark:text-white">{app.studentName}</div>

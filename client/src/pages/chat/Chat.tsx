@@ -4,7 +4,6 @@ import {
   Send, 
   Search, 
   MoreVertical, 
-  UserPlus, 
   Circle,
   MessageCircle,
   Clock,
@@ -13,58 +12,60 @@ import {
 import { chatApi, type ChatConversation, type ChatMessage } from "@/services/api/chat";
 import { useAuthStore } from "@/stores/authStore";
 import { createHubConnection } from "@/lib/signalr";
+import type { HubConnection } from "@microsoft/signalr";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 
 export function Chat() {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   const dateLocale = isRtl ? ar : undefined;
+  const qc = useQueryClient();
   
   const currentUser = useAuthStore((state) => state.user);
   const accessToken = useAuthStore((state) => state.tokens?.accessToken);
 
-  const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [selectedConv, setSelectedConv] = useState<ChatConversation | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageBody, setMessageBody] = useState("");
-  const [loading, setLoading] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [typingUser, setTypingUser] = useState<string | null>(null);
 
-  const hubConnectionRef = useRef<any>(null);
+  const hubConnectionRef = useRef<HubConnection | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    loadConversations();
-    setupSignalR();
-    return () => {
-      hubConnectionRef.current?.stop();
-    };
-  }, []);
+  const { data: conversations = [] } = useQuery({
+    queryKey: ["chat", "conversations"],
+    queryFn: () => chatApi.getConversations(),
+  });
 
-  useEffect(() => {
-    if (selectedConv) {
-      loadMessages(selectedConv.id);
-      hubConnectionRef.current?.invoke("JoinConversation", selectedConv.id);
-    }
-  }, [selectedConv]);
+  const { data: messages = [] } = useQuery({
+    queryKey: ["chat", "messages", selectedConv?.id],
+    queryFn: () => chatApi.getMessages(selectedConv!.id),
+    enabled: !!selectedConv?.id,
+    placeholderData: keepPreviousData,
+  });
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const setupSignalR = async () => {
+  useEffect(() => {
     if (!accessToken) return;
     
     const connection = createHubConnection("/hubs/chat", accessToken);
     
     connection.on("MessageReceived", (message: ChatMessage) => {
-      if (selectedConv && message.senderId === selectedConv.otherParticipantId) {
-        setMessages((prev) => [...prev, message]);
+      // If the message belongs to current conversation, refresh messages
+      if (selectedConv && (message.senderId === selectedConv.otherParticipantId || message.senderId === currentUser?.id)) {
+        void qc.invalidateQueries({ queryKey: ["chat", "messages", selectedConv.id] });
       }
-      // Refresh conversation list to update last message
-      loadConversations();
+      // Always refresh conversations to update last message/timestamp
+      void qc.invalidateQueries({ queryKey: ["chat", "conversations"] });
     });
 
     connection.on("TypingStart", (conversationId: string, userId: string) => {
@@ -73,77 +74,55 @@ export function Chat() {
       }
     });
 
-    connection.on("TypingStop", (conversationId: string, userId: string) => {
+    connection.on("TypingStop", (conversationId: string) => {
       if (selectedConv?.id === conversationId) {
         setTypingUser(null);
       }
     });
 
-    try {
-      await connection.start();
+    void connection.start().then(() => {
       hubConnectionRef.current = connection;
-    } catch (err) {
-      console.error("SignalR Connection Error: ", err);
-    }
-  };
+    });
 
-  const loadConversations = async () => {
-    try {
-      const data = await chatApi.getConversations();
-      setConversations(data);
-    } catch (error) {
-      console.error("Failed to load conversations", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return () => {
+      void connection.stop();
+    };
+  }, [accessToken, selectedConv, currentUser?.id, qc]);
 
-  const loadMessages = async (conversationId: string) => {
-    try {
-      const data = await chatApi.getMessages(conversationId);
-      setMessages(data);
-    } catch (error) {
-      console.error("Failed to load messages", error);
+  useEffect(() => {
+    if (selectedConv && hubConnectionRef.current) {
+      void hubConnectionRef.current.invoke("JoinConversation", selectedConv.id);
     }
-  };
+  }, [selectedConv]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedConv || !messageBody.trim()) return;
 
     try {
-      const msgId = await chatApi.sendMessage({
+      await chatApi.sendMessage({
         recipientId: selectedConv.otherParticipantId,
         body: messageBody
       });
       
-      const newMsg: ChatMessage = {
-        id: msgId,
-        senderId: currentUser!.id,
-        body: messageBody,
-        sentAt: new Date().toISOString()
-      };
-      
-      setMessages((prev) => [...prev, newMsg]);
       setMessageBody("");
-      loadConversations();
+      void qc.invalidateQueries({ queryKey: ["chat", "messages", selectedConv.id] });
+      void qc.invalidateQueries({ queryKey: ["chat", "conversations"] });
     } catch (error) {
       console.error("Failed to send message", error);
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   const handleTyping = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessageBody(e.target.value);
-    if (!isTyping && selectedConv) {
+    if (!isTyping && selectedConv && hubConnectionRef.current) {
       setIsTyping(true);
-      hubConnectionRef.current?.invoke("TypingStart", selectedConv.id);
+      void hubConnectionRef.current.invoke("TypingStart", selectedConv.id);
       setTimeout(() => {
         setIsTyping(false);
-        hubConnectionRef.current?.invoke("TypingStop", selectedConv.id);
+        if (hubConnectionRef.current) {
+          void hubConnectionRef.current.invoke("TypingStop", selectedConv!.id);
+        }
       }, 3000);
     }
   };
@@ -210,7 +189,7 @@ export function Chat() {
             {/* Header */}
             <div className="p-4 border-b border-border-subtle flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold border border-border-subtle">
+                <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-sm text-brand-600 font-bold border border-border-subtle">
                   {selectedConv.otherParticipantName[0]}
                 </div>
                 <div>
@@ -233,7 +212,7 @@ export function Chat() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {messages.map((msg, i) => {
+              {messages.map((msg) => {
                 const isMe = msg.senderId === currentUser?.id;
                 return (
                   <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>

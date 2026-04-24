@@ -1,4 +1,4 @@
-import { HubConnection } from "@microsoft/signalr";
+import type { HubConnection } from "@microsoft/signalr";
 import { createCommunityHubConnection, attachLifecycleHandlers } from "./hubs";
 import type { ConnectionLifecycleHandlers } from "./hubs";
 

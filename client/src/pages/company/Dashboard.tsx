@@ -4,7 +4,6 @@ import { Star } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { companyReviewsApi } from '@/services/api/companyReviews';
 import { EmptyState } from '@/components/common/EmptyState';
-import { queryKeys } from '@/lib/queryClient';
 
 // Dummy types mapping to our backend DTOs
 export interface CompanyReviewRow {

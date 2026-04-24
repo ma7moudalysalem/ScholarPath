@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { 
   MessageSquare, 
@@ -11,61 +11,43 @@ import {
   Filter,
   ChevronRight
 } from "lucide-react";
-import { communityApi, type ForumCategory, type ForumPost } from "@/services/api/community";
+import { communityApi, type ForumCategory } from "@/services/api/community";
 import { Link } from "react-router";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
+import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 export function Community() {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.dir() === "rtl";
   const dateLocale = isRtl ? ar : undefined;
 
-  const [categories, setCategories] = useState<ForumCategory[]>([]);
-  const [posts, setPosts] = useState<ForumPost[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("Newest");
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
+  const { data: categories = [] } = useQuery<ForumCategory[]>({
+    queryKey: ["community", "categories"],
+    queryFn: () => communityApi.getCategories(),
+  });
 
-  useEffect(() => {
-    loadPosts();
-  }, [selectedCategoryId, sortBy]);
+  const { data: postsData, isLoading: loading } = useQuery({
+    queryKey: ["community", "posts", selectedCategoryId, searchQuery, sortBy],
+    queryFn: () => communityApi.getPosts({
+      categoryId: selectedCategoryId,
+      query: searchQuery,
+      sortBy,
+      page: 1,
+      pageSize: 20
+    }),
+    placeholderData: keepPreviousData,
+  });
 
-  const loadCategories = async () => {
-    try {
-      const data = await communityApi.getCategories();
-      setCategories(data);
-    } catch (error) {
-      console.error("Failed to load categories", error);
-    }
-  };
-
-  const loadPosts = async () => {
-    setLoading(true);
-    try {
-      const data = await communityApi.getPosts({
-        categoryId: selectedCategoryId,
-        query: searchQuery,
-        sortBy,
-        page: 1,
-        pageSize: 20
-      });
-      setPosts(data.items);
-    } catch (error) {
-      console.error("Failed to load posts", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const posts = postsData?.items ?? [];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    loadPosts();
+    // Search is handled by the query dependency on searchQuery
   };
 
   return (

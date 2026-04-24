@@ -39,7 +39,7 @@ export function RatingModal({
       await onSubmitRating(applicationId, companyId, rating, comment);
       toast.success(t('reviews.submitSuccess'));
       onOpenChange(false);
-    } catch (error) {
+    } catch {
       toast.error(t('reviews.submitError'));
     } finally {
       setIsSubmitting(false);

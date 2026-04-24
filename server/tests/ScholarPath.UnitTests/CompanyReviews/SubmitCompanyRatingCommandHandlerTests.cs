@@ -1,35 +1,37 @@
 using Microsoft.Extensions.Logging;
-using Moq;
+using NSubstitute;
+using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.CompanyReviews.Commands.SubmitCompanyRating;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
-using ScholarPath.UnitTests.Common;
+using ScholarPath.Infrastructure.Persistence;
 using Xunit;
+using FluentAssertions;
 
 namespace ScholarPath.UnitTests.CompanyReviews;
 
 public class SubmitCompanyRatingCommandHandlerTests
 {
-    private readonly TestDbContext _db;
-    private readonly Mock<ICurrentUserService> _currentUserMock;
-    private readonly Mock<INotificationDispatcher> _notifMock;
-    private readonly Mock<ILogger<SubmitCompanyRatingCommandHandler>> _loggerMock;
+    private readonly ApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
+    private readonly INotificationDispatcher _notif = Substitute.For<INotificationDispatcher>();
+    private readonly ILogger<SubmitCompanyRatingCommandHandler> _logger = Substitute.For<ILogger<SubmitCompanyRatingCommandHandler>>();
     private readonly SubmitCompanyRatingCommandHandler _handler;
 
     public SubmitCompanyRatingCommandHandlerTests()
     {
-        _db = TestDbContextFactory.Create();
-        _currentUserMock = new Mock<ICurrentUserService>();
-        _notifMock = new Mock<INotificationDispatcher>();
-        _loggerMock = new Mock<ILogger<SubmitCompanyRatingCommandHandler>>();
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        _db = new ApplicationDbContext(options);
 
         _handler = new SubmitCompanyRatingCommandHandler(
             _db,
-            _currentUserMock.Object,
-            _notifMock.Object,
-            _loggerMock.Object);
+            _currentUser,
+            _notif,
+            _logger);
     }
 
     [Fact]
@@ -40,13 +42,14 @@ public class SubmitCompanyRatingCommandHandlerTests
         var companyId = Guid.NewGuid();
         var appId = Guid.NewGuid();
 
-        _currentUserMock.Setup(x => x.UserId).Returns(studentId);
+        _currentUser.UserId.Returns(studentId);
 
         _db.Applications.Add(new ApplicationTracker
         {
             Id = appId,
             StudentId = studentId,
-            Status = ApplicationStatus.Accepted
+            Status = ApplicationStatus.Accepted,
+            ScholarshipId = Guid.NewGuid()
         });
         await _db.SaveChangesAsync();
 
@@ -56,19 +59,19 @@ public class SubmitCompanyRatingCommandHandlerTests
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        Assert.NotEqual(Guid.Empty, result);
-        var review = _db.CompanyReviews.FirstOrDefault(r => r.Id == result);
-        Assert.NotNull(review);
-        Assert.Equal(5, review.Rating);
-        Assert.Equal("Great experience!", review.Comment);
+        result.Should().NotBeEmpty();
+        var review = await _db.CompanyReviews.FirstOrDefaultAsync(r => r.Id == result);
+        review.Should().NotBeNull();
+        review!.Rating.Should().Be(5);
+        review.Comment.Should().Be("Great experience!");
         
-        _notifMock.Verify(x => x.DispatchAsync(
+        await _notif.Received(1).DispatchAsync(
             companyId,
             NotificationType.CompanyRatingReceived,
-            It.IsAny<NotificationContent>(),
-            null,
-            null,
-            It.IsAny<CancellationToken>()), Times.Once);
+            Arg.Any<NotificationContent>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -78,20 +81,22 @@ public class SubmitCompanyRatingCommandHandlerTests
         var studentId = Guid.NewGuid();
         var appId = Guid.NewGuid();
 
-        _currentUserMock.Setup(x => x.UserId).Returns(studentId);
+        _currentUser.UserId.Returns(studentId);
 
         _db.Applications.Add(new ApplicationTracker
         {
             Id = appId,
             StudentId = studentId,
-            Status = ApplicationStatus.UnderReview
+            Status = ApplicationStatus.UnderReview,
+            ScholarshipId = Guid.NewGuid()
         });
         await _db.SaveChangesAsync();
 
         var command = new SubmitCompanyRatingCommand(appId, Guid.NewGuid(), 5, null);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ConflictException>(() => _handler.Handle(command, CancellationToken.None));
+        await _handler.Awaiting(h => h.Handle(command, CancellationToken.None))
+            .Should().ThrowAsync<ConflictException>();
     }
 
     [Fact]
@@ -101,13 +106,14 @@ public class SubmitCompanyRatingCommandHandlerTests
         var studentId = Guid.NewGuid();
         var appId = Guid.NewGuid();
 
-        _currentUserMock.Setup(x => x.UserId).Returns(studentId);
+        _currentUser.UserId.Returns(studentId);
 
         _db.Applications.Add(new ApplicationTracker
         {
             Id = appId,
             StudentId = studentId,
-            Status = ApplicationStatus.Accepted
+            Status = ApplicationStatus.Accepted,
+            ScholarshipId = Guid.NewGuid()
         });
         _db.CompanyReviews.Add(new CompanyReview
         {
@@ -121,6 +127,7 @@ public class SubmitCompanyRatingCommandHandlerTests
         var command = new SubmitCompanyRatingCommand(appId, Guid.NewGuid(), 5, null);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ConflictException>(() => _handler.Handle(command, CancellationToken.None));
+        await _handler.Awaiting(h => h.Handle(command, CancellationToken.None))
+            .Should().ThrowAsync<ConflictException>();
     }
 }
