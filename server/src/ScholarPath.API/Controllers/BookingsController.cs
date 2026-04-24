@@ -7,6 +7,7 @@ using ScholarPath.Application.ConsultantBookings.Commands.MarkNoShow;
 using ScholarPath.Application.ConsultantBookings.Commands.RejectBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.RequestBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
+using ScholarPath.Application.ConsultantBookings.Commands.SubmitConsultantRating;
 
 namespace ScholarPath.API.Controllers;
 
@@ -105,4 +106,23 @@ public sealed class BookingsController : ControllerBase
         await _sender.Send(command, cancellationToken);
         return NoContent();
     }
+
+    [HttpPost("{id:guid}/rating")]
+    public async Task<IActionResult> SubmitConsultantRating(
+    Guid id,
+    [FromBody] SubmitConsultantRatingCommand command,
+    CancellationToken cancellationToken)
+    {
+        if (id != command.BookingId)
+        {
+            return BadRequest("Route booking id does not match body booking id.");
+        }
+
+        await _sender.Send(command, cancellationToken);
+        return NoContent();
+    }
 }
+
+
+
+
