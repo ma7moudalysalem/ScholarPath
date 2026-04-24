@@ -76,7 +76,7 @@ namespace ScholarPath.IntegrationTests.Applications
             {
                 Id = Guid.NewGuid(),
                 ScholarshipId = scholarship.Id,
-                StudentId = Guid.Parse("00000000-0000-0000-0000-000000000000"), // يجب أن يطابق الـ Current User ID في الـ Stub
+                StudentId = Guid.Parse("00000000-0000-0000-0000-000000000000"), 
                 Status = ApplicationStatus.Pending
             };
             db.Applications.Add(existingApp);
