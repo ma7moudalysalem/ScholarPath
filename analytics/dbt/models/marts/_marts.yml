@@ -1,0 +1,107 @@
+version: 2
+
+models:
+  # ─── Dimensions ────────────────────────────────────────────────────────
+  - name: dim_user
+    description: "SCD Type 2 user dimension. Join using `valid_from <= ts < valid_to`."
+    columns:
+      - name: user_sk
+        description: "Surrogate key — hash(user_nk, valid_from_utc)."
+        tests: [unique, not_null]
+      - name: user_nk
+        description: "Natural key — OLTP user id."
+        tests: [not_null]
+      - name: is_current
+        tests:
+          - accepted_values: { values: [0, 1] }
+
+  - name: dim_scholarship
+    description: "SCD Type 2 scholarship dimension. Versions every status/funding change."
+    columns:
+      - name: scholarship_sk
+        tests: [unique, not_null]
+      - name: status
+        tests:
+          - accepted_values:
+              values: ['Draft', 'Open', 'Closed', 'Archived', 'UnderReview']
+
+  - name: dim_date
+    description: "Conformed calendar. Join key is `date_key` (YYYYMMDD int)."
+    columns:
+      - name: date_key
+        tests: [unique, not_null]
+      - name: full_date
+        tests: [unique, not_null]
+
+  - name: dim_country
+    description: "ISO 3166-1 country reference (region + sub-region for maps)."
+    columns:
+      - name: country_sk
+        tests: [unique, not_null]
+      - name: country_code
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "len(country_code) = 2"
+
+  - name: dim_ai_feature
+    description: "Tiny conformed AI feature dimension — mirrors Enums.cs::AiFeature."
+    columns:
+      - name: ai_feature_sk
+        tests: [unique, not_null]
+
+  # ─── Facts ─────────────────────────────────────────────────────────────
+  - name: fct_application
+    description: "One row per application status change. Funnel + velocity grain."
+    columns:
+      - name: application_event_sk
+        tests: [unique, not_null]
+      - name: student_sk
+        tests:
+          - relationships: { to: ref('dim_user'), field: user_sk }
+      - name: scholarship_sk
+        tests:
+          - relationships: { to: ref('dim_scholarship'), field: scholarship_sk }
+
+  - name: fct_payment
+    description: "One row per captured payment. Includes refund amounts so net revenue is additive."
+    columns:
+      - name: payment_sk
+        tests: [unique, not_null]
+      - name: amount_cents
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "amount_cents >= 0"
+      - name: net_amount_cents
+        description: "amount_cents - refund_amount_cents (negative when fully refunded)."
+
+  - name: fct_booking
+    description: "One row per consultant booking. is_completed + is_lost are mutually exclusive."
+    columns:
+      - name: booking_sk
+        tests: [unique, not_null]
+      - name: price_usd
+        tests: [not_null]
+
+  - name: fct_ai_interaction
+    description: "PB-017 economy grain — one row per AI call with cost + latency + success."
+    columns:
+      - name: ai_interaction_sk
+        tests: [unique, not_null]
+      - name: ai_feature_sk
+        tests:
+          - relationships: { to: ref('dim_ai_feature'), field: ai_feature_sk }
+      - name: cost_usd
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "cost_usd >= 0"
+
+  - name: fct_recommendation_click
+    description: "PB-017 CTR numerator — one row per recommendation card click."
+    columns:
+      - name: click_sk
+        tests: [unique, not_null]
+      - name: source_type
+        tests:
+          - accepted_values: { values: ['card', 'list', 'modal'] }

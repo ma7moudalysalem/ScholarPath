@@ -1,0 +1,64 @@
+# PB-016 dbt project — ScholarPath medallion warehouse.
+# Target warehouse: Synapse Serverless (dbt-sqlserver adapter, v1.8+).
+
+name: 'scholarpath'
+version: '0.1.0'
+config-version: 2
+
+profile: 'scholarpath'
+
+model-paths:   ["models"]
+analysis-paths: ["analyses"]
+test-paths:    ["tests"]
+seed-paths:    ["seeds"]
+macro-paths:   ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  # CDC capture prefixes — keep in sync with analytics/sql/01-enable-cdc.sql
+  tracked_tables:
+    - AspNetUsers
+    - UserProfiles
+    - UpgradeRequests
+    - Scholarships
+    - SavedScholarships
+    - ApplicationTrackers
+    - CompanyReviews
+    - ConsultantBookings
+    - Payments
+    - Payouts
+    - ForumPosts
+    - ChatMessages
+    - AiInteractions
+    - RecommendationClickEvents
+    - Notifications
+
+models:
+  scholarpath:
+    staging:
+      +materialized: view       # thin, cheap — just cleaned Bronze
+      +schema: staging
+    silver:
+      +materialized: table      # de-duped, JSON flattened
+      +schema: silver
+    marts:
+      +materialized: table
+      +schema: gold
+      dims:
+        +tags: ["dimension"]
+      facts:
+        +tags: ["fact"]
+
+snapshots:
+  scholarpath:
+    +target_schema: snapshots
+    +strategy: check
+    +check_cols: all
+
+tests:
+  +store_failures: true
+  +schema: dbt_test_failures
