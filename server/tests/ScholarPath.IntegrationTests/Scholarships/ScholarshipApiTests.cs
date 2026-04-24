@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using ScholarPath.Application.Common.Models;
 using ScholarPath.Application.Scholarships.DTOs;
@@ -5,45 +6,82 @@ using ScholarPath.Application.Scholarships.Queries;
 using ScholarPath.Infrastructure.Services;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using Testcontainers.MsSql;
+using Microsoft.Extensions.Configuration;
 
 namespace ScholarPath.IntegrationTests.Scholarships
 {
-    public class ScholarshipApiTests: IClassFixture<WebApplicationFactory<Program>>
+    public class ScholarshipApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {
-        private readonly HttpClient _client;
+        private readonly MsSqlContainer _dbContainer = new MsSqlBuilder().Build();
 
-        public ScholarshipApiTests(WebApplicationFactory<Program> factory)
+        public async Task InitializeAsync() => await _dbContainer.StartAsync();
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            _client = factory.CreateClient();
+            builder.ConfigureAppConfiguration((context, config) =>
+            {
+                config.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["ConnectionStrings:DefaultConnection"] = _dbContainer.GetConnectionString()
+                });
+            });
+        }
+
+        public override async ValueTask DisposeAsync()
+        {
+            if (_dbContainer != null)
+            {
+                await _dbContainer.DisposeAsync();
+            }
+                await base.DisposeAsync();
+            
+
+        }
+        Task IAsyncLifetime.DisposeAsync() => DisposeAsync().AsTask();
+        
+    }
+    public class ScholarshipTests(ScholarshipApiFactory factory)
+    : IClassFixture<ScholarshipApiFactory>
+    {
+        private readonly HttpClient _client = factory.CreateClient();
+
+        [Fact]
+        public async Task GetById_ShouldReturnArabicDetails_WhenLanguageIsAr()
+        {
+            // Arr
+            var scholarshipId = Guid.Parse("00000000-0000-0000-0000-000000000000"); // Id Scholarship 
+
+            // Act
+            var response = await _client.GetAsync(new Uri($"/api/v1/scholarships/{scholarshipId}?language=ar"));
+
+            // Assert
+            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            var result = await response.Content.ReadFromJsonAsync<ScholarshipDetailDto>();
+            result!.Title.Should().NotBeNullOrEmpty();
         }
 
         [Fact]
-        public async Task GetById_ShouldReturnNotFound_WhenScholarshipDoesNotExist()
+        public async Task GetById_ShouldReturn409Conflict_WhenScholarshipIsClosed()
         {
-            // Arrange
-            var fakeId = Guid.NewGuid();
+                // Arrange
+                // Closed 
+                var closedScholarshipId = Guid.Parse("0000000-0000-0000-0000-000000000000");
 
-            // Act
-            var response = await _client.GetAsync(new Uri($"/api/v1/scholarships/{fakeId}" ,UriKind.Relative));
+                // Act
+                var response = await _client.GetAsync(new Uri($"/api/v1/scholarships/{closedScholarshipId}"));
 
-            // Assert
-            response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
-        }
-
-        [Fact]
-        public async Task GetScholarships_ShouldReturnSuccessStatusCode()
-        {
-            // Act
-            var response = await _client.GetAsync(new Uri("/api/v1/scholarships?pageNumber=1&pageSize=10" ,UriKind.Relative));
-
-            // Assert
-            response.EnsureSuccessStatusCode();
-            var result = await response.Content.ReadFromJsonAsync<PaginatedList<ScholarshipDto>>();
-            result.Should().NotBeNull();
+                // Assert
+                // Conflict 
+                response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+            }
+           
         }
     }
-    
-    }
+
+
+
 
