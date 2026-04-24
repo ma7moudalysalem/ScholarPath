@@ -1,0 +1,103 @@
+{
+  "name": "reverse_etl_user_risk_flags",
+  "properties": {
+    "description": "PB-018 US-003 / FR-270 — reads the churn_risk_snapshot dataflow output and upserts rows into OLTP dbo.UserRiskFlags. Runs daily at 05:00 UTC, immediately after the 04:00 dataflow refresh.",
+    "parameters": {
+      "sourceFolder": { "type": "String", "defaultValue": "gold/dataflows/churn_risk_snapshot/" },
+      "sourceRefreshId": { "type": "String" }
+    },
+    "variables": {
+      "stagingTableName": { "type": "String", "defaultValue": "" }
+    },
+    "activities": [
+      {
+        "name": "set_staging_table",
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "stagingTableName",
+          "value": { "value": "@concat('stg_UserRiskFlags_', replace(pipeline().RunId, '-', ''))", "type": "Expression" }
+        }
+      },
+      {
+        "name": "create_staging_table",
+        "type": "Script",
+        "dependsOn": [{ "activity": "set_staging_table", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "linkedServiceName": { "referenceName": "ls_sql_oltp", "type": "LinkedServiceReference" },
+          "scripts": [{
+            "type": "NonQuery",
+            "text": {
+              "value": "IF OBJECT_ID('dbo.@{variables('stagingTableName')}') IS NOT NULL DROP TABLE dbo.@{variables('stagingTableName')}; CREATE TABLE dbo.@{variables('stagingTableName')} (UserId uniqueidentifier NOT NULL PRIMARY KEY, Score decimal(5,4) NOT NULL, IsAtRisk bit NOT NULL, Reason nvarchar(500) NULL);",
+              "type": "Expression"
+            }
+          }]
+        }
+      },
+      {
+        "name": "copy_snapshot_to_staging",
+        "type": "Copy",
+        "dependsOn": [{ "activity": "create_staging_table", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.00:10:00", "retry": 1 },
+        "typeProperties": {
+          "source": {
+            "type": "ParquetSource",
+            "storeSettings": {
+              "type": "AzureBlobFSReadSettings",
+              "recursive": false,
+              "wildcardFolderPath": { "value": "@pipeline().parameters.sourceFolder", "type": "Expression" },
+              "wildcardFileName": "*.parquet"
+            }
+          },
+          "sink": {
+            "type": "AzureSqlSink",
+            "writeBehavior": "insert",
+            "tableOption": "none",
+            "sqlWriterTableType": { "value": "@variables('stagingTableName')", "type": "Expression" }
+          },
+          "translator": {
+            "type": "TabularTranslator",
+            "mappings": [
+              { "source": { "name": "user_id", "type": "Guid" },    "sink": { "name": "UserId",   "type": "Guid" } },
+              { "source": { "name": "Score",   "type": "Double" },  "sink": { "name": "Score",    "type": "Decimal" } },
+              { "source": { "name": "IsAtRisk","type": "Boolean" }, "sink": { "name": "IsAtRisk", "type": "Boolean" } },
+              { "source": { "name": "Reason",  "type": "String" },  "sink": { "name": "Reason",   "type": "String" } }
+            ]
+          }
+        }
+      },
+      {
+        "name": "merge_into_target",
+        "type": "Script",
+        "dependsOn": [{ "activity": "copy_snapshot_to_staging", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "linkedServiceName": { "referenceName": "ls_sql_oltp", "type": "LinkedServiceReference" },
+          "scripts": [{
+            "type": "NonQuery",
+            "text": {
+              "value": "MERGE dbo.UserRiskFlags AS target USING dbo.@{variables('stagingTableName')} AS src ON target.UserId = src.UserId WHEN MATCHED THEN UPDATE SET target.Score = src.Score, target.IsAtRisk = src.IsAtRisk, target.Reason = src.Reason, target.ComputedAt = sysutcdatetime(), target.SourceRefreshId = '@{pipeline().parameters.sourceRefreshId}' WHEN NOT MATCHED BY TARGET THEN INSERT (Id, UserId, Score, IsAtRisk, Reason, ComputedAt, SourceRefreshId) VALUES (NEWID(), src.UserId, src.Score, src.IsAtRisk, src.Reason, sysutcdatetime(), '@{pipeline().parameters.sourceRefreshId}') WHEN NOT MATCHED BY SOURCE AND target.IsAtRisk = 1 THEN UPDATE SET IsAtRisk = 0, Score = 0, Reason = NULL, ComputedAt = sysutcdatetime(), SourceRefreshId = '@{pipeline().parameters.sourceRefreshId}';",
+              "type": "Expression"
+            }
+          }]
+        }
+      },
+      {
+        "name": "drop_staging_table",
+        "type": "Script",
+        "dependsOn": [
+          { "activity": "merge_into_target", "dependencyConditions": ["Succeeded", "Failed"] }
+        ],
+        "typeProperties": {
+          "linkedServiceName": { "referenceName": "ls_sql_oltp", "type": "LinkedServiceReference" },
+          "scripts": [{
+            "type": "NonQuery",
+            "text": {
+              "value": "IF OBJECT_ID('dbo.@{variables('stagingTableName')}') IS NOT NULL DROP TABLE dbo.@{variables('stagingTableName')};",
+              "type": "Expression"
+            }
+          }]
+        }
+      }
+    ],
+    "annotations": ["PB-018", "US-003", "FR-270"]
+  }
+}

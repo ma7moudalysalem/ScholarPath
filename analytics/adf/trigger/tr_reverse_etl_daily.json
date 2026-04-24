@@ -1,0 +1,26 @@
+{
+  "name": "tr_reverse_etl_daily",
+  "properties": {
+    "description": "Fires reverse_etl_user_risk_flags at 05:00 UTC daily — one hour after the 04:00 Power BI dataflow refresh.",
+    "type": "ScheduleTrigger",
+    "typeProperties": {
+      "recurrence": {
+        "frequency": "Day",
+        "interval": 1,
+        "startTime": "2026-05-01T05:00:00Z",
+        "timeZone": "UTC",
+        "schedule": { "hours": [5], "minutes": [0] }
+      }
+    },
+    "pipelines": [
+      {
+        "pipelineReference": { "referenceName": "reverse_etl_user_risk_flags", "type": "PipelineReference" },
+        "parameters": {
+          "sourceRefreshId": "@{guid()}"
+        }
+      }
+    ],
+    "runtimeState": "Stopped",
+    "annotations": ["PB-018", "US-003"]
+  }
+}

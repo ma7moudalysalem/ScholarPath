@@ -76,6 +76,10 @@ export interface AdminUserRow {
   roles: string[];
   createdAt: string;
   lastLoginAt: string | null;
+  /** PB-018 FR-270 — reverse-ETL flag from Power BI. */
+  isAtRisk: boolean;
+  /** Normalised 0..1 churn-risk score. Null when the user hasn't been scored yet. */
+  riskScore: number | null;
 }
 
 export interface AdminUserDetail extends Omit<AdminUserRow, "fullName"> {

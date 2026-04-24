@@ -709,3 +709,20 @@ public sealed class SuccessStoryConfiguration : IEntityTypeConfiguration<Success
         b.HasQueryFilter(s => !s.IsDeleted);
     }
 }
+
+public sealed class UserRiskFlagConfiguration : IEntityTypeConfiguration<UserRiskFlag>
+{
+    public void Configure(EntityTypeBuilder<UserRiskFlag> b)
+    {
+        // One row per user — reverse-ETL upserts on UserId.
+        b.HasIndex(f => f.UserId).IsUnique();
+        b.Property(f => f.Score).HasPrecision(5, 4);        // 0.0000 .. 1.0000
+        b.Property(f => f.Reason).HasMaxLength(500);
+        b.HasIndex(f => new { f.IsAtRisk, f.ComputedAt }); // admin "list at-risk" query path
+
+        b.HasOne(f => f.User)
+            .WithMany()
+            .HasForeignKey(f => f.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}

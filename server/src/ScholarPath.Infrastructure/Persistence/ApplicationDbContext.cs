@@ -83,6 +83,7 @@ public class ApplicationDbContext(
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<UserDataRequest> UserDataRequests => Set<UserDataRequest>();
     public DbSet<SuccessStory> SuccessStories => Set<SuccessStory>();
+    public DbSet<UserRiskFlag> UserRiskFlags => Set<UserRiskFlag>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

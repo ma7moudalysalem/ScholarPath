@@ -10,7 +10,9 @@ public sealed record AdminUserRow(
     bool IsOnboardingComplete,
     IReadOnlyList<string> Roles,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? LastLoginAt);
+    DateTimeOffset? LastLoginAt,
+    bool IsAtRisk,              // PB-018 FR-270 — reverse-ETL flag from Power BI
+    decimal? RiskScore);        // null when no UserRiskFlag row exists yet
 
 public sealed record AdminUserDetail(
     Guid Id,
