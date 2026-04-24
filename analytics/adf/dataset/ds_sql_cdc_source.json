@@ -1,0 +1,17 @@
+{
+  "name": "ds_sql_cdc_source",
+  "properties": {
+    "description": "Parameterised CDC source table. The Copy activity sets captureInstance per ForEach iteration and injects fromLsn/toLsn into the query.",
+    "linkedServiceName": { "referenceName": "ls_sql_oltp", "type": "LinkedServiceReference" },
+    "type": "AzureSqlTable",
+    "schema": [],
+    "parameters": {
+      "captureInstance": { "type": "String" }
+    },
+    "typeProperties": {
+      "schema": "cdc",
+      "tableName": { "value": "@concat('fn_cdc_get_net_changes_', dataset().captureInstance)", "type": "Expression" }
+    },
+    "annotations": ["PB-016", "US-002"]
+  }
+}

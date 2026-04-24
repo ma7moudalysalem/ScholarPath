@@ -1,0 +1,19 @@
+{
+  "name": "ls_adls_bronze",
+  "properties": {
+    "description": "Azure Data Lake Gen2 — Bronze zone. One container per zone (bronze/silver/gold).",
+    "type": "AzureBlobFS",
+    "typeProperties": {
+      "url": "@{linkedService().url}",
+      "accountKey": {
+        "type": "AzureKeyVaultSecret",
+        "store": { "referenceName": "ls_key_vault", "type": "LinkedServiceReference" },
+        "secretName": "adls-account-key"
+      }
+    },
+    "parameters": {
+      "url": { "type": "String" }
+    },
+    "annotations": ["PB-016", "US-002"]
+  }
+}

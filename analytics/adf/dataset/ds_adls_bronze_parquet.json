@@ -1,0 +1,30 @@
+{
+  "name": "ds_adls_bronze_parquet",
+  "properties": {
+    "description": "Bronze Parquet sink. Partitioned by load_date=YYYY-MM-DD / table=<captureInstance>. Snappy compression.",
+    "linkedServiceName": { "referenceName": "ls_adls_bronze", "type": "LinkedServiceReference" },
+    "type": "Parquet",
+    "parameters": {
+      "captureInstance": { "type": "String" },
+      "loadDate":        { "type": "String" },
+      "pipelineRunId":   { "type": "String" }
+    },
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobFSLocation",
+        "fileSystem": "bronze",
+        "folderPath": {
+          "value": "@concat('cdc/table=', dataset().captureInstance, '/load_date=', dataset().loadDate)",
+          "type": "Expression"
+        },
+        "fileName": {
+          "value": "@concat(dataset().captureInstance, '_', dataset().pipelineRunId, '.parquet')",
+          "type": "Expression"
+        }
+      },
+      "compressionCodec": "snappy"
+    },
+    "schema": [],
+    "annotations": ["PB-016", "US-002"]
+  }
+}

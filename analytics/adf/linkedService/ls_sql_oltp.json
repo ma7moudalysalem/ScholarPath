@@ -1,0 +1,26 @@
+{
+  "name": "ls_sql_oltp",
+  "properties": {
+    "description": "ScholarPath OLTP SQL Server — source for CDC deltas.",
+    "type": "AzureSqlDatabase",
+    "typeProperties": {
+      "connectionString": "@{linkedService().connectionString}",
+      "encrypt": "mandatory",
+      "trustServerCertificate": false,
+      "authenticationType": "ServicePrincipal",
+      "servicePrincipalId": "@{linkedService().servicePrincipalId}",
+      "servicePrincipalKey": {
+        "type": "AzureKeyVaultSecret",
+        "store": { "referenceName": "ls_key_vault", "type": "LinkedServiceReference" },
+        "secretName": "adf-sql-sp-secret"
+      },
+      "tenant": "@{linkedService().tenant}"
+    },
+    "parameters": {
+      "connectionString": { "type": "String" },
+      "servicePrincipalId": { "type": "String" },
+      "tenant":             { "type": "String" }
+    },
+    "annotations": ["PB-016", "US-002"]
+  }
+}

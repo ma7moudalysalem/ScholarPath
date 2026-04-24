@@ -1,0 +1,138 @@
+{
+  "name": "cdc_to_bronze",
+  "properties": {
+    "description": "PB-016 US-002 / FR-228 — pulls CDC net-changes for every tracked OLTP table and lands them in Bronze as daily-partitioned Parquet. Triggered every 15 minutes.",
+    "parameters": {
+      "captureInstances": {
+        "type": "Array",
+        "defaultValue": [
+          "dbo_AspNetUsers",
+          "dbo_UserProfiles",
+          "dbo_UpgradeRequests",
+          "dbo_Scholarships",
+          "dbo_SavedScholarships",
+          "dbo_ApplicationTrackers",
+          "dbo_CompanyReviews",
+          "dbo_ConsultantBookings",
+          "dbo_Payments",
+          "dbo_Payouts",
+          "dbo_ForumPosts",
+          "dbo_ChatMessages",
+          "dbo_AiInteractions",
+          "dbo_RecommendationClickEvents",
+          "dbo_Notifications"
+        ]
+      }
+    },
+    "variables": {
+      "maxLsn":    { "type": "String" },
+      "loadDate":  { "type": "String" }
+    },
+    "activities": [
+      {
+        "name": "set_load_date",
+        "type": "SetVariable",
+        "typeProperties": {
+          "variableName": "loadDate",
+          "value": { "value": "@formatDateTime(utcNow(), 'yyyy-MM-dd')", "type": "Expression" }
+        }
+      },
+      {
+        "name": "lookup_max_lsn",
+        "type": "Lookup",
+        "dependsOn": [{ "activity": "set_load_date", "dependencyConditions": ["Succeeded"] }],
+        "policy": { "timeout": "0.00:02:00", "retry": 2 },
+        "typeProperties": {
+          "source": {
+            "type": "AzureSqlSource",
+            "sqlReaderQuery": "SELECT CONVERT(varchar(22), sys.fn_cdc_get_max_lsn(), 1) AS MaxLsnHex"
+          },
+          "dataset": { "referenceName": "ds_sql_cdc_source", "type": "DatasetReference", "parameters": { "captureInstance": "none" } },
+          "firstRowOnly": true
+        }
+      },
+      {
+        "name": "set_max_lsn",
+        "type": "SetVariable",
+        "dependsOn": [{ "activity": "lookup_max_lsn", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "variableName": "maxLsn",
+          "value": { "value": "@activity('lookup_max_lsn').output.firstRow.MaxLsnHex", "type": "Expression" }
+        }
+      },
+      {
+        "name": "foreach_table",
+        "type": "ForEach",
+        "dependsOn": [{ "activity": "set_max_lsn", "dependencyConditions": ["Succeeded"] }],
+        "typeProperties": {
+          "items": { "value": "@pipeline().parameters.captureInstances", "type": "Expression" },
+          "isSequential": false,
+          "batchCount": 5,
+          "activities": [
+            {
+              "name": "lookup_from_lsn",
+              "type": "Lookup",
+              "policy": { "timeout": "0.00:02:00", "retry": 2 },
+              "typeProperties": {
+                "source": {
+                  "type": "AzureSqlSource",
+                  "sqlReaderQuery": {
+                    "value": "SELECT CONVERT(varchar(22), LastToLsn, 1) AS FromLsnHex FROM analytics.BronzeWatermark WHERE CaptureInstance = '@{item()}'",
+                    "type": "Expression"
+                  }
+                },
+                "dataset": { "referenceName": "ds_sql_cdc_source", "type": "DatasetReference", "parameters": { "captureInstance": "@{item()}" } },
+                "firstRowOnly": true
+              }
+            },
+            {
+              "name": "copy_cdc_to_bronze",
+              "type": "Copy",
+              "dependsOn": [{ "activity": "lookup_from_lsn", "dependencyConditions": ["Succeeded"] }],
+              "policy": { "timeout": "0.00:15:00", "retry": 1 },
+              "typeProperties": {
+                "source": {
+                  "type": "AzureSqlSource",
+                  "sqlReaderQuery": {
+                    "value": "DECLARE @from binary(10) = CONVERT(binary(10), '@{activity('lookup_from_lsn').output.firstRow.FromLsnHex}', 1); DECLARE @to binary(10) = CONVERT(binary(10), '@{variables('maxLsn')}', 1); IF @from = @to SELECT TOP 0 *, NULL AS cdc_operation, NULL AS cdc_commit_ts FROM cdc.fn_cdc_get_net_changes_@{item()}(@from, @from, N'all with mask') ELSE SELECT *, __$operation AS cdc_operation, sys.fn_cdc_map_lsn_to_time(__$start_lsn) AS cdc_commit_ts FROM cdc.fn_cdc_get_net_changes_@{item()}(@from, @to, N'all with mask')",
+                    "type": "Expression"
+                  }
+                },
+                "sink": { "type": "ParquetSink", "storeSettings": { "type": "AzureBlobFSWriteSettings" } },
+                "enableStaging": false
+              },
+              "inputs": [{ "referenceName": "ds_sql_cdc_source", "type": "DatasetReference", "parameters": { "captureInstance": "@{item()}" } }],
+              "outputs": [{
+                "referenceName": "ds_adls_bronze_parquet",
+                "type": "DatasetReference",
+                "parameters": {
+                  "captureInstance": "@{item()}",
+                  "loadDate":        "@{variables('loadDate')}",
+                  "pipelineRunId":   "@{pipeline().RunId}"
+                }
+              }]
+            },
+            {
+              "name": "update_watermark",
+              "type": "Script",
+              "dependsOn": [{ "activity": "copy_cdc_to_bronze", "dependencyConditions": ["Succeeded"] }],
+              "typeProperties": {
+                "linkedServiceName": { "referenceName": "ls_sql_oltp", "type": "LinkedServiceReference" },
+                "scripts": [
+                  {
+                    "type": "NonQuery",
+                    "text": {
+                      "value": "UPDATE analytics.BronzeWatermark SET LastFromLsn = LastToLsn, LastToLsn = CONVERT(binary(10), '@{variables('maxLsn')}', 1), RowsCopied = ISNULL(@{activity('copy_cdc_to_bronze').output.rowsCopied}, 0), UpdatedAtUtc = sysutcdatetime(), UpdatedByPipelineRunId = '@{pipeline().RunId}' WHERE CaptureInstance = '@{item()}';",
+                      "type": "Expression"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "annotations": ["PB-016", "US-002", "FR-228"]
+  }
+}
