@@ -20,6 +20,8 @@ using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Infrastructure.Persistence.Seed;
 using ScholarPath.Infrastructure.Settings;
 using Serilog;
+using ScholarPath.Application.Common.Interfaces;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
