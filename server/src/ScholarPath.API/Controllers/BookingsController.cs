@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.ConsultantBookings.Commands.AcceptBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.CancelBooking;
+using ScholarPath.Application.ConsultantBookings.Commands.MarkNoShow;
 using ScholarPath.Application.ConsultantBookings.Commands.RejectBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.RequestBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
@@ -70,6 +71,21 @@ public sealed class BookingsController : ControllerBase
     public async Task<IActionResult> CancelBooking(
         Guid id,
         [FromBody] CancelBookingCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (id != command.BookingId)
+        {
+            return BadRequest("Route booking id does not match body booking id.");
+        }
+
+        await _sender.Send(command, cancellationToken);
+        return NoContent();
+    }
+
+    [HttpPost("{id:guid}/no-show")]
+    public async Task<IActionResult> MarkNoShow(
+        Guid id,
+        [FromBody] MarkNoShowCommand command,
         CancellationToken cancellationToken)
     {
         if (id != command.BookingId)
