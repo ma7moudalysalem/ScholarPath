@@ -1,0 +1,87 @@
+name: analytics-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "analytics/**"
+      - ".github/workflows/analytics-ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "analytics/**"
+      - ".github/workflows/analytics-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: analytics-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── dbt: compile + unit tests against the CI warehouse ──────────────
+  dbt:
+    name: dbt build + test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: analytics/dbt
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: analytics/dbt/requirements.txt
+
+      - name: Install ODBC driver + dbt-sqlserver
+        run: |
+          sudo curl -sSL -O https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb
+          sudo dpkg -i packages-microsoft-prod.deb
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
+          pip install -r requirements.txt
+
+      - name: dbt deps
+        run: dbt deps
+
+      - name: dbt parse (compile + test for syntax issues without DB)
+        run: dbt parse
+
+      - name: dbt build (CI warehouse)
+        if: ${{ env.DBT_CI_SERVER != '' }}
+        env:
+          DBT_CI_SERVER:   ${{ secrets.DBT_CI_SERVER }}
+          DBT_CI_DB:       ${{ secrets.DBT_CI_DB }}
+          DBT_CI_USER:     ${{ secrets.DBT_CI_USER }}
+          DBT_CI_PASSWORD: ${{ secrets.DBT_CI_PASSWORD }}
+        run: dbt build --target ci --fail-fast
+
+  # ─── ADF: JSON schema validation ─────────────────────────────────────
+  adf:
+    name: ADF JSON lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate ADF JSON
+        run: |
+          npm i -g ajv-cli
+          for f in analytics/adf/pipeline/*.json analytics/adf/dataset/*.json analytics/adf/linkedService/*.json analytics/adf/trigger/*.json; do
+            node -e "JSON.parse(require('fs').readFileSync('$f'))" && echo "ok   $f" || (echo "BAD  $f" && exit 1)
+          done
+
+  # ─── SQL: sqlfluff lint for the bootstrap scripts ────────────────────
+  sql:
+    name: sqlfluff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install sqlfluff==3.2.5
+      - run: sqlfluff lint analytics/sql --dialect tsql --rules core --disable-progress-bar

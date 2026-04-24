@@ -1,0 +1,118 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "description": "PB-016 US-008 / FR-241..FR-245 — Data Factory + dependent resources for the ScholarPath medallion warehouse. Deployable to dev / staging / prod with parameter-file overrides."
+  },
+  "parameters": {
+    "factoryName": {
+      "type": "string",
+      "metadata": { "description": "ADF instance name. Must be globally unique." }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]"
+    },
+    "sqlServerFqdn": {
+      "type": "string",
+      "metadata": { "description": "scholarpath-sql-<env>.database.windows.net" }
+    },
+    "oltpDatabaseName": {
+      "type": "string",
+      "defaultValue": "ScholarPathDb"
+    },
+    "adlsStorageAccountName": {
+      "type": "string"
+    },
+    "keyVaultName": {
+      "type": "string"
+    },
+    "tenantId": {
+      "type": "string",
+      "defaultValue": "[subscription().tenantId]"
+    },
+    "servicePrincipalClientId": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "adlsUrl": "[concat('https://', parameters('adlsStorageAccountName'), '.dfs.core.windows.net')]",
+    "keyVaultUrl": "[concat('https://', parameters('keyVaultName'), '.vault.azure.net/')]",
+    "sqlConnectionString": "[concat('Server=tcp:', parameters('sqlServerFqdn'), ',1433;Database=', parameters('oltpDatabaseName'), ';Encrypt=true;Connection Timeout=30;')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.DataFactory/factories",
+      "apiVersion": "2018-06-01",
+      "name": "[parameters('factoryName')]",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "publicNetworkAccess": "Enabled"
+      },
+      "tags": {
+        "project": "ScholarPath",
+        "module":  "PB-016",
+        "owner":   "mahmoud"
+      }
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[concat(parameters('factoryName'), '/ls_key_vault')]",
+      "dependsOn": [ "[resourceId('Microsoft.DataFactory/factories', parameters('factoryName'))]" ],
+      "properties": {
+        "type": "AzureKeyVault",
+        "typeProperties": { "baseUrl": "[variables('keyVaultUrl')]" }
+      }
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[concat(parameters('factoryName'), '/ls_sql_oltp')]",
+      "dependsOn": [ "[resourceId('Microsoft.DataFactory/factories/linkedservices', parameters('factoryName'), 'ls_key_vault')]" ],
+      "properties": {
+        "type": "AzureSqlDatabase",
+        "parameters": {
+          "connectionString":   { "type": "String", "defaultValue": "[variables('sqlConnectionString')]" },
+          "servicePrincipalId": { "type": "String", "defaultValue": "[parameters('servicePrincipalClientId')]" },
+          "tenant":             { "type": "String", "defaultValue": "[parameters('tenantId')]" }
+        },
+        "typeProperties": {
+          "connectionString": "@{linkedService().connectionString}",
+          "authenticationType": "ServicePrincipal",
+          "servicePrincipalId": "@{linkedService().servicePrincipalId}",
+          "servicePrincipalKey": {
+            "type": "AzureKeyVaultSecret",
+            "store": { "referenceName": "ls_key_vault", "type": "LinkedServiceReference" },
+            "secretName": "adf-sql-sp-secret"
+          },
+          "tenant": "@{linkedService().tenant}",
+          "encrypt": "mandatory"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[concat(parameters('factoryName'), '/ls_adls_bronze')]",
+      "dependsOn": [ "[resourceId('Microsoft.DataFactory/factories/linkedservices', parameters('factoryName'), 'ls_key_vault')]" ],
+      "properties": {
+        "type": "AzureBlobFS",
+        "parameters": { "url": { "type": "String", "defaultValue": "[variables('adlsUrl')]" } },
+        "typeProperties": {
+          "url": "@{linkedService().url}",
+          "accountKey": {
+            "type": "AzureKeyVaultSecret",
+            "store": { "referenceName": "ls_key_vault", "type": "LinkedServiceReference" },
+            "secretName": "adls-account-key"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "factoryId":      { "type": "string", "value": "[resourceId('Microsoft.DataFactory/factories', parameters('factoryName'))]" },
+    "managedIdentity":{ "type": "string", "value": "[reference(resourceId('Microsoft.DataFactory/factories', parameters('factoryName')), '2018-06-01', 'full').identity.principalId]" }
+  }
+}
