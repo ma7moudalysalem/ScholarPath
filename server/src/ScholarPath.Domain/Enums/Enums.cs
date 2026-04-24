@@ -217,6 +217,17 @@ public enum AiProvider
     AzureOpenAi = 2,
 }
 
+/// <summary>
+/// PII-redaction audit verdict per sample (PB-017 US-178 / FR-255).
+/// </summary>
+public enum RedactionVerdict
+{
+    Clean = 0,
+    MissedEmail = 1,
+    MissedPhone = 2,
+    MissedCard = 3,
+}
+
 public enum UserDataRequestType
 {
     Export = 0,

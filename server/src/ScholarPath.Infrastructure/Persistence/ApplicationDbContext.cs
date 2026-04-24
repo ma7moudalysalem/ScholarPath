@@ -65,6 +65,8 @@ public class ApplicationDbContext(
 
     // AI
     public DbSet<AiInteraction> AiInteractions => Set<AiInteraction>();
+    public DbSet<RecommendationClickEvent> RecommendationClickEvents => Set<RecommendationClickEvent>();
+    public DbSet<AiRedactionAuditSample> AiRedactionAuditSamples => Set<AiRedactionAuditSample>();
 
     // Resources
     public DbSet<Resource> Resources => Set<Resource>();

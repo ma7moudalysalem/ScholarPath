@@ -50,6 +50,8 @@ public interface IApplicationDbContext
     DbSet<UserBlock> UserBlocks { get; }
 
     DbSet<AiInteraction> AiInteractions { get; }
+    DbSet<RecommendationClickEvent> RecommendationClickEvents { get; }
+    DbSet<AiRedactionAuditSample> AiRedactionAuditSamples { get; }
 
     DbSet<Resource> Resources { get; }
     DbSet<ResourceChild> ResourceChapters { get; }
