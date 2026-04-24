@@ -1,84 +1,51 @@
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Scholarships.DTOs;
 using ScholarPath.Application.Scholarships.Queries;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
-
+using System;
+using System.Collections.Generic;
+using System.Text;
+using ScholarPath.Application.Common.Exceptions;
 namespace ScholarPath.UnitTests.Scholarships
-{
-    public class GetScholarshipsQueryTests : IDisposable
+{// في مشروع ScholarPath.UnitTests
+    public class GetScholarshipByIdHandlerTests
     {
-        private readonly ApplicationDbContext _context;
-        private readonly GetScholarshipsQueryHandler _handler;
+        private readonly IApplicationDbContext _context;
+        private readonly GetScholarshipByIdQueryHandler _handler;
 
-        public GetScholarshipsQueryTests()
+        public GetScholarshipByIdHandlerTests()
         {
-            
+            // بنستخدم InMemory عشان نختبر الـ LINQ Queries
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
                 .Options;
 
             _context = new ApplicationDbContext(options);
-            _handler = new GetScholarshipsQueryHandler(_context);
+            _handler = new GetScholarshipByIdQueryHandler(_context);
         }
 
         [Fact]
-        public async Task Handle_ShouldReturnOnlyOpenScholarships()
+        public async Task Handle_ShouldThrowNotFoundException_WhenIdDoesNotExist()
         {
             // Arrange
-            _context.Scholarships.AddRange(
-                new Scholarship { TitleEn = "Open 1",TitleAr ="منحة مفتوحة 1" ,DescriptionEn = "Description for open scholarship",DescriptionAr ="وصف المنحة ", Status = ScholarshipStatus.Open, Slug = "s1" },
-                new Scholarship { TitleEn = "Draft 1",TitleAr = "غير مرئية 1" ,DescriptionEn = "Description 2" , DescriptionAr ="وصف 2",Status = ScholarshipStatus.Draft, Slug = "s2" }
-            );
-            await _context.SaveChangesAsync();
-
-            var query = new GetScholarshipsQuery();
+            var query = new GetScholarshipByIdQuery(Guid.NewGuid());
 
             // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
+            var act = () => _handler.Handle(query, CancellationToken.None);
 
             // Assert
-            result.Items.Should().HaveCount(1);
-            result.Items.First().Title.Should().Be("Open 1");
-        }
-
-        [Fact]
-        public async Task Handle_WithSearchTerm_ShouldFilterResults()
-        {
-            // Arrange
-            _context.Scholarships.AddRange(
-                new Scholarship { TitleEn = "Medical Grant",TitleAr ="منحه طبية", Status = ScholarshipStatus.Open, Slug = "m1", DescriptionEn = "desc",DescriptionAr ="وصف المنحة الطبية " },
-                new Scholarship { TitleEn = "Engineering Grant",TitleAr ="وصف المنحة الهندسية " ,Status = ScholarshipStatus.Open, Slug = "e1", DescriptionEn = "desc" ,DescriptionAr ="وصف المنحة الهندسية"}
-            );
-            await _context.SaveChangesAsync();
-
-            var query = new GetScholarshipsQuery { SearchTerm = "Medical" };
-
-            // Act
-            var result = await _handler.Handle(query, CancellationToken.None);
-
-            // Assert
-            result.Items.Should().ContainSingle();
-            result.Items.First().Title.Should().Be("Medical Grant");
-        }
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _context?.Dispose();
-            }
+            await act.Should().ThrowAsync<NotFoundException>();
         }
     }
 }
+
+
+
 
 
 

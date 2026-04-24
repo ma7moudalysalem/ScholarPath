@@ -4,6 +4,8 @@
   <!-- Domain minimizes external dependencies. Only Identity base types (POCOs) are allowed. -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Identity.Stores" />
+    <PackageReference Include="MockQueryable.NSubstitute" />
+    <PackageReference Include="NSubstitute" />
   </ItemGroup>
 
 </Project>
