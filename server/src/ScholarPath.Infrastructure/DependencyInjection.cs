@@ -109,6 +109,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationDispatcherJob, NotificationDispatcherJob>();
         services.AddScoped<IStripePayoutJob, StripePayoutJob>();
         services.AddScoped<ISessionExpiryJob, SessionExpiryJob>();
+        services.AddScoped<ICompletionJob, CompletionJob>();
         services.AddScoped<IIntegrityCheckJob, IntegrityCheckJob>();
         services.AddScoped<IDataExportJob, DataExportJob>();
         services.AddScoped<IDataDeleteJob, DataDeleteJob>();

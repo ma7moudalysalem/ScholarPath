@@ -12,6 +12,7 @@ using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using ScholarPath.API.Middleware;
 using ScholarPath.Application;
+using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Infrastructure;
 using ScholarPath.Infrastructure.Hubs;
@@ -20,8 +21,6 @@ using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Infrastructure.Persistence.Seed;
 using ScholarPath.Infrastructure.Settings;
 using Serilog;
-using ScholarPath.Application.Common.Interfaces;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,7 +38,7 @@ builder.Services
     .AddJsonOptions(opts =>
     {
         opts.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-        opts.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+        opts.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
     });
 
 // ─── Application + Infrastructure DI ─────────────────────────────────────────
@@ -71,6 +70,7 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
             ClockSkew = TimeSpan.FromMinutes(1),
         };
+
         // Allow JWT via query string for SignalR
         opts.Events = new JwtBearerEvents
         {
@@ -82,6 +82,7 @@ builder.Services
                 {
                     ctx.Token = accessToken;
                 }
+
                 return Task.CompletedTask;
             },
         };
@@ -111,6 +112,7 @@ builder.Services.AddRateLimiter(opts =>
                 PermitLimit = 10,
                 QueueLimit = 0,
             }));
+
     opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -121,7 +123,12 @@ builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opts =>
 {
-    opts.SwaggerDoc("v1", new OpenApiInfo { Title = "ScholarPath API", Version = "v1", Description = "Gated scholarship platform." });
+    opts.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "ScholarPath API",
+        Version = "v1",
+        Description = "Gated scholarship platform."
+    });
 
     opts.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -132,6 +139,7 @@ builder.Services.AddSwaggerGen(opts =>
         In = ParameterLocation.Header,
         Description = "Paste: {token}",
     });
+
     opts.AddSecurityRequirement((Microsoft.OpenApi.OpenApiDocument doc) => new OpenApiSecurityRequirement
     {
         { new OpenApiSecuritySchemeReference("Bearer"), new List<string>() },
@@ -147,10 +155,12 @@ var hangfireOpts = builder.Configuration.GetSection(HangfireOptions.SectionName)
 if (hangfireOpts.Enabled)
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
     builder.Services.AddHangfire(cfg =>
     {
         cfg.UseSimpleAssemblyNameTypeSerializer()
            .UseRecommendedSerializerSettings();
+
         if (!string.IsNullOrWhiteSpace(connectionString))
         {
             cfg.UseSqlServerStorage(connectionString, new SqlServerStorageOptions
@@ -164,6 +174,7 @@ if (hangfireOpts.Enabled)
             cfg.UseMemoryStorage();
         }
     });
+
     builder.Services.AddHangfireServer();
 }
 
@@ -214,12 +225,41 @@ if (hangfireOpts.Enabled && hangfireOpts.DashboardEnabled)
 if (hangfireOpts.Enabled)
 {
     var recurring = app.Services.GetRequiredService<IRecurringJobManager>();
-    recurring.AddOrUpdate<IDataExportJob>("data-export-sweep", j => j.RunAsync(CancellationToken.None), Cron.Hourly);
-    recurring.AddOrUpdate<IDataDeleteJob>("data-delete-sweep", j => j.RunAsync(CancellationToken.None), Cron.Daily(3)); // 03:00 UTC
-    recurring.AddOrUpdate<IIntegrityCheckJob>("integrity-check", j => j.RunAsync(CancellationToken.None), Cron.Daily(4));
-    recurring.AddOrUpdate<ISessionExpiryJob>("session-expiry", j => j.RunAsync(CancellationToken.None), "*/15 * * * *"); // every 15 min
-    recurring.AddOrUpdate<IStripePayoutJob>("stripe-payouts", j => j.RunAsync(CancellationToken.None), Cron.Daily(2));
-    recurring.AddOrUpdate<IDeadlineReminderJob>("deadline-reminders", j => j.RunAsync(CancellationToken.None), Cron.Daily(9));
+
+    recurring.AddOrUpdate<IDataExportJob>(
+        "data-export-sweep",
+        j => j.RunAsync(CancellationToken.None),
+        Cron.Hourly);
+
+    recurring.AddOrUpdate<IDataDeleteJob>(
+        "data-delete-sweep",
+        j => j.RunAsync(CancellationToken.None),
+        Cron.Daily(3)); // 03:00 UTC
+
+    recurring.AddOrUpdate<IIntegrityCheckJob>(
+        "integrity-check",
+        j => j.RunAsync(CancellationToken.None),
+        Cron.Daily(4));
+
+    recurring.AddOrUpdate<ISessionExpiryJob>(
+        "session-expiry",
+        j => j.RunAsync(CancellationToken.None),
+        "*/15 * * * *"); // every 15 min
+
+    recurring.AddOrUpdate<ICompletionJob>(
+        "booking-completion",
+        j => j.RunAsync(CancellationToken.None),
+        "*/15 * * * *"); // every 15 min
+
+    recurring.AddOrUpdate<IStripePayoutJob>(
+        "stripe-payouts",
+        j => j.RunAsync(CancellationToken.None),
+        Cron.Daily(2));
+
+    recurring.AddOrUpdate<IDeadlineReminderJob>(
+        "deadline-reminders",
+        j => j.RunAsync(CancellationToken.None),
+        Cron.Daily(9));
 }
 
 // ─── Seed database ───────────────────────────────────────────────────────────
@@ -227,11 +267,13 @@ using (var scope = app.Services.CreateScope())
 {
     var sp = scope.ServiceProvider;
     var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("DbSeeder");
+
     try
     {
         var db = sp.GetRequiredService<ApplicationDbContext>();
         var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
         var rm = sp.GetRequiredService<RoleManager<ApplicationRole>>();
+
         if (app.Environment.IsDevelopment())
         {
             await DbSeeder.SeedAsync(db, um, rm, logger, CancellationToken.None).ConfigureAwait(false);
@@ -252,14 +294,15 @@ internal sealed class AdminDashboardAuthorizationFilter : Hangfire.Dashboard.IDa
 {
     public bool Authorize(Hangfire.Dashboard.DashboardContext context)
     {
-        // Delegate to reflection since Hangfire.Dashboard.DashboardContext APIs differ across versions.
         var ctxType = context.GetType();
         var httpCtxProp = ctxType.GetProperty("HttpContext")
             ?? ctxType.BaseType?.GetProperty("HttpContext");
+
         if (httpCtxProp?.GetValue(context) is Microsoft.AspNetCore.Http.HttpContext http)
         {
             return http.User.Identity?.IsAuthenticated == true && http.User.IsInRole("Admin");
         }
+
         return false;
     }
 }
