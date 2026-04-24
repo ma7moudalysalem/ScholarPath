@@ -15,6 +15,8 @@ using ScholarPath.Application.Admin.Queries.GetUpgradeQueue;
 using ScholarPath.Application.Admin.Queries.GetUserDetail;
 using ScholarPath.Application.Admin.Queries.GetUserGrowth;
 using ScholarPath.Application.Admin.Queries.SearchUsers;
+using ScholarPath.Application.Ai.DTOs;
+using ScholarPath.Application.Ai.Queries.GetAiUsageSummary;
 using ScholarPath.Application.Audit.DTOs;
 using ScholarPath.Application.Audit.Queries.GetAuditLog;
 using ScholarPath.Domain.Enums;
@@ -164,6 +166,20 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> ApplicationFunnel(CancellationToken ct)
     {
         var result = await mediator.Send(new GetApplicationFunnelQuery(), ct).ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// AI economy dashboard payload — cost, volume, latency, and recommendation
+    /// CTR. Window is clamped server-side to {7, 30, 90} days (PB-017 FR-248..FR-252).
+    /// </summary>
+    [HttpGet("analytics/ai-usage")]
+    [ProducesResponseType(typeof(AiUsageSummaryDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AiUsage(
+        [FromQuery] int windowDays = 30,
+        CancellationToken ct = default)
+    {
+        var result = await mediator.Send(new GetAiUsageSummaryQuery(windowDays), ct).ConfigureAwait(false);
         return Ok(result);
     }
 
