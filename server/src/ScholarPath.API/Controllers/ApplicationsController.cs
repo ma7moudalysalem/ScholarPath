@@ -19,7 +19,7 @@ namespace ScholarPath.API.Controllers
         [HttpPost]
         public async Task<ActionResult<ApplicationDto>> Create(CreateApplicationCommand command)
         {
-            // نستخدم المتغير المحقون _mediator
+            //use mediatod
             return await _mediator.Send(command);
         }
     }

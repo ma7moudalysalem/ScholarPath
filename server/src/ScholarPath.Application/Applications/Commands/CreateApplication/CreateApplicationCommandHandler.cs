@@ -28,7 +28,6 @@ namespace ScholarPath.Application.Applications.Commands.CreateApplication
                 .FirstOrDefaultAsync(s => s.Id == request.ScholarshipId, ct)
                 ?? throw new NotFoundException(nameof(Scholarship), request.ScholarshipId);
 
-            // ✅ التصحيح: استخدمنا Open بدلاً من Published
             if (scholarship.Status != ScholarshipStatus.Open)
                 throw new ConflictException("عذراً، هذه المنحة غير متاحة لاستقبال طلبات حالياً.");
 
@@ -46,7 +45,6 @@ namespace ScholarPath.Application.Applications.Commands.CreateApplication
                 Id = Guid.NewGuid(),
                 StudentId = userId,
                 ScholarshipId = request.ScholarshipId,
-                // ✅ التصحيح: استخدمنا Pending بدلاً من Submitted
                 Status = ApplicationStatus.Pending,
                 SubmittedAt = clock.UtcNow,
                 PersonalNotes = request.PersonalNotes,
