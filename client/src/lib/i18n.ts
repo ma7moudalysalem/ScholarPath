@@ -11,6 +11,8 @@ import enEmptyStates from "@/locales/en/emptyStates.json";
 import enPrivacy from "@/locales/en/privacy.json";
 import enAdmin from "@/locales/en/admin.json";
 import enAi from "@/locales/en/ai.json";
+import enApplications from "@/locales/en/applications.json";
+import enCompany from "@/locales/en/company.json";
 
 import arCommon from "@/locales/ar/common.json";
 import arAuth from "@/locales/ar/auth.json";
@@ -37,7 +39,7 @@ void i18n
   .init({
     fallbackLng: "en",
     supportedLngs: supportedLanguages,
-    ns: ["common", "auth", "home", "errors", "nav", "emptyStates", "privacy", "admin", "ai"],
+    ns: ["common", "auth", "home", "errors", "nav", "emptyStates", "privacy", "admin", "ai", "applications", "company"],
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {
@@ -56,6 +58,8 @@ void i18n
         privacy: enPrivacy,
         admin: enAdmin,
         ai: enAi,
+        applications: enApplications,
+        company: enCompany,
       },
       ar: {
         common: arCommon,

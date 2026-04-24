@@ -83,7 +83,7 @@ export function UpgradeQueue() {
             {!isLoading && (data?.items.length ?? 0) === 0 && (
               <tr><td colSpan={6} className="px-4 py-6 text-center text-text-tertiary">{t("admin:upgrades.empty")}</td></tr>
             )}
-            {data?.items.map((r) => (
+            {data?.items.map((r: UpgradeRequestRow) => (
               <tr key={r.id} className="border-t border-border-subtle hover:bg-bg-subtle/40">
                 <td className="px-4 py-3 font-medium">{r.userEmail}</td>
                 <td className="px-4 py-3">{r.target}</td>

@@ -1,0 +1,32 @@
+{
+  "title": "طلباتي",
+  "subtitle": "تتبع وإدارة طلبات المنح الدراسية الخاصة بك في مكان واحد.",
+  "kanban": {
+    "columns": {
+      "Draft": "مسودات",
+      "Pending": "تم التقديم",
+      "UnderReview": "تحت المراجعة",
+      "Accepted": "مقبول",
+      "Rejected": "مرفوض",
+      "Withdrawn": "مسحوب",
+      "Intending": "أنوي التقديم",
+      "Applied": "تم التقديم",
+      "WaitingResult": "في انتظار النتيجة"
+    },
+    "emptyColumn": "لا توجد طلبات هنا",
+    "moveSuccess": "تم تحديث الحالة بنجاح",
+    "moveError": "فشل تحديث الحالة"
+  },
+  "card": {
+    "viewDetails": "عرض التفاصيل",
+    "external": "خارجي",
+    "inApp": "داخل التطبيق",
+    "updated": "تم التحديث"
+  },
+  "review": {
+    "triggerTitle": "قيم تجربتك",
+    "triggerBody": "لقد وصلت إلى قرار نهائي لـ {{company}}. هل تود ترك مراجعة؟",
+    "rateNow": "قيم الآن",
+    "maybeLater": "ربما لاحقاً"
+  }
+}

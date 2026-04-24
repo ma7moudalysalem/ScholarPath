@@ -39,11 +39,7 @@ const StudentScholarshipDetail = stub(
   "PB-003 Scholarship Detail",
   ".specify/specs/PB-003-scholarship-discovery",
 );
-const StudentApplications = stub(
-  "@norra-mmhamed",
-  "PB-004 Applications",
-  ".specify/specs/PB-004-application-tracking",
-);
+const StudentApplications = lazy(() => import("@/pages/student/Applications").then((m) => ({ default: m.Applications })));
 const StudentApplicationDetail = stub(
   "@norra-mmhamed",
   "PB-004 Application detail",
@@ -57,22 +53,19 @@ const StudentConsultantDetail = stub(
   ".specify/specs/PB-006-consultant-booking",
 );
 const StudentBookings = stub("@norra-mmhamed", "PB-006 My bookings", ".specify/specs/PB-006-consultant-booking");
-const StudentCommunity = stub("@yousra-elnoby", "PB-007 Community", ".specify/specs/PB-007-community-chat");
+const StudentCommunity = lazy(() => import("@/pages/community/Community").then((m) => ({ default: m.Community })));
+const StudentCommunityThread = lazy(() => import("@/pages/community/CommunityThread").then((m) => ({ default: m.CommunityThread })));
 const StudentResources = stub("@yousra-elnoby", "PB-009 Resources", ".specify/specs/PB-009-resources-hub");
 const StudentAi = lazy(() => import("@/pages/student/AiFeatures").then((m) => ({ default: m.AiFeatures })));
-const StudentMessages = stub("@yousra-elnoby", "PB-007 Chat", ".specify/specs/PB-007-community-chat");
+const StudentMessages = lazy(() => import("@/pages/chat/Chat").then((m) => ({ default: m.Chat })));
 
-const CompanyDashboard = stub("@Madiha6776", "Company Dashboard", ".specify/specs/PB-005-company-review-payment");
+const CompanyDashboard = lazy(() => import("@/pages/company/Dashboard").then((m) => ({ default: m.CompanyDashboard })));
 const CompanyScholarships = stub(
   "@norra-mmhamed",
   "PB-003 Company listings",
   ".specify/specs/PB-003-scholarship-discovery",
 );
-const CompanyApplicationsReview = stub(
-  "@Madiha6776",
-  "PB-005 Review applications",
-  ".specify/specs/PB-005-company-review-payment",
-);
+const CompanyApplicationsReview = lazy(() => import("@/pages/company/ApplicationsReview").then((m) => ({ default: m.ApplicationsReview })));
 const CompanyBilling = stub("@norra-mmhamed", "PB-013 Billing", ".specify/specs/PB-013-payment-processing");
 
 const ConsultantDashboard = stub(
@@ -217,6 +210,7 @@ export function AppRouter() {
           <Route path="/student/consultants/:id" element={<StudentConsultantDetail />} />
           <Route path="/student/bookings" element={<StudentBookings />} />
           <Route path="/student/community" element={<StudentCommunity />} />
+          <Route path="/student/community/:id" element={<StudentCommunityThread />} />
           <Route path="/student/resources" element={<StudentResources />} />
           <Route path="/student/ai" element={<StudentAi />} />
           <Route path="/student/messages" element={<StudentMessages />} />

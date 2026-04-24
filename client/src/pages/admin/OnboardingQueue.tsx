@@ -56,7 +56,7 @@ export function OnboardingQueue() {
             {!isLoading && (data?.items.length ?? 0) === 0 && (
               <tr><td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">{t("admin:onboarding.empty")}</td></tr>
             )}
-            {data?.items.map((u) => (
+            {data?.items.map((u: OnboardingRequestRow) => (
               <tr key={u.userId} className="border-t border-border-subtle hover:bg-bg-subtle/40">
                 <td className="px-4 py-3 font-medium">{u.fullName}</td>
                 <td className="px-4 py-3">{u.email}</td>

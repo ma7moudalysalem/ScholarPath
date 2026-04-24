@@ -13,6 +13,25 @@ public abstract class AuthenticatedHub : Hub
 /// <summary>Real-time 1:1 chat (PB-007).</summary>
 public sealed class ChatHub : AuthenticatedHub
 {
+    public override async Task OnConnectedAsync()
+    {
+        await base.OnConnectedAsync();
+        if (Context.UserIdentifier != null)
+        {
+            // Simple presence broadcast
+            await Clients.All.SendAsync("UserOnline", Context.UserIdentifier);
+        }
+    }
+
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        if (Context.UserIdentifier != null)
+        {
+            await Clients.All.SendAsync("UserOffline", Context.UserIdentifier);
+        }
+        await base.OnDisconnectedAsync(exception);
+    }
+
     public Task JoinConversation(string conversationId) =>
         Groups.AddToGroupAsync(Context.ConnectionId, $"conversation:{conversationId}");
 
@@ -20,10 +39,10 @@ public sealed class ChatHub : AuthenticatedHub
         Groups.RemoveFromGroupAsync(Context.ConnectionId, $"conversation:{conversationId}");
 
     public Task TypingStart(string conversationId) =>
-        Clients.OthersInGroup($"conversation:{conversationId}").SendAsync("TypingStart", conversationId);
+        Clients.OthersInGroup($"conversation:{conversationId}").SendAsync("TypingStart", conversationId, Context.UserIdentifier);
 
     public Task TypingStop(string conversationId) =>
-        Clients.OthersInGroup($"conversation:{conversationId}").SendAsync("TypingStop", conversationId);
+        Clients.OthersInGroup($"conversation:{conversationId}").SendAsync("TypingStop", conversationId, Context.UserIdentifier);
 }
 
 /// <summary>Personal notifications stream (PB-010).</summary>

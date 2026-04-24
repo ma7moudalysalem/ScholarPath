@@ -153,7 +153,7 @@ export function UsersAdmin() {
             {!isLoading && (data?.items.length ?? 0) === 0 && (
               <tr><td colSpan={7} className="px-4 py-6 text-center text-text-tertiary">{t("admin:users.empty")}</td></tr>
             )}
-            {data?.items.map((u) => (
+            {data?.items.map((u: AdminUserRow) => (
               <tr key={u.id} className="border-t border-border-subtle hover:bg-bg-subtle/40">
                 <td className="px-4 py-3 font-medium">{u.email}</td>
                 <td className="px-4 py-3">{u.fullName}</td>
