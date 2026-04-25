@@ -1,0 +1,25 @@
+[sqlfluff]
+# PB-016 bootstrap SQL — CDC enable, watermark table, ADF query templates.
+# These files use T-SQL idioms (binary literals, EXEC(...), sys.sp_cdc_*,
+# MERGE, dynamic SQL) that the open-source TSQL parser doesn't fully recognise.
+dialect = tsql
+max_line_length = 120
+# Ignore parser errors — the parser stumbles on `binary(10)` literals and MERGE.
+# These files are reviewed in PR; enforcement value of style lint here is low.
+ignore = parsing
+
+# Bootstrap scripts run once per environment, not in hot paths. Style enforcement
+# adds friction without value here — the SQL is reviewed in PR. Style rules
+# excluded:
+#  CP02 — T-SQL convention is PascalCase for identifiers (BronzeWatermark, etc.)
+#  LT01 — `EXEC(...)` is idiomatic T-SQL; spacing rule fights us
+#  LT02 — `sys.sp_cdc_enable_table` parameter alignment doesn't fit the parser's grid
+#  LT05 — descriptive identifiers (`sp_cdc_enable_table` etc.) push past 80 chars
+#  LT09 — single SELECT line is more readable for the CDC projection
+#  AL01 — explicit table aliases are noise on 2-table joins
+#  ST09 — join condition order is a stylistic preference
+exclude_rules = CP02, LT01, LT02, LT05, LT09, AL01, ST09
+
+[sqlfluff:indentation]
+indent_unit = space
+tab_space_size = 4
