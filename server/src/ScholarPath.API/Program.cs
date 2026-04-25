@@ -222,6 +222,8 @@ if (hangfireOpts.Enabled)
     recurring.AddOrUpdate<ISessionExpiryJob>("session-expiry",    j => j.RunAsync(CancellationToken.None), "*/15 * * * *"); // every 15 min
     recurring.AddOrUpdate<IStripePayoutJob>("stripe-payouts",     j => j.RunAsync(CancellationToken.None), Cron.Daily(2));
     recurring.AddOrUpdate<IDeadlineReminderJob>("deadline-reminders", j => j.RunAsync(CancellationToken.None), Cron.Daily(9));
+    // PB-017 FR-254 — monthly PII-redaction sampling. First day of the month at 02:00 UTC.
+    recurring.AddOrUpdate<IRedactionAuditSamplingJob>("redaction-audit-sampling", j => j.RunAsync(CancellationToken.None), "0 2 1 * *");
 }
 
 // ─── Seed database ───────────────────────────────────────────────────────────
