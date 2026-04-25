@@ -1,4 +1,7 @@
 dbt-core==1.8.9
 dbt-sqlserver==1.8.3
-# dbt-fabric (transitive dep of dbt-sqlserver 1.8.x) requires pyodbc<5.2.0,>=4.0.35
+# dbt-sqlserver 1.8.3 imports `get_pyodbc_attrs_before` from dbt-fabric.
+# That symbol was removed in dbt-fabric>=1.8.5; pin to the last compatible.
+dbt-fabric==1.8.4
+# dbt-fabric 1.8.x requires pyodbc<5.2.0,>=4.0.35.
 pyodbc==5.1.0
