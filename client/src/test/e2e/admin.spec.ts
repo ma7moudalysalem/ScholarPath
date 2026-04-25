@@ -10,6 +10,8 @@ const ADMIN_ROUTES = [
   "/admin/onboarding",
   "/admin/upgrades",
   "/admin/analytics",
+  "/admin/ai-economy",
+  "/admin/redaction-audit",
   "/admin/broadcast",
   "/admin/audit-log",
 ];

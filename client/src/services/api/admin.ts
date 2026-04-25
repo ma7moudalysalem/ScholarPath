@@ -133,6 +133,50 @@ export interface ApplicationStatusPoint {
   count: number;
 }
 
+export type AiFeature = "Recommendation" | "Eligibility" | "Chatbot";
+
+export interface AiFeatureUsageDto {
+  feature: AiFeature;
+  interactions: number;
+  costUsd: number;
+  avgLatencyMs: number | null;
+}
+
+export interface AiDailyCostPoint {
+  date: string; // ISO date (YYYY-MM-DD)
+  costUsd: number;
+}
+
+export interface RecommendationCtrDto {
+  impressions: number;
+  clicks: number;
+  ctrPercent: number;
+}
+
+export interface AiUsageSummaryDto {
+  windowDays: number;
+  totalCostUsd: number;
+  totalInteractions: number;
+  byFeature: AiFeatureUsageDto[];
+  dailyCost: AiDailyCostPoint[];
+  recommendations: RecommendationCtrDto;
+  generatedAt: string;
+}
+
+export type RedactionVerdict = "Clean" | "MissedEmail" | "MissedPhone" | "MissedCard";
+
+export interface RedactionAuditSampleRow {
+  id: string;
+  aiInteractionId: string;
+  userId: string;
+  userEmail: string | null;
+  redactedPrompt: string;
+  sampledAt: string;
+  verdict: RedactionVerdict | null;
+  reviewerUserId: string | null;
+  reviewedAt: string | null;
+}
+
 // ─── request shapes ──────────────────────────────────────────────────────
 export interface SearchUsersParams {
   search?: string;
@@ -224,6 +268,29 @@ export const adminApi = {
       "/api/admin/analytics/application-funnel",
     );
     return data;
+  },
+  async aiUsage(windowDays: 7 | 30 | 90 = 30): Promise<AiUsageSummaryDto> {
+    const { data } = await apiClient.get<AiUsageSummaryDto>(
+      "/api/admin/analytics/ai-usage",
+      { params: { windowDays } },
+    );
+    return data;
+  },
+
+  // redaction audit (PB-017 US-178)
+  async getRedactionSamples(
+    pendingOnly = true,
+    page = 1,
+    pageSize = 25,
+  ): Promise<PagedResult<RedactionAuditSampleRow>> {
+    const { data } = await apiClient.get<PagedResult<RedactionAuditSampleRow>>(
+      "/api/admin/redaction-audit",
+      { params: { pendingOnly, page, pageSize } },
+    );
+    return data;
+  },
+  async setRedactionVerdict(sampleId: string, verdict: RedactionVerdict): Promise<void> {
+    await apiClient.post(`/api/admin/redaction-audit/${sampleId}/verdict`, { verdict });
   },
 
   // audit log

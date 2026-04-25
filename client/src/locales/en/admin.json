@@ -6,6 +6,8 @@
     "onboarding": "Onboarding queue",
     "upgrades": "Upgrade queue",
     "analytics": "Analytics",
+    "aiEconomy": "AI economy",
+    "redactionAudit": "Redaction audit",
     "broadcast": "Broadcast",
     "auditLog": "Audit log"
   },
