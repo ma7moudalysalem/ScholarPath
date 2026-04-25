@@ -51,6 +51,25 @@ public sealed class RefundCalculatorServiceTests
     }
 
     [Fact]
+    public void Calculate_WhenStudentCancelsConfirmedBookingExactly24HoursBefore_ReturnsHalfRefund()
+    {
+        var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
+
+        var result = _sut.Calculate(
+            bookingStatus: BookingStatus.Confirmed,
+            cancelledByUserId: StudentId,
+            studentId: StudentId,
+            consultantId: ConsultantId,
+            scheduledStartAt: nowUtc.AddHours(24),
+            priceUsd: 100m,
+            nowUtc: nowUtc);
+
+        Assert.Equal(50, result.RefundPercentage);
+        Assert.Equal(5_000, result.RefundAmountCents);
+        Assert.Equal(CancellationReason.StudentCancelledLessThan24HoursBefore, result.CancellationReason);
+    }
+
+    [Fact]
     public void Calculate_WhenStudentCancelsConfirmedBookingLessThan24HoursBefore_ReturnsHalfRefund()
     {
         var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
@@ -86,6 +105,44 @@ public sealed class RefundCalculatorServiceTests
         Assert.Equal(100, result.RefundPercentage);
         Assert.Equal(10_000, result.RefundAmountCents);
         Assert.Equal(CancellationReason.ConsultantCancelledAfterAcceptance, result.CancellationReason);
+    }
+
+    [Fact]
+    public void Calculate_WhenPriceHasCents_RoundsToExpectedCents()
+    {
+        var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
+
+        var result = _sut.Calculate(
+            bookingStatus: BookingStatus.Confirmed,
+            cancelledByUserId: ConsultantId,
+            studentId: StudentId,
+            consultantId: ConsultantId,
+            scheduledStartAt: nowUtc.AddHours(12),
+            priceUsd: 99.99m,
+            nowUtc: nowUtc);
+
+        Assert.Equal(100, result.RefundPercentage);
+        Assert.Equal(9_999, result.RefundAmountCents);
+        Assert.Equal(CancellationReason.ConsultantCancelledAfterAcceptance, result.CancellationReason);
+    }
+
+    [Fact]
+    public void Calculate_WhenPriceIsZero_ReturnsZeroRefundWithoutThrowing()
+    {
+        var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
+
+        var result = _sut.Calculate(
+            bookingStatus: BookingStatus.Requested,
+            cancelledByUserId: StudentId,
+            studentId: StudentId,
+            consultantId: ConsultantId,
+            scheduledStartAt: nowUtc.AddDays(2),
+            priceUsd: 0m,
+            nowUtc: nowUtc);
+
+        Assert.Equal(100, result.RefundPercentage);
+        Assert.Equal(0, result.RefundAmountCents);
+        Assert.Equal(CancellationReason.StudentCancelledBeforeAcceptance, result.CancellationReason);
     }
 
     [Fact]

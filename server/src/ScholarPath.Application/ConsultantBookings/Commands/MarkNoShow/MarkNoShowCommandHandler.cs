@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Exceptions;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.MarkNoShow;
@@ -37,7 +38,7 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
 
         if (booking is null)
         {
-            throw new InvalidOperationException("Booking was not found.");
+            throw new BookingDomainException("Booking was not found.");
         }
 
         var isStudent = booking.StudentId == currentUserId;
@@ -50,14 +51,14 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
 
         if (booking.Status != BookingStatus.Confirmed)
         {
-            throw new InvalidOperationException("Only confirmed bookings can be marked as no-show.");
+            throw new BookingDomainException("Only confirmed bookings can be marked as no-show.");
         }
 
         if (booking.IsNoShowStudent || booking.IsNoShowConsultant ||
             booking.Status == BookingStatus.NoShowStudent ||
             booking.Status == BookingStatus.NoShowConsultant)
         {
-            throw new InvalidOperationException("This booking already has a no-show mark.");
+            throw new BookingDomainException("This booking already has a no-show mark.");
         }
 
         var nowUtc = DateTimeOffset.UtcNow;
@@ -65,12 +66,12 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
 
         if (nowUtc < sessionEndUtc)
         {
-            throw new InvalidOperationException("No-show can only be marked after the session end time.");
+            throw new BookingDomainException("No-show can only be marked after the session end time.");
         }
 
         if (nowUtc > sessionEndUtc.AddHours(6))
         {
-            throw new InvalidOperationException("No-show can only be marked within 6 hours after session end.");
+            throw new BookingDomainException("No-show can only be marked within 6 hours after session end.");
         }
 
         booking.NoShowMarkedAt = nowUtc;
@@ -79,7 +80,7 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
         {
             if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
             {
-                throw new InvalidOperationException("Booking has no Stripe payment intent to refund.");
+                throw new BookingDomainException("Booking has no Stripe payment intent to refund.");
             }
 
             var amountCents = (long)decimal.Round(
@@ -89,7 +90,7 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
 
             if (amountCents <= 0)
             {
-                throw new InvalidOperationException("Booking amount must be greater than zero.");
+                throw new BookingDomainException("Booking amount must be greater than zero.");
             }
 
             var idempotencyKey = $"booking-noshow-refund:{booking.Id:N}";
@@ -103,7 +104,7 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
 
             if (string.IsNullOrWhiteSpace(refundResult.Id))
             {
-                throw new InvalidOperationException("Stripe refund failed.");
+                throw new BookingDomainException("Stripe refund failed.");
             }
 
             booking.IsNoShowConsultant = true;

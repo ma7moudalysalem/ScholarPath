@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Exceptions;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.RequestBooking;
@@ -40,7 +41,7 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
 
         if (studentId == request.ConsultantId)
         {
-            throw new InvalidOperationException("Student cannot book a session with themselves.");
+            throw new BookingDomainException("Student cannot book a session with themselves.");
         }
 
         var scheduledStartAtUtc = request.ScheduledStartAt.ToUniversalTime();
@@ -48,14 +49,14 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
 
         if (scheduledStartAtUtc >= scheduledEndAtUtc)
         {
-            throw new InvalidOperationException("ScheduledStartAt must be earlier than ScheduledEndAt.");
+            throw new BookingDomainException("ScheduledStartAt must be earlier than ScheduledEndAt.");
         }
 
         var durationMinutes = (int)Math.Round((scheduledEndAtUtc - scheduledStartAtUtc).TotalMinutes);
 
         if (durationMinutes <= 0)
         {
-            throw new InvalidOperationException("Booking duration must be greater than zero.");
+            throw new BookingDomainException("Booking duration must be greater than zero.");
         }
 
         var consultant = await _context.Users
@@ -64,23 +65,23 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
 
         if (consultant is null)
         {
-            throw new InvalidOperationException("Consultant was not found.");
+            throw new BookingDomainException("Consultant was not found.");
         }
 
         if (consultant.Profile is null)
         {
-            throw new InvalidOperationException("Consultant profile was not found.");
+            throw new BookingDomainException("Consultant profile was not found.");
         }
 
         if (!consultant.Profile.SessionFeeUsd.HasValue || consultant.Profile.SessionFeeUsd.Value <= 0)
         {
-            throw new InvalidOperationException("Consultant session fee is not configured.");
+            throw new BookingDomainException("Consultant session fee is not configured.");
         }
 
         if (consultant.Profile.SessionDurationMinutes.HasValue &&
             consultant.Profile.SessionDurationMinutes.Value != durationMinutes)
         {
-            throw new InvalidOperationException("Requested duration does not match consultant session duration.");
+            throw new BookingDomainException("Requested duration does not match consultant session duration.");
         }
 
         ConsultantAvailability? availability = null;
@@ -96,20 +97,20 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
 
             if (availability is null)
             {
-                throw new InvalidOperationException("Availability slot was not found.");
+                throw new BookingDomainException("Availability slot was not found.");
             }
 
             if (!availability.IsRecurring)
             {
                 if (!availability.SpecificStartAt.HasValue || !availability.SpecificEndAt.HasValue)
                 {
-                    throw new InvalidOperationException("Ad-hoc availability slot is invalid.");
+                    throw new BookingDomainException("Ad-hoc availability slot is invalid.");
                 }
 
                 if (scheduledStartAtUtc < availability.SpecificStartAt.Value.ToUniversalTime()
                     || scheduledEndAtUtc > availability.SpecificEndAt.Value.ToUniversalTime())
                 {
-                    throw new InvalidOperationException("Requested booking time is outside the selected availability range.");
+                    throw new BookingDomainException("Requested booking time is outside the selected availability range.");
                 }
             }
         }
@@ -129,7 +130,7 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
 
         if (consultantHasConflict)
         {
-            throw new InvalidOperationException("Consultant already has a booking that overlaps this time.");
+            throw new BookingDomainException("Consultant already has a booking that overlaps this time.");
         }
 
         var studentHasConflict = await _context.Bookings.AnyAsync(
@@ -141,7 +142,7 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
 
         if (studentHasConflict)
         {
-            throw new InvalidOperationException("Student already has a booking that overlaps this time.");
+            throw new BookingDomainException("Student already has a booking that overlaps this time.");
         }
 
         var priceUsd = consultant.Profile.SessionFeeUsd.Value;
@@ -149,7 +150,7 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
 
         if (amountCents <= 0)
         {
-            throw new InvalidOperationException("Calculated booking amount must be greater than zero.");
+            throw new BookingDomainException("Calculated booking amount must be greater than zero.");
         }
 
         var idempotencyKey =
@@ -179,7 +180,7 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
 
         if (string.IsNullOrWhiteSpace(paymentIntent.Id))
         {
-            throw new InvalidOperationException("Stripe payment intent was not created successfully.");
+            throw new BookingDomainException("Stripe payment intent was not created successfully.");
         }
 
         var nowUtc = DateTimeOffset.UtcNow;

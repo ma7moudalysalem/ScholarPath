@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.ConsultantBookings.Services;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Events;
+using ScholarPath.Domain.Exceptions;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.CancelBooking;
@@ -13,17 +15,20 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
     private readonly ICurrentUserService _currentUser;
     private readonly IStripeService _stripeService;
     private readonly RefundCalculatorService _refundCalculator;
+    private readonly IPublisher _publisher;
 
     public CancelBookingCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
         IStripeService stripeService,
-        RefundCalculatorService refundCalculator)
+        RefundCalculatorService refundCalculator,
+        IPublisher publisher)
     {
         _context = context;
         _currentUser = currentUser;
         _stripeService = stripeService;
         _refundCalculator = refundCalculator;
+        _publisher = publisher;
     }
 
     public async Task Handle(CancelBookingCommand request, CancellationToken cancellationToken)
@@ -41,7 +46,7 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
 
         if (booking is null)
         {
-            throw new InvalidOperationException("Booking was not found.");
+            throw new BookingDomainException("Booking was not found.");
         }
 
         var isStudent = booking.StudentId == currentUserId;
@@ -54,12 +59,12 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
 
         if (booking.Status != BookingStatus.Requested && booking.Status != BookingStatus.Confirmed)
         {
-            throw new InvalidOperationException("Only requested or confirmed bookings can be cancelled.");
+            throw new BookingDomainException("Only requested or confirmed bookings can be cancelled.");
         }
 
         if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
         {
-            throw new InvalidOperationException("Booking has no Stripe payment intent.");
+            throw new BookingDomainException("Booking has no Stripe payment intent.");
         }
 
         var nowUtc = DateTimeOffset.UtcNow;
@@ -85,7 +90,7 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
 
             if (string.IsNullOrWhiteSpace(cancelResult.Id))
             {
-                throw new InvalidOperationException("Stripe payment intent cancellation failed.");
+                throw new BookingDomainException("Stripe payment intent cancellation failed.");
             }
         }
         else
@@ -101,7 +106,7 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
 
             if (string.IsNullOrWhiteSpace(refundResult.Id))
             {
-                throw new InvalidOperationException("Stripe refund failed.");
+                throw new BookingDomainException("Stripe refund failed.");
             }
         }
 
@@ -111,5 +116,14 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
         booking.CancellationReason = refund.CancellationReason;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _publisher.Publish(
+            new BookingCancelledEvent(
+                booking.Id,
+                booking.StudentId,
+                booking.ConsultantId,
+                currentUserId,
+                booking.CancellationReason?.ToString()),
+            cancellationToken);
     }
 }

@@ -2,6 +2,8 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Events;
+using ScholarPath.Domain.Exceptions;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.AcceptBooking;
@@ -11,15 +13,18 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IStripeService _stripeService;
+    private readonly IPublisher _publisher;
 
     public AcceptBookingCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
-        IStripeService stripeService)
+        IStripeService stripeService,
+        IPublisher publisher)
     {
         _context = context;
         _currentUser = currentUser;
         _stripeService = stripeService;
+        _publisher = publisher;
     }
 
     public async Task Handle(AcceptBookingCommand request, CancellationToken cancellationToken)
@@ -42,7 +47,7 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
 
         if (booking is null)
         {
-            throw new InvalidOperationException("Booking was not found.");
+            throw new BookingDomainException("Booking was not found.");
         }
 
         if (booking.ConsultantId != consultantId)
@@ -52,19 +57,22 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
 
         if (booking.Status != BookingStatus.Requested)
         {
-            throw new InvalidOperationException("Only requested bookings can be accepted.");
+            throw new BookingDomainException("Only requested bookings can be accepted.");
         }
 
         if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
         {
-            throw new InvalidOperationException("Booking has no Stripe payment intent to capture.");
+            throw new BookingDomainException("Booking has no Stripe payment intent to capture.");
         }
 
-        var amountCents = (long)decimal.Round(booking.PriceUsd * 100m, 0, MidpointRounding.AwayFromZero);
+        var amountCents = (long)decimal.Round(
+            booking.PriceUsd * 100m,
+            0,
+            MidpointRounding.AwayFromZero);
 
         if (amountCents <= 0)
         {
-            throw new InvalidOperationException("Booking amount must be greater than zero.");
+            throw new BookingDomainException("Booking amount must be greater than zero.");
         }
 
         var idempotencyKey = $"booking-accept:{booking.Id:N}";
@@ -77,7 +85,7 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
 
         if (string.IsNullOrWhiteSpace(captureResult.Id))
         {
-            throw new InvalidOperationException("Stripe payment capture failed.");
+            throw new BookingDomainException("Stripe payment capture failed.");
         }
 
         booking.Status = BookingStatus.Confirmed;
@@ -85,5 +93,12 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
         booking.MeetingUrl = request.MeetingUrl;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _publisher.Publish(
+            new BookingConfirmedEvent(
+                booking.Id,
+                booking.StudentId,
+                booking.ConsultantId),
+            cancellationToken);
     }
 }

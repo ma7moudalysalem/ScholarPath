@@ -1,7 +1,9 @@
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Events;
 
 namespace ScholarPath.Infrastructure.Jobs;
 
@@ -9,13 +11,16 @@ public sealed class CompletionJob : ICompletionJob
 {
     private readonly IApplicationDbContext _context;
     private readonly ILogger<CompletionJob> _logger;
+    private readonly IPublisher _publisher;
 
     public CompletionJob(
         IApplicationDbContext context,
-        ILogger<CompletionJob> logger)
+        ILogger<CompletionJob> logger,
+        IPublisher publisher)
     {
         _context = context;
         _logger = logger;
+        _publisher = publisher;
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
@@ -45,6 +50,16 @@ public sealed class CompletionJob : ICompletionJob
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        foreach (var booking in bookings)
+        {
+            await _publisher.Publish(
+                new BookingCompletedEvent(
+                    booking.Id,
+                    booking.StudentId,
+                    booking.ConsultantId),
+                cancellationToken);
+        }
 
         _logger.LogInformation("CompletionJob auto-completed {Count} bookings.", bookings.Count);
     }

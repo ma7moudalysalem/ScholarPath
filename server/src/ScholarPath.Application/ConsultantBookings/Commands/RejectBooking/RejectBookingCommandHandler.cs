@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Exceptions;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.RejectBooking;
@@ -42,7 +43,7 @@ public sealed class RejectBookingCommandHandler : IRequestHandler<RejectBookingC
 
         if (booking is null)
         {
-            throw new InvalidOperationException("Booking was not found.");
+            throw new BookingDomainException("Booking was not found.");
         }
 
         if (booking.ConsultantId != consultantId)
@@ -52,12 +53,12 @@ public sealed class RejectBookingCommandHandler : IRequestHandler<RejectBookingC
 
         if (booking.Status != BookingStatus.Requested)
         {
-            throw new InvalidOperationException("Only requested bookings can be rejected.");
+            throw new BookingDomainException("Only requested bookings can be rejected.");
         }
 
         if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
         {
-            throw new InvalidOperationException("Booking has no Stripe payment intent to cancel.");
+            throw new BookingDomainException("Booking has no Stripe payment intent to cancel.");
         }
 
         var idempotencyKey = $"booking-reject:{booking.Id:N}";
@@ -70,7 +71,7 @@ public sealed class RejectBookingCommandHandler : IRequestHandler<RejectBookingC
 
         if (string.IsNullOrWhiteSpace(cancelResult.Id))
         {
-            throw new InvalidOperationException("Stripe payment intent cancellation failed.");
+            throw new BookingDomainException("Stripe payment intent cancellation failed.");
         }
 
         booking.Status = BookingStatus.Rejected;

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Domain.Exceptions;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
@@ -109,7 +110,7 @@ public sealed class UpdateAvailabilityCommandHandler : IRequestHandler<UpdateAva
 
                 if (overlaps)
                 {
-                    throw new InvalidOperationException(
+                    throw new BookingDomainException(
                         "One or more recurring availability slots overlap with existing saved availability.");
                 }
             }
@@ -141,7 +142,7 @@ public sealed class UpdateAvailabilityCommandHandler : IRequestHandler<UpdateAva
 
                 if (overlaps)
                 {
-                    throw new InvalidOperationException(
+                    throw new BookingDomainException(
                         "One or more ad-hoc availability slots overlap with existing saved availability.");
                 }
             }

@@ -1,8 +1,10 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Exceptions;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.SubmitConsultantRating;
@@ -11,13 +13,16 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly ILogger<SubmitConsultantRatingCommandHandler> _logger;
 
     public SubmitConsultantRatingCommandHandler(
         IApplicationDbContext context,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        ILogger<SubmitConsultantRatingCommandHandler> logger)
     {
         _context = context;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     public async Task Handle(SubmitConsultantRatingCommand request, CancellationToken cancellationToken)
@@ -35,7 +40,7 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
 
         if (booking is null)
         {
-            throw new InvalidOperationException("Booking was not found.");
+            throw new BookingDomainException("Booking was not found.");
         }
 
         if (booking.StudentId != currentUserId)
@@ -45,7 +50,7 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
 
         if (booking.Status != BookingStatus.Completed)
         {
-            throw new InvalidOperationException("Consultant rating can only be submitted for completed bookings.");
+            throw new BookingDomainException("Consultant rating can only be submitted for completed bookings.");
         }
 
         var alreadyRated = await _context.ConsultantReviews
@@ -53,7 +58,7 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
 
         if (alreadyRated)
         {
-            throw new InvalidOperationException("A consultant rating has already been submitted for this booking.");
+            throw new BookingDomainException("A consultant rating has already been submitted for this booking.");
         }
 
         var consultant = await _context.Users
@@ -61,7 +66,7 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
 
         if (consultant is null)
         {
-            throw new InvalidOperationException("Consultant user was not found.");
+            throw new BookingDomainException("Consultant user was not found.");
         }
 
         var review = new ConsultantReview
@@ -98,6 +103,12 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
             if (average < 3.0)
             {
                 consultant.AccountStatus = AccountStatus.Suspended;
+
+                _logger.LogWarning(
+                    "Auto-suspended consultant {ConsultantId} (avg rating {Avg} over last 20 sessions)",
+                    consultant.Id,
+                    average);
+
                 await _context.SaveChangesAsync(cancellationToken);
             }
         }

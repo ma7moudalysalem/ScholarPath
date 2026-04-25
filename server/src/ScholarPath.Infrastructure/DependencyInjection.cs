@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ScholarPath.Application.Ai.Common;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Payments.Commands.HandleStripeWebhook;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Jobs;
@@ -21,6 +22,7 @@ public static class DependencyInjection
         // ─── Options ────────────────────────────────────────────────────────────
         services.Configure<JwtOptions>(config.GetSection(JwtOptions.SectionName));
         services.Configure<StripeOptions>(config.GetSection(StripeOptions.SectionName));
+        services.Configure<StripeSettings>(config.GetSection(StripeOptions.SectionName));
         services.Configure<EmailOptions>(config.GetSection(EmailOptions.SectionName));
         services.Configure<RedisOptions>(config.GetSection(RedisOptions.SectionName));
         services.Configure<HangfireOptions>(config.GetSection(HangfireOptions.SectionName));
@@ -84,6 +86,7 @@ public static class DependencyInjection
         services.AddSingleton<IEmailService, StubEmailService>();
         services.AddSingleton<IBlobStorageService, StubBlobStorageService>();
         services.AddSingleton<IStripeService, StubStripeService>();
+
         // AI provider selection: Local (default, deterministic, offline) or
         // OpenAi (real provider, needs Ai:OpenAi:ApiKey). Swap via config —
         // no code changes. OpenAI service itself falls back to Local on
@@ -98,6 +101,7 @@ public static class DependencyInjection
         {
             services.AddScoped<IAiService, LocalAiService>();
         }
+
         services.AddScoped<INotificationDispatcher, StubNotificationDispatcher>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserAdministration, UserAdministration>();
