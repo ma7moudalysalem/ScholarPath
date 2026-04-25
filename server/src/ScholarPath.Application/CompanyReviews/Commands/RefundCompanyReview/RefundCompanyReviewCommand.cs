@@ -32,9 +32,9 @@ public sealed class RefundCompanyReviewCommandHandler(
             if (request.IsFullRefund)
             {
                 await stripeService.CancelPaymentIntentAsync(
-                    payment.StripePaymentIntentId, 
-                    "requested_by_customer", 
-                    Guid.NewGuid().ToString("N"), 
+                    payment.StripePaymentIntentId,
+                    "requested_by_customer",
+                    Guid.NewGuid().ToString("N"),
                     ct);
 
                 payment.Status = PaymentStatus.Refunded;
@@ -44,23 +44,23 @@ public sealed class RefundCompanyReviewCommandHandler(
                 if (application != null)
                 {
                     await notifications.DispatchAsync(
-                        application.StudentId,
-                        NotificationType.CompanyReviewRefunded,
-                        new NotificationContent("Review Fee Refunded", $"Your application {application.Id} review fee was fully refunded.", null),
-                        null,
-                        null,
-                        ct);
+                application.StudentId,
+                NotificationType.CompanyReviewRefunded,
+                new NotificationContent("Review Fee Refunded", "تم استرداد رسوم المراجعة", $"Your application {application.Id} review fee was fully refunded.", $"تم استرداد رسوم مراجعة الطلب {application.Id} بالكامل.", null),
+                 null,
+                 null,
+                 ct);
                 }
             }
             else
             {
                 long refundAmountCents = (long)(payment.AmountUsd * 50m);
                 var captureAmountCents = (long)(payment.AmountUsd * 100m) - refundAmountCents;
-                
+
                 var stripeResult = await stripeService.CapturePaymentIntentAsync(
                     payment.StripePaymentIntentId,
                     captureAmountCents,
-                    Guid.NewGuid().ToString("N"),
+                    $"company-review-refund:{payment.Id:N}:partial",
                     ct);
 
                 if (stripeResult.Status == "succeeded")
@@ -75,8 +75,7 @@ public sealed class RefundCompanyReviewCommandHandler(
                         await notifications.DispatchAsync(
                             application.StudentId,
                             NotificationType.CompanyReviewRefunded,
-                            new NotificationContent("Partial Review Fee Refund", $"Your application {application.Id} review fee was 50% refunded.", null),
-                            null,
+                            new NotificationContent("Partial Review Fee Refund", "استرداد جزئي لرسوم المراجعة", $"Your application {application.Id} review fee was 50% refunded.", $"تم استرداد 50% من رسوم مراجعة الطلب {application.Id}.", null),                            null,
                             null,
                             ct);
                     }

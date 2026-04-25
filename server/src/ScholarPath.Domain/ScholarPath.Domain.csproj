@@ -3,6 +3,7 @@
   <!-- Target framework + language options inherited from Directory.Build.props -->
   <!-- Domain minimizes external dependencies. Only Identity base types (POCOs) are allowed. -->
   <ItemGroup>
+    <PackageReference Include="MediatR.Contracts" />
     <PackageReference Include="Microsoft.Extensions.Identity.Stores" />
   </ItemGroup>
 

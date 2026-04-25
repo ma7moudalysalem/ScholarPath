@@ -25,7 +25,7 @@ public sealed class CompanyReviewTimeoutRefundJob(
     {
         var now = DateTimeOffset.UtcNow;
 
-        // Find applications where Status is Pending or UnderReview, 
+        // Find applications where Status is Pending or UnderReview,
         // the scholarship deadline has passed by 14 days,
         // and there is a held payment.
         var expiredApplications = await db.Applications
@@ -47,9 +47,9 @@ public sealed class CompanyReviewTimeoutRefundJob(
                 {
                     // Refund 100%
                     var stripeResult = await stripeService.CancelPaymentIntentAsync(
-                        payment.StripePaymentIntentId, 
-                        "requested_by_customer", 
-                        Guid.NewGuid().ToString("N"), 
+                        payment.StripePaymentIntentId,
+                        "requested_by_customer",
+                        $"company-review-timeout-refund:{payment.Id:N}",
                         ct);
 
                     payment.Status = PaymentStatus.Refunded;
@@ -57,15 +57,15 @@ public sealed class CompanyReviewTimeoutRefundJob(
                     payment.RefundReason = "Company failed to review within 14 days after deadline";
 
                     // Notify student
-                    await notifications.DispatchAsync(
-                        app.StudentId,
-                        NotificationType.CompanyReviewRefunded,
-                        new NotificationContent("Review Fee Refunded", $"The company failed to review your application {app.Id} on time, so your fee was refunded.", null),
-                        null,
-                        null,
-                        ct);
-                    
-                    // Mark application as expired or something. 
+                   await notifications.DispatchAsync(
+                    app.StudentId,
+                    NotificationType.CompanyReviewRefunded,
+                 new NotificationContent("Review Fee Refunded", "تم استرداد رسوم المراجعة", $"The company failed to review your application within 14 days. Your fee has been refunded.", "لم تقم الشركة بمراجعة طلبك خلال 14 يومًا. تم استرداد الرسوم.", null),
+                 null,
+                 null,
+                  ct);
+
+                    // Mark application as expired or something.
                     // Let's just set it to Withdrawn, or maybe we just leave it?
                     // We'll leave it pending/under review but refunded, or maybe we reject it automatically?
                     // Let's just leave the status but note that the payment is refunded.

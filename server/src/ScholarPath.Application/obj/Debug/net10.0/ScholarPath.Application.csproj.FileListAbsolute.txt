@@ -1,0 +1,16 @@
+E:\المشروع\server\src\ScholarPath.Application\obj\Debug\net10.0\ScholarPath.Application.csproj.AssemblyReference.cache
+E:\المشروع\server\src\ScholarPath.Application\obj\Debug\net10.0\ScholarPath.Application.GeneratedMSBuildEditorConfig.editorconfig
+E:\المشروع\server\src\ScholarPath.Application\obj\Debug\net10.0\ScholarPath.Application.AssemblyInfoInputs.cache
+E:\المشروع\server\src\ScholarPath.Application\obj\Debug\net10.0\ScholarPath.Application.AssemblyInfo.cs
+E:\المشروع\server\src\ScholarPath.Application\obj\Debug\net10.0\ScholarPath.Application.csproj.CoreCompileInputs.cache
+E:\المشروع\server\src\ScholarPath.Application\obj\Debug\net10.0\ScholarPath.Application.sourcelink.json
+E:\المشروع\server\src\ScholarPath.Application\bin\Debug\net10.0\ScholarPath.Application.deps.json
+E:\المشروع\server\src\ScholarPath.Application\bin\Debug\net10.0\ScholarPath.Application.dll
+E:\المشروع\server\src\ScholarPath.Application\bin\Debug\net10.0\ScholarPath.Application.pdb
+E:\المشروع\server\src\ScholarPath.Application\bin\Debug\net10.0\ScholarPath.Domain.dll
+E:\المشروع\server\src\ScholarPath.Application\bin\Debug\net10.0\ScholarPath.Domain.pdb
+E:\المشروع\server\src\ScholarPath.Application\obj\Debug\net10.0\ScholarP.8BA42B96.Up2Date
+E:\المشروع\server\src\ScholarPath.Application\obj\Debug\net10.0\ScholarPath.Application.dll
+E:\المشروع\server\src\ScholarPath.Application\obj\Debug\net10.0\refint\ScholarPath.Application.dll
+E:\المشروع\server\src\ScholarPath.Application\obj\Debug\net10.0\ScholarPath.Application.pdb
+E:\المشروع\server\src\ScholarPath.Application\obj\Debug\net10.0\ref\ScholarPath.Application.dll

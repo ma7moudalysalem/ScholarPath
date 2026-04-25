@@ -2,10 +2,14 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Domain.Enums;
 
-namespace ScholarPath.Application.CompanyReviews.Commands.CaptureCompanyReviewPayment;
 
+namespace ScholarPath.Application.CompanyReviews.Commands.CaptureCompanyReviewPayment;
+[Auditable(AuditAction.Update, "CompanyReviewPayment",
+    TargetIdProperty = nameof(ApplicationId),
+    SummaryTemplate = "Captured payment for application {ApplicationId}")]
 public sealed record CaptureCompanyReviewPaymentCommand(
     Guid ApplicationId) : IRequest<bool>;
 
@@ -28,7 +32,7 @@ public sealed class CaptureCompanyReviewPaymentCommandHandler(
             var stripeResult = await stripeService.CapturePaymentIntentAsync(
                 payment.StripePaymentIntentId,
                 null,
-                Guid.NewGuid().ToString("N"),
+                $"company-review-capture:{payment.Id:N}",
                 ct);
 
             if (stripeResult.Status == "succeeded")
@@ -41,14 +45,13 @@ public sealed class CaptureCompanyReviewPaymentCommandHandler(
                 await notifications.DispatchAsync(
                     payment.CompanyId,
                     NotificationType.CompanyReviewPaymentSuccess,
-                    new NotificationContent("Payment Captured", $"Payment for reviewing application {request.ApplicationId} has been captured.", null),
-                    null,
+new NotificationContent("Payment Captured", "تم تحصيل الدفعة", $"Payment for reviewing application {request.ApplicationId} has been captured.", $"تم تحصيل دفعة مراجعة الطلب {request.ApplicationId}.", null),                    null,
                     null,
                     ct);
 
                 return true;
             }
-            
+
             return false;
         }
         catch (Exception ex)

@@ -5,9 +5,13 @@ using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
-
+using ScholarPath.Application.Common.Auditing;
+using ScholarPath.Domain.Enums;
 namespace ScholarPath.Application.Community.Commands.UpdatePost;
 
+[Auditable(AuditAction.Update, "ForumPost",
+    TargetIdProperty = nameof(PostId),
+    SummaryTemplate = "Updated forum post {PostId}")]
 public sealed record UpdatePostCommand(
     Guid PostId,
     string? Title,
@@ -39,8 +43,7 @@ public sealed class UpdatePostCommandHandler(
 
         if (post.ParentPostId == null && string.IsNullOrWhiteSpace(request.Title))
         {
-            throw new ValidationException(new[] { new FluentValidation.Results.ValidationFailure("Title", "Root posts must have a title.") });
-        }
+            throw new FluentValidation.ValidationException(new[] { new FluentValidation.Results.ValidationFailure("Title", "Root posts must have a title.") });        }
 
         var sanitizer = new Ganss.Xss.HtmlSanitizer();
 

@@ -15,7 +15,7 @@ public sealed record GetPostsQuery(
 public sealed class GetPostsQueryHandler(IApplicationDbContext db)
     : IRequestHandler<GetPostsQuery, PagedResult<ForumPostDto>>
 {
-    public async Task<Paginated<ForumPostDto>> Handle(GetPostsQuery request, CancellationToken ct)
+    public async Task<PagedResult<ForumPostDto>> Handle(GetPostsQuery request, CancellationToken ct)
     {
         var query = db.ForumPosts
             .AsNoTracking()

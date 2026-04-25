@@ -1,9 +1,15 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Common.Auditing;
+using ScholarPath.Domain.Enums;
+using ScholarPath.Application.Common.Exceptions;
 
 namespace ScholarPath.Application.Chat.Commands.UnblockUser;
 
+[Auditable(AuditAction.Delete, "UserBlock",
+    TargetIdProperty = nameof(BlockedUserId),
+    SummaryTemplate = "Unblocked user {BlockedUserId}")]
 public sealed record UnblockUserCommand(
     Guid BlockedUserId) : IRequest<bool>;
 

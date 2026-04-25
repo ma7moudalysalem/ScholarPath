@@ -3,9 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Application.Common.Auditing;
+using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Community.Commands.DeletePost;
 
+[Auditable(AuditAction.Delete, "ForumPost",
+    TargetIdProperty = nameof(PostId),
+    SummaryTemplate = "Deleted forum post {PostId}")]
 public sealed record DeletePostCommand(
     Guid PostId) : IRequest<bool>;
 

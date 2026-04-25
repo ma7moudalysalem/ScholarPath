@@ -2,9 +2,13 @@ using FluentValidation;
 using MediatR;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Application.Common.Auditing;
+using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Community.Commands.CreateCategory;
 
+[Auditable(AuditAction.Create, "ForumCategory",
+    SummaryTemplate = "Created forum category")]
 public sealed record CreateCategoryCommand(
     string NameEn,
     string NameAr,

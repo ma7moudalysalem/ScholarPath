@@ -43,7 +43,7 @@ public sealed class SubmitCompanyRatingCommandHandler(
         var review = new CompanyReview
         {
             ApplicationTrackerId = request.ApplicationId,
-            StudentId = currentUser.UserId,
+            StudentId = (currentUser.UserId ?? throw new ForbiddenAccessException()),
             CompanyId = request.CompanyId,
             Rating = request.Rating,
             Comment = request.Comment
@@ -55,8 +55,7 @@ public sealed class SubmitCompanyRatingCommandHandler(
         await notifications.DispatchAsync(
             request.CompanyId,
             NotificationType.CompanyRatingReceived,
-            new NotificationContent("New Rating", $"You received a {request.Rating}-star rating.", null),
-            null,
+            new NotificationContent("New Rating", "تقييم جديد", $"You received a {request.Rating}-star rating.", $"لقد حصلت على تقييم {request.Rating} نجوم.", null),            null,
             null,
             ct);
 

@@ -18,7 +18,7 @@ public sealed class GetMyApplicationsQueryHandler(
             .Include(a => a.Scholarship)
                 .ThenInclude(s => s!.OwnerCompany)
             .Where(a => a.StudentId == studentId && !a.IsDeleted)
-            .OrderByDescending(a => a.LastModifiedAt ?? a.CreatedAt)
+            .OrderByDescending(a => a.UpdatedAt ?? a.CreatedAt)
             .Select(a => new StudentApplicationRow(
                 a.Id,
                 a.ScholarshipId,
@@ -27,7 +27,7 @@ public sealed class GetMyApplicationsQueryHandler(
                 a.Scholarship.OwnerCompany != null ? a.Scholarship.OwnerCompany.FullName : null,
                 a.Status,
                 a.Mode,
-                a.LastModifiedAt ?? a.CreatedAt))
+                a.UpdatedAt ?? a.CreatedAt))
             .ToListAsync(ct);
 
         return applications;

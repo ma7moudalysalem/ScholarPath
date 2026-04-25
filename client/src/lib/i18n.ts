@@ -23,6 +23,8 @@ import arEmptyStates from "@/locales/ar/emptyStates.json";
 import arPrivacy from "@/locales/ar/privacy.json";
 import arAdmin from "@/locales/ar/admin.json";
 import arAi from "@/locales/ar/ai.json";
+import arApplications from "@/locales/ar/applications.json";
+import arCompany from "@/locales/ar/company.json";
 
 export const supportedLanguages = ["en", "ar"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -71,6 +73,8 @@ void i18n
         privacy: arPrivacy,
         admin: arAdmin,
         ai: arAi,
+        applications: arApplications,
+        company: arCompany,
       },
     },
   });

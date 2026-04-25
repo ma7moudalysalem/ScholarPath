@@ -1,23 +1,25 @@
 using FluentValidation;
 using MediatR;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Common.Auditing;
+using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Entities;
-using ScholarPath.Infrastructure.Hubs;
 
 namespace ScholarPath.Application.Chat.Commands.SendMessage;
-
+[Auditable(AuditAction.Create, "ChatMessage",
+    TargetIdProperty = nameof(RecipientId),
+    SummaryTemplate = "Sent message to {RecipientId}")]
 public sealed record SendMessageCommand(
-    Guid ConversationId,
+    Guid RecipientId,
     string Body) : IRequest<Guid>;
 
 public sealed class SendMessageCommandValidator : AbstractValidator<SendMessageCommand>
 {
     public SendMessageCommandValidator()
     {
-        RuleFor(v => v.ConversationId).NotEmpty();
+        RuleFor(v => v.RecipientId).NotEmpty();
         RuleFor(v => v.Body).NotEmpty().MaximumLength(2000);
     }
 }
@@ -25,25 +27,30 @@ public sealed class SendMessageCommandValidator : AbstractValidator<SendMessageC
 public sealed class SendMessageCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
-    IHubContext<ChatHub> hubContext)
+    IChatRealtimeNotifier chatNotifier)
     : IRequestHandler<SendMessageCommand, Guid>
 {
     public async Task<Guid> Handle(SendMessageCommand request, CancellationToken ct)
     {
+        var senderId = currentUser.UserId ?? throw new ForbiddenAccessException();
+
         var conversation = await db.Conversations
-            .Include(c => c.Messages)
-            .FirstOrDefaultAsync(c => c.Id == request.ConversationId, ct)
-            ?? throw new NotFoundException(nameof(ChatConversation), request.ConversationId);
+            .FirstOrDefaultAsync(c =>
+                (c.ParticipantOneId == senderId && c.ParticipantTwoId == request.RecipientId) ||
+                (c.ParticipantOneId == request.RecipientId && c.ParticipantTwoId == senderId), ct);
 
-        if (conversation.ParticipantOneId != currentUser.UserId && conversation.ParticipantTwoId != currentUser.UserId)
-            throw new ForbiddenAccessException();
+        if (conversation == null)
+        {
+            conversation = new ChatConversation
+            {
+                ParticipantOneId = senderId,
+                ParticipantTwoId = request.RecipientId,
+            };
+            db.Conversations.Add(conversation);
+        }
 
-        var recipientId = conversation.ParticipantOneId == currentUser.UserId 
-            ? conversation.ParticipantTwoId 
-            : conversation.ParticipantOneId;
-
-        // T-008 - Block enforcement
-        var isBlocked = await db.UserBlocks.AnyAsync(b => 
+        var recipientId = request.RecipientId;
+        var isBlocked = await db.UserBlocks.AnyAsync(b =>
             (b.BlockerId == recipientId && b.BlockedUserId == currentUser.UserId) ||
             (b.BlockerId == currentUser.UserId && b.BlockedUserId == recipientId), ct);
 
@@ -54,8 +61,8 @@ public sealed class SendMessageCommandHandler(
 
         var message = new ChatMessage
         {
-            ConversationId = request.ConversationId,
-            SenderId = currentUser.UserId,
+            ConversationId = conversation.Id,
+            SenderId = senderId,
             Body = request.Body,
             SentAt = DateTimeOffset.UtcNow
         };
@@ -69,12 +76,9 @@ public sealed class SendMessageCommandHandler(
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        // Broadcast to ChatHub
-        await hubContext.Clients.Group($"conversation:{request.ConversationId}")
-            .SendAsync("NewMessage", message.Id, message.ConversationId, message.SenderId, message.Body, message.SentAt, ct);
-
-        // Notification fallback if offline - usually handled separately or by checking presence
+        await chatNotifier.NotifyNewMessageAsync(conversation.Id, message.Id, message.SenderId, message.Body, message.SentAt, ct);
 
         return message.Id;
     }
 }
+

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Payments.Commands.ProcessStripeWebhook;
@@ -9,6 +10,9 @@ namespace ScholarPath.Application.Payments.Commands.ProcessStripeWebhook;
 public sealed record ProcessStripeWebhookCommand(
     string EventId,
     string EventType,
+    string? PaymentIntentId,
+    string? ChargeId,
+    long? AmountCents,
     string DataJson) : IRequest<bool>;
 
 public sealed class ProcessStripeWebhookCommandHandler(
@@ -18,49 +22,58 @@ public sealed class ProcessStripeWebhookCommandHandler(
 {
     public async Task<bool> Handle(ProcessStripeWebhookCommand request, CancellationToken ct)
     {
-        // For the stub, we attempt to find the payment intent ID in the JSON
-        // In a real implementation, we would use Stripe.net to parse the event.
-        var intentId = ExtractIntentId(request.DataJson);
-        if (string.IsNullOrEmpty(intentId))
+        if (await db.StripeWebhookEvents.AnyAsync(e => e.StripeEventId == request.EventId, ct))
         {
-            logger.LogWarning("Webhook {EventId} (type {Type}) received but no PaymentIntent ID found in payload.", request.EventId, request.EventType);
-            return true; 
-        }
-
-        var payment = await db.CompanyReviewPayments
-            .FirstOrDefaultAsync(p => p.StripePaymentIntentId == intentId, ct);
-
-        if (payment == null)
-        {
-            // Might be a different type of payment (e.g., ConsultantBooking)
-            // For PB-005 we focus on CompanyReviewPayment
-            logger.LogInformation("Webhook {EventId} received for unknown or non-company payment {IntentId}", request.EventId, intentId);
+            logger.LogInformation("Webhook {EventId} already processed, skipping.", request.EventId);
             return true;
         }
 
-        if (request.EventType == "payment_intent.succeeded" || request.EventType == "payment_intent.amount_capturable_updated")
+        var webhookEvent = new StripeWebhookEvent
+        {
+            StripeEventId = request.EventId,
+            EventType = request.EventType,
+            RawPayload = request.DataJson,
+        };
+        db.StripeWebhookEvents.Add(webhookEvent);
+
+        if (string.IsNullOrEmpty(request.PaymentIntentId))
+        {
+            logger.LogWarning("Webhook {EventId} (type {Type}) has no PaymentIntent ID.", request.EventId, request.EventType);
+            webhookEvent.ProcessedAt = DateTimeOffset.UtcNow;
+            webhookEvent.IsProcessed = true;
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            return true;
+        }
+
+        var payment = await db.CompanyReviewPayments
+            .FirstOrDefaultAsync(p => p.StripePaymentIntentId == request.PaymentIntentId, ct);
+
+        if (payment == null)
+        {
+            logger.LogInformation("Webhook {EventId} for unknown payment {IntentId}", request.EventId, request.PaymentIntentId);
+            webhookEvent.ProcessedAt = DateTimeOffset.UtcNow;
+            webhookEvent.IsProcessed = true;
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            return true;
+        }
+
+        if (request.EventType is "payment_intent.succeeded" or "payment_intent.amount_capturable_updated")
         {
             if (payment.Status == PaymentStatus.Pending)
             {
                 payment.Status = PaymentStatus.Held;
-                logger.LogInformation("Payment {IntentId} status updated to Held via webhook", intentId);
+                logger.LogInformation("Payment {IntentId} updated to Held via webhook", request.PaymentIntentId);
             }
         }
         else if (request.EventType == "charge.refunded")
         {
             payment.Status = PaymentStatus.Refunded;
-            logger.LogInformation("Payment {IntentId} status updated to Refunded via webhook", intentId);
+            logger.LogInformation("Payment {IntentId} updated to Refunded via webhook", request.PaymentIntentId);
         }
 
+        webhookEvent.ProcessedAt = DateTimeOffset.UtcNow;
+        webhookEvent.IsProcessed = true;
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return true;
-    }
-
-    private string? ExtractIntentId(string json)
-    {
-        // Simple extraction for stub/demo purposes
-        // "id": "pi_..."
-        var match = System.Text.RegularExpressions.Regex.Match(json, "\"id\":\\s*\"(pi_[^\"]+)\"");
-        return match.Success ? match.Groups[1].Value : null;
     }
 }

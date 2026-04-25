@@ -1,14 +1,14 @@
 using MediatR;
-using Microsoft.AspNetCore.SignalR;
+
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Events;
-using ScholarPath.Infrastructure.Hubs;
+
 
 namespace ScholarPath.Application.Community.EventHandlers;
 
 public sealed class ForumPostCreatedEventHandler(
-    IHubContext<CommunityHub> hubContext,
+    ICommunityRealtimeNotifier communityNotifier,
     IApplicationDbContext db)
     : INotificationHandler<ForumPostCreatedEvent>
 {
@@ -20,14 +20,15 @@ public sealed class ForumPostCreatedEventHandler(
         if (category != null)
         {
             // Broadcast new post via CommunityHub (FR-108)
-            await hubContext.Clients.Group($"forum-category:{category.Slug}")
-                .SendAsync("NewPostCreated", notification.PostId, ct);
+            await communityNotifier.NotifyNewPostAsync(notification.PostId, category.Slug, ct);
+
+
         }
     }
 }
 
 public sealed class ForumReplyCreatedEventHandler(
-    IHubContext<CommunityHub> hubContext)
+    ICommunityRealtimeNotifier communityNotifier)
     : INotificationHandler<ForumReplyCreatedEvent>
 {
     public async Task Handle(ForumReplyCreatedEvent notification, CancellationToken ct)
@@ -35,7 +36,6 @@ public sealed class ForumReplyCreatedEventHandler(
         // Broadcast new reply via CommunityHub (FR-108)
         // For replies, we might broadcast to the thread group if there is one.
         // Or we can just broadcast globally or to a specific group. For now, assuming threads have their own group.
-        await hubContext.Clients.Group($"forum-thread:{notification.ParentPostId}")
-            .SendAsync("NewReplyCreated", notification.ReplyId, ct);
+        await communityNotifier.NotifyNewReplyAsync(notification.ReplyId, notification.ParentPostId, ct);
     }
 }

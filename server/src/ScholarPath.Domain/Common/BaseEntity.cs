@@ -27,7 +27,7 @@ public interface ISoftDeletable
     Guid? DeletedByUserId { get; set; }
 }
 
-public abstract record DomainEvent
+public abstract record DomainEvent : MediatR.INotification
 {
     public Guid EventId { get; init; } = Guid.NewGuid();
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;

@@ -28,15 +28,28 @@ public class WebhooksController(
 
         try
         {
-            var parsed = stripeService.ParseWebhook(json, signature, stripeOptions.Value.WebhookSecret!);
-            var command = new ProcessStripeWebhookCommand(parsed.EventId, parsed.EventType, parsed.DataJson);
-            
+            var webhookSecret = stripeOptions.Value.WebhookSecret;
+            if (string.IsNullOrEmpty(webhookSecret))
+            {
+                logger.LogCritical("Stripe WebhookSecret is not configured. Rejecting webhook.");
+                return StatusCode(500);
+            }
+
+            var parsed = stripeService.ParseWebhook(json, signature, webhookSecret);
+            var command = new ProcessStripeWebhookCommand(
+                parsed.EventId,
+                parsed.EventType,
+                parsed.PaymentIntentId,
+                parsed.ChargeId,
+                parsed.AmountCents,
+                parsed.DataJson);
+
             await mediator.Send(command, ct);
             return Ok();
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to process Stripe webhook");
+            logger.LogError(ex, "Failed to process Stripe webhook. EventSource: {SourceIP}", HttpContext.Connection.RemoteIpAddress);
             return BadRequest();
         }
     }

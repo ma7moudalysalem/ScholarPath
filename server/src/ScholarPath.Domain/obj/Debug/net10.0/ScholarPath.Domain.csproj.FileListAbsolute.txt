@@ -1,0 +1,13 @@
+E:\المشروع\server\src\ScholarPath.Domain\bin\Debug\net10.0\ScholarPath.Domain.deps.json
+E:\المشروع\server\src\ScholarPath.Domain\bin\Debug\net10.0\ScholarPath.Domain.dll
+E:\المشروع\server\src\ScholarPath.Domain\bin\Debug\net10.0\ScholarPath.Domain.pdb
+E:\المشروع\server\src\ScholarPath.Domain\obj\Debug\net10.0\ScholarPath.Domain.csproj.AssemblyReference.cache
+E:\المشروع\server\src\ScholarPath.Domain\obj\Debug\net10.0\ScholarPath.Domain.GeneratedMSBuildEditorConfig.editorconfig
+E:\المشروع\server\src\ScholarPath.Domain\obj\Debug\net10.0\ScholarPath.Domain.AssemblyInfoInputs.cache
+E:\المشروع\server\src\ScholarPath.Domain\obj\Debug\net10.0\ScholarPath.Domain.AssemblyInfo.cs
+E:\المشروع\server\src\ScholarPath.Domain\obj\Debug\net10.0\ScholarPath.Domain.csproj.CoreCompileInputs.cache
+E:\المشروع\server\src\ScholarPath.Domain\obj\Debug\net10.0\ScholarPath.Domain.sourcelink.json
+E:\المشروع\server\src\ScholarPath.Domain\obj\Debug\net10.0\ScholarPath.Domain.dll
+E:\المشروع\server\src\ScholarPath.Domain\obj\Debug\net10.0\refint\ScholarPath.Domain.dll
+E:\المشروع\server\src\ScholarPath.Domain\obj\Debug\net10.0\ScholarPath.Domain.pdb
+E:\المشروع\server\src\ScholarPath.Domain\obj\Debug\net10.0\ref\ScholarPath.Domain.dll

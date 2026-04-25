@@ -4,9 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Application.Common.Auditing;
+using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Chat.Commands.BlockUser;
-
+[Auditable(AuditAction.Create, "UserBlock",
+    TargetIdProperty = nameof(UserIdToBlock),
+    SummaryTemplate = "Blocked user {UserIdToBlock}")]
 public sealed record BlockUserCommand(
     Guid UserIdToBlock,
     string? Reason) : IRequest<bool>;
@@ -38,7 +42,7 @@ public sealed class BlockUserCommandHandler(
 
         var block = new UserBlock
         {
-            BlockerId = currentUser.UserId,
+            BlockerId = (currentUser.UserId ?? throw new ForbiddenAccessException()),
             BlockedUserId = request.UserIdToBlock,
             Reason = request.Reason
         };

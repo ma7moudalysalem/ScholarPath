@@ -10,6 +10,8 @@ public sealed class ConfigureReviewFeeCommandValidator : AbstractValidator<Confi
             .NotEmpty().WithMessage("ScholarshipId is required.");
 
         RuleFor(v => v.ReviewFeeUsd)
-            .GreaterThanOrEqualTo(0).WithMessage("Review fee must be 0 or greater.");
-    }
+           .GreaterThanOrEqualTo(0m)
+           .LessThanOrEqualTo(500m)
+            .WithMessage("Review fee must be between $0 and $500.");
+        }
 }

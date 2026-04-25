@@ -4,9 +4,15 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Application.Common.Auditing;
+using ScholarPath.Domain.Enums;
+
 
 namespace ScholarPath.Application.Community.Commands.FlagPost;
 
+[Auditable(AuditAction.Create, "PostFlag",
+    TargetIdProperty = nameof(PostId),
+    SummaryTemplate = "Flagged post {PostId}")]
 public sealed record FlagPostCommand(
     Guid PostId,
     string Reason,
@@ -43,7 +49,7 @@ public sealed class FlagPostCommandHandler(
         var flag = new ForumFlag
         {
             ForumPostId = request.PostId,
-            FlaggedByUserId = currentUser.UserId,
+            FlaggedByUserId = (currentUser.UserId ?? throw new ForbiddenAccessException()),
             Reason = request.Reason,
             AdditionalDetails = request.AdditionalDetails
         };
@@ -57,7 +63,7 @@ public sealed class FlagPostCommandHandler(
         {
             post.IsAutoHidden = true;
             post.AutoHiddenAt = DateTimeOffset.UtcNow;
-            
+
             // Raise event that post was auto-hidden
             post.RaiseDomainEvent(new ScholarPath.Domain.Events.PostAutoHiddenEvent(post.Id, distinctValidFlags));
         }

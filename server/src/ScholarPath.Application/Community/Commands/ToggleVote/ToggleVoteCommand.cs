@@ -4,10 +4,14 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Community.Commands.ToggleVote;
 
+[Auditable(AuditAction.Update, "PostVote",
+    TargetIdProperty = nameof(PostId),
+    SummaryTemplate = "Toggled vote on post {PostId}")]
 public sealed record ToggleVoteCommand(
     Guid PostId,
     VoteType VoteType) : IRequest<bool>;
@@ -44,13 +48,13 @@ public sealed class ToggleVoteCommandHandler(
             if (existingVote.VoteType == request.VoteType)
             {
                 db.ForumVotes.Remove(existingVote);
-                if (request.VoteType == VoteType.Upvote) post.UpvoteCount--;
+                if (request.VoteType == VoteType.Up) post.UpvoteCount--;
                 else post.DownvoteCount--;
             }
             // If different vote type, swap
             else
             {
-                if (existingVote.VoteType == VoteType.Upvote)
+                if (existingVote.VoteType == VoteType.Up)
                 {
                     post.UpvoteCount--;
                     post.DownvoteCount++;
@@ -70,12 +74,12 @@ public sealed class ToggleVoteCommandHandler(
             var vote = new ForumVote
             {
                 ForumPostId = request.PostId,
-                UserId = currentUser.UserId,
+                UserId = (currentUser.UserId ?? throw new ForbiddenAccessException()),
                 VoteType = request.VoteType
             };
             db.ForumVotes.Add(vote);
 
-            if (request.VoteType == VoteType.Upvote) post.UpvoteCount++;
+            if (request.VoteType == VoteType.Up) post.UpvoteCount++;
             else post.DownvoteCount++;
         }
 

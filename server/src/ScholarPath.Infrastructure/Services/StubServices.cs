@@ -157,6 +157,7 @@ public sealed class StubStripeService(ILogger<StubStripeService> logger) : IStri
         return Task.FromResult(new StripePayoutResult($"po_stub_{Guid.NewGuid():N}", "in_transit"));
     }
 
-    public StripeWebhookParseResult ParseWebhook(string payload, string signatureHeader, string webhookSecret) =>
-        new("evt_stub", "payment_intent.succeeded", payload);
+   public StripeWebhookParseResult ParseWebhook(string payload, string signatureHeader, string webhookSecret) =>
+        new("evt_stub", "payment_intent.succeeded", "pi_stub", null, null, payload);
+        
 }

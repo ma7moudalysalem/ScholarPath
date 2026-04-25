@@ -28,7 +28,7 @@ public sealed class UpdateExternalStatusCommandHandler(
         }
 
         application.Status = request.Status;
-        application.LastModifiedAt = DateTimeOffset.UtcNow;
+        application.UpdatedAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 

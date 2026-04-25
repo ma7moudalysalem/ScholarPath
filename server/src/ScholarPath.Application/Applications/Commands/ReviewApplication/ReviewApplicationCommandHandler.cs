@@ -49,12 +49,14 @@ public sealed class ReviewApplicationCommandHandler(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         await notifications.DispatchAsync(
-            application.StudentId,
-            NotificationType.ApplicationStatusChanged,
-            new NotificationContent("Application Update", $"Your application status is now {request.Status}.", null),
-            null,
-            null,
-            ct);
+        application.StudentId,
+        NotificationType.ApplicationStatusChanged,
+        new NotificationContent("Application Update", "تحديث الطلب", $"Your application status is now {request.Status}.", $"حالة طلبك الآن {request.Status}.", null),
+        null,
+        null,
+        ct);
+
+
 
         logger.LogInformation("Company {CompanyId} reviewed application {ApplicationId} as {Status}",
             currentUser.UserId, application.Id, request.Status);
