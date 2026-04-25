@@ -260,7 +260,16 @@ public enum AuditAction
     PaymentRefunded = 12,
     ConfigChanged = 13,
     BroadcastSent = 14,
+
+    BookingRequested = 100,
+    BookingAccepted = 101,
+    BookingRejected = 102,
+    BookingCancelled = 103,
+    BookingNoShowMarked = 104,
+    ConsultantRatingSubmitted = 105,
+    ConsultantAvailabilityUpdated = 106
 }
+
 public enum CancellationReason
 {
     StudentCancelledBeforeAcceptance = 0,

@@ -1,8 +1,8 @@
 using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
@@ -13,26 +13,26 @@ public sealed class HandleStripeWebhookCommandHandler : IRequestHandler<HandleSt
 {
     private readonly IApplicationDbContext _context;
     private readonly IStripeService _stripeService;
-    private readonly IConfiguration _configuration;
+    private readonly IOptions<StripeSettings> _stripeOptions;
     private readonly ILogger<HandleStripeWebhookCommandHandler> _logger;
 
     public HandleStripeWebhookCommandHandler(
         IApplicationDbContext context,
         IStripeService stripeService,
-        IConfiguration configuration,
+        IOptions<StripeSettings> stripeOptions,
         ILogger<HandleStripeWebhookCommandHandler> logger)
     {
         _context = context;
         _stripeService = stripeService;
-        _configuration = configuration;
+        _stripeOptions = stripeOptions;
         _logger = logger;
     }
 
     public async Task Handle(HandleStripeWebhookCommand request, CancellationToken cancellationToken)
     {
         var webhookSecret =
-            _configuration["Stripe:WebhookSecret"] ??
-            _configuration["Stripe:WebhookSigningSecret"] ??
+            _stripeOptions.Value.WebhookSecret ??
+            _stripeOptions.Value.WebhookSigningSecret ??
             string.Empty;
 
         var parsed = _stripeService.ParseWebhook(
@@ -94,12 +94,28 @@ public sealed class HandleStripeWebhookCommandHandler : IRequestHandler<HandleSt
                     await HandlePaymentIntentSucceededAsync(stripeObject, cancellationToken);
                     break;
 
+                case "payment_intent.payment_failed":
+                    await HandlePaymentIntentFailedAsync(stripeObject, cancellationToken);
+                    break;
+
                 case "payment_intent.canceled":
                     await HandlePaymentIntentCanceledAsync(stripeObject, cancellationToken);
                     break;
 
                 case "charge.refunded":
                     await HandleChargeRefundedAsync(stripeObject, cancellationToken);
+                    break;
+
+                case "payment_intent.requires_action":
+                    _logger.LogWarning(
+                        "Stripe webhook event type {EventType} was received but is not handled yet.",
+                        parsed.EventType);
+                    break;
+
+                case "charge.dispute.created":
+                    _logger.LogWarning(
+                        "Stripe webhook event type {EventType} was received but is not handled yet.",
+                        parsed.EventType);
                     break;
 
                 default:
@@ -181,6 +197,54 @@ public sealed class HandleStripeWebhookCommandHandler : IRequestHandler<HandleSt
         if (!string.IsNullOrWhiteSpace(chargeId))
         {
             payment.StripeChargeId = chargeId;
+        }
+
+        var booking = await _context.Bookings
+            .FirstOrDefaultAsync(b => b.StripePaymentIntentId == paymentIntentId, cancellationToken);
+
+        if (booking is { Status: BookingStatus.Requested })
+        {
+            booking.Status = BookingStatus.Confirmed;
+            booking.ConfirmedAt ??= DateTimeOffset.UtcNow;
+        }
+    }
+
+    private async Task HandlePaymentIntentFailedAsync(JsonElement stripeObject, CancellationToken cancellationToken)
+    {
+        var paymentIntentId = GetString(stripeObject, "id", "payment_intent");
+        if (string.IsNullOrWhiteSpace(paymentIntentId))
+        {
+            _logger.LogWarning("Webhook payment_intent.payment_failed has no payment intent id.");
+            return;
+        }
+
+        var payment = await _context.Payments
+            .FirstOrDefaultAsync(p => p.StripePaymentIntentId == paymentIntentId, cancellationToken);
+
+        if (payment is null)
+        {
+            _logger.LogWarning("No Payment row found for failed Stripe payment intent {PaymentIntentId}.", paymentIntentId);
+            return;
+        }
+
+        payment.Status = PaymentStatus.Failed;
+        payment.FailureReason =
+            GetNestedString(stripeObject, "last_payment_error", "message") ??
+            GetNestedString(stripeObject, "error", "message") ??
+            GetString(stripeObject, "status") ??
+            "payment_intent.payment_failed";
+
+        var booking = await _context.Bookings
+            .FirstOrDefaultAsync(b => b.StripePaymentIntentId == paymentIntentId, cancellationToken);
+
+        if (booking is not null &&
+            booking.Status != BookingStatus.Cancelled &&
+            booking.Status != BookingStatus.Completed &&
+            booking.Status != BookingStatus.NoShowStudent &&
+            booking.Status != BookingStatus.NoShowConsultant)
+        {
+            booking.Status = BookingStatus.Cancelled;
+            booking.CancelledAt ??= DateTimeOffset.UtcNow;
         }
     }
 
@@ -298,6 +362,22 @@ public sealed class HandleStripeWebhookCommandHandler : IRequestHandler<HandleSt
         return null;
     }
 
+    private static string? GetNestedString(JsonElement element, string objectPropertyName, params string[] propertyNames)
+    {
+        if (element.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        if (!element.TryGetProperty(objectPropertyName, out var nested) ||
+            nested.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        return GetString(nested, propertyNames);
+    }
+
     private static long? GetLong(JsonElement element, params string[] propertyNames)
     {
         if (element.ValueKind != JsonValueKind.Object)
@@ -326,4 +406,10 @@ public sealed class HandleStripeWebhookCommandHandler : IRequestHandler<HandleSt
 
         return null;
     }
+}
+
+public sealed class StripeSettings
+{
+    public string? WebhookSecret { get; set; }
+    public string? WebhookSigningSecret { get; set; }
 }

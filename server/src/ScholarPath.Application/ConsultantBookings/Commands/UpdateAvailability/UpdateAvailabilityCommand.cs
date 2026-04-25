@@ -1,7 +1,14 @@
 using MediatR;
+using ScholarPath.Application.Common.Auditing;
+using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
 
+[Auditable(
+    AuditAction.ConsultantAvailabilityUpdated,
+    "ConsultantAvailability",
+    SummaryTemplate = "Consultant availability updated"
+)]
 public sealed record UpdateAvailabilityCommand(
     bool ReplaceExisting,
     List<AvailabilityInputModel> Slots
