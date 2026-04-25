@@ -44,7 +44,7 @@ Branch naming: `feat/PB-xxx-short-slug`, `fix/PB-xxx-short-slug`, `chore/descrip
 
 CI gates every PR: `dotnet build --no-warn` + `dotnet test` + `dotnet format --verify-no-changes` + `npm run lint` + `npm run typecheck` + `npm run test` + `npm run build` + Trivy security scan + secret detection. No exceptions.
 
-Module ownership: **Mimi** owns PB-001 (Auth), PB-002 (Profile), PB-005 (Company Review), PB-010 (Notifications). **Nora** owns PB-003 (Scholarships), PB-004 (Applications), PB-006 (Consultant Booking), PB-013 (Payments), PB-014 (Profit Share). **Yosra** owns PB-007 (Community+Chat), PB-008 (AI), PB-009 (Resources), PB-011 (Admin). **Shared** on PB-012 (Audit) requires two approvals (at least one module owner).
+Module ownership (current, post-rebalance 2026-05-10): **Mimi** owns PB-001 (Auth), PB-002 (Profile), PB-007 (Community+Chat), PB-009 (Resources), PB-010 (Notifications). **Nora** owns PB-003 (Scholarships), PB-004 (Applications), PB-013 (Payments), PB-014 (Profit Share). **Yosra** owns PB-005 (Company Review) and the moderate data-engineering stories in PB-016 (CDC, Silver dbt, DQ assertions, docs site). **Tasneem** owns PB-006 (Consultant Booking) and PB-015 (Power BI Analytics) plus the Power-BI-adjacent slivers of PB-016 + PB-018. **Mahmoud** owns PB-008 (AI), PB-011 (Admin), PB-012 (Audit), PB-016 lead (ADF + Gold + IaC), PB-017 (AI Economy), PB-018 (Real-time), and INFRA. Shared modules require two approvals (at least one module owner).
 
 Cross-module changes require approval from all affected module owners. The `.github/CODEOWNERS` file enforces this automatically.
 
@@ -56,4 +56,16 @@ Every PR reviewer must verify constitution compliance and reject PRs that violat
 
 Runtime guidance for AI agents and contributors lives in `docs/ARCHITECTURE.md`, `docs/AUTH.md`, `docs/PAYMENTS.md`, `docs/RTL.md`, `docs/TESTING.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-04-17 | **Last Amended**: 2026-04-17
+## Analytics Principles (Part V, adopted 2026-05-11)
+
+Analytics work (PB-015 through PB-018) layers on top of the transactional platform. These rules apply only to the analytics layer and do not relax any constraint from sections above.
+
+**Principle 9 — PII never crosses the analytics boundary raw.** All data landing in Bronze is either already redacted (for AI prompts via PB-008's `RedactPii`) or already aggregated (for analytics-only entities). Gold must additionally hash any user identifier shown in public or role-restricted reports. Raw email, phone, payment tokens, and government IDs are forbidden in any Parquet file, Synapse external table, or Power BI dataset.
+
+**Principle 10 — Row-Level Security is non-negotiable.** Every Power BI dataset carries a named RLS role per JWT `activeRole`. Admins, Finance, Consultant, and Student see strictly their own scope. An RLS regression is a sev-2 incident.
+
+**Principle 11 — Analytics never blocks the OLTP.** Once PB-016 is in place, DirectQuery is turned off. Every dashboard reads from Synapse Serverless on Gold. Analytics refresh jobs must not generate new load against the live SQL Server during business hours.
+
+**Principle 12 — Cost visibility is a first-class feature.** Every AI call carries a per-user cost. The `AiCostGate` rolling 24h cap enforces the limit; the PB-017 dashboard makes the trend visible; the PB-017 email alert surfaces users approaching the cap. Hidden AI spend is a policy violation.
+
+**Version**: 1.1.0 | **Ratified**: 2026-04-17 | **Last Amended**: 2026-05-11 (Principles 9-12 added for the analytics track)

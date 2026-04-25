@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "factoryName":              { "value": "scholarpath-adf-dev" },
+    "sqlServerFqdn":            { "value": "scholarpath-sql-dev.database.windows.net" },
+    "oltpDatabaseName":         { "value": "ScholarPathDb" },
+    "adlsStorageAccountName":   { "value": "scholarpathlakedev" },
+    "keyVaultName":             { "value": "scholarpath-kv-dev" },
+    "servicePrincipalClientId": { "value": "REPLACE_WITH_DEV_SP_CLIENT_ID" }
+  }
+}

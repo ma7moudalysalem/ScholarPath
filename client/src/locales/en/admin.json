@@ -6,6 +6,8 @@
     "onboarding": "Onboarding queue",
     "upgrades": "Upgrade queue",
     "analytics": "Analytics",
+    "aiEconomy": "AI economy",
+    "redactionAudit": "Redaction audit",
     "broadcast": "Broadcast",
     "auditLog": "Audit log"
   },
@@ -48,6 +50,9 @@
       "delete": "Delete"
     },
     "empty": "No users matched the filters.",
+    "atRisk": "At risk",
+    "atRiskTooltip": "Churn-risk score {{score}}/100 (last Power BI dataflow run).",
+    "atRiskGeneric": "Flagged by the churn-risk dataflow.",
     "statusChange": {
       "title": "Change account status",
       "reasonLabel": "Reason (required for Suspend / Deactivate)",

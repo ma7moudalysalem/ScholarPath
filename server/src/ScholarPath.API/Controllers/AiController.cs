@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Ai.Commands.AskChatbot;
 using ScholarPath.Application.Ai.Commands.CheckEligibility;
 using ScholarPath.Application.Ai.Commands.GenerateRecommendations;
+using ScholarPath.Application.Ai.Commands.LogRecommendationClick;
 using ScholarPath.Application.Ai.DTOs;
 using ScholarPath.Application.Ai.Queries.GetMyInteractions;
 using ScholarPath.Application.Ai.Queries.GetMyRecommendations;
@@ -70,5 +71,22 @@ public sealed class AiController(IMediator mediator) : ControllerBase
     {
         var rows = await mediator.Send(new GetMyInteractionsQuery(limit), ct).ConfigureAwait(false);
         return Ok(rows);
+    }
+
+    /// <summary>
+    /// Logs that the student opened a scholarship surfaced by the recommender.
+    /// Powers the CTR widget on the AI-economy dashboard (PB-017 / FR-249).
+    /// Same-scholarship repeat clicks inside 500ms are deduplicated server-side,
+    /// so the client can fire without debouncing.
+    /// </summary>
+    [HttpPost("recommendations/click")]
+    [ProducesResponseType(typeof(LogRecommendationClickResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> LogRecommendationClick(
+        [FromBody] LogRecommendationClickCommand command,
+        CancellationToken ct)
+    {
+        var result = await mediator.Send(command, ct).ConfigureAwait(false);
+        return Ok(result);
     }
 }

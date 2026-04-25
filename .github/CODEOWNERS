@@ -43,21 +43,21 @@
 /client/src/pages/consultant/                               @TasneemShaaban
 /client/src/pages/student/Consultants*                      @TasneemShaaban
 
-# ─── PB-007 Community + Chat (Yosra) ───────────────────────
-/.specify/specs/PB-007-community-chat/                      @yousra-elnoby
-/server/src/ScholarPath.Application/Community/              @yousra-elnoby
-/server/src/ScholarPath.Infrastructure/Hubs/                @yousra-elnoby @ma7moudalysalem
-/client/src/pages/student/Community*                        @yousra-elnoby
-/client/src/services/signalR/                               @yousra-elnoby @ma7moudalysalem
+# ─── PB-007 Community + Chat (Mimi) ────────────────────────
+/.specify/specs/PB-007-community-chat/                      @Madiha6776
+/server/src/ScholarPath.Application/Community/              @Madiha6776
+/server/src/ScholarPath.Infrastructure/Hubs/                @Madiha6776 @ma7moudalysalem
+/client/src/pages/student/Community*                        @Madiha6776
+/client/src/services/signalR/                               @Madiha6776 @ma7moudalysalem
 
 # ─── PB-008 AI Features (Mahmoud — team lead) ──────────────
 /.specify/specs/PB-008-ai-features/                         @ma7moudalysalem
 /server/src/ScholarPath.Application/AI/                     @ma7moudalysalem
 /client/src/pages/student/Ai*                               @ma7moudalysalem
 
-# ─── PB-009 Resources Hub (Yosra) ──────────────────────────
-/.specify/specs/PB-009-resources-hub/                       @yousra-elnoby
-/server/src/ScholarPath.Application/Resources/              @yousra-elnoby
+# ─── PB-009 Resources Hub (Mimi) ───────────────────────────
+/.specify/specs/PB-009-resources-hub/                       @Madiha6776
+/server/src/ScholarPath.Application/Resources/              @Madiha6776
 
 # ─── PB-010 Notifications (Mimi) ───────────────────────────
 /.specify/specs/PB-010-notifications/                       @Madiha6776
@@ -78,9 +78,31 @@
 /server/src/ScholarPath.Infrastructure/Webhooks/            @norra-mmhamed @ma7moudalysalem
 /server/src/ScholarPath.Infrastructure/Services/Stripe*     @norra-mmhamed @ma7moudalysalem
 
-# ─── PB-014 Profit Share (Tasneem) ─────────────────────────
-/.specify/specs/PB-014-profit-share/                        @TasneemShaaban
-/server/src/ScholarPath.Application/ProfitShare/            @TasneemShaaban
+# ─── PB-014 Profit Share (Nora) ────────────────────────────
+/.specify/specs/PB-014-profit-share/                        @norra-mmhamed
+/server/src/ScholarPath.Application/ProfitShare/            @norra-mmhamed
+
+# ─── PB-015 Analytics Foundation (Tasneem — Power BI) ──────
+/.specify/specs/PB-015-analytics-foundation/                @TasneemShaaban
+/analytics/powerbi/                                         @TasneemShaaban
+/analytics/sql/                                             @TasneemShaaban
+
+# ─── PB-016 Data Warehouse (Mahmoud lead + Yosra) ──────────
+/.specify/specs/PB-016-data-warehouse/                      @ma7moudalysalem
+/analytics/adf/                                             @ma7moudalysalem
+/analytics/dbt/models/marts/                                @ma7moudalysalem
+/analytics/dbt/models/staging/                              @yousra-elnoby
+/analytics/dbt/models/silver/                               @yousra-elnoby
+/analytics/dbt/tests/                                       @yousra-elnoby
+
+# ─── PB-017 AI Economy Analytics (Mahmoud) ─────────────────
+/.specify/specs/PB-017-ai-economy/                          @ma7moudalysalem
+
+# ─── PB-018 Real-time Streaming (Mahmoud) ──────────────────
+/.specify/specs/PB-018-realtime-streaming/                  @ma7moudalysalem
+
+# ─── Analytics shared docs ─────────────────────────────────
+/docs/ANALYTICS.md                                          @ma7moudalysalem
 
 # ─── Shared infra — team lead reviewer required ────────────
 /server/Directory.Build.props                               @ma7moudalysalem

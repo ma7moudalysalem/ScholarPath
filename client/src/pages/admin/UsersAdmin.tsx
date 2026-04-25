@@ -156,7 +156,24 @@ export function UsersAdmin() {
             {data?.items.map((u) => (
               <tr key={u.id} className="border-t border-border-subtle hover:bg-bg-subtle/40">
                 <td className="px-4 py-3 font-medium">{u.email}</td>
-                <td className="px-4 py-3">{u.fullName}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <span>{u.fullName}</span>
+                    {u.isAtRisk && (
+                      <span
+                        title={
+                          u.riskScore != null
+                            ? t("admin:users.atRiskTooltip", { score: (u.riskScore * 100).toFixed(0) })
+                            : t("admin:users.atRiskGeneric")
+                        }
+                        className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600"
+                      >
+                        <span aria-hidden>⚠</span>
+                        {t("admin:users.atRisk")}
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(u.accountStatus)}`}>
                     {t(`admin:status.${u.accountStatus}`)}

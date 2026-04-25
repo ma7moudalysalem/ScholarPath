@@ -65,6 +65,8 @@ public class ApplicationDbContext(
 
     // AI
     public DbSet<AiInteraction> AiInteractions => Set<AiInteraction>();
+    public DbSet<RecommendationClickEvent> RecommendationClickEvents => Set<RecommendationClickEvent>();
+    public DbSet<AiRedactionAuditSample> AiRedactionAuditSamples => Set<AiRedactionAuditSample>();
 
     // Resources
     public DbSet<Resource> Resources => Set<Resource>();
@@ -81,6 +83,7 @@ public class ApplicationDbContext(
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<UserDataRequest> UserDataRequests => Set<UserDataRequest>();
     public DbSet<SuccessStory> SuccessStories => Set<SuccessStory>();
+    public DbSet<UserRiskFlag> UserRiskFlags => Set<UserRiskFlag>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

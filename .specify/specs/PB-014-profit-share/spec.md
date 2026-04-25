@@ -1,6 +1,6 @@
 # PB-014 — Portal Profit Share
 
-**Owner**: @TasneemShaaban • **Priority**: High • **Iteration**: 3 • **Est**: 22 pts
+**Owner**: @norra-mmhamed • **Priority**: High • **Iteration**: 3 • **Est**: 22 pts
 
 ## Problem statement
 

@@ -47,3 +47,25 @@ public sealed record AiInteractionRowDto(
     int CompletionTokens,
     decimal CostUsd,
     bool Succeeded);
+
+public sealed record AiFeatureUsageDto(
+    AiFeature Feature,
+    int Interactions,
+    decimal CostUsd,
+    int? AvgLatencyMs);
+
+public sealed record AiDailyCostPoint(DateOnly Date, decimal CostUsd);
+
+public sealed record RecommendationCtrDto(
+    int Impressions,
+    int Clicks,
+    decimal CtrPercent);
+
+public sealed record AiUsageSummaryDto(
+    int WindowDays,
+    decimal TotalCostUsd,
+    int TotalInteractions,
+    IReadOnlyList<AiFeatureUsageDto> ByFeature,
+    IReadOnlyList<AiDailyCostPoint> DailyCost,
+    RecommendationCtrDto Recommendations,
+    DateTimeOffset GeneratedAt);

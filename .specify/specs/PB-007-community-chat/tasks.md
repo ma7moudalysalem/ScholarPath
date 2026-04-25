@@ -1,6 +1,6 @@
 # PB-007 — Tasks
 
-**Owner**: @yousra-elnoby  •  **Est**: 44 pts  •  **Iteration**: 4
+**Owner**: @Madiha6776  •  **Est**: 44 pts  •  **Iteration**: 4
 
 ## Backend — Community
 - [ ] T-001 — CRUD posts + replies + categories (FR-102..FR-103)

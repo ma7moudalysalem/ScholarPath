@@ -1,0 +1,83 @@
+-- ============================================================================
+-- PB-018 US-002 / FR-266..FR-268 — Real-time anomaly detection.
+-- Azure Stream Analytics job: `sa-anomaly`.
+--
+-- Inputs  : eh_domain_events  (Event Hub, 1 partition per event type)
+-- Outputs : eh_alerts          (Event Hub, consumed by the PagerDuty bridge)
+--           pbs_live           (Power BI streaming dataset, for the live tile)
+--           blob_audit         (ADLS Gen2, compliance trail)
+--
+-- Algorithm:
+--   1. Tumble the stream into 1-minute windows per event_type.
+--   2. Compute a rolling mean + std-dev over the previous 60 windows (hop=1).
+--   3. Emit an alert row whenever count > mean + 3*stddev.
+--   4. Suppress alerts on zero-std windows (first hour after deploy, or on
+--      event types with no recent traffic) — we want real spikes, not noise.
+-- ============================================================================
+
+WITH windowed AS (
+    SELECT
+        event_type,
+        System.Timestamp() AS window_end,
+        COUNT(*)           AS event_count
+    FROM eh_domain_events TIMESTAMP BY event_occurred_at
+    GROUP BY
+        event_type,
+        TumblingWindow(minute, 1)
+),
+baselined AS (
+    SELECT
+        event_type,
+        window_end,
+        event_count,
+        AVG(event_count)          OVER (PARTITION BY event_type LIMIT DURATION(minute, 60)) AS mean_count,
+        STDEV(CAST(event_count AS float))
+                                   OVER (PARTITION BY event_type LIMIT DURATION(minute, 60)) AS stddev_count
+    FROM windowed
+),
+alerts AS (
+    SELECT
+        event_type,
+        window_end,
+        event_count,
+        mean_count,
+        stddev_count,
+        (event_count - mean_count) / NULLIF(stddev_count, 0) AS z_score
+    FROM baselined
+    WHERE stddev_count > 0
+      AND event_count > mean_count + 3 * stddev_count
+)
+
+-- ─── Alert sink: PagerDuty bridge consumes this Event Hub ────────────
+SELECT
+    NEWID()         AS alert_id,
+    event_type      AS component,
+    'critical'      AS severity,
+    CONCAT('Spike on ', event_type, ' — ', CAST(event_count AS nvarchar(MAX)),
+           ' events in last minute (mean ', CAST(mean_count AS nvarchar(MAX)),
+           ', z=', CAST(ROUND(z_score, 2) AS nvarchar(MAX)), ')') AS summary,
+    window_end      AS triggered_at,
+    z_score,
+    event_count,
+    mean_count,
+    stddev_count
+INTO eh_alerts
+FROM alerts;
+
+-- ─── Live-tile sink: Tasneem's Power BI streaming dataset ────────────
+SELECT
+    event_type,
+    window_end,
+    event_count
+INTO pbs_live
+FROM windowed;
+
+-- ─── Audit trail: every minute of every event type ──────────────────
+SELECT
+    event_type,
+    window_end,
+    event_count,
+    mean_count,
+    stddev_count
+INTO blob_audit
+FROM baselined;

@@ -7,6 +7,8 @@ import {
   UserCheck,
   UserPlus,
   BarChart3,
+  Sparkles,
+  ShieldAlert,
   Megaphone,
   FileText,
   LogOut,
@@ -30,6 +32,8 @@ const NAV: NavItem[] = [
   { to: "/admin/onboarding", key: "nav.onboarding", icon: UserCheck },
   { to: "/admin/upgrades", key: "nav.upgrades", icon: UserPlus },
   { to: "/admin/analytics", key: "nav.analytics", icon: BarChart3 },
+  { to: "/admin/ai-economy", key: "nav.aiEconomy", icon: Sparkles },
+  { to: "/admin/redaction-audit", key: "nav.redactionAudit", icon: ShieldAlert },
   { to: "/admin/broadcast", key: "nav.broadcast", icon: Megaphone },
   { to: "/admin/audit-log", key: "nav.auditLog", icon: FileText },
 ];

@@ -1,0 +1,40 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: >
+      Raw CDC Parquet landed by the ADF `cdc_to_bronze` pipeline. Each
+      capture instance becomes one external table exposed by Synapse
+      Serverless via `CREATE EXTERNAL TABLE` + OPENROWSET over ADLS Gen2.
+      Files are organised as:
+        bronze/cdc/table=<capture_instance>/load_date=YYYY-MM-DD/<run>.parquet
+    database: bronze
+    schema: cdc
+    loader: "Azure Data Factory"
+    loaded_at_field: cdc_commit_ts
+    freshness:
+      warn_after:  { count: 30, period: minute }
+      error_after: { count: 90, period: minute }
+
+    tables:
+      - name: dbo_AspNetUsers
+        description: "Users — identity + login metadata. SCD Type 2 target in Silver+."
+      - name: dbo_UserProfiles
+      - name: dbo_UpgradeRequests
+      - name: dbo_Scholarships
+        description: "Scholarship catalogue. Drives dim_scholarship (SCD Type 2)."
+      - name: dbo_SavedScholarships
+      - name: dbo_ApplicationTrackers
+        description: "Applications — feeds fct_application (lifecycle-event grain)."
+      - name: dbo_CompanyReviews
+      - name: dbo_ConsultantBookings
+      - name: dbo_Payments
+        description: "Payments — source of revenue truth. One row per payment intent."
+      - name: dbo_Payouts
+      - name: dbo_ForumPosts
+      - name: dbo_ChatMessages
+      - name: dbo_AiInteractions
+        description: "AI calls — cost + latency + feature. Feeds fct_ai_interaction."
+      - name: dbo_RecommendationClickEvents
+        description: "PB-017 CTR numerator — one row per student card click."
+      - name: dbo_Notifications

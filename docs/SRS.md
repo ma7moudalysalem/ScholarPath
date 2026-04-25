@@ -5171,3 +5171,285 @@ All API endpoints shall be documented via auto-generated Open API (Swagger) spec
 
 Code test coverage shall not drop below 70% across unit and integration tests.
 
+
+# 8. Analytics & Data Engineering (Part V)
+
+This section covers the four analytics epics added to the backlog once the transactional core of the platform stabilized. It reuses the same structure as sections 1–4 (overview, user stories, functional requirements, data-model impact, non-functional requirements).
+
+## 8.1 Overview
+
+The ScholarPath platform captures richly structured data in forty entities across five bounded contexts. Section 8 turns that data into decision-grade reporting for the four user roles (Admin, Finance, Consultant, Student), a proper medallion-architecture data warehouse, a FinOps layer for the AI features, and an optional real-time streaming pipeline.
+
+Four epics make up Part V:
+
+| Epic | Module | Owner | Stories | Points | Iteration |
+|------|--------|-------|---------|--------|-----------|
+| PB-015 | Analytics Foundation (Power BI DirectQuery) | @TasneemShaaban | US-160..US-165 | 34 | 2 |
+| PB-016 | Data Warehouse (medallion + dbt + Synapse) | @ma7moudalysalem lead + @yousra-elnoby | US-166..US-173 | 55 | 3 |
+| PB-017 | AI Economy Analytics | @ma7moudalysalem | US-174..US-178 | 21 | 3 |
+| PB-018 | Real-time Streaming (optional) | @ma7moudalysalem | US-179..US-181 | 21 | 4 |
+
+Prerequisite infrastructure stories (INFRA-US-001..INFRA-US-003) are scheduled alongside PB-015 in Iteration 2 so provisioning does not block dashboard work.
+
+## 8.2 User Stories — PB-015 Analytics Foundation
+
+**US-160 — Executive Dashboard.**
+As a Platform Admin I want to see MAU, DAU, the registration-to-accepted funnel, 30-day revenue, and top-10 scholarships on one screen so that I can report platform health in weekly reviews. Acceptance: Given authenticated Admin, when I open `/admin/analytics/executive`, then I see four KPI cards, a funnel chart, a world-map heatmap of student countries, and a top-10 list. Data refreshes every four hours.
+
+**US-161 — Student Success Dashboard.**
+As a Platform Admin I want to see acceptance rates broken down by scholarship, field of study, and country so that I can identify under-performing segments and intervene. Acceptance: Given admin viewing Student Success dashboard, when I filter by a specific field, then I see acceptance rate percentage, median time-to-decision in days, and drop-off counts per Kanban stage. Bookmarks are supported for two-period comparison.
+
+**US-162 — Financial Dashboard.**
+As a Finance-role Admin I want to see revenue split (booking fees versus company-review fees), profit share accrual, and refund patterns on a single dashboard so that I can reconcile Stripe payouts with our books and spot anomalies. Acceptance: Given Admin with Finance role, when I open the Financial dashboard, then I see daily, weekly, and monthly revenue stacked by type, total profit share month-to-date, refund count with dollar amounts by reason, and a ProfitShareConfig history timeline. Non-Finance admins see none of this via RLS.
+
+**US-163 — Consultant Self-Analytics.**
+As a Consultant I want to see my own booking volume, earnings, rating distribution, and no-show rate so that I can understand how I am performing and price my sessions correctly. Acceptance: Given authenticated Consultant, when I open `/consultant/analytics`, then I see 30-day and 90-day booking counts, net earnings after profit share, 1-to-5-star rating distribution, and a no-show split between student and consultant fault. RLS enforced.
+
+**US-164 — Student Self-Analytics.**
+As a Student I want to see my application timeline, deadlines calendar, profile completeness, and recommendation match score distribution so that I can plan my next applications and track progress. Acceptance: Given authenticated Student, when I open `/student/analytics`, then I see a Gantt timeline of all my applications, a calendar heatmap of deadlines for the next 90 days, a profile completeness breakdown, and the average match score of my most recent recommendations.
+
+**US-165 — Row-Level Security.**
+As QA I want Row-Level Security configured so that each role sees only its scope so that financial and PII data does not leak across roles. Acceptance: Given Power BI published with five dashboards, when any user opens a report, then RLS filters apply based on their JWT `activeRole` claim. Verified by four impersonation tests (Student, Company, Consultant, Admin).
+
+## 8.3 User Stories — PB-016 Data Warehouse
+
+**US-166 — SQL Server Change Data Capture.**
+As a Data Engineer I want CDC enabled on 15 core tables so that the Bronze layer receives only changes, not full copies. Acceptance: CDC enabled on Applications, Payments, Bookings, AiInteractions, Users, Scholarships, CompanyReviews, ConsultantReviews, ForumPosts, ChatMessages, and five more. On any insert/update/delete, the row appears in `cdc.<table>_CT` within five seconds. Retention set to three days.
+
+**US-167 — Bronze Ingestion Pipeline.**
+As a Data Engineer I want an Azure Data Factory pipeline that copies CDC deltas to Azure Data Lake Gen2 every 15 minutes so that historical data accumulates in Parquet at low cost. Acceptance: Pipeline `cdc-to-bronze` scheduled every 15 minutes writes new and changed rows as daily-partitioned Parquet files to `datalake/bronze/<table>/yyyy=YYYY/mm=MM/dd=DD/`. Email alert on failure.
+
+**US-168 — Silver Layer dbt Models.**
+As a Data Engineer I want Bronze to Silver dbt models that clean types, drop duplicates, and explode JSON columns so that downstream analysts work with well-typed data. Acceptance: dbt project initialized with dbt-sqlserver adapter. Running `dbt build --select silver` creates all Silver tables with proper schemas, no duplicate business keys, all `*Json` columns flattened into typed columns. Test coverage at least 95%.
+
+**US-169 — Gold Star Schema.**
+As a Data Engineer I want a Silver to Gold star schema with five fact tables and five dimension tables (two SCD Type 2) so that BI queries are fast and historical changes are preserved. Acceptance: Gold contains `FactApplication`, `FactPayment`, `FactBooking`, `FactAiInteraction`, `FactForumActivity` and `DimUser` (SCD2), `DimScholarship` (SCD2), `DimDate`, `DimGeography`, `DimProfitShareConfig`. Exercised with synthetic data.
+
+**US-170 — Power BI Cutover to Gold.**
+As an Analyst I want to query Gold via Power BI instead of DirectQuery on OLTP so that production stays responsive under heavy queries. Acceptance: Power BI datasets re-pointed from DirectQuery on SQL Server to Synapse Serverless on Gold. Zero matching queries on OLTP DMV during a full dashboard refresh cycle.
+
+**US-171 — Data Quality Assertions.**
+As a Data Engineer I want data-quality assertions that fail-stop the pipeline on violation so that bad data never reaches Gold. Acceptance: 20 or more assertions running in dbt or Soda Core. On failure, pipeline halts, Gold is not updated, Slack and email alerts fire. Assertions cover orphan FKs, valid enum values, no future-dated deadlines, no negative payment amounts, idempotency-key uniqueness, and CDC row-count drift.
+
+**US-172 — dbt Documentation Site.**
+As a Stakeholder I want dbt documentation published so that anyone can explore lineage and column descriptions. Acceptance: `dbt docs generate` hosted at a stable URL. Site navigates the DAG, shows column descriptions, freshness, and test results.
+
+**US-173 — Pipeline as Code.**
+As a DevOps engineer I want the whole pipeline (ADF + dbt) versioned in git so that we can review data-infrastructure changes in PRs. Acceptance: ADF exported as ARM template under `analytics/adf/`. dbt project under `analytics/dbt/`. `.github/workflows/analytics.yml` validates both on PR and deploys to a staging resource group on merge to an `analytics` branch.
+
+## 8.4 User Stories — PB-017 AI Economy Analytics
+
+**US-174 — AI Cost Dashboard.**
+As a Platform Admin I want to see daily, weekly, and monthly AI cost split by feature (Recommendation, Eligibility, Chatbot) and provider (LocalAiService vs OpenAiService) so that I can make informed budget decisions and detect runaway costs. Acceptance: On `/admin/analytics/ai-economy`, totals for today / 7-day / 30-day USD spend are visible, a stacked bar shows cost by feature, and a line chart shows local vs real-money provider cost over time.
+
+**US-175 — Budget Alert Automation.**
+As a Platform Admin I want alerts when any user crosses 80% of their `DailyUserCostLimitUsd` for three consecutive days so that I can spot potential abuse before hitting the hard cap. Acceptance: Power BI dashboard flags qualifying users in red and emails `admins@scholarpath.local` via a Power Automate connector. Threshold line shown alongside each user's trailing cost.
+
+**US-176 — Recommendation Click-Through Tracking.**
+As a Product Lead I want to see Recommendation CTR per user segment so that I can measure whether the AI feature is driving applications. Acceptance: New event `recommendation_clicked` logged from the frontend into a `RecommendationClickEvent` table. Dashboard shows CTR overall and segmented by student academic level and preferred field. Target CTR at least 15%.
+
+**US-177 — Token Efficiency Metrics.**
+As a Platform Admin I want to see token-efficiency metrics per provider and feature so that I can spot prompt bloat and optimize. Acceptance: Dashboard shows box plots of prompt and completion token counts per (feature, provider). Sortable table of 10 most-expensive prompts with prompt text redacted.
+
+**US-178 — PII Redaction Compliance Audit.**
+As a Compliance Admin I want to measure the PII redaction miss rate via a monthly human-reviewed random sample so that I can prove the redaction layer works. Acceptance: Monthly Hangfire job selects 50 random chat prompts. A reviewer tags each with `clean`, `missed_email`, `missed_phone`, or `missed_card`. Dashboard shows accuracy and flags investigation cases. Target: miss rate below 1%.
+
+## 8.5 User Stories — PB-018 Real-time Streaming
+
+**US-179 — Live Activity Tile.**
+As a Platform Admin I want to watch live application submissions and payment captures on a tile that updates within seconds so that I can monitor platform activity during launch events. Acceptance: `ApplicationSubmitted`, `PaymentCaptured`, and `BookingCompleted` domain events are published to Azure Event Hub. A Power BI streaming tile shows each event within five seconds.
+
+**US-180 — Anomaly Detection.**
+As an SRE I want a Stream Analytics query that flags traffic volume 3σ above the trailing 7-day baseline so that ops can detect a traffic spike or fraud pattern instantly. Acceptance: Stream Analytics job `anomaly-detection` emits an alert row whenever a 5-minute window exceeds the baseline. Alerts automatically open a PagerDuty incident.
+
+**US-181 — Reverse ETL for Churn Risk.**
+As a Data Engineer I want to push the at-risk-of-churn student segment from Power BI back into the app so that admins can act on the insight directly in the admin portal. Acceptance: Daily reverse-ETL sync writes churn-risk rows to a new `UserRiskFlags` OLTP table. The admin portal `/admin/users` page shows an at-risk chip on matching users.
+
+## 8.6 Functional Requirements
+
+### 8.6.1 PB-015 Analytics Foundation (FR-212..FR-225)
+
+| ID | Requirement |
+|---|---|
+| FR-212 | The platform shall provide five Power BI dashboards: Executive Overview, Student Success, Financial, Consultant Self-Analytics, and Student Self-Analytics. |
+| FR-213 | Dashboards shall auto-refresh every four hours (DirectQuery live + mashup cache refreshing on that cadence). |
+| FR-214 | The Executive Dashboard shall display MAU, DAU, 30-day revenue, and registration-to-accepted funnel as first-class KPI cards. |
+| FR-215 | The Executive Dashboard shall include a world-map heatmap of student countries of residence. |
+| FR-216 | The Student Success Dashboard shall compute acceptance rate grouped by scholarship, field of study, and country. |
+| FR-217 | The Student Success Dashboard shall compute the median time-to-decision in days. |
+| FR-218 | The Financial Dashboard shall split revenue by payment type (Booking vs CompanyReview) and preserve historical ProfitShareConfig rates at the time of each capture. |
+| FR-219 | Power BI row-level security (RLS) shall be configured so each role sees only its scope, driven by the JWT activeRole claim. |
+| FR-220 | The Consultant Self-Analytics Dashboard shall be filtered to the current consultant rows and include booking volume, earnings, ratings, and no-show splits. |
+| FR-221 | The Student Self-Analytics Dashboard shall be filtered to the current student rows and include application timeline, deadlines calendar, and profile completeness. |
+| FR-222 | The embed-token endpoint `POST /api/admin/analytics/embed-token` shall be admin-protected and return a short-lived Power BI embed token scoped to the caller role. |
+| FR-223 | The API shall consume Power BI embed tokens via Azure AD Service Principal; the private key shall live only in Azure Key Vault. |
+| FR-224 | Five SQL views (vw_funnel_daily, vw_acceptance_rates, vw_finance_daily, vw_consultant_kpis, vw_student_journey) shall be deployed as part of the PB-015 migration. |
+| FR-225 | The `/admin/analytics` route shall be protected by `[Authorize(Roles = "Admin,SuperAdmin")]` and host the Power BI iframe. |
+
+### 8.6.2 PB-016 Data Warehouse (FR-226..FR-245)
+
+| ID | Requirement |
+|---|---|
+| FR-226 | SQL Server Change Data Capture shall be enabled on all 15 core tables with a three-day retention window. |
+| FR-227 | Azure Data Factory shall ingest CDC deltas into Azure Data Lake Gen2 (Bronze) every 15 minutes. |
+| FR-228 | Bronze layer files shall be daily-partitioned Parquet following `bronze/<table>/yyyy=YYYY/mm=MM/dd=DD/part-*.parquet`. |
+| FR-229 | Bronze retention shall be 90 days online; older files shall tier to Azure Archive. |
+| FR-230 | dbt staging models shall convert Bronze types to strong types (no nvarchar(max) in Silver except free-text bodies). |
+| FR-231 | Silver models shall de-duplicate by business key and honor soft-delete flags. |
+| FR-232 | Silver models shall explode every `*Json` column into typed columns where schema is known. |
+| FR-233 | Gold layer shall contain five fact tables (`FactApplication`, `FactPayment`, `FactBooking`, `FactAiInteraction`, `FactForumActivity`). |
+| FR-234 | Gold layer shall contain five dimension tables: `DimUser` (SCD Type 2), `DimScholarship` (SCD Type 2), `DimDate`, `DimGeography`, `DimProfitShareConfig`. |
+| FR-235 | `DimProfitShareConfig` shall preserve historical rates so `FactPayment` can be reconciled against the rate that was in effect at the time of capture. |
+| FR-236 | dbt test coverage in Silver shall be at least 95%. |
+| FR-237 | At least 20 data-quality assertions shall run on every dbt build; a failure shall halt the pipeline and emit Slack + email alerts. |
+| FR-238 | Data-quality assertions shall include: no orphan FKs, valid enum values, no future-dated deadlines, no negative monetary amounts, idempotency-key uniqueness, and CDC row-count drift below 0.1 percent. |
+| FR-239 | dbt documentation shall be published at a stable URL with a navigable DAG, column descriptions, freshness, and test results. |
+| FR-240 | Power BI datasets shall be re-pointed from DirectQuery on OLTP to Synapse Serverless on Gold; OLTP DMV shall show zero matching queries during refresh. |
+| FR-241 | The dbt project shall live under `analytics/dbt/` and follow a three-layer `models/{staging,silver,marts}/` structure. |
+| FR-242 | ADF shall be exported as ARM templates under `analytics/adf/` and committed to git. |
+| FR-243 | CI workflow `.github/workflows/analytics.yml` shall validate both the dbt project (`dbt compile`) and the ADF ARM template on every PR. |
+| FR-244 | The reconciliation check `COUNT(FactPayment) == COUNT(Payment WHERE Status='Captured')` shall be asserted daily. |
+| FR-245 | Synapse Serverless external tables shall be granted read-only access to service principals used by Power BI embed tokens. |
+
+### 8.6.3 PB-017 AI Economy Analytics (FR-246..FR-258)
+
+| ID | Requirement |
+|---|---|
+| FR-246 | The AI Economy Dashboard shall split cost by feature (Recommendation / Eligibility / Chatbot) and provider (LocalAiService / OpenAiService) on a daily, weekly, and monthly cadence. |
+| FR-247 | The dashboard shall surface users who cross 80 percent of their `DailyUserCostLimitUsd` for three consecutive days; rows shall be flagged red. |
+| FR-248 | A Power Automate flow shall email `admins@scholarpath.local` once per day listing any users meeting FR-247. |
+| FR-249 | A new entity `RecommendationClickEvent { Id, UserId, ScholarshipId, AiInteractionId?, ClickedAt, Source }` shall be introduced with indices on `(UserId, ClickedAt)` and `(ScholarshipId, ClickedAt)`. |
+| FR-250 | The command `LogRecommendationClickCommand` shall be emitted from the recommendation UI and persisted with `[Auditable(AuditAction.Create, "RecommendationClick")]`. |
+| FR-251 | Recommendation click-through rate (clicks / impressions) shall be computed overall and segmented by student academic level and field of study. |
+| FR-252 | The dashboard shall display box plots of prompt and completion token counts per (feature, provider). |
+| FR-253 | The dashboard shall list the 10 most-expensive prompts with prompt text redacted via the same pipeline used at emit time. |
+| FR-254 | A monthly Hangfire job `RedactionAuditSamplingJob` shall select 50 random chat prompts from the previous month and persist them to `AiRedactionAuditSample`. |
+| FR-255 | An admin UI shall let reviewers tag each sample with `clean`, `missed_email`, `missed_phone`, or `missed_card`. |
+| FR-256 | Redaction miss-rate target shall be below 1 percent measured against the monthly sample. |
+| FR-257 | Duplicate recommendation clicks on the same card within 500 ms shall count as one event (client-side debounce) AND be enforced server-side via idempotency. |
+| FR-258 | All AI-related analytics queries shall honor existing RLS — students and consultants may not query cost data not their own. |
+
+### 8.6.4 PB-018 Real-time Streaming (FR-259..FR-270)
+
+| ID | Requirement |
+|---|---|
+| FR-259 | `ApplicationSubmittedEvent`, `PaymentCapturedEvent`, and `BookingCompletedEvent` shall be published to Azure Event Hub via `Azure.Messaging.EventHubs`. |
+| FR-260 | Event envelopes shall contain only `{ type, occurredAt, userId, amount?, correlationId }` and no PII. |
+| FR-261 | Event Hub namespace `scholarpath-events` (Standard tier) shall expose an `domain-events` hub with two partitions and seven-day retention. |
+| FR-262 | A Power BI streaming dataset shall ingest the event envelope schema and surface events on an activity tile within five seconds. |
+| FR-263 | An Azure Stream Analytics job `anomaly-detection` shall compute a trailing 7-day baseline and flag any 5-minute window whose volume exceeds mean plus 3σ. |
+| FR-264 | Anomaly alerts shall POST to the PagerDuty Incident API using an alert routing key stored in Azure Key Vault. |
+| FR-265 | A daily Power BI dataflow shall compute `ChurnRiskScore` per student from Gold historical data. |
+| FR-266 | A reverse-ETL connector (Census or equivalent) shall write at-risk rows to a new OLTP table `UserRiskFlags { UserId, Score, ComputedAt, Source }`. |
+| FR-267 | The admin `/admin/users` page shall render an at-risk chip on any row whose matching `UserRiskFlags.Score` exceeds 0.75. |
+| FR-268 | The reverse-ETL job shall be idempotent — re-running it shall not create duplicate rows for the same (UserId, ComputedAt). |
+| FR-269 | Real-time infrastructure (Event Hub, Stream Analytics, PagerDuty integration) shall be fully documented in `docs/ANALYTICS.md` with runbooks for common failures. |
+| FR-270 | All event payloads shall be signed (SAS-based) and TLS 1.2+ enforced on the Event Hub namespace. |
+
+## 8.7 Data-Model Additions
+
+The following tables are introduced. They live in the OLTP database (SQL Server) because they feed the existing `[Auditable]` pipeline and are read by both the Gold layer and the admin UI.
+
+| Table | Purpose | Source epic |
+|---|---|---|
+| `RecommendationClickEvent` | Per-click record for CTR computation | PB-017 |
+| `AiRedactionAuditSample` | Monthly 50-prompt sample for human-reviewed redaction audit | PB-017 |
+| `UserRiskFlags` | At-risk-of-churn flag computed by reverse ETL, surfaced in admin | PB-018 |
+
+Column details are documented in `.specify/specs/PB-017-ai-economy/plan.md` and `.specify/specs/PB-018-realtime-streaming/plan.md`.
+
+## 8.8 Non-Functional Additions
+
+| ID | Requirement |
+|---|---|
+| NFR-PartV-1 | Power BI dashboards shall target sub-3-second load time for the initial report render. |
+| NFR-PartV-2 | Gold layer freshness shall be at most 30 minutes behind OLTP. |
+| NFR-PartV-3 | The AI Economy dashboard shall reflect the previous 24 hours of `AiInteractions` within 15 minutes of the most recent call. |
+| NFR-PartV-4 | The real-time tile (PB-018) shall surface events within 5 seconds of persistence. |
+| NFR-PartV-5 | Reverse-ETL latency from Power BI to OLTP `UserRiskFlags` shall be at most 24 hours. |
+| NFR-PartV-6 | Every analytics artifact (view, dbt model, report, stream job) shall carry an owner tag aligned with the CODEOWNERS entry. |
+| NFR-PartV-7 | Analytics shall never operate on raw PII; all data flowing into Bronze shall go through either the audit-log pipeline or a redaction pass. |
+
+## 8.9 Glossary Additions
+
+**Bronze / Silver / Gold (medallion).** Three-layer data-lake architecture where Bronze stores raw landed data, Silver stores cleaned and typed data, and Gold stores analytics-ready star-schema tables.
+
+**CDC (Change Data Capture).** A database feature that records inserts, updates, and deletes so that downstream systems can consume only the changes rather than full-table snapshots.
+
+**CTR (Click-Through Rate).** Ratio of clicks to impressions, computed as `clicks / impressions`.
+
+**dbt (data build tool).** SQL-first transformation framework that compiles Jinja-templated SQL into materialized models with built-in tests and documentation.
+
+**Embed Token.** A short-lived Power BI access token issued by a service principal that allows an application to host a Power BI report inside an iframe without the user having a Power BI account.
+
+**Fact Table.** An analytics table whose grain is one business event (one application submission, one captured payment, one AI call). Contains measurable quantities (amounts, counts, durations) and foreign keys into Dim tables.
+
+**FinOps.** The cloud financial-management discipline concerned with making infrastructure spend transparent and controllable.
+
+**Medallion Architecture.** See Bronze / Silver / Gold above.
+
+**Power BI DirectQuery.** A Power BI connection mode that queries the source database on every report interaction, rather than importing data into an in-memory model.
+
+**Reverse ETL.** The pattern of pushing insights computed in a warehouse or BI tool back into operational systems so that they can drive user-facing action.
+
+**RLS (Row-Level Security).** A Power BI (and database) feature that filters rows returned by a query based on the viewing user attributes, so that each user sees only their own scope.
+
+**SCD Type 2 (Slowly Changing Dimension).** A pattern for tracking dimension changes over time by inserting a new row on every change, with `EffectiveFrom` / `EffectiveTo` / `IsCurrent` columns preserving the history.
+
+**Star Schema.** Warehouse modeling pattern with one central fact table surrounded by dimension tables; optimized for read-heavy analytical queries.
+
+**Stream Analytics (Azure).** A managed streaming query engine that runs SQL-like queries continuously over event streams from Event Hub / IoT Hub.
+
+**Synapse Serverless.** An Azure service that lets you query Parquet files in Data Lake using standard T-SQL without provisioning a dedicated SQL cluster, billed per query volume.
+
+## 8.10 Figures
+
+Activity and architecture diagrams for Part V. Numbering continues from the core-platform figure set.
+
+**Figure 125 — Medallion architecture overview** (Bronze → Silver → Gold pipeline).
+
+![SRS figure](srs-images/image125.png)
+
+**Figure 126 — CDC ingestion sequence** (SQL Server → ADF → Bronze).
+
+![SRS figure](srs-images/image126.png)
+
+**Figure 127 — Gold star schema ERD** (5 facts + 5 dims with SCD2 on User and Scholarship).
+
+![SRS figure](srs-images/image127.png)
+
+**Figure 128 — Dashboard role matrix** (Admin / Finance / Consultant / Student visibility via RLS).
+
+![SRS figure](srs-images/image128.png)
+
+**Figure 129 — Power BI embed-token sequence** (API → Key Vault → Power BI → DW).
+
+![SRS figure](srs-images/image129.png)
+
+**Figure 130 — Recommendation CTR event flow** (frontend click → LogRecommendationClickCommand → RecommendationClickEvent → Gold FactAiInteraction join → CTR widget).
+
+![SRS figure](srs-images/image130.png)
+
+**Figure 131 — AI daily cost gate + budget alert** (AiCostGate 24h rolling window, 80% three-day-running alerting).
+
+![SRS figure](srs-images/image131.png)
+
+**Figure 132 — Real-time anomaly detection pipeline** (Event Hub → Stream Analytics → PagerDuty + Power BI streaming tile).
+
+![SRS figure](srs-images/image132.png)
+
+**Figure 133 — Reverse-ETL churn risk loop** (Gold → Power BI dataflow → connector → UserRiskFlags OLTP → admin at-risk chip).
+
+![SRS figure](srs-images/image133.png)
+
+**Figure 134 — dbt model lineage** (staging → silver → marts with assertions).
+
+![SRS figure](srs-images/image134.png)
+
+**Figure 135 — Analytics bounded context** (how Part V modules relate to the core platform and shared Azure infrastructure).
+
+![SRS figure](srs-images/image135.png)
+
+**Figure 136 — PII redaction audit workflow** (emit-time regex redaction → monthly sampling job → admin reviewer → miss-rate dashboard).
+
+![SRS figure](srs-images/image136.png)

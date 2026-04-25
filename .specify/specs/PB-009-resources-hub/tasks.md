@@ -1,6 +1,6 @@
 # PB-009 — Tasks
 
-**Owner**: @yousra-elnoby  •  **Est**: 29 pts  •  **Iteration**: 4
+**Owner**: @Madiha6776  •  **Est**: 29 pts  •  **Iteration**: 4
 
 ## Backend
 - [ ] T-001 — `Resource` + children entities + configs (+ FTS index)

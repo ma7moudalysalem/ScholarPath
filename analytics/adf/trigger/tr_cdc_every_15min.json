@@ -1,0 +1,23 @@
+{
+  "name": "tr_cdc_every_15min",
+  "properties": {
+    "description": "Schedule trigger — fires cdc_to_bronze every 15 minutes, 24×7.",
+    "type": "ScheduleTrigger",
+    "typeProperties": {
+      "recurrence": {
+        "frequency": "Minute",
+        "interval": 15,
+        "startTime": "2026-05-01T00:00:00Z",
+        "timeZone": "UTC"
+      }
+    },
+    "pipelines": [
+      {
+        "pipelineReference": { "referenceName": "cdc_to_bronze", "type": "PipelineReference" },
+        "parameters": {}
+      }
+    ],
+    "runtimeState": "Stopped",
+    "annotations": ["PB-016", "US-002"]
+  }
+}

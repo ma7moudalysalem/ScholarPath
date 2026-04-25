@@ -95,15 +95,29 @@ public sealed class AdminReadService(
             .GroupBy(x => x.UserId)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(x => x.Name!).ToList());
 
-        var rows = pageUsers.Select(u => new AdminUserRow(
-            u.Id,
-            u.Email ?? string.Empty,
-            $"{u.FirstName} {u.LastName}".Trim(),
-            u.AccountStatus,
-            u.IsOnboardingComplete,
-            rolesByUser.TryGetValue(u.Id, out var rs) ? rs : Array.Empty<string>(),
-            u.CreatedAt,
-            u.LastLoginAt)).ToList();
+        // Batch-load risk flags for this page (PB-018 FR-270). Missing row = not scored yet.
+        var riskMap = await db.UserRiskFlags
+            .AsNoTracking()
+            .Where(f => ids.Contains(f.UserId))
+            .Select(f => new { f.UserId, f.IsAtRisk, f.Score })
+            .ToDictionaryAsync(x => x.UserId, x => (x.IsAtRisk, x.Score), ct)
+            .ConfigureAwait(false);
+
+        var rows = pageUsers.Select(u =>
+        {
+            var risk = riskMap.TryGetValue(u.Id, out var r) ? r : (IsAtRisk: false, Score: (decimal?)null);
+            return new AdminUserRow(
+                u.Id,
+                u.Email ?? string.Empty,
+                $"{u.FirstName} {u.LastName}".Trim(),
+                u.AccountStatus,
+                u.IsOnboardingComplete,
+                rolesByUser.TryGetValue(u.Id, out var rs) ? rs : Array.Empty<string>(),
+                u.CreatedAt,
+                u.LastLoginAt,
+                risk.IsAtRisk,
+                risk.Score);
+        }).ToList();
 
         return new PagedResult<AdminUserRow>(rows, page, pageSize, total);
     }

@@ -54,3 +54,39 @@ public class SuccessStory : AuditableEntity, ISoftDeletable
     public DateTimeOffset? DeletedAt { get; set; }
     public Guid? DeletedByUserId { get; set; }
 }
+
+/// <summary>
+/// Reverse-ETL landing table (PB-018 US-003 / FR-269..FR-270).
+///
+/// Written by the daily Power BI dataflow that computes a churn-risk score
+/// from Gold marts and pushes flagged users back into the OLTP. The API only
+/// reads from this table — never writes — which is enforced by the Azure SQL
+/// role the reverse-ETL SP uses (INSERT/UPDATE/DELETE on this table only, no
+/// other grants).
+///
+/// Admin UI reads via <c>GetAtRiskUsersQuery</c> and renders the "⚠ At risk"
+/// chip on the user row when <c>IsAtRisk</c> is true and <c>Score</c> is
+/// above the configured threshold (<c>UserRiskFlags:ChipThreshold</c>, default 0.65).
+/// </summary>
+public class UserRiskFlag : BaseEntity
+{
+    public Guid UserId { get; set; }
+
+    /// <summary>Normalised 0..1 churn-risk score from the Power BI dataflow.</summary>
+    public decimal Score { get; set; }
+
+    public bool IsAtRisk { get; set; }
+
+    /// <summary>Free-form one-liner so the admin tooltip has context.</summary>
+    public string? Reason { get; set; }
+
+    public DateTimeOffset ComputedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    /// <summary>
+    /// Dataflow run id — traceable back to a Power BI refresh for audit.
+    /// </summary>
+    public Guid? SourceRefreshId { get; set; }
+
+    public ApplicationUser? User { get; set; }
+}
+

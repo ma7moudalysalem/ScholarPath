@@ -542,6 +542,37 @@ public sealed class AiInteractionConfiguration : IEntityTypeConfiguration<AiInte
     }
 }
 
+public sealed class RecommendationClickEventConfiguration : IEntityTypeConfiguration<RecommendationClickEvent>
+{
+    public void Configure(EntityTypeBuilder<RecommendationClickEvent> b)
+    {
+        b.Property(e => e.Source).IsRequired().HasMaxLength(16);
+        b.HasIndex(e => new { e.UserId, e.ClickedAt });
+        b.HasIndex(e => new { e.ScholarshipId, e.ClickedAt });
+        b.HasIndex(e => e.AiInteractionId);
+
+        b.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(e => e.Scholarship).WithMany().HasForeignKey(e => e.ScholarshipId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(e => e.AiInteraction).WithMany().HasForeignKey(e => e.AiInteractionId).OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+public sealed class AiRedactionAuditSampleConfiguration : IEntityTypeConfiguration<AiRedactionAuditSample>
+{
+    public void Configure(EntityTypeBuilder<AiRedactionAuditSample> b)
+    {
+        b.Property(s => s.RedactedPrompt).IsRequired().HasMaxLength(8000);
+        b.Property(s => s.Verdict).HasConversion<string?>().HasMaxLength(24);
+        b.HasIndex(s => s.SampledAt);
+        b.HasIndex(s => s.AiInteractionId).IsUnique();          // one sample per interaction max
+        b.HasIndex(s => new { s.Verdict, s.SampledAt });
+
+        b.HasOne(s => s.AiInteraction).WithMany().HasForeignKey(s => s.AiInteractionId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(s => s.User).WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(s => s.Reviewer).WithMany().HasForeignKey(s => s.ReviewerUserId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 // ============================== Resources ==============================
 
 public sealed class ResourceConfiguration : IEntityTypeConfiguration<Resource>
@@ -682,5 +713,22 @@ public sealed class SuccessStoryConfiguration : IEntityTypeConfiguration<Success
         b.Property(s => s.RowVersion).IsRowVersion();
         b.HasIndex(s => new { s.IsApproved, s.IsFeatured });
         b.HasQueryFilter(s => !s.IsDeleted);
+    }
+}
+
+public sealed class UserRiskFlagConfiguration : IEntityTypeConfiguration<UserRiskFlag>
+{
+    public void Configure(EntityTypeBuilder<UserRiskFlag> b)
+    {
+        // One row per user — reverse-ETL upserts on UserId.
+        b.HasIndex(f => f.UserId).IsUnique();
+        b.Property(f => f.Score).HasPrecision(5, 4);        // 0.0000 .. 1.0000
+        b.Property(f => f.Reason).HasMaxLength(500);
+        b.HasIndex(f => new { f.IsAtRisk, f.ComputedAt }); // admin "list at-risk" query path
+
+        b.HasOne(f => f.User)
+            .WithMany()
+            .HasForeignKey(f => f.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

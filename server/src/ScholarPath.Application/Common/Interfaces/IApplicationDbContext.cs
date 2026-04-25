@@ -50,6 +50,8 @@ public interface IApplicationDbContext
     DbSet<UserBlock> UserBlocks { get; }
 
     DbSet<AiInteraction> AiInteractions { get; }
+    DbSet<RecommendationClickEvent> RecommendationClickEvents { get; }
+    DbSet<AiRedactionAuditSample> AiRedactionAuditSamples { get; }
 
     DbSet<Resource> Resources { get; }
     DbSet<ResourceChild> ResourceChapters { get; }
@@ -63,6 +65,7 @@ public interface IApplicationDbContext
     DbSet<AuditLog> AuditLogs { get; }
     DbSet<UserDataRequest> UserDataRequests { get; }
     DbSet<SuccessStory> SuccessStories { get; }
+    DbSet<UserRiskFlag> UserRiskFlags { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -211,6 +211,52 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.ToTable("AiInteractions");
                 });
 
+            modelBuilder.Entity("ScholarPath.Domain.Entities.AiRedactionAuditSample", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AiInteractionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("RedactedPrompt")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("ReviewerUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("SampledAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Verdict")
+                        .HasMaxLength(24)
+                        .HasColumnType("nvarchar(24)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AiInteractionId")
+                        .IsUnique();
+
+                    b.HasIndex("ReviewerUserId");
+
+                    b.HasIndex("SampledAt");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Verdict", "SampledAt");
+
+                    b.ToTable("AiRedactionAuditSamples");
+                });
+
             modelBuilder.Entity("ScholarPath.Domain.Entities.ApplicationRole", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1922,6 +1968,40 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.ToTable("ProfitShareConfigs");
                 });
 
+            modelBuilder.Entity("ScholarPath.Domain.Entities.RecommendationClickEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AiInteractionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ClickedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ScholarshipId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AiInteractionId");
+
+                    b.HasIndex("ScholarshipId", "ClickedAt");
+
+                    b.HasIndex("UserId", "ClickedAt");
+
+                    b.ToTable("RecommendationClickEvents");
+                });
+
             modelBuilder.Entity("ScholarPath.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2956,6 +3036,42 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.ToTable("UserProfiles");
                 });
 
+            modelBuilder.Entity("ScholarPath.Domain.Entities.UserRiskFlag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("ComputedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsAtRisk")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("Score")
+                        .HasPrecision(5, 4)
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<Guid?>("SourceRefreshId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.HasIndex("IsAtRisk", "ComputedAt");
+
+                    b.ToTable("UserRiskFlags");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationRole", null)
@@ -3005,6 +3121,32 @@ namespace ScholarPath.Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ScholarPath.Domain.Entities.AiRedactionAuditSample", b =>
+                {
+                    b.HasOne("ScholarPath.Domain.Entities.AiInteraction", "AiInteraction")
+                        .WithMany()
+                        .HasForeignKey("AiInteractionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Reviewer")
+                        .WithMany()
+                        .HasForeignKey("ReviewerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AiInteraction");
+
+                    b.Navigation("Reviewer");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ScholarPath.Domain.Entities.ApplicationTracker", b =>
@@ -3214,6 +3356,32 @@ namespace ScholarPath.Infrastructure.Migrations
                         .HasForeignKey("ApplicationUserId");
                 });
 
+            modelBuilder.Entity("ScholarPath.Domain.Entities.RecommendationClickEvent", b =>
+                {
+                    b.HasOne("ScholarPath.Domain.Entities.AiInteraction", "AiInteraction")
+                        .WithMany()
+                        .HasForeignKey("AiInteractionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ScholarPath.Domain.Entities.Scholarship", "Scholarship")
+                        .WithMany()
+                        .HasForeignKey("ScholarshipId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AiInteraction");
+
+                    b.Navigation("Scholarship");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ScholarPath.Domain.Entities.RefreshToken", b =>
                 {
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "User")
@@ -3339,6 +3507,17 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "User")
                         .WithOne("Profile")
                         .HasForeignKey("ScholarPath.Domain.Entities.UserProfile", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ScholarPath.Domain.Entities.UserRiskFlag", b =>
+                {
+                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
