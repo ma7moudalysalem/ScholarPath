@@ -1,7 +1,9 @@
-dbt-core==1.8.9
+# Locked dbt 1.8.x stack — every package here resolves cleanly:
+#   dbt-sqlserver 1.8.3   wants dbt-core>=1.8.0,<1.9.0  + dbt-fabric>=1.8.0,<1.9.0
+#   dbt-fabric    1.8.4   wants dbt-core==1.8.0 (strict) — forces dbt-core down
+#   dbt-fabric  >=1.8.5   removed `get_pyodbc_attrs_before`, breaking dbt-sqlserver
+#   pyodbc        5.1.0   last 5.x compatible with dbt-fabric's pyodbc<5.2.0
+dbt-core==1.8.0
 dbt-sqlserver==1.8.3
-# dbt-sqlserver 1.8.3 imports `get_pyodbc_attrs_before` from dbt-fabric.
-# That symbol was removed in dbt-fabric>=1.8.5; pin to the last compatible.
 dbt-fabric==1.8.4
-# dbt-fabric 1.8.x requires pyodbc<5.2.0,>=4.0.35.
 pyodbc==5.1.0
