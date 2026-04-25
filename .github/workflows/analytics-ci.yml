@@ -44,6 +44,43 @@ jobs:
           sudo ACCEPT_EULA=Y apt-get install -y msodbcsql18 unixodbc-dev
           pip install -r requirements.txt
 
+      # dbt parse loads the profile to know the target's dialect, but never
+      # connects. Seed a stub so the CI host doesn't need ~/.dbt/profiles.yml
+      # checked in. Real CI builds (`dbt build --target ci`) override this
+      # with the secret-backed profile below.
+      - name: Seed stub dbt profile (parse only — no connection)
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml <<'EOF'
+          scholarpath:
+            target: parse_stub
+            outputs:
+              parse_stub:
+                type: sqlserver
+                driver: "ODBC Driver 18 for SQL Server"
+                server: "stub.local"
+                port: 1433
+                database: "stub"
+                schema: "dbo"
+                authentication: sql
+                user: "stub"
+                password: "stub"
+                encrypt: false
+                trust_cert: true
+                threads: 1
+              ci:
+                type: sqlserver
+                driver: "ODBC Driver 18 for SQL Server"
+                server: "${DBT_CI_SERVER}"
+                database: "${DBT_CI_DB}"
+                schema: "gold_ci"
+                authentication: ActiveDirectoryPassword
+                user: "${DBT_CI_USER}"
+                password: "${DBT_CI_PASSWORD}"
+                encrypt: true
+                threads: 2
+          EOF
+
       - name: dbt deps
         run: dbt deps
 
