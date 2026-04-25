@@ -71,6 +71,14 @@ export function AiRecommendations() {
               <div className="min-w-0 flex-1">
                 <Link
                   to={`/student/scholarships/${item.scholarshipId}`}
+                  onClick={() => {
+                    // Fire-and-forget; server-side debounce handles rapid repeats.
+                    void aiApi.logRecommendationClick(
+                      item.scholarshipId,
+                      null,
+                      "card",
+                    );
+                  }}
                   className="block truncate font-medium hover:text-brand-500"
                 >
                   {isAr ? item.titleAr || item.titleEn : item.titleEn || item.titleAr}

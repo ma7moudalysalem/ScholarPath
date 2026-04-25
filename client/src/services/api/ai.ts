@@ -55,6 +55,13 @@ export interface AiInteractionRow {
   succeeded: boolean;
 }
 
+export type RecommendationClickSource = "card" | "list" | "modal";
+
+export interface LogRecommendationClickResult {
+  eventId: string;
+  deduplicated: boolean;
+}
+
 export const aiApi = {
   /**
    * GET the user's cached recommendations (last 24h). Resolves to null when
@@ -97,5 +104,26 @@ export const aiApi = {
       { params: { limit } },
     );
     return data;
+  },
+  /**
+   * Fires a recommendation click event (PB-017 FR-249). The server debounces
+   * same-card repeat taps within 500ms, so callers don't need to debounce
+   * themselves. Errors are swallowed — a failed analytics ping shouldn't
+   * block the user from opening the scholarship.
+   */
+  async logRecommendationClick(
+    scholarshipId: string,
+    aiInteractionId: string | null,
+    source: RecommendationClickSource = "card",
+  ): Promise<LogRecommendationClickResult | null> {
+    try {
+      const { data } = await apiClient.post<LogRecommendationClickResult>(
+        "/api/ai/recommendations/click",
+        { scholarshipId, aiInteractionId, source },
+      );
+      return data;
+    } catch {
+      return null;
+    }
   },
 };
