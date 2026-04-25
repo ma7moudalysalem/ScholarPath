@@ -63,3 +63,14 @@ public sealed record AnalyticsOverviewDto(
 public sealed record GrowthPoint(DateTimeOffset Date, int Count);
 
 public sealed record ApplicationStatusPoint(ApplicationStatus Status, int Count);
+
+public sealed record RedactionAuditSampleRow(
+    Guid Id,
+    Guid AiInteractionId,
+    Guid UserId,
+    string? UserEmail,
+    string RedactedPrompt,
+    DateTimeOffset SampledAt,
+    RedactionVerdict? Verdict,
+    Guid? ReviewerUserId,
+    DateTimeOffset? ReviewedAt);

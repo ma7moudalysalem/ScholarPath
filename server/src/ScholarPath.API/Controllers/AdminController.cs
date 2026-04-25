@@ -8,9 +8,11 @@ using ScholarPath.Application.Admin.Commands.SendBroadcast;
 using ScholarPath.Application.Admin.Commands.SetUserStatus;
 using ScholarPath.Application.Admin.Commands.SoftDeleteUser;
 using ScholarPath.Application.Admin.DTOs;
+using ScholarPath.Application.Admin.Commands.SetRedactionSampleVerdict;
 using ScholarPath.Application.Admin.Queries.GetAnalyticsOverview;
 using ScholarPath.Application.Admin.Queries.GetApplicationFunnel;
 using ScholarPath.Application.Admin.Queries.GetOnboardingQueue;
+using ScholarPath.Application.Admin.Queries.GetRedactionAuditSamples;
 using ScholarPath.Application.Admin.Queries.GetUpgradeQueue;
 using ScholarPath.Application.Admin.Queries.GetUserDetail;
 using ScholarPath.Application.Admin.Queries.GetUserGrowth;
@@ -182,6 +184,43 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new GetAiUsageSummaryQuery(windowDays), ct).ConfigureAwait(false);
         return Ok(result);
     }
+
+    // ─── Redaction audit (PB-017 US-178) ──────────────────────────────────
+
+    /// <summary>
+    /// Lists PII-redaction audit samples. Defaults to <c>pendingOnly=true</c>
+    /// so reviewers see the backlog first (PB-017 FR-255).
+    /// </summary>
+    [HttpGet("redaction-audit")]
+    [ProducesResponseType(typeof(PagedResult<RedactionAuditSampleRow>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRedactionSamples(
+        [FromQuery] bool pendingOnly = true,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken ct = default)
+    {
+        var q = new GetRedactionAuditSamplesQuery(pendingOnly, page, pageSize);
+        var result = await mediator.Send(q, ct).ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Records an admin verdict on a redaction sample. Audit log captures the
+    /// reviewer, the sample id, and the verdict for compliance trail.
+    /// </summary>
+    [HttpPost("redaction-audit/{sampleId:guid}/verdict")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetRedactionVerdict(
+        Guid sampleId,
+        [FromBody] SetRedactionVerdictBody body,
+        CancellationToken ct)
+    {
+        await mediator.Send(new SetRedactionSampleVerdictCommand(sampleId, body.Verdict), ct).ConfigureAwait(false);
+        return NoContent();
+    }
+
+    public sealed record SetRedactionVerdictBody(RedactionVerdict Verdict);
 
     // ─── Audit log ────────────────────────────────────────────────────────
 
