@@ -10,13 +10,16 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly IStripeService _stripeService;
 
     public MarkNoShowCommandHandler(
         IApplicationDbContext context,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IStripeService stripeService)
     {
         _context = context;
         _currentUser = currentUser;
+        _stripeService = stripeService;
     }
 
     public async Task Handle(MarkNoShowCommand request, CancellationToken cancellationToken)
@@ -74,6 +77,35 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
 
         if (isStudent)
         {
+            if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
+            {
+                throw new InvalidOperationException("Booking has no Stripe payment intent to refund.");
+            }
+
+            var amountCents = (long)decimal.Round(
+                booking.PriceUsd * 100m,
+                0,
+                MidpointRounding.AwayFromZero);
+
+            if (amountCents <= 0)
+            {
+                throw new InvalidOperationException("Booking amount must be greater than zero.");
+            }
+
+            var idempotencyKey = $"booking-noshow-refund:{booking.Id:N}";
+
+            var refundResult = await _stripeService.RefundPaymentAsync(
+                paymentIntentId: booking.StripePaymentIntentId,
+                amountCents: amountCents,
+                reason: CancellationReason.ConsultantNoShow.ToString(),
+                idempotencyKey: idempotencyKey,
+                ct: cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(refundResult.Id))
+            {
+                throw new InvalidOperationException("Stripe refund failed.");
+            }
+
             booking.IsNoShowConsultant = true;
             booking.Status = BookingStatus.NoShowConsultant;
             booking.CancellationReason = CancellationReason.ConsultantNoShow;
