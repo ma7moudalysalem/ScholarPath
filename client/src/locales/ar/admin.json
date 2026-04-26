@@ -1,0 +1,122 @@
+{
+  "title": "المشرف",
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "users": "المستخدمون",
+    "onboarding": "قائمة التأهيل",
+    "upgrades": "قائمة الترقيات",
+    "analytics": "التحليلات",
+    "broadcast": "رسالة عامة",
+    "auditLog": "سجل التدقيق"
+  },
+  "dashboard": {
+    "totalUsers": "إجمالي المستخدمين",
+    "activeUsers": "المستخدمون النشطون",
+    "pendingApprovals": "بانتظار الموافقة",
+    "totalScholarships": "المنح الدراسية",
+    "openScholarships": "مفتوحة",
+    "totalApplications": "الطلبات",
+    "submittedApplications": "المُقدَّمة",
+    "totalBookings": "الحجوزات",
+    "completedBookings": "المكتملة",
+    "revenue": "الإيراد المحصَّل",
+    "profitShare": "حصة المنصة",
+    "aiInteractions24h": "تفاعلات الذكاء خلال 24 ساعة",
+    "userGrowth": "نمو المستخدمين (30 يوم)",
+    "applicationFunnel": "قمع الطلبات"
+  },
+  "users": {
+    "title": "المستخدمون",
+    "searchPlaceholder": "ابحث بالاسم أو البريد…",
+    "allStatuses": "كل الحالات",
+    "allRoles": "كل الأدوار",
+    "includeDeleted": "اعرض المحذوفين",
+    "headers": {
+      "email": "البريد الإلكتروني",
+      "name": "الاسم",
+      "status": "الحالة",
+      "roles": "الأدوار",
+      "createdAt": "تاريخ الانضمام",
+      "lastLogin": "آخر تسجيل دخول",
+      "actions": ""
+    },
+    "actions": {
+      "view": "عرض",
+      "suspend": "تعليق",
+      "deactivate": "تعطيل",
+      "activate": "تنشيط",
+      "delete": "حذف"
+    },
+    "empty": "لا يوجد مستخدمون يطابقون الفلاتر.",
+    "statusChange": {
+      "title": "تغيير حالة الحساب",
+      "reasonLabel": "السبب (مطلوب في حالة التعليق أو التعطيل)",
+      "submit": "تطبيق",
+      "cancel": "إلغاء",
+      "confirmDelete": "هل تريد حذف المستخدم؟ سيتم تسجيل خروجه من جميع الأجهزة."
+    }
+  },
+  "onboarding": {
+    "title": "قائمة التأهيل",
+    "empty": "القائمة فارغة. طلبات الشركات والمستشارين الجديدة ستظهر هنا.",
+    "headers": {
+      "name": "الاسم",
+      "email": "البريد",
+      "role": "الدور المطلوب",
+      "createdAt": "تاريخ الإرسال"
+    },
+    "actions": {
+      "review": "مراجعة",
+      "approve": "موافقة",
+      "reject": "رفض"
+    },
+    "reviewDialog": {
+      "title": "مراجعة طلب التأهيل",
+      "notesLabel": "ملاحظات (إلزامية عند الرفض)",
+      "approve": "موافقة",
+      "reject": "رفض",
+      "cancel": "إلغاء"
+    }
+  },
+  "upgrades": {
+    "title": "قائمة الترقيات",
+    "empty": "لا توجد طلبات ترقية معلقة.",
+    "headers": {
+      "email": "المستخدم",
+      "target": "الدور المستهدف",
+      "status": "الحالة",
+      "reason": "السبب",
+      "createdAt": "تاريخ الإرسال"
+    },
+    "filters": {
+      "pending": "معلقة",
+      "approved": "معتمدة",
+      "rejected": "مرفوضة",
+      "all": "الكل"
+    }
+  },
+  "broadcast": {
+    "title": "إرسال إعلان عام",
+    "subtitle": "يصل لكل المستخدمين النشطين بالإنجليزية والعربية. يحترم تفضيلات إشعارات كل مستخدم.",
+    "titleEn": "العنوان (EN)",
+    "titleAr": "العنوان (AR)",
+    "bodyEn": "النص (EN)",
+    "bodyAr": "النص (AR)",
+    "submit": "إرسال",
+    "success": "تم جدولة الإعلان لـ {{count}} مستخدم."
+  },
+  "status": {
+    "Unassigned": "غير محدد",
+    "PendingApproval": "بانتظار الموافقة",
+    "Active": "نشط",
+    "Suspended": "معلق",
+    "Deactivated": "معطل"
+  },
+  "common": {
+    "loading": "جارٍ التحميل…",
+    "tryAgain": "حاول مجدداً",
+    "page": "الصفحة {{page}} من {{total}}",
+    "prev": "السابق",
+    "next": "التالي"
+  }
+}

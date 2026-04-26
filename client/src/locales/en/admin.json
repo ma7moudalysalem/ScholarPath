@@ -1,0 +1,122 @@
+{
+  "title": "Admin",
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "onboarding": "Onboarding queue",
+    "upgrades": "Upgrade queue",
+    "analytics": "Analytics",
+    "broadcast": "Broadcast",
+    "auditLog": "Audit log"
+  },
+  "dashboard": {
+    "totalUsers": "Total users",
+    "activeUsers": "Active users",
+    "pendingApprovals": "Pending approvals",
+    "totalScholarships": "Scholarships",
+    "openScholarships": "Open",
+    "totalApplications": "Applications",
+    "submittedApplications": "Submitted",
+    "totalBookings": "Bookings",
+    "completedBookings": "Completed",
+    "revenue": "Revenue (captured)",
+    "profitShare": "Profit share",
+    "aiInteractions24h": "AI interactions 24h",
+    "userGrowth": "User growth (30d)",
+    "applicationFunnel": "Application funnel"
+  },
+  "users": {
+    "title": "Users",
+    "searchPlaceholder": "Search by name or email…",
+    "allStatuses": "All statuses",
+    "allRoles": "All roles",
+    "includeDeleted": "Include deleted",
+    "headers": {
+      "email": "Email",
+      "name": "Name",
+      "status": "Status",
+      "roles": "Roles",
+      "createdAt": "Joined",
+      "lastLogin": "Last login",
+      "actions": ""
+    },
+    "actions": {
+      "view": "View",
+      "suspend": "Suspend",
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+      "delete": "Delete"
+    },
+    "empty": "No users matched the filters.",
+    "statusChange": {
+      "title": "Change account status",
+      "reasonLabel": "Reason (required for Suspend / Deactivate)",
+      "submit": "Apply",
+      "cancel": "Cancel",
+      "confirmDelete": "Soft-delete this user? They'll be signed out of every device."
+    }
+  },
+  "onboarding": {
+    "title": "Onboarding queue",
+    "empty": "The queue is empty. New company / consultant applications will appear here.",
+    "headers": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Requested role",
+      "createdAt": "Submitted"
+    },
+    "actions": {
+      "review": "Review",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "reviewDialog": {
+      "title": "Review onboarding request",
+      "notesLabel": "Notes (required if rejecting)",
+      "approve": "Approve",
+      "reject": "Reject",
+      "cancel": "Cancel"
+    }
+  },
+  "upgrades": {
+    "title": "Upgrade queue",
+    "empty": "No pending upgrade requests.",
+    "headers": {
+      "email": "User",
+      "target": "Target role",
+      "status": "Status",
+      "reason": "Reason",
+      "createdAt": "Submitted"
+    },
+    "filters": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "all": "All"
+    }
+  },
+  "broadcast": {
+    "title": "Send broadcast",
+    "subtitle": "Reaches every Active user in both English and Arabic. Respects per-user notification preferences.",
+    "titleEn": "Title (EN)",
+    "titleAr": "Title (AR)",
+    "bodyEn": "Body (EN)",
+    "bodyAr": "Body (AR)",
+    "submit": "Send",
+    "success": "Broadcast queued for {{count}} recipients."
+  },
+  "status": {
+    "Unassigned": "Unassigned",
+    "PendingApproval": "Pending approval",
+    "Active": "Active",
+    "Suspended": "Suspended",
+    "Deactivated": "Deactivated"
+  },
+  "common": {
+    "loading": "Loading…",
+    "tryAgain": "Try again",
+    "page": "Page {{page}} of {{total}}",
+    "prev": "Previous",
+    "next": "Next"
+  }
+}

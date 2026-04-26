@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
+import { AdminLayout } from "@/components/layout/AdminLayout";
 import { RequireAuth, RequireRole } from "@/routes/RequireAuth";
 import { EmptyState } from "@/components/common/EmptyState";
 
@@ -87,9 +88,11 @@ const ConsultantAvailability = stub(
 const ConsultantBookings = stub("@norra-mmhamed", "PB-006 Bookings", ".specify/specs/PB-006-consultant-booking");
 const ConsultantEarnings = stub("@norra-mmhamed", "PB-013 Earnings", ".specify/specs/PB-013-payment-processing");
 
-const AdminDashboard = stub("@yousra-elnoby", "PB-011 Admin dashboard", ".specify/specs/PB-011-admin-portal");
-const AdminUsers = stub("@yousra-elnoby", "PB-011 Users", ".specify/specs/PB-011-admin-portal");
-const AdminOnboarding = stub("@yousra-elnoby", "PB-011 Onboarding queue", ".specify/specs/PB-011-admin-portal");
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard })));
+const AdminUsers = lazy(() => import("@/pages/admin/UsersAdmin").then((m) => ({ default: m.UsersAdmin })));
+const AdminOnboarding = lazy(() => import("@/pages/admin/OnboardingQueue").then((m) => ({ default: m.OnboardingQueue })));
+const AdminUpgrades = lazy(() => import("@/pages/admin/UpgradeQueue").then((m) => ({ default: m.UpgradeQueue })));
+const AdminBroadcast = lazy(() => import("@/pages/admin/BroadcastComposer").then((m) => ({ default: m.BroadcastComposer })));
 const AdminScholarships = stub("@yousra-elnoby", "PB-011 Scholarships", ".specify/specs/PB-011-admin-portal");
 const AdminArticles = stub("@yousra-elnoby", "PB-009 Articles moderation", ".specify/specs/PB-009-resources-hub");
 const AdminCommunity = stub("@yousra-elnoby", "PB-007 Community moderation", ".specify/specs/PB-007-community-chat");
@@ -243,17 +246,24 @@ export function AppRouter() {
           <Route path="/consultant/bookings" element={<ConsultantBookings />} />
           <Route path="/consultant/earnings" element={<ConsultantEarnings />} />
 
-          {/* Admin */}
-          <Route
-            path="/admin"
-            element={
-              <RequireRole roles={["Admin"]}>
-                <AdminDashboard />
+        </Route>
+
+        {/* Admin — has its own layout + role guard */}
+        <Route
+          element={
+            <RequireAuth>
+              <RequireRole roles={["Admin", "SuperAdmin"]}>
+                <AdminLayout />
               </RequireRole>
-            }
-          />
+            </RequireAuth>
+          }
+        >
+          <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/onboarding" element={<AdminOnboarding />} />
+          <Route path="/admin/upgrades" element={<AdminUpgrades />} />
+          <Route path="/admin/broadcast" element={<AdminBroadcast />} />
+          <Route path="/admin/analytics" element={<AdminDashboard />} />
           <Route path="/admin/scholarships" element={<AdminScholarships />} />
           <Route path="/admin/articles" element={<AdminArticles />} />
           <Route path="/admin/community" element={<AdminCommunity />} />
