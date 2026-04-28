@@ -73,7 +73,9 @@ public static class DependencyInjection
         services.AddSingleton<IEmailService, StubEmailService>();
         services.AddSingleton<IBlobStorageService, StubBlobStorageService>();
         services.AddSingleton<IStripeService, StubStripeService>();
-        services.AddSingleton<IAiService, StubAiService>();
+        // LocalAiService is deterministic, no-network — our default. Teammates
+        // swap to OpenAI by setting Ai:Provider = "OpenAi" and wiring a real impl.
+        services.AddScoped<IAiService, LocalAiService>();
         services.AddScoped<INotificationDispatcher, StubNotificationDispatcher>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserAdministration, UserAdministration>();

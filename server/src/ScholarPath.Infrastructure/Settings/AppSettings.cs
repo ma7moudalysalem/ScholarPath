@@ -81,6 +81,13 @@ public sealed class AiOptions
 {
     public const string SectionName = "Ai";
     public string Provider { get; set; } = "Stub";
+
+    /// <summary>How many recommendations to return per call. Stub scores the whole open catalog then trims to this.</summary>
+    public int RecommendationTopN { get; set; } = 5;
+
+    /// <summary>Per-user rolling 24h cost ceiling. The command layer refuses AI calls that would push a user over this.</summary>
+    public decimal DailyUserCostLimitUsd { get; set; } = 1.00m;
+
     public OpenAiOptions OpenAi { get; set; } = new();
     public AzureOpenAiOptions AzureOpenAi { get; set; } = new();
 }
