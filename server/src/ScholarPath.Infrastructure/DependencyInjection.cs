@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using ScholarPath.Application.Ai.Common;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
@@ -24,6 +26,15 @@ public static class DependencyInjection
         services.Configure<HangfireOptions>(config.GetSection(HangfireOptions.SectionName));
         services.Configure<StorageOptions>(config.GetSection(StorageOptions.SectionName));
         services.Configure<AiOptions>(config.GetSection(AiOptions.SectionName));
+
+        // Project AiOptions into the Application-side snapshot so the cost gate
+        // doesn't have to know about Infrastructure's full options type.
+        services.Configure<AiCostOptionsSnapshot>(snap =>
+        {
+            var ai = config.GetSection(AiOptions.SectionName).Get<AiOptions>() ?? new AiOptions();
+            snap.DailyUserCostLimitUsd = ai.DailyUserCostLimitUsd;
+            snap.RecommendationTopN = ai.RecommendationTopN;
+        });
 
         // ─── Database ───────────────────────────────────────────────────────────
         var connectionString = config.GetConnectionString("DefaultConnection")
@@ -80,6 +91,7 @@ public static class DependencyInjection
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserAdministration, UserAdministration>();
         services.AddScoped<IAdminReadService, AdminReadService>();
+        services.AddScoped<AiCostGate>();
 
         // Jobs
         services.AddScoped<IDeadlineReminderJob, DeadlineReminderJob>();

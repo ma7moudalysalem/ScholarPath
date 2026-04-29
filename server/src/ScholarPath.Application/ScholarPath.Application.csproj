@@ -4,6 +4,10 @@
     <ProjectReference Include="..\ScholarPath.Domain\ScholarPath.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ScholarPath.UnitTests" />
+  </ItemGroup>
+
   <ItemGroup Label="MediatR + AutoMapper 14 + FluentValidation 12">
     <PackageReference Include="MediatR" />
     <PackageReference Include="AutoMapper" />
