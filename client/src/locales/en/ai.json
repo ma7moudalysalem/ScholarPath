@@ -1,0 +1,41 @@
+{
+  "title": "AI features",
+  "subtitle": "Profile-based recommendations, eligibility checks, and a help chatbot. All AI output is advisory — verify with the official listing.",
+  "disclaimer": "AI-generated guidance. Verify with official sources before acting.",
+  "recommendations": {
+    "heading": "Recommended for you",
+    "empty": "We couldn't match any open scholarships to your profile yet. Update your preferred fields and countries to improve results.",
+    "refresh": "Refresh recommendations",
+    "matchScore": "Match",
+    "viewListing": "View listing",
+    "generatedAt": "Generated {{when}}"
+  },
+  "eligibility": {
+    "heading": "Eligibility check",
+    "open": "Check eligibility",
+    "summary": "Summary",
+    "criteria": "Criteria",
+    "match": {
+      "yes": "Match",
+      "partial": "Partial",
+      "no": "Mismatch",
+      "unknown": "Unknown"
+    },
+    "you": "You",
+    "listing": "Listing",
+    "close": "Close"
+  },
+  "chat": {
+    "heading": "Ask ScholarPath",
+    "placeholder": "Ask about scholarships, deadlines, eligibility…",
+    "send": "Send",
+    "you": "You",
+    "assistant": "Assistant",
+    "emptyHint": "I can point you to scholarships, deadlines, and applications. What are you looking for?",
+    "costHint": "Est. ${{cost}} used · {{prompt}}↑ / {{completion}}↓ tokens"
+  },
+  "errors": {
+    "budgetExceeded": "You've hit today's AI budget. Try again after midnight UTC.",
+    "generic": "Something went wrong. Please try again."
+  }
+}

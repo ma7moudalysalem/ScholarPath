@@ -59,7 +59,7 @@ const StudentConsultantDetail = stub(
 const StudentBookings = stub("@norra-mmhamed", "PB-006 My bookings", ".specify/specs/PB-006-consultant-booking");
 const StudentCommunity = stub("@yousra-elnoby", "PB-007 Community", ".specify/specs/PB-007-community-chat");
 const StudentResources = stub("@yousra-elnoby", "PB-009 Resources", ".specify/specs/PB-009-resources-hub");
-const StudentAi = stub("@yousra-elnoby", "PB-008 AI features", ".specify/specs/PB-008-ai-features");
+const StudentAi = lazy(() => import("@/pages/student/AiFeatures").then((m) => ({ default: m.AiFeatures })));
 const StudentMessages = stub("@yousra-elnoby", "PB-007 Chat", ".specify/specs/PB-007-community-chat");
 
 const CompanyDashboard = stub("@Madiha6776", "Company Dashboard", ".specify/specs/PB-005-company-review-payment");
