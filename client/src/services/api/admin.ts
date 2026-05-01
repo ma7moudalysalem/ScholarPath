@@ -16,6 +16,48 @@ export type ApplicationStatus =
   | "Applied";
 export type RoleOp = "Add" | "Remove";
 
+export type AuditAction =
+  | "Create"
+  | "Update"
+  | "Delete"
+  | "Login"
+  | "Logout"
+  | "LoginFailed"
+  | "PasswordReset"
+  | "RoleChanged"
+  | "Approved"
+  | "Rejected"
+  | "Moderated"
+  | "PaymentCaptured"
+  | "PaymentRefunded"
+  | "ConfigChanged"
+  | "BroadcastSent";
+
+export interface AuditLogDto {
+  id: string;
+  actorUserId: string | null;
+  actorEmail: string | null;
+  action: AuditAction;
+  targetType: string;
+  targetId: string | null;
+  summary: string | null;
+  ipAddress: string | null;
+  correlationId: string | null;
+  occurredAt: string;
+}
+
+export interface AuditLogParams {
+  page?: number;
+  pageSize?: number;
+  action?: AuditAction;
+  targetType?: string;
+  actorUserId?: string;
+  targetId?: string;
+  from?: string;
+  to?: string;
+  search?: string;
+}
+
 // ─── DTOs ────────────────────────────────────────────────────────────────
 export interface PagedResult<T> {
   items: T[];
@@ -181,6 +223,12 @@ export const adminApi = {
     const { data } = await apiClient.get<ApplicationStatusPoint[]>(
       "/api/admin/analytics/application-funnel",
     );
+    return data;
+  },
+
+  // audit log
+  async getAuditLog(params: AuditLogParams = {}): Promise<PagedResult<AuditLogDto>> {
+    const { data } = await apiClient.get<PagedResult<AuditLogDto>>("/api/admin/audit-log", { params });
     return data;
   },
 

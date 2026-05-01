@@ -98,7 +98,7 @@ const AdminArticles = stub("@yousra-elnoby", "PB-009 Articles moderation", ".spe
 const AdminCommunity = stub("@yousra-elnoby", "PB-007 Community moderation", ".specify/specs/PB-007-community-chat");
 const AdminPayments = stub("@norra-mmhamed", "PB-013 Payments", ".specify/specs/PB-013-payment-processing");
 const AdminProfitShare = stub("@norra-mmhamed", "PB-014 Profit share", ".specify/specs/PB-014-profit-share");
-const AdminAuditLog = stub("@ma7moudalysalem", "PB-012 Audit log", ".specify/specs/PB-012-audit-compliance");
+const AdminAuditLog = lazy(() => import("@/pages/admin/AuditLogViewer").then((m) => ({ default: m.AuditLogViewer })));
 const AdminSettings = stub("@yousra-elnoby", "PB-011 Settings", ".specify/specs/PB-011-admin-portal");
 
 const Profile = stub("@Madiha6776", "PB-002 Profile", ".specify/specs/PB-002-profile-account");

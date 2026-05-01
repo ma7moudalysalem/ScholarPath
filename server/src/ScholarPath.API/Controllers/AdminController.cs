@@ -16,6 +16,7 @@ using ScholarPath.Application.Admin.Queries.GetUserDetail;
 using ScholarPath.Application.Admin.Queries.GetUserGrowth;
 using ScholarPath.Application.Admin.Queries.SearchUsers;
 using ScholarPath.Application.Audit.DTOs;
+using ScholarPath.Application.Audit.Queries.GetAuditLog;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.API.Controllers;
@@ -163,6 +164,27 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> ApplicationFunnel(CancellationToken ct)
     {
         var result = await mediator.Send(new GetApplicationFunnelQuery(), ct).ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    // ─── Audit log ────────────────────────────────────────────────────────
+
+    [HttpGet("audit-log")]
+    [ProducesResponseType(typeof(PagedResult<AuditLogDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAuditLog(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] AuditAction? action = null,
+        [FromQuery] string? targetType = null,
+        [FromQuery] Guid? actorUserId = null,
+        [FromQuery] Guid? targetId = null,
+        [FromQuery] DateTimeOffset? from = null,
+        [FromQuery] DateTimeOffset? to = null,
+        [FromQuery] string? search = null,
+        CancellationToken ct = default)
+    {
+        var q = new GetAuditLogQuery(page, pageSize, action, targetType, actorUserId, targetId, from, to, search);
+        var result = await mediator.Send(q, ct).ConfigureAwait(false);
         return Ok(result);
     }
 

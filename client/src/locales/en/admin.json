@@ -118,5 +118,42 @@
     "page": "Page {{page}} of {{total}}",
     "prev": "Previous",
     "next": "Next"
+  },
+  "audit": {
+    "title": "Audit log",
+    "subtitle": "Every admin action and privileged command is recorded here. Read-only.",
+    "empty": "No events match the current filters.",
+    "filters": {
+      "search": "Search in summary or target type…",
+      "action": "Action",
+      "allActions": "All actions",
+      "targetType": "Target type",
+      "from": "From",
+      "to": "To",
+      "clear": "Clear filters"
+    },
+    "headers": {
+      "when": "When",
+      "actor": "Actor",
+      "action": "Action",
+      "target": "Target",
+      "summary": "Summary",
+      "ip": "IP"
+    },
+    "system": "System"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Zoom in on platform growth and application outcomes over a window of your choosing.",
+    "window": "Window",
+    "windows": {
+      "7": "Last 7 days",
+      "30": "Last 30 days",
+      "90": "Last 90 days",
+      "180": "Last 180 days"
+    },
+    "growth": "User growth",
+    "funnel": "Application funnel",
+    "totalInWindow": "New users in window"
   }
 }
