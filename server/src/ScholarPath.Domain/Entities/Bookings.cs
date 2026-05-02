@@ -42,9 +42,11 @@ public class ConsultantBooking : AuditableEntity, ISoftDeletable
     public BookingStatus Status { get; set; } = BookingStatus.Requested;
     public DateTimeOffset? RequestedAt { get; set; }
     public DateTimeOffset? ConfirmedAt { get; set; }
+    public DateTimeOffset? RejectedAt { get; set; }
+    public DateTimeOffset? ExpiredAt { get; set; }
     public DateTimeOffset? CancelledAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
-    public string? CancellationReason { get; set; }
+    public CancellationReason? CancellationReason { get; set; }
     public Guid? CancelledByUserId { get; set; }
 
     // Payment
@@ -62,5 +64,7 @@ public class ConsultantBooking : AuditableEntity, ISoftDeletable
 
     public ApplicationUser? Student { get; set; }
     public ApplicationUser? Consultant { get; set; }
+    public ConsultantAvailability? Availability { get; set; }
     public Payment? Payment { get; set; }
+   
 }

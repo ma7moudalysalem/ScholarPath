@@ -3,6 +3,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using ScholarPath.Application.Common.Behaviors;
+using ScholarPath.Application.ConsultantBookings.Services;
 
 namespace ScholarPath.Application;
 
@@ -27,6 +28,9 @@ public static class DependencyInjection
 
         // AutoMapper — auto-register all Profiles in this assembly
         services.AddAutoMapper(cfg => cfg.AddMaps(assembly));
+
+        // Consultant booking services
+        services.AddScoped<RefundCalculatorService>();
 
         return services;
     }
