@@ -60,8 +60,6 @@ export function ConsultantAvailability() {
   const [banner, setBanner] = useState("");
 
   useEffect(() => {
-    setAvailability(getMockAvailability());
-
     return subscribeMockAvailability(() => {
       setAvailability(getMockAvailability());
     });

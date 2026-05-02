@@ -442,8 +442,6 @@ export function ConsultantsBrowse() {
   const [appliedSearch, setAppliedSearch] = useState<SearchFormState>(defaultSearchForm);
 
   useEffect(() => {
-    setAvailability(getMockAvailability());
-
     return subscribeMockAvailability(() => {
       setAvailability(getMockAvailability());
     });

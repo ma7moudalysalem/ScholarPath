@@ -349,8 +349,6 @@ export function ConsultantDetail() {
   );
 
   useEffect(() => {
-    setAvailability(getMockAvailability());
-
     return subscribeMockAvailability(() => {
       setAvailability(getMockAvailability());
     });
