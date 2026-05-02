@@ -1,10 +1,10 @@
-import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router";
-import { PublicLayout } from "@/components/layout/PublicLayout";
-import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
-import { AdminLayout } from "@/components/layout/AdminLayout";
-import { RequireAuth, RequireRole } from "@/routes/RequireAuth";
 import { EmptyState } from "@/components/common/EmptyState";
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
+import { PublicLayout } from "@/components/layout/PublicLayout";
+import { RequireAuth, RequireRole } from "@/routes/RequireAuth";
+import { lazy, Suspense, type ReactNode } from "react";
+import { Route, Routes } from "react-router";
 
 const Home = lazy(() => import("@/pages/public/Home").then((m) => ({ default: m.Home })));
 const Login = lazy(() => import("@/pages/auth/Login").then((m) => ({ default: m.Login })));
@@ -23,17 +23,21 @@ const SsoCallback = lazy(() =>
 );
 const NotFound = lazy(() => import("@/pages/NotFound").then((m) => ({ default: m.NotFound })));
 
-// Module skeletons per PB area (spec folder path encoded)
 const stub = (owner: string, moduleName: string, specPath: string) => () => (
   <EmptyState owner={owner} module={moduleName} specPath={specPath} />
 );
 
+// Student
 const StudentDashboard = stub(
   "@Madiha6776 + everyone",
   "Student Dashboard",
   ".specify/specs/PB-001-auth-access-onboarding",
 );
-const StudentScholarships = stub("@norra-mmhamed", "PB-003 Discovery", ".specify/specs/PB-003-scholarship-discovery");
+const StudentScholarships = stub(
+  "@norra-mmhamed",
+  "PB-003 Discovery",
+  ".specify/specs/PB-003-scholarship-discovery",
+);
 const StudentScholarshipDetail = stub(
   "@norra-mmhamed",
   "PB-003 Scholarship Detail",
@@ -49,20 +53,53 @@ const StudentApplicationDetail = stub(
   "PB-004 Application detail",
   ".specify/specs/PB-004-application-tracking",
 );
-const StudentBookmarks = stub("@norra-mmhamed", "PB-003 Bookmarks", ".specify/specs/PB-003-scholarship-discovery");
-const StudentConsultants = stub("@norra-mmhamed", "PB-006 Consultants", ".specify/specs/PB-006-consultant-booking");
-const StudentConsultantDetail = stub(
+const StudentBookmarks = stub(
   "@norra-mmhamed",
-  "PB-006 Consultant detail",
-  ".specify/specs/PB-006-consultant-booking",
+  "PB-003 Bookmarks",
+  ".specify/specs/PB-003-scholarship-discovery",
 );
-const StudentBookings = stub("@norra-mmhamed", "PB-006 My bookings", ".specify/specs/PB-006-consultant-booking");
-const StudentCommunity = stub("@yousra-elnoby", "PB-007 Community", ".specify/specs/PB-007-community-chat");
-const StudentResources = stub("@yousra-elnoby", "PB-009 Resources", ".specify/specs/PB-009-resources-hub");
-const StudentAi = lazy(() => import("@/pages/student/AiFeatures").then((m) => ({ default: m.AiFeatures })));
-const StudentMessages = stub("@yousra-elnoby", "PB-007 Chat", ".specify/specs/PB-007-community-chat");
+const StudentConsultants = lazy(() =>
+  import("@/pages/student/ConsultantsBrowse").then((m) => ({ default: m.ConsultantsBrowse })),
+);
+const StudentConsultantDetail = lazy(() =>
+  import("@/pages/student/ConsultantDetail").then((m) => ({ default: m.ConsultantDetail })),
+);
+const StudentBookingCheckout = lazy(() =>
+  import("@/pages/student/BookingCheckout").then((m) => ({ default: m.BookingCheckout })),
+);
+const StudentBookings = lazy(() =>
+  import("@/pages/student/StudentBookings").then((m) => ({ default: m.StudentBookings })),
+);
+const StudentBookingDetails = lazy(() =>
+  import("@/pages/student/StudentBookingDetails").then((m) => ({
+    default: m.StudentBookingDetails,
+  })),
+);
+const StudentCommunity = stub(
+  "@yousra-elnoby",
+  "PB-007 Community",
+  ".specify/specs/PB-007-community-chat",
+);
+const StudentResources = stub(
+  "@yousra-elnoby",
+  "PB-009 Resources",
+  ".specify/specs/PB-009-resources-hub",
+);
+const StudentAi = lazy(() =>
+  import("@/pages/student/AiFeatures").then((m) => ({ default: m.AiFeatures })),
+);
+const StudentMessages = stub(
+  "@yousra-elnoby",
+  "PB-007 Chat",
+  ".specify/specs/PB-007-community-chat",
+);
 
-const CompanyDashboard = stub("@Madiha6776", "Company Dashboard", ".specify/specs/PB-005-company-review-payment");
+// Company
+const CompanyDashboard = stub(
+  "@Madiha6776",
+  "Company Dashboard",
+  ".specify/specs/PB-005-company-review-payment",
+);
 const CompanyScholarships = stub(
   "@norra-mmhamed",
   "PB-003 Company listings",
@@ -73,48 +110,124 @@ const CompanyApplicationsReview = stub(
   "PB-005 Review applications",
   ".specify/specs/PB-005-company-review-payment",
 );
-const CompanyBilling = stub("@norra-mmhamed", "PB-013 Billing", ".specify/specs/PB-013-payment-processing");
+const CompanyBilling = stub(
+  "@norra-mmhamed",
+  "PB-013 Billing",
+  ".specify/specs/PB-013-payment-processing",
+);
 
+// Consultant
 const ConsultantDashboard = stub(
   "@norra-mmhamed",
   "Consultant Dashboard",
   ".specify/specs/PB-006-consultant-booking",
 );
-const ConsultantAvailability = stub(
-  "@norra-mmhamed",
-  "PB-006 Availability",
-  ".specify/specs/PB-006-consultant-booking",
+const ConsultantAvailability = lazy(() =>
+  import("@/pages/consultant/ConsultantAvailability").then((m) => ({
+    default: m.ConsultantAvailability,
+  })),
 );
-const ConsultantBookings = stub("@norra-mmhamed", "PB-006 Bookings", ".specify/specs/PB-006-consultant-booking");
-const ConsultantEarnings = stub("@norra-mmhamed", "PB-013 Earnings", ".specify/specs/PB-013-payment-processing");
+const ConsultantBookings = lazy(() =>
+  import("@/pages/consultant/ConsultantBookings").then((m) => ({
+    default: m.ConsultantBookings,
+  })),
+);
+const ConsultantBookingDetails = lazy(() =>
+  import("@/pages/consultant/ConsultantBookingDetails").then((m) => ({
+    default: m.ConsultantBookingDetails,
+  })),
+);
+const ConsultantEarnings = stub(
+  "@norra-mmhamed",
+  "PB-013 Earnings",
+  ".specify/specs/PB-013-payment-processing",
+);
 
-const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard })));
-const AdminUsers = lazy(() => import("@/pages/admin/UsersAdmin").then((m) => ({ default: m.UsersAdmin })));
-const AdminOnboarding = lazy(() => import("@/pages/admin/OnboardingQueue").then((m) => ({ default: m.OnboardingQueue })));
-const AdminUpgrades = lazy(() => import("@/pages/admin/UpgradeQueue").then((m) => ({ default: m.UpgradeQueue })));
-const AdminBroadcast = lazy(() => import("@/pages/admin/BroadcastComposer").then((m) => ({ default: m.BroadcastComposer })));
-const AdminAnalytics = lazy(() => import("@/pages/admin/AnalyticsPage").then((m) => ({ default: m.AnalyticsPage })));
-const AdminAiEconomy = lazy(() => import("@/pages/admin/AiEconomyPage").then((m) => ({ default: m.AiEconomyPage })));
-const AdminRedactionAudit = lazy(() => import("@/pages/admin/RedactionAuditPage").then((m) => ({ default: m.RedactionAuditPage })));
-const AdminScholarships = stub("@yousra-elnoby", "PB-011 Scholarships", ".specify/specs/PB-011-admin-portal");
-const AdminArticles = stub("@yousra-elnoby", "PB-009 Articles moderation", ".specify/specs/PB-009-resources-hub");
-const AdminCommunity = stub("@yousra-elnoby", "PB-007 Community moderation", ".specify/specs/PB-007-community-chat");
-const AdminPayments = stub("@norra-mmhamed", "PB-013 Payments", ".specify/specs/PB-013-payment-processing");
-const AdminProfitShare = stub("@norra-mmhamed", "PB-014 Profit share", ".specify/specs/PB-014-profit-share");
-const AdminAuditLog = lazy(() => import("@/pages/admin/AuditLogViewer").then((m) => ({ default: m.AuditLogViewer })));
-const AdminSettings = stub("@yousra-elnoby", "PB-011 Settings", ".specify/specs/PB-011-admin-portal");
+// Admin
+const AdminDashboard = stub(
+  "@ma7moudalysalem",
+  "PB-011 Admin dashboard",
+  ".specify/specs/PB-011-admin-portal",
+);
+const AdminUsers = lazy(() =>
+  import("@/pages/admin/UsersAdmin").then((m) => ({ default: m.UsersAdmin })),
+);
+const AdminOnboarding = lazy(() =>
+  import("@/pages/admin/OnboardingQueue").then((m) => ({ default: m.OnboardingQueue })),
+);
+const AdminUpgrades = lazy(() =>
+  import("@/pages/admin/UpgradeQueue").then((m) => ({ default: m.UpgradeQueue })),
+);
+const AdminBroadcast = lazy(() =>
+  import("@/pages/admin/BroadcastComposer").then((m) => ({ default: m.BroadcastComposer })),
+);
+const AdminAnalytics = lazy(() =>
+  import("@/pages/admin/AnalyticsPage").then((m) => ({ default: m.AnalyticsPage })),
+);
+const AdminAiEconomy = stub(
+  "@ma7moudalysalem",
+  "PB-017 AI economy analytics",
+  ".specify/specs/PB-017-ai-economy-analytics",
+);
+const AdminRedactionAudit = stub(
+  "@ma7moudalysalem",
+  "PB-012 Redaction audit",
+  ".specify/specs/PB-012-audit-compliance",
+);
+const AdminScholarships = stub(
+  "@yousra-elnoby",
+  "PB-011 Scholarships",
+  ".specify/specs/PB-011-admin-portal",
+);
+const AdminArticles = stub(
+  "@yousra-elnoby",
+  "PB-009 Articles moderation",
+  ".specify/specs/PB-009-resources-hub",
+);
+const AdminCommunity = stub(
+  "@yousra-elnoby",
+  "PB-007 Community moderation",
+  ".specify/specs/PB-007-community-chat",
+);
+const AdminPayments = stub(
+  "@norra-mmhamed",
+  "PB-013 Payments",
+  ".specify/specs/PB-013-payment-processing",
+);
+const AdminProfitShare = stub(
+  "@TasneemShaaban",
+  "PB-014 Profit share",
+  ".specify/specs/PB-014-profit-share",
+);
+const AdminAuditLog = stub(
+  "@ma7moudalysalem",
+  "PB-012 Audit log",
+  ".specify/specs/PB-012-audit-compliance",
+);
+const AdminSettings = stub(
+  "@ma7moudalysalem",
+  "PB-011 Settings",
+  ".specify/specs/PB-011-admin-portal",
+);
 
+// Shared
 const Profile = stub("@Madiha6776", "PB-002 Profile", ".specify/specs/PB-002-profile-account");
-const Notifications = stub("@Madiha6776", "PB-010 Notifications", ".specify/specs/PB-010-notifications");
+const Notifications = stub(
+  "@Madiha6776",
+  "PB-010 Notifications",
+  ".specify/specs/PB-010-notifications",
+);
 const DataPrivacy = lazy(() =>
   import("@/pages/profile/DataPrivacy").then((m) => ({ default: m.DataPrivacy })),
 );
 
-function SuspenseOutlet({ children }: { children: React.ReactNode }) {
+function SuspenseOutlet({ children }: { children: ReactNode }) {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center text-text-tertiary">Loading…</div>
+        <div className="text-text-tertiary flex min-h-screen items-center justify-center">
+          Loading…
+        </div>
       }
     >
       {children}
@@ -126,7 +239,6 @@ export function AppRouter() {
   return (
     <SuspenseOutlet>
       <Routes>
-        {/* Public */}
         <Route
           path="/"
           element={
@@ -176,7 +288,72 @@ export function AppRouter() {
           }
         />
 
-        {/* Onboarding (auth required but no layout nav) */}
+        {/* Dev preview routes */}
+        <Route
+          path="/dev/consultants"
+          element={
+            <PublicLayout>
+              <StudentConsultants />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/dev/consultants/:id"
+          element={
+            <PublicLayout>
+              <StudentConsultantDetail />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/dev/checkout"
+          element={
+            <PublicLayout>
+              <StudentBookingCheckout />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/dev/bookings"
+          element={
+            <PublicLayout>
+              <StudentBookings />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/dev/bookings/:id"
+          element={
+            <PublicLayout>
+              <StudentBookingDetails />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/dev/consultant/availability"
+          element={
+            <PublicLayout>
+              <ConsultantAvailability />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/dev/consultant/bookings"
+          element={
+            <PublicLayout>
+              <ConsultantBookings />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/dev/consultant/bookings/:id"
+          element={
+            <PublicLayout>
+              <ConsultantBookingDetails />
+            </PublicLayout>
+          }
+        />
+
         <Route
           path="/onboarding"
           element={
@@ -188,7 +365,6 @@ export function AppRouter() {
           }
         />
 
-        {/* Authenticated area */}
         <Route
           element={
             <RequireAuth>
@@ -196,12 +372,10 @@ export function AppRouter() {
             </RequireAuth>
           }
         >
-          {/* Profile / Notifications — shared across roles */}
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/privacy" element={<DataPrivacy />} />
           <Route path="/notifications" element={<Notifications />} />
 
-          {/* Student */}
           <Route
             path="/student"
             element={
@@ -217,13 +391,14 @@ export function AppRouter() {
           <Route path="/student/bookmarks" element={<StudentBookmarks />} />
           <Route path="/student/consultants" element={<StudentConsultants />} />
           <Route path="/student/consultants/:id" element={<StudentConsultantDetail />} />
+          <Route path="/student/checkout" element={<StudentBookingCheckout />} />
           <Route path="/student/bookings" element={<StudentBookings />} />
+          <Route path="/student/bookings/:id" element={<StudentBookingDetails />} />
           <Route path="/student/community" element={<StudentCommunity />} />
           <Route path="/student/resources" element={<StudentResources />} />
           <Route path="/student/ai" element={<StudentAi />} />
           <Route path="/student/messages" element={<StudentMessages />} />
 
-          {/* Company */}
           <Route
             path="/company"
             element={
@@ -236,7 +411,6 @@ export function AppRouter() {
           <Route path="/company/applications-review" element={<CompanyApplicationsReview />} />
           <Route path="/company/billing" element={<CompanyBilling />} />
 
-          {/* Consultant */}
           <Route
             path="/consultant"
             element={
@@ -247,11 +421,10 @@ export function AppRouter() {
           />
           <Route path="/consultant/availability" element={<ConsultantAvailability />} />
           <Route path="/consultant/bookings" element={<ConsultantBookings />} />
+          <Route path="/consultant/bookings/:id" element={<ConsultantBookingDetails />} />
           <Route path="/consultant/earnings" element={<ConsultantEarnings />} />
-
         </Route>
 
-        {/* Admin — has its own layout + role guard */}
         <Route
           element={
             <RequireAuth>
@@ -278,7 +451,6 @@ export function AppRouter() {
           <Route path="/admin/settings" element={<AdminSettings />} />
         </Route>
 
-        {/* 404 */}
         <Route
           path="*"
           element={
