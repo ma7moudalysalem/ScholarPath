@@ -93,6 +93,7 @@ const AdminUsers = lazy(() => import("@/pages/admin/UsersAdmin").then((m) => ({ 
 const AdminOnboarding = lazy(() => import("@/pages/admin/OnboardingQueue").then((m) => ({ default: m.OnboardingQueue })));
 const AdminUpgrades = lazy(() => import("@/pages/admin/UpgradeQueue").then((m) => ({ default: m.UpgradeQueue })));
 const AdminBroadcast = lazy(() => import("@/pages/admin/BroadcastComposer").then((m) => ({ default: m.BroadcastComposer })));
+const AdminAnalytics = lazy(() => import("@/pages/admin/AnalyticsPage").then((m) => ({ default: m.AnalyticsPage })));
 const AdminScholarships = stub("@yousra-elnoby", "PB-011 Scholarships", ".specify/specs/PB-011-admin-portal");
 const AdminArticles = stub("@yousra-elnoby", "PB-009 Articles moderation", ".specify/specs/PB-009-resources-hub");
 const AdminCommunity = stub("@yousra-elnoby", "PB-007 Community moderation", ".specify/specs/PB-007-community-chat");
@@ -263,7 +264,7 @@ export function AppRouter() {
           <Route path="/admin/onboarding" element={<AdminOnboarding />} />
           <Route path="/admin/upgrades" element={<AdminUpgrades />} />
           <Route path="/admin/broadcast" element={<AdminBroadcast />} />
-          <Route path="/admin/analytics" element={<AdminDashboard />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/scholarships" element={<AdminScholarships />} />
           <Route path="/admin/articles" element={<AdminArticles />} />
           <Route path="/admin/community" element={<AdminCommunity />} />
