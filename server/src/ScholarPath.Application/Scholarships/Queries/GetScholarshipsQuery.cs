@@ -1,79 +1,77 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Common.Models;
 using ScholarPath.Application.Scholarships.DTOs;
 using ScholarPath.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using Microsoft.EntityFrameworkCore;
 
-namespace ScholarPath.Application.Scholarships.Queries
+namespace ScholarPath.Application.Scholarships.Queries;
+
+public record GetScholarshipsQuery : IRequest<PaginatedList<ScholarshipDto>>
 {
-    public record GetScholarshipsQuery : IRequest<PaginatedList<ScholarshipDto>>
-    {
-        public string? SearchTerm { get; init; }
-        public Guid? CategoryId { get; init; }
-        public string? FundingType { get; init; }
-        public string? AcademicLevel { get; init; }
-        public int PageNumber { get; init; } = 1;
-        public int PageSize { get; init; } = 10;
-        public string? SortBy { get; init; } // e.g., "deadline", "newest"
-    }
+    public int PageNumber { get; init; } = 1;
+    public int PageSize { get; init; } = 10;
+    public string? Term { get; init; }
+    public string Language { get; init; } = "en";
+    public Guid? CategoryId { get; init; }
+    public FundingType? FundingType { get; init; }
+    public AcademicLevel? AcademicLevel { get; init; }
+    public string? Country { get; init; }
+    public DateTimeOffset? DeadlineFrom { get; init; }
+    public DateTimeOffset? DeadlineTo { get; init; }
+    public string[]? Tags { get; init; }
+    public bool? FundedOnly { get; init; }
+}
 
-    public class GetScholarshipsQueryHandler(IApplicationDbContext db)
-        : IRequestHandler<GetScholarshipsQuery, PaginatedList<ScholarshipDto>>
+public class GetScholarshipsQueryHandler(IApplicationDbContext db)
+    : IRequestHandler<GetScholarshipsQuery, PaginatedList<ScholarshipDto>>
+{
+    public async Task<PaginatedList<ScholarshipDto>> Handle(GetScholarshipsQuery request, CancellationToken ct)
     {
-        public async Task<PaginatedList<ScholarshipDto>> Handle(GetScholarshipsQuery request, CancellationToken ct)
+        var lang = request.Language.ToLower() == "ar" ? "ar" : "en";
+        var query = db.Scholarships.AsNoTracking();
+
+        // 1. Full-Text Search (Blocker B3)
+        if (!string.IsNullOrWhiteSpace(request.Term))
         {
-            var query = db.Scholarships
-                .AsNoTracking()
-                .Where(s => s.Status == ScholarshipStatus.Open); 
-
-            
-            if (request.CategoryId.HasValue)
-                query = query.Where(s => s.CategoryId == request.CategoryId);
-
-            if (!string.IsNullOrEmpty(request.FundingType) && Enum.TryParse<FundingType>(request.FundingType, out var funding))
-                query = query.Where(s => s.FundingType == funding);
-
-            //  (Full-Text Search Logic)
-            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
-            {
-                var term = request.SearchTerm.Trim();
-                // Sarch in both English and Arabic fields
-                query = query.Where(s => s.TitleEn.Contains(term) || s.TitleAr.Contains(term) ||
-
-
-                                         s.DescriptionEn.Contains(term) || s.DescriptionAr.Contains(term));
-            }
-
-            //  (Sorting)
-            query = request.SortBy?.ToLower() switch
-            {
-                "deadline" => query.OrderBy(s => s.Deadline),
-                "newest" => query.OrderByDescending(s => s.CreatedAt),
-                _ => query.OrderByDescending(s => s.IsFeatured).ThenByDescending(s => s.CreatedAt)
-            };
-
-            
-            
-            var lang = "en"; // Header
-
-            var result = query.Select(s => new ScholarshipDto
-            {
-                Id = s.Id,
-                Title = lang == "ar" ? s.TitleAr : s.TitleEn,
-                Description = lang == "ar" ? s.DescriptionAr : s.DescriptionEn,
-                CategoryName = lang == "ar" ? s.Category!.NameAr : s.Category!.NameEn,
-                Deadline = s.Deadline,
-                Status = s.Status.ToString(),
-                Slug = s.Slug
-            });
-
-            return await PaginatedList<ScholarshipDto>.CreateAsync(result, request.PageNumber, request.PageSize);
+            query = query.Where(s => EF.Functions.Contains(s.TitleEn, request.Term) ||
+                                     EF.Functions.Contains(s.TitleAr, request.Term));
         }
-    }
-    
-    }
 
+        // 2. Filters (Blocker I1)
+        if (request.CategoryId.HasValue) query = query.Where(s => s.CategoryId == request.CategoryId);
+        if (request.FundingType.HasValue) query = query.Where(s => s.FundingType == request.FundingType);
+        if (request.AcademicLevel.HasValue) query = query.Where(s => s.TargetLevel == request.AcademicLevel);
+        if (request.FundedOnly == true) query = query.Where(s => s.FundingType == FundingType.FullyFunded ||
+                             s.FundingType == FundingType.PartiallyFunded);
+
+        if (request.DeadlineFrom.HasValue) query = query.Where(s => s.Deadline >= request.DeadlineFrom);
+        if (request.DeadlineTo.HasValue) query = query.Where(s => s.Deadline <= request.DeadlineTo);
+
+        if (!string.IsNullOrEmpty(request.Country))
+            query = query.Where(s => s.TargetCountriesJson!.Contains(request.Country));
+
+        // 3. Sorting with Tie-break for Pagination Stability (Blocker I4)
+        query = query.OrderByDescending(s => s.IsFeatured)
+                     .ThenByDescending(s => s.CreatedAt)
+                     .ThenBy(s => s.Id);
+
+        // 4. Projection with Language Fallback (Blocker B4)
+        var result = query.Select(s => new ScholarshipDto
+        {
+            Id = s.Id,
+            Title = lang == "ar" ? (s.TitleAr ?? s.TitleEn) : (s.TitleEn ?? s.TitleAr),
+            Description = lang == "ar" ? s.DescriptionAr : s.DescriptionEn,
+            CategoryName = lang == "ar" ? s.Category!.NameAr : s.Category!.NameEn,
+            OwnerCompanyName = s.OwnerCompany != null ? s.OwnerCompany.FirstName + " " + s.OwnerCompany.LastName : "Global Provider",
+            Deadline = s.Deadline,
+            Status = s.Status.ToString(),
+            FundingType = s.FundingType.ToString(),
+            TargetLevel = s.TargetLevel.ToString(),
+            IsFeatured = s.IsFeatured,
+            Slug = s.Slug
+        });
+
+        return await PaginatedList<ScholarshipDto>.CreateAsync(result, request.PageNumber, request.PageSize);
+    }
+}
