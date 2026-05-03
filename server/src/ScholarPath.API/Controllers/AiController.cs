@@ -6,6 +6,7 @@ using ScholarPath.Application.Ai.Commands.CheckEligibility;
 using ScholarPath.Application.Ai.Commands.GenerateRecommendations;
 using ScholarPath.Application.Ai.DTOs;
 using ScholarPath.Application.Ai.Queries.GetMyInteractions;
+using ScholarPath.Application.Ai.Queries.GetMyRecommendations;
 
 namespace ScholarPath.API.Controllers;
 
@@ -15,6 +16,25 @@ namespace ScholarPath.API.Controllers;
 [Produces("application/json")]
 public sealed class AiController(IMediator mediator) : ControllerBase
 {
+    /// <summary>
+    /// Returns the user's cached recommendations (last 24h) without hitting the
+    /// provider. Returns 204 when there's no cache — client should POST to regenerate.
+    /// </summary>
+    [HttpGet("recommendations")]
+    [ProducesResponseType(typeof(RecommendationsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> GetCachedRecommendations(
+        [FromQuery] int maxAgeHours = 24,
+        CancellationToken ct = default)
+    {
+        var result = await mediator.Send(new GetMyRecommendationsQuery(maxAgeHours), ct).ConfigureAwait(false);
+        return result is null ? NoContent() : Ok(result);
+    }
+
+    /// <summary>
+    /// Regenerates recommendations — writes a new AiInteraction row and counts
+    /// against the daily cost budget.
+    /// </summary>
     [HttpPost("recommendations")]
     [ProducesResponseType(typeof(RecommendationsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]

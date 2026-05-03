@@ -13,14 +13,18 @@ export function AiRecommendations() {
   const { t, i18n } = useTranslation(["ai", "common"]);
   const qc = useQueryClient();
 
-  // We use POST on refresh (server persists an interaction row), but read path
-  // can reuse the last result — prime it via the query.
-  const q = useQuery<RecommendationsDto>({
+  // Read path hits the cache (GET). On cache miss (null) we auto-regenerate once
+  // so first-time users still see recommendations without clicking refresh.
+  const q = useQuery<RecommendationsDto | null>({
     queryKey: KEY,
-    queryFn: () => aiApi.recommendations(5),
+    queryFn: async () => {
+      const cached = await aiApi.cachedRecommendations();
+      return cached ?? (await aiApi.recommendations(5));
+    },
     staleTime: 5 * 60 * 1000,
   });
 
+  // Explicit refresh always regenerates (counts against daily budget).
   const refreshMut = useMutation({
     mutationFn: () => aiApi.recommendations(5),
     onSuccess: (data) => qc.setQueryData(KEY, data),

@@ -56,6 +56,20 @@ export interface AiInteractionRow {
 }
 
 export const aiApi = {
+  /**
+   * GET the user's cached recommendations (last 24h). Resolves to null when
+   * the server returns 204 — caller should then call `regenerate` to get fresh.
+   */
+  async cachedRecommendations(maxAgeHours = 24): Promise<RecommendationsDto | null> {
+    const res = await apiClient.get<RecommendationsDto>("/api/ai/recommendations", {
+      params: { maxAgeHours },
+      // 204 with empty body is a valid signal, not an error
+      validateStatus: (s) => s === 200 || s === 204,
+    });
+    return res.status === 204 ? null : res.data;
+  },
+
+  /** Regenerate recommendations (counts against daily cost budget). */
   async recommendations(topN?: number): Promise<RecommendationsDto> {
     const { data } = await apiClient.post<RecommendationsDto>(
       "/api/ai/recommendations",
