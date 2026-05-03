@@ -11,6 +11,6 @@ public class ArchiveScholarshipCommandValidator : AbstractValidator<ArchiveSchol
     public ArchiveScholarshipCommandValidator()
     {
         RuleFor(v => v.Id)
-            .NotEmpty().WithMessage("معرف المنحة مطلوب لتنفيذ عملية الأرشفة.");
+            .NotEmpty().WithMessage("Scholarship ID is required to perform the archiving process");
     }
 }

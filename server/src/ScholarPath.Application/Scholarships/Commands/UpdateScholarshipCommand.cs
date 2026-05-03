@@ -29,11 +29,9 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
 
         if (entity == null) throw new NotFoundException(nameof(Scholarship), request.Id);
 
-        // Blocker B5: التأكد أن المستخدم الحالي هو صاحب المنحة
         if (entity.OwnerCompanyId != user.UserId)
             throw new ForbiddenAccessException();
 
-        // منع التعديلات الجوهرية (Schema) إذا كان هناك تقديمات نشطة
         if (entity.Applications.Any() && entity.CategoryId != request.CategoryId)
             throw new ConflictException("Cannot change scholarship category while applications are in progress.");
 
@@ -44,7 +42,6 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
         entity.Deadline = request.Deadline;
         entity.CategoryId = request.CategoryId;
 
-        // ملاحظة: تم إزالة منطق الـ ArchivedAt من هنا لأنه Update وليس Archive
 
         await db.SaveChangesAsync(ct);
         return true;

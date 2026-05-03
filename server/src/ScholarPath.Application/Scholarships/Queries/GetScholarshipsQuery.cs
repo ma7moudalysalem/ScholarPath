@@ -31,14 +31,14 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db)
         var lang = request.Language.ToLower() == "ar" ? "ar" : "en";
         var query = db.Scholarships.AsNoTracking();
 
-        // 1. Full-Text Search (Blocker B3)
+        //  Full-Text Search 
         if (!string.IsNullOrWhiteSpace(request.Term))
         {
             query = query.Where(s => EF.Functions.Contains(s.TitleEn, request.Term) ||
                                      EF.Functions.Contains(s.TitleAr, request.Term));
         }
 
-        // 2. Filters (Blocker I1)
+        //  Filters 
         if (request.CategoryId.HasValue) query = query.Where(s => s.CategoryId == request.CategoryId);
         if (request.FundingType.HasValue) query = query.Where(s => s.FundingType == request.FundingType);
         if (request.AcademicLevel.HasValue) query = query.Where(s => s.TargetLevel == request.AcademicLevel);
@@ -51,12 +51,12 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db)
         if (!string.IsNullOrEmpty(request.Country))
             query = query.Where(s => s.TargetCountriesJson!.Contains(request.Country));
 
-        // 3. Sorting with Tie-break for Pagination Stability (Blocker I4)
+        //  Sorting with Tie-break for Pagination Stability 
         query = query.OrderByDescending(s => s.IsFeatured)
                      .ThenByDescending(s => s.CreatedAt)
                      .ThenBy(s => s.Id);
 
-        // 4. Projection with Language Fallback (Blocker B4)
+        //  Projection with Language Fallback 
         var result = query.Select(s => new ScholarshipDto
         {
             Id = s.Id,

@@ -23,7 +23,7 @@ public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholar
     public CreateScholarshipCommandValidator()
     {
         RuleFor(v => v.TitleEn).MaximumLength(300).NotEmpty();
-        // B5: Spec Requirement - Deadline must be at least 7 days in the future
+        //  Spec Requirement - Deadline must be at least 7 days in the future
         RuleFor(v => v.Deadline)
             .GreaterThan(DateTimeOffset.UtcNow.AddDays(7))
             .WithMessage("Deadline must be at least 7 days from now.");
@@ -47,7 +47,7 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             FundingType = request.FundingType,
             TargetLevel = request.TargetLevel,
             Status = ScholarshipStatus.Open,
-            OwnerCompanyId = user.UserId // ربطها بالشركة اللي بتكريت
+            OwnerCompanyId = user.UserId 
         };
 
         db.Scholarships.Add(entity);

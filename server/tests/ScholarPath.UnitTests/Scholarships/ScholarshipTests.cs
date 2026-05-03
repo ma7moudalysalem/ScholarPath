@@ -19,7 +19,7 @@ public sealed class ScholarshipTests : IDisposable
 
     public ScholarshipTests()
     {
-        // Blocker T-011: إعداد Sqlite In-Memory لضمان اختبار الـ Constraints بشكل حقيقي
+     
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
 
@@ -28,12 +28,12 @@ public sealed class ScholarshipTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _context.Database.EnsureCreated(); // بناء الجداول فعلياً
+        _context.Database.EnsureCreated(); 
 
         _createValidator = new CreateScholarshipCommandValidator();
     }
 
-    // --- 1. Validation Tests (تغطية شرط الـ 7 أيام) ---
+    //  Validation Tests 
 
     [Fact]
     public void CreateValidator_ShouldFail_WhenDeadlineIsLessThan7Days()
@@ -41,7 +41,7 @@ public sealed class ScholarshipTests : IDisposable
         // Arrange
         var command = new CreateScholarshipCommand
         {
-            Deadline = DateTimeOffset.UtcNow.AddDays(5) // أقل من 7 أيام
+            Deadline = DateTimeOffset.UtcNow.AddDays(5) // less than 7 days
         };
 
         // Act
@@ -69,7 +69,7 @@ public sealed class ScholarshipTests : IDisposable
         result.ShouldNotHaveValidationErrorFor(x => x.Deadline);
     }
 
-    // --- 2. Query Handler Tests (باستخدام Sqlite الحقيقي) ---
+    //  Query Handler Tests
 
     [Fact]
     public async Task GetById_ShouldThrowNotFoundException_WhenRecordDoesNotExist()

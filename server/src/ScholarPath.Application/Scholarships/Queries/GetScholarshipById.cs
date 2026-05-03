@@ -25,8 +25,6 @@ namespace ScholarPath.Application.Scholarships.Queries
 
             if (entity == null) throw new NotFoundException(nameof(Scholarship), request.Id);
 
-            // I5: Removed 409 throw for closed scholarships - client will handle UI state
-
             return new ScholarshipDetailDto
             {
                 Id = entity.Id,
@@ -40,7 +38,7 @@ namespace ScholarPath.Application.Scholarships.Queries
                 EligibilityRequirements = lang == "ar" ? entity.EligibilityRequirementsAr : entity.EligibilityRequirementsEn,
                 ApplicationFormSchemaJson = entity.ApplicationFormSchemaJson,
                 RequiredDocumentsJson = entity.RequiredDocumentsJson,
-                // I6: ToList() clean up
+               
                 Children = entity.Children
                     .OrderBy(c => c.SortOrder)
                     .Select(c => new ScholarshipChildDto(

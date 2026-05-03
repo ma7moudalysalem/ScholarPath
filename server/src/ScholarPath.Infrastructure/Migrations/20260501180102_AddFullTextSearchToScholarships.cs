@@ -10,13 +10,12 @@ namespace ScholarPath.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // 1. إنشاء الفهرس الشامل (Full-Text Catalog)
+            //   Full-Text Catalog
             migrationBuilder.Sql(
                 sql: "CREATE FULLTEXT CATALOG ScholarshipCatalog AS DEFAULT;",
                 suppressTransaction: true);
 
-            // 2. إنشاء الـ Full-Text Index على الأعمدة المطلوبة
-            // تم اختيار اللغة العربية (1025) والإنجليزية (1033) لضمان دقة البحث
+            // 2   Full-Text Index  
             migrationBuilder.Sql(
                 sql: @"
                     CREATE FULLTEXT INDEX ON Scholarships (
@@ -33,12 +32,12 @@ namespace ScholarPath.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // حذف الفهرس في حالة التراجع عن الـ Migration
+            // dleting the full-text index
             migrationBuilder.Sql(
                 sql: "DROP FULLTEXT INDEX ON Scholarships;",
                 suppressTransaction: true);
 
-            // حذف الكتالوج
+            // dleting the full-text cataiog
             migrationBuilder.Sql(
                 sql: "DROP FULLTEXT CATALOG ScholarshipCatalog;",
                 suppressTransaction: true);

@@ -9,13 +9,13 @@ using ScholarPath.Application.Scholarships.Queries;
 namespace ScholarPath.API.Controllers
 {
     [ApiController]
-    [Route("api/scholarships")] // I2: Convention route
-    public class ScholarshipsController(IMediator mediator) : ControllerBase // I2: ControllerBase
+    [Route("api/scholarships")] //  Convention route
+    public class ScholarshipsController(IMediator mediator) : ControllerBase //  ControllerBase
     {
         [HttpGet]
         public async Task<ActionResult<PaginatedList<ScholarshipDto>>> Get([FromQuery] GetScholarshipsQuery query)
         {
-            // B4: Reading language from Accept-Language header
+            //  Reading language from Accept-Language header
             var headerLang = Request.Headers["Accept-Language"].ToString().Split(',').FirstOrDefault() ?? "en";
              var lang = headerLang.StartsWith("ar", StringComparison.OrdinalIgnoreCase) ? "ar" : "en";
 
@@ -37,7 +37,7 @@ namespace ScholarPath.API.Controllers
 
         //  Post/Put/Delete methods with [Authorize] will be added here in the next step
         [HttpPost]
-        [Authorize(Roles = "Company")] // B5: Authorization enforced
+        [Authorize(Roles = "Company")] //  Authorization enforced
         public async Task<ActionResult<Guid>> Create(CreateScholarshipCommand command)
         {
             return await mediator.Send(command);

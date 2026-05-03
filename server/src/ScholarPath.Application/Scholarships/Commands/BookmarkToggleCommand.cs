@@ -13,7 +13,7 @@ public class BookmarkToggleCommandHandler(IApplicationDbContext db, ICurrentUser
 {
     public async Task<bool> Handle(BookmarkToggleCommand request, CancellationToken ct)
     {
-        // N4: Unique constraint check (delete if exists, insert if not)
+        //  Unique constraint check (delete if exists, insert if not)
         var existing = await db.SavedScholarships
             .FirstOrDefaultAsync(x => x.ScholarshipId == request.ScholarshipId && x.UserId == user.UserId, ct);
 
