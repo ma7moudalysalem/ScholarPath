@@ -84,9 +84,20 @@ public static class DependencyInjection
         services.AddSingleton<IEmailService, StubEmailService>();
         services.AddSingleton<IBlobStorageService, StubBlobStorageService>();
         services.AddSingleton<IStripeService, StubStripeService>();
-        // LocalAiService is deterministic, no-network — our default. Teammates
-        // swap to OpenAI by setting Ai:Provider = "OpenAi" and wiring a real impl.
-        services.AddScoped<IAiService, LocalAiService>();
+        // AI provider selection: Local (default, deterministic, offline) or
+        // OpenAi (real provider, needs Ai:OpenAi:ApiKey). Swap via config —
+        // no code changes. OpenAI service itself falls back to Local on
+        // network failure so the UX degrades gracefully.
+        var aiProvider = config.GetValue<string>($"{AiOptions.SectionName}:Provider") ?? "Stub";
+        if (string.Equals(aiProvider, "OpenAi", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddHttpClient("openai");
+            services.AddScoped<IAiService, OpenAiService>();
+        }
+        else
+        {
+            services.AddScoped<IAiService, LocalAiService>();
+        }
         services.AddScoped<INotificationDispatcher, StubNotificationDispatcher>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserAdministration, UserAdministration>();
