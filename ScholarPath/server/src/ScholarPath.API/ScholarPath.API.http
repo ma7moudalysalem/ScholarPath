@@ -1,0 +1,6 @@
+@ScholarPath.API_HostAddress = http://localhost:5100
+
+GET {{ScholarPath.API_HostAddress}}/health
+Accept: application/json
+
+###

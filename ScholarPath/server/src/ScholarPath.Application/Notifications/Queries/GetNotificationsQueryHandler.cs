@@ -26,13 +26,15 @@ public class GetNotificationsQueryHandler : IRequestHandler<GetNotificationsQuer
 
         var query = _dbContext.Notifications
             .Where(n => n.UserId == userId)
-            .OrderByDescending(n => n.Id);
+            .OrderByDescending(n => n.CreatedAt);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var items = await query
-            .Skip((request.Page - 1) * request.PageSize)
-            .Take(request.PageSize)
+            var pageSize = Math.Min(request.PageSize, 100);
+
+          var items = await query
+    .Skip((request.Page - 1) * pageSize)
+    .Take(pageSize)
             .Select(n => new NotificationDto(
                 n.Id,
                 n.Type,
@@ -47,6 +49,6 @@ public class GetNotificationsQueryHandler : IRequestHandler<GetNotificationsQuer
                 n.CreatedAt))
             .ToListAsync(cancellationToken);
 
-        return new PaginatedNotificationResponse(items, totalCount, request.Page, request.PageSize);
+       return new PaginatedNotificationResponse(items, totalCount, request.Page, pageSize);
     }
 }

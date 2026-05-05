@@ -21,37 +21,23 @@ public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand,
 
     public async Task<Unit> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
     {
-        // The token encodes the user info — we need to find the user from the token
-        // Identity's ResetPasswordAsync needs the user object
-        var users = await _dbContext.RefreshTokens
-            .Select(t => t.User)
-            .Distinct()
-            .ToListAsync(cancellationToken);
+        var user = await _userManager.FindByEmailAsync(request.Email)
+            ?? throw new InvalidOperationException("errors.auth.invalidResetToken");
 
-        ApplicationUser? targetUser = null;
-        foreach (var user in await _userManager.Users.ToListAsync(cancellationToken))
-        {
-            var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
-            if (result.Succeeded)
-            {
-                targetUser = user;
-                break;
-            }
-        }
-
-        if (targetUser is null)
+        var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        if (!result.Succeeded)
         {
             throw new InvalidOperationException("errors.auth.invalidResetToken");
         }
 
         // FR-025: Invalidate all active refresh tokens after password reset
         var activeTokens = await _dbContext.RefreshTokens
-            .Where(t => t.UserId == targetUser.Id && !t.IsRevoked)
+            .Where(t => t.UserId == user.Id && !t.IsRevoked)
             .ToListAsync(cancellationToken);
 
         foreach (var token in activeTokens)
         {
-            token.RevokedAt = DateTime.UtcNow;
+            token.RevokedAt = DateTimeOffset.UtcNow;
             token.RevokedReason = "Password reset";
         }
 
@@ -60,3 +46,4 @@ public class ResetPasswordCommandHandler : IRequestHandler<ResetPasswordCommand,
         return Unit.Value;
     }
 }
+

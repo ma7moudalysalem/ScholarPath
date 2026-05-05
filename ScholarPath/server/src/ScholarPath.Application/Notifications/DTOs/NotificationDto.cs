@@ -10,8 +10,7 @@ public record NotificationDto(
     string Message,
     string? MessageAr,
     bool IsRead,
-    DateTime? ReadAt,
+    DateTimeOffset? ReadAt,
     Guid? RelatedEntityId,
     string? RelatedEntityType,
-    DateTime CreatedAt);
-    
+    DateTimeOffset CreatedAt);

@@ -1,8 +1,10 @@
 using MediatR;
+using ScholarPath.Application.Common.Attributes;
 using ScholarPath.Application.Profile.DTOs;
 
 namespace ScholarPath.Application.Profile.Commands.UpdateProfile;
 
+[Auditable(AuditAction.ProfileUpdated, "User")]
 public record UpdateProfileCommand(
     string? FirstName,
     string? LastName,
@@ -13,4 +15,3 @@ public record UpdateProfileCommand(
     string? TargetCountry,
     string? Bio,
     DateTime? DateOfBirth) : IRequest<UserProfileDto>;
-    

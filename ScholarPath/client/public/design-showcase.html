@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ScholarPath — 5 Design Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:wght@400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Syne:wght@600;700;800&family=Outfit:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0A0A0A;
+    color: #fff;
+    min-height: 100vh;
+    padding: 48px 24px 80px;
+  }
+  .page-title {
+    text-align: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 3rem;
+    font-weight: 600;
+    color: #C9A534;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+  }
+  .page-subtitle {
+    text-align: center;
+    color: rgba(255,255,255,0.45);
+    font-size: 1rem;
+    margin-bottom: 64px;
+    font-weight: 400;
+  }
+  .designs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 28px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .design-card {
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+  }
+  .design-card:hover { transform: translateY(-6px); }
+  .design-card.selected { outline: 3px solid #C9A534; }
+
+  /* ─── PREVIEW AREA ─── */
+  .preview { height: 260px; position: relative; overflow: hidden; }
+
+  /* D1 — Dark Scholarly Luxury (current) */
+  .d1 .preview {
+    background: #070C18;
+    background-image: radial-gradient(circle, rgba(201,165,52,0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .d1 .preview::before {
+    content: '';
+    position: absolute; top: -30%; right: -10%;
+    width: 70%; height: 70%; border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,165,52,0.12) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .d1 .preview-content { padding: 32px 28px; }
+  .d1 .eyebrow { font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: #C9A534; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .d1 .eyebrow::before { content: ''; display: block; width: 6px; height: 6px; border-radius: 50%; background: #C9A534; }
+  .d1 .headline { font-family: 'Cormorant Garamond', serif; font-size: 2.8rem; font-weight: 600; line-height: 1.05; color: #C9A534; }
+  .d1 .headline-2 { font-family: 'Cormorant Garamond', serif; font-size: 2.8rem; font-weight: 600; line-height: 1.05; color: #EDE8DF; }
+  .d1 .sub { color: #7D8FA8; font-size: 0.875rem; line-height: 1.7; margin-top: 10px; margin-bottom: 20px; }
+  .d1 .btns { display: flex; gap: 10px; }
+  .d1 .btn-main { background: linear-gradient(135deg, #C9A534, #E0BE68); color: #07090F; font-weight: 600; padding: 10px 22px; border-radius: 50px; border: none; font-size: 0.85rem; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .d1 .btn-out { background: transparent; color: #C9A534; border: 1.5px solid rgba(201,165,52,0.5); font-weight: 600; padding: 10px 22px; border-radius: 50px; font-size: 0.85rem; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+
+  /* D2 — Ivory Academia */
+  .d2 .preview {
+    background: #FAF7F0;
+    background-image: linear-gradient(rgba(26,45,91,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(26,45,91,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .d2 .preview-content { padding: 32px 28px; }
+  .d2 .eyebrow { font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: #C41E3A; font-weight: 600; margin-bottom: 14px; border-left: 3px solid #C41E3A; padding-left: 10px; }
+  .d2 .headline { font-family: 'Playfair Display', serif; font-size: 2.6rem; font-weight: 700; line-height: 1.1; color: #1A2D5B; }
+  .d2 .headline-2 { font-family: 'Playfair Display', serif; font-size: 2.6rem; font-weight: 700; line-height: 1.1; color: #1A2D5B; }
+  .d2 .sub { color: #5A6070; font-size: 0.875rem; line-height: 1.7; margin-top: 10px; margin-bottom: 20px; }
+  .d2 .btns { display: flex; gap: 10px; }
+  .d2 .btn-main { background: #1A2D5B; color: #fff; font-weight: 600; padding: 10px 22px; border-radius: 4px; border: none; font-size: 0.85rem; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .d2 .btn-out { background: transparent; color: #C41E3A; border: 1.5px solid #C41E3A; font-weight: 600; padding: 10px 22px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+
+  /* D3 — Emerald Prestige */
+  .d3 .preview {
+    background: #061810;
+    background-image: radial-gradient(circle, rgba(16,185,129,0.05) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .d3 .preview::before {
+    content: '';
+    position: absolute; top: -20%; left: -10%;
+    width: 60%; height: 60%; border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,165,52,0.1) 0%, transparent 65%);
+  }
+  .d3 .preview::after {
+    content: '';
+    position: absolute; bottom: -20%; right: -5%;
+    width: 50%; height: 50%; border-radius: 50%;
+    background: radial-gradient(circle, rgba(16,185,129,0.1) 0%, transparent 65%);
+  }
+  .d3 .preview-content { padding: 32px 28px; position: relative; z-index: 1; }
+  .d3 .eyebrow { font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: #2DD4BF; font-weight: 600; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .d3 .eyebrow::before { content: '◆'; font-size: 6px; color: #2DD4BF; }
+  .d3 .headline { font-family: 'DM Serif Display', serif; font-size: 2.8rem; font-weight: 400; line-height: 1.05; color: #C9A534; font-style: italic; }
+  .d3 .headline-2 { font-family: 'DM Serif Display', serif; font-size: 2.8rem; font-weight: 400; line-height: 1.05; color: #D4EDE6; font-style: normal; }
+  .d3 .sub { color: #6BAF97; font-size: 0.875rem; line-height: 1.7; margin-top: 10px; margin-bottom: 20px; }
+  .d3 .btns { display: flex; gap: 10px; }
+  .d3 .btn-main { background: linear-gradient(135deg, #10B981, #059669); color: #fff; font-weight: 600; padding: 10px 22px; border-radius: 8px; border: none; font-size: 0.85rem; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .d3 .btn-out { background: transparent; color: #C9A534; border: 1.5px solid rgba(201,165,52,0.5); font-weight: 600; padding: 10px 22px; border-radius: 8px; font-size: 0.85rem; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+  /* D4 — Nordic Minimal */
+  .d4 .preview { background: #FAFAFA; }
+  .d4 .preview-content { padding: 32px 28px; }
+  .d4 .eyebrow { font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; color: #3B82F6; font-weight: 600; margin-bottom: 20px; }
+  .d4 .headline { font-family: 'Syne', sans-serif; font-size: 2.5rem; font-weight: 800; line-height: 1.05; color: #1E293B; }
+  .d4 .headline-2 { font-family: 'Syne', sans-serif; font-size: 2.5rem; font-weight: 800; line-height: 1.05; color: #3B82F6; }
+  .d4 .sub { color: #64748B; font-size: 0.875rem; line-height: 1.7; margin-top: 10px; margin-bottom: 20px; font-family: 'Outfit', sans-serif; }
+  .d4 .btns { display: flex; gap: 10px; }
+  .d4 .btn-main { background: #1E293B; color: #fff; font-weight: 600; padding: 10px 22px; border-radius: 6px; border: none; font-size: 0.85rem; cursor: pointer; font-family: 'Outfit', sans-serif; letter-spacing: 0.02em; }
+  .d4 .btn-out { background: transparent; color: #3B82F6; border: 1.5px solid #3B82F6; font-weight: 600; padding: 10px 22px; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-family: 'Outfit', sans-serif; }
+  .d4 .line { position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+
+  /* D5 — Cosmic Violet */
+  .d5 .preview {
+    background: #0D0B2A;
+    background-image: radial-gradient(ellipse at 70% 50%, rgba(124,58,237,0.12) 0%, transparent 60%),
+                      radial-gradient(ellipse at 20% 80%, rgba(249,115,22,0.08) 0%, transparent 50%);
+  }
+  .d5 .preview-content { padding: 32px 28px; }
+  .d5 .eyebrow { font-size: 0.65rem; letter-spacing: 0.14em; text-transform: uppercase; color: #A78BFA; font-weight: 600; margin-bottom: 14px; background: rgba(124,58,237,0.15); display: inline-block; padding: 4px 12px; border-radius: 50px; }
+  .d5 .headline { font-family: 'Fraunces', serif; font-size: 2.8rem; font-weight: 500; line-height: 1.05; color: #F97316; font-style: italic; }
+  .d5 .headline-2 { font-family: 'Fraunces', serif; font-size: 2.8rem; font-weight: 700; line-height: 1.05; color: #EDE9FE; font-style: normal; }
+  .d5 .sub { color: #8B7FBF; font-size: 0.875rem; line-height: 1.7; margin-top: 10px; margin-bottom: 20px; }
+  .d5 .btns { display: flex; gap: 10px; }
+  .d5 .btn-main { background: linear-gradient(135deg, #7C3AED, #9333EA); color: #fff; font-weight: 600; padding: 10px 22px; border-radius: 50px; border: none; font-size: 0.85rem; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; box-shadow: 0 4px 20px rgba(124,58,237,0.4); }
+  .d5 .btn-out { background: transparent; color: #F97316; border: 1.5px solid rgba(249,115,22,0.5); font-weight: 600; padding: 10px 22px; border-radius: 50px; font-size: 0.85rem; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+  /* ─── CARD META ─── */
+  .card-meta {
+    padding: 20px 24px;
+    background: rgba(255,255,255,0.04);
+    border-top: 1px solid rgba(255,255,255,0.07);
+  }
+  .card-name { font-size: 1rem; font-weight: 600; color: #fff; margin-bottom: 4px; }
+  .card-desc { font-size: 0.8125rem; color: rgba(255,255,255,0.45); line-height: 1.5; margin-bottom: 14px; }
+  .palette { display: flex; gap: 6px; margin-bottom: 14px; }
+  .swatch { width: 22px; height: 22px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); }
+  .fonts-row { display: flex; gap: 16px; }
+  .font-badge {
+    font-size: 0.72rem; color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.06);
+    padding: 3px 8px; border-radius: 4px;
+  }
+  .current-badge {
+    position: absolute; top: 12px; right: 12px;
+    background: #C9A534; color: #07090F;
+    font-size: 0.65rem; font-weight: 700;
+    padding: 3px 8px; border-radius: 50px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    z-index: 10;
+  }
+  .choose-btn {
+    width: 100%; margin-top: 12px;
+    padding: 10px; border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.875rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+    border: 1.5px solid rgba(255,255,255,0.15);
+    background: transparent; color: rgba(255,255,255,0.6);
+  }
+  .choose-btn:hover { border-color: #C9A534; color: #C9A534; background: rgba(201,165,52,0.08); }
+  .design-card.selected .choose-btn { border-color: #C9A534; color: #C9A534; background: rgba(201,165,52,0.1); }
+
+  /* Instructions */
+  .instructions {
+    text-align: center;
+    color: rgba(255,255,255,0.35);
+    font-size: 0.875rem;
+    margin-top: 48px;
+    line-height: 1.7;
+  }
+  .instructions strong { color: rgba(255,255,255,0.6); }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">ScholarPath Design Options</h1>
+<p class="page-subtitle">5 distinct design directions — tell your developer which one you want implemented</p>
+
+<div class="designs-grid">
+
+  <!-- D1: Dark Scholarly Luxury (current) -->
+  <div class="design-card d1" id="d1">
+    <div class="current-badge">✓ Current</div>
+    <div class="preview">
+      <div class="preview-content">
+        <div class="eyebrow">Your Journey Starts Here</div>
+        <div class="headline">Discover</div>
+        <div class="headline-2">ScholarPath</div>
+        <div class="sub">Access thousands of scholarship opportunities worldwide</div>
+        <div class="btns">
+          <button class="btn-main">Get Started</button>
+          <button class="btn-out">Login</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-meta">
+      <div class="card-name">① Dark Scholarly Luxury</div>
+      <div class="card-desc">Deep midnight navy, warm gold, elegant serif headings. Prestigious university meets premium fintech.</div>
+      <div class="palette">
+        <div class="swatch" style="background:#070C18"></div>
+        <div class="swatch" style="background:#0E1524"></div>
+        <div class="swatch" style="background:#C9A534"></div>
+        <div class="swatch" style="background:#4F7EF5"></div>
+        <div class="swatch" style="background:#EDE8DF"></div>
+      </div>
+      <div class="fonts-row">
+        <span class="font-badge">Cormorant Garamond</span>
+        <span class="font-badge">DM Sans</span>
+      </div>
+      <button class="choose-btn" onclick="select('d1')">Currently Active</button>
+    </div>
+  </div>
+
+  <!-- D2: Ivory Academia -->
+  <div class="design-card d2" id="d2">
+    <div class="preview">
+      <div class="preview-content">
+        <div class="eyebrow">Oxford · Cambridge · Excellence</div>
+        <div class="headline">Your Gateway</div>
+        <div class="headline-2">to Academia</div>
+        <div class="sub">Discover scholarship opportunities tailored to your academic journey</div>
+        <div class="btns">
+          <button class="btn-main">Get Started</button>
+          <button class="btn-out">Learn More</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-meta">
+      <div class="card-name">② Ivory Academia</div>
+      <div class="card-desc">Warm cream background, deep navy + crimson accents. Classic, authoritative — like Oxford or Cambridge.</div>
+      <div class="palette">
+        <div class="swatch" style="background:#FAF7F0"></div>
+        <div class="swatch" style="background:#1A2D5B"></div>
+        <div class="swatch" style="background:#C41E3A"></div>
+        <div class="swatch" style="background:#8B9DC3"></div>
+        <div class="swatch" style="background:#2D3748"></div>
+      </div>
+      <div class="fonts-row">
+        <span class="font-badge">Playfair Display</span>
+        <span class="font-badge">DM Sans</span>
+      </div>
+      <button class="choose-btn" onclick="select('d2')">Choose this design</button>
+    </div>
+  </div>
+
+  <!-- D3: Emerald Prestige -->
+  <div class="design-card d3" id="d3">
+    <div class="preview">
+      <div class="preview-content">
+        <div class="eyebrow">◆ Premium Platform</div>
+        <div class="headline">Elevate Your</div>
+        <div class="headline-2">Scholarship Path</div>
+        <div class="sub">Where ambition meets opportunity in an exclusive academic network</div>
+        <div class="btns">
+          <button class="btn-main">Get Started</button>
+          <button class="btn-out">Learn More</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-meta">
+      <div class="card-name">③ Emerald Prestige</div>
+      <div class="card-desc">Dark forest green, italic serif headings, gold + teal accents. Luxury wealth management meets education.</div>
+      <div class="palette">
+        <div class="swatch" style="background:#061810"></div>
+        <div class="swatch" style="background:#0A2418"></div>
+        <div class="swatch" style="background:#C9A534"></div>
+        <div class="swatch" style="background:#10B981"></div>
+        <div class="swatch" style="background:#2DD4BF"></div>
+      </div>
+      <div class="fonts-row">
+        <span class="font-badge">DM Serif Display</span>
+        <span class="font-badge">Plus Jakarta Sans</span>
+      </div>
+      <button class="choose-btn" onclick="select('d3')">Choose this design</button>
+    </div>
+  </div>
+
+  <!-- D4: Nordic Minimal -->
+  <div class="design-card d4" id="d4">
+    <div class="preview">
+      <div class="preview-content">
+        <div class="eyebrow">Discover · Apply · Succeed</div>
+        <div class="headline" style="color:#1E293B">Scholar</div>
+        <div class="headline-2">Path</div>
+        <div class="sub">Clean, fast, and powerful scholarship discovery for modern students</div>
+        <div class="btns">
+          <button class="btn-main">Get Started</button>
+          <button class="btn-out">Sign In</button>
+        </div>
+      </div>
+      <div class="line"></div>
+    </div>
+    <div class="card-meta">
+      <div class="card-name">④ Nordic Minimal</div>
+      <div class="card-desc">Pure white, bold Syne sans-serif, electric blue accents. Clean Scandinavian minimalism — fast and modern.</div>
+      <div class="palette">
+        <div class="swatch" style="background:#FAFAFA; border:1px solid #ddd"></div>
+        <div class="swatch" style="background:#1E293B"></div>
+        <div class="swatch" style="background:#3B82F6"></div>
+        <div class="swatch" style="background:#60A5FA"></div>
+        <div class="swatch" style="background:#64748B"></div>
+      </div>
+      <div class="fonts-row">
+        <span class="font-badge">Syne</span>
+        <span class="font-badge">Outfit</span>
+      </div>
+      <button class="choose-btn" onclick="select('d4')">Choose this design</button>
+    </div>
+  </div>
+
+  <!-- D5: Cosmic Violet -->
+  <div class="design-card d5" id="d5">
+    <div class="preview">
+      <div class="preview-content">
+        <div class="eyebrow">New Generation Platform</div>
+        <div class="headline">Unlock Your</div>
+        <div class="headline-2">Future Path</div>
+        <div class="sub">Bold, creative, ambitious — for the next generation of scholarship winners</div>
+        <div class="btns">
+          <button class="btn-main">Get Started</button>
+          <button class="btn-out">Explore</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-meta">
+      <div class="card-name">⑤ Cosmic Violet</div>
+      <div class="card-desc">Deep indigo, italic Fraunces serif, violet + orange accents. Bold and creative — for ambitious students.</div>
+      <div class="palette">
+        <div class="swatch" style="background:#0D0B2A"></div>
+        <div class="swatch" style="background:#1A1560"></div>
+        <div class="swatch" style="background:#7C3AED"></div>
+        <div class="swatch" style="background:#F97316"></div>
+        <div class="swatch" style="background:#A78BFA"></div>
+      </div>
+      <div class="fonts-row">
+        <span class="font-badge">Fraunces</span>
+        <span class="font-badge">Plus Jakarta Sans</span>
+      </div>
+      <button class="choose-btn" onclick="select('d5')">Choose this design</button>
+    </div>
+  </div>
+
+</div>
+
+<p class="instructions">
+  Open this file at <strong>http://localhost:3000/design-showcase.html</strong> to preview.<br/>
+  Tell your developer which number you prefer and it will be fully implemented.
+</p>
+
+<script>
+  function select(id) {
+    document.querySelectorAll('.design-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById(id).classList.add('selected');
+    const names = {
+      d1: '① Dark Scholarly Luxury (current)',
+      d2: '② Ivory Academia',
+      d3: '③ Emerald Prestige',
+      d4: '④ Nordic Minimal',
+      d5: '⑤ Cosmic Violet'
+    };
+    alert('You selected: ' + names[id] + '\n\nTell your developer this choice to implement it!');
+  }
+</script>
+</body>
+</html>

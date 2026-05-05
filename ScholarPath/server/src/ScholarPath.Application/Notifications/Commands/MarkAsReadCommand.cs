@@ -1,7 +1,9 @@
 using MediatR;
+using ScholarPath.Application.Common.Attributes;
 
 namespace ScholarPath.Application.Notifications.Commands;
 
+[Auditable(AuditAction.NotificationRead, "Notification")]
 public record MarkAsReadCommand(Guid NotificationId) : IRequest<Unit>;
 
 public class MarkAsReadCommandHandler : IRequestHandler<MarkAsReadCommand, Unit>
@@ -27,15 +29,17 @@ public class MarkAsReadCommandHandler : IRequestHandler<MarkAsReadCommand, Unit>
             ?? throw new InvalidOperationException("errors.notification.notFound");
 
         if (notification.UserId != userId)
-        {
             throw new UnauthorizedAccessException("errors.auth.forbidden");
-        }
+
+        if (notification.IsRead)
+            return Unit.Value;
 
         notification.IsRead = true;
-        notification.ReadAt = DateTime.UtcNow;
+        notification.ReadAt = DateTimeOffset.UtcNow;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return Unit.Value;
     }
 }
+

@@ -1,0 +1,4 @@
+﻿# This file ensures that @ma7moudalysalem is required as a reviewer
+# for all pull requests targeting the main branch.
+
+* @ma7moudalysalem

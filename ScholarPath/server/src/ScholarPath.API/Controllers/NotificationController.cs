@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Notifications.Queries.GetNotifications;
 using ScholarPath.Application.Notifications.Commands;
 using ScholarPath.Application.Notifications.DTOs;
+using ScholarPath.Application.Notifications.Queries.GetUnreadCount;
 
 namespace ScholarPath.API.Controllers;
 
@@ -35,5 +36,12 @@ public class NotificationController : BaseController
         var command = new MarkAllAsReadCommand();
         await Mediator.Send(command, cancellationToken);
         return NoContent();
+
     }
+    [HttpGet("unread-count")]
+public async Task<IActionResult> GetUnreadCount(CancellationToken cancellationToken)
+{
+    var count = await Mediator.Send(new GetUnreadCountQuery(), cancellationToken);
+    return Ok(count);
+}
 }
