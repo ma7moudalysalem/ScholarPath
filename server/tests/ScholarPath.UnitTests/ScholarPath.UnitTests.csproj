@@ -14,6 +14,9 @@
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="NSubstitute" />
     <PackageReference Include="Bogus" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ScholarPath.Application\ScholarPath.Application.csproj" />
     <ProjectReference Include="..\..\src\ScholarPath.Domain\ScholarPath.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ScholarPath.Infrastructure\ScholarPath.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
