@@ -2,6 +2,29 @@
 
 You've just joined a module on ScholarPath. Read this page end-to-end before your first commit.
 
+## Status snapshot — May 2026
+
+Beyond the initial scaffold, three modules have been shipped end-to-end by @ma7moudalysalem:
+
+| Module | Status | Highlights |
+|---|---|---|
+| **PB-012 Audit & Compliance** | ✅ complete | `[Auditable]` attribute + MediatR `AuditBehavior` • `IAuditService` real impl • Hangfire data export + 30-day delete jobs • daily `IntegrityCheckJob` • admin `GetAuditLogQuery` + viewer UI • student `DataPrivacy` page |
+| **PB-011 Admin Portal** | ✅ backend + core frontend (5 tasks delegated to other module owners) | `IUserAdministration` abstraction over `UserManager` • user search + status management + role commands • onboarding + upgrade queues • analytics (overview + growth + funnel + standalone page) • broadcast • audit log viewer • full AR copy |
+| **PB-008 AI Features** | ✅ complete | `IAiService` with two providers: `LocalAiService` (deterministic, default) + `OpenAiService` (real gpt-4o-mini behind `Ai:Provider` flag) • `AiCostGate` daily budget • source-generated PII redaction • recommendations (cached GET + regenerate POST) + eligibility modal + chatbot + disclaimer + match-score badge |
+
+**Codebase metrics** as of 2026-05-06:
+- 34 commits on `main`
+- 52 unit + integration tests green (0 failing, 0 warnings)
+- 9 Playwright smoke tests (route guards)
+- Full EN + AR copy across 9 namespaces
+- 0 `dotnet build` warnings, 0 TypeScript errors
+
+**What this unblocks for the rest of the team**:
+- Every command you write gets auto-audited by adding `[Auditable(AuditAction.X, "TargetType")]` — zero boilerplate in the handler.
+- Every admin-side mutation of your entities hits the audit trail automatically when routed through PB-011.
+- The AI disclaimer component and match-score badge are reusable (`client/src/components/ai/`) — wire them into your scholarship detail / student dashboard when you build those pages.
+- `IUserAdministration.RevokeAllSessionsAsync(userId, reason, ct)` is the primitive for any "force logout" logic (e.g. Mimi's upcoming `LogoutCommand`, password-change revocation, etc.).
+
 ## What's already built (the foundation)
 
 ### Planning artifacts
