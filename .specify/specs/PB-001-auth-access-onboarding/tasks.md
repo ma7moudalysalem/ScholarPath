@@ -13,6 +13,16 @@
 
 - [ ] T-001 — Review the reference `AuthController` and confirm all 14 endpoints are wired (FR-007 .. FR-027)
 - [ ] T-002 — Finalize `RegisterCommandValidator` with all password + email rules (FR-021)
+- [ ] T-002a — Implement `LogoutCommand` + replace the `AuthController.Logout`
+      stub. Handler hashes the incoming refresh token, finds the matching
+      `RefreshToken` row, marks it `IsRevoked=true, RevokedAt=now,
+      RevokedReason="User logout"`. If the client sends `logoutEverywhere=true`,
+      call `IUserAdministration.RevokeAllSessionsAsync` (already shipped in
+      PB-011, commit `2c95359`) to kill every active session. Mark the command
+      `[Auditable(AuditAction.Logout, "User")]`. On the client side, add
+      `authApi.logout(refreshToken)` and make `authStore.clear()` call it
+      **before** wiping local state. Without this, the refresh token stays
+      valid in DB after the user clicks Sign out — a real security gap.
 - [ ] T-003 — Add rate limiting config per-IP to `/api/auth/register` and `/api/auth/login` (5/min)
 - [ ] T-004 — Complete `LockoutService` — enforce 5 failed attempts in 15 min window (FR-026)
 - [ ] T-005 — Wire `UpgradeRequestCommand` to handle file uploads via `IBlobStorageService` (FR-016 .. FR-017)
