@@ -33,7 +33,7 @@ try
         .WriteTo.File("logs/scholarpath-.log", rollingInterval: RollingInterval.Day));
 
     // Application & Infrastructure services
-    builder.Services.AddApplicationServices();
+    builder.Services.AddApplicationServices(builder.Configuration);
     builder.Services.AddInfrastructureServices(builder.Configuration);
 
     // Controllers

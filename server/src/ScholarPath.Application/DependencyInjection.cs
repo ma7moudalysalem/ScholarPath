@@ -8,7 +8,7 @@ namespace ScholarPath.Application;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, Microsoft.Extensions.Configuration.IConfiguration configuration)
     {
         var assembly = Assembly.GetExecutingAssembly();
 
@@ -17,7 +17,7 @@ public static class DependencyInjection
             cfg.RegisterServicesFromAssembly(assembly);
         });
 
-        services.AddAutoMapper(assembly);
+        services.AddAutoMapper(cfg => cfg.AddMaps(assembly));
 
         services.AddValidatorsFromAssembly(assembly);
 
