@@ -244,9 +244,20 @@ public sealed class ApplicationTrackerConfiguration : IEntityTypeConfiguration<A
             .HasFilter(
                 $"[Status] <> '{nameof(ApplicationStatus.Withdrawn)}' " +
                 $"AND [Status] <> '{nameof(ApplicationStatus.Rejected)}' " +
-                $"AND [Status] <> '{nameof(ApplicationStatus.Accepted)}'");
+                $"AND [Status] <> '{nameof(ApplicationStatus.Accepted)}'")
+        // إضافة Unique Filtered Index لمنع التقديم المتكرر (السباق اللحظي)
+        // الشرط: الطالب لا يمكنه التقديم على نفس المنحة إذا كان لديه طلب (Draft أو Pending أو UnderReview)
+        
+           .HasDatabaseName("UX_Applications_Student_Scholarship_Active")
+            .HasFilter($"[Status] NOT IN ('{(int)ApplicationStatus.Withdrawn}', '{(int)ApplicationStatus.Rejected}', '{(int)ApplicationStatus.Accepted}')")
+            .IsUnique();
 
-        b.HasIndex(a => a.Status);
+        b.Property(a => a.Status)
+            .HasConversion<string>();
+    
+
+
+b.HasIndex(a => a.Status);
         b.HasQueryFilter(a => !a.IsDeleted);
 
         b.HasOne(a => a.Student).WithMany().HasForeignKey(a => a.StudentId).OnDelete(DeleteBehavior.Restrict);

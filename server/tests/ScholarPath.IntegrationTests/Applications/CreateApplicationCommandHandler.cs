@@ -1,91 +1,179 @@
+using System.Net;
+using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using ScholarPath.Application.Applications.Commands.CreateApplication;
-using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using Xunit;
-using ScholarPath.IntegrationTests.Applications;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
-namespace ScholarPath.IntegrationTests.Applications
+namespace ScholarPath.IntegrationTests.Applications;
+
+public class CreateApplicationTests : IClassFixture<ScholarshipApplicationsFactory>
 {
-    public class CreateApplicationTests : IClassFixture<ScholarshipApplicationsFactory>
+    private readonly ScholarshipApplicationsFactory _factory;
+    private readonly HttpClient _client;
+
+    public CreateApplicationTests(ScholarshipApplicationsFactory factory)
     {
-        private readonly IServiceScopeFactory _scopeFactory;
+        _factory = factory;
+        _client = factory.CreateStudentClient();
+    }
 
-        public CreateApplicationTests(ScholarshipApplicationsFactory factory)
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Seeds an open scholarship directly into the test DB and returns its ID.
+    /// </summary>
+    private async Task<Guid> SeedOpenScholarshipAsync(string slug)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var scholarship = new Scholarship
         {
-            _scopeFactory = factory.Services.GetRequiredService<IServiceScopeFactory>();
-        }
+            Id = Guid.NewGuid(),
+            TitleEn = "Test Scholarship",
+            TitleAr = "منحة تجريبية",
+            Status = ScholarshipStatus.Open,
+            Mode = ListingMode.InApp,
+            Deadline = DateTimeOffset.UtcNow.AddDays(30),
+            Slug = slug
+        };
 
-        [Fact]
-        public async Task Should_Create_Application_Successfully()
+        db.Scholarships.Add(scholarship);
+        await db.SaveChangesAsync();
+
+        return scholarship.Id;
+    }
+
+    // ── Tests ─────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Start_ValidScholarship_Returns201AndCreatesApplication()
+    {
+        // Arrange
+        var scholarshipId = await SeedOpenScholarshipAsync("valid-scholarship");
+
+        var payload = new
         {
-            // Arrange
-            using var scope = _scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            scholarshipId,
+            personalNotes = "My notes"
+        };
 
-            // 1. تجهيز منحة مفتوحة
-            var scholarship = new Scholarship
-            {
-                Id = Guid.NewGuid(),
-                TitleEn = "Test",
-                TitleAr = "تجربة",
-                Status = ScholarshipStatus.Open,
-                Deadline = DateTimeOffset.UtcNow.AddDays(10),
-                Slug = "test-scholarship"
-            };
-            db.Scholarships.Add(scholarship);
-            await db.SaveChangesAsync();
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/applications", payload);
 
-            var handler = scope.ServiceProvider.GetRequiredService<CreateApplicationCommandHandler>();
-            var command = new CreateApplicationCommand(scholarship.Id, "My notes");
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
 
-            // Act
-            var result = await handler.Handle(command, CancellationToken.None);
+        var applicationId = await response.Content.ReadFromJsonAsync<Guid>();
+        applicationId.Should().NotBeEmpty();
 
-            // Assert
-            result.Should().NotBeNull();
-            db.Applications.Any(a => a.ScholarshipId == scholarship.Id).Should().BeTrue();
-        }
+        // Verify the application exists in DB
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var application = db.Applications.FirstOrDefault(a => a.Id == applicationId);
 
-        [Fact]
-        public async Task Should_Throw_Conflict_When_Application_Already_Exists()
+        application.Should().NotBeNull();
+        application!.ScholarshipId.Should().Be(scholarshipId);
+        application.Status.Should().Be(ApplicationStatus.Draft);
+        application.Mode.Should().Be(ApplicationMode.InApp);
+    }
+
+    [Fact]
+    public async Task Start_DuplicateActiveApplication_Returns409Conflict()
+    {
+        // Arrange
+        var scholarshipId = await SeedOpenScholarshipAsync("duplicate-scholarship");
+
+        var payload = new
         {
-            // Arrange
-            using var scope = _scopeFactory.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var handler = scope.ServiceProvider.GetRequiredService<CreateApplicationCommandHandler>();
-            var scholarship = new Scholarship
-            {
-                Id = Guid.NewGuid(),
-                TitleEn = "Test",
-                TitleAr = "تجربة",
-                Status = ScholarshipStatus.Open,
-                Deadline = DateTimeOffset.UtcNow.AddDays(10),
-                Slug = "test-scholarship"
-            };
-            db.Scholarships.Add(scholarship);
+            scholarshipId,
+            personalNotes = "First attempt"
+        };
 
-            var existingApp = new ApplicationTracker
-            {
-                Id = Guid.NewGuid(),
-                ScholarshipId = scholarship.Id,
-                StudentId = Guid.Parse("00000000-0000-0000-0000-000000000000"), 
-                Status = ApplicationStatus.Pending
-            };
-            db.Applications.Add(existingApp);
-            await db.SaveChangesAsync();
+        // Act — first request should succeed
+        var firstResponse = await _client.PostAsJsonAsync("/api/applications", payload);
+        firstResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-            var command = new CreateApplicationCommand(scholarship.Id, "Duplicate application attempt");
-            await FluentActions.Invoking(() => handler.Handle(command, CancellationToken.None))
-                .Should().ThrowAsync<ConflictException>();
-        }
+        // Act — second request should conflict
+        var secondResponse = await _client.PostAsJsonAsync("/api/applications", payload);
+
+        // Assert
+        secondResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Start_ClosedScholarship_Returns409Conflict()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var scholarship = new Scholarship
+        {
+            Id = Guid.NewGuid(),
+            TitleEn = "Closed Scholarship",
+            TitleAr = "منحة مغلقة",
+            Status = ScholarshipStatus.Closed,
+            Mode = ListingMode.InApp,
+            Deadline = DateTimeOffset.UtcNow.AddDays(30),
+            Slug = "closed-scholarship"
+        };
+
+        db.Scholarships.Add(scholarship);
+        await db.SaveChangesAsync();
+
+        var payload = new { scholarshipId = scholarship.Id, personalNotes = "" };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/applications", payload);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Start_ExternalScholarship_Returns409Conflict()
+    {
+        // Arrange
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var scholarship = new Scholarship
+        {
+            Id = Guid.NewGuid(),
+            TitleEn = "External Scholarship",
+            TitleAr = "منحة خارجية",
+            Status = ScholarshipStatus.Open,
+            Mode = ListingMode.ExternalUrl,
+            Deadline = DateTimeOffset.UtcNow.AddDays(30),
+            Slug = "external-scholarship"
+        };
+
+        db.Scholarships.Add(scholarship);
+        await db.SaveChangesAsync();
+
+        var payload = new { scholarshipId = scholarship.Id, personalNotes = "" };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/applications", payload);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Start_EmptyScholarshipId_Returns400BadRequest()
+    {
+        // Arrange
+        var payload = new { scholarshipId = Guid.Empty, personalNotes = "" };
+
+        // Act
+        var response = await _client.PostAsJsonAsync("/api/applications", payload);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 }
-

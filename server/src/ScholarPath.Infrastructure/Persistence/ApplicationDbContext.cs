@@ -1,10 +1,11 @@
-using System.Reflection;
 using MediatR;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Common;
 using ScholarPath.Domain.Entities;
+using System.Reflection;
 
 namespace ScholarPath.Infrastructure.Persistence;
 
@@ -126,10 +127,19 @@ public class ApplicationDbContext(
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        var result = await base.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        await DispatchDomainEventsAsync(cancellationToken).ConfigureAwait(false);
-        return result;
+        // أضيفي هذا التعديل داخل الكلاس الموجود سابقاً
+        try
+        {
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx
+                                           && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+        {
+            // تحويل خطأ قاعدة البيانات (Unique Index) إلى خطأ منطقي يفهمه الـ API
+            throw new ConflictException("An active application already exists for this scholarship.");
+        }
     }
+    
 
     private async Task DispatchDomainEventsAsync(CancellationToken ct)
     {
