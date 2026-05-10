@@ -16,14 +16,14 @@ core platform was in place.
 | PB-004 | In-App Application and External Tracking | **@norra-mmhamed** | US-031..US-044 | Essential |
 | PB-005 | Company Review, Payment, Rating | **@yousra-elnoby** | US-045..US-050 | High |
 | PB-006 | Consultant Booking, Payment, Rating | **@TasneemShaaban** | US-051..US-071 | Essential |
-| PB-007 | Community and Chat | **@yousra-elnoby** | US-072..US-081, US-095..US-099 | High |
+| PB-007 | Community and Chat | **@Madiha6776** | US-072..US-081, US-095..US-099 | High |
 | PB-008 | AI Features | **@ma7moudalysalem** | US-082..US-087 | High |
-| PB-009 | Resources Hub | **@yousra-elnoby** | US-088..US-094, US-100..US-102 | High |
+| PB-009 | Resources Hub | **@Madiha6776** | US-088..US-094, US-100..US-102 | High |
 | PB-010 | Notifications | **@Madiha6776** | US-103..US-117 | High |
 | PB-011 | Admin Portal and Oversight | **@ma7moudalysalem** | US-118..US-138 | Essential |
 | PB-012 | Audit, Compliance, System Integrity | **@ma7moudalysalem** | US-139..US-142 | High |
 | PB-013 | Payment Processing and Settlement | **@norra-mmhamed** | US-143..US-152 | Essential |
-| PB-014 | Portal Profit Share | **@TasneemShaaban** | US-153..US-159 | High |
+| PB-014 | Portal Profit Share | **@norra-mmhamed** | US-153..US-159 | High |
 
 ### Analytics & Data Engineering (PB-015 .. PB-018)
 

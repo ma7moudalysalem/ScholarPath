@@ -1,6 +1,6 @@
 # PB-009 — Resources Hub
 
-**Owner**: @yousra-elnoby • **Priority**: High • **Iteration**: 4 • **Est**: 29 pts
+**Owner**: @Madiha6776 • **Priority**: High • **Iteration**: 4 • **Est**: 29 pts
 
 ## Problem statement
 

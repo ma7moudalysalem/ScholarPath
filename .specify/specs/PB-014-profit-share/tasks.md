@@ -1,6 +1,6 @@
 # PB-014 — Tasks
 
-**Owner**: @TasneemShaaban  •  **Est**: 22 pts  •  **Iteration**: 3
+**Owner**: @norra-mmhamed  •  **Est**: 22 pts  •  **Iteration**: 3
 
 ## Backend
 - [ ] T-001 — `ProfitShareConfig` entity + unique-active constraint

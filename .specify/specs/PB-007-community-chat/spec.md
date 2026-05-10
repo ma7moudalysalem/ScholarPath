@@ -1,6 +1,6 @@
 # PB-007 — Community and Chat
 
-**Owner**: @yousra-elnoby • **Priority**: High • **Iteration**: 4 • **Est**: 44 pts
+**Owner**: @Madiha6776 • **Priority**: High • **Iteration**: 4 • **Est**: 44 pts
 
 ## Problem statement
 
