@@ -1,8 +1,12 @@
 # ScholarPath Specs
 
-14 module specs mapped 1:1 to the SRS Product Backlog (PB-001 .. PB-014).
+18 module specs mapped 1:1 to the SRS Product Backlog (PB-001 .. PB-018).
+Modules 15-18 are the analytics + data-engineering track added after the
+core platform was in place.
 
 ## Module map and ownership
+
+### Core platform (PB-001 .. PB-014)
 
 | ID | Module | Owner | SRS User Stories | Priority |
 |----|--------|-------|------------------|----------|
@@ -21,7 +25,16 @@
 | PB-013 | Payment Processing and Settlement | **@norra-mmhamed** | US-143..US-152 | Essential |
 | PB-014 | Portal Profit Share | **@TasneemShaaban** | US-153..US-159 | High |
 
-**Team lead + architect**: @ma7moudalysalem (reviews shared infrastructure, Program.cs, DbContext, migrations, CI, design system).
+### Analytics & Data Engineering (PB-015 .. PB-018)
+
+| ID | Module | Owner(s) | SRS User Stories | Priority |
+|----|--------|----------|------------------|----------|
+| PB-015 | Analytics Foundation (Power BI) | **@TasneemShaaban** | US-160..US-165 | High |
+| PB-016 | Data Warehouse (medallion, dbt, Synapse) | **@ma7moudalysalem** lead + **@yousra-elnoby** | US-166..US-173 | Medium |
+| PB-017 | AI Economy Analytics | **@ma7moudalysalem** | US-174..US-178 | High |
+| PB-018 | Real-time Streaming (optional) | **@ma7moudalysalem** (+ @TasneemShaaban on live tile) | US-179..US-181 | Low |
+
+**Team lead + architect**: @ma7moudalysalem (reviews shared infrastructure, Program.cs, DbContext, migrations, CI, design system, analytics architecture).
 
 ## How to work on your module
 
@@ -44,6 +57,13 @@ PB-011 (Admin) -> depends on PB-001 + can moderate all others
 
 Work iteration order (from SRS Section 3 Backlog):
 - Iteration 1: PB-001, PB-002, PB-011
-- Iteration 2: PB-003, PB-004, PB-013
-- Iteration 3: PB-005, PB-006, PB-010, PB-014
-- Iteration 4: PB-007, PB-008, PB-009, PB-012
+- Iteration 2: PB-003, PB-004, PB-013, **PB-015 + INFRA prereqs**
+- Iteration 3: PB-005, PB-006, PB-010, PB-014, **PB-016, PB-017**
+- Iteration 4: PB-007, PB-008, PB-009, PB-012, **PB-018** (optional)
+
+Analytics dependency additions:
+```
+PB-015 -> PB-016 (dashboards cut over to Gold)
+PB-008 -> PB-017 (AI interactions are the data source)
+PB-016 + PB-017 -> PB-018 (Gold + AI data drive real-time + reverse ETL)
+```
