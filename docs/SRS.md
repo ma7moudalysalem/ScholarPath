@@ -5401,3 +5401,55 @@ Column details are documented in `.specify/specs/PB-017-ai-economy/plan.md` and 
 **Stream Analytics (Azure).** A managed streaming query engine that runs SQL-like queries continuously over event streams from Event Hub / IoT Hub.
 
 **Synapse Serverless.** An Azure service that lets you query Parquet files in Data Lake using standard T-SQL without provisioning a dedicated SQL cluster, billed per query volume.
+
+## 8.10 Figures
+
+Activity and architecture diagrams for Part V. Numbering continues from the core-platform figure set.
+
+**Figure 125 — Medallion architecture overview** (Bronze → Silver → Gold pipeline).
+
+![SRS figure](srs-images/image125.png)
+
+**Figure 126 — CDC ingestion sequence** (SQL Server → ADF → Bronze).
+
+![SRS figure](srs-images/image126.png)
+
+**Figure 127 — Gold star schema ERD** (5 facts + 5 dims with SCD2 on User and Scholarship).
+
+![SRS figure](srs-images/image127.png)
+
+**Figure 128 — Dashboard role matrix** (Admin / Finance / Consultant / Student visibility via RLS).
+
+![SRS figure](srs-images/image128.png)
+
+**Figure 129 — Power BI embed-token sequence** (API → Key Vault → Power BI → DW).
+
+![SRS figure](srs-images/image129.png)
+
+**Figure 130 — Recommendation CTR event flow** (frontend click → LogRecommendationClickCommand → RecommendationClickEvent → Gold FactAiInteraction join → CTR widget).
+
+![SRS figure](srs-images/image130.png)
+
+**Figure 131 — AI daily cost gate + budget alert** (AiCostGate 24h rolling window, 80% three-day-running alerting).
+
+![SRS figure](srs-images/image131.png)
+
+**Figure 132 — Real-time anomaly detection pipeline** (Event Hub → Stream Analytics → PagerDuty + Power BI streaming tile).
+
+![SRS figure](srs-images/image132.png)
+
+**Figure 133 — Reverse-ETL churn risk loop** (Gold → Power BI dataflow → connector → UserRiskFlags OLTP → admin at-risk chip).
+
+![SRS figure](srs-images/image133.png)
+
+**Figure 134 — dbt model lineage** (staging → silver → marts with assertions).
+
+![SRS figure](srs-images/image134.png)
+
+**Figure 135 — Analytics bounded context** (how Part V modules relate to the core platform and shared Azure infrastructure).
+
+![SRS figure](srs-images/image135.png)
+
+**Figure 136 — PII redaction audit workflow** (emit-time regex redaction → monthly sampling job → admin reviewer → miss-rate dashboard).
+
+![SRS figure](srs-images/image136.png)
