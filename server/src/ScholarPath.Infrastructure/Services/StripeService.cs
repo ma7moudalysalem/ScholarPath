@@ -337,50 +337,33 @@ public sealed class StripeService(
     // ── Parse Webhook ─────────────────────────────────────────────────────────
 
     public StripeWebhookParseResult ParseWebhook(
-        string payload,
-        string signatureHeader,
-        string webhookSecret)
+    string payload,
+    string signatureHeader,
+    string webhookSecret)
     {
         try
         {
-            // Stripe.net verifies signature + reconstructs the Event object
             var stripeEvent = EventUtility.ConstructEvent(
                 payload,
                 signatureHeader,
                 webhookSecret,
                 throwOnApiVersionMismatch: false);
 
-            // Extract the nested data.object as JSON
-            var dataJson = stripeEvent.Data?.Object?.ToJson() ?? payload;
-
-            // Extract PaymentIntentId — lives in data.object.id for pi_* types
-            string? paymentIntentId = null;
-            string? chargeId = null;
-            long? amountCents = null;
-
-            if (stripeEvent.Data?.Object is PaymentIntent pi)
-            {
-                paymentIntentId = pi.Id;
-                amountCents = pi.Amount;
-            }
-            else if (stripeEvent.Data?.Object is Charge charge)
-            {
-                chargeId = charge.Id;
-                paymentIntentId = charge.PaymentIntentId;
-                amountCents = charge.Amount;
-            }
+            // Serialize data.object to JSON using System.Text.Json
+            var dataJson = stripeEvent.Data?.Object is not null
+                ? System.Text.Json.JsonSerializer.Serialize(stripeEvent.Data.Object)
+                : payload;
 
             logger.LogInformation(
-                "[stripe-webhook] Parsed event {EventId} type={EventType} pi={PaymentIntentId}",
-                stripeEvent.Id, stripeEvent.Type, paymentIntentId);
+                "[stripe-webhook] Parsed event {EventId} type={EventType}",
+                stripeEvent.Id, stripeEvent.Type);
 
+            // StripeWebhookParseResult في المشروع بتاخد 3 parameters فقط
+            // (EventId, EventType, DataJson) — متوافق مع main + tasneem
             return new StripeWebhookParseResult(
-                EventId: stripeEvent.Id,
-                EventType: stripeEvent.Type,
-                PaymentIntentId: paymentIntentId,
-                ChargeId: chargeId,
-                AmountCents: amountCents,
-                DataJson: dataJson);
+                stripeEvent.Id,
+                stripeEvent.Type,
+                dataJson);
         }
         catch (StripeException ex)
         {
@@ -389,4 +372,5 @@ public sealed class StripeService(
             throw;
         }
     }
+
 }
