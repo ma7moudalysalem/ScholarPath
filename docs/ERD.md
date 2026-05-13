@@ -521,6 +521,70 @@ erDiagram
 
 ---
 
+## Context view 6 — Analytics layer (PB-015..PB-018)
+
+The analytics entities introduced by Part V of the SRS. These live in the
+OLTP database (same SQL Server) because they feed the existing
+`[Auditable]` pipeline and are read by both the admin UI and the Gold
+layer. The medallion / star schema warehouse lives in Azure Data Lake —
+see `docs/ANALYTICS.md` for that side.
+
+```mermaid
+erDiagram
+    ApplicationUser ||--o{ RecommendationClickEvent : "clicks"
+    AiInteraction ||--o{ RecommendationClickEvent : "optional link"
+    Scholarship ||--o{ RecommendationClickEvent : "target"
+
+    ApplicationUser ||--o{ AiRedactionAuditSample : "sampled from"
+    AiInteraction ||--|| AiRedactionAuditSample : "one sample per interaction"
+
+    ApplicationUser ||--o{ UserRiskFlags : "flagged"
+
+    RecommendationClickEvent {
+        Guid Id PK
+        Guid UserId FK
+        Guid ScholarshipId FK
+        Guid AiInteractionId FK "nullable"
+        DateTimeOffset ClickedAt
+        string Source "card | list | modal"
+    }
+
+    AiRedactionAuditSample {
+        Guid Id PK
+        Guid AiInteractionId FK
+        Guid UserId FK
+        string RedactedPrompt
+        DateTimeOffset SampledAt
+        string Verdict "null until reviewed"
+        Guid ReviewerUserId FK "nullable"
+        DateTimeOffset ReviewedAt "nullable"
+    }
+
+    UserRiskFlags {
+        Guid Id PK
+        Guid UserId FK
+        decimal Score "0..1"
+        DateTimeOffset ComputedAt
+        string Source "reverse-etl job name"
+    }
+```
+
+### Data model rules (Part V)
+
+- `RecommendationClickEvent.AiInteractionId` may be null when a user clicks
+  a recommendation from a cached set (no active AI call this session).
+- `AiRedactionAuditSample.Verdict` uses the fixed set
+  `{ clean, missed_email, missed_phone, missed_card }` and is `NULL`
+  until a reviewer submits their verdict via the admin UI.
+- `UserRiskFlags` is upsert-by-UserId — only the latest score is kept
+  (older rows marked deleted via `IsDeleted` flag so the audit log sees
+  the transition).
+- All three tables are CDC-enabled and flow into Silver / Gold as
+  `FactRecommendationClick`, `FactRedactionSample`, and
+  `DimUserRiskSnapshot` respectively.
+
+---
+
 ## Legend
 
 | Notation | Meaning |
