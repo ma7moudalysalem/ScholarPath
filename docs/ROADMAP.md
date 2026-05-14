@@ -1,6 +1,6 @@
 # Roadmap & Project Journey
 
-**Last updated**: 2026-04-17
+**Last updated**: 2026-05-13
 **Current tag**: `v2.0.0-scaffold` (pending)
 **Repo**: https://github.com/ma7moudalysalem/ScholarPath
 
@@ -154,23 +154,27 @@ Every cell in this table is ✅ implemented or 🟡 stubbed with a concrete plan
 - **@Madiha6776**: PB-001 Auth handlers (Register, Login, Refresh, Forgot/Reset, SSO, Onboarding, SwitchRole). PB-002 Profile CRUD.
 - **@ma7moudalysalem**: PB-011 Admin shell (user search, onboarding queue, dashboard metrics card). Wire audit service into every mutation (PB-012 behavior).
 
-### Iteration 2 (Week 2) — Discovery + Applications + Payments
-**Goal**: student can search scholarships, apply (in-app or external), and Stripe is live in test mode.
+### Iteration 2 (Week 2) — Discovery + Applications + Payments + Analytics Foundation
+**Goal**: student can search scholarships, apply (in-app or external), Stripe is live in test mode, and Executive Dashboard renders live data.
 
 - **@norra-mmhamed**: PB-003 SearchScholarshipsQuery + filters + Company listing CRUD. PB-004 Start → Draft → Submit → Track flow, single-active rule enforced in the handler. PB-013 Real Stripe.net calls replacing stub; webhook idempotency verified with replay tests.
+- **@TasneemShaaban**: PB-015 Analytics Foundation — five Power BI dashboards (Executive, Student Success, Financial, Consultant, Student) using DirectQuery. RLS roles mapped to the four JWT roles.
+- **@ma7moudalysalem**: INFRA — Azure subscription + Power BI workspace + Azure Data Lake provisioned; Service Principal + embed tokens wired.
 
-### Iteration 3 (Week 3) — Consultant Booking + Company Review + Notifications + Profit Share
-**Goal**: booking flow end-to-end with refund matrix, notifications reach users, profit share recorded on every capture.
+### Iteration 3 (Week 3) — Booking + Notifications + Profit Share + Data Warehouse + AI Economy
+**Goal**: booking flow end-to-end with refund matrix, notifications reach users, profit share recorded on every capture. Medallion pipeline ingests OLTP changes into Gold. AI cost and CTR visible to admins.
 
-- **@TasneemShaaban**: PB-006 Consultant Booking — availability CRUD, RefundCalculatorService (pure function, unit-test matrix), accept/reject/cancel flows. PB-014 Profit Share config UI + calculator.
-- **@yousra-elnoby**: PB-005 Company Review + Rating flow (post-decision).
+- **@TasneemShaaban**: PB-006 Consultant Booking — availability CRUD, RefundCalculatorService (pure function, unit-test matrix), accept/reject/cancel flows. Power BI cutover from DirectQuery to Synapse Serverless on Gold (PB-016 US-005).
+- **@yousra-elnoby**: PB-005 Company Review + Rating flow. Moderate dbt work for PB-016 — Silver models, data-quality assertions, docs site.
 - **@Madiha6776**: PB-010 Notifications dispatcher wiring to every domain event; email templates.
+- **@norra-mmhamed**: PB-014 Profit Share config UI + calculator + historical versioning.
+- **@ma7moudalysalem**: PB-016 heavy lifting (Bronze ADF pipeline, Gold star schema, CI/CD for dbt + ADF). PB-017 AI Economy in full — cost dashboard, budget alerts, CTR event pipeline, token efficiency, monthly redaction audit.
 
-### Iteration 4 (Week 4) — Community + AI + Resources + Audit
-**Goal**: students can chat 1:1, ask the AI, and read articles. Audit log complete.
+### Iteration 4 (Week 4) — Community + AI core + Resources + Audit + Real-time (optional)
+**Goal**: students can chat 1:1, ask the AI, and read articles. Audit log complete. Real-time activity tile and reverse-ETL churn loop ship if time permits.
 
-- **@yousra-elnoby**: PB-007 Community forum + 1:1 chat (SignalR handlers). PB-009 Resources Hub with Draft → PendingReview → Published state machine.
-- **@ma7moudalysalem**: PB-008 AI features — swap StubAiService for OpenAI or Azure OpenAI; recommendations cached per user for 1h; eligibility checker per-criterion. PB-012 Audit `[Auditable]` pipeline behavior + 30-day delayed delete job.
+- **@Madiha6776**: PB-007 Community forum + 1:1 chat (SignalR handlers). PB-009 Resources Hub with Draft → PendingReview → Published state machine.
+- **@ma7moudalysalem**: PB-008 AI features — swap `StubAiService` for OpenAI or Azure OpenAI; recommendations cached per user for 1h; eligibility checker per-criterion. PB-012 Audit `[Auditable]` pipeline behavior + 30-day delayed delete job. PB-018 Real-time (Event Hub + Stream Analytics anomaly detection + reverse-ETL churn loop) — **optional**, ships last if the previous four iterations leave room.
 
 ### Freeze + defense prep (Week 5)
 - Performance tuning (SQL Server full-text index test with 100K seeded rows)

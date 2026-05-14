@@ -82,6 +82,28 @@
 /.specify/specs/PB-014-profit-share/                        @norra-mmhamed
 /server/src/ScholarPath.Application/ProfitShare/            @norra-mmhamed
 
+# ─── PB-015 Analytics Foundation (Tasneem — Power BI) ──────
+/.specify/specs/PB-015-analytics-foundation/                @TasneemShaaban
+/analytics/powerbi/                                         @TasneemShaaban
+/analytics/sql/                                             @TasneemShaaban
+
+# ─── PB-016 Data Warehouse (Mahmoud lead + Yosra) ──────────
+/.specify/specs/PB-016-data-warehouse/                      @ma7moudalysalem
+/analytics/adf/                                             @ma7moudalysalem
+/analytics/dbt/models/marts/                                @ma7moudalysalem
+/analytics/dbt/models/staging/                              @yousra-elnoby
+/analytics/dbt/models/silver/                               @yousra-elnoby
+/analytics/dbt/tests/                                       @yousra-elnoby
+
+# ─── PB-017 AI Economy Analytics (Mahmoud) ─────────────────
+/.specify/specs/PB-017-ai-economy/                          @ma7moudalysalem
+
+# ─── PB-018 Real-time Streaming (Mahmoud) ──────────────────
+/.specify/specs/PB-018-realtime-streaming/                  @ma7moudalysalem
+
+# ─── Analytics shared docs ─────────────────────────────────
+/docs/ANALYTICS.md                                          @ma7moudalysalem
+
 # ─── Shared infra — team lead reviewer required ────────────
 /server/Directory.Build.props                               @ma7moudalysalem
 /server/Directory.Packages.props                            @ma7moudalysalem

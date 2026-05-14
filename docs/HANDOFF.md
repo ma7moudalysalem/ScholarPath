@@ -95,14 +95,18 @@ Beyond the initial scaffold, three modules have been shipped end-to-end by @ma7m
 | PB-004 | In-App Application + External Tracking  | **@norra-mmhamed**    | 2         |
 | PB-005 | Company Review, Payment, Rating         | **@yousra-elnoby**   | 3         |
 | PB-006 | Consultant Booking, Payment, Rating     | **@TasneemShaaban** | 3         |
-| PB-007 | Community + Chat                        | **@yousra-elnoby**   | 4         |
+| PB-007 | Community + Chat                        | **@Madiha6776**    | 4         |
 | PB-008 | AI Features                             | **@ma7moudalysalem** | 4         |
-| PB-009 | Resources Hub                           | **@yousra-elnoby**   | 4         |
+| PB-009 | Resources Hub                           | **@Madiha6776**    | 4         |
 | PB-010 | Notifications                           | **@Madiha6776**    | 3         |
 | PB-011 | Admin Portal                            | **@ma7moudalysalem** | 1         |
 | PB-012 | Audit & Compliance                      | **@ma7moudalysalem** | 4         |
 | PB-013 | Payment Processing + Settlement         | **@norra-mmhamed**    | 2         |
-| PB-014 | Portal Profit Share                     | **@TasneemShaaban** | 3         |
+| PB-014 | Portal Profit Share                     | **@norra-mmhamed**  | 3         |
+| PB-015 | Analytics Foundation (Power BI)         | **@TasneemShaaban** | 2         |
+| PB-016 | Data Warehouse (medallion + dbt)        | **@ma7moudalysalem** (lead) + **@yousra-elnoby** | 3 |
+| PB-017 | AI Economy Analytics                    | **@ma7moudalysalem** | 3         |
+| PB-018 | Real-time Streaming (optional)          | **@ma7moudalysalem** | 4         |
 
 **Mahmoud** = team lead + architect + AI. Reviews shared infrastructure + Program.cs + DbContext + migrations + CI + design system + all cross-module touches.
 
