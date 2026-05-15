@@ -1,0 +1,426 @@
+import { useState } from "react";
+import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
+import { Search, Bookmark, Filter, X } from "lucide-react";
+import { format, differenceInCalendarDays } from "date-fns";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import {
+  useScholarshipsQuery,
+  useToggleBookmarkMutation,
+} from "@/hooks/useScholarshipsQuery";
+import type { FundingType, AcademicLevel } from "@/types/domain";
+import type { SearchScholarshipsRequest } from "@/services/api/scholarships";
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const FUNDING_TYPES: FundingType[] = [
+  "FullyFunded",
+  "PartiallyFunded",
+  "TuitionOnly",
+  "StipendOnly",
+  "Other",
+];
+
+const ACADEMIC_LEVELS: AcademicLevel[] = [
+  "HighSchool",
+  "Undergrad",
+  "Masters",
+  "PhD",
+  "PostDoc",
+  "Other",
+];
+
+const SORT_OPTIONS = [
+  "relevance",
+  "deadline",
+  "newest",
+  "recommended",
+] as const;
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function FundingBadge({ type }: { type: FundingType }) {
+  const colors: Record<FundingType, string> = {
+    FullyFunded:     "bg-emerald-500/10 text-emerald-600",
+    PartiallyFunded: "bg-blue-500/10 text-blue-600",
+    TuitionOnly:     "bg-purple-500/10 text-purple-600",
+    StipendOnly:     "bg-amber-500/10 text-amber-600",
+    Other:           "bg-bg-subtle text-text-tertiary",
+  };
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium",
+        colors[type],
+      )}
+    >
+      {type.replace(/([A-Z])/g, " $1").trim()}
+    </span>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export function ScholarshipsPage() {
+  const { t, i18n } = useTranslation(["scholarships", "common"]);
+  const isRtl = i18n.dir() === "rtl";
+
+  // ── Filters state ─────────────────────────────────────────────────────────
+  const [query, setQuery]                   = useState("");
+  const [sort, setSort]                     = useState<SearchScholarshipsRequest["sort"]>("relevance");
+  const [fundingTypes, setFundingTypes]     = useState<FundingType[]>([]);
+  const [academicLevels, setAcademicLevels] = useState<AcademicLevel[]>([]);
+  const [deadlineFrom, setDeadlineFrom]     = useState("");
+  const [deadlineTo, setDeadlineTo]         = useState("");
+  const [showFilters, setShowFilters]       = useState(false);
+  const [page, setPage]                     = useState(1);
+
+  const req: SearchScholarshipsRequest = {
+    query:          query          || undefined,
+    sort,
+    fundingTypes:   fundingTypes.length   > 0 ? fundingTypes   : undefined,
+    academicLevels: academicLevels.length > 0 ? academicLevels : undefined,
+    deadlineFrom:   deadlineFrom   || undefined,
+    deadlineTo:     deadlineTo     || undefined,
+    page,
+    pageSize: 12,
+  };
+
+  const { data, isLoading, isError } = useScholarshipsQuery(req);
+  const bookmarkMut = useToggleBookmarkMutation();
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleBookmark = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    bookmarkMut.mutate(id, {
+      onSuccess: (res) =>
+        toast.success(
+          res.bookmarked
+            ? t("scholarships:bookmark.saved")
+            : t("scholarships:bookmark.removed"),
+        ),
+      onError: () => toast.error(t("common:status.error")),
+    });
+  };
+
+  const toggleFilter = <T,>(
+    value: T,
+    list: T[],
+    setter: (v: T[]) => void,
+  ) => {
+    setter(
+      list.includes(value)
+        ? list.filter((x) => x !== value)
+        : [...list, value],
+    );
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setFundingTypes([]);
+    setAcademicLevels([]);
+    setDeadlineFrom("");
+    setDeadlineTo("");
+    setPage(1);
+  };
+
+  const hasActiveFilters =
+    fundingTypes.length   > 0 ||
+    academicLevels.length > 0 ||
+    !!deadlineFrom             ||
+    !!deadlineTo;
+
+  const activeFilterCount =
+    fundingTypes.length +
+    academicLevels.length +
+    (deadlineFrom ? 1 : 0) +
+    (deadlineTo   ? 1 : 0);
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  return (
+    <div className="space-y-6">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+          {t("scholarships:page.title")}
+        </h1>
+        {data && (
+          <span className="text-sm text-text-tertiary">
+            {t("scholarships:page.total", { count: data.total })}
+          </span>
+        )}
+      </div>
+
+      {/* ── Search + Sort bar ── */}
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="relative min-w-55 flex-1">
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute inset-s-3 top-1/2 size-4 -translate-y-1/2 text-text-tertiary"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setPage(1); }}
+            placeholder={t("scholarships:search.placeholder")}
+            className="h-10 w-full rounded-md border border-border-subtle bg-bg-elevated ps-10 pe-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+          />
+        </label>
+
+        <select
+          value={sort}
+          onChange={(e) => {
+            setSort(e.target.value as SearchScholarshipsRequest["sort"]);
+            setPage(1);
+          }}
+          className="h-10 rounded-md border border-border-subtle bg-bg-elevated px-3 text-sm"
+        >
+          {SORT_OPTIONS.map((s) => (
+            <option key={s} value={s}>
+              {t(`scholarships:sort.${s}`)}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+          className={cn(
+            "inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium transition",
+            showFilters
+              ? "border-brand-500 bg-brand-500/10 text-brand-500"
+              : "border-border-subtle bg-bg-elevated text-text-secondary hover:border-border-default",
+          )}
+        >
+          <Filter aria-hidden className="size-4" />
+          {t("scholarships:filters.label")}
+          {hasActiveFilters && (
+            <span className="flex size-5 items-center justify-center rounded-full bg-brand-500 text-[10px] font-semibold text-text-on-brand">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-sm text-text-tertiary hover:text-text-secondary"
+          >
+            <X aria-hidden className="size-3.5" />
+            {t("scholarships:filters.clear")}
+          </button>
+        )}
+      </div>
+
+      {/* ── Filter panel ── */}
+      {showFilters && (
+        <div className="space-y-4 rounded-lg border border-border-subtle bg-bg-elevated p-4">
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+              {t("scholarships:filters.fundingType")}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {FUNDING_TYPES.map((ft) => (
+                <button
+                  key={ft}
+                  type="button"
+                  onClick={() => toggleFilter(ft, fundingTypes, setFundingTypes)}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium transition",
+                    fundingTypes.includes(ft)
+                      ? "border-brand-500 bg-brand-500/10 text-brand-500"
+                      : "border-border-subtle bg-bg-canvas text-text-secondary hover:border-border-default",
+                  )}
+                >
+                  {ft.replace(/([A-Z])/g, " $1").trim()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+              {t("scholarships:filters.academicLevel")}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {ACADEMIC_LEVELS.map((lvl) => (
+                <button
+                  key={lvl}
+                  type="button"
+                  onClick={() => toggleFilter(lvl, academicLevels, setAcademicLevels)}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium transition",
+                    academicLevels.includes(lvl)
+                      ? "border-brand-500 bg-brand-500/10 text-brand-500"
+                      : "border-border-subtle bg-bg-canvas text-text-secondary hover:border-border-default",
+                  )}
+                >
+                  {lvl}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-text-secondary">
+                {t("scholarships:filters.deadlineFrom")}
+              </label>
+              <input
+                type="date"
+                value={deadlineFrom}
+                onChange={(e) => { setDeadlineFrom(e.target.value); setPage(1); }}
+                className="h-9 rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-text-secondary">
+                {t("scholarships:filters.deadlineTo")}
+              </label>
+              <input
+                type="date"
+                value={deadlineTo}
+                onChange={(e) => { setDeadlineTo(e.target.value); setPage(1); }}
+                className="h-9 rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Loading skeletons ── */}
+      {isLoading && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-52 animate-pulse rounded-xl border border-border-subtle bg-bg-elevated"
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ── Error state ── */}
+      {isError && (
+        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
+          {t("common:status.error")}
+        </div>
+      )}
+
+      {/* ── Empty state ── */}
+      {!isLoading && !isError && (data?.items.length ?? 0) === 0 && (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated py-16 text-center">
+          <Search aria-hidden className="mb-3 size-10 text-text-tertiary" />
+          <p className="text-base font-medium text-text-primary">
+            {t("scholarships:empty.title")}
+          </p>
+          <p className="mt-1 text-sm text-text-secondary">
+            {t("scholarships:empty.body")}
+          </p>
+        </div>
+      )}
+
+      {/* ── Results grid ── */}
+      {!isLoading && (data?.items.length ?? 0) > 0 && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {data!.items.map((s) => {
+            const title        = isRtl ? s.titleAr       : s.titleEn;
+            const desc         = isRtl ? s.descriptionAr : s.descriptionEn;
+            const deadlineDate = new Date(s.deadline);
+            const daysLeft     = differenceInCalendarDays(deadlineDate, new Date());
+            const isUrgent     = daysLeft <= 7 && daysLeft >= 0;
+
+            return (
+              <Link
+                key={s.id}
+                to={`/student/scholarships/${s.id}`}
+                className="group relative flex flex-col rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-xs transition hover:border-brand-500/40 hover:shadow-sm"
+              >
+                {/* Bookmark button */}
+                <button
+                  type="button"
+                  onClick={(e) => handleBookmark(e, s.id)}
+                  aria-label={t("scholarships:bookmark.toggle")}
+                  className="absolute inset-e-4 top-4 text-text-tertiary transition hover:text-brand-500"
+                >
+                  <Bookmark aria-hidden className="size-4" />
+                </button>
+
+                {/* Featured badge */}
+                {s.isFeatured && (
+                  <span className="mb-3 inline-flex w-fit items-center rounded-full bg-brand-500/10 px-2 py-0.5 text-xs font-medium text-brand-500">
+                    ★ {t("scholarships:card.featured")}
+                  </span>
+                )}
+
+                <h2 className="mb-1 line-clamp-2 text-sm font-semibold text-text-primary group-hover:text-brand-500">
+                  {title}
+                </h2>
+
+                <p className="mb-3 line-clamp-2 flex-1 text-xs text-text-secondary">
+                  {desc}
+                </p>
+
+                <div className="mt-auto space-y-2">
+                  <FundingBadge type={s.fundingType} />
+                  <div className="flex items-center justify-between text-xs text-text-tertiary">
+                    <span>{s.targetLevel}</span>
+                    <span
+                      className={cn(
+                        "font-medium",
+                        isUrgent ? "text-rose-500" : "text-text-tertiary",
+                      )}
+                    >
+                      {daysLeft < 0
+                        ? t("scholarships:card.closed")
+                        : isUrgent
+                          ? t("scholarships:card.daysLeft", { count: daysLeft })
+                          : format(deadlineDate, "dd MMM yyyy")}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Pagination ── */}
+      {data && data.totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm text-text-secondary">
+          <span>
+            {t("scholarships:page.pagination", {
+              page:  data.page,
+              total: data.totalPages,
+            })}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={data.page <= 1}
+              className="rounded-md border border-border-subtle px-3 py-1.5 disabled:opacity-40 hover:border-border-default"
+            >
+              {t("scholarships:page.prev")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
+              disabled={data.page >= data.totalPages}
+              className="rounded-md border border-border-subtle px-3 py-1.5 disabled:opacity-40 hover:border-border-default"
+            >
+              {t("scholarships:page.next")}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

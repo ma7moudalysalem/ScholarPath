@@ -1,0 +1,65 @@
+{
+  "page": {
+    "title": "المنح الدراسية",
+    "total": "تم العثور على {{count}} منحة",
+    "pagination": "صفحة {{page}} من {{total}}",
+    "prev": "السابق",
+    "next": "التالي"
+  },
+  "search": {
+    "placeholder": "ابحث عن المنح الدراسية..."
+  },
+  "sort": {
+    "relevance": "الأكثر صلة",
+    "deadline": "الموعد النهائي",
+    "newest": "الأحدث",
+    "recommended": "موصى به"
+  },
+  "filters": {
+    "label": "فلترة",
+    "clear": "مسح الفلاتر",
+    "fundingType": "نوع التمويل",
+    "academicLevel": "المستوى الأكاديمي",
+    "deadlineFrom": "الموعد النهائي من",
+    "deadlineTo": "الموعد النهائي إلى"
+  },
+  "card": {
+    "featured": "مميزة",
+    "closed": "مغلقة",
+    "daysLeft": "{{count}} أيام متبقية"
+  },
+  "empty": {
+    "title": "لا توجد منح دراسية",
+    "body": "جرب تعديل الفلاتر أو كلمات البحث."
+  },
+  "bookmark": {
+    "toggle": "تبديل الحفظ",
+    "saved": "تم الحفظ",
+    "removed": "تم إلغاء الحفظ",
+    "remove": "إزالة الحفظ"
+  },
+  "bookmarks": {
+    "title": "منحي المحفوظة",
+    "count": "{{count}} محفوظة",
+    "savedAt": "تم الحفظ في {{date}}",
+    "browse": "تصفح المنح",
+    "empty": {
+      "title": "لا يوجد محفوظات بعد",
+      "body": "احفظ المنح التي تهمك لتجدها هنا."
+    }
+  },
+  "detail": {
+    "back": "العودة إلى المنح",
+    "open": "مفتوحة",
+    "details": "التفاصيل",
+    "funding": "التمويل",
+    "level": "المستوى",
+    "deadline": "الموعد النهائي",
+    "country": "الدولة",
+    "reviewFee": "رسوم المراجعة",
+    "eligibility": "شروط الأهلية",
+    "documents": "المستندات المطلوبة",
+    "apply": "تقدم الآن",
+    "applyExternal": "تقدم على الموقع الخارجي"
+  }
+}
