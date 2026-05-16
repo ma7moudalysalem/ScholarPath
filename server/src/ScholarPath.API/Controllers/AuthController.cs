@@ -6,6 +6,7 @@ using ScholarPath.Application.Auth.Commands.Login;
 using ScholarPath.Application.Auth.Commands.Logout;
 using ScholarPath.Application.Auth.Commands.RefreshToken;
 using ScholarPath.Application.Auth.Commands.Register;
+using ScholarPath.Application.Auth.Commands.SwitchRole;
 using ScholarPath.Application.Auth.DTOs;
 using ScholarPath.Application.Auth.Queries.GetCurrentUser;
 
@@ -93,8 +94,13 @@ public sealed class AuthController(IMediator mediator) : ControllerBase
     [HttpPost("switch-role")]
     [Authorize]
     [ProducesResponseType(typeof(AuthTokensDto), StatusCodes.Status200OK)]
-    public IActionResult SwitchRole([FromBody] SwitchRoleRequestDto request)
-        => NotImplementedForTeam("SwitchRoleCommand");
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AuthTokensDto>> SwitchRole(
+        [FromBody] SwitchRoleRequestDto request, CancellationToken ct)
+    {
+        var result = await mediator.Send(new SwitchRoleCommand(request.TargetRole), ct);
+        return Ok(result);
+    }
 
     [HttpGet("google/authorize")]
     [ProducesResponseType(StatusCodes.Status302Found)]
