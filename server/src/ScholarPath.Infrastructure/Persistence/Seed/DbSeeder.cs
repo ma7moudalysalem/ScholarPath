@@ -81,6 +81,7 @@ public static class DbSeeder
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
             logger.LogInformation("Seeded default profit share configs");
         }
+        
     }
 
     private static async Task EnsureUserAsync(
@@ -115,4 +116,5 @@ public static class DbSeeder
         await userManager.AddToRoleAsync(user, role).ConfigureAwait(false);
         logger.LogInformation("Seeded user {Email} as {Role}", email, role);
     }
+
 }

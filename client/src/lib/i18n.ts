@@ -11,7 +11,7 @@ import enEmptyStates from "@/locales/en/emptyStates.json";
 import enPrivacy from "@/locales/en/privacy.json";
 import enAdmin from "@/locales/en/admin.json";
 import enAi from "@/locales/en/ai.json";
-
+import enScholarships from "@/locales/en/scholarships.json";
 import arCommon from "@/locales/ar/common.json";
 import arAuth from "@/locales/ar/auth.json";
 import arHome from "@/locales/ar/home.json";
@@ -21,7 +21,7 @@ import arEmptyStates from "@/locales/ar/emptyStates.json";
 import arPrivacy from "@/locales/ar/privacy.json";
 import arAdmin from "@/locales/ar/admin.json";
 import arAi from "@/locales/ar/ai.json";
-
+import arScholarships from "@/locales/ar/scholarships.json";
 export const supportedLanguages = ["en", "ar"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
 
@@ -37,7 +37,7 @@ void i18n
   .init({
     fallbackLng: "en",
     supportedLngs: supportedLanguages,
-    ns: ["common", "auth", "home", "errors", "nav", "emptyStates", "privacy", "admin", "ai"],
+   ns: ["common", "auth", "home", "errors", "nav", "emptyStates", "privacy", "admin", "ai", "scholarships"], 
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {
@@ -56,6 +56,7 @@ void i18n
         privacy: enPrivacy,
         admin: enAdmin,
         ai: enAi,
+        scholarships: enScholarships,
       },
       ar: {
         common: arCommon,
@@ -67,6 +68,7 @@ void i18n
         privacy: arPrivacy,
         admin: arAdmin,
         ai: arAi,
+        scholarships: arScholarships,
       },
     },
   });

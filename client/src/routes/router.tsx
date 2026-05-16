@@ -23,7 +23,18 @@ const SsoCallback = lazy(() =>
 );
 const NotFound = lazy(() => import("@/pages/NotFound").then((m) => ({ default: m.NotFound })));
 
-// Module skeletons per PB area (spec folder path encoded)
+// ── PB-003: Scholarship Discovery ─────────────────────────────────────────────
+const StudentScholarships = lazy(() =>
+  import("@/pages/student/ScholarshipsPage").then((m) => ({ default: m.ScholarshipsPage })),
+);
+const StudentScholarshipDetail = lazy(() =>
+  import("@/pages/student/ScholarshipDetail").then((m) => ({ default: m.ScholarshipDetail })),
+);
+const StudentBookmarks = lazy(() =>
+  import("@/pages/student/BookmarksPage").then((m) => ({ default: m.BookmarksPage })),
+);
+
+// ── Module skeletons per PB area (spec folder path encoded) ───────────────────
 const stub = (owner: string, moduleName: string, specPath: string) => () => (
   <EmptyState owner={owner} module={moduleName} specPath={specPath} />
 );
@@ -32,12 +43,6 @@ const StudentDashboard = stub(
   "@Madiha6776 + everyone",
   "Student Dashboard",
   ".specify/specs/PB-001-auth-access-onboarding",
-);
-const StudentScholarships = stub("@norra-mmhamed", "PB-003 Discovery", ".specify/specs/PB-003-scholarship-discovery");
-const StudentScholarshipDetail = stub(
-  "@norra-mmhamed",
-  "PB-003 Scholarship Detail",
-  ".specify/specs/PB-003-scholarship-discovery",
 );
 const StudentApplications = stub(
   "@norra-mmhamed",
@@ -49,7 +54,6 @@ const StudentApplicationDetail = stub(
   "PB-004 Application detail",
   ".specify/specs/PB-004-application-tracking",
 );
-const StudentBookmarks = stub("@norra-mmhamed", "PB-003 Bookmarks", ".specify/specs/PB-003-scholarship-discovery");
 const StudentConsultants = stub("@norra-mmhamed", "PB-006 Consultants", ".specify/specs/PB-006-consultant-booking");
 const StudentConsultantDetail = stub(
   "@norra-mmhamed",
@@ -176,7 +180,7 @@ export function AppRouter() {
           }
         />
 
-        {/* Onboarding (auth required but no layout nav) */}
+        {/* Onboarding */}
         <Route
           path="/onboarding"
           element={
@@ -196,7 +200,7 @@ export function AppRouter() {
             </RequireAuth>
           }
         >
-          {/* Profile / Notifications — shared across roles */}
+          {/* Profile / Notifications — shared */}
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/privacy" element={<DataPrivacy />} />
           <Route path="/notifications" element={<Notifications />} />
@@ -210,18 +214,25 @@ export function AppRouter() {
               </RequireRole>
             }
           />
-          <Route path="/student/scholarships" element={<StudentScholarships />} />
-          <Route path="/student/scholarships/:id" element={<StudentScholarshipDetail />} />
-          <Route path="/student/applications" element={<StudentApplications />} />
-          <Route path="/student/applications/:id" element={<StudentApplicationDetail />} />
-          <Route path="/student/bookmarks" element={<StudentBookmarks />} />
-          <Route path="/student/consultants" element={<StudentConsultants />} />
-          <Route path="/student/consultants/:id" element={<StudentConsultantDetail />} />
-          <Route path="/student/bookings" element={<StudentBookings />} />
-          <Route path="/student/community" element={<StudentCommunity />} />
-          <Route path="/student/resources" element={<StudentResources />} />
-          <Route path="/student/ai" element={<StudentAi />} />
-          <Route path="/student/messages" element={<StudentMessages />} />
+          {/* PB-003: Scholarship Discovery ✅ */}
+          <Route path="/student/scholarships"      element={<StudentScholarships />} />
+          <Route path="/student/scholarships/:id"  element={<StudentScholarshipDetail />} />
+          <Route path="/student/bookmarks"         element={<StudentBookmarks />} />
+
+          {/* PB-004: Applications (stub) */}
+          <Route path="/student/applications"      element={<StudentApplications />} />
+          <Route path="/student/applications/:id"  element={<StudentApplicationDetail />} />
+
+          {/* PB-006: Consultant Booking (stub) */}
+          <Route path="/student/consultants"       element={<StudentConsultants />} />
+          <Route path="/student/consultants/:id"   element={<StudentConsultantDetail />} />
+          <Route path="/student/bookings"          element={<StudentBookings />} />
+
+          {/* Others (stubs) */}
+          <Route path="/student/community"         element={<StudentCommunity />} />
+          <Route path="/student/resources"         element={<StudentResources />} />
+          <Route path="/student/ai"                element={<StudentAi />} />
+          <Route path="/student/messages"          element={<StudentMessages />} />
 
           {/* Company */}
           <Route
@@ -232,9 +243,9 @@ export function AppRouter() {
               </RequireRole>
             }
           />
-          <Route path="/company/scholarships" element={<CompanyScholarships />} />
-          <Route path="/company/applications-review" element={<CompanyApplicationsReview />} />
-          <Route path="/company/billing" element={<CompanyBilling />} />
+          <Route path="/company/scholarships"          element={<CompanyScholarships />} />
+          <Route path="/company/applications-review"   element={<CompanyApplicationsReview />} />
+          <Route path="/company/billing"               element={<CompanyBilling />} />
 
           {/* Consultant */}
           <Route
@@ -245,13 +256,12 @@ export function AppRouter() {
               </RequireRole>
             }
           />
-          <Route path="/consultant/availability" element={<ConsultantAvailability />} />
-          <Route path="/consultant/bookings" element={<ConsultantBookings />} />
-          <Route path="/consultant/earnings" element={<ConsultantEarnings />} />
-
+          <Route path="/consultant/availability"   element={<ConsultantAvailability />} />
+          <Route path="/consultant/bookings"       element={<ConsultantBookings />} />
+          <Route path="/consultant/earnings"       element={<ConsultantEarnings />} />
         </Route>
 
-        {/* Admin — has its own layout + role guard */}
+        {/* Admin */}
         <Route
           element={
             <RequireAuth>
@@ -261,21 +271,21 @@ export function AppRouter() {
             </RequireAuth>
           }
         >
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/onboarding" element={<AdminOnboarding />} />
-          <Route path="/admin/upgrades" element={<AdminUpgrades />} />
-          <Route path="/admin/broadcast" element={<AdminBroadcast />} />
-          <Route path="/admin/analytics" element={<AdminAnalytics />} />
-          <Route path="/admin/ai-economy" element={<AdminAiEconomy />} />
-          <Route path="/admin/redaction-audit" element={<AdminRedactionAudit />} />
-          <Route path="/admin/scholarships" element={<AdminScholarships />} />
-          <Route path="/admin/articles" element={<AdminArticles />} />
-          <Route path="/admin/community" element={<AdminCommunity />} />
-          <Route path="/admin/payments" element={<AdminPayments />} />
-          <Route path="/admin/profit-share" element={<AdminProfitShare />} />
-          <Route path="/admin/audit-log" element={<AdminAuditLog />} />
-          <Route path="/admin/settings" element={<AdminSettings />} />
+          <Route path="/admin"                  element={<AdminDashboard />} />
+          <Route path="/admin/users"            element={<AdminUsers />} />
+          <Route path="/admin/onboarding"       element={<AdminOnboarding />} />
+          <Route path="/admin/upgrades"         element={<AdminUpgrades />} />
+          <Route path="/admin/broadcast"        element={<AdminBroadcast />} />
+          <Route path="/admin/analytics"        element={<AdminAnalytics />} />
+          <Route path="/admin/ai-economy"       element={<AdminAiEconomy />} />
+          <Route path="/admin/redaction-audit"  element={<AdminRedactionAudit />} />
+          <Route path="/admin/scholarships"     element={<AdminScholarships />} />
+          <Route path="/admin/articles"         element={<AdminArticles />} />
+          <Route path="/admin/community"        element={<AdminCommunity />} />
+          <Route path="/admin/payments"         element={<AdminPayments />} />
+          <Route path="/admin/profit-share"     element={<AdminProfitShare />} />
+          <Route path="/admin/audit-log"        element={<AdminAuditLog />} />
+          <Route path="/admin/settings"         element={<AdminSettings />} />
         </Route>
 
         {/* 404 */}

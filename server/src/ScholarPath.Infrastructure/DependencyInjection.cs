@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ScholarPath.Application.Ai.Common;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Scholarships.Commands;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Jobs;
