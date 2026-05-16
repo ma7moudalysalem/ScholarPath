@@ -20,7 +20,8 @@ public class WebhooksController(
     [HttpPost]
     public async Task<IActionResult> HandleStripeWebhook(CancellationToken ct)
     {
-        var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync(ct);
+        using var reader = new StreamReader(HttpContext.Request.Body);
+        var json = await reader.ReadToEndAsync(ct);
         var signature = Request.Headers["Stripe-Signature"].FirstOrDefault();
 
         if (string.IsNullOrEmpty(signature))

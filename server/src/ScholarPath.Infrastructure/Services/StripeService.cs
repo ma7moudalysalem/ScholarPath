@@ -358,11 +358,30 @@ public sealed class StripeService(
                 "[stripe-webhook] Parsed event {EventId} type={EventType}",
                 stripeEvent.Id, stripeEvent.Type);
 
-            // StripeWebhookParseResult في المشروع بتاخد 3 parameters فقط
-            // (EventId, EventType, DataJson) — متوافق مع main + tasneem
+            // Extract the typed sub-object so the webhook handler can reconcile
+            // the matching Payment row (idempotency + status updates).
+            string? paymentIntentId = null;
+            string? chargeId = null;
+            long? amountCents = null;
+            switch (stripeEvent.Data?.Object)
+            {
+                case PaymentIntent pi:
+                    paymentIntentId = pi.Id;
+                    amountCents = pi.Amount;
+                    break;
+                case Charge ch:
+                    chargeId = ch.Id;
+                    paymentIntentId = ch.PaymentIntentId;
+                    amountCents = ch.Amount;
+                    break;
+            }
+
             return new StripeWebhookParseResult(
                 stripeEvent.Id,
                 stripeEvent.Type,
+                paymentIntentId,
+                chargeId,
+                amountCents,
                 dataJson);
         }
         catch (StripeException ex)

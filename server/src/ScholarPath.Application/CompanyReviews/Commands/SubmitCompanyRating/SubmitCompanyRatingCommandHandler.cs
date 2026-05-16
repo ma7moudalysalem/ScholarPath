@@ -43,7 +43,7 @@ public sealed class SubmitCompanyRatingCommandHandler(
         var review = new CompanyReview
         {
             ApplicationTrackerId = request.ApplicationId,
-            StudentId = (currentUser.UserId ?? throw new ForbiddenAccessException()),
+            StudentId = application.StudentId,
             CompanyId = request.CompanyId,
             Rating = request.Rating,
             Comment = request.Comment

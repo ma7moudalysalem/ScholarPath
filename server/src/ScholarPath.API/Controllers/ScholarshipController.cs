@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Common.Models;
 using ScholarPath.Application.Scholarships.Commands;
+using ScholarPath.Application.Scholarships.Commands.ConfigureReviewFee;
 using ScholarPath.Application.Scholarships.DTOs;
 using ScholarPath.Application.Scholarships.Queries;
 
@@ -49,5 +50,17 @@ namespace ScholarPath.API.Controllers
         {
             return await mediator.Send(new BookmarkToggleCommand(id));
         }
+
+        // PB-005: company configures the per-scholarship review fee.
+        [HttpPost("{id:guid}/review-fee")]
+        [Authorize(Roles = "Company,Admin")]
+        public async Task<IActionResult> ConfigureReviewFee(
+            Guid id, [FromBody] ConfigureReviewFeeRequest request, CancellationToken ct)
+        {
+            var result = await mediator.Send(new ConfigureReviewFeeCommand(id, request.ReviewFeeUsd), ct);
+            return result ? Ok() : BadRequest();
+        }
     }
+
+    public record ConfigureReviewFeeRequest(decimal ReviewFeeUsd);
 }

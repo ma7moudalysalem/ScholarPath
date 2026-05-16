@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Hubs;
 using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Application.Chat.Commands.SendMessage;
@@ -16,7 +17,7 @@ public class SendMessageCommandHandlerTests
 {
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
-    private readonly IHubContext<ChatHub> _hubContext = Substitute.For<IHubContext<ChatHub>>();
+    private readonly IChatRealtimeNotifier _chatNotifier = Substitute.For<IChatRealtimeNotifier>();
     private readonly SendMessageCommandHandler _handler;
 
     public SendMessageCommandHandlerTests()
@@ -26,7 +27,7 @@ public class SendMessageCommandHandlerTests
             .Options;
         _db = new ApplicationDbContext(options);
 
-        _handler = new SendMessageCommandHandler(_db, _currentUser, _hubContext);
+        _handler = new SendMessageCommandHandler(_db, _currentUser, _chatNotifier);
     }
 
     [Fact]
@@ -44,7 +45,6 @@ public class SendMessageCommandHandlerTests
             Id = conversationId,
             ParticipantOneId = currentUserId,
             ParticipantTwoId = recipientId,
-            Messages = new List<ChatMessage>()
         };
 
         var block = new UserBlock

@@ -10,7 +10,6 @@ namespace ScholarPath.Application.Applications.Commands.ReviewApplication;
 public sealed class ReviewApplicationCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
-    ISender sender,
     INotificationDispatcher notifications,
     ILogger<ReviewApplicationCommandHandler> logger)
     : IRequestHandler<ReviewApplicationCommand, bool>
@@ -36,7 +35,6 @@ public sealed class ReviewApplicationCommandHandler(
         application.Status = request.Status;
         application.DecisionAt = DateTimeOffset.UtcNow;
         application.DecisionReason = request.DecisionReason;
-        application.IsReadOnly = true;
 
         application.RaiseDomainEvent(new ScholarPath.Domain.Events.ApplicationStatusChangedEvent(
             application.Id,

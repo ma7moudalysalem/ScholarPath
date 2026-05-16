@@ -6,6 +6,7 @@ using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.CompanyReviews.Commands.SubmitCompanyRating;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
 using Xunit;
 using FluentAssertions;

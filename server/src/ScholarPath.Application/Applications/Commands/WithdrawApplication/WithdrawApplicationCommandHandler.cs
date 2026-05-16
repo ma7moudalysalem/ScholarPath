@@ -33,7 +33,6 @@ public sealed class WithdrawApplicationCommandHandler(
 
         application.Status = ApplicationStatus.Withdrawn;
         application.WithdrawnAt = DateTimeOffset.UtcNow;
-        application.IsReadOnly = true;
 
         var payment = await db.CompanyReviewPayments
             .FirstOrDefaultAsync(p => p.ApplicationTrackerId == application.Id && p.Status == PaymentStatus.Held, ct);
