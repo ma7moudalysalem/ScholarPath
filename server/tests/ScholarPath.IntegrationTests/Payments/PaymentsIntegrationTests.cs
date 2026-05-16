@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using ScholarPath.Application.Payments.Commands.CreatePaymentIntent;
@@ -15,6 +17,12 @@ public class PaymentsIntegrationTests : IClassFixture<PaymentsWebApplicationFact
 {
     private readonly PaymentsWebApplicationFactory _factory;
     private readonly HttpClient _client;
+
+    // The API serializes enums as strings — match that when deserializing DTOs.
+    private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     public PaymentsIntegrationTests(PaymentsWebApplicationFactory factory)
     {
@@ -128,7 +136,7 @@ public class PaymentsIntegrationTests : IClassFixture<PaymentsWebApplicationFact
 
         var response = await _client.PostAsJsonAsync("/api/payments/intent", command);
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 
     [Fact]
@@ -213,7 +221,8 @@ public class PaymentsIntegrationTests : IClassFixture<PaymentsWebApplicationFact
 
         var body = new { amountCents = (long?)null, reason = "full refund test" };
 
-        var response = await _client.PostAsJsonAsync(
+        var adminClient = _factory.CreateAuthenticatedClient(_factory.SeededAdminId, "Admin");
+        var response = await adminClient.PostAsJsonAsync(
             $"/api/payments/{paymentId}/refund", body);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -234,7 +243,8 @@ public class PaymentsIntegrationTests : IClassFixture<PaymentsWebApplicationFact
 
         var body = new { amountCents = (long?)3000, reason = "partial refund test" };
 
-        var response = await _client.PostAsJsonAsync(
+        var adminClient = _factory.CreateAuthenticatedClient(_factory.SeededAdminId, "Admin");
+        var response = await adminClient.PostAsJsonAsync(
             $"/api/payments/{paymentId}/refund", body);
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -254,7 +264,8 @@ public class PaymentsIntegrationTests : IClassFixture<PaymentsWebApplicationFact
 
         var body = new { amountCents = (long?)null, reason = "duplicate" };
 
-        var response = await _client.PostAsJsonAsync(
+        var adminClient = _factory.CreateAuthenticatedClient(_factory.SeededAdminId, "Admin");
+        var response = await adminClient.PostAsJsonAsync(
             $"/api/payments/{paymentId}/refund", body);
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -267,10 +278,11 @@ public class PaymentsIntegrationTests : IClassFixture<PaymentsWebApplicationFact
 
         var body = new { amountCents = (long?)0, reason = "zero" };
 
-        var response = await _client.PostAsJsonAsync(
+        var adminClient = _factory.CreateAuthenticatedClient(_factory.SeededAdminId, "Admin");
+        var response = await adminClient.PostAsJsonAsync(
             $"/api/payments/{paymentId}/refund", body);
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -287,7 +299,7 @@ public class PaymentsIntegrationTests : IClassFixture<PaymentsWebApplicationFact
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var dto = await response.Content.ReadFromJsonAsync<PaymentDto>();
+        var dto = await response.Content.ReadFromJsonAsync<PaymentDto>(JsonOpts);
         dto.Should().NotBeNull();
         dto!.Id.Should().Be(paymentId);
         dto.Status.Should().Be(PaymentStatus.Held);

@@ -44,13 +44,15 @@ public sealed class StartApplicationCommandHandler(
             throw new ConflictException(
                 "This scholarship is currently closed for applications.");
 
-        // 5. B1: prevent duplicate active applications
-        //    Uses IsActive (Domain property) which excludes:
-        //    Withdrawn, Rejected, Accepted, Shortlisted
+        // 5. B1: prevent duplicate active applications.
+        //    IsActive is a computed (unmapped) property — inline the terminal-state
+        //    check so the predicate translates to SQL.
         var hasActive = await db.Applications.AnyAsync(a =>
             a.StudentId == userId &&
             a.ScholarshipId == request.ScholarshipId &&
-            a.IsActive, ct);
+            a.Status != ApplicationStatus.Withdrawn &&
+            a.Status != ApplicationStatus.Rejected &&
+            a.Status != ApplicationStatus.Accepted, ct);
 
         if (hasActive)
             throw new ConflictException(

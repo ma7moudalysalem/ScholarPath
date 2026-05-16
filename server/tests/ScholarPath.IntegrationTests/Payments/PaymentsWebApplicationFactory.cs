@@ -41,6 +41,17 @@ public sealed class PaymentsWebApplicationFactory
 
         builder.ConfigureServices(services =>
         {
+            // Force the DbContext onto the test container — the in-memory config
+            // override above loses to appsettings, so re-register it explicitly.
+            var dbDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
+            if (dbDescriptor is not null)
+            {
+                services.Remove(dbDescriptor);
+            }
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(_sqlContainer.GetConnectionString()));
+
             // Replace real CurrentUserService with test version
             services.RemoveAll<ICurrentUserService>();
             services.AddSingleton<PaymentsTestCurrentUserService>();

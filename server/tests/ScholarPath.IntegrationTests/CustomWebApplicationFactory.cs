@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Interfaces;
+using ScholarPath.Infrastructure.Persistence;
 using Testcontainers.MsSql;
 using Xunit;
 
@@ -34,6 +36,17 @@ public sealed class CustomWebApplicationFactory :
 
         builder.ConfigureServices(services =>
         {
+            // Force the DbContext onto the test container — the in-memory config
+            // override above loses to appsettings, so re-register it explicitly.
+            var dbDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
+            if (dbDescriptor is not null)
+            {
+                services.Remove(dbDescriptor);
+            }
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(_sqlContainer.GetConnectionString()));
+
             services.RemoveAll<ICurrentUserService>();
 
             services.AddSingleton<TestCurrentUserService>();

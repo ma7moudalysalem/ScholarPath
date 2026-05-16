@@ -35,6 +35,8 @@ public class CreateApplicationTests : IClassFixture<ScholarshipApplicationsFacto
             Id = Guid.NewGuid(),
             TitleEn = "Test Scholarship",
             TitleAr = "منحة تجريبية",
+            DescriptionEn = "Test scholarship description",
+            DescriptionAr = "وصف المنحة التجريبية",
             Status = ScholarshipStatus.Open,
             Mode = ListingMode.InApp,
             Deadline = DateTimeOffset.UtcNow.AddDays(30),
@@ -116,6 +118,8 @@ public class CreateApplicationTests : IClassFixture<ScholarshipApplicationsFacto
             Id = Guid.NewGuid(),
             TitleEn = "Closed Scholarship",
             TitleAr = "منحة مغلقة",
+            DescriptionEn = "Closed scholarship description",
+            DescriptionAr = "وصف المنحة المغلقة",
             Status = ScholarshipStatus.Closed,
             Mode = ListingMode.InApp,
             Deadline = DateTimeOffset.UtcNow.AddDays(30),
@@ -146,6 +150,8 @@ public class CreateApplicationTests : IClassFixture<ScholarshipApplicationsFacto
             Id = Guid.NewGuid(),
             TitleEn = "External Scholarship",
             TitleAr = "منحة خارجية",
+            DescriptionEn = "External scholarship description",
+            DescriptionAr = "وصف المنحة الخارجية",
             Status = ScholarshipStatus.Open,
             Mode = ListingMode.ExternalUrl,
             Deadline = DateTimeOffset.UtcNow.AddDays(30),
@@ -173,7 +179,7 @@ public class CreateApplicationTests : IClassFixture<ScholarshipApplicationsFacto
         // Act
         var response = await _client.PostAsJsonAsync("/api/applications", payload);
 
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        // Assert — empty id fails FluentValidation, surfaced as 422.
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 }
