@@ -104,6 +104,8 @@ public static class DependencyInjection
         }
 
         services.AddScoped<INotificationDispatcher, StubNotificationDispatcher>();
+        services.AddScoped<IChatRealtimeNotifier, ChatRealtimeNotifier>();
+        services.AddScoped<ICommunityRealtimeNotifier, CommunityRealtimeNotifier>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserAdministration, UserAdministration>();
         services.AddScoped<IAdminReadService, AdminReadService>();
