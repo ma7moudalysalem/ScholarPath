@@ -1,4 +1,5 @@
 using MediatR;
+using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
@@ -23,9 +24,14 @@ public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholar
     public CreateScholarshipCommandValidator()
     {
         RuleFor(v => v.TitleEn).MaximumLength(300).NotEmpty();
-        //  Spec Requirement - Deadline must be at least 7 days in the future
+        RuleFor(v => v.TitleAr).MaximumLength(300).NotEmpty();
+        RuleFor(v => v.DescriptionEn).NotEmpty();
+        RuleFor(v => v.CategoryId).NotEmpty();
+
+        // Spec: deadline must be at least 7 days out. Evaluated per-request
+        // (a lambda) — NOT captured once at validator construction.
         RuleFor(v => v.Deadline)
-            .GreaterThan(DateTimeOffset.UtcNow.AddDays(7))
+            .Must(deadline => deadline > DateTimeOffset.UtcNow.AddDays(7))
             .WithMessage("Deadline must be at least 7 days from now.");
     }
 }
@@ -35,6 +41,13 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
 {
     public async Task<Guid> Handle(CreateScholarshipCommand request, CancellationToken ct)
     {
+        // Only an authenticated Company account can publish an in-app listing.
+        if (!user.IsInRole("Company"))
+            throw new ForbiddenAccessException("Only a Company account can create scholarship listings.");
+
+        var ownerCompanyId = user.UserId
+            ?? throw new ForbiddenAccessException("Not authenticated.");
+
         var entity = new Scholarship
         {
             Id = Guid.NewGuid(),
@@ -47,7 +60,7 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             FundingType = request.FundingType,
             TargetLevel = request.TargetLevel,
             Status = ScholarshipStatus.Open,
-            OwnerCompanyId = user.UserId 
+            OwnerCompanyId = ownerCompanyId,
         };
 
         db.Scholarships.Add(entity);

@@ -13,7 +13,7 @@ using FluentAssertions;
 
 namespace ScholarPath.UnitTests.CompanyReviews;
 
-public class SubmitCompanyRatingCommandHandlerTests
+public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
@@ -28,44 +28,57 @@ public class SubmitCompanyRatingCommandHandlerTests
             .Options;
         _db = new ApplicationDbContext(options);
 
-        _handler = new SubmitCompanyRatingCommandHandler(
-            _db,
-            _currentUser,
-            _notif,
-            _logger);
+        _handler = new SubmitCompanyRatingCommandHandler(_db, _currentUser, _notif, _logger);
+    }
+
+    // Seeds a scholarship (owned by a company) + an application for the student.
+    private async Task<(Guid appId, Guid companyId)> SeedApplicationAsync(
+        Guid studentId, ApplicationStatus status)
+    {
+        var companyId = Guid.NewGuid();
+        var scholarship = new Scholarship
+        {
+            Id = Guid.NewGuid(),
+            OwnerCompanyId = companyId,
+            TitleEn = "Test Scholarship",
+            TitleAr = "منحة اختبار",
+            DescriptionEn = "Description",
+            DescriptionAr = "وصف",
+            Slug = $"test-scholarship-{Guid.NewGuid():N}",
+            CategoryId = Guid.NewGuid(),
+            Deadline = DateTimeOffset.UtcNow.AddDays(30),
+        };
+        var app = new ApplicationTracker
+        {
+            Id = Guid.NewGuid(),
+            StudentId = studentId,
+            Status = status,
+            ScholarshipId = scholarship.Id,
+        };
+        _db.Scholarships.Add(scholarship);
+        _db.Applications.Add(app);
+        await _db.SaveChangesAsync();
+        return (app.Id, companyId);
     }
 
     [Fact]
     public async Task Handle_ValidRequest_CreatesReview()
     {
-        // Arrange
         var studentId = Guid.NewGuid();
-        var companyId = Guid.NewGuid();
-        var appId = Guid.NewGuid();
-
         _currentUser.UserId.Returns(studentId);
+        var (appId, companyId) = await SeedApplicationAsync(studentId, ApplicationStatus.Accepted);
 
-        _db.Applications.Add(new ApplicationTracker
-        {
-            Id = appId,
-            StudentId = studentId,
-            Status = ApplicationStatus.Accepted,
-            ScholarshipId = Guid.NewGuid()
-        });
-        await _db.SaveChangesAsync();
+        var command = new SubmitCompanyRatingCommand(appId, 5, "Great experience!");
 
-        var command = new SubmitCompanyRatingCommand(appId, companyId, 5, "Great experience!");
-
-        // Act
         var result = await _handler.Handle(command, CancellationToken.None);
 
-        // Assert
         result.Should().NotBeEmpty();
         var review = await _db.CompanyReviews.FirstOrDefaultAsync(r => r.Id == result);
         review.Should().NotBeNull();
         review!.Rating.Should().Be(5);
         review.Comment.Should().Be("Great experience!");
-        
+        review.CompanyId.Should().Be(companyId);
+
         await _notif.Received(1).DispatchAsync(
             companyId,
             NotificationType.CompanyRatingReceived,
@@ -78,24 +91,12 @@ public class SubmitCompanyRatingCommandHandlerTests
     [Fact]
     public async Task Handle_ApplicationNotFinal_ThrowsConflict()
     {
-        // Arrange
         var studentId = Guid.NewGuid();
-        var appId = Guid.NewGuid();
-
         _currentUser.UserId.Returns(studentId);
+        var (appId, _) = await SeedApplicationAsync(studentId, ApplicationStatus.UnderReview);
 
-        _db.Applications.Add(new ApplicationTracker
-        {
-            Id = appId,
-            StudentId = studentId,
-            Status = ApplicationStatus.UnderReview,
-            ScholarshipId = Guid.NewGuid()
-        });
-        await _db.SaveChangesAsync();
+        var command = new SubmitCompanyRatingCommand(appId, 5, null);
 
-        var command = new SubmitCompanyRatingCommand(appId, Guid.NewGuid(), 5, null);
-
-        // Act & Assert
         await _handler.Awaiting(h => h.Handle(command, CancellationToken.None))
             .Should().ThrowAsync<ConflictException>();
     }
@@ -103,32 +104,24 @@ public class SubmitCompanyRatingCommandHandlerTests
     [Fact]
     public async Task Handle_AlreadyReviewed_ThrowsConflict()
     {
-        // Arrange
         var studentId = Guid.NewGuid();
-        var appId = Guid.NewGuid();
-
         _currentUser.UserId.Returns(studentId);
+        var (appId, companyId) = await SeedApplicationAsync(studentId, ApplicationStatus.Accepted);
 
-        _db.Applications.Add(new ApplicationTracker
-        {
-            Id = appId,
-            StudentId = studentId,
-            Status = ApplicationStatus.Accepted,
-            ScholarshipId = Guid.NewGuid()
-        });
         _db.CompanyReviews.Add(new CompanyReview
         {
             ApplicationTrackerId = appId,
             StudentId = studentId,
-            CompanyId = Guid.NewGuid(),
-            Rating = 4
+            CompanyId = companyId,
+            Rating = 4,
         });
         await _db.SaveChangesAsync();
 
-        var command = new SubmitCompanyRatingCommand(appId, Guid.NewGuid(), 5, null);
+        var command = new SubmitCompanyRatingCommand(appId, 5, null);
 
-        // Act & Assert
         await _handler.Awaiting(h => h.Handle(command, CancellationToken.None))
             .Should().ThrowAsync<ConflictException>();
     }
+
+    public void Dispose() => _db.Dispose();
 }

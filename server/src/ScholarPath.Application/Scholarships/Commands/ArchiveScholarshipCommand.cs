@@ -22,13 +22,18 @@ public class ArchiveScholarshipCommandHandler(
         var entity = await db.Scholarships
             .FirstOrDefaultAsync(x => x.Id == request.Id, ct);
 
-        //   Exception
         if (entity == null)
         {
             throw new NotFoundException(nameof(Scholarship), request.Id);
         }
 
-        //   (Soft Delete)
+        // Only the owning company (or an admin) may archive a listing.
+        if (entity.OwnerCompanyId != user.UserId && !user.IsInRole("Admin"))
+        {
+            throw new ForbiddenAccessException("You can only archive your own scholarship listings.");
+        }
+
+        // Soft delete
         entity.IsDeleted = true;
 
         entity.DeletedAt = DateTimeOffset.UtcNow;

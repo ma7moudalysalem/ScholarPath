@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +9,7 @@ using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Payments.Commands.CreatePaymentIntent;
 
@@ -21,6 +21,8 @@ public sealed record CreatePaymentIntentResult(
     string PaymentIntentId);
 
 // ─── Command ──────────────────────────────────────────────────────────────────
+// PayerUserId is intentionally NOT a request field — the payer is always the
+// authenticated caller, resolved server-side (prevents charging on behalf of others).
 
 [Auditable(AuditAction.Create, "Payment",
     SummaryTemplate = "Created payment intent for {Type}")]
@@ -28,7 +30,6 @@ public sealed record CreatePaymentIntentCommand(
     PaymentType Type,
     long AmountCents,
     string Currency,
-    Guid PayerUserId,
     Guid? PayeeUserId,
     Guid? RelatedBookingId,
     Guid? RelatedApplicationId,
@@ -50,10 +51,6 @@ public sealed class CreatePaymentIntentCommandValidator
             .MaximumLength(3)
             .WithMessage("Currency must be a 3-letter ISO code (e.g. USD).");
 
-        RuleFor(x => x.PayerUserId)
-            .NotEmpty()
-            .WithMessage("PayerUserId is required.");
-
         RuleFor(x => x.RelatedBookingId)
             .NotEmpty()
             .When(x => x.Type == PaymentType.ConsultantBooking)
@@ -71,6 +68,7 @@ public sealed class CreatePaymentIntentCommandValidator
 public sealed class CreatePaymentIntentCommandHandler(
     IApplicationDbContext db,
     IStripeService stripeService,
+    ICurrentUserService currentUser,
     ILogger<CreatePaymentIntentCommandHandler> logger)
     : IRequestHandler<CreatePaymentIntentCommand, CreatePaymentIntentResult>
 {
@@ -78,6 +76,10 @@ public sealed class CreatePaymentIntentCommandHandler(
         CreatePaymentIntentCommand request,
         CancellationToken ct)
     {
+        // The payer is the authenticated caller — never a client-supplied id.
+        var payerUserId = currentUser.UserId
+            ?? throw new ForbiddenAccessException("Not authenticated.");
+
         // 1. Resolve profit-share percentage from active config
         var profitConfig = await db.ProfitShareConfigs
             .Where(c =>
@@ -98,7 +100,7 @@ public sealed class CreatePaymentIntentCommandHandler(
 
         // 3. Deterministic idempotency key
         var relatedId = (request.RelatedBookingId ?? request.RelatedApplicationId)!.Value;
-        var idempotencyKey = $"create-intent:{request.Type}:{request.PayerUserId:N}:{relatedId:N}";
+        var idempotencyKey = $"create-intent:{request.Type}:{payerUserId:N}:{relatedId:N}";
 
         // 4. Guard: return existing if already created successfully
         var existing = await db.Payments.FirstOrDefaultAsync(p =>
@@ -142,7 +144,7 @@ public sealed class CreatePaymentIntentCommandHandler(
             ProfitShareAmountCents = profitShareCents,
             PayeeAmountCents = payeeAmountCents,
             RefundedAmountCents = 0,
-            PayerUserId = request.PayerUserId,
+            PayerUserId = payerUserId,
             PayeeUserId = request.PayeeUserId,
             StripePaymentIntentId = stripeResult.Id,
             StripeChargeId = stripeResult.LatestChargeId,

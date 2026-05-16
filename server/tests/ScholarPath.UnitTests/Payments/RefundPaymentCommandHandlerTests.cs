@@ -6,6 +6,7 @@ using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Payments.Commands.RefundPayment;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Domain.Interfaces;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
 using Xunit;
@@ -33,6 +34,13 @@ public class RefundPaymentCommandHandlerTests
             PayerUserId = Guid.NewGuid(),
         };
 
+    private static ICurrentUserService AdminUser()
+    {
+        var user = Substitute.For<ICurrentUserService>();
+        user.IsInRole("Admin").Returns(true);
+        return user;
+    }
+
     [Fact]
     public async Task Returns_false_when_payment_not_refundable()
     {
@@ -43,7 +51,7 @@ public class RefundPaymentCommandHandlerTests
 
         var stripe = Substitute.For<IStripeService>();
         var sut = new RefundPaymentCommandHandler(
-            db, stripe, NullLogger<RefundPaymentCommandHandler>.Instance);
+            db, stripe, AdminUser(), NullLogger<RefundPaymentCommandHandler>.Instance);
 
         var result = await sut.Handle(
             new RefundPaymentCommand(payment.Id, null, null), default);
@@ -69,7 +77,7 @@ public class RefundPaymentCommandHandlerTests
                 payment.StripePaymentIntentId!, "canceled", null, null));
 
         var sut = new RefundPaymentCommandHandler(
-            db, stripe, NullLogger<RefundPaymentCommandHandler>.Instance);
+            db, stripe, AdminUser(), NullLogger<RefundPaymentCommandHandler>.Instance);
 
         var result = await sut.Handle(
             new RefundPaymentCommand(payment.Id, null, "full refund"), default);
@@ -97,7 +105,7 @@ public class RefundPaymentCommandHandlerTests
             .Returns(new StripeRefundResult("re_test", "succeeded", 3000));
 
         var sut = new RefundPaymentCommandHandler(
-            db, stripe, NullLogger<RefundPaymentCommandHandler>.Instance);
+            db, stripe, AdminUser(), NullLogger<RefundPaymentCommandHandler>.Instance);
 
         var result = await sut.Handle(
             new RefundPaymentCommand(payment.Id, 3000, "partial"), default);
@@ -124,7 +132,7 @@ public class RefundPaymentCommandHandlerTests
             .Returns(new StripeRefundResult("re_full", "succeeded", 5000));
 
         var sut = new RefundPaymentCommandHandler(
-            db, stripe, NullLogger<RefundPaymentCommandHandler>.Instance);
+            db, stripe, AdminUser(), NullLogger<RefundPaymentCommandHandler>.Instance);
 
         var result = await sut.Handle(
             new RefundPaymentCommand(payment.Id, null, "full"), default);
@@ -151,7 +159,7 @@ public class RefundPaymentCommandHandlerTests
                 payment.StripePaymentIntentId!, "requires_action", null, null));
 
         var sut = new RefundPaymentCommandHandler(
-            db, stripe, NullLogger<RefundPaymentCommandHandler>.Instance);
+            db, stripe, AdminUser(), NullLogger<RefundPaymentCommandHandler>.Instance);
 
         var act = () => sut.Handle(
             new RefundPaymentCommand(payment.Id, null, null), default);
@@ -176,7 +184,7 @@ public class RefundPaymentCommandHandlerTests
             .Returns(new StripeRefundResult("re_fail", "pending", 0));
 
         var sut = new RefundPaymentCommandHandler(
-            db, stripe, NullLogger<RefundPaymentCommandHandler>.Instance);
+            db, stripe, AdminUser(), NullLogger<RefundPaymentCommandHandler>.Instance);
 
         var act = () => sut.Handle(
             new RefundPaymentCommand(payment.Id, 3000, null), default);

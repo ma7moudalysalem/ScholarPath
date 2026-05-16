@@ -1,11 +1,10 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Payments.Queries.GetPayment;
 
@@ -40,7 +39,8 @@ public sealed record GetPaymentQuery(Guid PaymentId) : IRequest<PaymentDto?>;
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
 public sealed class GetPaymentQueryHandler(
-    IApplicationDbContext db)
+    IApplicationDbContext db,
+    ICurrentUserService currentUser)
     : IRequestHandler<GetPaymentQuery, PaymentDto?>
 {
     public async Task<PaymentDto?> Handle(
@@ -53,6 +53,14 @@ public sealed class GetPaymentQueryHandler(
 
         if (payment is null)
             return null;
+
+        // Only the payer, the payee, or an admin may read a payment.
+        if (payment.PayerUserId != currentUser.UserId
+            && payment.PayeeUserId != currentUser.UserId
+            && !currentUser.IsInRole("Admin"))
+        {
+            throw new ForbiddenAccessException("You can only view your own payments.");
+        }
 
         return new PaymentDto(
             Id: payment.Id,

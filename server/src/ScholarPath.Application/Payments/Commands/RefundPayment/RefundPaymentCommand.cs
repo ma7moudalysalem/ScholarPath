@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
-
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -10,17 +7,17 @@ using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Payments.Commands.RefundPayment;
 
 // ─── Command ──────────────────────────────────────────────────────────────────
 
 /// <summary>
-/// Refunds a Held or Captured payment — full or partial.
+/// Refunds a Held or Captured payment — full or partial. Admin-only.
 /// • Full refund   (AmountCents = null): cancels the PaymentIntent if Held,
 ///                                       or issues a full refund if Captured.
 /// • Partial refund (AmountCents > 0):   issues a partial refund via Stripe Refund API.
-/// Idempotent: returns false if payment is not in a refundable state.
 /// </summary>
 [Auditable(AuditAction.PaymentRefunded, "Payment",
     TargetIdProperty = nameof(PaymentId),
@@ -53,6 +50,7 @@ public sealed class RefundPaymentCommandValidator
 public sealed class RefundPaymentCommandHandler(
     IApplicationDbContext db,
     IStripeService stripeService,
+    ICurrentUserService currentUser,
     ILogger<RefundPaymentCommandHandler> logger)
     : IRequestHandler<RefundPaymentCommand, bool>
 {
@@ -60,6 +58,10 @@ public sealed class RefundPaymentCommandHandler(
         RefundPaymentCommand request,
         CancellationToken ct)
     {
+        // Refunds move money — administrators only.
+        if (!currentUser.IsInRole("Admin"))
+            throw new ForbiddenAccessException("Only an administrator can issue refunds.");
+
         // 1. Load payment — must be Held or Captured to be refundable
         var payment = await db.Payments
             .FirstOrDefaultAsync(p =>
@@ -112,6 +114,13 @@ public sealed class RefundPaymentCommandHandler(
         else
         {
             var refundAmountCents = request.AmountCents ?? payment.AmountCents;
+
+            // Never refund more than what was captured (accounts for prior partial refunds).
+            if (payment.RefundedAmountCents + refundAmountCents > payment.AmountCents)
+            {
+                throw new ConflictException(
+                    "Refund would exceed the captured amount of this payment.");
+            }
 
             var refundResult = await stripeService.RefundPaymentAsync(
                 paymentIntentId: payment.StripePaymentIntentId!,

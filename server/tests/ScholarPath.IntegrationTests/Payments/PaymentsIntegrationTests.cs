@@ -90,7 +90,6 @@ public class PaymentsIntegrationTests : IClassFixture<PaymentsWebApplicationFact
             Type: PaymentType.ConsultantBooking,
             AmountCents: 5000,
             Currency: "USD",
-            PayerUserId: _factory.SeededStudentId,
             PayeeUserId: _factory.SeededConsultantId,
             RelatedBookingId: bookingId,
             RelatedApplicationId: null);
@@ -123,7 +122,6 @@ public class PaymentsIntegrationTests : IClassFixture<PaymentsWebApplicationFact
             Type: PaymentType.ConsultantBooking,
             AmountCents: 0,
             Currency: "USD",
-            PayerUserId: _factory.SeededStudentId,
             PayeeUserId: null,
             RelatedBookingId: Guid.NewGuid(),
             RelatedApplicationId: null);
@@ -143,7 +141,6 @@ public class PaymentsIntegrationTests : IClassFixture<PaymentsWebApplicationFact
             Type: PaymentType.ConsultantBooking,
             AmountCents: 3000,
             Currency: "USD",
-            PayerUserId: _factory.SeededStudentId,
             PayeeUserId: _factory.SeededConsultantId,
             RelatedBookingId: bookingId,
             RelatedApplicationId: null);

@@ -19,6 +19,7 @@ public sealed class SubmitCompanyRatingCommandHandler(
     public async Task<Guid> Handle(SubmitCompanyRatingCommand request, CancellationToken ct)
     {
         var application = await db.Applications
+            .Include(a => a.Scholarship)
             .FirstOrDefaultAsync(a => a.Id == request.ApplicationId, ct)
             ?? throw new NotFoundException(nameof(ApplicationTracker), request.ApplicationId);
 
@@ -32,6 +33,11 @@ public sealed class SubmitCompanyRatingCommandHandler(
             throw new ConflictException("Application must be in a final state to submit a review.");
         }
 
+        // Resolve the rated company server-side from the scholarship owner —
+        // never trust a client-supplied CompanyId (defamation vector).
+        var companyId = application.Scholarship?.OwnerCompanyId
+            ?? throw new ConflictException("This application is not linked to a company.");
+
         var existingReview = await db.CompanyReviews
             .AnyAsync(r => r.ApplicationTrackerId == request.ApplicationId, ct);
 
@@ -44,7 +50,7 @@ public sealed class SubmitCompanyRatingCommandHandler(
         {
             ApplicationTrackerId = request.ApplicationId,
             StudentId = application.StudentId,
-            CompanyId = request.CompanyId,
+            CompanyId = companyId,
             Rating = request.Rating,
             Comment = request.Comment
         };
@@ -53,14 +59,17 @@ public sealed class SubmitCompanyRatingCommandHandler(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         await notifications.DispatchAsync(
-            request.CompanyId,
+            companyId,
             NotificationType.CompanyRatingReceived,
-            new NotificationContent("New Rating", "تقييم جديد", $"You received a {request.Rating}-star rating.", $"لقد حصلت على تقييم {request.Rating} نجوم.", null),            null,
+            new NotificationContent("New Rating", "تقييم جديد",
+                $"You received a {request.Rating}-star rating.",
+                $"لقد حصلت على تقييم {request.Rating} نجوم.", null),
+            null,
             null,
             ct);
 
         logger.LogInformation("Student {StudentId} submitted a {Rating}-star rating for company {CompanyId}",
-            currentUser.UserId, request.Rating, request.CompanyId);
+            currentUser.UserId, request.Rating, companyId);
 
         return review.Id;
     }
