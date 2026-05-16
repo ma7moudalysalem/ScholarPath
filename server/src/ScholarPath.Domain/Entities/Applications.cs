@@ -11,8 +11,8 @@ public class ApplicationTracker : AuditableEntity, ISoftDeletable
     public ApplicationStatus Status { get; set; } = ApplicationStatus.Draft;
 
     // For in-app submissions
-    public string? FormDataJson { get; set; } // student's answers to listing schema
-    public string? AttachedDocumentsJson { get; set; } // references to uploaded blob URLs
+    public string? FormDataJson { get; set; }
+    public string? AttachedDocumentsJson { get; set; }
 
     // For external listings
     public string? ExternalTrackingUrl { get; set; }
@@ -23,9 +23,26 @@ public class ApplicationTracker : AuditableEntity, ISoftDeletable
     public DateTimeOffset? ReviewStartedAt { get; set; }
     public DateTimeOffset? DecisionAt { get; set; }
     public string? DecisionReason { get; set; }
-    public bool IsReadOnly { get; set; } // true on Accepted/Rejected (final)
+
+    /// <summary>
+    /// True when the application is in a non-terminal state.
+    /// Terminal states: Withdrawn, Rejected, Accepted, Shortlisted.
+    /// </summary>
     public bool IsActive =>
-        Status is not (ApplicationStatus.Withdrawn or ApplicationStatus.Rejected or ApplicationStatus.Accepted);
+        Status is not (
+            ApplicationStatus.Withdrawn or
+            ApplicationStatus.Rejected or
+            ApplicationStatus.Accepted or
+            ApplicationStatus.Shortlisted);
+
+    /// <summary>
+    /// True once a final decision has been reached and the application can no longer be edited.
+    /// </summary>
+    public bool IsReadOnly =>
+        Status is
+            ApplicationStatus.Accepted or
+            ApplicationStatus.Rejected or
+            ApplicationStatus.Withdrawn;
 
     // Reminders / personal notes
     public DateTimeOffset? NextReminderAt { get; set; }

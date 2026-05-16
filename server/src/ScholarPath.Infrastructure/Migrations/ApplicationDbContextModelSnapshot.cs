@@ -333,9 +333,6 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsReadOnly")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Mode")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -387,7 +384,8 @@ namespace ScholarPath.Infrastructure.Migrations
 
                     b.HasIndex("StudentId", "ScholarshipId")
                         .IsUnique()
-                        .HasFilter("[Status] <> 'Withdrawn' AND [Status] <> 'Rejected' AND [Status] <> 'Accepted'");
+                        .HasDatabaseName("UX_Applications_Student_Scholarship_Active")
+                        .HasFilter("[Status] NOT IN ('6', '5', '4')");
 
                     b.ToTable("Applications");
                 });

@@ -67,6 +67,9 @@ publish/
 out/
 *.nupkg
 artifacts/
+*.zip
+*.7z
+*.rar
 
 # ============================== Docker ==============================
 docker-compose.override.yml
