@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ScholarPath.Application.Applications.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
@@ -32,6 +33,8 @@ public sealed class ReviewApplicationCommandHandler(
         }
 
         var oldStatus = application.Status;
+        ApplicationStateMachine.EnsureTransition(oldStatus, request.Status);
+
         application.Status = request.Status;
         application.DecisionAt = DateTimeOffset.UtcNow;
         application.DecisionReason = request.DecisionReason;
