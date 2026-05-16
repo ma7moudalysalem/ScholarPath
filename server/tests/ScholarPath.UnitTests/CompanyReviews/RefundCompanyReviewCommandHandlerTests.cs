@@ -44,7 +44,8 @@ public class RefundCompanyReviewCommandHandlerTests
             ApplicationTrackerId = appId,
             Status = PaymentStatus.Held,
             StripePaymentIntentId = "pi_123",
-            AmountUsd = 100m
+            AmountUsd = 100m,
+            IdempotencyKey = $"test-idem-{appId:N}"
         };
 
         _db.CompanyReviewPayments.Add(payment);
@@ -73,7 +74,8 @@ public class RefundCompanyReviewCommandHandlerTests
             ApplicationTrackerId = appId,
             Status = PaymentStatus.Held,
             StripePaymentIntentId = "pi_123",
-            AmountUsd = 100m
+            AmountUsd = 100m,
+            IdempotencyKey = $"test-idem-{appId:N}"
         };
 
         _db.CompanyReviewPayments.Add(payment);

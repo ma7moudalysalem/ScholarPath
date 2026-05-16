@@ -57,7 +57,7 @@ public class SendMessageCommandHandlerTests
         _db.UserBlocks.Add(block);
         await _db.SaveChangesAsync();
 
-        var command = new SendMessageCommand(conversationId, "Hello");
+        var command = new SendMessageCommand(recipientId, "Hello");
 
         // Act & Assert
         await Assert.ThrowsAsync<ConflictException>(() => _handler.Handle(command, CancellationToken.None));

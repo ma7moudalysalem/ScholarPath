@@ -10,36 +10,43 @@ namespace ScholarPath.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            //   Full-Text Catalog
+            // Full-Text Search is an optional SQL Server component. Create the
+            // catalog + index only when it is installed; otherwise skip — the
+            // scholarship search falls back to LIKE and the schema still builds
+            // (e.g. local SQL Server without the FT feature).
             migrationBuilder.Sql(
-                sql: "CREATE FULLTEXT CATALOG ScholarshipCatalog AS DEFAULT;",
-                suppressTransaction: true);
+                sql: """
+                    IF (SELECT SERVERPROPERTY('IsFullTextInstalled')) = 1
+                    BEGIN
+                        IF NOT EXISTS (SELECT 1 FROM sys.fulltext_catalogs WHERE name = 'ScholarshipCatalog')
+                            EXEC('CREATE FULLTEXT CATALOG ScholarshipCatalog AS DEFAULT;');
 
-            // 2   Full-Text Index  
-            migrationBuilder.Sql(
-                sql: @"
-                    CREATE FULLTEXT INDEX ON Scholarships (
-                        TitleEn LANGUAGE 1033, 
-                        TitleAr LANGUAGE 1025, 
-                        DescriptionEn LANGUAGE 1033, 
-                        DescriptionAr LANGUAGE 1025
-                    ) 
-                    KEY INDEX PK_Scholarships 
-                    WITH STOPLIST = SYSTEM;",
+                        IF NOT EXISTS (SELECT 1 FROM sys.fulltext_indexes WHERE object_id = OBJECT_ID('Scholarships'))
+                            EXEC('CREATE FULLTEXT INDEX ON Scholarships (
+                                TitleEn LANGUAGE 1033,
+                                TitleAr LANGUAGE 1025,
+                                DescriptionEn LANGUAGE 1033,
+                                DescriptionAr LANGUAGE 1025
+                            ) KEY INDEX PK_Scholarships WITH STOPLIST = SYSTEM;');
+                    END
+                    """,
                 suppressTransaction: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // dleting the full-text index
             migrationBuilder.Sql(
-                sql: "DROP FULLTEXT INDEX ON Scholarships;",
-                suppressTransaction: true);
+                sql: """
+                    IF (SELECT SERVERPROPERTY('IsFullTextInstalled')) = 1
+                    BEGIN
+                        IF EXISTS (SELECT 1 FROM sys.fulltext_indexes WHERE object_id = OBJECT_ID('Scholarships'))
+                            EXEC('DROP FULLTEXT INDEX ON Scholarships;');
 
-            // dleting the full-text cataiog
-            migrationBuilder.Sql(
-                sql: "DROP FULLTEXT CATALOG ScholarshipCatalog;",
+                        IF EXISTS (SELECT 1 FROM sys.fulltext_catalogs WHERE name = 'ScholarshipCatalog')
+                            EXEC('DROP FULLTEXT CATALOG ScholarshipCatalog;');
+                    END
+                    """,
                 suppressTransaction: true);
         }
     }
