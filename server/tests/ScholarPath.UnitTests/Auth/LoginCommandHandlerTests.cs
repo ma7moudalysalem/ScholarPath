@@ -115,7 +115,7 @@ public sealed class LoginCommandHandlerTests : IDisposable
             _db.LoginAttempts.Add(new LoginAttempt
             {
                 Id = Guid.NewGuid(),
-                Email = Email,
+                Email = Email.ToUpperInvariant(),
                 Succeeded = false,
                 OccurredAt = _now.AddMinutes(-5),
             });

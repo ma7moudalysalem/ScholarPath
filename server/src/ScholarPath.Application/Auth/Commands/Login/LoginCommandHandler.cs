@@ -30,25 +30,32 @@ public sealed class LoginCommandHandler(
 
         if (user is null)
         {
-            db.LoginAttempts.Add(BuildAttempt(email, null, false, "User not found", request, now));
+            db.LoginAttempts.Add(BuildAttempt(normalizedEmail, null, false, "User not found", request, now));
             await db.SaveChangesAsync(ct);
             throw new ConflictException("Invalid email or password.");
         }
 
         if (user.LockoutEnd is { } lockoutEnd && lockoutEnd > now)
+        {
+            db.LoginAttempts.Add(BuildAttempt(normalizedEmail, user.Id, false, "Account locked", request, now));
+            await db.SaveChangesAsync(ct);
             throw new ConflictException("Account is temporarily locked. Please try again later.");
+        }
 
         var passwordValid = !string.IsNullOrEmpty(user.PasswordHash)
             && passwordHasher.Verify(user.PasswordHash, request.Password);
 
         if (!passwordValid)
         {
-            db.LoginAttempts.Add(BuildAttempt(email, user.Id, false, "Wrong password", request, now));
+            db.LoginAttempts.Add(BuildAttempt(normalizedEmail, user.Id, false, "Wrong password", request, now));
 
-            // Count previously-persisted failures in the rolling window; +1 for this attempt.
+            // Count *consecutive* failures: inside the rolling window AND since the last successful login.
             var windowStart = now - LockoutWindow;
+            if (user.LastLoginAt is { } lastLogin && lastLogin > windowStart)
+                windowStart = lastLogin;
+
             var priorFailures = await db.LoginAttempts
-                .CountAsync(a => a.Email == email && !a.Succeeded && a.OccurredAt >= windowStart, ct);
+                .CountAsync(a => a.Email == normalizedEmail && !a.Succeeded && a.OccurredAt >= windowStart, ct);
 
             if (priorFailures + 1 >= MaxFailedAttempts)
             {
@@ -63,7 +70,7 @@ public sealed class LoginCommandHandler(
         user.AccessFailedCount = 0;
         user.LockoutEnd = null;
         user.LastLoginAt = now;
-        db.LoginAttempts.Add(BuildAttempt(email, user.Id, true, null, request, now));
+        db.LoginAttempts.Add(BuildAttempt(normalizedEmail, user.Id, true, null, request, now));
         await db.SaveChangesAsync(ct);
 
         var roles = await userAdministration.GetRolesAsync(user.Id, ct);
@@ -72,10 +79,10 @@ public sealed class LoginCommandHandler(
     }
 
     private static LoginAttempt BuildAttempt(
-        string email, Guid? userId, bool succeeded, string? reason, LoginCommand request, DateTimeOffset now) =>
+        string normalizedEmail, Guid? userId, bool succeeded, string? reason, LoginCommand request, DateTimeOffset now) =>
         new()
         {
-            Email = email,
+            Email = normalizedEmail,
             UserId = userId,
             Succeeded = succeeded,
             FailureReason = reason,

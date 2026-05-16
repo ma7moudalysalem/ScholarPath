@@ -131,12 +131,15 @@ public class ApplicationDbContext(
         // أضيفي هذا التعديل داخل الكلاس الموجود سابقاً
         try
         {
-            return await base.SaveChangesAsync(cancellationToken);
+            var result = await base.SaveChangesAsync(cancellationToken);
+            // Publish domain events only after the changes are durably persisted.
+            await DispatchDomainEventsAsync(cancellationToken);
+            return result;
         }
         catch (DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx
                                            && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
         {
-            // تحويل خطأ قاعدة البيانات (Unique Index) إلى خطأ منطقي يفهمه الـ API
+            // Translate a unique-index violation into a domain-level conflict the API understands.
             throw new ConflictException("An active application already exists for this scholarship.");
         }
     }
