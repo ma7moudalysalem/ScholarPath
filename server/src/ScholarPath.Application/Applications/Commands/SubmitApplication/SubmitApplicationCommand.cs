@@ -30,6 +30,7 @@ public sealed class SubmitApplicationCommandHandler(
 
         // 2. Load application and verify ownership
         var application = await db.Applications
+            .Include(a => a.Scholarship)
             .FirstOrDefaultAsync(a =>
                 a.Id == request.ApplicationId &&
                 a.StudentId == userId, ct)
@@ -38,6 +39,23 @@ public sealed class SubmitApplicationCommandHandler(
         // 3. Validate state transition via state machine
         var oldStatus = application.Status;
         ApplicationStateMachine.EnsureTransition(oldStatus, ApplicationStatus.Pending);
+
+        // 3b. Completeness guard — an in-app application must actually be filled
+        // in (form answers + required documents) before it can leave Draft.
+        if (application.Mode == ApplicationMode.InApp && application.Scholarship is { } scholarship)
+        {
+            if (!string.IsNullOrWhiteSpace(scholarship.ApplicationFormSchemaJson)
+                && string.IsNullOrWhiteSpace(application.FormDataJson))
+            {
+                throw new ConflictException("Complete the application form before submitting.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(scholarship.RequiredDocumentsJson)
+                && string.IsNullOrWhiteSpace(application.AttachedDocumentsJson))
+            {
+                throw new ConflictException("Attach the required documents before submitting.");
+            }
+        }
 
         // 4. Apply transition
         application.Status = ApplicationStatus.Pending;
