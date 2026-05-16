@@ -1,0 +1,14 @@
+{
+  "title": "Notifications",
+  "subtitle": "Updates about your applications, bookings, and account.",
+  "loading": "Loading notifications…",
+  "loadError": "Could not load your notifications.",
+  "empty": "You're all caught up — no notifications yet.",
+  "unreadCount": "{{count}} unread",
+  "markAllRead": "Mark all as read",
+  "markRead": "Mark as read",
+  "view": "View",
+  "allRead": "All notifications marked as read.",
+  "markReadError": "Could not update the notification.",
+  "loadMore": "Load more"
+}

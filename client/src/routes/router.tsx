@@ -204,10 +204,8 @@ const AdminSettings = stub(
 const Profile = lazy(() =>
   import("@/pages/profile/Profile").then((m) => ({ default: m.Profile })),
 );
-const Notifications = stub(
-  "@Madiha6776",
-  "PB-010 Notifications",
-  ".specify/specs/PB-010-notifications",
+const Notifications = lazy(() =>
+  import("@/pages/notifications/Notifications").then((m) => ({ default: m.Notifications })),
 );
 const DataPrivacy = lazy(() =>
   import("@/pages/profile/DataPrivacy").then((m) => ({ default: m.DataPrivacy })),
