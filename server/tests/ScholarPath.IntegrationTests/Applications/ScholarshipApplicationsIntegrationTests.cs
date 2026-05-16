@@ -81,8 +81,14 @@ public class ScholarshipApplicationsFactory : WebApplicationFactory<Program>, IA
         {
             Id = SeededStudentId,
             UserName = "teststudent@scholarpath.test",
+            NormalizedUserName = "TESTSTUDENT@SCHOLARPATH.TEST",
             Email = "teststudent@scholarpath.test",
-            AccountStatus = AccountStatus.Active
+            NormalizedEmail = "TESTSTUDENT@SCHOLARPATH.TEST",
+            EmailConfirmed = true,
+            FirstName = "Test",
+            LastName = "Student",
+            AccountStatus = AccountStatus.Active,
+            ActiveRole = "Student"
         };
 
         db.Users.Add(student);
