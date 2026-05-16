@@ -1,0 +1,57 @@
+{
+  "page": {
+    "title": "طلباتي",
+    "total": "{{count}} طلب",
+    "inApp": "الطلبات داخل المنصة",
+    "external": "المتابعة الخارجية"
+  },
+  "status": {
+    "Draft": "مسودة",
+    "Pending": "قيد الانتظار",
+    "UnderReview": "قيد المراجعة",
+    "Shortlisted": "في القائمة المختصرة",
+    "Accepted": "مقبول",
+    "Rejected": "مرفوض",
+    "Withdrawn": "منسحب",
+    "Intending": "في النية",
+    "Applied": "تم التقديم",
+    "WaitingResult": "بانتظار النتيجة"
+  },
+  "card": {
+    "deadline": "الموعد النهائي:",
+    "submitted": "تاريخ التقديم:",
+    "readOnly": "للقراءة فقط"
+  },
+  "kanban": {
+    "empty": "لا توجد طلبات"
+  },
+  "empty": {
+    "title": "لا توجد طلبات بعد",
+    "body": "ابدأ باستكشاف المنح الدراسية المتاحة.",
+    "cta": "تصفح المنح"
+  },
+  "detail": {
+    "back": "العودة إلى الطلبات",
+    "deadline": "الموعد النهائي:",
+    "submit": "تقديم الطلب",
+    "submitSuccess": "تم تقديم الطلب بنجاح",
+    "withdraw": "سحب الطلب",
+    "withdrawSuccess": "تم سحب الطلب",
+    "updateExternal": "تحديث حالة المتابعة",
+    "externalStatus": "الحالة",
+    "notes": "ملاحظات",
+    "notesPlaceholder": "أضف ملاحظات حول تقدمك في التقديم...",
+    "updateExternalBtn": "تحديث الحالة",
+    "externalUpdated": "تم تحديث الحالة",
+    "viewExternal": "عرض على الموقع الخارجي",
+    "timeline": "سجل الحالة",
+    "decisionReason": "سبب القرار"
+  },
+  "withdraw": {
+    "title": "سحب الطلب",
+    "body": "هل أنت متأكد من سحب هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.",
+    "reason": "السبب (اختياري)",
+    "reasonPlaceholder": "أخبرنا لماذا تسحب طلبك...",
+    "confirm": "تأكيد السحب"
+  }
+}

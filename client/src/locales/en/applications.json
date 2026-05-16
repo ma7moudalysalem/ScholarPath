@@ -1,0 +1,57 @@
+{
+  "page": {
+    "title": "My Applications",
+    "total": "{{count}} applications",
+    "inApp": "In-App Applications",
+    "external": "External Tracker"
+  },
+  "status": {
+    "Draft": "Draft",
+    "Pending": "Pending",
+    "UnderReview": "Under Review",
+    "Shortlisted": "Shortlisted",
+    "Accepted": "Accepted",
+    "Rejected": "Rejected",
+    "Withdrawn": "Withdrawn",
+    "Intending": "Intending",
+    "Applied": "Applied",
+    "WaitingResult": "Waiting Result"
+  },
+  "card": {
+    "deadline": "Deadline:",
+    "submitted": "Submitted:",
+    "readOnly": "Read-only"
+  },
+  "kanban": {
+    "empty": "No applications"
+  },
+  "empty": {
+    "title": "No applications yet",
+    "body": "Start by exploring available scholarships.",
+    "cta": "Browse Scholarships"
+  },
+  "detail": {
+    "back": "Back to Applications",
+    "deadline": "Deadline:",
+    "submit": "Submit Application",
+    "submitSuccess": "Application submitted successfully",
+    "withdraw": "Withdraw Application",
+    "withdrawSuccess": "Application withdrawn",
+    "updateExternal": "Update Tracking Status",
+    "externalStatus": "Status",
+    "notes": "Notes",
+    "notesPlaceholder": "Add notes about your application progress...",
+    "updateExternalBtn": "Update Status",
+    "externalUpdated": "Status updated",
+    "viewExternal": "View on external site",
+    "timeline": "Status History",
+    "decisionReason": "Decision Reason"
+  },
+  "withdraw": {
+    "title": "Withdraw Application",
+    "body": "Are you sure you want to withdraw this application? This action cannot be undone.",
+    "reason": "Reason (optional)",
+    "reasonPlaceholder": "Tell us why you are withdrawing...",
+    "confirm": "Confirm Withdrawal"
+  }
+}
