@@ -233,6 +233,8 @@ if (hangfireOpts.Enabled)
     recurring.AddOrUpdate<ICompletionJob>("booking-completion", j => j.RunAsync(CancellationToken.None), "*/15 * * * *"); // every 15 min
     recurring.AddOrUpdate<IStripePayoutJob>("stripe-payouts", j => j.RunAsync(CancellationToken.None), Cron.Daily(2));
     recurring.AddOrUpdate<IDeadlineReminderJob>("deadline-reminders", j => j.RunAsync(CancellationToken.None), Cron.Daily(9));
+    // PB-005 — auto-refund review fees for applications companies failed to action within 14 days of the deadline.
+    recurring.AddOrUpdate<ICompanyReviewTimeoutRefundJob>("company-review-timeout-refund", j => j.RunAsync(CancellationToken.None), Cron.Daily(5));
     // PB-017 FR-254 — monthly PII-redaction sampling. First day of the month at 02:00 UTC.
     recurring.AddOrUpdate<IRedactionAuditSamplingJob>("redaction-audit-sampling", j => j.RunAsync(CancellationToken.None), "0 2 1 * *");
 }

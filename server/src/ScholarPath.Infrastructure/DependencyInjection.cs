@@ -6,7 +6,6 @@ using Microsoft.Extensions.Options;
 using ScholarPath.Application.Ai.Common;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Common.Models;
-using ScholarPath.Application.Payments.Commands.HandleStripeWebhook;
 using ScholarPath.Application.Scholarships.Commands;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
@@ -24,7 +23,6 @@ public static class DependencyInjection
         // ─── Options ────────────────────────────────────────────────────────────
         services.Configure<JwtOptions>(config.GetSection(JwtOptions.SectionName));
         services.Configure<StripeOptions>(config.GetSection(StripeOptions.SectionName));
-        services.Configure<StripeSettings>(config.GetSection(StripeOptions.SectionName));
         services.Configure<EmailOptions>(config.GetSection(EmailOptions.SectionName));
         services.Configure<RedisOptions>(config.GetSection(RedisOptions.SectionName));
         services.Configure<HangfireOptions>(config.GetSection(HangfireOptions.SectionName));

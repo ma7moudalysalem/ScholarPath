@@ -31,6 +31,9 @@ public sealed class WithdrawApplicationCommandHandler(
             throw new ConflictException("Application cannot be withdrawn at this stage.");
         }
 
+        // Capture the pre-withdrawal status — it decides the refund tier below.
+        var statusBeforeWithdrawal = application.Status;
+
         application.Status = ApplicationStatus.Withdrawn;
         application.WithdrawnAt = DateTimeOffset.UtcNow;
 
@@ -39,8 +42,12 @@ public sealed class WithdrawApplicationCommandHandler(
 
         if (payment != null)
         {
-            // Refund policy: withdraws after submit -> refund 50%. Since it's held, it's considered "after submit".
-            var refundCommand = new ScholarPath.Application.CompanyReviews.Commands.RefundCompanyReview.RefundCompanyReviewCommand(application.Id, IsFullRefund: false);
+            // Refund policy: withdraw before the company starts reviewing -> 100%;
+            // withdraw once it is already under review -> 50%.
+            var isFullRefund = statusBeforeWithdrawal
+                is ApplicationStatus.Draft or ApplicationStatus.Pending;
+            var refundCommand = new ScholarPath.Application.CompanyReviews.Commands.RefundCompanyReview.RefundCompanyReviewCommand(
+                application.Id, IsFullRefund: isFullRefund);
             await sender.Send(refundCommand, ct);
         }
 

@@ -52,6 +52,9 @@ new NotificationContent("Payment Captured", "تم تحصيل الدفعة", $"Pa
                 return true;
             }
 
+            logger.LogWarning(
+                "Capture for application {ApplicationId} returned Stripe status {Status}; payment left as Held.",
+                request.ApplicationId, stripeResult.Status);
             return false;
         }
         catch (Exception ex)

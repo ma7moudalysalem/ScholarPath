@@ -34,7 +34,7 @@ public sealed class RefundCompanyReviewCommandHandler(
                 await stripeService.CancelPaymentIntentAsync(
                     payment.StripePaymentIntentId,
                     "requested_by_customer",
-                    Guid.NewGuid().ToString("N"),
+                    $"company-review-refund:{payment.Id:N}:full",
                     ct);
 
                 payment.Status = PaymentStatus.Refunded;
@@ -79,6 +79,15 @@ public sealed class RefundCompanyReviewCommandHandler(
                             null,
                             ct);
                     }
+                }
+                else
+                {
+                    // Stripe did not confirm the partial capture — leave the payment
+                    // as Held (don't persist a fake refund) and let the caller retry.
+                    logger.LogError(
+                        "Partial refund for application {ApplicationId} did not succeed (Stripe status {Status}). Payment left as Held.",
+                        request.ApplicationId, stripeResult.Status);
+                    return false;
                 }
             }
 
