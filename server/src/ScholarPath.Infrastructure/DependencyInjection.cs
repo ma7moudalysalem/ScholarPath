@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ScholarPath.Application.Ai.Common;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Common.Models;
 using ScholarPath.Application.Payments.Commands.HandleStripeWebhook;
 using ScholarPath.Application.Scholarships.Commands;
 using ScholarPath.Domain.Entities;
@@ -29,6 +30,7 @@ public static class DependencyInjection
         services.Configure<HangfireOptions>(config.GetSection(HangfireOptions.SectionName));
         services.Configure<StorageOptions>(config.GetSection(StorageOptions.SectionName));
         services.Configure<AiOptions>(config.GetSection(AiOptions.SectionName));
+        services.Configure<AppOptions>(config.GetSection(AppOptions.SectionName));
 
         // Project AiOptions into the Application-side snapshot so the cost gate
         // doesn't have to know about Infrastructure's full options type.

@@ -2,10 +2,12 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using ScholarPath.Application.Auth.Commands.ForgotPassword;
 using ScholarPath.Application.Auth.Commands.Login;
 using ScholarPath.Application.Auth.Commands.Logout;
 using ScholarPath.Application.Auth.Commands.RefreshToken;
 using ScholarPath.Application.Auth.Commands.Register;
+using ScholarPath.Application.Auth.Commands.ResetPassword;
 using ScholarPath.Application.Auth.Commands.SsoLogin;
 using ScholarPath.Application.Auth.Commands.SwitchRole;
 using ScholarPath.Application.Auth.DTOs;
@@ -70,39 +72,43 @@ public sealed class AuthController(IMediator mediator, ISsoService ssoService) :
         return NoContent();
     }
 
+    /// <summary>Email a one-time, 1-hour password-reset link. Always returns 204 (no account enumeration).</summary>
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ForgotPassword(
+        [FromBody] ForgotPasswordRequestDto request, CancellationToken ct)
+    {
+        await mediator.Send(new ForgotPasswordCommand(request.Email), ct);
+        return NoContent();
+    }
+
+    /// <summary>Consume a password-reset token, set the new password, and revoke all active sessions.</summary>
+    [HttpPost("reset-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ResetPassword(
+        [FromBody] ResetPasswordRequestDto request, CancellationToken ct)
+    {
+        await mediator.Send(new ResetPasswordCommand(request.Token, request.NewPassword), ct);
+        return NoContent();
+    }
+
     /// <summary>Return the authenticated user's profile summary.</summary>
     [HttpGet("me")]
     [Authorize]
     [ProducesResponseType(typeof(CurrentUserDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<CurrentUserDto>> GetMe(CancellationToken ct)
-    {
-        var result = await mediator.Send(new GetCurrentUserQuery(), ct);
-        return Ok(result);
-    }
+        => Ok(await mediator.Send(new GetCurrentUserQuery(), ct));
 
-    // ─── Still scaffolded — PB-001 remaining work ────────────────────────────
-    // forgot/reset/change password, switch-role, Google/Microsoft SSO.
-
-    [HttpPost("forgot-password")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public IActionResult ForgotPassword([FromBody] ForgotPasswordRequestDto request)
-        => NotImplementedForTeam("ForgotPasswordCommand");
-
-    [HttpPost("reset-password")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public IActionResult ResetPassword([FromBody] ResetPasswordRequestDto request)
-        => NotImplementedForTeam("ResetPasswordCommand");
-
+    /// <summary>Switch the active role for a dual-role account; re-issues the token pair.</summary>
     [HttpPost("switch-role")]
     [Authorize]
     [ProducesResponseType(typeof(AuthTokensDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<AuthTokensDto>> SwitchRole(
         [FromBody] SwitchRoleRequestDto request, CancellationToken ct)
-    {
-        var result = await mediator.Send(new SwitchRoleCommand(request.TargetRole), ct);
-        return Ok(result);
-    }
+        => Ok(await mediator.Send(new SwitchRoleCommand(request.TargetRole), ct));
 
     [HttpGet("google/authorize")]
     [ProducesResponseType(StatusCodes.Status302Found)]
@@ -133,11 +139,4 @@ public sealed class AuthController(IMediator mediator, ISsoService ssoService) :
         var ua = Request.Headers.UserAgent.ToString();
         return string.IsNullOrWhiteSpace(ua) ? null : ua;
     }
-
-    private NotFoundObjectResult NotImplementedForTeam(string nextStep) =>
-        NotFound(new
-        {
-            status = "scaffold",
-            message = $"Handler not yet implemented: {nextStep} (PB-001 remaining work).",
-        });
 }

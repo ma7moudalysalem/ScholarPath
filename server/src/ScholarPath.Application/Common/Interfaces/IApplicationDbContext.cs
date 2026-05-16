@@ -12,6 +12,7 @@ public interface IApplicationDbContext
     DbSet<ApplicationUser> Users { get; }
     DbSet<UserProfile> UserProfiles { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<PasswordResetToken> PasswordResetTokens { get; }
     DbSet<LoginAttempt> LoginAttempts { get; }
     DbSet<UpgradeRequest> UpgradeRequests { get; }
     DbSet<UpgradeRequestFile> UpgradeRequestFiles { get; }
