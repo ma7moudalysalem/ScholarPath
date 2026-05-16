@@ -6,16 +6,18 @@ using ScholarPath.Application.Auth.Commands.Login;
 using ScholarPath.Application.Auth.Commands.Logout;
 using ScholarPath.Application.Auth.Commands.RefreshToken;
 using ScholarPath.Application.Auth.Commands.Register;
+using ScholarPath.Application.Auth.Commands.SsoLogin;
 using ScholarPath.Application.Auth.Commands.SwitchRole;
 using ScholarPath.Application.Auth.DTOs;
 using ScholarPath.Application.Auth.Queries.GetCurrentUser;
+using ScholarPath.Application.Common.Interfaces;
 
 namespace ScholarPath.API.Controllers;
 
 [ApiController]
 [Route("api/auth")]
 [Produces("application/json")]
-public sealed class AuthController(IMediator mediator) : ControllerBase
+public sealed class AuthController(IMediator mediator, ISsoService ssoService) : ControllerBase
 {
     /// <summary>Register a new account (Unassigned status) and return the initial token pair.</summary>
     [HttpPost("register")]
@@ -105,22 +107,24 @@ public sealed class AuthController(IMediator mediator) : ControllerBase
     [HttpGet("google/authorize")]
     [ProducesResponseType(StatusCodes.Status302Found)]
     public IActionResult GoogleAuthorize([FromQuery] string redirectUri)
-        => NotImplementedForTeam("ISsoService.BuildGoogleAuthorizeUrl");
+        => Redirect(ssoService.BuildGoogleAuthorizeUrl(redirectUri, Guid.NewGuid().ToString("N")));
 
     [HttpGet("google/callback")]
     [ProducesResponseType(typeof(AuthTokensDto), StatusCodes.Status200OK)]
-    public IActionResult GoogleCallback([FromQuery] string code, [FromQuery] string redirectUri)
-        => NotImplementedForTeam("GoogleSsoCallbackCommand");
+    public async Task<ActionResult<AuthTokensDto>> GoogleCallback(
+        [FromQuery] string code, [FromQuery] string redirectUri, CancellationToken ct)
+        => Ok(await mediator.Send(new SsoLoginCommand("Google", code, redirectUri), ct));
 
     [HttpGet("microsoft/authorize")]
     [ProducesResponseType(StatusCodes.Status302Found)]
     public IActionResult MicrosoftAuthorize([FromQuery] string redirectUri)
-        => NotImplementedForTeam("ISsoService.BuildMicrosoftAuthorizeUrl");
+        => Redirect(ssoService.BuildMicrosoftAuthorizeUrl(redirectUri, Guid.NewGuid().ToString("N")));
 
     [HttpGet("microsoft/callback")]
     [ProducesResponseType(typeof(AuthTokensDto), StatusCodes.Status200OK)]
-    public IActionResult MicrosoftCallback([FromQuery] string code, [FromQuery] string redirectUri)
-        => NotImplementedForTeam("MicrosoftSsoCallbackCommand");
+    public async Task<ActionResult<AuthTokensDto>> MicrosoftCallback(
+        [FromQuery] string code, [FromQuery] string redirectUri, CancellationToken ct)
+        => Ok(await mediator.Send(new SsoLoginCommand("Microsoft", code, redirectUri), ct));
 
     private string? ClientIp() => HttpContext.Connection.RemoteIpAddress?.ToString();
 
