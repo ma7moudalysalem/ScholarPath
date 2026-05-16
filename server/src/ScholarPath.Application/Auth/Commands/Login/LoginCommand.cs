@@ -3,14 +3,12 @@ using ScholarPath.Application.Auth.DTOs;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Domain.Enums;
 
-namespace ScholarPath.Application.Auth.Commands.Register;
+namespace ScholarPath.Application.Auth.Commands.Login;
 
-[Auditable(AuditAction.Create, "User")]
-public sealed record RegisterCommand(
+[Auditable(AuditAction.Login, "User")]
+public sealed record LoginCommand(
     string Email,
     string Password,
-    string FirstName,
-    string LastName,
     bool RememberMe,
     string? IpAddress,
     string? UserAgent) : IRequest<AuthTokensDto>;
