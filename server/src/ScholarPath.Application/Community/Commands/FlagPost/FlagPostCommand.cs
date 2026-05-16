@@ -63,8 +63,10 @@ public sealed class FlagPostCommandHandler(
         {
             post.IsAutoHidden = true;
             post.AutoHiddenAt = DateTimeOffset.UtcNow;
+            // Route the post into the admin moderation queue.
+            post.ModerationStatus = PostModerationStatus.PendingReview;
 
-            // Raise event that post was auto-hidden
+            // Raise event so admins get notified that the post needs moderation.
             post.RaiseDomainEvent(new ScholarPath.Domain.Events.PostAutoHiddenEvent(post.Id, distinctValidFlags));
         }
 
