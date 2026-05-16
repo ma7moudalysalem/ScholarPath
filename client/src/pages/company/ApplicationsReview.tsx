@@ -10,10 +10,11 @@ export function ApplicationsReview() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { data: applications = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['company', 'applications'],
     queryFn: () => applicationsApi.getCompanyApplications(),
   });
+  const applications = data?.items ?? [];
 
   const reviewMutation = useMutation({
     mutationFn: ({ id, status, reason }: { id: string; status: ApplicationStatus; reason?: string }) =>
