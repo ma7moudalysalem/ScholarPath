@@ -14,6 +14,7 @@ import enAi from "@/locales/en/ai.json";
 import enScholarships from "@/locales/en/scholarships.json";
 import enApplications from "@/locales/en/applications.json";
 import enCompany from "@/locales/en/company.json";
+import enProfile from "@/locales/en/profile.json";
 
 import arCommon from "@/locales/ar/common.json";
 import arAuth from "@/locales/ar/auth.json";
@@ -27,6 +28,7 @@ import arAi from "@/locales/ar/ai.json";
 import arScholarships from "@/locales/ar/scholarships.json";
 import arApplications from "@/locales/ar/applications.json";
 import arCompany from "@/locales/ar/company.json";
+import arProfile from "@/locales/ar/profile.json";
 
 export const supportedLanguages = ["en", "ar"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -56,6 +58,7 @@ void i18n
       "scholarships",
       "applications",
       "company",
+      "profile",
     ],
     defaultNS: "common",
     interpolation: { escapeValue: false },
@@ -78,6 +81,7 @@ void i18n
         scholarships: enScholarships,
         applications: enApplications,
         company: enCompany,
+        profile: enProfile,
       },
       ar: {
         common: arCommon,
@@ -92,6 +96,7 @@ void i18n
         scholarships: arScholarships,
         applications: arApplications,
         company: arCompany,
+        profile: arProfile,
       },
     },
   });

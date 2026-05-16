@@ -1,0 +1,51 @@
+{
+  "title": "My profile",
+  "subtitle": "Manage your account and personal information.",
+  "completeness": "Profile {{percent}}% complete",
+  "loading": "Loading your profile…",
+  "loadError": "Could not load your profile.",
+  "photo": {
+    "change": "Change photo",
+    "uploading": "Uploading…",
+    "hint": "JPG or PNG, up to 5 MB.",
+    "saved": "Photo updated.",
+    "error": "Could not upload the photo."
+  },
+  "sections": {
+    "personal": "Personal information",
+    "academic": "Academic background",
+    "organization": "Organization",
+    "consultant": "Consultant settings"
+  },
+  "fields": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "biography": "Biography",
+    "dateOfBirth": "Date of birth",
+    "nationality": "Nationality",
+    "countryOfResidence": "Country of residence",
+    "preferredLanguage": "Preferred language",
+    "linkedInUrl": "LinkedIn URL",
+    "websiteUrl": "Website",
+    "academicLevel": "Academic level",
+    "fieldOfStudy": "Field of study",
+    "currentInstitution": "Current institution",
+    "gpa": "GPA",
+    "gpaScale": "GPA scale",
+    "organizationLegalName": "Legal name",
+    "organizationWebsite": "Organization website",
+    "verificationStatus": "Verification status",
+    "sessionFeeUsd": "Session fee (USD)",
+    "sessionDurationMinutes": "Session duration (minutes)"
+  },
+  "languageOption": {
+    "none": "Not set",
+    "en": "English",
+    "ar": "Arabic"
+  },
+  "save": "Save changes",
+  "saving": "Saving…",
+  "saved": "Profile updated.",
+  "error": "Could not save your profile."
+}

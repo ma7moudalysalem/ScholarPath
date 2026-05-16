@@ -1,0 +1,51 @@
+{
+  "title": "ملفي الشخصي",
+  "subtitle": "إدارة حسابك ومعلوماتك الشخصية.",
+  "completeness": "اكتمال الملف {{percent}}%",
+  "loading": "جارٍ تحميل ملفك…",
+  "loadError": "تعذّر تحميل ملفك الشخصي.",
+  "photo": {
+    "change": "تغيير الصورة",
+    "uploading": "جارٍ الرفع…",
+    "hint": "JPG أو PNG، حتى 5 ميجابايت.",
+    "saved": "تم تحديث الصورة.",
+    "error": "تعذّر رفع الصورة."
+  },
+  "sections": {
+    "personal": "المعلومات الشخصية",
+    "academic": "الخلفية الأكاديمية",
+    "organization": "المؤسسة",
+    "consultant": "إعدادات المستشار"
+  },
+  "fields": {
+    "firstName": "الاسم الأول",
+    "lastName": "اسم العائلة",
+    "email": "البريد الإلكتروني",
+    "biography": "نبذة تعريفية",
+    "dateOfBirth": "تاريخ الميلاد",
+    "nationality": "الجنسية",
+    "countryOfResidence": "بلد الإقامة",
+    "preferredLanguage": "اللغة المفضّلة",
+    "linkedInUrl": "رابط لينكدإن",
+    "websiteUrl": "الموقع الإلكتروني",
+    "academicLevel": "المستوى الأكاديمي",
+    "fieldOfStudy": "مجال الدراسة",
+    "currentInstitution": "المؤسسة التعليمية الحالية",
+    "gpa": "المعدل التراكمي",
+    "gpaScale": "مقياس المعدل",
+    "organizationLegalName": "الاسم القانوني",
+    "organizationWebsite": "موقع المؤسسة",
+    "verificationStatus": "حالة التحقّق",
+    "sessionFeeUsd": "رسوم الجلسة (دولار)",
+    "sessionDurationMinutes": "مدة الجلسة (دقيقة)"
+  },
+  "languageOption": {
+    "none": "غير محدّد",
+    "en": "الإنجليزية",
+    "ar": "العربية"
+  },
+  "save": "حفظ التغييرات",
+  "saving": "جارٍ الحفظ…",
+  "saved": "تم تحديث الملف.",
+  "error": "تعذّر حفظ ملفك الشخصي."
+}

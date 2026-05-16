@@ -201,7 +201,9 @@ const AdminSettings = stub(
 );
 
 // Shared
-const Profile = stub("@Madiha6776", "PB-002 Profile", ".specify/specs/PB-002-profile-account");
+const Profile = lazy(() =>
+  import("@/pages/profile/Profile").then((m) => ({ default: m.Profile })),
+);
 const Notifications = stub(
   "@Madiha6776",
   "PB-010 Notifications",
