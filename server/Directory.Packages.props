@@ -7,6 +7,7 @@
     <NoWarn>$(NoWarn);NU1902;NU1903</NoWarn>
   </PropertyGroup>
   <ItemGroup Label="ASP.NET Core / EF Core 10">
+    <PackageVersion Include="MediatR.Contracts" Version="2.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.6" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.6" />
     <PackageVersion Include="Microsoft.OpenApi" Version="2.4.1" />
@@ -43,6 +44,7 @@
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+    <PackageVersion Include="HtmlSanitizer" Version="8.0.865" />
   </ItemGroup>
   <ItemGroup Label="OpenAPI / Scalar">
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.1.7" />

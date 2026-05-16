@@ -58,4 +58,4 @@ public sealed record StripePaymentIntentResult(string Id, string Status, string?
 public sealed record StripeRefundResult(string Id, string Status, long AmountCents);
 public sealed record StripeConnectAccountResult(string Id, string Status);
 public sealed record StripePayoutResult(string Id, string Status);
-public sealed record StripeWebhookParseResult(string EventId, string EventType, string DataJson);
+public sealed record StripeWebhookParseResult(string EventId, string EventType, string? PaymentIntentId, string? ChargeId, long? AmountCents, string DataJson);

@@ -1,0 +1,32 @@
+{
+  "title": "My Applications",
+  "subtitle": "Track and manage your scholarship applications in one place.",
+  "kanban": {
+    "columns": {
+      "Draft": "Drafts",
+      "Pending": "Applied",
+      "UnderReview": "Under Review",
+      "Accepted": "Accepted",
+      "Rejected": "Rejected",
+      "Withdrawn": "Withdrawn",
+      "Intending": "Intending to Apply",
+      "Applied": "Applied",
+      "WaitingResult": "Waiting Result"
+    },
+    "emptyColumn": "No applications here",
+    "moveSuccess": "Status updated successfully",
+    "moveError": "Failed to update status"
+  },
+  "card": {
+    "viewDetails": "View Details",
+    "external": "External",
+    "inApp": "In-App",
+    "updated": "Updated"
+  },
+  "review": {
+    "triggerTitle": "Rate your experience",
+    "triggerBody": "You've reached a final decision for {{company}}. Would you like to leave a review?",
+    "rateNow": "Rate Now",
+    "maybeLater": "Maybe Later"
+  }
+}

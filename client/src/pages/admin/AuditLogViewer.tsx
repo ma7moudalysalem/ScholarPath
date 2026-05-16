@@ -177,7 +177,7 @@ export function AuditLogViewer() {
             {!isLoading && (data?.items.length ?? 0) === 0 && (
               <tr><td colSpan={6} className="px-4 py-6 text-center text-text-tertiary">{t("admin:audit.empty")}</td></tr>
             )}
-            {data?.items.map((row) => (
+            {data?.items.map((row: AuditLogDto) => (
               <tr key={row.id} className="border-t border-border-subtle hover:bg-bg-subtle/40">
                 <td className="px-4 py-3 text-xs tabular-nums text-text-tertiary">
                   {format(new Date(row.occurredAt), "yyyy-MM-dd HH:mm:ss")}

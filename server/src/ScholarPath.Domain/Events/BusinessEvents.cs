@@ -31,3 +31,6 @@ public record ResourcePublishedEvent(Guid ResourceId, Guid AuthorUserId) : Domai
 public record ResourceRejectedEvent(Guid ResourceId, Guid AuthorUserId, string Reason) : DomainEvent;
 
 public record AdminBroadcastSentEvent(Guid BroadcastId, int RecipientCount) : DomainEvent;
+
+public record ForumPostCreatedEvent(Guid PostId, Guid AuthorId, Guid CategoryId) : DomainEvent;
+public record ForumReplyCreatedEvent(Guid ReplyId, Guid ParentPostId, Guid AuthorId) : DomainEvent;

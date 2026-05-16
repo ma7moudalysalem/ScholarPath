@@ -1,0 +1,35 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "cancelAndReturn": "Cancel and Return"
+  },
+  "dashboard": {
+    "title": "Company Ratings",
+    "subtitle": "View feedback from students whose applications you reviewed.",
+    "basedOn": "Based on {{count}} ratings",
+    "recentReviews": "Recent Reviews",
+    "noReviewsTitle": "No ratings yet",
+    "noReviewsDescription": "You haven't received any ratings from students yet. Ratings will appear here after you review applications.",
+    "noComment": "No comment provided."
+  },
+  "reviews": {
+    "rateCompanyTitle": "Rate {{company}}",
+    "rateCompanyDescription": "How was your experience applying to this company? Your feedback helps other students.",
+    "commentLabel": "Review Comment",
+    "optional": "Optional",
+    "commentPlaceholder": "Share your thoughts about the application process...",
+    "pleaseSelectRating": "Please select a star rating.",
+    "submitSuccess": "Thank you for your rating!",
+    "submitError": "Failed to submit rating. Please try again."
+  },
+  "submit": {
+    "title": "Review Fee Payment",
+    "subtitle": "Pay the review fee to submit your application for {{scholarship}}.",
+    "reviewFee": "Application Review Fee",
+    "escrowNoticeTitle": "Secure Payment (Escrow)",
+    "escrowNoticeDesc": "Your payment is held securely. {{company}} will only receive the fee after they review your application and provide a decision. If they fail to review within the deadline, you will be automatically refunded.",
+    "paymentDetails": "Payment Details"
+  }
+}

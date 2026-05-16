@@ -1,4 +1,7 @@
 import { apiClient } from "@/services/api/client";
+import type { PagedResult } from "@/types/api";
+
+export type { PagedResult };
 
 // ─── enums (mirroring server) ────────────────────────────────────────────
 export type AccountStatus = "Unassigned" | "PendingApproval" | "Active" | "Suspended" | "Deactivated";
@@ -59,13 +62,6 @@ export interface AuditLogParams {
 }
 
 // ─── DTOs ────────────────────────────────────────────────────────────────
-export interface PagedResult<T> {
-  items: T[];
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-}
 
 export interface AdminUserRow {
   id: string;
