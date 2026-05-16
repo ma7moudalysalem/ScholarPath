@@ -54,9 +54,26 @@ public sealed class TokenService(
             .Include(t => t.User)
             .FirstOrDefaultAsync(t => t.TokenHash == hash, ct).ConfigureAwait(false);
 
-        if (stored is null || stored.IsRevoked || stored.ExpiresAt < clock.UtcNow || stored.User is null)
+        if (stored is null || stored.User is null)
         {
-            logger.LogWarning("Refresh token invalid or expired");
+            logger.LogWarning("Refresh token not recognized");
+            return null;
+        }
+
+        // Reuse detection: a revoked token presented again means it was already
+        // rotated — either a replay attack or a stale client. Revoke the whole
+        // family so a stolen token cannot be exchanged.
+        if (stored.IsRevoked)
+        {
+            logger.LogWarning(
+                "Revoked refresh token replayed for user {UserId}; revoking all sessions.", stored.UserId);
+            await RevokeAllForUserAsync(stored.UserId, "Refresh token reuse detected", ct);
+            return null;
+        }
+
+        if (stored.ExpiresAt < clock.UtcNow)
+        {
+            logger.LogWarning("Refresh token expired");
             return null;
         }
 
@@ -65,9 +82,14 @@ public sealed class TokenService(
         stored.RevokedAt = clock.UtcNow;
         stored.RevokedReason = "Rotated";
 
-        // Issue fresh pair and link as replacement
+        // Issue fresh pair and link as replacement. Preserve the original
+        // "remember me" lifetime by inferring it from the stored token's span.
         var roles = new List<string>(); // role fetching lives in handler; keep empty here
-        var pair = IssueTokens(stored.User, roles, stored.User.ActiveRole, rememberMe: false);
+        var lifetimeDays = (stored.ExpiresAt - stored.CreatedAt).TotalDays;
+        var rememberMeThreshold =
+            (_opts.RefreshTokenExpirationDays + _opts.RefreshTokenRememberMeExpirationDays) / 2.0;
+        var pair = IssueTokens(
+            stored.User, roles, stored.User.ActiveRole, rememberMe: lifetimeDays > rememberMeThreshold);
         var newHash = HashRefreshToken(pair.RefreshToken);
         var newToken = await db.RefreshTokens.FirstAsync(t => t.TokenHash == newHash, ct).ConfigureAwait(false);
         stored.ReplacedByTokenId = newToken.Id;

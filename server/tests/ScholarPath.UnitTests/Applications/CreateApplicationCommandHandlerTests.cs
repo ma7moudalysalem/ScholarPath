@@ -116,6 +116,7 @@ public class ApplicationTrackerIsActiveTests
     [InlineData(ApplicationStatus.Draft)]
     [InlineData(ApplicationStatus.Pending)]
     [InlineData(ApplicationStatus.UnderReview)]
+    [InlineData(ApplicationStatus.Shortlisted)]
     public void IsActive_Should_Be_True_For_Non_Terminal_Statuses(
         ApplicationStatus status)
     {
@@ -129,7 +130,6 @@ public class ApplicationTrackerIsActiveTests
     [InlineData(ApplicationStatus.Withdrawn)]
     [InlineData(ApplicationStatus.Rejected)]
     [InlineData(ApplicationStatus.Accepted)]
-    [InlineData(ApplicationStatus.Shortlisted)]
     public void IsActive_Should_Be_False_For_Terminal_Statuses(
         ApplicationStatus status)
     {

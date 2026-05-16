@@ -30,6 +30,10 @@ public sealed class SwitchRoleCommandHandler(
         user.ActiveRole = request.TargetRole;
         await db.SaveChangesAsync(ct);
 
+        // Invalidate every existing refresh token before issuing the new pair —
+        // a role switch must not leave sessions alive that still carry the old role.
+        await tokenService.RevokeAllForUserAsync(userId, "Role switched", ct);
+
         // Issue a fresh pair so the JWT carries the new active_role claim.
         var tokens = tokenService.IssueTokens(user, roles, request.TargetRole, rememberMe: false);
         return AuthDtoFactory.Build(tokens, user, roles);

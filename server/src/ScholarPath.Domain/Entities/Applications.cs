@@ -26,14 +26,14 @@ public class ApplicationTracker : AuditableEntity, ISoftDeletable
 
     /// <summary>
     /// True when the application is in a non-terminal state.
-    /// Terminal states: Withdrawn, Rejected, Accepted, Shortlisted.
+    /// Terminal states: Withdrawn, Rejected, Accepted. Shortlisted is intermediate —
+    /// the company has still to reach a final Accept/Reject decision.
     /// </summary>
     public bool IsActive =>
         Status is not (
             ApplicationStatus.Withdrawn or
             ApplicationStatus.Rejected or
-            ApplicationStatus.Accepted or
-            ApplicationStatus.Shortlisted);
+            ApplicationStatus.Accepted);
 
     /// <summary>
     /// True once a final decision has been reached and the application can no longer be edited.
