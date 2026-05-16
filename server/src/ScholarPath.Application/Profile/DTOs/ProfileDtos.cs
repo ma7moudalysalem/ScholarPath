@@ -1,0 +1,50 @@
+namespace ScholarPath.Application.Profile.DTOs;
+
+/// <summary>Role-agnostic profile view — Student / Company / Consultant fields are flat.</summary>
+public sealed record UserProfileDto(
+    Guid UserId,
+    string Email,
+    string FirstName,
+    string LastName,
+    string FullName,
+    string? ProfileImageUrl,
+    string AccountStatus,
+    string? CountryOfResidence,
+    string? PreferredLanguage,
+    string? Biography,
+    DateOnly? DateOfBirth,
+    string? Nationality,
+    string? LinkedInUrl,
+    string? WebsiteUrl,
+    string? AcademicLevel,
+    string? FieldOfStudy,
+    string? CurrentInstitution,
+    decimal? Gpa,
+    string? GpaScale,
+    string? OrganizationLegalName,
+    string? OrganizationWebsite,
+    string? OrganizationVerificationStatus,
+    decimal? SessionFeeUsd,
+    int? SessionDurationMinutes,
+    int CompletenessPercent);
+
+/// <summary>Partial-update payload — every field is optional (PATCH semantics).</summary>
+public sealed record UpdateProfileRequestDto(
+    string? FirstName,
+    string? LastName,
+    string? CountryOfResidence,
+    string? PreferredLanguage,
+    string? Biography,
+    DateOnly? DateOfBirth,
+    string? Nationality,
+    string? LinkedInUrl,
+    string? WebsiteUrl,
+    string? AcademicLevel,
+    string? FieldOfStudy,
+    string? CurrentInstitution,
+    decimal? Gpa,
+    string? GpaScale,
+    string? OrganizationLegalName,
+    string? OrganizationWebsite,
+    decimal? SessionFeeUsd,
+    int? SessionDurationMinutes);
