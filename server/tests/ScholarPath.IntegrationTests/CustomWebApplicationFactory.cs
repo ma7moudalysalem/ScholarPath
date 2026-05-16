@@ -53,6 +53,9 @@ public sealed class CustomWebApplicationFactory :
     public async Task InitializeAsync()
     {
         await _sqlContainer.StartAsync();
+
+        // Migrate outside the app's retrying execution strategy (see TestDatabase).
+        await TestDatabase.MigrateAsync(_sqlContainer.GetConnectionString());
     }
 
     public new async Task DisposeAsync()

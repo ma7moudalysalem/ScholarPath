@@ -64,10 +64,12 @@ public sealed class PaymentsWebApplicationFactory
     {
         await _sqlContainer.StartAsync();
 
+        // Migrate outside the app's retrying execution strategy (see TestDatabase).
+        await TestDatabase.MigrateAsync(_sqlContainer.GetConnectionString());
+
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider
             .GetRequiredService<ApplicationDbContext>();
-        await db.Database.MigrateAsync();
         await SeedUsersAsync(db);
     }
 

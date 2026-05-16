@@ -1,7 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Infrastructure.Persistence;
 
 namespace ScholarPath.IntegrationTests;
 
@@ -19,12 +17,9 @@ public abstract class IntegrationTestBase
 
     protected IntegrationTestBase(CustomWebApplicationFactory factory)
     {
+        // Migrations are applied once by CustomWebApplicationFactory.InitializeAsync.
         Factory = factory;
         Client = factory.CreateClient();
-
-        using var scope = Factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.Database.Migrate();
     }
 
     protected async Task ExecuteScopeAsync(Func<IServiceProvider, Task> action)
