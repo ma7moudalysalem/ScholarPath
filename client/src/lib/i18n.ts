@@ -22,6 +22,9 @@ import enResources from "@/locales/en/resources.json";
 import enModeration from "@/locales/en/moderation.json";
 import enSettings from "@/locales/en/settings.json";
 import enDocuments from "@/locales/en/documents.json";
+import enConsultants from "@/locales/en/consultants.json";
+import enBookings from "@/locales/en/bookings.json";
+import enConsultantPortal from "@/locales/en/consultantPortal.json";
 
 import arCommon from "@/locales/ar/common.json";
 import arAuth from "@/locales/ar/auth.json";
@@ -43,6 +46,9 @@ import arResources from "@/locales/ar/resources.json";
 import arModeration from "@/locales/ar/moderation.json";
 import arSettings from "@/locales/ar/settings.json";
 import arDocuments from "@/locales/ar/documents.json";
+import arConsultants from "@/locales/ar/consultants.json";
+import arBookings from "@/locales/ar/bookings.json";
+import arConsultantPortal from "@/locales/ar/consultantPortal.json";
 
 export const supportedLanguages = ["en", "ar"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -80,6 +86,9 @@ void i18n
       "moderation",
       "settings",
       "documents",
+      "consultants",
+      "bookings",
+      "consultantPortal",
     ],
     defaultNS: "common",
     interpolation: { escapeValue: false },
@@ -110,6 +119,9 @@ void i18n
         moderation: enModeration,
         settings: enSettings,
         documents: enDocuments,
+        consultants: enConsultants,
+        bookings: enBookings,
+        consultantPortal: enConsultantPortal,
       },
       ar: {
         common: arCommon,
@@ -132,6 +144,9 @@ void i18n
         moderation: arModeration,
         settings: arSettings,
         documents: arDocuments,
+        consultants: arConsultants,
+        bookings: arBookings,
+        consultantPortal: arConsultantPortal,
       },
     },
   });
