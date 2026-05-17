@@ -7,7 +7,8 @@
 //   - Static Web App for the React client
 //   - Azure SQL (logical server + database)
 //   - Azure Cache for Redis
-//   - Key Vault (JWT signing key + connection strings)
+//   - Key Vault (connection strings; the RS256 JWT signing key is uploaded
+//     manually post-provision — see docs/deployment.md §5)
 //   - Application Insights (+ Log Analytics workspace)
 //
 // The API App Service is given a system-assigned managed identity, granted
@@ -20,7 +21,7 @@
 //     --resource-group <rg> \
 //     --template-file infra/main.bicep \
 //     --parameters infra/main.parameters.json \
-//     --parameters sqlAdminPassword=<value> jwtSigningKey=<value>
+//     --parameters sqlAdminPassword=<value>
 // ============================================================================
 
 targetScope = 'resourceGroup'
@@ -76,10 +77,8 @@ param redisSkuName string = 'Basic'
 @maxValue(6)
 param redisCapacity int = 0
 
-@description('HMAC-SHA256 signing key for JWT access tokens (>= 64 chars). Pass at deploy time; stored in Key Vault.')
-@secure()
-@minLength(64)
-param jwtSigningKey string
+@description('Name of the Key Vault secret holding the RS256 JWT signing key (an RSA private key in PEM format). The operator uploads this secret manually after provisioning — see docs/deployment.md §5.')
+param jwtKeyName string = 'scholarpath-jwt-signing'
 
 @description('Object ID of an Entra ID user/group to grant Key Vault Secrets Officer (for managing secrets). Optional.')
 param keyVaultAdminObjectId string = ''
@@ -168,15 +167,11 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
   }
 }
 
-// JWT signing key secret.
-resource jwtSigningKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
-  parent: keyVault
-  name: 'Jwt--SigningKey'
-  properties: {
-    value: jwtSigningKey
-    contentType: 'text/plain'
-  }
-}
+// NOTE: the RS256 JWT signing key (an RSA private key, PEM) is NOT created
+// here. It is a multi-line secret the operator uploads manually after
+// provisioning, under the name `jwtKeyName` — see docs/deployment.md §5.
+// The API reads it at runtime via its managed identity (Key Vault Secrets
+// User), so it never appears in App Service configuration.
 
 // Database connection string secret.
 resource sqlConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
@@ -326,9 +321,16 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ConnectionStrings__DefaultConnection'
           value: '@Microsoft.KeyVault(SecretUri=${sqlConnectionSecret.properties.secretUri})'
         }
+        // RS256 JWT: the API reads the RSA signing key from Key Vault itself
+        // at runtime (DefaultAzureCredential + SecretClient), so no Key Vault
+        // *reference* here — just point it at the vault and the secret name.
         {
-          name: 'Jwt__SigningKey'
-          value: '@Microsoft.KeyVault(SecretUri=${jwtSigningKeySecret.properties.secretUri})'
+          name: 'Jwt__KeyVaultUri'
+          value: keyVault.properties.vaultUri
+        }
+        {
+          name: 'Jwt__KeyName'
+          value: jwtKeyName
         }
         {
           name: 'Jwt__Issuer'

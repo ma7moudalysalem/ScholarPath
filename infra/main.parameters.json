@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
-  "_comment": "Non-secret deployment parameters for infra/main.bicep. Secrets (sqlAdminPassword, jwtSigningKey) are intentionally omitted — pass them on the az CLI command line or via a pipeline secret. See docs/deployment.md.",
+  "_comment": "Non-secret deployment parameters for infra/main.bicep. The one secret (sqlAdminPassword) is intentionally omitted — pass it on the az CLI command line or via a pipeline secret. The RS256 JWT signing key is not a Bicep parameter; the operator uploads it to Key Vault manually post-provision (see docs/deployment.md §5).",
   "parameters": {
     "baseName": {
       "value": "scholarpath"
@@ -29,6 +29,9 @@
     },
     "jwtAudience": {
       "value": "https://scholarpath-prod.example.com"
+    },
+    "jwtKeyName": {
+      "value": "scholarpath-jwt-signing"
     },
     "clientCorsOrigin": {
       "value": ""

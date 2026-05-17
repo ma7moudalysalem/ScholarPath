@@ -62,21 +62,22 @@ az group create \
 
 The Bicep template lives in [`infra/main.bicep`](../infra/main.bicep) with
 non-secret defaults in [`infra/main.parameters.json`](../infra/main.parameters.json).
-Two parameters are secret and must be passed on the command line — never
-commit them:
+One parameter is secret and must be passed on the command line — never
+commit it:
 
 - `sqlAdminPassword` — Azure SQL admin password (>= 12 chars, meets
   [Azure complexity rules](https://learn.microsoft.com/sql/relational-databases/security/password-policy)).
-- `jwtSigningKey` — HMAC-SHA256 signing key for JWT access tokens
-  (**>= 64 characters**; generate a fresh random value, see §5).
+
+The RS256 JWT signing key is **not** a deployment parameter — it is an RSA
+private key the operator uploads to Key Vault by hand after provisioning
+(see §5).
 
 ```bash
 az deployment group create \
   --resource-group rg-scholarpath-prod \
   --template-file infra/main.bicep \
   --parameters infra/main.parameters.json \
-  --parameters sqlAdminPassword='<STRONG_SQL_PASSWORD>' \
-               jwtSigningKey='<64+_CHAR_RANDOM_KEY>'
+  --parameters sqlAdminPassword='<STRONG_SQL_PASSWORD>'
 ```
 
 Validate first without deploying:
@@ -86,7 +87,7 @@ az deployment group what-if \
   --resource-group rg-scholarpath-prod \
   --template-file infra/main.bicep \
   --parameters infra/main.parameters.json \
-  --parameters sqlAdminPassword='<...>' jwtSigningKey='<...>'
+  --parameters sqlAdminPassword='<...>'
 ```
 
 When the deployment finishes, note the **outputs** (`apiAppName`,
@@ -111,7 +112,7 @@ az deployment group create \
   --resource-group rg-scholarpath-prod \
   --template-file infra/main.bicep \
   --parameters infra/main.parameters.json \
-  --parameters sqlAdminPassword='<...>' jwtSigningKey='<...>' \
+  --parameters sqlAdminPassword='<...>' \
                clientCorsOrigin='https://<your-swa>.azurestaticapps.net'
 ```
 
@@ -129,41 +130,71 @@ az deployment group create \
 | Key Vault | RBAC authorization, soft-delete + purge protection on. |
 | Log Analytics + Application Insights | Workspace-based App Insights, 30-day retention. |
 
-The API App Service is wired to Key Vault via **managed identity + Key Vault
-references**: its secrets (`ConnectionStrings__DefaultConnection`,
-`Jwt__SigningKey`, `Redis__ConnectionString`) are stored as
-`@Microsoft.KeyVault(SecretUri=...)` app settings and resolved at runtime —
-no secret values live in App Service configuration. The template grants the
-identity the **Key Vault Secrets User** role.
+The API App Service is wired to Key Vault via **managed identity**. Two
+secrets (`ConnectionStrings__DefaultConnection`, `Redis__ConnectionString`)
+are stored as `@Microsoft.KeyVault(SecretUri=...)` app settings and resolved
+by the App Service runtime at startup — no secret values live in App Service
+configuration. The RS256 JWT signing key is handled differently: the API
+reads it from Key Vault **itself** at runtime (see §5), so the template only
+sets `Jwt__KeyVaultUri` (the vault URI) and `Jwt__KeyName` as plain app
+settings. Either way the template grants the identity the **Key Vault
+Secrets User** role, which covers both the Key Vault references and the
+API's own secret read.
 
 ---
 
 ## 5. The JWT signing key
 
-The API signs access tokens with a symmetric HMAC-SHA256 key read from the
-`Jwt:SigningKey` configuration value (env var `Jwt__SigningKey`). In Azure
-this comes from Key Vault.
+The API signs access tokens with **RS256** — an asymmetric RSA key pair. It
+signs with the RSA **private key** and validates with the public key. In
+Azure the private key is stored in Key Vault as a **secret** (not a Bicep
+parameter, and not an App Service app setting): the API reads it at runtime
+itself, using `DefaultAzureCredential` + a Key Vault `SecretClient`. The
+secret name comes from `Jwt:KeyName` (env var `Jwt__KeyName`, default
+`scholarpath-jwt-signing`) and the vault from `Jwt:KeyVaultUri`
+(`Jwt__KeyVaultUri`) — both are set by the Bicep template.
 
-Generate a strong key:
+Because the App Service's managed identity already has the **Key Vault
+Secrets User** role, no further wiring is needed — the API authenticates to
+Key Vault with that identity.
+
+Generate an RSA-2048 key pair:
 
 ```bash
-openssl rand -base64 64
+openssl genrsa -out jwt-private.pem 2048
+# (optional) derive the public key, e.g. for verification tooling:
+openssl rsa -in jwt-private.pem -pubout -out jwt-public.pem
 ```
 
-The Bicep deployment writes the value you pass as `jwtSigningKey` into the
-Key Vault secret **`Jwt--SigningKey`** (Key Vault uses `--` where config
-uses `:`). To rotate it later, update the secret directly:
+Upload the **private key PEM** as the Key Vault secret
+`scholarpath-jwt-signing`:
 
 ```bash
 az keyvault secret set \
   --vault-name <KEY_VAULT_NAME> \
-  --name "Jwt--SigningKey" \
-  --value "$(openssl rand -base64 64)"
+  --name scholarpath-jwt-signing \
+  --file jwt-private.pem
 ```
 
-Then restart the API App Service so it picks up the new value. Rotating the
+This is a one-time post-provision step (the Bicep deployment does **not**
+create this secret). To **rotate** the key later, set a new secret value the
+same way — generate a fresh key pair and run `az keyvault secret set` again:
+
+```bash
+openssl genrsa -out jwt-private.pem 2048
+az keyvault secret set \
+  --vault-name <KEY_VAULT_NAME> \
+  --name scholarpath-jwt-signing \
+  --file jwt-private.pem
+```
+
+Then restart the API App Service so it picks up the new key. Rotating the
 key invalidates all live access tokens (clients re-authenticate via their
 refresh tokens).
+
+> **The private key must never be committed to the repository or placed in
+> App Service configuration.** It lives only in Key Vault. Delete the local
+> `jwt-private.pem` once it is uploaded.
 
 > The Key Vault references the API also expects:
 > `ConnectionStrings--DefaultConnection` and `Redis--ConnectionString` — both
@@ -322,7 +353,8 @@ App settings the API reads in Azure (most are set by the Bicep template):
 |---------|--------|
 | `ASPNETCORE_ENVIRONMENT` | `Production` (App Service app setting). |
 | `ConnectionStrings__DefaultConnection` | Key Vault reference. |
-| `Jwt__SigningKey` | Key Vault reference. |
+| `Jwt__KeyVaultUri` | App setting — the Key Vault URI. The API reads the RS256 signing key from this vault at runtime via its managed identity. |
+| `Jwt__KeyName` | App setting (`jwtKeyName` param, default `scholarpath-jwt-signing`) — the Key Vault secret name of the RSA private key. |
 | `Jwt__Issuer` / `Jwt__Audience` | App setting (`jwtIssuer` / `jwtAudience` params). |
 | `Redis__Enabled` / `Redis__ConnectionString` | App setting / Key Vault reference. |
 | `Hangfire__Enabled` | `true` — recurring jobs run in-process. |
