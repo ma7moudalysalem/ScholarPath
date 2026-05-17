@@ -17,6 +17,7 @@ public record BookingRejectedEvent(Guid BookingId, Guid StudentId, Guid Consulta
 public record BookingExpiredEvent(Guid BookingId, Guid StudentId, Guid ConsultantId) : DomainEvent;
 public record BookingCancelledEvent(Guid BookingId, Guid StudentId, Guid ConsultantId, Guid CancelledByUserId, string? Reason) : DomainEvent;
 public record BookingCompletedEvent(Guid BookingId, Guid StudentId, Guid ConsultantId) : DomainEvent;
+public record BookingRescheduledEvent(Guid BookingId, Guid StudentId, Guid ConsultantId, Guid RescheduledByUserId, DateTimeOffset NewStartAt, DateTimeOffset NewEndAt) : DomainEvent;
 
 public record CompanyRatingSubmittedEvent(Guid CompanyReviewId, Guid CompanyId, Guid StudentId, int Rating) : DomainEvent;
 public record ConsultantRatingSubmittedEvent(Guid ConsultantReviewId, Guid ConsultantId, Guid StudentId, int Rating) : DomainEvent;

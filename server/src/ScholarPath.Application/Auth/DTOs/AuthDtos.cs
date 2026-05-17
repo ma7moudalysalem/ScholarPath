@@ -30,3 +30,5 @@ public sealed record SwitchRoleRequestDto(string TargetRole);
 public sealed record SelectRoleRequestDto(string Role);
 public sealed record VerifyEmailRequestDto(Guid UserId, string Token);
 public sealed record ResendVerificationRequestDto(string Email);
+public sealed record RequestEmailChangeRequestDto(string NewEmail);
+public sealed record ConfirmEmailChangeRequestDto(string NewEmail, string Token);

@@ -80,7 +80,8 @@ public sealed class StubAiService : IAiService
         Task.FromResult(new AiEligibilityResult(
             Array.Empty<AiEligibilityCriterion>(),
             "No eligibility data available in stub mode.",
-            Disclaimer));
+            Disclaimer,
+            EligibilityVerdict.NotEligible));
 
     public Task<AiChatResponse> AskAsync(Guid userId, string sessionId, string message, CancellationToken ct) =>
         Task.FromResult(new AiChatResponse(

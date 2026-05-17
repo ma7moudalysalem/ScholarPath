@@ -7,6 +7,7 @@ using ScholarPath.Application.ConsultantBookings.Commands.HideConsultantReview;
 using ScholarPath.Application.ConsultantBookings.Commands.MarkNoShow;
 using ScholarPath.Application.ConsultantBookings.Commands.RejectBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.RequestBooking;
+using ScholarPath.Application.ConsultantBookings.Commands.RescheduleBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
 using ScholarPath.Application.ConsultantBookings.Commands.SubmitConsultantRating;
 
@@ -73,6 +74,25 @@ public sealed class BookingsController : ControllerBase
     public async Task<IActionResult> CancelBooking(
         Guid id,
         [FromBody] CancelBookingCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (id != command.BookingId)
+        {
+            return BadRequest("Route booking id does not match body booking id.");
+        }
+
+        await _sender.Send(command, cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// FR-229 — reschedule a requested or confirmed booking to a new time slot.
+    /// No new payment is taken; the existing payment carries over.
+    /// </summary>
+    [HttpPost("{id:guid}/reschedule")]
+    public async Task<IActionResult> RescheduleBooking(
+        Guid id,
+        [FromBody] RescheduleBookingCommand command,
         CancellationToken cancellationToken)
     {
         if (id != command.BookingId)

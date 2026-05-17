@@ -1,3 +1,4 @@
+using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Ai.DTOs;
@@ -25,6 +26,8 @@ public sealed record EligibilityDto(
     Guid ScholarshipId,
     IReadOnlyList<EligibilityCriterionDto> Criteria,
     string Summary,
+    // SRS FR-117 — overall classification derived from the per-criterion verdicts.
+    EligibilityVerdict Verdict,
     string Disclaimer,
     DateTimeOffset GeneratedAt);
 

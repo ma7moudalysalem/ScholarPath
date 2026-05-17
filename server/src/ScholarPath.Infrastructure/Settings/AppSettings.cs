@@ -33,6 +33,34 @@ public sealed class JwtOptions
     public string? DevKeyPath { get; set; }
 }
 
+public sealed class AuthenticationOptions
+{
+    public const string SectionName = "Authentication";
+
+    /// <summary>
+    /// When true, the deterministic <c>StubSsoService</c> is registered instead
+    /// of the real provider — used for local dev and tests where no real OAuth
+    /// credentials exist. Defaults to false: the real <c>SsoService</c> is used.
+    /// </summary>
+    public bool UseStub { get; set; }
+
+    public ExternalAuthProviderOptions Google { get; set; } = new();
+    public ExternalAuthProviderOptions Microsoft { get; set; } = new();
+}
+
+public sealed class ExternalAuthProviderOptions
+{
+    public string? ClientId { get; set; }
+    public string? ClientSecret { get; set; }
+
+    /// <summary>
+    /// Optional fixed OAuth redirect URI. When empty the redirect URI supplied
+    /// by the caller (the SPA callback URL) is used for both the authorize step
+    /// and the token exchange — they must match exactly.
+    /// </summary>
+    public string? RedirectUri { get; set; }
+}
+
 public sealed class StripeOptions
 {
     public const string SectionName = "Stripe";

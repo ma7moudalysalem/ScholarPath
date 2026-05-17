@@ -104,7 +104,8 @@ public sealed class LocalAiService(ApplicationDbContext db) : IAiService
             return new AiEligibilityResult(
                 Array.Empty<AiEligibilityCriterion>(),
                 "Scholarship not found.",
-                Disclaimer);
+                Disclaimer,
+                EligibilityVerdict.NotEligible);
         }
 
         var profile = await db.UserProfiles
@@ -146,13 +147,39 @@ public sealed class LocalAiService(ApplicationDbContext db) : IAiService
                              || fos.Contains(t, StringComparison.OrdinalIgnoreCase)) ? "yes" : "partial"));
 
         var matches = criteria.Count(c => c.Match == "yes");
-        var summary = matches == criteria.Count
-            ? "You appear to meet all listed criteria."
-            : matches == 0
-                ? "You do not appear to meet any of the core criteria yet."
-                : $"You match {matches} of {criteria.Count} criteria. Review the partial/no items before applying.";
+        var verdict = DeriveVerdict(criteria);
+        var summary = verdict switch
+        {
+            EligibilityVerdict.Eligible =>
+                "You appear to meet all listed criteria.",
+            EligibilityVerdict.NotEligible =>
+                $"You match {matches} of {criteria.Count} criteria, but one or more requirements are not met. Review the items marked 'no' before applying.",
+            _ =>
+                $"You match {matches} of {criteria.Count} criteria. Review the partial items before applying.",
+        };
 
-        return new AiEligibilityResult(criteria, summary, Disclaimer);
+        return new AiEligibilityResult(criteria, summary, Disclaimer, verdict);
+    }
+
+    /// <summary>
+    /// SRS FR-117 — collapse the per-criterion verdicts into the mandated
+    /// overall classification. Any outright "no" makes the student
+    /// NotEligible; otherwise a "partial" (or an "unknown") leaves them
+    /// PartiallyEligible; all-clear is Eligible.
+    /// </summary>
+    internal static EligibilityVerdict DeriveVerdict(IReadOnlyList<AiEligibilityCriterion> criteria)
+    {
+        if (criteria.Count == 0) return EligibilityVerdict.NotEligible;
+
+        if (criteria.Any(c => string.Equals(c.Match, "no", StringComparison.OrdinalIgnoreCase)))
+            return EligibilityVerdict.NotEligible;
+
+        if (criteria.Any(c =>
+                string.Equals(c.Match, "partial", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(c.Match, "unknown", StringComparison.OrdinalIgnoreCase)))
+            return EligibilityVerdict.PartiallyEligible;
+
+        return EligibilityVerdict.Eligible;
     }
 
     public Task<AiChatResponse> AskAsync(

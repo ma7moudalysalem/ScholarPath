@@ -34,13 +34,30 @@ public sealed record AiRecommendationItem(
 public sealed record AiEligibilityResult(
     IReadOnlyList<AiEligibilityCriterion> Criteria,
     string Summary,
-    string Disclaimer);
+    string Disclaimer,
+    EligibilityVerdict Verdict);
 
 public sealed record AiEligibilityCriterion(
     string Name,
     string StudentValue,
     string ListingRequirement,
     string Match); // "yes" | "partial" | "no" | "unknown"
+
+/// <summary>
+/// SRS FR-117 — the mandated overall eligibility classification, derived from
+/// the per-criterion verdicts.
+/// </summary>
+public enum EligibilityVerdict
+{
+    /// <summary>All criteria are met (or "any"/unknown-but-no-failures).</summary>
+    Eligible = 0,
+
+    /// <summary>Some criteria are met or partially met, but none fail outright.</summary>
+    PartiallyEligible = 1,
+
+    /// <summary>At least one criterion fails outright.</summary>
+    NotEligible = 2,
+}
 
 public sealed record AiChatResponse(
     string Message,

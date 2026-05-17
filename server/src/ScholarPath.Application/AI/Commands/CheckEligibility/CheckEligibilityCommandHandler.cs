@@ -49,7 +49,8 @@ public sealed class CheckEligibilityCommandHandler(
                 .Select(c => new EligibilityCriterionDto(c.Name, c.StudentValue, c.ListingRequirement, c.Match))
                 .ToList();
 
-            interaction.ResponseText = System.Text.Json.JsonSerializer.Serialize(new { result.Summary, criteria });
+            interaction.ResponseText = System.Text.Json.JsonSerializer.Serialize(
+                new { result.Summary, Verdict = result.Verdict.ToString(), criteria });
             interaction.CostUsd = EstimatedCost;
             interaction.CompletedAt = clock.UtcNow;
 
@@ -59,6 +60,7 @@ public sealed class CheckEligibilityCommandHandler(
                 request.ScholarshipId,
                 criteria,
                 result.Summary,
+                result.Verdict,
                 result.Disclaimer,
                 interaction.CompletedAt.Value);
         }

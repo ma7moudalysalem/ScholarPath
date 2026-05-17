@@ -9,6 +9,7 @@ using ScholarPath.Application.Admin.Commands.SetUserStatus;
 using ScholarPath.Application.Admin.Commands.SoftDeleteUser;
 using ScholarPath.Application.Admin.DTOs;
 using ScholarPath.Application.Admin.Commands.SetRedactionSampleVerdict;
+using ScholarPath.Application.Admin.Queries.ExportUsersCsv;
 using ScholarPath.Application.Admin.Queries.GetAnalyticsOverview;
 using ScholarPath.Application.Admin.Queries.GetApplicationFunnel;
 using ScholarPath.Application.Admin.Queries.GetOnboardingQueue;
@@ -50,6 +51,26 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
         var q = new SearchUsersQuery(search, status, role, includeDeleted, page, pageSize);
         var result = await mediator.Send(q, ct).ConfigureAwait(false);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// FR-162 — exports the user list as a CSV file. Accepts the same search /
+    /// status / role filters as <see cref="SearchUsers"/>.
+    /// </summary>
+    [HttpGet("users/export")]
+    [Produces("text/csv")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ExportUsers(
+        [FromQuery] string? search,
+        [FromQuery] AccountStatus? status,
+        [FromQuery] string? role,
+        [FromQuery] bool includeDeleted = false,
+        CancellationToken ct = default)
+    {
+        var result = await mediator
+            .Send(new ExportUsersCsvQuery(search, status, role, includeDeleted), ct)
+            .ConfigureAwait(false);
+        return File(result.Content, "text/csv", result.FileName);
     }
 
     [HttpGet("users/{userId:guid}")]

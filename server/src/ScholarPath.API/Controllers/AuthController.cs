@@ -2,11 +2,13 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using ScholarPath.Application.Auth.Commands.ConfirmEmailChange;
 using ScholarPath.Application.Auth.Commands.ForgotPassword;
 using ScholarPath.Application.Auth.Commands.Login;
 using ScholarPath.Application.Auth.Commands.Logout;
 using ScholarPath.Application.Auth.Commands.RefreshToken;
 using ScholarPath.Application.Auth.Commands.Register;
+using ScholarPath.Application.Auth.Commands.RequestEmailChange;
 using ScholarPath.Application.Auth.Commands.ResendVerificationEmail;
 using ScholarPath.Application.Auth.Commands.ResetPassword;
 using ScholarPath.Application.Auth.Commands.SelectRole;
@@ -145,6 +147,39 @@ public sealed class AuthController(IMediator mediator, ISsoService ssoService) :
     public async Task<ActionResult<AuthTokensDto>> SelectRole(
         [FromBody] SelectRoleRequestDto request, CancellationToken ct)
         => Ok(await mediator.Send(new SelectRoleCommand(request.Role), ct));
+
+    /// <summary>
+    /// FR-231 — request a change to the registered email. Emails a confirmation
+    /// link to the new address; the change is not applied until it is confirmed.
+    /// </summary>
+    [HttpPost("change-email")]
+    [Authorize]
+    [EnableRateLimiting("auth")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> RequestEmailChange(
+        [FromBody] RequestEmailChangeRequestDto request, CancellationToken ct)
+    {
+        await mediator.Send(new RequestEmailChangeCommand(request.NewEmail), ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// FR-231 — confirm a pending email change using the token from the
+    /// confirmation link. Must be called while signed in to the account.
+    /// </summary>
+    [HttpPost("change-email/confirm")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ConfirmEmailChange(
+        [FromBody] ConfirmEmailChangeRequestDto request, CancellationToken ct)
+    {
+        await mediator.Send(new ConfirmEmailChangeCommand(request.NewEmail, request.Token), ct);
+        return NoContent();
+    }
 
     [HttpGet("google/authorize")]
     [ProducesResponseType(StatusCodes.Status302Found)]

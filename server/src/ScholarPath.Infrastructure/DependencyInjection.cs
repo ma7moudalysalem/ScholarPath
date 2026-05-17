@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.Configure<StorageOptions>(config.GetSection(StorageOptions.SectionName));
         services.Configure<AiOptions>(config.GetSection(AiOptions.SectionName));
         services.Configure<AppOptions>(config.GetSection(AppOptions.SectionName));
+        services.Configure<AuthenticationOptions>(config.GetSection(AuthenticationOptions.SectionName));
 
         // Project AiOptions into the Application-side snapshot so the cost gate
         // doesn't have to know about Infrastructure's full options type.
@@ -82,7 +83,24 @@ public static class DependencyInjection
         // Auth / Identity adapters
         services.AddScoped<ITokenService, TokenService>();
         services.AddSingleton<IPasswordHasher, StubPasswordHasher>();
-        services.AddSingleton<ISsoService, StubSsoService>();
+
+        // SSO: the real Google/Microsoft OAuth implementation by default. It
+        // becomes fully functional once real client credentials replace the
+        // placeholders in the Authentication:* config. Set Authentication:UseStub
+        // = true (dev / tests) to fall back to the deterministic StubSsoService.
+        var useStubSso = config.GetValue<bool>($"{AuthenticationOptions.SectionName}:UseStub");
+        if (useStubSso)
+        {
+            services.AddSingleton<ISsoService, StubSsoService>();
+        }
+        else
+        {
+            services.AddHttpClient(SsoService.HttpClientName, http =>
+            {
+                http.Timeout = TimeSpan.FromSeconds(15);
+            });
+            services.AddScoped<ISsoService, SsoService>();
+        }
 
         // Email verification (FR-215) — wraps Identity's built-in confirmation tokens.
         services.AddScoped<IEmailVerificationService, EmailVerificationService>();
@@ -139,6 +157,7 @@ public static class DependencyInjection
         services.AddScoped<ICommunityRealtimeNotifier, CommunityRealtimeNotifier>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserAdministration, UserAdministration>();
+        services.AddScoped<IEmailChangeService, EmailChangeService>();
         services.AddScoped<IAdminReadService, AdminReadService>();
         services.AddScoped<AiCostGate>();
 
