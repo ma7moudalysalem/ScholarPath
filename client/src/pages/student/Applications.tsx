@@ -37,7 +37,7 @@ export function Applications() {
           setSelectedAppForReview({
             id: app.applicationId,
             companyId: app.companyId,
-            companyName: app.companyName || "Company",
+            companyName: app.companyName || t("companyFallback"),
           });
         }
       }
@@ -83,7 +83,7 @@ export function Applications() {
           </div>
           <button className="cta-pill bg-brand-600 text-white hover:bg-brand-700 shadow-sm flex items-center">
             <Plus size={18} className="mr-1.5" />
-            Add External
+            {t("addExternal")}
           </button>
         </div>
       </div>

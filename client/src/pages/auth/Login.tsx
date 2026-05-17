@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,17 +10,20 @@ import { toast } from "sonner";
 import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
 import { ApiError } from "@/services/api/client";
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  rememberMe: z.boolean(),
-});
+function makeLoginSchema(t: TFunction) {
+  return z.object({
+    email: z.string().email(t("errors:validate.email")),
+    password: z.string().min(8, t("errors:validate.passwordMin")),
+    rememberMe: z.boolean(),
+  });
+}
 
-type LoginInput = z.infer<typeof loginSchema>;
+type LoginInput = z.infer<ReturnType<typeof makeLoginSchema>>;
 
 export function Login() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
+  const loginSchema = useMemo(() => makeLoginSchema(t), [t]);
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "", rememberMe: false },

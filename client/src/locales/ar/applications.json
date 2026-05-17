@@ -1,6 +1,8 @@
 {
   "title": "طلباتي",
   "subtitle": "تتبع وإدارة طلبات المنح الدراسية الخاصة بك في مكان واحد.",
+  "addExternal": "إضافة طلب خارجي",
+  "companyFallback": "شركة",
   "kanban": {
     "columns": {
       "Draft": "مسودات",

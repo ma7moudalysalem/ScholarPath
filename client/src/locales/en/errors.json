@@ -6,5 +6,14 @@
   "notFound": "We couldn't find what you were looking for.",
   "validation": "Please correct the highlighted fields.",
   "rateLimit": "Too many attempts. Please wait a moment and try again.",
-  "serverError": "Our servers are having a moment. We're on it."
+  "serverError": "Our servers are having a moment. We're on it.",
+  "validate": {
+    "required": "This field is required",
+    "email": "Enter a valid email address",
+    "passwordMin": "Password must be at least 8 characters",
+    "tooLong": "Must be 100 characters or fewer",
+    "passwordUppercase": "Must contain at least one uppercase letter",
+    "passwordDigit": "Must contain at least one digit",
+    "passwordSpecial": "Must contain at least one special character"
+  }
 }

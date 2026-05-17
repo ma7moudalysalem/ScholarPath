@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,23 +10,32 @@ import { toast } from "sonner";
 import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
 import { ApiError } from "@/services/api/client";
 
-const registerSchema = z.object({
-  firstName: z.string().min(1).max(100),
-  lastName: z.string().min(1).max(100),
-  email: z.string().email(),
-  password: z
-    .string()
-    .min(8)
-    .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-    .regex(/[0-9]/, "Must contain at least one digit")
-    .regex(/[^a-zA-Z0-9]/, "Must contain at least one special character"),
-});
+function makeRegisterSchema(t: TFunction) {
+  return z.object({
+    firstName: z
+      .string()
+      .min(1, t("errors:validate.required"))
+      .max(100, t("errors:validate.tooLong")),
+    lastName: z
+      .string()
+      .min(1, t("errors:validate.required"))
+      .max(100, t("errors:validate.tooLong")),
+    email: z.string().email(t("errors:validate.email")),
+    password: z
+      .string()
+      .min(8, t("errors:validate.passwordMin"))
+      .regex(/[A-Z]/, t("errors:validate.passwordUppercase"))
+      .regex(/[0-9]/, t("errors:validate.passwordDigit"))
+      .regex(/[^a-zA-Z0-9]/, t("errors:validate.passwordSpecial")),
+  });
+}
 
-type RegisterInput = z.infer<typeof registerSchema>;
+type RegisterInput = z.infer<ReturnType<typeof makeRegisterSchema>>;
 
 export function Register() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
+  const registerSchema = useMemo(() => makeRegisterSchema(t), [t]);
   const form = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: { firstName: "", lastName: "", email: "", password: "" },

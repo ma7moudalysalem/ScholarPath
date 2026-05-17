@@ -1,6 +1,8 @@
 {
   "title": "My Applications",
   "subtitle": "Track and manage your scholarship applications in one place.",
+  "addExternal": "Add External",
+  "companyFallback": "Company",
   "kanban": {
     "columns": {
       "Draft": "Drafts",
