@@ -5,6 +5,7 @@ import {
   type SearchScholarshipsRequest,
   type ScholarshipListItem,
   type ScholarshipDetail,
+  type BookmarkedScholarship,
   type Paginated,
 } from "@/services/api/scholarships";
 
@@ -27,6 +28,26 @@ export function useScholarshipDetailQuery(id: string | undefined) {
   });
 }
 
+/** The authenticated student's bookmarked scholarships, newest-saved first. */
+export function useBookmarksQuery() {
+  return useQuery<BookmarkedScholarship[]>({
+    queryKey: queryKeys.scholarships.bookmarks,
+    queryFn: () => scholarshipsApi.getBookmarks(),
+    staleTime: 60_000,
+  });
+}
+
+/** Featured (Open) scholarships for the home page / dashboards. */
+export function useFeaturedScholarshipsQuery(limit?: number) {
+  return useQuery<ScholarshipListItem[]>({
+    queryKey: limit
+      ? [...queryKeys.scholarships.featured, limit]
+      : queryKeys.scholarships.featured,
+    queryFn: () => scholarshipsApi.getFeatured(limit),
+    staleTime: 5 * 60_000,
+  });
+}
+
 // ── Mutations ─────────────────────────────────────────────────────────────────
 
 export function useToggleBookmarkMutation() {
@@ -36,6 +57,8 @@ export function useToggleBookmarkMutation() {
     mutationFn: (scholarshipId: string) =>
       scholarshipsApi.toggleBookmark(scholarshipId),
     onSuccess: () => {
+      // `scholarships.all` is the prefix of every scholarship key (lists,
+      // detail, bookmarks, featured) — one invalidate refreshes them all.
       void queryClient.invalidateQueries({
         queryKey: queryKeys.scholarships.all,
       });

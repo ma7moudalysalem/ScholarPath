@@ -29,7 +29,33 @@ namespace ScholarPath.API.Controllers
 
             return await mediator.Send(updatedQuery);
         }
-        
+
+        // ── Public: featured scholarships (home page / dashboards) ───────────
+        [HttpGet("featured")]
+        [ProducesResponseType(typeof(IReadOnlyList<ScholarshipDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyList<ScholarshipDto>>> Featured(
+            [FromQuery] int? limit, CancellationToken ct)
+        {
+            var headerLang = Request.Headers["Accept-Language"].ToString().Split(',').FirstOrDefault() ?? "en";
+            var lang = headerLang.StartsWith("ar", StringComparison.OrdinalIgnoreCase) ? "ar" : "en";
+
+            var query = new GetFeaturedScholarshipsQuery { Language = lang };
+            if (limit.HasValue) query = query with { Limit = limit.Value };
+
+            return Ok(await mediator.Send(query, ct));
+        }
+
+        // ── Student: my bookmarked scholarships ──────────────────────────────
+        [HttpGet("bookmarks")]
+        [Authorize]
+        [ProducesResponseType(typeof(IReadOnlyList<BookmarkedScholarshipDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyList<BookmarkedScholarshipDto>>> Bookmarks(CancellationToken ct)
+        {
+            var headerLang = Request.Headers["Accept-Language"].ToString().Split(',').FirstOrDefault() ?? "en";
+            var lang = headerLang.StartsWith("ar", StringComparison.OrdinalIgnoreCase) ? "ar" : "en";
+
+            return Ok(await mediator.Send(new GetMyBookmarkedScholarshipsQuery { Language = lang }, ct));
+        }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<ScholarshipDetailDto>> GetById(Guid id, [FromQuery] string? language)

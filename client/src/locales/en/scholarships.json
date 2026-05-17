@@ -28,6 +28,10 @@
     "closed": "Closed",
     "daysLeft": "{{count}} days left"
   },
+  "featured": {
+    "title": "Featured Scholarships",
+    "subtitle": "Hand-picked opportunities worth a closer look."
+  },
   "empty": {
     "title": "No scholarships found",
     "body": "Try adjusting your filters or search terms."

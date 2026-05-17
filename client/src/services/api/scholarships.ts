@@ -36,6 +36,21 @@ export interface ScholarshipDetail extends ScholarshipListItem {
   requiredDocuments?: string[];
 }
 
+/**
+ * A saved-scholarship row for the student's bookmarks list — the scholarship
+ * itself plus the bookmark metadata. Mirrors the server's
+ * `BookmarkedScholarshipDto` (the localised scholarship is mapped into the
+ * bilingual `ScholarshipListItem` view model, exactly like `search()`).
+ */
+export interface BookmarkedScholarship {
+  /** Identifier of the bookmark (SavedScholarship) row. */
+  id: string;
+  scholarshipId: string;
+  savedAt: string;
+  note?: string | null;
+  scholarship: ScholarshipListItem;
+}
+
 export interface SearchScholarshipsRequest {
   query?: string;
   country?: string;
@@ -133,6 +148,15 @@ interface PaginatedListWireDto<T> {
   hasNextPage: boolean;
 }
 
+/** Server BookmarkedScholarshipDto (GET /api/scholarships/bookmarks item). */
+interface BookmarkedScholarshipWireDto {
+  id: string;
+  scholarshipId: string;
+  savedAt: string;
+  note: string | null;
+  scholarship: ScholarshipWireDto;
+}
+
 // ── Wire → view-model mappers ──────────────────────────────────────────────────
 
 function toListItem(dto: ScholarshipWireDto): ScholarshipListItem {
@@ -181,6 +205,16 @@ function toDetail(dto: ScholarshipDetailWireDto): ScholarshipDetail {
     eligibilityCriteria: dto.eligibilityRequirements,
     applicationFormSchemaJson: dto.applicationFormSchemaJson,
     requiredDocuments: parseStringArray(dto.requiredDocumentsJson) ?? (childDocs.length > 0 ? childDocs : undefined),
+  };
+}
+
+function toBookmark(dto: BookmarkedScholarshipWireDto): BookmarkedScholarship {
+  return {
+    id: dto.id,
+    scholarshipId: dto.scholarshipId,
+    savedAt: dto.savedAt,
+    note: dto.note,
+    scholarship: toListItem(dto.scholarship),
   };
 }
 
@@ -236,6 +270,30 @@ export const scholarshipsApi = {
       `/api/scholarships/${id}/bookmark`,
     );
     return { bookmarked: data };
+  },
+
+  /**
+   * The authenticated student's bookmarked scholarships, newest-saved first —
+   * `GET /api/scholarships/bookmarks` (GetMyBookmarkedScholarshipsQuery).
+   */
+  async getBookmarks(): Promise<BookmarkedScholarship[]> {
+    const { data } = await apiClient.get<BookmarkedScholarshipWireDto[]>(
+      "/api/scholarships/bookmarks",
+    );
+    return data.map(toBookmark);
+  },
+
+  /**
+   * Featured (Open) scholarships for the home page / dashboards, ordered by
+   * the curated `FeaturedOrder` — `GET /api/scholarships/featured`
+   * (GetFeaturedScholarshipsQuery). Anonymous-accessible.
+   */
+  async getFeatured(limit?: number): Promise<ScholarshipListItem[]> {
+    const { data } = await apiClient.get<ScholarshipWireDto[]>(
+      "/api/scholarships/featured",
+      limit ? { params: { limit } } : undefined,
+    );
+    return data.map(toListItem);
   },
 
   // ── Company: own scholarships ────────────────────────────────────────────────

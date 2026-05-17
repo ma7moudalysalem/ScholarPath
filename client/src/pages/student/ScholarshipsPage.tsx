@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   useScholarshipsQuery,
   useToggleBookmarkMutation,
+  useFeaturedScholarshipsQuery,
 } from "@/hooks/useScholarshipsQuery";
 import type { FundingType, AcademicLevel } from "@/types/domain";
 import type { SearchScholarshipsRequest } from "@/services/api/scholarships";
@@ -80,6 +81,7 @@ export function ScholarshipsPage() {
 
   const { data, isLoading, isError } = useScholarshipsQuery(req);
   const bookmarkMut = useToggleBookmarkMutation();
+  const { data: featured } = useFeaturedScholarshipsQuery(6);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -269,6 +271,68 @@ export function ScholarshipsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Featured strip (discovery view only — hidden once searching/filtering) ── */}
+      {!query && !hasActiveFilters && featured && featured.length > 0 && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-text-primary">
+              {t("scholarships:featured.title")}
+            </h2>
+            <p className="text-sm text-text-secondary">
+              {t("scholarships:featured.subtitle")}
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {featured.map((s) => {
+              const title        = isRtl ? s.titleAr       : s.titleEn;
+              const desc         = isRtl ? s.descriptionAr : s.descriptionEn;
+              const deadlineDate = new Date(s.deadline);
+              const daysLeft     = differenceInCalendarDays(deadlineDate, new Date());
+              const isUrgent     = daysLeft <= 7 && daysLeft >= 0;
+
+              return (
+                <Link
+                  key={s.id}
+                  to={`/student/scholarships/${s.id}`}
+                  className="group relative flex flex-col rounded-xl border border-brand-500/30 bg-brand-500/5 p-5 shadow-xs transition hover:border-brand-500/60 hover:shadow-sm"
+                >
+                  <span className="mb-3 inline-flex w-fit items-center rounded-full bg-brand-500/10 px-2 py-0.5 text-xs font-medium text-brand-500">
+                    ★ {t("scholarships:card.featured")}
+                  </span>
+
+                  <h3 className="mb-1 line-clamp-2 text-sm font-semibold text-text-primary group-hover:text-brand-500">
+                    {title}
+                  </h3>
+
+                  <p className="mb-3 line-clamp-2 flex-1 text-xs text-text-secondary">
+                    {desc}
+                  </p>
+
+                  <div className="mt-auto space-y-2">
+                    <FundingBadge type={s.fundingType} />
+                    <div className="flex items-center justify-between text-xs text-text-tertiary">
+                      <span>{s.targetLevel}</span>
+                      <span
+                        className={cn(
+                          "font-medium",
+                          isUrgent ? "text-rose-500" : "text-text-tertiary",
+                        )}
+                      >
+                        {daysLeft < 0
+                          ? t("scholarships:card.closed")
+                          : isUrgent
+                            ? t("scholarships:card.daysLeft", { count: daysLeft })
+                            : format(deadlineDate, "dd MMM yyyy")}
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {/* ── Loading skeletons ── */}

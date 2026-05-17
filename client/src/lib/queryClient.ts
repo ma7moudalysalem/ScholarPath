@@ -29,6 +29,7 @@ export const queryKeys = {
     list: (filters: Record<string, unknown>) => ["scholarships", "list", filters] as const,
     detail: (id: string) => ["scholarships", "detail", id] as const,
     bookmarks: ["scholarships", "bookmarks"] as const,
+    featured: ["scholarships", "featured"] as const,
   },
   applications: {
     all: ["applications"] as const,
