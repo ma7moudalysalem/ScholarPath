@@ -21,6 +21,9 @@ using ScholarPath.Application.Ai.DTOs;
 using ScholarPath.Application.Ai.Queries.GetAiUsageSummary;
 using ScholarPath.Application.Audit.DTOs;
 using ScholarPath.Application.Audit.Queries.GetAuditLog;
+using ScholarPath.Application.PlatformSettings;
+using ScholarPath.Application.PlatformSettings.Commands.UpdatePlatformSetting;
+using ScholarPath.Application.PlatformSettings.Queries.GetPlatformSettings;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.API.Controllers;
@@ -252,6 +255,34 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
         var count = await mediator.Send(command, ct).ConfigureAwait(false);
         return Ok(new BroadcastResultDto(count));
     }
+
+    // ─── Platform settings (PB-011) ───────────────────────────────────────
+
+    /// <summary>Every platform-wide configuration value, ordered by category then key.</summary>
+    [HttpGet("settings")]
+    [ProducesResponseType(typeof(IReadOnlyList<PlatformSettingDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPlatformSettings(CancellationToken ct)
+    {
+        var result = await mediator.Send(new GetPlatformSettingsQuery(), ct).ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Updates one platform setting. The dotted key travels in the body so it is
+    /// never URL-encoded into the route.
+    /// </summary>
+    [HttpPut("settings")]
+    [ProducesResponseType(typeof(PlatformSettingDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdatePlatformSetting(
+        [FromBody] UpdatePlatformSettingBody body,
+        CancellationToken ct)
+    {
+        var result = await mediator.Send(
+            new UpdatePlatformSettingCommand(body.Key, body.Value), ct).ConfigureAwait(false);
+        return Ok(result);
+    }
 }
 
 // ─── Request/response DTOs kept local to the controller ───────────────────
@@ -259,3 +290,4 @@ public sealed record SetUserStatusBody(AccountStatus Status, string? Reason);
 public sealed record ChangeRoleBody(string Role, RoleOp Operation);
 public sealed record ReviewDecisionBody(bool Approve, string? Notes);
 public sealed record BroadcastResultDto(int RecipientCount);
+public sealed record UpdatePlatformSettingBody(string Key, string Value);

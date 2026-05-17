@@ -1,0 +1,22 @@
+{
+  "title": "Platform settings",
+  "subtitle": "Site-wide configuration. Changes apply immediately across the platform.",
+  "loading": "Loading settings…",
+  "loadError": "Could not load platform settings.",
+  "empty": "No platform settings found.",
+  "save": "Save",
+  "saving": "Saving…",
+  "saveSuccess": "Setting updated.",
+  "saveError": "Could not update the setting.",
+  "noDescription": "No description.",
+  "enabled": "Enabled",
+  "disabled": "Disabled",
+  "lastUpdated": "Last updated {{date}}",
+  "neverEdited": "Default value — not yet edited.",
+  "categories": {
+    "Access": "Access",
+    "Support": "Support",
+    "General": "General",
+    "AI": "AI"
+  }
+}

@@ -86,6 +86,7 @@ public class ApplicationDbContext(
     public DbSet<UserDataRequest> UserDataRequests => Set<UserDataRequest>();
     public DbSet<SuccessStory> SuccessStories => Set<SuccessStory>();
     public DbSet<UserRiskFlag> UserRiskFlags => Set<UserRiskFlag>();
+    public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

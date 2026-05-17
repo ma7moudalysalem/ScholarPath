@@ -67,6 +67,7 @@ public interface IApplicationDbContext
     DbSet<UserDataRequest> UserDataRequests { get; }
     DbSet<SuccessStory> SuccessStories { get; }
     DbSet<UserRiskFlag> UserRiskFlags { get; }
+    DbSet<PlatformSetting> PlatformSettings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -280,6 +280,17 @@ public enum AuditAction
     ConsultantAvailabilityUpdated = 106
 }
 
+/// <summary>
+/// The data type stored in a <c>PlatformSetting.Value</c> string (PB-011).
+/// Drives validation server-side and input rendering client-side.
+/// </summary>
+public enum PlatformSettingType
+{
+    Text = 0,
+    Boolean = 1,
+    Number = 2,
+}
+
 public enum CancellationReason
 {
     StudentCancelledBeforeAcceptance = 0,

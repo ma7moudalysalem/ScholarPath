@@ -81,7 +81,87 @@ public static class DbSeeder
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
             logger.LogInformation("Seeded default profit share configs");
         }
-        
+
+        // 5) Default platform settings (PB-011) — idempotent per key, so new
+        //    defaults can be appended over time without disturbing edited rows.
+        await SeedPlatformSettingsAsync(db, logger, ct).ConfigureAwait(false);
+    }
+
+    private static async Task SeedPlatformSettingsAsync(
+        ApplicationDbContext db, ILogger logger, CancellationToken ct)
+    {
+        var defaults = new[]
+        {
+            new PlatformSetting
+            {
+                Id = Guid.NewGuid(),
+                Key = "maintenance.enabled",
+                Value = "false",
+                ValueType = PlatformSettingType.Boolean,
+                Category = "Access",
+                DescriptionEn = "Put the platform in maintenance mode.",
+                DescriptionAr = "تفعيل وضع الصيانة للمنصة.",
+                CreatedAt = DateTimeOffset.UtcNow,
+            },
+            new PlatformSetting
+            {
+                Id = Guid.NewGuid(),
+                Key = "registration.open",
+                Value = "true",
+                ValueType = PlatformSettingType.Boolean,
+                Category = "Access",
+                DescriptionEn = "Allow new users to register.",
+                DescriptionAr = "السماح بتسجيل مستخدمين جدد.",
+                CreatedAt = DateTimeOffset.UtcNow,
+            },
+            new PlatformSetting
+            {
+                Id = Guid.NewGuid(),
+                Key = "support.email",
+                Value = "support@scholarpath.local",
+                ValueType = PlatformSettingType.Text,
+                Category = "Support",
+                DescriptionEn = "Public support contact email.",
+                DescriptionAr = "البريد الإلكتروني للدعم.",
+                CreatedAt = DateTimeOffset.UtcNow,
+            },
+            new PlatformSetting
+            {
+                Id = Guid.NewGuid(),
+                Key = "platform.announcement",
+                Value = string.Empty,
+                ValueType = PlatformSettingType.Text,
+                Category = "General",
+                DescriptionEn = "Site-wide announcement banner text.",
+                DescriptionAr = "نص شريط الإعلان العام.",
+                CreatedAt = DateTimeOffset.UtcNow,
+            },
+            new PlatformSetting
+            {
+                Id = Guid.NewGuid(),
+                Key = "ai.features.enabled",
+                Value = "true",
+                ValueType = PlatformSettingType.Boolean,
+                Category = "AI",
+                DescriptionEn = "Globally enable AI features.",
+                DescriptionAr = "تفعيل ميزات الذكاء الاصطناعي عالمياً.",
+                CreatedAt = DateTimeOffset.UtcNow,
+            },
+        };
+
+        var existingKeys = await db.PlatformSettings
+            .Select(s => s.Key)
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        var toAdd = defaults.Where(s => !existingKeys.Contains(s.Key)).ToList();
+        if (toAdd.Count == 0)
+        {
+            return;
+        }
+
+        db.PlatformSettings.AddRange(toAdd);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        logger.LogInformation("Seeded {N} default platform settings", toAdd.Count);
     }
 
     private static async Task EnsureUserAsync(

@@ -1,4 +1,3 @@
-import { EmptyState } from "@/components/common/EmptyState";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
@@ -32,11 +31,6 @@ const StudentScholarshipDetail = lazy(() =>
 );
 const StudentBookmarks = lazy(() =>
   import("@/pages/student/BookmarksPage").then((m) => ({ default: m.BookmarksPage })),
-);
-
-// ── Module skeletons per PB area (spec folder path encoded) ───────────────────
-const stub = (owner: string, moduleName: string, specPath: string) => () => (
-  <EmptyState owner={owner} module={moduleName} specPath={specPath} />
 );
 
 // Student
@@ -174,10 +168,8 @@ const AdminProfitShare = lazy(() =>
 const AdminAuditLog = lazy(() =>
   import("@/pages/admin/AuditLogViewer").then((m) => ({ default: m.AuditLogViewer })),
 );
-const AdminSettings = stub(
-  "@ma7moudalysalem",
-  "PB-011 Settings",
-  ".specify/specs/PB-011-admin-portal",
+const AdminSettings = lazy(() =>
+  import("@/pages/admin/AdminSettings").then((m) => ({ default: m.AdminSettings })),
 );
 
 // Shared

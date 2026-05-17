@@ -761,3 +761,21 @@ public sealed class UserRiskFlagConfiguration : IEntityTypeConfiguration<UserRis
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+public sealed class PlatformSettingConfiguration : IEntityTypeConfiguration<PlatformSetting>
+{
+    public void Configure(EntityTypeBuilder<PlatformSetting> b)
+    {
+        b.Property(s => s.Key).IsRequired().HasMaxLength(200);
+        b.Property(s => s.Value).IsRequired().HasMaxLength(4000);
+        b.Property(s => s.ValueType).HasConversion<string>().HasMaxLength(16);
+        b.Property(s => s.Category).IsRequired().HasMaxLength(100);
+        b.Property(s => s.DescriptionEn).HasMaxLength(1000);
+        b.Property(s => s.DescriptionAr).HasMaxLength(1000);
+        b.Property(s => s.RowVersion).IsRowVersion();
+
+        // PB-011: keys are the lookup identity — exactly one row per key.
+        b.HasIndex(s => s.Key).IsUnique();
+        b.HasIndex(s => s.Category);
+    }
+}
