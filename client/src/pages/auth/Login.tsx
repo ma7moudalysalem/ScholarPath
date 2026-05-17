@@ -1,10 +1,12 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "motion/react";
-import { EmptyState } from "@/components/common/EmptyState";
+import { toast } from "sonner";
+import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
+import { ApiError } from "@/services/api/client";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -16,13 +18,20 @@ type LoginInput = z.infer<typeof loginSchema>;
 
 export function Login() {
   const { t } = useTranslation(["auth", "common"]);
+  const navigate = useNavigate();
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "", rememberMe: false },
   });
 
-  const onSubmit = form.handleSubmit(() => {
-    // @Madiha6776: wire to LoginCommand via apiClient.post("/api/auth/login", payload)
+  const onSubmit = form.handleSubmit(async (values) => {
+    try {
+      const user = applyAuthSession(await authApi.login(values));
+      navigate(postAuthPath(user), { replace: true });
+    } catch (err) {
+      const status = err instanceof ApiError ? err.status : 0;
+      toast.error(t(status === 409 ? "auth:errors.loginFailed" : "auth:errors.generic"));
+    }
   });
 
   return (
@@ -84,14 +93,6 @@ export function Login() {
           </Link>
         </p>
       </motion.div>
-
-      <div className="mt-10">
-        <EmptyState
-          owner="@Madiha6776"
-          module="PB-001 Auth — wire LoginCommand + token persistence"
-          specPath=".specify/specs/PB-001-auth-access-onboarding/tasks.md"
-        />
-      </div>
     </div>
   );
 }
@@ -144,18 +145,14 @@ function SsoButtons() {
       <button
         type="button"
         className="flex w-full items-center justify-center gap-3 rounded-md border border-border-default bg-bg-elevated px-4 py-2.5 text-sm font-medium text-text-primary transition hover:bg-bg-subtle"
-        onClick={() => {
-          // @Madiha6776: redirect to /api/auth/google/authorize?redirectUri=...
-        }}
+        onClick={() => authApi.beginSso("google")}
       >
         {t("sso.google")}
       </button>
       <button
         type="button"
         className="flex w-full items-center justify-center gap-3 rounded-md border border-border-default bg-bg-elevated px-4 py-2.5 text-sm font-medium text-text-primary transition hover:bg-bg-subtle"
-        onClick={() => {
-          // @Madiha6776: redirect to /api/auth/microsoft/authorize?redirectUri=...
-        }}
+        onClick={() => authApi.beginSso("microsoft")}
       >
         {t("sso.microsoft")}
       </button>

@@ -2,7 +2,6 @@ import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { GraduationCap, Building2, Users } from "lucide-react";
 import { motion } from "motion/react";
-import { EmptyState } from "@/components/common/EmptyState";
 
 export function OnboardingWizard() {
   const { t } = useTranslation(["auth", "common"]);
@@ -61,13 +60,6 @@ export function OnboardingWizard() {
         ))}
       </div>
 
-      <div className="mt-12">
-        <EmptyState
-          owner="@Madiha6776"
-          module="PB-001 Onboarding — branch logic per role"
-          specPath=".specify/specs/PB-001-auth-access-onboarding/tasks.md"
-        />
-      </div>
     </section>
   );
 }

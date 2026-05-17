@@ -4,7 +4,9 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "motion/react";
-import { EmptyState } from "@/components/common/EmptyState";
+import { toast } from "sonner";
+import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
+import { ApiError } from "@/services/api/client";
 
 const registerSchema = z.object({
   firstName: z.string().min(1).max(100),
@@ -28,9 +30,14 @@ export function Register() {
     defaultValues: { firstName: "", lastName: "", email: "", password: "" },
   });
 
-  const onSubmit = form.handleSubmit(() => {
-    // @Madiha6776: POST /api/auth/register, store tokens, navigate to /onboarding
-    navigate("/onboarding");
+  const onSubmit = form.handleSubmit(async (values) => {
+    try {
+      const user = applyAuthSession(await authApi.register(values));
+      navigate(postAuthPath(user), { replace: true });
+    } catch (err) {
+      const status = err instanceof ApiError ? err.status : 0;
+      toast.error(t(status === 409 ? "auth:errors.emailTaken" : "auth:errors.generic"));
+    }
   });
 
   return (
@@ -92,14 +99,6 @@ export function Register() {
           </Link>
         </p>
       </motion.div>
-
-      <div className="mt-10">
-        <EmptyState
-          owner="@Madiha6776"
-          module="PB-001 Auth — wire RegisterCommand"
-          specPath=".specify/specs/PB-001-auth-access-onboarding/tasks.md"
-        />
-      </div>
     </div>
   );
 }
