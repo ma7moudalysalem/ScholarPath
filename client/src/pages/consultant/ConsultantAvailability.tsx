@@ -9,30 +9,16 @@ import {
   type MockAvailabilityState,
 } from "@/lib/mockAvailabilityStore";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 const timezoneOptions = ["Africa/Cairo", "Asia/Riyadh", "Asia/Dubai", "Europe/London", "UTC"];
 
-const bookingWindowOptions = [
-  { value: "7", label: "7 days" },
-  { value: "14", label: "14 days" },
-  { value: "21", label: "21 days" },
-  { value: "30", label: "30 days" },
-];
+const bookingWindowOptions = ["7", "14", "21", "30"];
 
-const durationOptions = [
-  { value: "30", label: "30 min" },
-  { value: "45", label: "45 min" },
-  { value: "60", label: "60 min" },
-  { value: "90", label: "90 min" },
-];
+const durationOptions = ["30", "45", "60", "90"];
 
-const bufferOptions = [
-  { value: "0", label: "No buffer" },
-  { value: "10", label: "10 min" },
-  { value: "15", label: "15 min" },
-  { value: "30", label: "30 min" },
-];
+const bufferOptions = ["0", "10", "15", "30"];
 
 function formatTimeLabel(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
@@ -42,22 +28,27 @@ function formatTimeLabel(value: string) {
   return `${normalizedHour}:${paddedMinutes} ${suffix}`;
 }
 
-function buildPreviewSlots(day: AvailabilityDayConfig) {
+type TFunction = ReturnType<typeof useTranslation>["t"];
+
+function buildPreviewSlots(day: AvailabilityDayConfig, t: TFunction) {
   if (!day.isEnabled) {
     return [];
   }
 
+  const dayLabel = t(`weekdays.${day.key}`);
+
   return [
-    `${day.label} · ${formatTimeLabel(day.start)}`,
-    `${day.label} · ${formatTimeLabel(day.end)}`,
+    `${dayLabel} · ${formatTimeLabel(day.start)}`,
+    `${dayLabel} · ${formatTimeLabel(day.end)}`,
   ];
 }
 
 export function ConsultantAvailability() {
+  const { t } = useTranslation("consultantPortal");
   const [availability, setAvailability] = useState<MockAvailabilityState>(() =>
     getMockAvailability(),
   );
-  const [banner, setBanner] = useState("");
+  const [bannerKey, setBannerKey] = useState("");
 
   useEffect(() => {
     return subscribeMockAvailability(() => {
@@ -74,15 +65,15 @@ export function ConsultantAvailability() {
     const firstEnabledDay = availability.days.find((day) => day.isEnabled);
 
     if (!firstEnabledDay) {
-      return "No active availability";
+      return t("availability.stats.noActiveAvailability");
     }
 
-    return `${firstEnabledDay.label} · ${formatTimeLabel(firstEnabledDay.start)}`;
-  }, [availability.days]);
+    return `${t(`weekdays.${firstEnabledDay.key}`)} · ${formatTimeLabel(firstEnabledDay.start)}`;
+  }, [availability.days, t]);
 
   const previewSlots = useMemo(
-    () => availability.days.flatMap((day) => buildPreviewSlots(day)).slice(0, 6),
-    [availability.days],
+    () => availability.days.flatMap((day) => buildPreviewSlots(day, t)).slice(0, 6),
+    [availability.days, t],
   );
 
   const handleTimezoneChange = (value: string) => {
@@ -150,41 +141,40 @@ export function ConsultantAvailability() {
 
   const handleSave = () => {
     saveMockAvailability(availability);
-    setBanner("Availability saved. The consultant schedule preview is now updated.");
+    setBannerKey("availability.banner.saved");
   };
 
   const handleReset = () => {
     const resetState = resetMockAvailability();
     setAvailability(resetState);
-    setBanner("Demo availability was reset to the original mock schedule.");
+    setBannerKey("availability.banner.reset");
   };
 
   return (
     <main className="min-h-screen bg-[#f5f5f7]">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-[#2563eb]">PB-006</p>
+          <p className="text-sm font-medium text-[#2563eb]">{t("moduleTag")}</p>
 
           <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
-            Consultant availability
+            {t("availability.title")}
           </h1>
 
           <p className="max-w-3xl text-base leading-7 text-[#4b5563]">
-            Manage your weekly consultation schedule, blocked dates, booking window, and slot
-            configuration from the consultant side.
+            {t("availability.subtitle")}
           </p>
         </div>
 
-        {banner ? (
+        {bannerKey ? (
           <div className="mt-8 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-5">
-            <p className="text-sm font-medium text-[#166534]">{banner}</p>
+            <p className="text-sm font-medium text-[#166534]">{t(bannerKey)}</p>
           </div>
         ) : null}
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <div className="inline-flex rounded-full bg-[#eff6ff] px-3 py-1 text-xs font-medium text-[#1d4ed8]">
-              Active days
+              {t("availability.stats.activeDays")}
             </div>
             <p className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-[#1d1d1f]">
               {availableDaysCount}
@@ -193,7 +183,7 @@ export function ConsultantAvailability() {
 
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <div className="inline-flex rounded-full bg-[#fef2f2] px-3 py-1 text-xs font-medium text-[#dc2626]">
-              Blocked dates
+              {t("availability.stats.blockedDates")}
             </div>
             <p className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-[#1d1d1f]">
               {availability.blockedDates.length}
@@ -202,19 +192,19 @@ export function ConsultantAvailability() {
 
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <div className="inline-flex rounded-full bg-[#f0fdf4] px-3 py-1 text-xs font-medium text-[#15803d]">
-              Next open slot
+              {t("availability.stats.nextOpenSlot")}
             </div>
             <p className="mt-4 text-sm font-semibold text-[#1d1d1f]">{nextOpenSlot}</p>
           </div>
 
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <div className="inline-flex rounded-full bg-[#f3f4f6] px-3 py-1 text-xs font-medium text-[#4b5563]">
-              Booking window
+              {t("availability.stats.bookingWindow")}
             </div>
             <p className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-[#1d1d1f]">
               {availability.bookingWindow}
             </p>
-            <p className="mt-1 text-sm text-[#4b5563]">days ahead</p>
+            <p className="mt-1 text-sm text-[#4b5563]">{t("availability.stats.daysAhead")}</p>
           </div>
         </div>
 
@@ -224,11 +214,10 @@ export function ConsultantAvailability() {
               <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                    Weekly schedule
+                    {t("availability.weeklySchedule.title")}
                   </h2>
                   <p className="mt-2 max-w-3xl text-sm leading-6 text-[#4b5563]">
-                    Configure which days are bookable and define working hours, session duration,
-                    and buffer time.
+                    {t("availability.weeklySchedule.description")}
                   </p>
                 </div>
               </div>
@@ -243,7 +232,7 @@ export function ConsultantAvailability() {
                       <div className="space-y-3">
                         <div className="flex flex-wrap items-center gap-3">
                           <p className="text-xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                            {day.label}
+                            {t(`weekdays.${day.key}`)}
                           </p>
 
                           <span
@@ -253,14 +242,16 @@ export function ConsultantAvailability() {
                                 : "bg-[#f3f4f6] text-[#4b5563]"
                             }`}
                           >
-                            {day.isEnabled ? "Available" : "Off"}
+                            {day.isEnabled
+                              ? t("availability.weeklySchedule.available")
+                              : t("availability.weeklySchedule.off")}
                           </span>
                         </div>
 
                         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                           <label className="block">
                             <span className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                              Start time
+                              {t("availability.weeklySchedule.startTime")}
                             </span>
                             <input
                               type="time"
@@ -274,7 +265,7 @@ export function ConsultantAvailability() {
 
                           <label className="block">
                             <span className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                              End time
+                              {t("availability.weeklySchedule.endTime")}
                             </span>
                             <input
                               type="time"
@@ -288,7 +279,7 @@ export function ConsultantAvailability() {
 
                           <label className="block">
                             <span className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                              Slot duration
+                              {t("availability.weeklySchedule.slotDuration")}
                             </span>
                             <select
                               value={day.slotDuration}
@@ -298,8 +289,8 @@ export function ConsultantAvailability() {
                               className="mt-2 h-11 w-full rounded-lg border border-[#d1d5db] bg-white px-3 text-sm text-[#1d1d1f] outline-none focus:border-[#2563eb]"
                             >
                               {durationOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
+                                <option key={option} value={option}>
+                                  {t(`durationOptions.${option}`)}
                                 </option>
                               ))}
                             </select>
@@ -307,7 +298,7 @@ export function ConsultantAvailability() {
 
                           <label className="block">
                             <span className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                              Buffer
+                              {t("availability.weeklySchedule.buffer")}
                             </span>
                             <select
                               value={day.buffer}
@@ -317,8 +308,8 @@ export function ConsultantAvailability() {
                               className="mt-2 h-11 w-full rounded-lg border border-[#d1d5db] bg-white px-3 text-sm text-[#1d1d1f] outline-none focus:border-[#2563eb]"
                             >
                               {bufferOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
+                                <option key={option} value={option}>
+                                  {t(`bufferOptions.${option}`)}
                                 </option>
                               ))}
                             </select>
@@ -335,7 +326,9 @@ export function ConsultantAvailability() {
                             : "bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
                         }`}
                       >
-                        {day.isEnabled ? "Turn off day" : "Enable day"}
+                        {day.isEnabled
+                          ? t("availability.weeklySchedule.turnOffDay")
+                          : t("availability.weeklySchedule.enableDay")}
                       </button>
                     </div>
                   </article>
@@ -347,10 +340,10 @@ export function ConsultantAvailability() {
               <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                    Booking rules
+                    {t("availability.bookingRules.title")}
                   </h2>
                   <p className="mt-2 max-w-3xl text-sm leading-6 text-[#4b5563]">
-                    Set timezone and how far ahead students can see available consultation slots.
+                    {t("availability.bookingRules.description")}
                   </p>
                 </div>
               </div>
@@ -358,7 +351,7 @@ export function ConsultantAvailability() {
               <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Timezone
+                    {t("availability.bookingRules.timezone")}
                   </span>
                   <select
                     value={availability.timezone}
@@ -375,7 +368,7 @@ export function ConsultantAvailability() {
 
                 <label className="block">
                   <span className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Booking window
+                    {t("availability.bookingRules.bookingWindow")}
                   </span>
                   <select
                     value={availability.bookingWindow}
@@ -383,8 +376,8 @@ export function ConsultantAvailability() {
                     className="mt-2 h-11 w-full rounded-lg border border-[#d1d5db] bg-white px-3 text-sm text-[#1d1d1f] outline-none focus:border-[#2563eb]"
                   >
                     {bookingWindowOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
+                      <option key={option} value={option}>
+                        {t(`bookingWindowOptions.${option}`)}
                       </option>
                     ))}
                   </select>
@@ -396,11 +389,10 @@ export function ConsultantAvailability() {
               <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div>
                   <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                    Blocked dates
+                    {t("availability.blockedDates.title")}
                   </h2>
                   <p className="mt-2 max-w-3xl text-sm leading-6 text-[#4b5563]">
-                    Add specific dates when you do not want to receive bookings, even if the day is
-                    normally available.
+                    {t("availability.blockedDates.description")}
                   </p>
                 </div>
 
@@ -409,7 +401,7 @@ export function ConsultantAvailability() {
                   onClick={handleAddBlockedDate}
                   className="inline-flex h-11 items-center justify-center rounded-lg bg-[#2563eb] px-4 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                 >
-                  Add blocked date
+                  {t("availability.blockedDates.add")}
                 </button>
               </div>
 
@@ -422,7 +414,7 @@ export function ConsultantAvailability() {
                     <div className="grid gap-4 lg:grid-cols-[1fr_1.5fr_160px]">
                       <label className="block">
                         <span className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                          Date
+                          {t("availability.blockedDates.date")}
                         </span>
                         <input
                           type="date"
@@ -436,7 +428,7 @@ export function ConsultantAvailability() {
 
                       <label className="block">
                         <span className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                          Reason
+                          {t("availability.blockedDates.reason")}
                         </span>
                         <input
                           type="text"
@@ -444,7 +436,7 @@ export function ConsultantAvailability() {
                           onChange={(event) =>
                             handleBlockedDateFieldChange(item.id, "reason", event.target.value)
                           }
-                          placeholder="Conference, holiday, travel..."
+                          placeholder={t("availability.blockedDates.reasonPlaceholder")}
                           className="mt-2 h-11 w-full rounded-lg border border-[#d1d5db] bg-white px-3 text-sm text-[#1d1d1f] outline-none focus:border-[#2563eb]"
                         />
                       </label>
@@ -455,7 +447,7 @@ export function ConsultantAvailability() {
                           onClick={() => handleRemoveBlockedDate(item.id)}
                           className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-[#dc2626] bg-white px-4 text-sm font-medium text-[#dc2626] transition hover:bg-[#fef2f2]"
                         >
-                          Remove
+                          {t("availability.blockedDates.remove")}
                         </button>
                       </div>
                     </div>
@@ -468,11 +460,11 @@ export function ConsultantAvailability() {
           <aside className="space-y-6 xl:col-span-4">
             <div className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
               <p className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Public preview
+                {t("availability.preview.title")}
               </p>
 
               <p className="mt-3 text-sm leading-6 text-[#4b5563]">
-                These are example slot previews based on your currently enabled weekly schedule.
+                {t("availability.preview.description")}
               </p>
 
               <div className="mt-5 space-y-3">
@@ -487,7 +479,7 @@ export function ConsultantAvailability() {
                   ))
                 ) : (
                   <div className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-sm text-[#4b5563]">
-                    No active preview slots yet.
+                    {t("availability.preview.empty")}
                   </div>
                 )}
               </div>
@@ -495,7 +487,7 @@ export function ConsultantAvailability() {
 
             <div className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
               <p className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Quick actions
+                {t("availability.quickActions.title")}
               </p>
 
               <div className="mt-5 flex flex-col gap-3">
@@ -504,7 +496,7 @@ export function ConsultantAvailability() {
                   onClick={handleSave}
                   className="inline-flex h-11 items-center justify-center rounded-lg bg-[#2563eb] px-4 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                 >
-                  Save availability
+                  {t("availability.quickActions.save")}
                 </button>
 
                 <button
@@ -512,43 +504,34 @@ export function ConsultantAvailability() {
                   onClick={handleReset}
                   className="inline-flex h-11 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-4 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                 >
-                  Reset demo availability
+                  {t("availability.quickActions.reset")}
                 </button>
 
                 <Link
                   to="/dev/consultant/bookings"
                   className="inline-flex h-11 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-4 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                 >
-                  Open consultant bookings
+                  {t("availability.quickActions.openBookings")}
                 </Link>
 
                 <Link
                   to="/dev/consultants"
                   className="inline-flex h-11 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-4 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                 >
-                  Open consultant marketplace
+                  {t("availability.quickActions.openMarketplace")}
                 </Link>
               </div>
             </div>
 
             <div className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
               <p className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Availability notes
+                {t("availability.notes.title")}
               </p>
 
               <div className="mt-5 space-y-3 text-sm leading-6 text-[#4b5563]">
-                <p>
-                  Enabled days define the public slot pool visible to students on the consultant
-                  profile page.
-                </p>
-                <p>
-                  Blocked dates override weekly availability and should be used for holidays,
-                  travel, and special exceptions.
-                </p>
-                <p>
-                  The next integration step can connect this schedule directly to consultant detail
-                  availability cards.
-                </p>
+                <p>{t("availability.notes.line1")}</p>
+                <p>{t("availability.notes.line2")}</p>
+                <p>{t("availability.notes.line3")}</p>
               </div>
             </div>
           </aside>

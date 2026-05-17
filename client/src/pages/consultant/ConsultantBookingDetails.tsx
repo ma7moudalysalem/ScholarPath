@@ -7,67 +7,65 @@ import {
   type MockBookingRecord,
 } from "@/lib/mockBookingStore";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 
 type TimelineStep = {
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
   isDone: boolean;
 };
 
-function getConsultantStatusMeta(status: BookingWorkflowStatus) {
+type ConsultantStatusMeta = {
+  statusKey: BookingWorkflowStatus;
+  badgeClassName: string;
+  summaryKey: string;
+  noteKey: string;
+};
+
+function getConsultantStatusMeta(status: BookingWorkflowStatus): ConsultantStatusMeta {
   switch (status) {
     case "pending":
       return {
-        label: "New request",
+        statusKey: "pending",
         badgeClassName: "bg-[#fffbeb] text-[#b45309]",
-        holdStatus: "Authorization hold active",
-        summary:
-          "This consultation request is waiting for your decision. The student has already completed the checkout and hold authorization step.",
-        note: "You can now review the request and either accept or reject it. The payment remains on hold until a decision is made.",
+        summaryKey: "details.summaryCard.text.pending",
+        noteKey: "details.guidance.note.pending",
       };
     case "confirmed":
       return {
-        label: "Confirmed",
+        statusKey: "confirmed",
         badgeClassName: "bg-[#eff6ff] text-[#1d4ed8]",
-        holdStatus: "Ready for capture",
-        summary:
-          "You accepted this request. The session is now confirmed and ready for consultation delivery.",
-        note: "The consultation is scheduled. After delivery, this request can be marked as completed so payment capture is reflected.",
+        summaryKey: "details.summaryCard.text.confirmed",
+        noteKey: "details.guidance.note.confirmed",
       };
     case "completed":
       return {
-        label: "Completed",
+        statusKey: "completed",
         badgeClassName: "bg-[#f0fdf4] text-[#15803d]",
-        holdStatus: "Payment captured",
-        summary:
-          "This consultation was completed successfully and the booking is now closed from the consultant side.",
-        note: "The consultation session was delivered successfully and the booking moved into a completed state.",
+        summaryKey: "details.summaryCard.text.completed",
+        noteKey: "details.guidance.note.completed",
       };
     case "rejected":
       return {
-        label: "Rejected",
+        statusKey: "rejected",
         badgeClassName: "bg-[#fef2f2] text-[#dc2626]",
-        holdStatus: "Hold released",
-        summary: "You rejected this request, so the consultation did not proceed.",
-        note: "The booking is now closed and the authorization hold should be reversed automatically.",
+        summaryKey: "details.summaryCard.text.rejected",
+        noteKey: "details.guidance.note.rejected",
       };
     case "cancelled":
       return {
-        label: "Cancelled",
+        statusKey: "cancelled",
         badgeClassName: "bg-[#f3f4f6] text-[#4b5563]",
-        holdStatus: "No active hold",
-        summary:
-          "This consultation request was cancelled before final completion and remains visible for history and audit purposes.",
-        note: "No session is active for this request and no further consultant action is needed.",
+        summaryKey: "details.summaryCard.text.cancelled",
+        noteKey: "details.guidance.note.cancelled",
       };
     default:
       return {
-        label: "New request",
+        statusKey: "pending",
         badgeClassName: "bg-[#fffbeb] text-[#b45309]",
-        holdStatus: "Authorization hold active",
-        summary: "This request is waiting for consultant review.",
-        note: "Waiting for consultant action.",
+        summaryKey: "details.summaryCard.text.default",
+        noteKey: "details.guidance.note.default",
       };
   }
 }
@@ -77,115 +75,115 @@ function buildTimeline(status: BookingWorkflowStatus): TimelineStep[] {
     case "pending":
       return [
         {
-          title: "Student submitted request",
-          description: "The student selected a slot and completed the booking checkout flow.",
+          titleKey: "details.timeline.pending.step1Title",
+          descriptionKey: "details.timeline.pending.step1Description",
           isDone: true,
         },
         {
-          title: "Authorization hold placed",
-          description: "The system created a payment hold before consultant review.",
+          titleKey: "details.timeline.pending.step2Title",
+          descriptionKey: "details.timeline.pending.step2Description",
           isDone: true,
         },
         {
-          title: "Consultant decision pending",
-          description: "This request still needs to be accepted or rejected.",
+          titleKey: "details.timeline.pending.step3Title",
+          descriptionKey: "details.timeline.pending.step3Description",
           isDone: false,
         },
         {
-          title: "Session confirmation",
-          description: "This step will complete after the consultant accepts the request.",
+          titleKey: "details.timeline.pending.step4Title",
+          descriptionKey: "details.timeline.pending.step4Description",
           isDone: false,
         },
       ];
     case "confirmed":
       return [
         {
-          title: "Student submitted request",
-          description: "The consultation request was created successfully.",
+          titleKey: "details.timeline.confirmed.step1Title",
+          descriptionKey: "details.timeline.confirmed.step1Description",
           isDone: true,
         },
         {
-          title: "Authorization hold placed",
-          description: "The payment-hold step completed before consultant action.",
+          titleKey: "details.timeline.confirmed.step2Title",
+          descriptionKey: "details.timeline.confirmed.step2Description",
           isDone: true,
         },
         {
-          title: "Consultant accepted request",
-          description: "The request was approved and the session was confirmed.",
+          titleKey: "details.timeline.confirmed.step3Title",
+          descriptionKey: "details.timeline.confirmed.step3Description",
           isDone: true,
         },
         {
-          title: "Session confirmed",
-          description: "The booking is scheduled and ready for delivery.",
+          titleKey: "details.timeline.confirmed.step4Title",
+          descriptionKey: "details.timeline.confirmed.step4Description",
           isDone: true,
         },
       ];
     case "completed":
       return [
         {
-          title: "Student submitted request",
-          description: "The consultation request entered the workflow successfully.",
+          titleKey: "details.timeline.completed.step1Title",
+          descriptionKey: "details.timeline.completed.step1Description",
           isDone: true,
         },
         {
-          title: "Consultant accepted request",
-          description: "The booking was confirmed and reserved.",
+          titleKey: "details.timeline.completed.step2Title",
+          descriptionKey: "details.timeline.completed.step2Description",
           isDone: true,
         },
         {
-          title: "Consultation delivered",
-          description: "The session took place successfully.",
+          titleKey: "details.timeline.completed.step3Title",
+          descriptionKey: "details.timeline.completed.step3Description",
           isDone: true,
         },
         {
-          title: "Booking completed",
-          description: "The booking was closed after successful delivery.",
+          titleKey: "details.timeline.completed.step4Title",
+          descriptionKey: "details.timeline.completed.step4Description",
           isDone: true,
         },
       ];
     case "rejected":
       return [
         {
-          title: "Student submitted request",
-          description: "The student created the consultation request successfully.",
+          titleKey: "details.timeline.rejected.step1Title",
+          descriptionKey: "details.timeline.rejected.step1Description",
           isDone: true,
         },
         {
-          title: "Authorization hold placed",
-          description: "The payment hold was created before consultant review.",
+          titleKey: "details.timeline.rejected.step2Title",
+          descriptionKey: "details.timeline.rejected.step2Description",
           isDone: true,
         },
         {
-          title: "Consultant rejected request",
-          description: "The request was declined and the consultation will not proceed.",
+          titleKey: "details.timeline.rejected.step3Title",
+          descriptionKey: "details.timeline.rejected.step3Description",
           isDone: true,
         },
         {
-          title: "Booking closed",
-          description: "The booking is closed and the hold should be released.",
+          titleKey: "details.timeline.rejected.step4Title",
+          descriptionKey: "details.timeline.rejected.step4Description",
           isDone: true,
         },
       ];
     case "cancelled":
       return [
         {
-          title: "Booking request entered workflow",
-          description: "The consultation request was created successfully.",
+          titleKey: "details.timeline.cancelled.step1Title",
+          descriptionKey: "details.timeline.cancelled.step1Description",
           isDone: true,
         },
         {
-          title: "Cancellation recorded",
-          description: "The booking was cancelled before final completion.",
+          titleKey: "details.timeline.cancelled.step2Title",
+          descriptionKey: "details.timeline.cancelled.step2Description",
           isDone: true,
         },
         {
-          title: "Payment flow closed",
-          description: "No active hold remains for this request.",
+          titleKey: "details.timeline.cancelled.step3Title",
+          descriptionKey: "details.timeline.cancelled.step3Description",
           isDone: true,
         },
         {
-          title: "Booking archived",
-          description: "The cancelled request remains visible in the consultant history.",
+          titleKey: "details.timeline.cancelled.step4Title",
+          descriptionKey: "details.timeline.cancelled.step4Description",
           isDone: true,
         },
       ];
@@ -195,6 +193,7 @@ function buildTimeline(status: BookingWorkflowStatus): TimelineStep[] {
 }
 
 export function ConsultantBookingDetails() {
+  const { t } = useTranslation("consultantPortal");
   const { id } = useParams();
   const bookingId = id ?? "1";
 
@@ -214,7 +213,7 @@ export function ConsultantBookingDetails() {
     return bookingsSnapshot.find((item) => item.id === bookingId) ?? bookingsSnapshot[0] ?? null;
   }, [bookingsSnapshot, bookingId]);
 
-  const banner = bannerByBooking[bookingId] ?? "";
+  const bannerKey = bannerByBooking[bookingId] ?? "";
 
   const statusMeta = useMemo(
     () => getConsultantStatusMeta(booking?.status ?? "pending"),
@@ -228,16 +227,16 @@ export function ConsultantBookingDetails() {
       <main className="min-h-screen bg-[#f5f5f7]">
         <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
           <div className="rounded-2xl border border-[#e5e7eb] bg-white p-8 shadow-sm">
-            <h1 className="text-2xl font-semibold text-[#1d1d1f]">Booking not found</h1>
+            <h1 className="text-2xl font-semibold text-[#1d1d1f]">{t("details.notFound.title")}</h1>
             <p className="mt-3 text-sm leading-7 text-[#4b5563]">
-              The selected booking could not be found in the current mock store.
+              {t("details.notFound.description")}
             </p>
             <div className="mt-6">
               <Link
                 to="/dev/consultant/bookings"
                 className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
               >
-                Back to consultant bookings
+                {t("details.notFound.back")}
               </Link>
             </div>
           </div>
@@ -252,7 +251,7 @@ export function ConsultantBookingDetails() {
     setMockBookingStatus(booking.id, "confirmed");
     setBannerByBooking((current) => ({
       ...current,
-      [bookingId]: "Request accepted. The student and consultant views are now synced.",
+      [bookingId]: "details.banner.accepted",
     }));
   };
 
@@ -262,7 +261,7 @@ export function ConsultantBookingDetails() {
     setMockBookingStatus(booking.id, "rejected");
     setBannerByBooking((current) => ({
       ...current,
-      [bookingId]: "Request rejected. The status update now appears across both views.",
+      [bookingId]: "details.banner.rejected",
     }));
   };
 
@@ -272,7 +271,7 @@ export function ConsultantBookingDetails() {
     setMockBookingStatus(booking.id, "completed");
     setBannerByBooking((current) => ({
       ...current,
-      [bookingId]: "Session marked as completed. The workflow is now closed successfully.",
+      [bookingId]: "details.banner.completed",
     }));
   };
 
@@ -280,7 +279,7 @@ export function ConsultantBookingDetails() {
     resetMockBookings();
     setBannerByBooking((current) => ({
       ...current,
-      [bookingId]: "Demo bookings were reset to their original mock states.",
+      [bookingId]: "details.banner.reset",
     }));
   };
 
@@ -288,31 +287,30 @@ export function ConsultantBookingDetails() {
     <main className="min-h-screen bg-[#f5f5f7]">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-[#2563eb]">PB-006</p>
+          <p className="text-sm font-medium text-[#2563eb]">{t("moduleTag")}</p>
 
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
-                Consultant request details
+                {t("details.title")}
               </h1>
 
               <p className="mt-3 max-w-3xl text-base leading-7 text-[#4b5563]">
-                Review the booking request, student context, payment-hold status, and consultant
-                decision path.
+                {t("details.subtitle")}
               </p>
             </div>
 
             <span
               className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusMeta.badgeClassName}`}
             >
-              {statusMeta.label}
+              {t(`status.${statusMeta.statusKey}`)}
             </span>
           </div>
         </div>
 
-        {banner ? (
+        {bannerKey ? (
           <div className="mt-8 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-5">
-            <p className="text-sm font-medium text-[#166534]">{banner}</p>
+            <p className="text-sm font-medium text-[#166534]">{t(bannerKey)}</p>
           </div>
         ) : null}
 
@@ -320,109 +318,111 @@ export function ConsultantBookingDetails() {
           <section className="space-y-6 lg:col-span-8">
             <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Request summary
+                {t("details.summaryCard.title")}
               </h2>
 
-              <p className="mt-3 text-sm leading-7 text-[#4b5563]">{statusMeta.summary}</p>
+              <p className="mt-3 text-sm leading-7 text-[#4b5563]">{t(statusMeta.summaryKey)}</p>
 
               <div className="mt-5 grid gap-4 rounded-xl bg-[#f9fafb] p-5 sm:grid-cols-2 xl:grid-cols-3">
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Booking reference
+                    {t("details.summaryCard.bookingReference")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.reference}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Student name
+                    {t("details.summaryCard.studentName")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.studentName}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Student email
+                    {t("details.summaryCard.studentEmail")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.studentEmail}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Session topic
+                    {t("details.summaryCard.sessionTopic")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.topic}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Session type
+                    {t("details.summaryCard.sessionType")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.sessionType}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Student stage
+                    {t("details.summaryCard.studentStage")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.studentStage}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Selected date
+                    {t("details.summaryCard.selectedDate")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.date}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Selected time
+                    {t("details.summaryCard.selectedTime")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.time}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Duration
+                    {t("details.summaryCard.duration")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.duration}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Fee
+                    {t("details.summaryCard.fee")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.fee}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Hold status
+                    {t("details.summaryCard.holdStatus")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{statusMeta.holdStatus}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                    {t(`holdStatus.${statusMeta.statusKey}`)}
+                  </p>
                 </div>
               </div>
             </div>
 
             <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Consultant guidance
+                {t("details.guidance.title")}
               </h2>
 
               <div className="mt-5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-5">
-                <p className="text-sm leading-7 text-[#4b5563]">{statusMeta.note}</p>
+                <p className="text-sm leading-7 text-[#4b5563]">{t(statusMeta.noteKey)}</p>
               </div>
             </div>
 
             <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Request timeline
+                {t("details.timeline.title")}
               </h2>
 
               <div className="mt-5 space-y-4">
                 {timeline.map((step, index) => (
-                  <div key={step.title} className="flex gap-4">
+                  <div key={step.titleKey} className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div
                         className={[
@@ -436,8 +436,10 @@ export function ConsultantBookingDetails() {
                     </div>
 
                     <div className="pb-4">
-                      <p className="text-sm font-medium text-[#1d1d1f]">{step.title}</p>
-                      <p className="mt-1 text-sm leading-6 text-[#4b5563]">{step.description}</p>
+                      <p className="text-sm font-medium text-[#1d1d1f]">{t(step.titleKey)}</p>
+                      <p className="mt-1 text-sm leading-6 text-[#4b5563]">
+                        {t(step.descriptionKey)}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -448,7 +450,7 @@ export function ConsultantBookingDetails() {
           <aside className="space-y-6 lg:col-span-4">
             <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Consultant actions
+                {t("details.actions.title")}
               </h2>
 
               <div className="mt-5 flex flex-col gap-3">
@@ -463,7 +465,7 @@ export function ConsultantBookingDetails() {
                       : "cursor-not-allowed bg-[#e5e7eb] text-[#9ca3af]",
                   ].join(" ")}
                 >
-                  Accept request
+                  {t("details.actions.accept")}
                 </button>
 
                 <button
@@ -477,7 +479,7 @@ export function ConsultantBookingDetails() {
                       : "cursor-not-allowed border border-[#e5e7eb] bg-white text-[#9ca3af]",
                   ].join(" ")}
                 >
-                  Reject request
+                  {t("details.actions.reject")}
                 </button>
 
                 <button
@@ -491,7 +493,7 @@ export function ConsultantBookingDetails() {
                       : "cursor-not-allowed bg-[#e5e7eb] text-[#9ca3af]",
                   ].join(" ")}
                 >
-                  Mark as completed
+                  {t("details.actions.complete")}
                 </button>
 
                 <button
@@ -499,43 +501,34 @@ export function ConsultantBookingDetails() {
                   onClick={handleReset}
                   className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                 >
-                  Reset demo bookings
+                  {t("details.actions.reset")}
                 </button>
 
                 <Link
                   to="/dev/consultant/bookings"
                   className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                 >
-                  Back to consultant bookings
+                  {t("details.actions.back")}
                 </Link>
 
                 <Link
                   to={`/dev/bookings/${booking.id}`}
                   className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                 >
-                  Open student view
+                  {t("details.actions.openStudentView")}
                 </Link>
               </div>
             </div>
 
             <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Decision help
+                {t("details.decisionHelp.title")}
               </h2>
 
               <div className="mt-5 space-y-3 text-sm leading-7 text-[#4b5563]">
-                <p>
-                  Accept when the request fits your expertise and the slot is still appropriate for
-                  your schedule.
-                </p>
-                <p>
-                  Reject when the request cannot be handled or the selected slot is no longer
-                  suitable.
-                </p>
-                <p>
-                  After confirmation, mark the session as completed only when the consultation is
-                  actually delivered.
-                </p>
+                <p>{t("details.decisionHelp.accept")}</p>
+                <p>{t("details.decisionHelp.reject")}</p>
+                <p>{t("details.decisionHelp.complete")}</p>
               </div>
             </div>
           </aside>

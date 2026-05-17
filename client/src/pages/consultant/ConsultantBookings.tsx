@@ -5,53 +5,54 @@ import {
   type MockBookingRecord,
 } from "@/lib/mockBookingStore";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 type ConsultantFilter = "all" | "pending" | "confirmed" | "completed" | "closed";
 
-function getConsultantStatusMeta(status: BookingWorkflowStatus) {
+type ConsultantStatusMeta = {
+  statusKey: BookingWorkflowStatus;
+  badgeClassName: string;
+  noteKey: string;
+};
+
+function getConsultantStatusMeta(status: BookingWorkflowStatus): ConsultantStatusMeta {
   switch (status) {
     case "pending":
       return {
-        label: "New request",
+        statusKey: "pending",
         badgeClassName: "bg-[#fffbeb] text-[#b45309]",
-        holdStatus: "Authorization hold active",
-        note: "Student submitted the booking request and is waiting for your response.",
+        noteKey: "bookings.note.pending",
       };
     case "confirmed":
       return {
-        label: "Confirmed",
+        statusKey: "confirmed",
         badgeClassName: "bg-[#eff6ff] text-[#1d4ed8]",
-        holdStatus: "Ready for capture",
-        note: "This booking has already been accepted and the session is confirmed.",
+        noteKey: "bookings.note.confirmed",
       };
     case "completed":
       return {
-        label: "Completed",
+        statusKey: "completed",
         badgeClassName: "bg-[#f0fdf4] text-[#15803d]",
-        holdStatus: "Payment captured",
-        note: "The consultation was delivered successfully and the booking is closed.",
+        noteKey: "bookings.note.completed",
       };
     case "rejected":
       return {
-        label: "Rejected",
+        statusKey: "rejected",
         badgeClassName: "bg-[#fef2f2] text-[#dc2626]",
-        holdStatus: "Hold released",
-        note: "The request was rejected and the authorization hold should be reversed.",
+        noteKey: "bookings.note.rejected",
       };
     case "cancelled":
       return {
-        label: "Cancelled",
+        statusKey: "cancelled",
         badgeClassName: "bg-[#f3f4f6] text-[#4b5563]",
-        holdStatus: "No active hold",
-        note: "The session was cancelled before final confirmation.",
+        noteKey: "bookings.note.cancelled",
       };
     default:
       return {
-        label: "New request",
+        statusKey: "pending",
         badgeClassName: "bg-[#fffbeb] text-[#b45309]",
-        holdStatus: "Authorization hold active",
-        note: "Waiting for consultant action.",
+        noteKey: "bookings.note.default",
       };
   }
 }
@@ -61,6 +62,7 @@ function isClosedStatus(status: BookingWorkflowStatus) {
 }
 
 export function ConsultantBookings() {
+  const { t } = useTranslation("consultantPortal");
   const [bookings, setBookings] = useState<MockBookingRecord[]>(() => getMockBookings());
   const [filter, setFilter] = useState<ConsultantFilter>("all");
 
@@ -99,50 +101,47 @@ export function ConsultantBookings() {
     <main className="min-h-screen bg-[#f5f5f7]">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-[#2563eb]">PB-006</p>
+          <p className="text-sm font-medium text-[#2563eb]">{t("moduleTag")}</p>
 
           <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
-            Consultant bookings
+            {t("bookings.title")}
           </h1>
 
-          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">
-            Review incoming booking requests, track confirmed sessions, and monitor completed,
-            rejected, or cancelled consultation outcomes.
-          </p>
+          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("bookings.subtitle")}</p>
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-              Total bookings
+              {t("bookings.summary.total")}
             </p>
             <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.total}</p>
           </div>
 
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-              New requests
+              {t("bookings.summary.pending")}
             </p>
             <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.pending}</p>
           </div>
 
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-              Confirmed
+              {t("bookings.summary.confirmed")}
             </p>
             <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.confirmed}</p>
           </div>
 
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-              Completed
+              {t("bookings.summary.completed")}
             </p>
             <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.completed}</p>
           </div>
 
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-              Closed
+              {t("bookings.summary.closed")}
             </p>
             <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.closed}</p>
           </div>
@@ -160,7 +159,7 @@ export function ConsultantBookings() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                All bookings
+                {t("bookings.filters.all")}
               </button>
 
               <button
@@ -172,7 +171,7 @@ export function ConsultantBookings() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                New requests
+                {t("bookings.filters.pending")}
               </button>
 
               <button
@@ -184,7 +183,7 @@ export function ConsultantBookings() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                Confirmed
+                {t("bookings.filters.confirmed")}
               </button>
 
               <button
@@ -196,7 +195,7 @@ export function ConsultantBookings() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                Completed
+                {t("bookings.filters.completed")}
               </button>
 
               <button
@@ -208,7 +207,7 @@ export function ConsultantBookings() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                Closed
+                {t("bookings.filters.closed")}
               </button>
             </div>
 
@@ -216,7 +215,7 @@ export function ConsultantBookings() {
               to="/dev/consultant/availability"
               className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
             >
-              Open availability
+              {t("bookings.openAvailability")}
             </Link>
           </div>
         </div>
@@ -241,7 +240,7 @@ export function ConsultantBookings() {
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-medium ${statusMeta.badgeClassName}`}
                         >
-                          {statusMeta.label}
+                          {t(`status.${statusMeta.statusKey}`)}
                         </span>
                       </div>
 
@@ -250,7 +249,7 @@ export function ConsultantBookings() {
                       <div className="mt-6 grid gap-4 rounded-xl bg-[#f9fafb] p-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Booking reference
+                            {t("bookings.card.bookingReference")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                             {booking.reference}
@@ -259,7 +258,7 @@ export function ConsultantBookings() {
 
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Student email
+                            {t("bookings.card.studentEmail")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                             {booking.studentEmail}
@@ -268,7 +267,7 @@ export function ConsultantBookings() {
 
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Session
+                            {t("bookings.card.session")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                             {booking.sessionType}
@@ -277,7 +276,7 @@ export function ConsultantBookings() {
 
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Date & time
+                            {t("bookings.card.dateTime")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                             {booking.date} · {booking.time}
@@ -286,7 +285,7 @@ export function ConsultantBookings() {
 
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Duration
+                            {t("bookings.card.duration")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                             {booking.duration}
@@ -295,47 +294,49 @@ export function ConsultantBookings() {
 
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Fee
+                            {t("bookings.card.fee")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.fee}</p>
                         </div>
 
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Hold status
+                            {t("bookings.card.holdStatus")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                            {statusMeta.holdStatus}
+                            {t(`holdStatus.${statusMeta.statusKey}`)}
                           </p>
                         </div>
 
                         <div className="sm:col-span-2 lg:col-span-1">
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Consultant note
+                            {t("bookings.card.consultantNote")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                            {statusMeta.note}
+                            {t(statusMeta.noteKey)}
                           </p>
                         </div>
                       </div>
                     </div>
 
                     <aside className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4 xl:max-w-[280px]">
-                      <h3 className="text-base font-semibold text-[#1d1d1f]">Quick actions</h3>
+                      <h3 className="text-base font-semibold text-[#1d1d1f]">
+                        {t("bookings.card.quickActions")}
+                      </h3>
 
                       <div className="mt-4 flex flex-col gap-3">
                         <Link
                           to={`/dev/consultant/bookings/${booking.id}`}
                           className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                         >
-                          View request details
+                          {t("bookings.card.viewDetails")}
                         </Link>
 
                         <Link
                           to={`/dev/bookings/${booking.id}`}
                           className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                         >
-                          Open student view
+                          {t("bookings.card.openStudentView")}
                         </Link>
                       </div>
                     </aside>
@@ -346,12 +347,11 @@ export function ConsultantBookings() {
           ) : (
             <div className="rounded-2xl border border-[#e5e7eb] bg-white p-8 shadow-sm">
               <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                No bookings in this view
+                {t("bookings.empty.title")}
               </h2>
 
               <p className="mt-3 max-w-2xl text-sm leading-7 text-[#4b5563]">
-                No bookings match the selected filter right now. Try another filter or return to the
-                availability page.
+                {t("bookings.empty.description")}
               </p>
 
               <div className="mt-6">
@@ -359,7 +359,7 @@ export function ConsultantBookings() {
                   to="/dev/consultant/availability"
                   className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                 >
-                  Open availability
+                  {t("bookings.openAvailability")}
                 </Link>
               </div>
             </div>
