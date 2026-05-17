@@ -5,6 +5,7 @@ export type ApplicationStatus =
   | "Draft"
   | "Pending"
   | "UnderReview"
+  | "Shortlisted"
   | "Accepted"
   | "Rejected"
   | "Withdrawn"
@@ -36,6 +37,28 @@ export interface CompanyApplicationRow {
   scholarshipTitle: string;
   status: ApplicationStatus;
   createdAt: string;
+}
+
+export interface ApplicationDetail {
+  id: string;
+  scholarshipId: string;
+  scholarshipTitleEn: string;
+  scholarshipTitleAr: string;
+  companyName: string | null;
+  status: ApplicationStatus;
+  mode: "InApp" | "External";
+  formDataJson: string | null;
+  attachedDocumentsJson: string | null;
+  externalTrackingUrl: string | null;
+  externalReferenceId: string | null;
+  decisionReason: string | null;
+  personalNotes: string | null;
+  deadline: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+  submittedAt: string | null;
+  reviewStartedAt: string | null;
+  decisionAt: string | null;
 }
 
 export const applicationsApi = {
@@ -71,5 +94,11 @@ export const applicationsApi = {
 
   async reviewApplication(id: string, status: ApplicationStatus, decisionReason?: string): Promise<void> {
     await apiClient.post(`/api/applications/${id}/review`, { status, decisionReason });
+  },
+
+  /** Single-application detail — owning student or admin. */
+  async getById(id: string): Promise<ApplicationDetail> {
+    const { data } = await apiClient.get<ApplicationDetail>(`/api/applications/${id}`);
+    return data;
   },
 };

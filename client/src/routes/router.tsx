@@ -46,10 +46,10 @@ const StudentDashboard = lazy(() =>
 const StudentApplications = lazy(() =>
   import("@/pages/student/Applications").then((m) => ({ default: m.Applications })),
 );
-const StudentApplicationDetail = stub(
-  "@norra-mmhamed",
-  "PB-004 Application detail",
-  ".specify/specs/PB-004-application-tracking",
+const StudentApplicationDetail = lazy(() =>
+  import("@/pages/student/StudentApplicationDetail").then((m) => ({
+    default: m.StudentApplicationDetail,
+  })),
 );
 const StudentConsultants = lazy(() =>
   import("@/pages/student/ConsultantsBrowse").then((m) => ({ default: m.ConsultantsBrowse })),
@@ -74,10 +74,10 @@ const StudentCommunity = lazy(() =>
 const StudentCommunityThread = lazy(() =>
   import("@/pages/community/CommunityThread").then((m) => ({ default: m.CommunityThread })),
 );
-const StudentResources = stub(
-  "@yousra-elnoby",
-  "PB-009 Resources",
-  ".specify/specs/PB-009-resources-hub",
+const StudentResources = lazy(() =>
+  import("@/pages/student/StudentResources").then((m) => ({
+    default: m.StudentResources,
+  })),
 );
 const StudentAi = lazy(() =>
   import("@/pages/student/AiFeatures").then((m) => ({ default: m.AiFeatures })),
@@ -90,10 +90,10 @@ const StudentMessages = lazy(() =>
 const CompanyDashboard = lazy(() =>
   import("@/pages/company/Dashboard").then((m) => ({ default: m.CompanyDashboard })),
 );
-const CompanyScholarships = stub(
-  "@norra-mmhamed",
-  "PB-003 Company listings",
-  ".specify/specs/PB-003-scholarship-discovery",
+const CompanyScholarships = lazy(() =>
+  import("@/pages/company/CompanyScholarships").then((m) => ({
+    default: m.CompanyScholarships,
+  })),
 );
 const CompanyApplicationsReview = lazy(() =>
   import("@/pages/company/ApplicationsReview").then((m) => ({ default: m.ApplicationsReview })),
@@ -154,20 +154,16 @@ const AdminAiEconomy = lazy(() =>
 const AdminRedactionAudit = lazy(() =>
   import("@/pages/admin/RedactionAuditPage").then((m) => ({ default: m.RedactionAuditPage })),
 );
-const AdminScholarships = stub(
-  "@yousra-elnoby",
-  "PB-011 Scholarships",
-  ".specify/specs/PB-011-admin-portal",
+const AdminScholarships = lazy(() =>
+  import("@/pages/admin/AdminScholarships").then((m) => ({
+    default: m.AdminScholarships,
+  })),
 );
-const AdminArticles = stub(
-  "@yousra-elnoby",
-  "PB-009 Articles moderation",
-  ".specify/specs/PB-009-resources-hub",
+const AdminArticles = lazy(() =>
+  import("@/pages/admin/AdminArticles").then((m) => ({ default: m.AdminArticles })),
 );
-const AdminCommunity = stub(
-  "@yousra-elnoby",
-  "PB-007 Community moderation",
-  ".specify/specs/PB-007-community-chat",
+const AdminCommunity = lazy(() =>
+  import("@/pages/admin/AdminCommunity").then((m) => ({ default: m.AdminCommunity })),
 );
 const AdminPayments = lazy(() =>
   import("@/pages/admin/AdminPayments").then((m) => ({ default: m.AdminPayments })),

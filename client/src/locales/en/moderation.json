@@ -1,0 +1,121 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "loadError": "Could not load data.",
+    "retry": "Retry",
+    "prev": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
+  "appDetail": {
+    "title": "Application detail",
+    "back": "Back to applications",
+    "notFound": "This application could not be found.",
+    "scholarship": "Scholarship",
+    "company": "Provider",
+    "status": "Status",
+    "mode": "Mode",
+    "timeline": "Timeline",
+    "created": "Created",
+    "submitted": "Submitted",
+    "reviewStarted": "Review started",
+    "decision": "Decision",
+    "deadline": "Deadline",
+    "lastUpdated": "Last updated",
+    "decisionReason": "Decision note",
+    "personalNotes": "Your notes",
+    "formData": "Submitted form data",
+    "documents": "Attached documents",
+    "externalTracking": "External tracking",
+    "externalRef": "External reference",
+    "openExternal": "Open external listing",
+    "noFormData": "No form data was submitted.",
+    "noNotes": "You have not added any notes.",
+    "notProvided": "—"
+  },
+  "applicationStatus": {
+    "Draft": "Draft",
+    "Pending": "Pending",
+    "UnderReview": "Under review",
+    "Shortlisted": "Shortlisted",
+    "Accepted": "Accepted",
+    "Rejected": "Rejected",
+    "Withdrawn": "Withdrawn",
+    "Intending": "Intending",
+    "Applied": "Applied",
+    "WaitingResult": "Waiting for result"
+  },
+  "applicationMode": {
+    "InApp": "In-app",
+    "External": "External"
+  },
+  "companyScholarships": {
+    "title": "My scholarships",
+    "subtitle": "Every scholarship listing your organisation has created.",
+    "loading": "Loading scholarships…",
+    "loadError": "Could not load your scholarships.",
+    "empty": "You have not created any scholarships yet.",
+    "create": "Create scholarship",
+    "headers": {
+      "title": "Title",
+      "status": "Status",
+      "deadline": "Deadline",
+      "applicants": "Applicants"
+    }
+  },
+  "scholarshipStatus": {
+    "Draft": "Draft",
+    "Open": "Open",
+    "Closed": "Closed",
+    "Archived": "Archived",
+    "UnderReview": "Under review"
+  },
+  "scholarshipModeration": {
+    "title": "Scholarship moderation",
+    "subtitle": "Review scholarships submitted by companies before they go live.",
+    "filterStatus": "Status",
+    "loading": "Loading…",
+    "loadError": "Could not load scholarships.",
+    "empty": "No scholarships match this filter.",
+    "headers": {
+      "title": "Title",
+      "status": "Status",
+      "deadline": "Deadline",
+      "applicants": "Applicants",
+      "actions": "Actions"
+    },
+    "approve": "Approve",
+    "reject": "Reject",
+    "approveSuccess": "Scholarship published.",
+    "approveError": "Could not approve the scholarship.",
+    "rejectPrompt": "Reason for rejecting this scholarship:",
+    "rejectSuccess": "Scholarship rejected.",
+    "rejectError": "Could not reject the scholarship."
+  },
+  "communityModeration": {
+    "title": "Community moderation",
+    "subtitle": "Posts flagged by members or hidden automatically.",
+    "loading": "Loading…",
+    "loadError": "Could not load flagged posts.",
+    "empty": "No posts need moderation right now.",
+    "untitled": "(reply)",
+    "autoHidden": "Auto-hidden",
+    "flags": "{{count}} flag",
+    "flags_other": "{{count}} flags",
+    "topReason": "Top reason",
+    "headers": {
+      "post": "Post",
+      "author": "Author",
+      "flags": "Flags",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "remove": "Remove",
+    "keep": "Keep",
+    "removeConfirm": "Remove this post? It will be hidden from the community.",
+    "removeSuccess": "Post removed.",
+    "removeError": "Could not remove the post.",
+    "keepSuccess": "Flags dismissed — the post stays visible.",
+    "keepError": "Could not dismiss the flags."
+  }
+}

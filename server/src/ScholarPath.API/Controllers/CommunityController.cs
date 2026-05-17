@@ -4,9 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Community.Commands.CreateCategory;
 using ScholarPath.Application.Community.Commands.CreatePost;
 using ScholarPath.Application.Community.Commands.CreateReply;
+using ScholarPath.Application.Community.Commands.DeletePost;
+using ScholarPath.Application.Community.Commands.DismissPostFlags;
 using ScholarPath.Application.Community.Commands.FlagPost;
 using ScholarPath.Application.Community.Commands.ToggleVote;
 using ScholarPath.Application.Community.Queries.GetCategories;
+using ScholarPath.Application.Community.Queries.GetFlaggedPosts;
 using ScholarPath.Application.Community.Queries.GetPostDetails;
 using ScholarPath.Application.Community.Queries.GetPosts;
 
@@ -74,6 +77,35 @@ public class CommunityController(IMediator mediator) : ControllerBase
         var command = new FlagPostCommand(id, request.Reason, request.AdditionalDetails);
         await mediator.Send(command, ct);
         return NoContent();
+    }
+
+    // ── Admin moderation ──────────────────────────────────────────────────────
+
+    /// <summary>Lists posts in the moderation queue — flagged or auto-hidden.</summary>
+    [HttpGet("admin/flagged")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<IActionResult> GetFlagged(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+        => Ok(await mediator.Send(new GetFlaggedPostsQuery(page, pageSize), ct));
+
+    /// <summary>Removes a flagged post (soft-delete).</summary>
+    [HttpPost("admin/posts/{id:guid}/remove")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<IActionResult> RemovePost(Guid id, CancellationToken ct)
+    {
+        var ok = await mediator.Send(new DeletePostCommand(id), ct);
+        return ok ? NoContent() : NotFound();
+    }
+
+    /// <summary>Dismisses the flags on a post ("keep") — clears the moderation state.</summary>
+    [HttpPost("admin/posts/{id:guid}/dismiss")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<IActionResult> DismissFlags(Guid id, CancellationToken ct)
+    {
+        var ok = await mediator.Send(new DismissPostFlagsCommand(id), ct);
+        return ok ? NoContent() : NotFound();
     }
 }
 

@@ -6,6 +6,7 @@ using ScholarPath.Application.Applications.Commands.StartApplication;
 using ScholarPath.Application.Applications.Commands.SubmitApplication;
 using ScholarPath.Application.Applications.Commands.UpdateExternalStatus;
 using ScholarPath.Application.Applications.Commands.WithdrawApplication;
+using ScholarPath.Application.Applications.Queries.GetApplicationDetail;
 using ScholarPath.Application.Applications.Queries.GetCompanyApplicationDetails;
 using ScholarPath.Application.Applications.Queries.GetCompanyApplications;
 using ScholarPath.Application.Applications.Queries.GetMyApplications;
@@ -59,13 +60,20 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
         return ok ? NoContent() : NotFound();
     }
 
-    /// <summary>Retrieves a single application by ID. Read-side pending.</summary>
+    /// <summary>
+    /// Retrieves a single application by ID. The caller must be the owning student
+    /// or an administrator.
+    /// </summary>
     [HttpGet("{id:guid}")]
     [Authorize]
-    [ProducesResponseType(StatusCodes.Status501NotImplemented)]
-    public ActionResult GetById(Guid id)
-        => StatusCode(StatusCodes.Status501NotImplemented,
-            "Read-side for a single application is not yet implemented.");
+    [ProducesResponseType(typeof(ApplicationDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<ApplicationDetailDto>> GetById(Guid id, CancellationToken ct)
+    {
+        var result = await mediator.Send(new GetApplicationDetailQuery(id), ct);
+        return result is null ? NotFound() : Ok(result);
+    }
 
     // ─── Student read-side / external tracking (PB-005 slice) ────────────────
 

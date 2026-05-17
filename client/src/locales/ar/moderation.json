@@ -1,0 +1,121 @@
+{
+  "common": {
+    "loading": "جارٍ التحميل…",
+    "loadError": "تعذّر تحميل البيانات.",
+    "retry": "إعادة المحاولة",
+    "prev": "السابق",
+    "next": "التالي",
+    "pageOf": "صفحة {{page}} من {{total}}"
+  },
+  "appDetail": {
+    "title": "تفاصيل الطلب",
+    "back": "العودة إلى الطلبات",
+    "notFound": "تعذّر العثور على هذا الطلب.",
+    "scholarship": "المنحة الدراسية",
+    "company": "الجهة المانحة",
+    "status": "الحالة",
+    "mode": "النوع",
+    "timeline": "المخطّط الزمني",
+    "created": "تاريخ الإنشاء",
+    "submitted": "تاريخ التقديم",
+    "reviewStarted": "بدء المراجعة",
+    "decision": "القرار",
+    "deadline": "الموعد النهائي",
+    "lastUpdated": "آخر تحديث",
+    "decisionReason": "ملاحظة القرار",
+    "personalNotes": "ملاحظاتك",
+    "formData": "بيانات النموذج المقدّم",
+    "documents": "المستندات المرفقة",
+    "externalTracking": "التتبّع الخارجي",
+    "externalRef": "المرجع الخارجي",
+    "openExternal": "فتح الإعلان الخارجي",
+    "noFormData": "لم يتم تقديم أي بيانات في النموذج.",
+    "noNotes": "لم تقم بإضافة أي ملاحظات.",
+    "notProvided": "—"
+  },
+  "applicationStatus": {
+    "Draft": "مسودّة",
+    "Pending": "قيد الانتظار",
+    "UnderReview": "قيد المراجعة",
+    "Shortlisted": "القائمة المختصرة",
+    "Accepted": "مقبول",
+    "Rejected": "مرفوض",
+    "Withdrawn": "مسحوب",
+    "Intending": "أنوي التقديم",
+    "Applied": "تم التقديم",
+    "WaitingResult": "بانتظار النتيجة"
+  },
+  "applicationMode": {
+    "InApp": "داخل التطبيق",
+    "External": "خارجي"
+  },
+  "companyScholarships": {
+    "title": "منحي الدراسية",
+    "subtitle": "كل إعلانات المنح الدراسية التي أنشأتها مؤسستك.",
+    "loading": "جارٍ تحميل المنح…",
+    "loadError": "تعذّر تحميل منحك الدراسية.",
+    "empty": "لم تقم بإنشاء أي منح دراسية بعد.",
+    "create": "إنشاء منحة",
+    "headers": {
+      "title": "العنوان",
+      "status": "الحالة",
+      "deadline": "الموعد النهائي",
+      "applicants": "المتقدّمون"
+    }
+  },
+  "scholarshipStatus": {
+    "Draft": "مسودّة",
+    "Open": "مفتوحة",
+    "Closed": "مغلقة",
+    "Archived": "مؤرشفة",
+    "UnderReview": "قيد المراجعة"
+  },
+  "scholarshipModeration": {
+    "title": "مراجعة المنح الدراسية",
+    "subtitle": "راجع المنح المقدّمة من الشركات قبل نشرها.",
+    "filterStatus": "الحالة",
+    "loading": "جارٍ التحميل…",
+    "loadError": "تعذّر تحميل المنح الدراسية.",
+    "empty": "لا توجد منح تطابق هذا التصفية.",
+    "headers": {
+      "title": "العنوان",
+      "status": "الحالة",
+      "deadline": "الموعد النهائي",
+      "applicants": "المتقدّمون",
+      "actions": "الإجراءات"
+    },
+    "approve": "موافقة",
+    "reject": "رفض",
+    "approveSuccess": "تم نشر المنحة.",
+    "approveError": "تعذّرت الموافقة على المنحة.",
+    "rejectPrompt": "سبب رفض هذه المنحة:",
+    "rejectSuccess": "تم رفض المنحة.",
+    "rejectError": "تعذّر رفض المنحة."
+  },
+  "communityModeration": {
+    "title": "مراجعة المجتمع",
+    "subtitle": "المنشورات التي أبلغ عنها الأعضاء أو أُخفيت تلقائيًا.",
+    "loading": "جارٍ التحميل…",
+    "loadError": "تعذّر تحميل المنشورات المُبلّغ عنها.",
+    "empty": "لا توجد منشورات بحاجة للمراجعة حاليًا.",
+    "untitled": "(ردّ)",
+    "autoHidden": "مُخفى تلقائيًا",
+    "flags": "بلاغ واحد",
+    "flags_other": "{{count}} بلاغات",
+    "topReason": "أبرز سبب",
+    "headers": {
+      "post": "المنشور",
+      "author": "الكاتب",
+      "flags": "البلاغات",
+      "status": "الحالة",
+      "actions": "الإجراءات"
+    },
+    "remove": "إزالة",
+    "keep": "إبقاء",
+    "removeConfirm": "إزالة هذا المنشور؟ سيُخفى من المجتمع.",
+    "removeSuccess": "تمت إزالة المنشور.",
+    "removeError": "تعذّرت إزالة المنشور.",
+    "keepSuccess": "تم تجاهل البلاغات — يبقى المنشور ظاهرًا.",
+    "keepError": "تعذّر تجاهل البلاغات."
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "browse": {
+    "title": "Resources Hub",
+    "subtitle": "Guides, articles, and checklists to help you on your scholarship journey.",
+    "searchPlaceholder": "Search resources…",
+    "allTypes": "All types",
+    "loading": "Loading resources…",
+    "loadError": "Could not load resources.",
+    "retry": "Retry",
+    "empty": "No resources match your search.",
+    "readMore": "Read more",
+    "openLink": "Open link",
+    "featured": "Featured"
+  },
+  "resourceType": {
+    "Article": "Article",
+    "Guide": "Guide",
+    "Checklist": "Checklist",
+    "VideoLink": "Video"
+  },
+  "pagination": {
+    "prev": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{total}}"
+  },
+  "moderation": {
+    "title": "Resource moderation",
+    "subtitle": "Review and publish resources submitted by authors.",
+    "loading": "Loading…",
+    "loadError": "Could not load pending resources.",
+    "retry": "Retry",
+    "empty": "No resources are awaiting review.",
+    "headers": {
+      "title": "Title",
+      "type": "Type",
+      "author": "Author role",
+      "tags": "Tags",
+      "actions": "Actions"
+    },
+    "approve": "Approve",
+    "reject": "Reject",
+    "approveSuccess": "Resource published.",
+    "approveError": "Could not approve the resource.",
+    "rejectPrompt": "Reason for rejecting this resource:",
+    "rejectSuccess": "Resource rejected.",
+    "rejectError": "Could not reject the resource."
+  }
+}

@@ -18,6 +18,8 @@ import enProfile from "@/locales/en/profile.json";
 import enNotifications from "@/locales/en/notifications.json";
 import enDashboard from "@/locales/en/dashboard.json";
 import enPayments from "@/locales/en/payments.json";
+import enResources from "@/locales/en/resources.json";
+import enModeration from "@/locales/en/moderation.json";
 
 import arCommon from "@/locales/ar/common.json";
 import arAuth from "@/locales/ar/auth.json";
@@ -35,6 +37,8 @@ import arProfile from "@/locales/ar/profile.json";
 import arNotifications from "@/locales/ar/notifications.json";
 import arDashboard from "@/locales/ar/dashboard.json";
 import arPayments from "@/locales/ar/payments.json";
+import arResources from "@/locales/ar/resources.json";
+import arModeration from "@/locales/ar/moderation.json";
 
 export const supportedLanguages = ["en", "ar"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -68,6 +72,8 @@ void i18n
       "notifications",
       "dashboard",
       "payments",
+      "resources",
+      "moderation",
     ],
     defaultNS: "common",
     interpolation: { escapeValue: false },
@@ -94,6 +100,8 @@ void i18n
         notifications: enNotifications,
         dashboard: enDashboard,
         payments: enPayments,
+        resources: enResources,
+        moderation: enModeration,
       },
       ar: {
         common: arCommon,
@@ -112,6 +120,8 @@ void i18n
         notifications: arNotifications,
         dashboard: arDashboard,
         payments: arPayments,
+        resources: arResources,
+        moderation: arModeration,
       },
     },
   });

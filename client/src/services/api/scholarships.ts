@@ -63,6 +63,36 @@ export interface BookmarkedScholarship {
   savedAt: string;
 }
 
+export type ScholarshipStatus =
+  | "Draft"
+  | "Open"
+  | "Closed"
+  | "Archived"
+  | "UnderReview";
+
+/** Server MyScholarshipDto shape — company list + admin moderation rows. */
+export interface MyScholarship {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  slug: string | null;
+  status: ScholarshipStatus;
+  mode: ListingMode;
+  deadline: string;
+  applicantCount: number;
+  createdAt: string;
+}
+
+/** Server PaginatedList<MyScholarshipDto> shape. */
+export interface PaginatedMyScholarships {
+  items: MyScholarship[];
+  pageNumber: number;
+  totalPages: number;
+  totalCount: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const scholarshipsApi = {
@@ -102,5 +132,38 @@ export const scholarshipsApi = {
       "/api/scholarships/featured",
     );
     return data;
+  },
+
+  // ── Company: own scholarships ────────────────────────────────────────────────
+
+  /** The authenticated company's own scholarships, newest first. */
+  async getMine(): Promise<MyScholarship[]> {
+    const { data } = await apiClient.get<MyScholarship[]>("/api/scholarships/mine");
+    return data;
+  },
+
+  // ── Admin moderation ─────────────────────────────────────────────────────────
+
+  /** Admin-only: scholarships filtered by moderation status, paged. */
+  async getForModeration(
+    status: ScholarshipStatus = "UnderReview",
+    page = 1,
+    pageSize = 20,
+  ): Promise<PaginatedMyScholarships> {
+    const { data } = await apiClient.get<PaginatedMyScholarships>(
+      "/api/scholarships/admin",
+      { params: { status, page, pageSize } },
+    );
+    return data;
+  },
+
+  /** Admin-only: approve an under-review scholarship. */
+  async approve(id: string): Promise<void> {
+    await apiClient.post(`/api/scholarships/${id}/approve`);
+  },
+
+  /** Admin-only: reject an under-review scholarship back to draft with a reason. */
+  async reject(id: string, reason: string): Promise<void> {
+    await apiClient.post(`/api/scholarships/${id}/reject`, { reason });
   },
 };
