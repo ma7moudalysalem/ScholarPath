@@ -81,17 +81,9 @@ public sealed class CreatePaymentIntentCommandHandler(
         var payerUserId = currentUser.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
-        // 1. Resolve profit-share percentage from active config
-        var profitConfig = await db.ProfitShareConfigs
-            .Where(c =>
-                c.PaymentType == request.Type &&
-                c.EffectiveFrom <= DateTimeOffset.UtcNow &&
-                (c.EffectiveTo == null || c.EffectiveTo > DateTimeOffset.UtcNow))
-            .OrderByDescending(c => c.EffectiveFrom)
-            .FirstOrDefaultAsync(ct);
-
-        var platformPct = profitConfig?.Percentage
-            ?? ProfitShareCalculator.DefaultPercentage(request.Type);
+        // 1. Resolve profit-share percentage from the config in force right now.
+        var platformPct = await ProfitShareConfigResolver
+            .ResolveActivePercentageAsync(db, request.Type, ct);
         var breakdown = ProfitShareCalculator.Calculate(request.AmountCents, platformPct);
 
         // 2. Capture method per type

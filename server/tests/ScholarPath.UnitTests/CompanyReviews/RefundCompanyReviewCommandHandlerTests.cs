@@ -51,6 +51,9 @@ public class RefundCompanyReviewCommandHandlerTests
         _db.CompanyReviewPayments.Add(payment);
         await _db.SaveChangesAsync();
 
+        _stripe.CancelPaymentIntentAsync("pi_123", "requested_by_customer", Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new StripePaymentIntentResult("pi_123", "canceled", null, null));
+
         var command = new RefundCompanyReviewCommand(appId, IsFullRefund: true);
 
         // Act

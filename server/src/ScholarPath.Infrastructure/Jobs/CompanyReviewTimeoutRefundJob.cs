@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Notifications;
+using ScholarPath.Application.Payments;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
 
@@ -46,10 +47,10 @@ public sealed class CompanyReviewTimeoutRefundJob(
             {
                 try
                 {
-                    // Refund 100%
-                    var stripeResult = await stripeService.CancelPaymentIntentAsync(
+                    // Refund 100% — release the card hold; throws if Stripe does
+                    // not confirm, so a failed cancel is retried on the next run.
+                    await stripeService.CancelHeldPaymentAsync(
                         payment.StripePaymentIntentId,
-                        "requested_by_customer",
                         $"company-review-timeout-refund:{payment.Id:N}",
                         ct);
 

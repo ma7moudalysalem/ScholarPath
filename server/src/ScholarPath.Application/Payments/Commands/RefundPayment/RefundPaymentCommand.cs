@@ -89,21 +89,10 @@ public sealed class RefundPaymentCommandHandler(
         //     (releases the card hold without ever charging)
         if (isFullRefund && payment.Status == PaymentStatus.Held)
         {
-            var cancelResult = await stripeService.CancelPaymentIntentAsync(
-                paymentIntentId: payment.StripePaymentIntentId!,
-                cancellationReason: "requested_by_customer",
+            await stripeService.CancelHeldPaymentAsync(
+                payment.StripePaymentIntentId!,
                 idempotencyKey: $"{idempotencyKey}:cancel",
-                ct: ct);
-
-            if (cancelResult.Status != "canceled")
-            {
-                logger.LogWarning(
-                    "Stripe cancel for payment {PaymentId} returned unexpected status: {Status}",
-                    payment.Id, cancelResult.Status);
-
-                throw new ConflictException(
-                    $"Stripe cancellation did not succeed. Status: {cancelResult.Status}");
-            }
+                ct);
 
             payment.Status = PaymentStatus.Refunded;
             payment.RefundedAmountCents = payment.AmountCents;

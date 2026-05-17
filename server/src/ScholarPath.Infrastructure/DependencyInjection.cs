@@ -125,7 +125,6 @@ public static class DependencyInjection
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserAdministration, UserAdministration>();
         services.AddScoped<IAdminReadService, AdminReadService>();
-        services.AddScoped<ScholarPath.Application.CompanyReviews.Services.ICompanyReviewPricingService, ScholarPath.Application.CompanyReviews.Services.CompanyReviewPricingService>();
         services.AddScoped<AiCostGate>();
 
         // Jobs

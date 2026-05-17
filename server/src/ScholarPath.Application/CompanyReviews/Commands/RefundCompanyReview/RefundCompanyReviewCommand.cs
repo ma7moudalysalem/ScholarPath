@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Notifications;
+using ScholarPath.Application.Payments;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.CompanyReviews.Commands.RefundCompanyReview;
@@ -32,9 +33,8 @@ public sealed class RefundCompanyReviewCommandHandler(
         {
             if (request.IsFullRefund)
             {
-                await stripeService.CancelPaymentIntentAsync(
+                await stripeService.CancelHeldPaymentAsync(
                     payment.StripePaymentIntentId,
-                    "requested_by_customer",
                     $"company-review-refund:{payment.Id:N}:full",
                     ct);
 
