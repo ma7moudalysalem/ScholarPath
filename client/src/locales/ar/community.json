@@ -1,0 +1,26 @@
+{
+  "feed": {
+    "askQuestion": "اطرح سؤالًا",
+    "categoriesTitle": "الفئات",
+    "allCategories": "كل المواضيع",
+    "generalCategory": "عام",
+    "sortNewest": "الأحدث",
+    "sortTrending": "الرائج",
+    "searchPlaceholder": "ابحث في النقاشات...",
+    "repliesCount": "{{count}} ردًّا",
+    "emptyTitle": "لا توجد نقاشات",
+    "emptyBody": "كن أول من يبدأ نقاشًا في هذه الفئة."
+  },
+  "thread": {
+    "notFound": "الموضوع غير موجود",
+    "backToFeed": "العودة إلى النقاشات",
+    "commentsCount": "{{count}} تعليقًا",
+    "verifiedSafe": "مُوثَّق وآمن",
+    "replyPlaceholder": "شارك أفكارك..."
+  },
+  "actions": {
+    "flagReasonPrompt": "سبب الإبلاغ:",
+    "flagSuccess": "شكرًا لك. تم الإبلاغ عن المحتوى.",
+    "voteError": "لا يمكنك التصويت على منشورك الخاص."
+  }
+}

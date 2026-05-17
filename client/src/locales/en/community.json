@@ -1,0 +1,26 @@
+{
+  "feed": {
+    "askQuestion": "Ask a Question",
+    "categoriesTitle": "Categories",
+    "allCategories": "All Topics",
+    "generalCategory": "General",
+    "sortNewest": "Newest",
+    "sortTrending": "Trending",
+    "searchPlaceholder": "Search discussions...",
+    "repliesCount": "{{count}} replies",
+    "emptyTitle": "No discussions found",
+    "emptyBody": "Be the first to start a conversation in this category."
+  },
+  "thread": {
+    "notFound": "Thread not found",
+    "backToFeed": "Back to discussions",
+    "commentsCount": "{{count}} Comments",
+    "verifiedSafe": "Verified safe",
+    "replyPlaceholder": "Share your thoughts..."
+  },
+  "actions": {
+    "flagReasonPrompt": "Reason for flagging:",
+    "flagSuccess": "Thank you. The content has been reported.",
+    "voteError": "You cannot vote on your own post."
+  }
+}

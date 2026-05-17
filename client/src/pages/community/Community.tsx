@@ -18,7 +18,7 @@ import { ar } from "date-fns/locale";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 export function Community() {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation("community");
   const isRtl = i18n.dir() === "rtl";
   const dateLocale = isRtl ? ar : undefined;
 
@@ -59,14 +59,14 @@ export function Community() {
             className="w-full cta-pill bg-brand-500 text-white flex items-center justify-center gap-2 shadow-lg hover:bg-brand-600 transition-all"
           >
             <Plus size={18} />
-            <span>{t("community.ask_question", "Ask a Question")}</span>
+            <span>{t("feed.askQuestion")}</span>
           </button>
 
           <div className="bg-bg-elevated rounded-xl border border-border-subtle overflow-hidden shadow-sm">
             <div className="px-4 py-3 border-b border-border-subtle bg-bg-muted">
               <h3 className="text-sm font-semibold flex items-center gap-2">
                 <Filter size={14} className="text-brand-500" />
-                {t("community.categories", "Categories")}
+                {t("feed.categoriesTitle")}
               </h3>
             </div>
             <nav className="p-2">
@@ -76,7 +76,7 @@ export function Community() {
                   !selectedCategoryId ? "bg-brand-50 text-brand-600 font-medium" : "hover:bg-bg-subtle"
                 }`}
               >
-                <span>{t("community.all_categories", "All Topics")}</span>
+                <span>{t("feed.allCategories")}</span>
                 {!selectedCategoryId && <ChevronRight size={14} />}
               </button>
               {categories.map((cat) => (
@@ -108,7 +108,7 @@ export function Community() {
               }`}
             >
               <Clock size={16} />
-              {t("community.sort_newest", "Newest")}
+              {t("feed.sortNewest")}
             </button>
             <button
               onClick={() => setSortBy("MostVoted")}
@@ -117,7 +117,7 @@ export function Community() {
               }`}
             >
               <TrendingUp size={16} />
-              {t("community.sort_trending", "Trending")}
+              {t("feed.sortTrending")}
             </button>
           </div>
 
@@ -125,7 +125,7 @@ export function Community() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
             <input
               type="text"
-              placeholder={t("community.search_placeholder", "Search discussions...")}
+              placeholder={t("feed.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-border-subtle bg-bg-elevated focus:ring-2 focus:ring-brand-400 focus:border-transparent outline-none transition-all text-sm shadow-sm"
@@ -163,7 +163,7 @@ export function Community() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs font-medium text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full">
-                        {categories.find(c => c.id === post.categoryId)?.[isRtl ? 'nameAr' : 'nameEn'] || t("community.general", "General")}
+                        {categories.find(c => c.id === post.categoryId)?.[isRtl ? 'nameAr' : 'nameEn'] || t("feed.generalCategory")}
                       </span>
                       <span className="text-xs text-text-tertiary">•</span>
                       <span className="text-xs text-text-tertiary">
@@ -179,7 +179,7 @@ export function Community() {
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1 text-text-tertiary text-xs">
                         <MessageSquare size={14} />
-                        <span>{post.replyCount} {t("community.replies", "replies")}</span>
+                        <span>{t("feed.repliesCount", { count: post.replyCount })}</span>
                       </div>
                       <div className="flex items-center gap-1 text-text-tertiary text-xs">
                         <div className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center text-[10px] text-brand-600 font-bold border border-white">
@@ -197,8 +197,8 @@ export function Community() {
               <div className="bg-bg-subtle w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MessageSquare className="text-text-tertiary" size={32} />
               </div>
-              <h3 className="text-xl font-bold mb-2">{t("community.no_posts", "No discussions found")}</h3>
-              <p className="text-text-secondary">{t("community.no_posts_desc", "Be the first to start a conversation in this category.")}</p>
+              <h3 className="text-xl font-bold mb-2">{t("feed.emptyTitle")}</h3>
+              <p className="text-text-secondary">{t("feed.emptyBody")}</p>
             </div>
           )}
         </div>

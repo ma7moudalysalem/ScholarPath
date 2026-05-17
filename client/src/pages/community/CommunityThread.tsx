@@ -17,7 +17,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export function CommunityThread() {
   const { id } = useParams<{ id: string }>();
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation("community");
   const isRtl = i18n.dir() === "rtl";
   const dateLocale = isRtl ? ar : undefined;
   const qc = useQueryClient();
@@ -37,7 +37,7 @@ export function CommunityThread() {
       void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
     },
     onError: () => {
-      alert(t("community.vote_error", "You cannot vote on your own post."));
+      alert(t("actions.voteError"));
     }
   });
 
@@ -63,12 +63,12 @@ export function CommunityThread() {
   };
 
   const handleFlag = async (postId: string) => {
-    const reason = prompt(t("community.flag_reason", "Reason for flagging:"));
+    const reason = prompt(t("actions.flagReasonPrompt"));
     if (!reason) return;
 
     try {
       await communityApi.flagPost(postId, { reason });
-      alert(t("community.flag_success", "Thank you. The content has been reported."));
+      alert(t("actions.flagSuccess"));
     } catch (error) {
       console.error("Failed to flag", error);
     }
@@ -86,9 +86,9 @@ export function CommunityThread() {
   if (!thread) {
     return (
       <div className="text-center py-20">
-        <h2 className="text-2xl font-bold">{t("community.thread_not_found", "Thread not found")}</h2>
+        <h2 className="text-2xl font-bold">{t("thread.notFound")}</h2>
         <Link to="/student/community" className="text-brand-500 hover:underline mt-4 block">
-          {t("community.back_to_feed", "Back to discussions")}
+          {t("thread.backToFeed")}
         </Link>
       </div>
     );
@@ -102,7 +102,7 @@ export function CommunityThread() {
         className="inline-flex items-center gap-2 text-text-secondary hover:text-brand-500 transition-colors mb-6 group"
       >
         <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform rtl:group-hover:translate-x-1" />
-        <span className="font-medium text-sm">{t("community.back_to_feed", "Back to discussions")}</span>
+        <span className="font-medium text-sm">{t("thread.backToFeed")}</span>
       </Link>
 
       {/* Main Post */}
@@ -160,11 +160,11 @@ export function CommunityThread() {
               <div className="flex items-center gap-6 border-t border-border-subtle pt-6">
                 <div className="flex items-center gap-2 text-text-tertiary text-sm">
                   <MessageSquare size={18} />
-                  <span className="font-medium">{thread.post.replyCount} {t("community.comments", "Comments")}</span>
+                  <span className="font-medium">{t("thread.commentsCount", { count: thread.post.replyCount })}</span>
                 </div>
                 <div className="flex items-center gap-2 text-text-tertiary text-sm">
                   <Shield size={18} />
-                  <span>{t("community.community_standards", "Verified safe")}</span>
+                  <span>{t("thread.verifiedSafe")}</span>
                 </div>
               </div>
             </div>
@@ -178,7 +178,7 @@ export function CommunityThread() {
           <textarea
             value={replyBody}
             onChange={(e) => setReplyBody(e.target.value)}
-            placeholder={t("community.reply_placeholder", "Share your thoughts...")}
+            placeholder={t("thread.replyPlaceholder")}
             className="w-full bg-bg-elevated border border-border-subtle rounded-2xl p-6 pr-16 outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all shadow-sm min-h-[120px] resize-none"
           />
           <button
