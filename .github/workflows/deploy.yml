@@ -1,8 +1,11 @@
 name: Deploy
 
 # Deploys the API to Azure App Service and the client to Azure Static Web
-# Apps. Runs automatically on push to `main`, or on demand via the
-# "Run workflow" button (workflow_dispatch).
+# Apps. Triggered MANUALLY only — via the "Run workflow" button
+# (workflow_dispatch). Provision Azure and configure the secrets/variables
+# below BEFORE the first run (see docs/deployment.md). The workflow is
+# intentionally NOT wired to `push` so ordinary commits never fire a
+# deployment against infrastructure that does not exist yet.
 #
 # Required GitHub configuration (see docs/deployment.md):
 #   Secrets:
@@ -21,8 +24,6 @@ name: Deploy
 # Registration trusts this repo's workflow via a federated credential.
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
