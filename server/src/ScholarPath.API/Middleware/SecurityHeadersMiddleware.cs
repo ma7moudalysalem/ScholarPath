@@ -13,7 +13,13 @@ public sealed class SecurityHeadersMiddleware(RequestDelegate next)
             headers["X-XSS-Protection"] = "0";
             headers["Permissions-Policy"] = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()";
             headers["Cross-Origin-Opener-Policy"] = "same-origin";
-            headers["Cross-Origin-Resource-Policy"] = "same-origin";
+            // Profile photos are embedded cross-origin by the SPA (served from a
+            // different host), so the photo endpoint must allow cross-origin use.
+            headers["Cross-Origin-Resource-Policy"] =
+                (context.Request.Path.Value ?? string.Empty)
+                    .EndsWith("/photo", StringComparison.OrdinalIgnoreCase)
+                    ? "cross-origin"
+                    : "same-origin";
             if (context.Request.IsHttps)
             {
                 headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload";

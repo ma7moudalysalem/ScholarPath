@@ -37,7 +37,8 @@ function DetailRow({
   );
 }
 
-function FundingBadge({ type }: { type: FundingType }) {
+function FundingBadge({ type }: { type?: FundingType }) {
+  if (!type) return null;
   const colors: Record<FundingType, string> = {
     FullyFunded:     "bg-emerald-500/10 text-emerald-600",
     PartiallyFunded: "bg-blue-500/10 text-blue-600",
