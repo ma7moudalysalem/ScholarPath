@@ -53,6 +53,11 @@ export const queryKeys = {
     mine: ["notifications", "mine"] as const,
     unreadCount: ["notifications", "unreadCount"] as const,
   },
+  ai: {
+    all: ["ai"] as const,
+    recommendations: ["ai", "recommendations"] as const,
+    eligibility: (id: string) => ["ai", "eligibility", id] as const,
+  },
   resources: {
     list: (filters: Record<string, unknown>) => ["resources", "list", filters] as const,
     detail: (id: string) => ["resources", "detail", id] as const,

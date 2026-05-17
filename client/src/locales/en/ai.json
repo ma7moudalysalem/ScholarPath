@@ -2,19 +2,47 @@
   "title": "AI features",
   "subtitle": "Profile-based recommendations, eligibility checks, and a help chatbot. All AI output is advisory — verify with the official listing.",
   "disclaimer": "AI-generated guidance. Verify with official sources before acting.",
+  "tabs": {
+    "recommendations": "Recommendations",
+    "eligibility": "Eligibility checker",
+    "chat": "Chatbot"
+  },
   "recommendations": {
     "heading": "Recommended for you",
+    "intro": "Scholarships matched to your profile, each with a match score and a short explanation.",
     "empty": "We couldn't match any open scholarships to your profile yet. Update your preferred fields and countries to improve results.",
+    "noCacheTitle": "No recommendations yet",
+    "noCacheBody": "Generate a personalized set of scholarship recommendations based on your profile.",
+    "generate": "Generate recommendations",
+    "generating": "Generating…",
     "refresh": "Refresh recommendations",
+    "regenerate": "Regenerate",
     "matchScore": "Match",
+    "matchScoreLabel": "{{score}}% match",
     "viewListing": "View listing",
-    "generatedAt": "Generated {{when}}"
+    "generatedAt": "Generated {{when}}",
+    "error": "We couldn't load your recommendations. Please try again."
   },
   "eligibility": {
     "heading": "Eligibility check",
+    "intro": "Pick a scholarship to see whether you meet its criteria and what to improve.",
+    "searchLabel": "Find a scholarship",
+    "searchPlaceholder": "Search scholarships by title…",
+    "searchHint": "Start typing to search for a scholarship to check.",
+    "searchEmpty": "No scholarships match your search.",
+    "searchError": "Scholarship search failed. Please try again.",
+    "selected": "Checking",
+    "change": "Change scholarship",
+    "checking": "Checking eligibility…",
     "open": "Check eligibility",
     "summary": "Summary",
     "criteria": "Criteria",
+    "verdictLabel": "Overall verdict",
+    "verdict": {
+      "Eligible": "Eligible",
+      "PartiallyEligible": "Partially eligible",
+      "NotEligible": "Not eligible"
+    },
     "match": {
       "yes": "Match",
       "partial": "Partial",
@@ -23,15 +51,23 @@
     },
     "you": "You",
     "listing": "Listing",
+    "improve": {
+      "heading": "What to improve",
+      "intro": "Strengthen these areas to improve your eligibility.",
+      "none": "You meet every criterion — nothing to improve here."
+    },
+    "error": "The eligibility check failed. Please try again.",
     "close": "Close"
   },
   "chat": {
     "heading": "Ask ScholarPath",
+    "intro": "Ask about scholarships, deadlines, eligibility, and studying abroad.",
     "placeholder": "Ask about scholarships, deadlines, eligibility…",
     "send": "Send",
     "you": "You",
     "assistant": "Assistant",
     "emptyHint": "I can point you to scholarships, deadlines, and applications. What are you looking for?",
+    "thinking": "Thinking…",
     "costHint": "Est. ${{cost}} used · {{prompt}}↑ / {{completion}}↓ tokens"
   },
   "errors": {

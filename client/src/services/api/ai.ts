@@ -3,6 +3,13 @@ import { apiClient } from "@/services/api/client";
 export type AiFeature = "Recommendation" | "Eligibility" | "Chatbot";
 export type EligibilityMatch = "yes" | "partial" | "no" | "unknown";
 
+/**
+ * SRS FR-117 — the overall eligibility classification. Derived server-side
+ * from the per-criterion verdicts and serialised as the enum name
+ * (`JsonStringEnumConverter`).
+ */
+export type EligibilityVerdict = "Eligible" | "PartiallyEligible" | "NotEligible";
+
 export interface RecommendationItem {
   scholarshipId: string;
   titleEn: string;
@@ -29,6 +36,8 @@ export interface EligibilityDto {
   scholarshipId: string;
   criteria: EligibilityCriterion[];
   summary: string;
+  /** SRS FR-117 — overall verdict derived server-side from `criteria`. */
+  verdict: EligibilityVerdict;
   disclaimer: string;
   generatedAt: string;
 }
