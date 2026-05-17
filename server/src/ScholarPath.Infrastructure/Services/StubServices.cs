@@ -161,5 +161,20 @@ public sealed class StubStripeService(ILogger<StubStripeService> logger) : IStri
 
    public StripeWebhookParseResult ParseWebhook(string payload, string signatureHeader, string webhookSecret) =>
         new("evt_stub", "payment_intent.succeeded", "pi_stub", null, null, payload);
-        
+
+}
+
+/// <summary>
+/// No-op <see cref="IFileScanService"/> that always reports files as clean.
+/// Registered when <c>FileScanning:Enabled</c> is false — dev and test
+/// environments where no ClamAV daemon is running. Production must enable the
+/// real <c>ClamAvFileScanService</c>.
+/// </summary>
+public sealed class NoOpFileScanService(ILogger<NoOpFileScanService> logger) : IFileScanService
+{
+    public Task<FileScanResult> ScanAsync(Stream content, string fileName, CancellationToken ct)
+    {
+        logger.LogDebug("[noop-scan] {FileName} not scanned (file scanning disabled).", fileName);
+        return Task.FromResult(new FileScanResult(FileScanVerdict.Clean, null));
+    }
 }

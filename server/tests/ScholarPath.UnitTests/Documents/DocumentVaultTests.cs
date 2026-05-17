@@ -50,6 +50,16 @@ public sealed class DocumentVaultTests
         return s;
     }
 
+    /// <summary>An antivirus scanner that returns the given verdict for every file.</summary>
+    private static IFileScanService Scanner(
+        FileScanVerdict verdict = FileScanVerdict.Clean, string? detail = null)
+    {
+        var s = Substitute.For<IFileScanService>();
+        s.ScanAsync(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new FileScanResult(verdict, detail));
+        return s;
+    }
+
     private static MemoryStream Bytes(string content = "file-content") =>
         new(Encoding.UTF8.GetBytes(content));
 
@@ -66,7 +76,7 @@ public sealed class DocumentVaultTests
         var userId = Guid.NewGuid();
         var storage = Storage();
         var sut = new UploadDocumentCommandHandler(
-            db, User(userId), storage, Clock(),
+            db, User(userId), storage, Scanner(), Clock(),
             NullLogger<UploadDocumentCommandHandler>.Instance);
 
         using var content = Bytes();
@@ -89,7 +99,7 @@ public sealed class DocumentVaultTests
     {
         using var db = CreateDb();
         var sut = new UploadDocumentCommandHandler(
-            db, User(Guid.NewGuid()), Storage(), Clock(),
+            db, User(Guid.NewGuid()), Storage(), Scanner(), Clock(),
             NullLogger<UploadDocumentCommandHandler>.Instance);
 
         using var content = Bytes();
@@ -99,6 +109,71 @@ public sealed class DocumentVaultTests
             default);
 
         await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task Upload_rejects_when_scanner_finds_malware()
+    {
+        using var db = CreateDb();
+        var storage = Storage();
+        var sut = new UploadDocumentCommandHandler(
+            db, User(Guid.NewGuid()), storage,
+            Scanner(FileScanVerdict.Infected, "Eicar-Test-Signature"), Clock(),
+            NullLogger<UploadDocumentCommandHandler>.Instance);
+
+        using var content = Bytes();
+        var act = () => sut.Handle(UploadCmd(content), default);
+
+        (await act.Should().ThrowAsync<ConflictException>())
+            .Which.Message.Should().Contain("malware detected");
+
+        // Fail-closed: nothing stored, no metadata row written.
+        await storage.DidNotReceive().UploadAsync(
+            Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<CancellationToken>());
+        (await db.Documents.AnyAsync()).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Upload_rejects_when_scan_unavailable()
+    {
+        using var db = CreateDb();
+        var storage = Storage();
+        var sut = new UploadDocumentCommandHandler(
+            db, User(Guid.NewGuid()), storage,
+            Scanner(FileScanVerdict.ScanUnavailable, "clamd unreachable"), Clock(),
+            NullLogger<UploadDocumentCommandHandler>.Instance);
+
+        using var content = Bytes();
+        var act = () => sut.Handle(UploadCmd(content), default);
+
+        (await act.Should().ThrowAsync<ConflictException>())
+            .Which.Message.Should().Contain("could not be virus-scanned");
+
+        // Fail-closed: an un-scanned file is never persisted.
+        await storage.DidNotReceive().UploadAsync(
+            Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<CancellationToken>());
+        (await db.Documents.AnyAsync()).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Upload_stores_file_when_scan_is_clean()
+    {
+        using var db = CreateDb();
+        var storage = Storage();
+        var sut = new UploadDocumentCommandHandler(
+            db, User(Guid.NewGuid()), storage,
+            Scanner(FileScanVerdict.Clean), Clock(),
+            NullLogger<UploadDocumentCommandHandler>.Instance);
+
+        using var content = Bytes();
+        await sut.Handle(UploadCmd(content), default);
+
+        await storage.Received(1).UploadAsync(
+            Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<CancellationToken>());
+        (await db.Documents.AnyAsync()).Should().BeTrue();
     }
 
     [Fact]
@@ -115,7 +190,7 @@ public sealed class DocumentVaultTests
         await db.SaveChangesAsync();
 
         var sut = new UploadDocumentCommandHandler(
-            db, User(Guid.NewGuid()), Storage(), Clock(),
+            db, User(Guid.NewGuid()), Storage(), Scanner(), Clock(),
             NullLogger<UploadDocumentCommandHandler>.Instance);
 
         using var content = Bytes();

@@ -75,6 +75,10 @@
     <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.7.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
   </ItemGroup>
+  <ItemGroup Label="Antivirus scanning">
+    <!-- nClam: managed client for the ClamAV clamd daemon (INSTREAM scanning). -->
+    <PackageVersion Include="nClam" Version="9.0.0" />
+  </ItemGroup>
   <ItemGroup Label="Test stack">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />

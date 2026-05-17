@@ -48,4 +48,8 @@
     <PackageReference Include="Microsoft.Extensions.Http" />
   </ItemGroup>
 
+  <ItemGroup Label="Antivirus scanning">
+    <PackageReference Include="nClam" />
+  </ItemGroup>
+
 </Project>

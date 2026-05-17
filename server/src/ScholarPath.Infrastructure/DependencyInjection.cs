@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.Configure<AiOptions>(config.GetSection(AiOptions.SectionName));
         services.Configure<AppOptions>(config.GetSection(AppOptions.SectionName));
         services.Configure<AuthenticationOptions>(config.GetSection(AuthenticationOptions.SectionName));
+        services.Configure<FileScanningOptions>(config.GetSection(FileScanningOptions.SectionName));
 
         // Project AiOptions into the Application-side snapshot so the cost gate
         // doesn't have to know about Infrastructure's full options type.
@@ -125,6 +126,17 @@ public static class DependencyInjection
         // The document vault (FR-216) needs working upload/download/delete, which the
         // dev stub cannot give. FileStorageService honours both providers.
         services.AddSingleton<IBlobStorageService, FileStorageService>();
+
+        // Antivirus scanning (security NFR): the real ClamAV scanner only when
+        // FileScanning:Enabled is true and a reachable clamd daemon is
+        // configured; otherwise the NoOpFileScanService keeps dev / tests
+        // working without a daemon. Every upload path scans bytes through
+        // IFileScanService before storing them and rejects a non-clean verdict.
+        var fileScanningEnabled = config.GetValue<bool>($"{FileScanningOptions.SectionName}:Enabled");
+        if (fileScanningEnabled)
+            services.AddSingleton<IFileScanService, ClamAvFileScanService>();
+        else
+            services.AddSingleton<IFileScanService, NoOpFileScanService>();
 
         // Stripe: the real client only when a genuine secret key (sk_...) is
         // configured; placeholder values fall through to the dev stub.

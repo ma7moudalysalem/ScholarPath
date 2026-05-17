@@ -154,3 +154,25 @@ public sealed class AzureOpenAiOptions
     public string? ApiKey { get; set; }
     public string DeploymentName { get; set; } = "gpt-4o-mini";
 }
+
+/// <summary>
+/// Antivirus scanning of uploaded files (SRS security NFR). When
+/// <see cref="Enabled"/> is true the real <c>ClamAvFileScanService</c> is
+/// registered and every upload is scanned against a <c>clamd</c> daemon before
+/// the bytes are stored; if the daemon is unreachable the upload is rejected
+/// (fail-closed). When false the <c>NoOpFileScanService</c> is used — for dev
+/// and tests where no ClamAV daemon runs.
+/// </summary>
+public sealed class FileScanningOptions
+{
+    public const string SectionName = "FileScanning";
+
+    /// <summary>Master switch. Off by default so nothing breaks without a ClamAV daemon.</summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>Hostname of the <c>clamd</c> daemon (the ClamAV container / sidecar).</summary>
+    public string ClamAvHost { get; set; } = "localhost";
+
+    /// <summary>TCP port <c>clamd</c> listens on. ClamAV's default INSTREAM port is 3310.</summary>
+    public int ClamAvPort { get; set; } = 3310;
+}

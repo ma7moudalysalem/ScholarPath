@@ -48,6 +48,7 @@ public sealed class UploadDocumentCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
     IBlobStorageService storage,
+    IFileScanService fileScan,
     IDateTimeService clock,
     ILogger<UploadDocumentCommandHandler> logger)
     : IRequestHandler<UploadDocumentCommand, DocumentDto>
@@ -80,6 +81,27 @@ public sealed class UploadDocumentCommandHandler(
         }
 
         var safeName = Path.GetFileName(request.FileName);
+
+        // Antivirus scan BEFORE the bytes are ever persisted (security NFR).
+        // Fail-closed: an infected file is rejected, and so is one that could
+        // not be scanned at all — an unverified file is never stored.
+        var scan = await fileScan.ScanAsync(request.Content, safeName, ct).ConfigureAwait(false);
+        if (scan.Verdict == FileScanVerdict.Infected)
+        {
+            logger.LogWarning(
+                "Document upload by {UserId} rejected — malware detected in {FileName}: {Detail}",
+                userId, safeName, scan.Detail);
+            throw new ConflictException($"File rejected — malware detected: {safeName}");
+        }
+        if (scan.Verdict == FileScanVerdict.ScanUnavailable)
+        {
+            logger.LogError(
+                "Document upload by {UserId} rejected — {FileName} could not be virus-scanned: {Detail}",
+                userId, safeName, scan.Detail);
+            throw new ConflictException(
+                "File could not be virus-scanned; upload rejected. Try again later.");
+        }
+
         var storagePath = await storage
             .UploadAsync(request.Content, safeName, request.ContentType, Container, ct)
             .ConfigureAwait(false);

@@ -202,12 +202,50 @@ refresh tokens).
 
 ---
 
-## 6. GitHub configuration
+## 6. Antivirus scanning of uploads
+
+Every file upload (the document vault, profile photos) is virus-scanned
+**before** the bytes are persisted (SRS security NFR). Scanning goes through
+**ClamAV**: the API streams the upload to a `clamd` daemon via the `nClam`
+client and only stores the file if the verdict is *clean*.
+
+The behaviour is controlled by the `FileScanning` config section:
+
+| Setting | Meaning |
+|---------|---------|
+| `FileScanning__Enabled` | Master switch. `false` by default — the app then uses a no-op scanner and stores files unscanned. |
+| `FileScanning__ClamAvHost` | Hostname of the `clamd` daemon. |
+| `FileScanning__ClamAvPort` | `clamd` port (ClamAV's INSTREAM default is `3310`). |
+
+**Production must set `FileScanning__Enabled=true`** and run a reachable
+`clamd` daemon — the ClamAV container / sidecar. The repo's
+[`docker-compose.yml`](../docker-compose.yml) includes a `clamav` service
+(image `clamav/clamav:1.4`, port `3310`, with a healthcheck) and the `api`
+service already points `FileScanning__ClamAvHost` at it; mirror that in the
+production environment (an Azure Container Instances sidecar, a `clamav`
+container on the same network, or a managed scanning endpoint).
+
+> **Fail-closed.** When `FileScanning__Enabled=true` and the daemon is
+> unreachable or returns an error, the upload is **rejected** — the API never
+> stores a file it could not scan. So a misconfigured or down `clamd` blocks
+> uploads rather than letting unverified files through. Confirm the daemon is
+> reachable (`clamd` is listening on `ClamAvHost:ClamAvPort` and has finished
+> loading its signature database) before enabling scanning in production.
+
+The `clamav/clamav` image downloads its full virus-definition database on
+first start, which takes a couple of minutes; the container is not healthy —
+and uploads will be rejected — until that finishes. Give it a generous
+`start_period` (the compose healthcheck uses 120s) and persist
+`/var/lib/clamav` to a volume so definitions survive restarts.
+
+---
+
+## 7. GitHub configuration
 
 The deploy workflow authenticates to Azure with **OIDC** (federated
 credentials) — there is no Azure client secret stored in GitHub.
 
-### 6.1 Create an app registration with a federated credential
+### 7.1 Create an app registration with a federated credential
 
 ```bash
 # Create the app registration + service principal
@@ -237,7 +275,7 @@ az ad app federated-credential create \
 > Environments, add matching federated credentials (e.g.
 > `repo:ma7moudalysalem/ScholarPath:environment:production`).
 
-### 6.2 Repository **secrets**
+### 7.2 Repository **secrets**
 
 `Settings → Secrets and variables → Actions → Secrets`:
 
@@ -246,10 +284,10 @@ az ad app federated-credential create \
 | `AZURE_CLIENT_ID` | `appId` of the app registration above. |
 | `AZURE_TENANT_ID` | `az account show --query tenantId -o tsv`. |
 | `AZURE_SUBSCRIPTION_ID` | `az account show --query id -o tsv`. |
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Static Web App deployment token (see §6.4). |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Static Web App deployment token (see §7.4). |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable (`pk_...`) key for the client build. |
 
-### 6.3 Repository **variables**
+### 7.3 Repository **variables**
 
 `Settings → Secrets and variables → Actions → Variables`:
 
@@ -260,7 +298,7 @@ az ad app federated-credential create \
 | `VITE_GOOGLE_CLIENT_ID` | Google OAuth client id. |
 | `VITE_MICROSOFT_CLIENT_ID` | Microsoft OAuth client id. |
 
-### 6.4 Static Web App deployment token
+### 7.4 Static Web App deployment token
 
 ```bash
 az staticwebapp secrets list \
@@ -273,7 +311,7 @@ Store the result as the `AZURE_STATIC_WEB_APPS_API_TOKEN` secret.
 
 ---
 
-## 7. Deploying
+## 8. Deploying
 
 Once the infrastructure exists and GitHub is configured:
 
@@ -291,9 +329,9 @@ The workflow:
 
 ---
 
-## 8. Post-deploy steps
+## 9. Post-deploy steps
 
-### 8.1 Database migrations
+### 9.1 Database migrations
 
 EF Core migrations are applied by `DbSeeder.SeedAsync`, which calls
 `Database.MigrateAsync()`. In `Program.cs` the seeder runs **only in the
@@ -325,7 +363,7 @@ az sql server firewall-rule create \
 
 Remove the rule again when you are done.
 
-### 8.2 Seeding
+### 9.2 Seeding
 
 `DbSeeder` also seeds roles and baseline data, but — like migrations — only
 in `Development`. For a production environment, seed the reference data
@@ -333,7 +371,7 @@ deliberately (e.g. run the API once against the prod DB with
 `ASPNETCORE_ENVIRONMENT=Development` from a trusted host, or add a dedicated
 seed step). Do **not** leave the App Service running as `Development`.
 
-### 8.3 Smoke test
+### 9.3 Smoke test
 
 ```bash
 curl -fsS https://<api-host>/health        # expect HTTP 200
@@ -345,7 +383,7 @@ the client origin via `clientCorsOrigin` / `Cors__AllowedOrigins__0`).
 
 ---
 
-## 9. Configuration reference
+## 10. Configuration reference
 
 App settings the API reads in Azure (most are set by the Bicep template):
 
@@ -359,6 +397,8 @@ App settings the API reads in Azure (most are set by the Bicep template):
 | `Redis__Enabled` / `Redis__ConnectionString` | App setting / Key Vault reference. |
 | `Hangfire__Enabled` | `true` — recurring jobs run in-process. |
 | `Cors__AllowedOrigins__0` / `App__ClientUrl` | The Static Web App URL. |
+| `FileScanning__Enabled` | `true` in production — turns on ClamAV scanning of uploads (§6). |
+| `FileScanning__ClamAvHost` / `FileScanning__ClamAvPort` | App setting — host/port of the reachable `clamd` daemon. |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | App setting (from App Insights). |
 
 Secrets **not** provisioned by the template (Stripe, OAuth client secrets,

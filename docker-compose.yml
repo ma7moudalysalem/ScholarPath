@@ -43,6 +43,22 @@ services:
       - "8025:8025" # Web UI (http://localhost:8025)
     restart: unless-stopped
 
+  clamav:
+    image: clamav/clamav:1.4
+    container_name: scholarpath-clamav
+    ports:
+      - "3310:3310" # clamd INSTREAM (the API scans uploads here when FileScanning__Enabled=true)
+    volumes:
+      - clamav-data:/var/lib/clamav # persist downloaded virus definitions across restarts
+    healthcheck:
+      # clamdcheck.sh PINGs the local clamd daemon — healthy only once it has loaded definitions
+      test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s # first run downloads the full signature database
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -55,6 +71,8 @@ services:
         condition: service_started
       mailhog:
         condition: service_started
+      clamav:
+        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:5000
@@ -67,6 +85,11 @@ services:
       Hangfire__Enabled: "false"
       Cors__AllowedOrigins__0: "http://localhost:5173"
       Jwt__SigningKey: "DEV_ONLY_JWT_SIGNING_KEY_64_CHARS_PLACEHOLDER_____xxxxxxxxxxxxxxxxx"
+      # Antivirus scanning on uploads — enabled here so the compose stack
+      # exercises the real ClamAV path; the API fails closed if clamd is down.
+      FileScanning__Enabled: "true"
+      FileScanning__ClamAvHost: "clamav"
+      FileScanning__ClamAvPort: "3310"
     ports:
       - "5000:5000"
     restart: unless-stopped
@@ -98,3 +121,4 @@ services:
 volumes:
   sqlserver-data:
   redis-data:
+  clamav-data:
