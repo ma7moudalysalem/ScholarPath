@@ -1,16 +1,17 @@
-import { createMockBookingRequest, type MockBookingRecord } from "@/lib/mockBookingStore";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { Link, useLocation } from "react-router";
+import { toast } from "sonner";
+import { useConsultantDetailQuery } from "@/hooks/useConsultantsQuery";
+import { useRequestBookingMutation } from "@/hooks/useBookingsQuery";
+import { durationLabel, formatDate, formatTime, formatUsd } from "@/lib/bookingFormat";
 
-type ConsultantSummary = {
-  id: string;
-  name: string;
-  expertise: string;
-  fee: string;
-  defaultDuration: string;
-};
+// ── Checkout slot contract ────────────────────────────────────────────────────
+//
+// The consultant browse / detail pages link here with the chosen slot encoded
+// in the query string: `?consultantId=…&availabilityId=…&start=<ISO>&end=<ISO>`.
+// `start`/`end` are ISO-8601 instants taken straight from a real `BookableSlot`.
 
 type CheckoutFormState = {
   cardholderName: string;
@@ -25,36 +26,12 @@ type CheckoutFormState = {
 
 type CheckoutErrors = Partial<Record<keyof CheckoutFormState, string>>;
 
-const consultants: Record<string, ConsultantSummary> = {
-  "1": {
-    id: "1",
-    name: "Dr. Sarah Adel",
-    expertise: "Scholarship Strategy · Personal Statements · Interview Preparation",
-    fee: "$35",
-    defaultDuration: "45 min",
-  },
-  "2": {
-    id: "2",
-    name: "Ahmed Mostafa",
-    expertise: "Visa Guidance · University Shortlisting · Funding Plans",
-    fee: "$25",
-    defaultDuration: "30 min",
-  },
-  "3": {
-    id: "3",
-    name: "Nour Elhassan",
-    expertise: "Full Scholarship Planning · Application Review · Deadline Strategy",
-    fee: "$40",
-    defaultDuration: "60 min",
-  },
-};
-
 const defaultFormState: CheckoutFormState = {
   cardholderName: "",
   cardNumber: "",
   expiryDate: "",
   cvc: "",
-  billingEmail: "student@example.com",
+  billingEmail: "",
   billingCountry: "Egypt",
   savePaymentMethod: false,
   acceptHoldNotice: false,
@@ -89,28 +66,8 @@ function formatCardNumber(value: string) {
 
 function formatExpiryDate(value: string) {
   const digits = sanitizeDigits(value).slice(0, 4);
-
-  if (digits.length <= 2) {
-    return digits;
-  }
-
+  if (digits.length <= 2) return digits;
   return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-}
-
-function buildBookingReference(consultantId: string, date: string, time: string) {
-  const compactDate = date.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-]/g, "");
-  const compactTime = time.replace(/\s+/g, "").replace(/[^a-zA-Z0-9]/g, "");
-  return `BK-${consultantId}-${compactDate}-${compactTime}`;
-}
-
-function getRequestedTopic(expertise: string) {
-  const firstTopic = expertise.split("·")[0]?.trim();
-  return firstTopic || expertise;
-}
-
-function parseNumericFee(value: string) {
-  const amount = Number(value.replace(/[^0-9.]/g, ""));
-  return Number.isFinite(amount) ? amount.toFixed(2) : "0.00";
 }
 
 function validateForm(values: CheckoutFormState, t: TFunction): CheckoutErrors {
@@ -156,46 +113,49 @@ function validateForm(values: CheckoutFormState, t: TFunction): CheckoutErrors {
 }
 
 export function BookingCheckout() {
-  const { t } = useTranslation("bookings");
+  const { t, i18n } = useTranslation("bookings");
+  const lang = i18n.language;
   const location = useLocation();
   const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
 
-  const consultantId = query.get("consultantId") ?? "1";
-  const consultant = consultants[consultantId] ?? consultants["1"];
-
-  const selectedDay = query.get("day") ?? "";
-  const selectedDate = query.get("date") ?? "";
-  const selectedTime = query.get("time") ?? "";
-  const selectedDuration = query.get("duration") ?? consultant.defaultDuration;
+  const consultantId = query.get("consultantId") ?? "";
+  const availabilityId = query.get("availabilityId");
+  const startAt = query.get("start") ?? "";
+  const endAt = query.get("end") ?? "";
 
   const hasCompleteSlotParams =
-    Boolean(query.get("consultantId")) &&
-    Boolean(query.get("day")) &&
-    Boolean(query.get("date")) &&
-    Boolean(query.get("time")) &&
-    Boolean(query.get("duration"));
+    Boolean(consultantId) &&
+    Boolean(startAt) &&
+    Boolean(endAt) &&
+    !Number.isNaN(new Date(startAt).getTime()) &&
+    !Number.isNaN(new Date(endAt).getTime());
+
+  const { data: consultant, isLoading, isError } = useConsultantDetailQuery(
+    hasCompleteSlotParams ? consultantId : undefined,
+  );
+  const requestBooking = useRequestBookingMutation();
 
   const [form, setForm] = useState<CheckoutFormState>(defaultFormState);
   const [errors, setErrors] = useState<CheckoutErrors>({});
-  const [submittedBooking, setSubmittedBooking] = useState<MockBookingRecord | null>(null);
+  const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
 
-  const bookingReference = useMemo(() => {
-    if (!hasCompleteSlotParams) {
-      return t("checkout.referencePlaceholder");
-    }
+  const durationMinutes = useMemo(() => {
+    if (!hasCompleteSlotParams) return 0;
+    return Math.max(
+      0,
+      Math.round((new Date(endAt).getTime() - new Date(startAt).getTime()) / 60_000),
+    );
+  }, [endAt, hasCompleteSlotParams, startAt]);
 
-    return buildBookingReference(consultant.id, selectedDate, selectedTime);
-  }, [consultant.id, hasCompleteSlotParams, selectedDate, selectedTime, t]);
+  const feeAmount = consultant?.sessionFeeUsd ?? 0;
 
-  const feeAmount = useMemo(() => parseNumericFee(consultant.fee), [consultant.fee]);
-
-  const holdSummary = useMemo(() => {
-    if (!hasCompleteSlotParams) {
-      return t("checkout.holdSummaryEmpty");
-    }
-
-    return `${selectedDay} · ${selectedDate} · ${selectedTime} · ${selectedDuration}`;
-  }, [hasCompleteSlotParams, selectedDay, selectedDate, selectedTime, selectedDuration, t]);
+  const slotSummary = useMemo(() => {
+    if (!hasCompleteSlotParams) return t("checkout.holdSummaryEmpty");
+    return `${formatDate(startAt, lang)} · ${formatTime(startAt, lang)} – ${formatTime(
+      endAt,
+      lang,
+    )}`;
+  }, [endAt, hasCompleteSlotParams, lang, startAt, t]);
 
   function updateField<K extends keyof CheckoutFormState>(key: K, value: CheckoutFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -205,42 +165,40 @@ export function BookingCheckout() {
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!hasCompleteSlotParams) {
-      return;
-    }
+    if (!hasCompleteSlotParams || !consultant) return;
 
     const nextErrors = validateForm(form, t);
     setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
-    if (Object.keys(nextErrors).length > 0) {
-      return;
-    }
-
-    const created = createMockBookingRequest({
-      reference: bookingReference,
-      consultantId: consultant.id,
-      consultantName: consultant.name,
-      studentName: form.cardholderName.trim(),
-      studentEmail: form.billingEmail.trim(),
-      topic: getRequestedTopic(consultant.expertise),
-      studentStage: "Booking created from checkout flow",
-      sessionType: "1:1 online consultation",
-      date: selectedDate,
-      time: selectedTime,
-      duration: selectedDuration,
-      fee: `$${feeAmount}`,
-    });
-
-    setSubmittedBooking(created);
+    requestBooking.mutate(
+      {
+        consultantId: consultant.id,
+        availabilityId: availabilityId || null,
+        scheduledStartAt: new Date(startAt).toISOString(),
+        scheduledEndAt: new Date(endAt).toISOString(),
+        timezone:
+          consultant.timezone ||
+          Intl.DateTimeFormat().resolvedOptions().timeZone ||
+          "UTC",
+        notes: null,
+      },
+      {
+        onSuccess: (result) => {
+          setCreatedBookingId(result.bookingId);
+          toast.success(t("checkout.success.title"));
+        },
+        onError: () => toast.error(t("states.error")),
+      },
+    );
   }
 
+  // ── No slot selected ───────────────────────────────────────────────────────
   if (!hasCompleteSlotParams) {
     return (
       <main className="min-h-screen bg-[#f5f5f7]">
         <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
           <div className="space-y-3">
-            <p className="text-sm font-medium text-[#2563eb]">{t("tag")}</p>
-
             <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
               {t("checkout.title")}
             </h1>
@@ -257,23 +215,16 @@ export function BookingCheckout() {
               {t("checkout.noSlot.description")}
             </p>
 
-            <div className="mt-6 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4">
-              <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                {t("fields.currentState")}
-              </p>
-              <p className="mt-2 text-sm font-medium text-[#1d1d1f]">{holdSummary}</p>
-            </div>
-
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Link
-                to="/dev/consultants"
+                to="/student/consultants"
                 className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
               >
                 {t("checkout.noSlot.browseConsultants")}
               </Link>
 
               <Link
-                to="/dev/bookings"
+                to="/student/bookings"
                 className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
               >
                 {t("checkout.noSlot.openBookings")}
@@ -285,13 +236,47 @@ export function BookingCheckout() {
     );
   }
 
-  if (submittedBooking) {
+  // ── Loading consultant ─────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-[#f5f5f7]">
+        <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
+          <div className="space-y-4">
+            <div className="h-10 w-64 animate-pulse rounded-lg bg-white" />
+            <div className="h-96 animate-pulse rounded-2xl border border-[#e5e7eb] bg-white shadow-sm" />
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  // ── Error loading consultant ───────────────────────────────────────────────
+  if (isError || !consultant) {
+    return (
+      <main className="min-h-screen bg-[#f5f5f7]">
+        <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
+          <div className="rounded-2xl border border-[#fecaca] bg-[#fef2f2] p-6 text-sm font-medium text-[#dc2626]">
+            {t("states.error")}
+          </div>
+          <div className="mt-6">
+            <Link
+              to="/student/consultants"
+              className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+            >
+              {t("checkout.noSlot.browseConsultants")}
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  // ── Booking created ────────────────────────────────────────────────────────
+  if (createdBookingId) {
     return (
       <main className="min-h-screen bg-[#f5f5f7]">
         <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
           <div className="space-y-3">
-            <p className="text-sm font-medium text-[#2563eb]">{t("tag")}</p>
-
             <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
               {t("checkout.title")}
             </h1>
@@ -302,10 +287,7 @@ export function BookingCheckout() {
           <div className="mt-8 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <p className="text-xs font-medium tracking-[0.02em] text-[#15803d] uppercase">
-                  {t("tag")}
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.01em] text-[#166534]">
+                <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[#166534]">
                   {t("checkout.success.title")}
                 </h2>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-[#166534]">
@@ -325,16 +307,7 @@ export function BookingCheckout() {
                 {t("checkout.success.summaryTitle")}
               </h3>
 
-              <div className="mt-5 grid gap-4 rounded-xl bg-[#f9fafb] p-5 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    {t("fields.bookingReference")}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                    {submittedBooking.reference}
-                  </p>
-                </div>
-
+              <div className="mt-5 grid gap-4 rounded-xl bg-[#f9fafb] p-5 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("fields.requestStatus")}
@@ -348,18 +321,14 @@ export function BookingCheckout() {
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("fields.consultant")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                    {submittedBooking.consultantName}
-                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{consultant.name}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("fields.sessionType")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                    {submittedBooking.sessionType}
-                  </p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{t("sessionType")}</p>
                 </div>
 
                 <div>
@@ -367,7 +336,7 @@ export function BookingCheckout() {
                     {t("fields.selectedDate")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                    {selectedDay} · {submittedBooking.date}
+                    {formatDate(startAt, lang)}
                   </p>
                 </div>
 
@@ -375,7 +344,9 @@ export function BookingCheckout() {
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("fields.selectedTime")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{submittedBooking.time}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                    {formatTime(startAt, lang)}
+                  </p>
                 </div>
 
                 <div>
@@ -383,16 +354,7 @@ export function BookingCheckout() {
                     {t("fields.duration")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                    {submittedBooking.duration}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    {t("fields.topic")}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                    {submittedBooking.topic}
+                    {durationLabel(durationMinutes, t)}
                   </p>
                 </div>
               </div>
@@ -406,51 +368,34 @@ export function BookingCheckout() {
               <div className="mt-5 space-y-4 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-[#4b5563]">{t("checkout.priceSummary.sessionFee")}</span>
-                  <span className="font-medium text-[#1d1d1f]">${feeAmount}</span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-[#4b5563]">{t("checkout.priceSummary.serviceFee")}</span>
-                  <span className="font-medium text-[#1d1d1f]">$0.00</span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-[#4b5563]">{t("checkout.priceSummary.tax")}</span>
-                  <span className="font-medium text-[#1d1d1f]">$0.00</span>
+                  <span className="font-medium text-[#1d1d1f]">{formatUsd(feeAmount)}</span>
                 </div>
 
                 <div className="border-t border-[#e5e7eb] pt-4">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-[#1d1d1f]">
-                      {t("checkout.priceSummary.heldAmount")}
+                      {t("checkout.priceSummary.total")}
                     </span>
-                    <span className="text-2xl font-semibold text-[#1d1d1f]">${feeAmount}</span>
+                    <span className="text-2xl font-semibold text-[#1d1d1f]">
+                      {formatUsd(feeAmount)}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-6 rounded-xl bg-[#f9fafb] p-4">
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  {t("fields.billingContact")}
-                </p>
-                <p className="mt-2 text-sm font-medium text-[#1d1d1f]">{form.cardholderName}</p>
-                <p className="mt-1 text-sm text-[#4b5563]">{form.billingEmail}</p>
-                <p className="mt-1 text-sm text-[#4b5563]">{form.billingCountry}</p>
-              </div>
-
               <div className="mt-6 flex flex-col gap-3">
                 <Link
-                  to="/dev/bookings"
+                  to={`/student/bookings/${createdBookingId}`}
                   className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                 >
-                  {t("checkout.success.openBookings")}
+                  {t("checkout.success.openThisBooking")}
                 </Link>
 
                 <Link
-                  to={`/dev/bookings/${submittedBooking.id}`}
+                  to="/student/bookings"
                   className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                 >
-                  {t("checkout.success.openThisBooking")}
+                  {t("checkout.success.openBookings")}
                 </Link>
               </div>
             </aside>
@@ -460,12 +405,11 @@ export function BookingCheckout() {
     );
   }
 
+  // ── Checkout form ──────────────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-[#f5f5f7]">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-[#2563eb]">{t("tag")}</p>
-
           <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
             {t("checkout.title")}
           </h1>
@@ -493,16 +437,18 @@ export function BookingCheckout() {
                   {t("fields.consultant")}
                 </p>
                 <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{consultant.name}</p>
-                <p className="mt-2 text-sm leading-6 text-[#4b5563]">{consultant.expertise}</p>
+                {consultant.expertiseTags.length > 0 ? (
+                  <p className="mt-2 text-sm leading-6 text-[#4b5563]">
+                    {consultant.expertiseTags.join(" · ")}
+                  </p>
+                ) : null}
               </div>
 
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                   {t("fields.sessionType")}
                 </p>
-                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                  {t("checkout.sessionType")}
-                </p>
+                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{t("sessionType")}</p>
               </div>
 
               <div>
@@ -510,7 +456,7 @@ export function BookingCheckout() {
                   {t("fields.selectedDate")}
                 </p>
                 <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                  {selectedDay} · {selectedDate}
+                  {formatDate(startAt, lang)}
                 </p>
               </div>
 
@@ -518,23 +464,25 @@ export function BookingCheckout() {
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                   {t("fields.selectedTime")}
                 </p>
-                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{selectedTime}</p>
+                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                  {formatTime(startAt, lang)} – {formatTime(endAt, lang)}
+                </p>
               </div>
 
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                   {t("fields.duration")}
                 </p>
-                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{selectedDuration}</p>
+                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                  {durationLabel(durationMinutes, t)}
+                </p>
               </div>
 
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                   {t("fields.consultantFee")}
                 </p>
-                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                  {consultant.fee} / {selectedDuration}
-                </p>
+                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{formatUsd(feeAmount)}</p>
               </div>
             </div>
 
@@ -709,9 +657,7 @@ export function BookingCheckout() {
             </label>
 
             <div className="mt-6 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4">
-              <p className="text-sm font-medium text-[#1d1d1f]">
-                {t("checkout.holdNotice.title")}
-              </p>
+              <p className="text-sm font-medium text-[#1d1d1f]">{t("checkout.holdNotice.title")}</p>
               <p className="mt-2 text-sm leading-7 text-[#4b5563]">
                 {t("checkout.holdNotice.description")}
               </p>
@@ -744,17 +690,7 @@ export function BookingCheckout() {
             <div className="mt-5 space-y-4 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[#4b5563]">{t("checkout.priceSummary.sessionFee")}</span>
-                <span className="font-medium text-[#1d1d1f]">${feeAmount}</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-[#4b5563]">{t("checkout.priceSummary.serviceFee")}</span>
-                <span className="font-medium text-[#1d1d1f]">$0.00</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-[#4b5563]">{t("checkout.priceSummary.tax")}</span>
-                <span className="font-medium text-[#1d1d1f]">$0.00</span>
+                <span className="font-medium text-[#1d1d1f]">{formatUsd(feeAmount)}</span>
               </div>
 
               <div className="border-t border-[#e5e7eb] pt-4">
@@ -762,7 +698,9 @@ export function BookingCheckout() {
                   <span className="font-medium text-[#1d1d1f]">
                     {t("checkout.priceSummary.total")}
                   </span>
-                  <span className="text-2xl font-semibold text-[#1d1d1f]">${feeAmount}</span>
+                  <span className="text-2xl font-semibold text-[#1d1d1f]">
+                    {formatUsd(feeAmount)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -771,14 +709,7 @@ export function BookingCheckout() {
               <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                 {t("fields.selectedSlot")}
               </p>
-              <p className="mt-2 text-sm font-medium text-[#1d1d1f]">{holdSummary}</p>
-            </div>
-
-            <div className="mt-4 rounded-xl bg-[#f9fafb] p-4">
-              <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                {t("fields.bookingReference")}
-              </p>
-              <p className="mt-2 text-sm font-medium text-[#1d1d1f]">{bookingReference}</p>
+              <p className="mt-2 text-sm font-medium text-[#1d1d1f]">{slotSummary}</p>
             </div>
 
             <div className="mt-4 rounded-xl bg-[#f9fafb] p-4">
@@ -794,13 +725,14 @@ export function BookingCheckout() {
               <button
                 type="submit"
                 form="checkout-form"
-                className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                disabled={requestBooking.isPending}
+                className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {t("checkout.payNow")}
+                {requestBooking.isPending ? t("states.submitting") : t("checkout.payNow")}
               </button>
 
               <Link
-                to={`/dev/consultants/${consultant.id}`}
+                to={`/student/consultants/${consultant.id}`}
                 className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
               >
                 {t("checkout.backToProfile")}

@@ -1,228 +1,53 @@
-import {
-  getMockBookings,
-  resetMockBookings,
-  setMockBookingStatus,
-  subscribeMockBookings,
-  type BookingWorkflowStatus,
-  type MockBookingRecord,
-} from "@/lib/mockBookingStore";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-
-type TimelineStep = {
-  titleKey: string;
-  descriptionKey: string;
-  isDone: boolean;
-};
-
-type ConsultantStatusMeta = {
-  statusKey: BookingWorkflowStatus;
-  badgeClassName: string;
-  summaryKey: string;
-  noteKey: string;
-};
-
-function getConsultantStatusMeta(status: BookingWorkflowStatus): ConsultantStatusMeta {
-  switch (status) {
-    case "pending":
-      return {
-        statusKey: "pending",
-        badgeClassName: "bg-[#fffbeb] text-[#b45309]",
-        summaryKey: "details.summaryCard.text.pending",
-        noteKey: "details.guidance.note.pending",
-      };
-    case "confirmed":
-      return {
-        statusKey: "confirmed",
-        badgeClassName: "bg-[#eff6ff] text-[#1d4ed8]",
-        summaryKey: "details.summaryCard.text.confirmed",
-        noteKey: "details.guidance.note.confirmed",
-      };
-    case "completed":
-      return {
-        statusKey: "completed",
-        badgeClassName: "bg-[#f0fdf4] text-[#15803d]",
-        summaryKey: "details.summaryCard.text.completed",
-        noteKey: "details.guidance.note.completed",
-      };
-    case "rejected":
-      return {
-        statusKey: "rejected",
-        badgeClassName: "bg-[#fef2f2] text-[#dc2626]",
-        summaryKey: "details.summaryCard.text.rejected",
-        noteKey: "details.guidance.note.rejected",
-      };
-    case "cancelled":
-      return {
-        statusKey: "cancelled",
-        badgeClassName: "bg-[#f3f4f6] text-[#4b5563]",
-        summaryKey: "details.summaryCard.text.cancelled",
-        noteKey: "details.guidance.note.cancelled",
-      };
-    default:
-      return {
-        statusKey: "pending",
-        badgeClassName: "bg-[#fffbeb] text-[#b45309]",
-        summaryKey: "details.summaryCard.text.default",
-        noteKey: "details.guidance.note.default",
-      };
-  }
-}
-
-function buildTimeline(status: BookingWorkflowStatus): TimelineStep[] {
-  switch (status) {
-    case "pending":
-      return [
-        {
-          titleKey: "details.timeline.pending.step1Title",
-          descriptionKey: "details.timeline.pending.step1Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.pending.step2Title",
-          descriptionKey: "details.timeline.pending.step2Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.pending.step3Title",
-          descriptionKey: "details.timeline.pending.step3Description",
-          isDone: false,
-        },
-        {
-          titleKey: "details.timeline.pending.step4Title",
-          descriptionKey: "details.timeline.pending.step4Description",
-          isDone: false,
-        },
-      ];
-    case "confirmed":
-      return [
-        {
-          titleKey: "details.timeline.confirmed.step1Title",
-          descriptionKey: "details.timeline.confirmed.step1Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.confirmed.step2Title",
-          descriptionKey: "details.timeline.confirmed.step2Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.confirmed.step3Title",
-          descriptionKey: "details.timeline.confirmed.step3Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.confirmed.step4Title",
-          descriptionKey: "details.timeline.confirmed.step4Description",
-          isDone: true,
-        },
-      ];
-    case "completed":
-      return [
-        {
-          titleKey: "details.timeline.completed.step1Title",
-          descriptionKey: "details.timeline.completed.step1Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.completed.step2Title",
-          descriptionKey: "details.timeline.completed.step2Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.completed.step3Title",
-          descriptionKey: "details.timeline.completed.step3Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.completed.step4Title",
-          descriptionKey: "details.timeline.completed.step4Description",
-          isDone: true,
-        },
-      ];
-    case "rejected":
-      return [
-        {
-          titleKey: "details.timeline.rejected.step1Title",
-          descriptionKey: "details.timeline.rejected.step1Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.rejected.step2Title",
-          descriptionKey: "details.timeline.rejected.step2Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.rejected.step3Title",
-          descriptionKey: "details.timeline.rejected.step3Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.rejected.step4Title",
-          descriptionKey: "details.timeline.rejected.step4Description",
-          isDone: true,
-        },
-      ];
-    case "cancelled":
-      return [
-        {
-          titleKey: "details.timeline.cancelled.step1Title",
-          descriptionKey: "details.timeline.cancelled.step1Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.cancelled.step2Title",
-          descriptionKey: "details.timeline.cancelled.step2Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.cancelled.step3Title",
-          descriptionKey: "details.timeline.cancelled.step3Description",
-          isDone: true,
-        },
-        {
-          titleKey: "details.timeline.cancelled.step4Title",
-          descriptionKey: "details.timeline.cancelled.step4Description",
-          isDone: true,
-        },
-      ];
-    default:
-      return [];
-  }
-}
+import { toast } from "sonner";
+import {
+  useAcceptBookingMutation,
+  useBookingDetailQuery,
+  useCancelBookingMutation,
+  useMarkNoShowMutation,
+  useRejectBookingMutation,
+} from "@/hooks/useBookingsQuery";
+import {
+  durationLabel,
+  formatDate,
+  formatTime,
+  formatUsd,
+  statusBadgeClass,
+  statusBucket,
+  statusLabelKey,
+} from "@/lib/bookingFormat";
 
 export function ConsultantBookingDetails() {
-  const { t } = useTranslation("consultantPortal");
+  const { t, i18n } = useTranslation("consultantPortal");
+  const lang = i18n.language;
   const { id } = useParams();
-  const bookingId = id ?? "1";
 
-  const [bookingsSnapshot, setBookingsSnapshot] = useState<MockBookingRecord[]>(() =>
-    getMockBookings(),
-  );
+  const { data: booking, isLoading, isError } = useBookingDetailQuery(id);
 
-  const [bannerByBooking, setBannerByBooking] = useState<Record<string, string>>({});
+  const acceptMutation = useAcceptBookingMutation();
+  const rejectMutation = useRejectBookingMutation();
+  const cancelMutation = useMarkNoShowMutation();
+  const noShowMutation = useCancelBookingMutation();
 
-  useEffect(() => {
-    return subscribeMockBookings(() => {
-      setBookingsSnapshot(getMockBookings());
-    });
-  }, []);
+  const [meetingUrl, setMeetingUrl] = useState("");
+  const [meetingUrlError, setMeetingUrlError] = useState("");
 
-  const booking = useMemo(() => {
-    return bookingsSnapshot.find((item) => item.id === bookingId) ?? bookingsSnapshot[0] ?? null;
-  }, [bookingsSnapshot, bookingId]);
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-[#f5f5f7]">
+        <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
+          <div className="space-y-4">
+            <div className="h-10 w-72 animate-pulse rounded-lg bg-white" />
+            <div className="h-80 animate-pulse rounded-2xl border border-[#e5e7eb] bg-white shadow-sm" />
+          </div>
+        </section>
+      </main>
+    );
+  }
 
-  const bannerKey = bannerByBooking[bookingId] ?? "";
-
-  const statusMeta = useMemo(
-    () => getConsultantStatusMeta(booking?.status ?? "pending"),
-    [booking?.status],
-  );
-
-  const timeline = useMemo(() => buildTimeline(booking?.status ?? "pending"), [booking?.status]);
-
-  if (!booking) {
+  if (isError || !booking) {
     return (
       <main className="min-h-screen bg-[#f5f5f7]">
         <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
@@ -233,7 +58,7 @@ export function ConsultantBookingDetails() {
             </p>
             <div className="mt-6">
               <Link
-                to="/dev/consultant/bookings"
+                to="/consultant/bookings"
                 className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
               >
                 {t("details.notFound.back")}
@@ -245,50 +70,62 @@ export function ConsultantBookingDetails() {
     );
   }
 
-  const handleAccept = () => {
-    if (booking.status !== "pending") return;
+  const bucket = statusBucket(booking.status);
+  const isRequested = booking.status === "Requested";
+  const isConfirmed = booking.status === "Confirmed";
+  const isBusy =
+    acceptMutation.isPending ||
+    rejectMutation.isPending ||
+    cancelMutation.isPending ||
+    noShowMutation.isPending;
 
-    setMockBookingStatus(booking.id, "confirmed");
-    setBannerByBooking((current) => ({
-      ...current,
-      [bookingId]: "details.banner.accepted",
-    }));
+  const handleAccept = () => {
+    if (!isRequested) return;
+
+    const trimmed = meetingUrl.trim();
+    if (!trimmed) {
+      setMeetingUrlError(t("details.actions.meetingUrlRequired"));
+      return;
+    }
+    setMeetingUrlError("");
+
+    acceptMutation.mutate(
+      { id: booking.id, meetingUrl: trimmed },
+      {
+        onSuccess: () => toast.success(t("details.banner.accepted")),
+        onError: () => toast.error(t("states.error")),
+      },
+    );
   };
 
   const handleReject = () => {
-    if (booking.status !== "pending") return;
-
-    setMockBookingStatus(booking.id, "rejected");
-    setBannerByBooking((current) => ({
-      ...current,
-      [bookingId]: "details.banner.rejected",
-    }));
+    if (!isRequested) return;
+    rejectMutation.mutate(booking.id, {
+      onSuccess: () => toast.success(t("details.banner.rejected")),
+      onError: () => toast.error(t("states.error")),
+    });
   };
 
-  const handleComplete = () => {
-    if (booking.status !== "confirmed") return;
-
-    setMockBookingStatus(booking.id, "completed");
-    setBannerByBooking((current) => ({
-      ...current,
-      [bookingId]: "details.banner.completed",
-    }));
+  const handleCancel = () => {
+    if (!isRequested && !isConfirmed) return;
+    noShowMutation.mutate(booking.id, {
+      onSuccess: () => toast.success(t("details.banner.cancelled")),
+      onError: () => toast.error(t("states.error")),
+    });
   };
 
-  const handleReset = () => {
-    resetMockBookings();
-    setBannerByBooking((current) => ({
-      ...current,
-      [bookingId]: "details.banner.reset",
-    }));
+  const handleNoShow = () => {
+    if (!isConfirmed) return;
+    cancelMutation.mutate(booking.id, {
+      onSuccess: () => toast.success(t("details.banner.noShow")),
+      onError: () => toast.error(t("states.error")),
+    });
   };
 
   return (
     <main className="min-h-screen bg-[#f5f5f7]">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-[#2563eb]">{t("moduleTag")}</p>
-
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
@@ -301,18 +138,14 @@ export function ConsultantBookingDetails() {
             </div>
 
             <span
-              className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusMeta.badgeClassName}`}
+              className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusBadgeClass(
+                booking.status,
+              )}`}
             >
-              {t(`status.${statusMeta.statusKey}`)}
+              {t(statusLabelKey(booking.status))}
             </span>
           </div>
         </div>
-
-        {bannerKey ? (
-          <div className="mt-8 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-5">
-            <p className="text-sm font-medium text-[#166534]">{t(bannerKey)}</p>
-          </div>
-        ) : null}
 
         <div className="mt-8 grid gap-6 lg:grid-cols-12">
           <section className="space-y-6 lg:col-span-8">
@@ -321,16 +154,11 @@ export function ConsultantBookingDetails() {
                 {t("details.summaryCard.title")}
               </h2>
 
-              <p className="mt-3 text-sm leading-7 text-[#4b5563]">{t(statusMeta.summaryKey)}</p>
+              <p className="mt-3 text-sm leading-7 text-[#4b5563]">
+                {t(`details.summaryCard.text.${bucket}`)}
+              </p>
 
               <div className="mt-5 grid gap-4 rounded-xl bg-[#f9fafb] p-5 sm:grid-cols-2 xl:grid-cols-3">
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    {t("details.summaryCard.bookingReference")}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.reference}</p>
-                </div>
-
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("details.summaryCard.studentName")}
@@ -338,72 +166,81 @@ export function ConsultantBookingDetails() {
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.studentName}</p>
                 </div>
 
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    {t("details.summaryCard.studentEmail")}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.studentEmail}</p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    {t("details.summaryCard.sessionTopic")}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.topic}</p>
-                </div>
+                {booking.studentEmail ? (
+                  <div>
+                    <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                      {t("details.summaryCard.studentEmail")}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                      {booking.studentEmail}
+                    </p>
+                  </div>
+                ) : null}
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("details.summaryCard.sessionType")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.sessionType}</p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    {t("details.summaryCard.studentStage")}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.studentStage}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{t("sessionType")}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("details.summaryCard.selectedDate")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.date}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                    {formatDate(booking.scheduledStartAt, lang)}
+                  </p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("details.summaryCard.selectedTime")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.time}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                    {formatTime(booking.scheduledStartAt, lang)}
+                  </p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("details.summaryCard.duration")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.duration}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                    {durationLabel(booking.durationMinutes, t)}
+                  </p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("details.summaryCard.fee")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.fee}</p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    {t("details.summaryCard.holdStatus")}
-                  </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                    {t(`holdStatus.${statusMeta.statusKey}`)}
+                    {formatUsd(booking.priceUsd)}
                   </p>
                 </div>
               </div>
             </div>
+
+            {booking.meetingUrl ? (
+              <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                  {t("details.meeting.title")}
+                </h2>
+
+                <div className="mt-5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-5">
+                  <p className="text-sm leading-7 text-[#4b5563]">{t("details.meeting.note")}</p>
+                  <a
+                    href={booking.meetingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                  >
+                    {t("details.meeting.join")}
+                  </a>
+                </div>
+              </div>
+            ) : null}
 
             <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
@@ -411,38 +248,9 @@ export function ConsultantBookingDetails() {
               </h2>
 
               <div className="mt-5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-5">
-                <p className="text-sm leading-7 text-[#4b5563]">{t(statusMeta.noteKey)}</p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                {t("details.timeline.title")}
-              </h2>
-
-              <div className="mt-5 space-y-4">
-                {timeline.map((step, index) => (
-                  <div key={step.titleKey} className="flex gap-4">
-                    <div className="flex flex-col items-center">
-                      <div
-                        className={[
-                          "mt-1 h-3.5 w-3.5 rounded-full",
-                          step.isDone ? "bg-[#2563eb]" : "bg-[#d1d5db]",
-                        ].join(" ")}
-                      />
-                      {index < timeline.length - 1 ? (
-                        <div className="mt-2 h-full min-h-[48px] w-px bg-[#e5e7eb]" />
-                      ) : null}
-                    </div>
-
-                    <div className="pb-4">
-                      <p className="text-sm font-medium text-[#1d1d1f]">{t(step.titleKey)}</p>
-                      <p className="mt-1 text-sm leading-6 text-[#4b5563]">
-                        {t(step.descriptionKey)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                <p className="text-sm leading-7 text-[#4b5563]">
+                  {t(`details.guidance.note.${bucket}`)}
+                </p>
               </div>
             </div>
           </section>
@@ -454,68 +262,100 @@ export function ConsultantBookingDetails() {
               </h2>
 
               <div className="mt-5 flex flex-col gap-3">
+                {isRequested ? (
+                  <div>
+                    <label className="block text-sm font-medium text-[#1d1d1f]">
+                      {t("details.actions.meetingUrlLabel")}
+                    </label>
+                    <input
+                      type="url"
+                      value={meetingUrl}
+                      onChange={(event) => {
+                        setMeetingUrl(event.target.value);
+                        setMeetingUrlError("");
+                      }}
+                      placeholder={t("details.actions.meetingUrlPlaceholder")}
+                      className={`mt-2 h-11 w-full rounded-lg border bg-white px-3 text-sm text-[#1d1d1f] outline-none ${
+                        meetingUrlError
+                          ? "border-[#ef4444] focus:border-[#ef4444]"
+                          : "border-[#d1d5db] focus:border-[#2563eb]"
+                      }`}
+                    />
+                    {meetingUrlError ? (
+                      <p className="mt-2 text-sm text-[#dc2626]">{meetingUrlError}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 <button
                   type="button"
                   onClick={handleAccept}
-                  disabled={booking.status !== "pending"}
+                  disabled={!isRequested || isBusy}
                   className={[
                     "inline-flex h-12 items-center justify-center rounded-lg px-5 text-sm font-medium transition",
-                    booking.status === "pending"
+                    isRequested && !isBusy
                       ? "bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
                       : "cursor-not-allowed bg-[#e5e7eb] text-[#9ca3af]",
                   ].join(" ")}
                 >
-                  {t("details.actions.accept")}
+                  {acceptMutation.isPending
+                    ? t("states.submitting")
+                    : t("details.actions.accept")}
                 </button>
 
                 <button
                   type="button"
                   onClick={handleReject}
-                  disabled={booking.status !== "pending"}
+                  disabled={!isRequested || isBusy}
                   className={[
                     "inline-flex h-12 items-center justify-center rounded-lg px-5 text-sm font-medium transition",
-                    booking.status === "pending"
+                    isRequested && !isBusy
                       ? "border border-[#dc2626] bg-white text-[#dc2626] hover:bg-[#fef2f2]"
                       : "cursor-not-allowed border border-[#e5e7eb] bg-white text-[#9ca3af]",
                   ].join(" ")}
                 >
-                  {t("details.actions.reject")}
+                  {rejectMutation.isPending
+                    ? t("states.submitting")
+                    : t("details.actions.reject")}
                 </button>
 
                 <button
                   type="button"
-                  onClick={handleComplete}
-                  disabled={booking.status !== "confirmed"}
+                  onClick={handleNoShow}
+                  disabled={!isConfirmed || isBusy}
                   className={[
                     "inline-flex h-12 items-center justify-center rounded-lg px-5 text-sm font-medium transition",
-                    booking.status === "confirmed"
-                      ? "bg-[#16a34a] text-white hover:bg-[#15803d]"
-                      : "cursor-not-allowed bg-[#e5e7eb] text-[#9ca3af]",
+                    isConfirmed && !isBusy
+                      ? "border border-[#b45309] bg-white text-[#b45309] hover:bg-[#fffbeb]"
+                      : "cursor-not-allowed border border-[#e5e7eb] bg-white text-[#9ca3af]",
                   ].join(" ")}
                 >
-                  {t("details.actions.complete")}
+                  {cancelMutation.isPending
+                    ? t("states.submitting")
+                    : t("details.actions.noShow")}
                 </button>
 
                 <button
                   type="button"
-                  onClick={handleReset}
-                  className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+                  onClick={handleCancel}
+                  disabled={(!isRequested && !isConfirmed) || isBusy}
+                  className={[
+                    "inline-flex h-12 items-center justify-center rounded-lg px-5 text-sm font-medium transition",
+                    (isRequested || isConfirmed) && !isBusy
+                      ? "border border-[#dc2626] bg-white text-[#dc2626] hover:bg-[#fef2f2]"
+                      : "cursor-not-allowed border border-[#e5e7eb] bg-white text-[#9ca3af]",
+                  ].join(" ")}
                 >
-                  {t("details.actions.reset")}
+                  {noShowMutation.isPending
+                    ? t("states.submitting")
+                    : t("details.actions.cancel")}
                 </button>
 
                 <Link
-                  to="/dev/consultant/bookings"
+                  to="/consultant/bookings"
                   className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                 >
                   {t("details.actions.back")}
-                </Link>
-
-                <Link
-                  to={`/dev/bookings/${booking.id}`}
-                  className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
-                >
-                  {t("details.actions.openStudentView")}
                 </Link>
               </div>
             </div>
@@ -528,7 +368,7 @@ export function ConsultantBookingDetails() {
               <div className="mt-5 space-y-3 text-sm leading-7 text-[#4b5563]">
                 <p>{t("details.decisionHelp.accept")}</p>
                 <p>{t("details.decisionHelp.reject")}</p>
-                <p>{t("details.decisionHelp.complete")}</p>
+                <p>{t("details.decisionHelp.noShow")}</p>
               </div>
             </div>
           </aside>

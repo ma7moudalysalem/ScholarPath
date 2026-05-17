@@ -1,25 +1,14 @@
 {
-  "moduleTag": "PB-006",
+  "states": {
+    "error": "We couldn't load consultants. Please try again.",
+    "slotsError": "We couldn't load this consultant's availability."
+  },
+  "duration": {
+    "minutes": "{{count}} min"
+  },
   "browse": {
     "title": "Browse consultants",
     "subtitle": "Explore consultant profiles, compare expertise areas, and review availability before selecting a session."
-  },
-  "profiles": {
-    "1": {
-      "expertise": "Scholarship Strategy · Personal Statements · Interview Preparation",
-      "description": "Supports students through shortlist strategy, essay refinement, and application readiness for international scholarship opportunities.",
-      "bio": "Dr. Sarah Adel supports students through scholarship planning, shortlist strategy, essay refinement, and application readiness. Her sessions are focused on practical guidance, stronger positioning, and improving the quality of applications for international opportunities."
-    },
-    "2": {
-      "expertise": "Visa Guidance · University Shortlisting · Funding Plans",
-      "description": "Helps students plan study-abroad pathways, narrow target universities, and prepare documents for visa and scholarship-fit decisions.",
-      "bio": "Ahmed Mostafa helps students plan study-abroad pathways, narrow target universities, and understand the practical steps of visa preparation, document readiness, and scholarship-fit decisions."
-    },
-    "3": {
-      "expertise": "Full Scholarship Planning · Application Review · Deadline Strategy",
-      "description": "Focuses on full scholarship planning, structured application review, and helping students improve readiness for competitive funding opportunities.",
-      "bio": "Nour Elhassan focuses on full scholarship planning, structured application review, deadline strategy, and helping students improve readiness for competitive funding opportunities."
-    }
   },
   "search": {
     "label": "Search",
@@ -28,18 +17,9 @@
     "reset": "Reset filters"
   },
   "filters": {
-    "expertise": "Expertise",
     "price": "Price",
     "rating": "Rating",
     "availability": "Availability"
-  },
-  "expertiseOptions": {
-    "all": "All",
-    "scholarship-strategy": "Scholarship Strategy",
-    "visa-support": "Visa Support",
-    "application-review": "Application Review",
-    "interview-prep": "Interview Prep",
-    "funding-plans": "Funding Plans"
   },
   "priceOptions": {
     "any": "Any",
@@ -55,20 +35,17 @@
   },
   "availabilityOptions": {
     "all": "All",
-    "live": "Live schedule",
-    "availableToday": "Available today",
+    "available": "Has availability",
     "unavailable": "No availability"
   },
   "quickFilters": {
     "all": "All consultants",
-    "live": "Live schedule",
-    "availableToday": "Available today",
+    "available": "Has availability",
     "unavailable": "No availability"
   },
   "stats": {
     "total": "Total",
-    "live": "Live",
-    "today": "Today",
+    "available": "Available",
     "unavailable": "Unavailable"
   },
   "results": {
@@ -78,72 +55,41 @@
     "count_other": "{{count}} results"
   },
   "badge": {
-    "availableToday": "Available today",
-    "liveSchedule": "Live schedule",
-    "noAvailability": "No availability",
-    "available": "Available",
-    "thisWeek": "This week",
-    "weekend": "Weekend"
-  },
-  "tags": {
-    "uk-admissions": "UK Admissions",
-    "essays": "Essays",
-    "interview-prep": "Interview Prep",
-    "visa-support": "Visa Support",
-    "university-choice": "University Choice",
-    "funding-plans": "Funding Plans",
-    "full-funding": "Full Funding",
-    "application-review": "Application Review",
-    "planning": "Planning"
+    "available": "Has availability",
+    "noAvailability": "No availability"
   },
   "slotTag": {
-    "next": "Next",
-    "available": "Available",
-    "popular": "Popular",
-    "limited": "Limited"
-  },
-  "slotDay": {
-    "tomorrow": "Tomorrow",
-    "saturday": "Saturday",
-    "sunday": "Sunday",
-    "monday": "Monday",
-    "tuesday": "Tuesday"
+    "available": "Available"
   },
   "card": {
     "rating": "Rating",
-    "sessions": "Sessions",
+    "ratingValue": "{{rating}} / 5 ({{count}})",
+    "noRating": "Not yet rated",
+    "sessions": "Completed sessions",
     "fee": "Fee",
-    "baseDuration": "Base duration",
-    "quickAvailability": "Quick availability",
-    "openSlots_one": "{{count}} open slot",
-    "openSlots_other": "{{count}} open slots",
-    "nextSlot": "Next slot:",
-    "noSlotsVisible": "No slots are visible right now for this consultant.",
-    "selectSlot": "Select slot",
+    "feeUnset": "Not set",
+    "baseDuration": "Session length",
+    "durationUnset": "Not set",
     "viewConsultant": "View consultant",
-    "openAvailabilitySource": "Open availability source",
-    "bookConsultant": "Book this consultant",
-    "noSlotsAvailable": "No slots available"
-  },
-  "duration": {
-    "minutes": "{{count}} min"
-  },
-  "nextSlotLabel": {
-    "none": "No open slots",
-    "value": "{{day}} · {{time}}"
+    "noExpertiseTags": "No expertise tags added yet."
   },
   "empty": {
     "title": "No consultants matched your search",
     "body": "Try broadening the keyword, changing the filter values, or reset the filters to view all available consultants again.",
-    "reset": "Reset filters"
+    "reset": "Reset filters",
+    "noConsultants": "No consultants available yet",
+    "noConsultantsBody": "There are no consultants listed right now. Please check back later."
   },
   "detail": {
     "title": "Consultant profile",
-    "subtitle": "Review the consultant's expertise, credentials, ratings, fee, and upcoming availability before booking.",
+    "subtitle": "Review the consultant's expertise, ratings, fee, and upcoming availability before booking.",
     "rating": "Rating",
-    "sessions": "Sessions",
+    "sessions": "Completed sessions",
     "fee": "Fee",
     "feeValue": "{{fee}} / {{duration}}",
+    "languages": "Languages",
+    "reviewsTitle": "Recent reviews",
+    "reviewRating": "{{rating}} / 5",
     "bookingOverview": "Booking overview",
     "nextSlot": "Next slot",
     "sessionFormat": "Session format",
@@ -151,13 +97,11 @@
     "duration": "Duration",
     "bookConsultant": "Book this consultant",
     "backToConsultants": "Back to consultants",
-    "noSlotsBooking": "No open slots are visible right now. Update consultant availability to make sessions bookable again.",
+    "noSlotsBooking": "No open slots are visible right now. Check back later for new consultation slots.",
     "upcomingAvailability": "Upcoming availability",
-    "upcomingLive": "These slot cards now read directly from the consultant availability store.",
-    "upcomingStatic": "These sample slot cards show upcoming booking options for this consultant.",
+    "upcomingLive": "These slots are the consultant's real bookable times over the next four weeks.",
     "openSlots_one": "{{count}} open slot",
     "openSlots_other": "{{count}} open slots",
-    "slotTime": "Time",
     "slotDuration": "Duration",
     "selectSlot": "Select this slot",
     "noUpcomingSlots": "No upcoming slots are currently available for this consultant."

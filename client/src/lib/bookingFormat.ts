@@ -1,0 +1,105 @@
+import type { BookingStatus } from "@/services/api/bookings";
+
+// ── Shared formatting + status helpers for the PB-006 booking pages ───────────
+//
+// The booking pages render real API data: ISO-8601 date strings, USD decimals,
+// and the server `BookingStatus` enum. These helpers centralise the wire → UI
+// mapping so the student and consultant pages stay consistent.
+
+/** Locale used for date/number formatting, derived from the i18n language. */
+function intlLocale(lang: string): string {
+  return lang.startsWith("ar") ? "ar-EG" : "en-GB";
+}
+
+/** Formats an ISO-8601 instant as a day-level label (e.g. "25 Apr 2026"). */
+export function formatDate(iso: string, lang: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString(intlLocale(lang), {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/** Formats an ISO-8601 instant as a time label (e.g. "6:30 PM"). */
+export function formatTime(iso: string, lang: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleTimeString(intlLocale(lang), {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/** Formats an ISO-8601 instant as a combined date + time label. */
+export function formatDateTime(iso: string, lang: string): string {
+  return `${formatDate(iso, lang)} · ${formatTime(iso, lang)}`;
+}
+
+/** Formats a USD decimal amount (e.g. `35` → "$35.00"). */
+export function formatUsd(amount: number): string {
+  return `$${amount.toFixed(2)}`;
+}
+
+/** Formats a minute count using the localised `duration.minutes` plural key. */
+export function durationLabel(
+  minutes: number,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
+  return t("duration.minutes", { count: minutes });
+}
+
+// ── Booking status grouping ───────────────────────────────────────────────────
+
+/** The coarse filter buckets the booking-list pages expose. */
+export type BookingStatusBucket = "pending" | "confirmed" | "completed" | "closed";
+
+/** Maps a server `BookingStatus` to its coarse filter bucket. */
+export function statusBucket(status: BookingStatus): BookingStatusBucket {
+  switch (status) {
+    case "Requested":
+      return "pending";
+    case "Confirmed":
+      return "confirmed";
+    case "Completed":
+      return "completed";
+    case "Rejected":
+    case "Expired":
+    case "Cancelled":
+    case "NoShowStudent":
+    case "NoShowConsultant":
+      return "closed";
+    default:
+      return "closed";
+  }
+}
+
+/** Tailwind badge classes for a booking status pill. */
+export function statusBadgeClass(status: BookingStatus): string {
+  switch (status) {
+    case "Requested":
+      return "bg-[#fffbeb] text-[#b45309]";
+    case "Confirmed":
+      return "bg-[#eff6ff] text-[#1d4ed8]";
+    case "Completed":
+      return "bg-[#f0fdf4] text-[#15803d]";
+    case "Rejected":
+    case "NoShowStudent":
+    case "NoShowConsultant":
+      return "bg-[#fef2f2] text-[#dc2626]";
+    case "Expired":
+    case "Cancelled":
+      return "bg-[#f3f4f6] text-[#4b5563]";
+    default:
+      return "bg-[#f3f4f6] text-[#4b5563]";
+  }
+}
+
+/**
+ * The `bookings`/`consultantPortal` locale key for a status label. All eight
+ * server statuses have a dedicated key under `statusLabels`.
+ */
+export function statusLabelKey(status: BookingStatus): string {
+  return `statusLabels.${status}`;
+}

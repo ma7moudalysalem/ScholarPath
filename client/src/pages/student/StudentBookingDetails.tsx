@@ -1,229 +1,90 @@
-import {
-  getMockBookings,
-  subscribeMockBookings,
-  type BookingWorkflowStatus,
-  type MockBookingRecord,
-} from "@/lib/mockBookingStore";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
+import { useBookingDetailQuery } from "@/hooks/useBookingsQuery";
+import type { BookingDetail } from "@/services/api/bookings";
+import {
+  durationLabel,
+  formatDate,
+  formatTime,
+  formatUsd,
+  statusBadgeClass,
+  statusBucket,
+  statusLabelKey,
+} from "@/lib/bookingFormat";
 
 type TimelineStep = {
+  key: string;
   titleKey: string;
   descriptionKey: string;
   isDone: boolean;
 };
 
-type StudentStatusMeta = {
-  labelKey: string;
-  badgeClassName: string;
-  holdStatusKey: string;
-  summaryKey: string;
-  noteKey: string;
-};
+/** Builds the four-step student timeline from the booking's real status. */
+function buildTimeline(booking: BookingDetail): TimelineStep[] {
+  const bucket = statusBucket(booking.status);
+  const requested = true;
+  const reviewed =
+    booking.status !== "Requested" && booking.status !== "Expired";
+  const confirmed = Boolean(booking.confirmedAt) || bucket === "completed";
+  const finalised =
+    bucket === "completed" || bucket === "closed";
 
-function getStudentStatusMeta(status: BookingWorkflowStatus): StudentStatusMeta {
-  switch (status) {
-    case "pending":
-      return {
-        labelKey: "status.pending",
-        badgeClassName: "bg-[#fffbeb] text-[#b45309]",
-        holdStatusKey: "holdStatus.active",
-        summaryKey: "summaries.pending",
-        noteKey: "holdNotes.pending",
-      };
-    case "confirmed":
-      return {
-        labelKey: "status.accepted",
-        badgeClassName: "bg-[#eff6ff] text-[#1d4ed8]",
-        holdStatusKey: "holdStatus.readyForCapture",
-        summaryKey: "summaries.accepted",
-        noteKey: "holdNotes.accepted",
-      };
-    case "completed":
-      return {
-        labelKey: "status.completed",
-        badgeClassName: "bg-[#f0fdf4] text-[#15803d]",
-        holdStatusKey: "holdStatus.captured",
-        summaryKey: "summaries.completed",
-        noteKey: "holdNotes.completed",
-      };
-    case "rejected":
-      return {
-        labelKey: "status.rejected",
-        badgeClassName: "bg-[#fef2f2] text-[#dc2626]",
-        holdStatusKey: "holdStatus.released",
-        summaryKey: "summaries.rejected",
-        noteKey: "holdNotes.rejected",
-      };
-    case "cancelled":
-      return {
-        labelKey: "status.cancelled",
-        badgeClassName: "bg-[#f3f4f6] text-[#4b5563]",
-        holdStatusKey: "holdStatus.none",
-        summaryKey: "summaries.cancelled",
-        noteKey: "holdNotes.cancelled",
-      };
-    default:
-      return {
-        labelKey: "status.pending",
-        badgeClassName: "bg-[#fffbeb] text-[#b45309]",
-        holdStatusKey: "holdStatus.active",
-        summaryKey: "summaries.default",
-        noteKey: "holdNotes.default",
-      };
-  }
-}
-
-function buildTimeline(status: BookingWorkflowStatus): TimelineStep[] {
-  switch (status) {
-    case "pending":
-      return [
-        {
-          titleKey: "timeline.pending.step1Title",
-          descriptionKey: "timeline.pending.step1Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.pending.step2Title",
-          descriptionKey: "timeline.pending.step2Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.pending.step3Title",
-          descriptionKey: "timeline.pending.step3Description",
-          isDone: false,
-        },
-        {
-          titleKey: "timeline.pending.step4Title",
-          descriptionKey: "timeline.pending.step4Description",
-          isDone: false,
-        },
-      ];
-    case "confirmed":
-      return [
-        {
-          titleKey: "timeline.confirmed.step1Title",
-          descriptionKey: "timeline.confirmed.step1Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.confirmed.step2Title",
-          descriptionKey: "timeline.confirmed.step2Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.confirmed.step3Title",
-          descriptionKey: "timeline.confirmed.step3Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.confirmed.step4Title",
-          descriptionKey: "timeline.confirmed.step4Description",
-          isDone: true,
-        },
-      ];
-    case "completed":
-      return [
-        {
-          titleKey: "timeline.completed.step1Title",
-          descriptionKey: "timeline.completed.step1Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.completed.step2Title",
-          descriptionKey: "timeline.completed.step2Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.completed.step3Title",
-          descriptionKey: "timeline.completed.step3Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.completed.step4Title",
-          descriptionKey: "timeline.completed.step4Description",
-          isDone: true,
-        },
-      ];
-    case "rejected":
-      return [
-        {
-          titleKey: "timeline.rejected.step1Title",
-          descriptionKey: "timeline.rejected.step1Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.rejected.step2Title",
-          descriptionKey: "timeline.rejected.step2Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.rejected.step3Title",
-          descriptionKey: "timeline.rejected.step3Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.rejected.step4Title",
-          descriptionKey: "timeline.rejected.step4Description",
-          isDone: true,
-        },
-      ];
-    case "cancelled":
-      return [
-        {
-          titleKey: "timeline.cancelled.step1Title",
-          descriptionKey: "timeline.cancelled.step1Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.cancelled.step2Title",
-          descriptionKey: "timeline.cancelled.step2Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.cancelled.step3Title",
-          descriptionKey: "timeline.cancelled.step3Description",
-          isDone: true,
-        },
-        {
-          titleKey: "timeline.cancelled.step4Title",
-          descriptionKey: "timeline.cancelled.step4Description",
-          isDone: true,
-        },
-      ];
-    default:
-      return [];
-  }
+  return [
+    {
+      key: "requested",
+      titleKey: "timeline.requestedTitle",
+      descriptionKey: "timeline.requestedDescription",
+      isDone: requested,
+    },
+    {
+      key: "review",
+      titleKey: "timeline.reviewTitle",
+      descriptionKey: "timeline.reviewDescription",
+      isDone: reviewed,
+    },
+    {
+      key: "confirmed",
+      titleKey: "timeline.confirmedTitle",
+      descriptionKey: "timeline.confirmedDescription",
+      isDone: confirmed,
+    },
+    {
+      key: "outcome",
+      titleKey: "timeline.outcomeTitle",
+      descriptionKey: "timeline.outcomeDescription",
+      isDone: finalised || confirmed,
+    },
+  ];
 }
 
 export function StudentBookingDetails() {
-  const { t } = useTranslation("bookings");
+  const { t, i18n } = useTranslation("bookings");
+  const lang = i18n.language;
   const { id } = useParams();
-  const bookingId = id ?? "1";
 
-  const [bookingsSnapshot, setBookingsSnapshot] = useState<MockBookingRecord[]>(() =>
-    getMockBookings(),
+  const { data: booking, isLoading, isError } = useBookingDetailQuery(id);
+
+  const timeline = useMemo(
+    () => (booking ? buildTimeline(booking) : []),
+    [booking],
   );
 
-  useEffect(() => {
-    return subscribeMockBookings(() => {
-      setBookingsSnapshot(getMockBookings());
-    });
-  }, []);
+  if (isLoading) {
+    return (
+      <main className="min-h-screen bg-[#f5f5f7]">
+        <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
+          <div className="space-y-4">
+            <div className="h-10 w-64 animate-pulse rounded-lg bg-white" />
+            <div className="h-72 animate-pulse rounded-2xl border border-[#e5e7eb] bg-white shadow-sm" />
+            <div className="h-40 animate-pulse rounded-2xl border border-[#e5e7eb] bg-white shadow-sm" />
+          </div>
+        </section>
+      </main>
+    );
+  }
 
-  const booking = useMemo(() => {
-    return bookingsSnapshot.find((item) => item.id === bookingId) ?? bookingsSnapshot[0] ?? null;
-  }, [bookingsSnapshot, bookingId]);
-
-  const statusMeta = useMemo(
-    () => getStudentStatusMeta(booking?.status ?? "pending"),
-    [booking?.status],
-  );
-
-  const timeline = useMemo(() => buildTimeline(booking?.status ?? "pending"), [booking?.status]);
-
-  if (!booking) {
+  if (isError || !booking) {
     return (
       <main className="min-h-screen bg-[#f5f5f7]">
         <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
@@ -232,7 +93,7 @@ export function StudentBookingDetails() {
             <p className="mt-3 text-sm leading-7 text-[#4b5563]">{t("notFound.description")}</p>
             <div className="mt-6">
               <Link
-                to="/dev/bookings"
+                to="/student/bookings"
                 className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
               >
                 {t("notFound.backToBookings")}
@@ -244,12 +105,12 @@ export function StudentBookingDetails() {
     );
   }
 
+  const bucket = statusBucket(booking.status);
+
   return (
     <main className="min-h-screen bg-[#f5f5f7]">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-[#2563eb]">{t("tag")}</p>
-
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
@@ -262,9 +123,11 @@ export function StudentBookingDetails() {
             </div>
 
             <span
-              className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusMeta.badgeClassName}`}
+              className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusBadgeClass(
+                booking.status,
+              )}`}
             >
-              {t(statusMeta.labelKey)}
+              {t(statusLabelKey(booking.status))}
             </span>
           </div>
         </div>
@@ -276,16 +139,9 @@ export function StudentBookingDetails() {
                 {t("details.summaryTitle")}
               </h2>
 
-              <p className="mt-3 text-sm leading-7 text-[#4b5563]">{t(statusMeta.summaryKey)}</p>
+              <p className="mt-3 text-sm leading-7 text-[#4b5563]">{t(`summaries.${bucket}`)}</p>
 
               <div className="mt-5 grid gap-4 rounded-xl bg-[#f9fafb] p-5 sm:grid-cols-2 xl:grid-cols-3">
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    {t("fields.bookingReference")}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.reference}</p>
-                </div>
-
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("fields.consultant")}
@@ -297,72 +153,68 @@ export function StudentBookingDetails() {
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    {t("fields.studentEmail")}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.studentEmail}</p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    {t("fields.sessionTopic")}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.topic}</p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("fields.sessionType")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.sessionType}</p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    {t("fields.currentStage")}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.studentStage}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{t("sessionType")}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("fields.selectedDate")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.date}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                    {formatDate(booking.scheduledStartAt, lang)}
+                  </p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("fields.selectedTime")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.time}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                    {formatTime(booking.scheduledStartAt, lang)}
+                  </p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("fields.duration")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.duration}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                    {durationLabel(booking.durationMinutes, t)}
+                  </p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
                     {t("fields.fee")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.fee}</p>
+                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                    {formatUsd(booking.priceUsd)}
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                {t("details.holdTitle")}
-              </h2>
+            {booking.meetingUrl ? (
+              <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                  {t("details.meetingTitle")}
+                </h2>
 
-              <div className="mt-5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-5">
-                <p className="text-sm font-medium text-[#1d1d1f]">{t(statusMeta.holdStatusKey)}</p>
-                <p className="mt-2 text-sm leading-7 text-[#4b5563]">{t(statusMeta.noteKey)}</p>
+                <div className="mt-5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-5">
+                  <p className="text-sm leading-7 text-[#4b5563]">{t("details.meetingNote")}</p>
+                  <a
+                    href={booking.meetingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                  >
+                    {t("details.joinMeeting")}
+                  </a>
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
@@ -371,7 +223,7 @@ export function StudentBookingDetails() {
 
               <div className="mt-5 space-y-4">
                 {timeline.map((step, index) => (
-                  <div key={step.titleKey} className="flex gap-4">
+                  <div key={step.key} className="flex gap-4">
                     <div className="flex flex-col items-center">
                       <div
                         className={[
@@ -404,21 +256,21 @@ export function StudentBookingDetails() {
 
               <div className="mt-5 flex flex-col gap-3">
                 <Link
-                  to="/dev/bookings"
+                  to="/student/bookings"
                   className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                 >
                   {t("details.backToBookings")}
                 </Link>
 
                 <Link
-                  to={`/dev/consultants/${booking.consultantId}`}
+                  to={`/student/consultants/${booking.consultantId}`}
                   className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                 >
                   {t("details.viewConsultant")}
                 </Link>
 
                 <Link
-                  to="/dev/consultants"
+                  to="/student/consultants"
                   className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                 >
                   {t("details.bookAnother")}

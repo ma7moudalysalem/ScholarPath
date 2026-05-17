@@ -39,10 +39,15 @@ export const queryKeys = {
   bookings: {
     all: ["bookings"] as const,
     mine: ["bookings", "mine"] as const,
+    consultant: ["bookings", "consultant"] as const,
+    detail: (id: string) => ["bookings", "detail", id] as const,
+    myAvailability: ["bookings", "myAvailability"] as const,
   },
   consultants: {
-    directory: (filters: Record<string, unknown>) => ["consultants", "directory", filters] as const,
+    all: ["consultants"] as const,
+    directory: ["consultants", "directory"] as const,
     detail: (id: string) => ["consultants", "detail", id] as const,
+    availability: (id: string) => ["consultants", "availability", id] as const,
   },
   notifications: {
     mine: ["notifications", "mine"] as const,
