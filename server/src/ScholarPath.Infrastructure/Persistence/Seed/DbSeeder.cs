@@ -6,7 +6,26 @@ using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Infrastructure.Persistence.Seed;
 
-public static class DbSeeder
+/// <summary>
+/// Comprehensive, idempotent demo-data seeder. Split across several partial-class
+/// files (one per domain area) so the file stays navigable:
+/// <list type="bullet">
+///   <item><c>DbSeeder.cs</c> — orchestration, roles, categories, configs, settings.</item>
+///   <item><c>DbSeeder.Users.cs</c> — demo users + profiles across every role/status.</item>
+///   <item><c>DbSeeder.Scholarships.cs</c> — scholarships, children, saved/bookmarked.</item>
+///   <item><c>DbSeeder.Applications.cs</c> — application trackers across every status.</item>
+///   <item><c>DbSeeder.Consultants.cs</c> — availability, bookings, consultant reviews.</item>
+///   <item><c>DbSeeder.Community.cs</c> — forum categories/posts/votes/flags.</item>
+///   <item><c>DbSeeder.Chat.cs</c> — conversations, messages, user blocks.</item>
+///   <item><c>DbSeeder.Payments.cs</c> — payments, payouts, company reviews.</item>
+///   <item><c>DbSeeder.Resources.cs</c> — resources, chapters, bookmarks, progress.</item>
+///   <item><c>DbSeeder.Misc.cs</c> — documents, notifications, success stories, AI, etc.</item>
+/// </list>
+/// Every section checks whether ITS OWN data already exists before inserting, so
+/// re-running <see cref="SeedAsync"/> on every app startup is a safe no-op once
+/// the database is seeded.
+/// </summary>
+public static partial class DbSeeder
 {
     public static readonly string[] SeededRoles =
         ["Admin", "Student", "Company", "Consultant", "Unassigned"];
@@ -36,7 +55,7 @@ public static class DbSeeder
             }
         }
 
-        // 2) Demo users (dev only)
+        // 2) Demo users (the original four — login credentials documented in the README)
         await EnsureUserAsync(userManager, "admin@scholarpath.local", "Admin123!", "Admin", "User", "Admin", logger);
         await EnsureUserAsync(userManager, "student@scholarpath.local", "Student123!", "Alaa", "Mostafa", "Student", logger);
         await EnsureUserAsync(userManager, "company@scholarpath.local", "Company123!", "Global Scholars", "Org", "Company", logger);
@@ -85,6 +104,36 @@ public static class DbSeeder
         // 5) Default platform settings (PB-011) — idempotent per key, so new
         //    defaults can be appended over time without disturbing edited rows.
         await SeedPlatformSettingsAsync(db, logger, ct).ConfigureAwait(false);
+
+        // 6) Comprehensive demo dataset — each section is independently idempotent
+        //    and seeds in dependency order (users first, then everything that
+        //    references them). Wrapped in try/catch nothing here — a failure in a
+        //    later section must not silently skip earlier ones; each section's
+        //    own AnyAsync guard makes a re-run safe.
+        var users = await SeedDemoUsersAsync(db, userManager, logger, ct).ConfigureAwait(false);
+        var categories = await db.Categories.OrderBy(c => c.DisplayOrder).ToListAsync(ct).ConfigureAwait(false);
+
+        await SeedExpertiseTagsAsync(db, logger, ct).ConfigureAwait(false);
+        await SeedUpgradeRequestsAsync(db, users, logger, ct).ConfigureAwait(false);
+
+        var scholarships = await SeedScholarshipsAsync(db, users, categories, logger, ct).ConfigureAwait(false);
+        await SeedSavedScholarshipsAsync(db, users, scholarships, logger, ct).ConfigureAwait(false);
+
+        var applications = await SeedApplicationsAsync(db, users, scholarships, logger, ct).ConfigureAwait(false);
+
+        var bookings = await SeedConsultantModuleAsync(db, users, logger, ct).ConfigureAwait(false);
+
+        await SeedCommunityAsync(db, users, logger, ct).ConfigureAwait(false);
+        await SeedChatAsync(db, users, logger, ct).ConfigureAwait(false);
+        await SeedPaymentsAsync(db, users, applications, bookings, logger, ct).ConfigureAwait(false);
+
+        var resources = await SeedResourcesAsync(db, users, logger, ct).ConfigureAwait(false);
+        await SeedResourceEngagementAsync(db, users, resources, logger, ct).ConfigureAwait(false);
+
+        await SeedDocumentsAsync(db, users, applications, logger, ct).ConfigureAwait(false);
+        await SeedNotificationsAsync(db, users, logger, ct).ConfigureAwait(false);
+        await SeedSuccessStoriesAsync(db, users, logger, ct).ConfigureAwait(false);
+        await SeedAiAsync(db, users, scholarships, logger, ct).ConfigureAwait(false);
     }
 
     private static async Task SeedPlatformSettingsAsync(
@@ -196,5 +245,4 @@ public static class DbSeeder
         await userManager.AddToRoleAsync(user, role).ConfigureAwait(false);
         logger.LogInformation("Seeded user {Email} as {Role}", email, role);
     }
-
 }
