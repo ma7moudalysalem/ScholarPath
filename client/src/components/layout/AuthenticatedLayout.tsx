@@ -21,6 +21,7 @@ import type { LucideIcon } from "lucide-react";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useAuthStore } from "@/stores/authStore";
+import { postAuthPath } from "@/services/api/auth";
 import { useNotificationHub } from "@/hooks/useNotificationHub";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,8 @@ export function AuthenticatedLayout() {
   const { user, clear } = useAuthStore();
   const role = user?.activeRole ?? user?.roles[0] ?? "Student";
   const navItems = useMemo(() => NAV_BY_ROLE[role] ?? NAV_BY_ROLE.Student, [role]);
+  // The logo links to the signed-in user's dashboard, not the public landing page.
+  const homePath = user ? postAuthPath(user) : "/";
 
   // Subscribe to the notification hub while the user is authenticated
   useNotificationHub();
@@ -76,7 +79,7 @@ export function AuthenticatedLayout() {
   return (
     <div className="flex min-h-screen bg-bg-subtle text-text-primary">
       <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-e border-border-subtle bg-bg-elevated">
-        <Link to="/" className="flex h-14 items-center gap-2 border-b border-border-subtle px-4 font-semibold">
+        <Link to={homePath} className="flex h-14 items-center gap-2 border-b border-border-subtle px-4 font-semibold">
           <GraduationCap aria-hidden className="size-5 text-brand-500" />
           <span>{t("common:appName")}</span>
         </Link>
