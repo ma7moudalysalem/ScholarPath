@@ -27,3 +27,4 @@ public sealed record ForgotPasswordRequestDto(string Email);
 public sealed record ResetPasswordRequestDto(string Token, string NewPassword);
 public sealed record ChangePasswordRequestDto(string CurrentPassword, string NewPassword);
 public sealed record SwitchRoleRequestDto(string TargetRole);
+public sealed record SelectRoleRequestDto(string Role);

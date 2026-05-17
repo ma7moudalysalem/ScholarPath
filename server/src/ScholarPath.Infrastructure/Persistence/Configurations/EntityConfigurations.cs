@@ -362,6 +362,15 @@ public sealed class ConsultantBookingConfiguration : IEntityTypeConfiguration<Co
         b.Property(bk => bk.PriceUsd).HasPrecision(10, 2);
         b.Property(bk => bk.RowVersion).IsRowVersion();
         b.HasIndex(bk => new { bk.ConsultantId, bk.ScheduledStartAt });
+
+        // Task 5A — slot race guard: a consultant cannot hold two live bookings for
+        // the same start time. The DB rejects the second concurrent insert, which
+        // ApplicationDbContext.SaveChangesAsync surfaces as a ConflictException (409).
+        b.HasIndex(bk => new { bk.ConsultantId, bk.ScheduledStartAt })
+            .IsUnique()
+            .HasFilter("[Status] IN ('Requested', 'Confirmed')")
+            .HasDatabaseName("UX_Bookings_Consultant_Slot_Active");
+
         b.HasIndex(bk => new { bk.StudentId, bk.Status });
         b.HasIndex(bk => bk.StripePaymentIntentId);
         b.HasIndex(bk => bk.AvailabilityId);

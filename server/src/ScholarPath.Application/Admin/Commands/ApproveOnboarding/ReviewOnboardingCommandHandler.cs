@@ -35,6 +35,18 @@ public sealed class ReviewOnboardingCommandHandler(
 
         if (!ok) throw new NotFoundException("User", request.UserId);
 
+        // On approval, grant the Identity role the user requested at onboarding
+        // (carried on ActiveRole) and mark onboarding complete — without this the
+        // user would end up Active with no role at all.
+        if (request.Decision == OnboardingDecision.Approve)
+        {
+            if (!string.IsNullOrWhiteSpace(user.ActiveRole))
+                await admin.AddRoleAsync(request.UserId, user.ActiveRole, ct).ConfigureAwait(false);
+
+            user.IsOnboardingComplete = true;
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+
         logger.LogInformation("Onboarding {Decision} for {UserId} → {Status}. Notes: {Notes}",
             request.Decision, request.UserId, newStatus, request.ReviewerNotes ?? "<none>");
 

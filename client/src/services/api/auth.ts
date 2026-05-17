@@ -47,6 +47,11 @@ export const authApi = {
   async logout(refreshToken: string): Promise<void> {
     await apiClient.post("/api/auth/logout", { refreshToken });
   },
+  /** One-time first-role selection for a newly-registered (Unassigned) account. */
+  async selectRole(role: "Student" | "Company" | "Consultant"): Promise<AuthTokensResponse> {
+    const { data } = await apiClient.post<AuthTokensResponse>("/api/auth/select-role", { role });
+    return data;
+  },
   /** Redirects the browser to the provider's consent screen. */
   beginSso(provider: SsoProvider): void {
     sessionStorage.setItem(SSO_PROVIDER_KEY, provider);

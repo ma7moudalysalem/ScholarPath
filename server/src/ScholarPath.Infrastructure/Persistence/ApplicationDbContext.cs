@@ -139,8 +139,16 @@ public class ApplicationDbContext(
         catch (DbUpdateException ex) when (ex.InnerException is Microsoft.Data.SqlClient.SqlException sqlEx
                                            && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
         {
-            // Translate a unique-index violation into a domain-level conflict the API understands.
-            throw new ConflictException("An active application already exists for this scholarship.");
+            // Translate a unique-index violation into a domain-level conflict the API
+            // understands, with a message tailored to the index that was hit.
+            var detail = sqlEx.Message;
+            var message =
+                detail.Contains("UX_Bookings_Consultant_Slot_Active", StringComparison.OrdinalIgnoreCase)
+                    ? "That consultation slot has just been booked by someone else."
+                : detail.Contains("UX_Applications_Student_Scholarship_Active", StringComparison.OrdinalIgnoreCase)
+                    ? "An active application already exists for this scholarship."
+                : "This action conflicts with an existing record.";
+            throw new ConflictException(message);
         }
     }
     

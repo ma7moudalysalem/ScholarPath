@@ -106,6 +106,7 @@ public enum PaymentStatus
     PartiallyRefunded = 4,
     Failed = 5,
     Cancelled = 6,
+    Disputed = 7,
 }
 
 public enum PayoutStatus
@@ -160,6 +161,7 @@ public enum NotificationType
     PayoutInitiated = 302,
     PayoutCompleted = 303,
     PayoutFailed = 304,
+    PaymentDisputed = 305,
 
     // Admin / onboarding (PB-001, PB-011)
     OnboardingApproved = 400,

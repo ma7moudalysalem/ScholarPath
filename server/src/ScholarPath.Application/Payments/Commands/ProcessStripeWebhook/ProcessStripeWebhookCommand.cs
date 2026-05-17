@@ -17,10 +17,12 @@ public sealed record ProcessStripeWebhookCommand(
     string? ConnectAccountId = null,
     bool? ConnectPayoutsEnabled = null,
     string? PayoutId = null,
-    string? PayoutFailureMessage = null) : IRequest<bool>;
+    string? PayoutFailureMessage = null,
+    string? DisputeReason = null) : IRequest<bool>;
 
 public sealed class ProcessStripeWebhookCommandHandler(
     IApplicationDbContext db,
+    INotificationDispatcher notifications,
     ILogger<ProcessStripeWebhookCommandHandler> logger)
     : IRequestHandler<ProcessStripeWebhookCommand, bool>
 {
@@ -57,6 +59,10 @@ public sealed class ProcessStripeWebhookCommandHandler(
         webhookEvent.ProcessedAt = DateTimeOffset.UtcNow;
         webhookEvent.IsProcessed = true;
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        if (matchedPayment && request.EventType == "charge.dispute.created")
+            await NotifyAdminsOfDisputeAsync(request, ct);
+
         return true;
     }
 
@@ -169,6 +175,11 @@ public sealed class ProcessStripeWebhookCommandHandler(
                     ? PaymentStatus.Refunded
                     : PaymentStatus.PartiallyRefunded;
                 break;
+
+            case "charge.dispute.created":
+                payment.Status = PaymentStatus.Disputed;
+                payment.FailureReason = request.DisputeReason ?? "charge.dispute.created";
+                break;
         }
 
         return true;
@@ -227,6 +238,36 @@ public sealed class ProcessStripeWebhookCommandHandler(
 
             default:
                 return false;
+        }
+    }
+
+    // Task 5A — a card dispute needs human action; alert every active admin.
+    private async Task NotifyAdminsOfDisputeAsync(
+        ProcessStripeWebhookCommand request, CancellationToken ct)
+    {
+        try
+        {
+            var adminIds = await db.Users
+                .Where(u => u.ActiveRole == "Admin" && u.AccountStatus == AccountStatus.Active)
+                .Select(u => u.Id)
+                .ToListAsync(ct);
+            if (adminIds.Count == 0) return;
+
+            var reason = request.DisputeReason ?? "unspecified";
+            await notifications.DispatchBroadcastAsync(
+                adminIds,
+                NotificationType.PaymentDisputed,
+                new NotificationContent(
+                    "Payment dispute opened",
+                    "تم فتح نزاع على دفعة",
+                    $"A cardholder opened a payment dispute ({reason}). Review it in the payments dashboard.",
+                    $"فتح حامل البطاقة نزاعًا على دفعة ({reason}). راجِع النزاع من لوحة المدفوعات."),
+                ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to notify admins of the dispute for event {EventId}.", request.EventId);
         }
     }
 

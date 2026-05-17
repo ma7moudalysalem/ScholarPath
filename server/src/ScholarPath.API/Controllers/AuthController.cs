@@ -8,6 +8,7 @@ using ScholarPath.Application.Auth.Commands.Logout;
 using ScholarPath.Application.Auth.Commands.RefreshToken;
 using ScholarPath.Application.Auth.Commands.Register;
 using ScholarPath.Application.Auth.Commands.ResetPassword;
+using ScholarPath.Application.Auth.Commands.SelectRole;
 using ScholarPath.Application.Auth.Commands.SsoLogin;
 using ScholarPath.Application.Auth.Commands.SwitchRole;
 using ScholarPath.Application.Auth.DTOs;
@@ -109,6 +110,16 @@ public sealed class AuthController(IMediator mediator, ISsoService ssoService) :
     public async Task<ActionResult<AuthTokensDto>> SwitchRole(
         [FromBody] SwitchRoleRequestDto request, CancellationToken ct)
         => Ok(await mediator.Send(new SwitchRoleCommand(request.TargetRole), ct));
+
+    /// <summary>One-time first-role selection for a newly-registered account; re-issues the token pair.</summary>
+    [HttpPost("select-role")]
+    [Authorize]
+    [ProducesResponseType(typeof(AuthTokensDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<AuthTokensDto>> SelectRole(
+        [FromBody] SelectRoleRequestDto request, CancellationToken ct)
+        => Ok(await mediator.Send(new SelectRoleCommand(request.Role), ct));
 
     [HttpGet("google/authorize")]
     [ProducesResponseType(StatusCodes.Status302Found)]

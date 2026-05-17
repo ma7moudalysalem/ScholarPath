@@ -68,4 +68,5 @@ public sealed record StripeWebhookParseResult(
     string? ConnectAccountId = null,
     bool? ConnectPayoutsEnabled = null,
     string? PayoutId = null,
-    string? PayoutFailureMessage = null);
+    string? PayoutFailureMessage = null,
+    string? DisputeReason = null);
