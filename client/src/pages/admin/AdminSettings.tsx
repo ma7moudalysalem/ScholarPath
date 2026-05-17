@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -87,12 +87,15 @@ function SettingRow({ setting }: { setting: PlatformSettingDto }) {
   const { t, i18n } = useTranslation(["settings", "common"]);
   const qc = useQueryClient();
 
-  // Local draft of the value — initialised from the server, kept in sync if a
-  // refetch brings a newer value.
+  // Local draft of the value — initialised from the server, and re-synced when
+  // a refetch brings a newer value (adjusting state during render, not in an
+  // effect).
   const [draft, setDraft] = useState(setting.value);
-  useEffect(() => {
+  const [syncedValue, setSyncedValue] = useState(setting.value);
+  if (syncedValue !== setting.value) {
+    setSyncedValue(setting.value);
     setDraft(setting.value);
-  }, [setting.value]);
+  }
 
   const mut = useMutation({
     mutationFn: (value: string) => settingsApi.updateSetting(setting.key, value),

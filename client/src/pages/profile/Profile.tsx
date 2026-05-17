@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Camera, Loader2, Save } from "lucide-react";
 import {
@@ -141,10 +141,14 @@ export function Profile() {
     queryFn: () => profileApi.getMine(),
   });
 
+  // Populate the editable form from the fetched profile, re-syncing when a
+  // refetch brings fresh data — adjusting state during render, not in an effect.
   const [form, setForm] = useState<FormState | null>(null);
-  useEffect(() => {
-    if (profile) setForm(toForm(profile));
-  }, [profile]);
+  const [syncedProfile, setSyncedProfile] = useState<UserProfile | null>(null);
+  if (profile && profile !== syncedProfile) {
+    setSyncedProfile(profile);
+    setForm(toForm(profile));
+  }
 
   const syncAuthUser = (updated: UserProfile) => {
     const current = useAuthStore.getState().user;

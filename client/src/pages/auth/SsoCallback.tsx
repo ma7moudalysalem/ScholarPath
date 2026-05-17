@@ -8,20 +8,15 @@ export function SsoCallback() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [failed, setFailed] = useState(false);
+  const [exchangeFailed, setExchangeFailed] = useState(false);
   const ran = useRef(false);
 
+  const code = params.get("code");
+  const provider = authApi.pendingSsoProvider();
+
   useEffect(() => {
-    if (ran.current) return;
+    if (ran.current || !code || !provider) return;
     ran.current = true;
-
-    const code = params.get("code");
-    const provider = authApi.pendingSsoProvider();
-
-    if (!code || !provider) {
-      setFailed(true);
-      return;
-    }
 
     authApi
       .completeSso(provider, code)
@@ -30,10 +25,14 @@ export function SsoCallback() {
         navigate(postAuthPath(user), { replace: true });
       })
       .catch(() => {
-        setFailed(true);
+        setExchangeFailed(true);
         toast.error(t("auth:errors.ssoFailed"));
       });
-  }, [params, navigate, t]);
+  }, [code, provider, navigate, t]);
+
+  // A missing code / pending-provider is knowable at render time — no effect
+  // is needed to flag it; only the async token exchange sets state (in catch).
+  const failed = exchangeFailed || !code || !provider;
 
   return (
     <div className="mx-auto max-w-md px-4 py-20 text-center">
