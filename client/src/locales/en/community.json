@@ -22,5 +22,21 @@
     "flagReasonPrompt": "Reason for flagging:",
     "flagSuccess": "Thank you. The content has been reported.",
     "voteError": "You cannot vote on your own post."
+  },
+  "ask": {
+    "title": "Ask a Question",
+    "subtitle": "Share a question with the ScholarPath community.",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Summarize your question in one line",
+    "categoryLabel": "Category",
+    "categoryPlaceholder": "Select a category",
+    "bodyLabel": "Details",
+    "bodyPlaceholder": "Add details that will help others answer. Markdown is supported.",
+    "submit": "Post Question",
+    "submitting": "Posting…",
+    "cancel": "Cancel",
+    "success": "Your question has been posted.",
+    "error": "Could not post your question. Please try again.",
+    "validation": "Add a title, choose a category, and write some details."
   }
 }

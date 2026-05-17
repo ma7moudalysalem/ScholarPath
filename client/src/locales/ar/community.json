@@ -22,5 +22,21 @@
     "flagReasonPrompt": "سبب الإبلاغ:",
     "flagSuccess": "شكرًا لك. تم الإبلاغ عن المحتوى.",
     "voteError": "لا يمكنك التصويت على منشورك الخاص."
+  },
+  "ask": {
+    "title": "اطرح سؤالًا",
+    "subtitle": "شارك سؤالك مع مجتمع ScholarPath.",
+    "titleLabel": "العنوان",
+    "titlePlaceholder": "لخّص سؤالك في سطر واحد",
+    "categoryLabel": "الفئة",
+    "categoryPlaceholder": "اختر فئة",
+    "bodyLabel": "التفاصيل",
+    "bodyPlaceholder": "أضِف تفاصيل تساعد الآخرين على الإجابة. صيغة Markdown مدعومة.",
+    "submit": "نشر السؤال",
+    "submitting": "جارٍ النشر…",
+    "cancel": "إلغاء",
+    "success": "تم نشر سؤالك.",
+    "error": "تعذّر نشر سؤالك. حاول مرة أخرى.",
+    "validation": "أضِف عنوانًا، واختر فئة، واكتب بعض التفاصيل."
   }
 }

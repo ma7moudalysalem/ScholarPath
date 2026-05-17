@@ -12,6 +12,7 @@ import {
   ChevronRight
 } from "lucide-react";
 import { communityApi, type ForumCategory } from "@/services/api/community";
+import { AskQuestionModal } from "@/components/community/AskQuestionModal";
 import { Link } from "react-router";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -25,6 +26,7 @@ export function Community() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("Newest");
+  const [askOpen, setAskOpen] = useState(false);
 
   const { data: categories = [] } = useQuery<ForumCategory[]>({
     queryKey: ["community", "categories"],
@@ -55,7 +57,9 @@ export function Community() {
       {/* Sidebar */}
       <aside className="w-full lg:w-64 flex-shrink-0">
         <div className="sticky top-24 space-y-6">
-          <button 
+          <button
+            type="button"
+            onClick={() => setAskOpen(true)}
             className="w-full cta-pill bg-brand-500 text-white flex items-center justify-center gap-2 shadow-lg hover:bg-brand-600 transition-all"
           >
             <Plus size={18} />
@@ -203,6 +207,12 @@ export function Community() {
           )}
         </div>
       </main>
+
+      <AskQuestionModal
+        isOpen={askOpen}
+        onOpenChange={setAskOpen}
+        categories={categories}
+      />
     </div>
   );
 }
