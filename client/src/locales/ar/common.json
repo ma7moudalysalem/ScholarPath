@@ -39,5 +39,28 @@
     "consultant": "مستشار",
     "company": "شركة",
     "admin": "مشرف"
+  },
+  "chat": {
+    "messages": "الرسائل المباشرة",
+    "search_placeholder": "ابحث في المحادثات...",
+    "new_message": "رسالة جديدة",
+    "new_message_title": "رسالة جديدة",
+    "new_message_desc": "ابحث عن شخص لبدء محادثة معه.",
+    "contact_search_placeholder": "ابحث بالاسم...",
+    "contacts_error": "تعذّر تحميل جهات الاتصال. حاول مرة أخرى.",
+    "no_contacts": "لم يُعثر على أشخاص.",
+    "no_conversations": "لا توجد محادثات بعد. ابدأ رسالة جديدة.",
+    "no_search_results": "لا توجد محادثات مطابقة لبحثك.",
+    "start_conversation": "لا توجد رسائل بعد",
+    "type_placeholder": "اكتب رسالة...",
+    "online": "متصل",
+    "offline": "غير متصل",
+    "block_user": "حظر المستخدم",
+    "block_confirm": "هل تريد حظر هذا الشخص؟ لن تتمكّنا من تبادل الرسائل بعد الآن.",
+    "block_success": "تم حظر المستخدم.",
+    "block_error": "تعذّر حظر هذا المستخدم.",
+    "send_error": "تعذّر إرسال رسالتك.",
+    "empty_title": "محادثاتك",
+    "empty_desc": "اختر محادثة من الشريط الجانبي، أو ابدأ رسالة جديدة."
   }
 }

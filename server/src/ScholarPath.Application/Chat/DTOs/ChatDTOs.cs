@@ -8,3 +8,13 @@ public record ChatConversationDto(
     string? LastMessageBody,
     DateTimeOffset? LastMessageAt,
     bool IsOnline);
+
+/// <summary>
+/// A user the current user is allowed to start a direct-message conversation
+/// with — surfaced by the compose user-picker.
+/// </summary>
+public record ChatContactDto(
+    Guid Id,
+    string Name,
+    string? PhotoUrl,
+    string? Role);

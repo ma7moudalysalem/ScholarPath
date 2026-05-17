@@ -6,6 +6,7 @@ using ScholarPath.Application.Chat.Commands.SendMessage;
 using ScholarPath.Application.Chat.Commands.UnblockUser;
 using ScholarPath.Application.Chat.Queries.GetConversations;
 using ScholarPath.Application.Chat.Queries.GetMessages;
+using ScholarPath.Application.Chat.Queries.SearchContacts;
 
 namespace ScholarPath.API.Controllers;
 
@@ -28,6 +29,12 @@ public class ChatController(IMediator mediator) : ControllerBase
         CancellationToken ct = default)
     {
         return Ok(await mediator.Send(new GetMessagesQuery(id, limit, before), ct));
+    }
+
+    [HttpGet("contacts")]
+    public async Task<IActionResult> SearchContacts([FromQuery] string? query, CancellationToken ct)
+    {
+        return Ok(await mediator.Send(new SearchContactsQuery(query), ct));
     }
 
     [HttpPost("messages")]

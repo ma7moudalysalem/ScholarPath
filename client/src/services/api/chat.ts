@@ -18,9 +18,23 @@ export interface ChatMessage {
   readAt?: string;
 }
 
+export interface ChatContact {
+  id: string;
+  name: string;
+  photoUrl?: string;
+  role?: string;
+}
+
 export const chatApi = {
   async getConversations(): Promise<ChatConversation[]> {
     const { data } = await apiClient.get<ChatConversation[]>("/api/chat/conversations");
+    return data;
+  },
+
+  async searchContacts(query?: string): Promise<ChatContact[]> {
+    const { data } = await apiClient.get<ChatContact[]>("/api/chat/contacts", {
+      params: query ? { query } : undefined,
+    });
     return data;
   },
 
