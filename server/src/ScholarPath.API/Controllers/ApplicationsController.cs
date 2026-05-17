@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ScholarPath.Application.Applications.Commands.ExternalIntent;
 using ScholarPath.Application.Applications.Commands.ReviewApplication;
 using ScholarPath.Application.Applications.Commands.StartApplication;
 using ScholarPath.Application.Applications.Commands.SubmitApplication;
@@ -31,6 +32,22 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<Guid>> Start(StartApplicationCommand command, CancellationToken ct)
+    {
+        var id = await mediator.Send(command, ct);
+        return CreatedAtAction(nameof(GetById), new { id }, id);
+    }
+
+    /// <summary>
+    /// Registers an external-listing application the authenticated student is
+    /// pursuing on the provider's own website (tracked manually in ScholarPath).
+    /// </summary>
+    [HttpPost("external")]
+    [Authorize(Roles = "Student")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<Guid>> AddExternal(ExternalIntentCommand command, CancellationToken ct)
     {
         var id = await mediator.Send(command, ct);
         return CreatedAtAction(nameof(GetById), new { id }, id);

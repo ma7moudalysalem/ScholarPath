@@ -30,5 +30,30 @@
     "triggerBody": "You've reached a final decision for {{company}}. Would you like to leave a review?",
     "rateNow": "Rate Now",
     "maybeLater": "Maybe Later"
+  },
+  "addExternalModal": {
+    "title": "Add External Application",
+    "description": "Track an application you're pursuing on an external scholarship's own website.",
+    "scholarshipLabel": "Scholarship",
+    "scholarshipPlaceholder": "Search scholarships by title…",
+    "searching": "Searching…",
+    "noResults": "No scholarships match your search.",
+    "changeScholarship": "Change",
+    "checkingListing": "Checking listing type…",
+    "notExternalListing": "This scholarship accepts applications inside ScholarPath. Apply to it directly instead of tracking it externally.",
+    "trackingUrlLabel": "Tracking URL",
+    "trackingUrlPlaceholder": "https://provider.example.com/my-application",
+    "referenceIdLabel": "Reference ID",
+    "referenceIdPlaceholder": "Application or confirmation number",
+    "notesLabel": "Personal notes",
+    "notesPlaceholder": "Add any notes to help you track this application…",
+    "optional": "optional",
+    "cancel": "Cancel",
+    "submit": "Add Application",
+    "submitting": "Adding…",
+    "close": "Close",
+    "pleaseSelectScholarship": "Please select a scholarship.",
+    "success": "External application added.",
+    "error": "Could not add the application. Please try again."
   }
 }

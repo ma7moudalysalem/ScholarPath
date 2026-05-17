@@ -28,6 +28,18 @@ export interface UpdateStatusRequest {
   status: ApplicationStatus;
 }
 
+/**
+ * Body for `POST /api/applications/external` — registers an application the
+ * student is pursuing on an external scholarship listing's own website.
+ * Mirrors the server's `ExternalIntentCommand`.
+ */
+export interface CreateExternalApplicationRequest {
+  scholarshipId: string;
+  externalTrackingUrl?: string | null;
+  externalReferenceId?: string | null;
+  personalNotes?: string | null;
+}
+
 export interface CompanyApplicationRow {
   id: string;
   studentId: string;
@@ -69,6 +81,16 @@ export const applicationsApi = {
 
   async updateExternalStatus(id: string, status: ApplicationStatus): Promise<void> {
     await apiClient.patch(`/api/applications/${id}/external-status`, { status });
+  },
+
+  /**
+   * Registers an external-listing application (the student applies on the
+   * provider's own website; ScholarPath tracks it manually). Returns the new
+   * application id.
+   */
+  async createExternal(req: CreateExternalApplicationRequest): Promise<string> {
+    const { data } = await apiClient.post<string>("/api/applications/external", req);
+    return data;
   },
 
   async submitReview(applicationId: string, companyId: string, rating: number, comment: string): Promise<void> {

@@ -7,11 +7,13 @@ import { applicationsApi } from "@/services/api/applications";
 import type { ApplicationStatus } from "@/services/api/applications";
 import { queryKeys } from "@/lib/queryClient";
 import { KanbanBoard } from "@/components/application/KanbanBoard";
+import { AddExternalApplicationModal } from "@/components/application/AddExternalApplicationModal";
 import { RatingModal } from "@/components/company/RatingModal";
 
 export function Applications() {
   const { t } = useTranslation("applications");
   const queryClient = useQueryClient();
+  const [isAddExternalOpen, setIsAddExternalOpen] = useState(false);
   const [selectedAppForReview, setSelectedAppForReview] = useState<{
     id: string;
     companyId: string;
@@ -81,7 +83,11 @@ export function Applications() {
               <ListFilter size={18} />
             </button>
           </div>
-          <button className="cta-pill bg-brand-600 text-white hover:bg-brand-700 shadow-sm flex items-center">
+          <button
+            type="button"
+            onClick={() => setIsAddExternalOpen(true)}
+            className="cta-pill bg-brand-600 text-white hover:bg-brand-700 shadow-sm flex items-center"
+          >
             <Plus size={18} className="mr-1.5" />
             {t("addExternal")}
           </button>
@@ -100,6 +106,11 @@ export function Applications() {
           />
         )}
       </div>
+
+      <AddExternalApplicationModal
+        isOpen={isAddExternalOpen}
+        onOpenChange={setIsAddExternalOpen}
+      />
 
       {selectedAppForReview && (
         <RatingModal
