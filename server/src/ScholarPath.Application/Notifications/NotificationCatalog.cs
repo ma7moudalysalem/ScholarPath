@@ -23,6 +23,16 @@ public sealed class NotificationCatalog : INotificationCatalog
             "Your application has been withdrawn.",
             "تم سحب طلبك."),
 
+        NotificationType.ApplicationDeadlineApproaching => new(
+            "Scholarship deadline approaching", "اقتراب موعد إغلاق المنحة",
+            $"\"{p.TitleEn ?? "A scholarship you saved"}\" closes in {p.Count ?? 0} day(s) — submit before the deadline.",
+            $"تُغلق \"{p.TitleAr ?? "منحة قمت بحفظها"}\" خلال {p.Count ?? 0} يوم — قدّم طلبك قبل الموعد النهائي."),
+
+        NotificationType.ApplicationDraftReminder => new(
+            "Finish your draft application", "أكمل طلبك المحفوظ",
+            $"You have an unsubmitted draft application for \"{p.TitleEn ?? "a scholarship"}\" — complete and submit it before the deadline.",
+            $"لديك طلب مسودة لم يُرسَل للمنحة \"{p.TitleAr ?? "إحدى المنح"}\" — أكمله وأرسله قبل الموعد النهائي."),
+
         NotificationType.CompanyReviewPaymentSuccess => new(
             "Review fee paid", "تم دفع رسوم المراجعة",
             "Your scholarship review-fee payment was successful.",

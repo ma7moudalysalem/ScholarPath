@@ -257,6 +257,8 @@ if (hangfireOpts.Enabled)
     recurring.AddOrUpdate<ICompletionJob>("booking-completion", j => j.RunAsync(CancellationToken.None), "*/15 * * * *"); // every 15 min
     recurring.AddOrUpdate<IStripePayoutJob>("stripe-payouts", j => j.RunAsync(CancellationToken.None), Cron.Daily(2));
     recurring.AddOrUpdate<IDeadlineReminderJob>("deadline-reminders", j => j.RunAsync(CancellationToken.None), Cron.Daily(9));
+    // FR-062 — daily nudge for students sitting on an unsubmitted Draft application.
+    recurring.AddOrUpdate<INotificationDispatcherJob>("draft-reminders", j => j.RunAsync(CancellationToken.None), Cron.Daily(10));
     // PB-005 — auto-refund review fees for applications companies failed to action within 14 days of the deadline.
     recurring.AddOrUpdate<ICompanyReviewTimeoutRefundJob>("company-review-timeout-refund", j => j.RunAsync(CancellationToken.None), Cron.Daily(5));
     // FR-230 — close scholarship listings once their deadline has passed. Hourly so a listing stops accepting applications promptly.

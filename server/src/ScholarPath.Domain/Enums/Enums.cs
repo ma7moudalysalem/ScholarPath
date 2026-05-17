@@ -139,6 +139,7 @@ public enum NotificationType
     ApplicationStatusChanged = 101,
     ApplicationDeadlineApproaching = 102,
     ApplicationWithdrawn = 103,
+    ApplicationDraftReminder = 104,
 
     // Company review + payment (PB-005)
     CompanyRatingReceived = 110,

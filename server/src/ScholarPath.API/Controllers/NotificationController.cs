@@ -3,9 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Notifications.Commands.MarkAllAsRead;
 using ScholarPath.Application.Notifications.Commands.MarkAsRead;
+using ScholarPath.Application.Notifications.Commands.UpdateNotificationPreference;
 using ScholarPath.Application.Notifications.DTOs;
+using ScholarPath.Application.Notifications.Queries.GetNotificationPreferences;
 using ScholarPath.Application.Notifications.Queries.GetNotifications;
 using ScholarPath.Application.Notifications.Queries.GetUnreadCount;
+using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.API.Controllers;
 
@@ -45,4 +48,36 @@ public sealed class NotificationController(IMediator mediator) : ControllerBase
         var marked = await mediator.Send(new MarkAllAsReadCommand(), ct);
         return Ok(new { marked });
     }
+
+    /// <summary>
+    /// Returns the current user's notification-delivery preferences (FR-228) — one
+    /// entry per notification type × channel; unconfigured pairs report as enabled.
+    /// </summary>
+    [HttpGet("preferences")]
+    [ProducesResponseType(typeof(NotificationPreferencesDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<NotificationPreferencesDto>> GetPreferences(CancellationToken ct)
+        => Ok(await mediator.Send(new GetNotificationPreferencesQuery(), ct));
+
+    /// <summary>
+    /// Enables or disables one delivery channel for one notification type for the
+    /// current user (FR-228).
+    /// </summary>
+    [HttpPut("preferences")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdatePreference(
+        [FromBody] UpdateNotificationPreferenceRequest request,
+        CancellationToken ct)
+    {
+        await mediator.Send(
+            new UpdateNotificationPreferenceCommand(request.Type, request.Channel, request.IsEnabled),
+            ct);
+        return NoContent();
+    }
 }
+
+/// <summary>Body of <c>PUT /api/notifications/preferences</c> (FR-228).</summary>
+public sealed record UpdateNotificationPreferenceRequest(
+    NotificationType Type,
+    NotificationChannel Channel,
+    bool IsEnabled);
