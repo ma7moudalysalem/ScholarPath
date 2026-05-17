@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
@@ -107,9 +108,7 @@ public sealed class StripePayoutJob(
                 paid++;
 
                 await SafeNotifyAsync(payeeId, NotificationType.PayoutInitiated,
-                    "Payout on the way", "دفعتك في الطريق",
-                    $"A payout of ${totalCents / 100m:0.00} is on its way to your account.",
-                    $"دفعة بقيمة ${totalCents / 100m:0.00} في طريقها إلى حسابك.", ct);
+                    new NotificationParams { AmountText = $"${totalCents / 100m:0.00}" }, ct);
             }
             catch (Exception ex)
             {
@@ -121,9 +120,7 @@ public sealed class StripePayoutJob(
                 await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
                 await SafeNotifyAsync(payeeId, NotificationType.PayoutFailed,
-                    "Payout failed", "فشلت الدفعة",
-                    "We could not complete your payout. Our team is looking into it.",
-                    "تعذّر إتمام دفعتك، وفريقنا يتابع المشكلة.", ct);
+                    NotificationParams.Empty, ct);
             }
         }
 
@@ -133,15 +130,12 @@ public sealed class StripePayoutJob(
     }
 
     private async Task SafeNotifyAsync(
-        Guid payeeId, NotificationType type,
-        string titleEn, string titleAr, string bodyEn, string bodyAr,
-        CancellationToken ct)
+        Guid payeeId, NotificationType type, NotificationParams parameters, CancellationToken ct)
     {
         try
         {
             await notifications.DispatchAsync(
-                payeeId, type,
-                new NotificationContent(titleEn, titleAr, bodyEn, bodyAr),
+                payeeId, type, parameters,
                 deepLink: null, idempotencyKey: null, ct).ConfigureAwait(false);
         }
         catch (Exception ex)

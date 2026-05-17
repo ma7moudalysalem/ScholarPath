@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Common.Auditing;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
 
@@ -45,7 +46,8 @@ public sealed class CaptureCompanyReviewPaymentCommandHandler(
                 await notifications.DispatchAsync(
                     payment.CompanyId,
                     NotificationType.CompanyReviewPaymentSuccess,
-new NotificationContent("Payment Captured", "تم تحصيل الدفعة", $"Payment for reviewing application {request.ApplicationId} has been captured.", $"تم تحصيل دفعة مراجعة الطلب {request.ApplicationId}.", null),                    null,
+                    NotificationParams.Empty,
+                    null,
                     null,
                     ct);
 

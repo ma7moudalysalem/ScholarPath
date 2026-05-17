@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Application.Payments.Commands.ProcessStripeWebhook;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
@@ -157,7 +158,7 @@ public class ProcessStripeWebhookConnectTests
         await notifier.Received().DispatchBroadcastAsync(
             Arg.Any<IReadOnlyCollection<Guid>>(),
             NotificationType.PaymentDisputed,
-            Arg.Any<NotificationContent>(),
+            Arg.Any<NotificationParams>(),
             Arg.Any<CancellationToken>());
     }
 }

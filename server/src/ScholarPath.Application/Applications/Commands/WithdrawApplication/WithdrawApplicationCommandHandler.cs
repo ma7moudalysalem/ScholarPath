@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Applications.Commands.WithdrawApplication;
@@ -56,7 +57,8 @@ public sealed class WithdrawApplicationCommandHandler(
         await notifications.DispatchAsync(
             application.StudentId,
             NotificationType.ApplicationWithdrawn,
-            new NotificationContent("Application Withdrawn", "تم سحب الطلب", "Your application has been successfully withdrawn.", "تم سحب طلبك بنجاح.", null),             null,
+            NotificationParams.Empty,
+            null,
             null,
             ct);
 

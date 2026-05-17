@@ -1,13 +1,18 @@
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Common.Interfaces;
 
+/// <summary>
+/// Dispatches a notification: renders text via the catalog from the type + params,
+/// persists a Notification row per enabled channel, and delivers it (Task 5B).
+/// </summary>
 public interface INotificationDispatcher
 {
     Task DispatchAsync(
         Guid recipientUserId,
         NotificationType type,
-        NotificationContent content,
+        NotificationParams parameters,
         string? deepLink,
         string? idempotencyKey,
         CancellationToken ct);
@@ -15,7 +20,7 @@ public interface INotificationDispatcher
     Task DispatchBroadcastAsync(
         IReadOnlyCollection<Guid> recipientUserIds,
         NotificationType type,
-        NotificationContent content,
+        NotificationParams parameters,
         CancellationToken ct);
 }
 

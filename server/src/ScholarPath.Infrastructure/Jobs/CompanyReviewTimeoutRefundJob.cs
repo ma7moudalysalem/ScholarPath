@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
 
@@ -57,13 +58,13 @@ public sealed class CompanyReviewTimeoutRefundJob(
                     payment.RefundReason = "Company failed to review within 14 days after deadline";
 
                     // Notify student
-                   await notifications.DispatchAsync(
-                    app.StudentId,
-                    NotificationType.CompanyReviewRefunded,
-                 new NotificationContent("Review Fee Refunded", "تم استرداد رسوم المراجعة", $"The company failed to review your application within 14 days. Your fee has been refunded.", "لم تقم الشركة بمراجعة طلبك خلال 14 يومًا. تم استرداد الرسوم.", null),
-                 null,
-                 null,
-                  ct);
+                    await notifications.DispatchAsync(
+                        app.StudentId,
+                        NotificationType.CompanyReviewRefunded,
+                        new NotificationParams { RefundKind = "Timeout" },
+                        null,
+                        null,
+                        ct);
 
                     // Mark application as expired or something.
                     // Let's just set it to Withdrawn, or maybe we just leave it?

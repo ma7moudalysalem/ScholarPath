@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Events;
 
@@ -36,12 +37,7 @@ public sealed class PostAutoHiddenEventHandler(
         await notifications.DispatchBroadcastAsync(
             adminIds,
             NotificationType.PostAutoHidden,
-            new NotificationContent(
-                "Post auto-hidden — review needed",
-                "تم إخفاء منشور تلقائيًا — يحتاج مراجعة",
-                $"A post was auto-hidden after {notification.FlagCount} flags and needs moderation.",
-                $"تم إخفاء منشور تلقائيًا بعد {notification.FlagCount} بلاغات ويحتاج إلى مراجعة.",
-                null),
+            new NotificationParams { Count = notification.FlagCount },
             ct);
     }
 }

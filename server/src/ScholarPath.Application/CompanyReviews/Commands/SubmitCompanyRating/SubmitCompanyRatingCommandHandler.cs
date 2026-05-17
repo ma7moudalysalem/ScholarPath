@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -61,9 +62,7 @@ public sealed class SubmitCompanyRatingCommandHandler(
         await notifications.DispatchAsync(
             companyId,
             NotificationType.CompanyRatingReceived,
-            new NotificationContent("New Rating", "تقييم جديد",
-                $"You received a {request.Rating}-star rating.",
-                $"لقد حصلت على تقييم {request.Rating} نجوم.", null),
+            new NotificationParams { Count = request.Rating },
             null,
             null,
             ct);

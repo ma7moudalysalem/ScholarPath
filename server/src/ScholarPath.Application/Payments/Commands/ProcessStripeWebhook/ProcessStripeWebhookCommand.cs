@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 
@@ -257,11 +258,7 @@ public sealed class ProcessStripeWebhookCommandHandler(
             await notifications.DispatchBroadcastAsync(
                 adminIds,
                 NotificationType.PaymentDisputed,
-                new NotificationContent(
-                    "Payment dispute opened",
-                    "تم فتح نزاع على دفعة",
-                    $"A cardholder opened a payment dispute ({reason}). Review it in the payments dashboard.",
-                    $"فتح حامل البطاقة نزاعًا على دفعة ({reason}). راجِع النزاع من لوحة المدفوعات."),
+                new NotificationParams { Reason = reason },
                 ct).ConfigureAwait(false);
         }
         catch (Exception ex)

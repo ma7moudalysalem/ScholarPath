@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Admin.Commands.SendBroadcast;
@@ -43,7 +44,9 @@ public sealed class SendBroadcastCommandHandler(
             BodyEn: request.BodyEn,
             BodyAr: request.BodyAr);
 
-        await dispatcher.DispatchBroadcastAsync(ids, NotificationType.Broadcast, content, ct).ConfigureAwait(false);
+        await dispatcher.DispatchBroadcastAsync(
+            ids, NotificationType.Broadcast,
+            new NotificationParams { RawContent = content }, ct).ConfigureAwait(false);
 
         logger.LogInformation("Broadcast '{Title}' dispatched to {Count} users.",
             request.TitleEn, ids.Count);

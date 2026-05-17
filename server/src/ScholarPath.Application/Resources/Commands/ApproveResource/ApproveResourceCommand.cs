@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -83,10 +84,7 @@ public sealed class ApproveResourceCommandHandler(
             await notifications.DispatchAsync(
                 resource.AuthorUserId,
                 NotificationType.ResourceApproved,
-                new NotificationContent(
-                    "Resource published", "تم نشر المورد",
-                    $"Your resource \"{resource.TitleEn}\" is now live.",
-                    $"تم نشر المورد \"{resource.TitleAr}\" بنجاح."),
+                new NotificationParams { TitleEn = resource.TitleEn, TitleAr = resource.TitleAr },
                 deepLink: $"/resources/{resource.Slug}",
                 idempotencyKey: $"resource-approved:{resource.Id:N}",
                 ct).ConfigureAwait(false);

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using ScholarPath.Application.Ai.Common;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Common.Models;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Application.Scholarships.Commands;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
@@ -83,8 +84,13 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, StubPasswordHasher>();
         services.AddSingleton<ISsoService, StubSsoService>();
 
-        // Email, blob, AI, notifications, audit — stubbed by default
-        services.AddSingleton<IEmailService, StubEmailService>();
+        // Email: real SMTP via MailKit when Email:Provider = "MailKit"; else the dev stub.
+        var emailProvider = config.GetValue<string>($"{EmailOptions.SectionName}:Provider");
+        if (string.Equals(emailProvider, "MailKit", StringComparison.OrdinalIgnoreCase))
+            services.AddSingleton<IEmailService, MailKitEmailService>();
+        else
+            services.AddSingleton<IEmailService, StubEmailService>();
+
         services.AddSingleton<IBlobStorageService, StubBlobStorageService>();
 
         // Stripe: the real client only when a genuine secret key (sk_...) is
@@ -110,7 +116,10 @@ public static class DependencyInjection
             services.AddScoped<IAiService, LocalAiService>();
         }
 
-        services.AddScoped<INotificationDispatcher, StubNotificationDispatcher>();
+        // Notifications: catalog renders the bilingual text; the real dispatcher
+        // persists a Notification row per channel and delivers InApp + Email (Task 5B).
+        services.AddSingleton<INotificationCatalog, NotificationCatalog>();
+        services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
         services.AddScoped<IChatRealtimeNotifier, ChatRealtimeNotifier>();
         services.AddScoped<ICommunityRealtimeNotifier, CommunityRealtimeNotifier>();
         services.AddScoped<IAuditService, AuditService>();

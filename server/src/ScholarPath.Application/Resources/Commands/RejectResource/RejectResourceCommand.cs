@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -76,10 +77,7 @@ public sealed class RejectResourceCommandHandler(
             await notifications.DispatchAsync(
                 resource.AuthorUserId,
                 NotificationType.ResourceRejected,
-                new NotificationContent(
-                    "Resource needs changes", "المورد يحتاج تعديلات",
-                    $"Your resource \"{resource.TitleEn}\" was sent back: {reason}",
-                    $"أُعيد المورد \"{resource.TitleAr}\" للتعديل: {reason}"),
+                new NotificationParams { TitleEn = resource.TitleEn, TitleAr = resource.TitleAr, Reason = reason },
                 deepLink: null,
                 idempotencyKey: null,
                 ct).ConfigureAwait(false);

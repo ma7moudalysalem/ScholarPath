@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.CompanyReviews.Commands.SubmitCompanyRating;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -82,7 +83,7 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         await _notif.Received(1).DispatchAsync(
             companyId,
             NotificationType.CompanyRatingReceived,
-            Arg.Any<NotificationContent>(),
+            Arg.Any<NotificationParams>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<CancellationToken>());

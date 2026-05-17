@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.CompanyReviews.Commands.RefundCompanyReview;
@@ -44,12 +45,12 @@ public sealed class RefundCompanyReviewCommandHandler(
                 if (application != null)
                 {
                     await notifications.DispatchAsync(
-                application.StudentId,
-                NotificationType.CompanyReviewRefunded,
-                new NotificationContent("Review Fee Refunded", "تم استرداد رسوم المراجعة", $"Your application {application.Id} review fee was fully refunded.", $"تم استرداد رسوم مراجعة الطلب {application.Id} بالكامل.", null),
-                 null,
-                 null,
-                 ct);
+                        application.StudentId,
+                        NotificationType.CompanyReviewRefunded,
+                        new NotificationParams { RefundKind = "Full" },
+                        null,
+                        null,
+                        ct);
                 }
             }
             else
@@ -75,7 +76,8 @@ public sealed class RefundCompanyReviewCommandHandler(
                         await notifications.DispatchAsync(
                             application.StudentId,
                             NotificationType.CompanyReviewRefunded,
-                            new NotificationContent("Partial Review Fee Refund", "استرداد جزئي لرسوم المراجعة", $"Your application {application.Id} review fee was 50% refunded.", $"تم استرداد 50% من رسوم مراجعة الطلب {application.Id}.", null),                            null,
+                            new NotificationParams { RefundKind = "Partial" },
+                            null,
                             null,
                             ct);
                     }

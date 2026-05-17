@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Infrastructure.Services;
@@ -92,13 +93,13 @@ public sealed class StubAiService : IAiService
 
 public sealed class StubNotificationDispatcher(ILogger<StubNotificationDispatcher> logger) : INotificationDispatcher
 {
-    public Task DispatchAsync(Guid recipientUserId, NotificationType type, NotificationContent content, string? deepLink, string? idempotencyKey, CancellationToken ct)
+    public Task DispatchAsync(Guid recipientUserId, NotificationType type, NotificationParams parameters, string? deepLink, string? idempotencyKey, CancellationToken ct)
     {
         logger.LogInformation("[stub-notif] user={UserId} type={Type}", recipientUserId, type);
         return Task.CompletedTask;
     }
 
-    public Task DispatchBroadcastAsync(IReadOnlyCollection<Guid> recipientUserIds, NotificationType type, NotificationContent content, CancellationToken ct)
+    public Task DispatchBroadcastAsync(IReadOnlyCollection<Guid> recipientUserIds, NotificationType type, NotificationParams parameters, CancellationToken ct)
     {
         logger.LogInformation("[stub-notif] broadcast type={Type} recipients={Count}", type, recipientUserIds.Count);
         return Task.CompletedTask;

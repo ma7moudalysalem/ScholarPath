@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Applications.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Applications.Commands.ReviewApplication;
@@ -50,12 +51,12 @@ public sealed class ReviewApplicationCommandHandler(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         await notifications.DispatchAsync(
-        application.StudentId,
-        NotificationType.ApplicationStatusChanged,
-        new NotificationContent("Application Update", "تحديث الطلب", $"Your application status is now {request.Status}.", $"حالة طلبك الآن {request.Status}.", null),
-        null,
-        null,
-        ct);
+            application.StudentId,
+            NotificationType.ApplicationStatusChanged,
+            new NotificationParams { StatusText = request.Status.ToString() },
+            null,
+            null,
+            ct);
 
 
 
