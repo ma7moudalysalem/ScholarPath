@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ScholarPath.Application.CompanyReviews.Commands.HideCompanyReview;
 using ScholarPath.Application.CompanyReviews.Commands.SubmitCompanyRating;
 using ScholarPath.Application.CompanyReviews.Queries.GetCompanyRatings;
 
@@ -26,4 +27,23 @@ public class CompanyReviewsController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(query, ct);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Admin moderation (FR-075): hide a company review from public listings or
+    /// un-hide a previously hidden one.
+    /// </summary>
+    [HttpPost("{reviewId:guid}/moderate")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ModerateCompanyReview(
+        Guid reviewId, [FromBody] ModerateReviewBody body, CancellationToken ct)
+    {
+        await mediator.Send(
+            new HideCompanyReviewCommand(reviewId, body.Hide, body.AdminNote), ct);
+        return NoContent();
+    }
 }
+
+// ─── Request DTOs kept local to the controller ────────────────────────────────
+public sealed record ModerateReviewBody(bool Hide, string? AdminNote);

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.ConsultantBookings.Commands.AcceptBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.CancelBooking;
+using ScholarPath.Application.ConsultantBookings.Commands.HideConsultantReview;
 using ScholarPath.Application.ConsultantBookings.Commands.MarkNoShow;
 using ScholarPath.Application.ConsultantBookings.Commands.RejectBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.RequestBooking;
@@ -121,8 +122,24 @@ public sealed class BookingsController : ControllerBase
         await _sender.Send(command, cancellationToken);
         return NoContent();
     }
+
+    /// <summary>
+    /// Admin moderation (FR-101): hide a consultant review from public listings or
+    /// un-hide a previously hidden one.
+    /// </summary>
+    [HttpPost("/api/consultant-reviews/{reviewId:guid}/moderate")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<IActionResult> ModerateConsultantReview(
+        Guid reviewId,
+        [FromBody] ModerateConsultantReviewBody body,
+        CancellationToken cancellationToken)
+    {
+        await _sender.Send(
+            new HideConsultantReviewCommand(reviewId, body.Hide, body.AdminNote),
+            cancellationToken);
+        return NoContent();
+    }
 }
 
-
-
-
+// ─── Request DTOs kept local to the controller ────────────────────────────────
+public sealed record ModerateConsultantReviewBody(bool Hide, string? AdminNote);
