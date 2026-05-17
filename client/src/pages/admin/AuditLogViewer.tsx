@@ -78,6 +78,9 @@ export function AuditLogViewer() {
     placeholderData: keepPreviousData,
   });
 
+  // The API returns totalCount only — derive the page count client-side.
+  const totalPages = data ? Math.max(1, Math.ceil(data.totalCount / data.pageSize)) : 1;
+
   const clearFilters = () => {
     setSearch(""); setAction(""); setTargetType(""); setFrom(""); setTo(""); setPage(1);
   };
@@ -210,9 +213,9 @@ export function AuditLogViewer() {
         </table>
       </div>
 
-      {data && data.totalPages > 1 && (
+      {data && totalPages > 1 && (
         <div className="flex items-center justify-between text-sm text-text-secondary">
-          <span>{t("admin:common.page", { page: data.page, total: data.totalPages })}</span>
+          <span>{t("admin:common.page", { page: data.page, total: totalPages })}</span>
           <div className="flex gap-2">
             <button
               type="button"
@@ -224,8 +227,8 @@ export function AuditLogViewer() {
             </button>
             <button
               type="button"
-              onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-              disabled={data.page >= data.totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={data.page >= totalPages}
               className="rounded-md border border-border-subtle px-3 py-1 disabled:opacity-50"
             >
               {t("admin:common.next")}

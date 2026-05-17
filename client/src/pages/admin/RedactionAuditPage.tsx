@@ -29,6 +29,9 @@ export function RedactionAuditPage() {
     queryFn: () => adminApi.getRedactionSamples(pendingOnly, page, 25),
   });
 
+  // The API returns totalCount only — derive the page count client-side.
+  const totalPages = q.data ? Math.max(1, Math.ceil(q.data.totalCount / q.data.pageSize)) : 1;
+
   const verdictMut = useMutation({
     mutationFn: ({ sampleId, verdict }: { sampleId: string; verdict: RedactionVerdict }) =>
       adminApi.setRedactionVerdict(sampleId, verdict),
@@ -74,7 +77,7 @@ export function RedactionAuditPage() {
             {t("admin:redactionAudit.count", {
               defaultValue: "{{pending}} pending on this page · {{total}} total",
               pending: pendingCount,
-              total: q.data.total,
+              total: q.data.totalCount,
             })}
           </span>
         )}
@@ -155,7 +158,7 @@ export function RedactionAuditPage() {
         </ul>
       )}
 
-      {q.data && q.data.totalPages > 1 && (
+      {q.data && totalPages > 1 && (
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -169,13 +172,13 @@ export function RedactionAuditPage() {
             {t("admin:pagination.pageOf", {
               defaultValue: "Page {{page}} of {{total}}",
               page,
-              total: q.data.totalPages,
+              total: totalPages,
             })}
           </span>
           <button
             type="button"
-            onClick={() => setPage((p) => Math.min(q.data!.totalPages, p + 1))}
-            disabled={page === q.data.totalPages}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
             className="rounded-md border border-border-subtle px-3 py-1.5 text-xs font-medium disabled:opacity-50"
           >
             {t("admin:pagination.next", { defaultValue: "Next" })}
