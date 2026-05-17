@@ -52,7 +52,14 @@ public sealed class FileScanningTests
         return s;
     }
 
-    private static MemoryStream Bytes() => new(Encoding.UTF8.GetBytes("image-bytes"));
+    // A minimal byte buffer that begins with a valid PNG signature, so the
+    // profile-photo upload's magic-byte check accepts it and the test then
+    // exercises the antivirus-scan logic these tests are about.
+    private static MemoryStream Bytes() => new(
+    [
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+        .. Encoding.UTF8.GetBytes("image-bytes"),
+    ]);
 
     private static UploadProfilePhotoCommand PhotoCmd(Stream content) =>
         new(content, "avatar.png", "image/png", content.Length);

@@ -7,7 +7,7 @@
   "photo": {
     "change": "Change photo",
     "uploading": "Uploading…",
-    "hint": "JPG or PNG, up to 5 MB.",
+    "hint": "JPG, PNG or WebP, up to 5 MB.",
     "saved": "Photo updated.",
     "error": "Could not upload the photo."
   },

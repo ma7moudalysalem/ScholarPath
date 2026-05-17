@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { chatApi, type ChatContact, type ChatConversation, type ChatMessage } from "@/services/api/chat";
 import { useAuthStore } from "@/stores/authStore";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { createHubConnection } from "@/lib/signalr";
 import type { HubConnection } from "@microsoft/signalr";
 import { formatDistanceToNow } from "date-fns";
@@ -253,9 +254,11 @@ export function Chat() {
                 }`}
               >
                 <div className="relative">
-                  <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold border-2 border-white">
-                    {conv.otherParticipantName[0]}
-                  </div>
+                  <UserAvatar
+                    userId={conv.otherParticipantId}
+                    name={conv.otherParticipantName}
+                    className="w-12 h-12 border-2 border-white"
+                  />
                   {conv.isOnline && (
                     <div className="absolute bottom-0 right-0 w-3 h-3 bg-success-500 border-2 border-white rounded-full" />
                   )}
@@ -286,9 +289,11 @@ export function Chat() {
             {/* Header */}
             <div className="p-4 border-b border-border-subtle flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-sm text-brand-600 font-bold border border-border-subtle">
-                  {selectedConv.otherParticipantName[0]}
-                </div>
+                <UserAvatar
+                  userId={selectedConv.otherParticipantId}
+                  name={selectedConv.otherParticipantName}
+                  className="w-10 h-10 border border-border-subtle"
+                />
                 <div>
                   <h3 className="text-sm font-bold">{selectedConv.otherParticipantName}</h3>
                   <span className="text-[10px] text-success-500 flex items-center gap-1 font-medium">

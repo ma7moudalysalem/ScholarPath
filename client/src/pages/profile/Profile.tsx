@@ -9,6 +9,7 @@ import {
   type UpdateProfileRequest,
 } from "@/services/api/profile";
 import { useAuthStore } from "@/stores/authStore";
+import { userPhotoUrl } from "@/lib/userPhoto";
 
 const PROFILE_KEY = ["profile", "me"] as const;
 
@@ -150,6 +151,13 @@ export function Profile() {
     setForm(toForm(profile));
   }
 
+  // The photo-serve URL is stable per user, so after a successful upload we
+  // bump this token to cache-bust the <img> and show the new photo at once.
+  const [photoVersion, setPhotoVersion] = useState<number | null>(null);
+  // Set when the photo <img> fails to load (e.g. the user has no photo, 404) —
+  // we then fall back to the initials placeholder.
+  const [photoFailed, setPhotoFailed] = useState(false);
+
   const syncAuthUser = (updated: UserProfile) => {
     const current = useAuthStore.getState().user;
     if (current) {
@@ -182,6 +190,10 @@ export function Profile() {
         qc.setQueryData(PROFILE_KEY, updated);
         syncAuthUser(updated);
       }
+      // Cache-bust the serve URL so the new photo appears immediately, and
+      // clear any earlier load failure so the fresh photo gets to render.
+      setPhotoVersion(Date.now());
+      setPhotoFailed(false);
       toast.success(t("profile:photo.saved"));
     },
     onError: () => toast.error(t("profile:photo.error")),
@@ -228,10 +240,15 @@ export function Profile() {
       <section className="mb-6 rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-xs">
         <div className="flex items-center gap-4">
           <div className="relative shrink-0">
-            {profile.profileImageUrl ? (
+            {profile.profileImageUrl && !photoFailed ? (
               <img
-                src={profile.profileImageUrl}
+                src={
+                  photoVersion != null
+                    ? `${userPhotoUrl(profile.userId)}?v=${photoVersion}`
+                    : userPhotoUrl(profile.userId)
+                }
                 alt={profile.fullName}
+                onError={() => setPhotoFailed(true)}
                 className="size-20 rounded-full object-cover"
               />
             ) : (
@@ -255,7 +272,7 @@ export function Profile() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg"
+              accept="image/png,image/jpeg,image/webp"
               onChange={onPhotoSelected}
               className="hidden"
             />

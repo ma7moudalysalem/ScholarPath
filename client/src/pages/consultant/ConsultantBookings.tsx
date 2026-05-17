@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { useConsultantBookingsQuery } from "@/hooks/useBookingsQuery";
 import type { BookingListItem } from "@/services/api/bookings";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import {
   durationLabel,
   formatDateTime,
@@ -141,6 +142,11 @@ export function ConsultantBookings() {
                     <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-3">
+                          <UserAvatar
+                            userId={booking.studentId}
+                            name={booking.studentName}
+                            className="size-10 shrink-0"
+                          />
                           <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
                             {booking.studentName}
                           </h2>

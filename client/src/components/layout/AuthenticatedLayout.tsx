@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -24,11 +24,38 @@ import { useAuthStore } from "@/stores/authStore";
 import { postAuthPath } from "@/services/api/auth";
 import { useNotificationHub } from "@/hooks/useNotificationHub";
 import { cn } from "@/lib/utils";
+import { userPhotoUrl } from "@/lib/userPhoto";
 
 interface NavItem {
   to: string;
   key: string;
   icon: LucideIcon;
+}
+
+/**
+ * Small header avatar — shows the user's profile photo, falling back to their
+ * first initial if the user has no photo (the serve endpoint 404s).
+ */
+function HeaderAvatar({ userId, firstName }: { userId: string; firstName: string }) {
+  const [failed, setFailed] = useState(false);
+  const initial = firstName[0]?.toUpperCase() ?? "?";
+
+  if (failed) {
+    return (
+      <div className="flex size-6 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-text-on-brand">
+        {initial}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={userPhotoUrl(userId)}
+      alt={initial}
+      onError={() => setFailed(true)}
+      className="size-6 rounded-full object-cover"
+    />
+  );
 }
 
 const NAV_BY_ROLE: Record<string, NavItem[]> = {
@@ -137,9 +164,7 @@ export function AuthenticatedLayout() {
           </NavLink>
           {user && (
             <div className="ml-2 flex items-center gap-2 rounded-md bg-bg-elevated px-3 py-1.5 text-sm">
-              <div className="flex size-6 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-text-on-brand">
-                {user.firstName[0]}
-              </div>
+              <HeaderAvatar userId={user.id} firstName={user.firstName} />
               <span className="font-medium">{user.fullName}</span>
             </div>
           )}

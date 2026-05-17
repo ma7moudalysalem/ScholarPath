@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { useConsultantsQuery } from "@/hooks/useConsultantsQuery";
 import type { ConsultantSummary } from "@/services/api/consultants";
 import { durationLabel, formatUsd } from "@/lib/bookingFormat";
+import { UserAvatar } from "@/components/common/UserAvatar";
 
 type BrowseFilter = "all" | "available" | "unavailable";
 
@@ -313,15 +314,23 @@ export function ConsultantsBrowse() {
                   className="flex h-full flex-col rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                        {consultant.name}
-                      </h3>
-                      {consultant.biography ? (
-                        <p className="mt-2 text-sm leading-6 text-[#4b5563]">
-                          {consultant.biography}
-                        </p>
-                      ) : null}
+                    <div className="flex min-w-0 items-start gap-3">
+                      <UserAvatar
+                        userId={consultant.id}
+                        name={consultant.name}
+                        className="size-12 shrink-0"
+                        initialsClassName="text-lg"
+                      />
+                      <div className="min-w-0">
+                        <h3 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                          {consultant.name}
+                        </h3>
+                        {consultant.biography ? (
+                          <p className="mt-2 text-sm leading-6 text-[#4b5563]">
+                            {consultant.biography}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
 
                     <span

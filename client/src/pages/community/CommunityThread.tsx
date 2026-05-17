@@ -11,6 +11,7 @@ import {
   Shield
 } from "lucide-react";
 import { communityApi } from "@/services/api/community";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -129,9 +130,11 @@ export function CommunityThread() {
             <div className="flex-1">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center text-sm text-brand-600 font-bold">
-                    {thread.post.authorName[0]}
-                  </div>
+                  <UserAvatar
+                    userId={thread.post.authorId}
+                    name={thread.post.authorName}
+                    className="w-10 h-10"
+                  />
                   <div>
                     <h4 className="text-sm font-bold">{thread.post.authorName}</h4>
                     <span className="text-xs text-text-tertiary">
@@ -198,9 +201,12 @@ export function CommunityThread() {
             <div className="bg-bg-elevated p-6 rounded-2xl border border-border-subtle shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-brand-50 flex items-center justify-center text-[10px] text-brand-600 font-bold border border-white shadow-sm">
-                    {reply.authorName[0]}
-                  </div>
+                  <UserAvatar
+                    userId={reply.authorId}
+                    name={reply.authorName}
+                    className="w-7 h-7 border border-white shadow-sm"
+                    initialsClassName="text-[10px]"
+                  />
                   <span className="text-sm font-bold">{reply.authorName}</span>
                   <span className="text-xs text-text-tertiary">
                     {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true, locale: dateLocale })}

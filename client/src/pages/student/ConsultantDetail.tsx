@@ -7,6 +7,7 @@ import {
 } from "@/hooks/useConsultantsQuery";
 import type { BookableSlot } from "@/services/api/consultants";
 import { durationLabel, formatDate, formatTime, formatUsd } from "@/lib/bookingFormat";
+import { UserAvatar } from "@/components/common/UserAvatar";
 
 /** Builds the `/student/checkout` link for a concrete bookable slot. */
 function buildCheckoutLink(consultantId: string, slot: BookableSlot) {
@@ -86,27 +87,39 @@ export function ConsultantDetail() {
         <div className="mt-8 grid gap-6 lg:grid-cols-12">
           <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-              <div>
-                <p className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                  {consultant.name}
-                </p>
-                {consultant.countryOfResidence ? (
-                  <p className="mt-1 text-sm text-[#4b5563]">{consultant.countryOfResidence}</p>
-                ) : null}
+              <div className="flex items-start gap-4">
+                <UserAvatar
+                  userId={consultant.id}
+                  name={consultant.name}
+                  className="size-16 shrink-0"
+                  initialsClassName="text-xl"
+                />
+                <div>
+                  <p className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                    {consultant.name}
+                  </p>
+                  {consultant.countryOfResidence ? (
+                    <p className="mt-1 text-sm text-[#4b5563]">
+                      {consultant.countryOfResidence}
+                    </p>
+                  ) : null}
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {consultant.expertiseTags.length > 0 ? (
-                    consultant.expertiseTags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-[#eef2ff] px-3 py-1 text-xs font-medium text-[#4338ca]"
-                      >
-                        {tag}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {consultant.expertiseTags.length > 0 ? (
+                      consultant.expertiseTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full bg-[#eef2ff] px-3 py-1 text-xs font-medium text-[#4338ca]"
+                        >
+                          {tag}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-[#9ca3af]">
+                        {t("card.noExpertiseTags")}
                       </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-[#9ca3af]">{t("card.noExpertiseTags")}</span>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
 

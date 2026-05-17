@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X, Search, Loader2 } from "lucide-react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { chatApi, type ChatContact } from "@/services/api/chat";
+import { UserAvatar } from "@/components/common/UserAvatar";
 
 interface NewMessageModalProps {
   isOpen: boolean;
@@ -95,9 +96,11 @@ export function NewMessageModal({ isOpen, onOpenChange, onSelectContact }: NewMe
                       onClick={() => handleSelect(contact)}
                       className="flex w-full items-center gap-3 rounded-2xl p-3 text-start transition-all hover:bg-bg-subtle"
                     >
-                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-border-subtle bg-brand-100 text-sm font-bold text-brand-600">
-                        {contact.name[0]?.toUpperCase()}
-                      </div>
+                      <UserAvatar
+                        userId={contact.id}
+                        name={contact.name}
+                        className="h-10 w-10 flex-shrink-0 border border-border-subtle"
+                      />
                       <div className="flex-1 overflow-hidden">
                         <h4 className="truncate text-sm font-bold text-text-primary">
                           {contact.name}

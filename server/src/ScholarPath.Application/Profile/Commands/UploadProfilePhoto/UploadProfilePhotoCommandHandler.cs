@@ -19,6 +19,10 @@ public sealed class UploadProfilePhotoCommandHandler(
     private const long MaxBytes = 5 * 1024 * 1024;
     private static readonly string[] AllowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
 
+    // Content-type allowlist — checked against the request's declared type.
+    private static readonly string[] AllowedContentTypes =
+        ["image/jpeg", "image/png", "image/webp"];
+
     public async Task<string> Handle(UploadProfilePhotoCommand request, CancellationToken ct)
     {
         var userId = currentUser.UserId
@@ -31,14 +35,35 @@ public sealed class UploadProfilePhotoCommandHandler(
         if (!AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
             throw new ConflictException("Profile photo must be a .jpg, .png or .webp image.");
 
+        // Declared MIME type must be an image type we accept — a non-image
+        // upload (or a mismatched type) is rejected up front.
+        var contentType = (request.ContentType ?? string.Empty).Trim();
+        if (!AllowedContentTypes.Contains(contentType, StringComparer.OrdinalIgnoreCase))
+            throw new ConflictException(
+                "Profile photo must be a JPEG, PNG or WebP image.");
+
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct)
             ?? throw new NotFoundException(nameof(ApplicationUser), userId);
+
+        // Buffer the upload once: the magic-byte check, the virus scan and the
+        // blob upload all need to read the bytes from the start, but the request
+        // stream may be forward-only — a seekable copy lets every step rewind.
+        await using var buffer = new MemoryStream();
+        await request.Content.CopyToAsync(buffer, ct);
+        buffer.Position = 0;
+
+        // Verify the real file signature: a non-image file renamed to .png (or a
+        // type that does not match the bytes) is rejected here.
+        if (!ImageSignature.IsRecognizedImage(buffer))
+            throw new ConflictException(
+                "Profile photo is not a valid JPEG, PNG or WebP image.");
+        buffer.Position = 0;
 
         var blobName = $"{userId:N}{extension}";
 
         // Antivirus scan BEFORE storing the image (security NFR). Fail-closed:
         // reject an infected file and reject one that could not be scanned.
-        var scan = await fileScan.ScanAsync(request.Content, blobName, ct);
+        var scan = await fileScan.ScanAsync(buffer, blobName, ct);
         if (scan.Verdict == FileScanVerdict.Infected)
         {
             logger.LogWarning(
@@ -55,8 +80,9 @@ public sealed class UploadProfilePhotoCommandHandler(
                 "File could not be virus-scanned; upload rejected. Try again later.");
         }
 
+        buffer.Position = 0;
         var url = await blobStorage.UploadAsync(
-            request.Content, blobName, request.ContentType, "profile-photos", ct);
+            buffer, blobName, contentType, "profile-photos", ct);
 
         user.ProfileImageUrl = url;
         await db.SaveChangesAsync(ct);

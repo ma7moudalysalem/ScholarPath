@@ -5,6 +5,7 @@ using ScholarPath.Application.Profile.Commands.UpdateProfile;
 using ScholarPath.Application.Profile.Commands.UploadProfilePhoto;
 using ScholarPath.Application.Profile.DTOs;
 using ScholarPath.Application.Profile.Queries.GetProfile;
+using ScholarPath.Application.Profile.Queries.GetProfilePhoto;
 
 namespace ScholarPath.API.Controllers;
 
@@ -39,5 +40,31 @@ public sealed class ProfileController(IMediator mediator) : ControllerBase
         var url = await mediator.Send(new UploadProfilePhotoCommand(
             stream, file.FileName, file.ContentType, file.Length), ct);
         return Ok(new { url });
+    }
+
+    /// <summary>
+    /// Streams a user's profile photo. Anonymous-accessible — profile photos are
+    /// shown on the public consultant-browse pages. Returns 404 when the user has
+    /// no photo.
+    /// </summary>
+    [HttpGet("{userId:guid}/photo")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status302Found)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPhoto(Guid userId, CancellationToken ct)
+    {
+        var photo = await mediator.Send(new GetProfilePhotoQuery(userId), ct);
+        if (photo is null)
+            return NotFound();
+
+        // Profile photos rarely change and are addressed by a stable per-user
+        // URL — let browsers cache them (the client cache-busts after an upload).
+        Response.Headers.CacheControl = "public, max-age=86400";
+
+        if (photo.RedirectUrl is not null)
+            return Redirect(photo.RedirectUrl);
+
+        return File(photo.Content!, photo.ContentType ?? "application/octet-stream");
     }
 }

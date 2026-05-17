@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { communityApi, type ForumCategory } from "@/services/api/community";
 import { AskQuestionModal } from "@/components/community/AskQuestionModal";
+import { UserAvatar } from "@/components/common/UserAvatar";
 import { Link } from "react-router";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -186,9 +187,12 @@ export function Community() {
                         <span>{t("feed.repliesCount", { count: post.replyCount })}</span>
                       </div>
                       <div className="flex items-center gap-1 text-text-tertiary text-xs">
-                        <div className="w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center text-[10px] text-brand-600 font-bold border border-white">
-                          {post.authorName[0]}
-                        </div>
+                        <UserAvatar
+                          userId={post.authorId}
+                          name={post.authorName}
+                          className="w-5 h-5 border border-white"
+                          initialsClassName="text-[10px]"
+                        />
                         <span>{post.authorName}</span>
                       </div>
                     </div>
