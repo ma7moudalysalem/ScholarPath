@@ -98,10 +98,8 @@ const CompanyScholarships = stub(
 const CompanyApplicationsReview = lazy(() =>
   import("@/pages/company/ApplicationsReview").then((m) => ({ default: m.ApplicationsReview })),
 );
-const CompanyBilling = stub(
-  "@norra-mmhamed",
-  "PB-013 Billing",
-  ".specify/specs/PB-013-payment-processing",
+const CompanyBilling = lazy(() =>
+  import("@/pages/company/CompanyBilling").then((m) => ({ default: m.CompanyBilling })),
 );
 
 // Consultant
@@ -125,10 +123,10 @@ const ConsultantBookingDetails = lazy(() =>
     default: m.ConsultantBookingDetails,
   })),
 );
-const ConsultantEarnings = stub(
-  "@norra-mmhamed",
-  "PB-013 Earnings",
-  ".specify/specs/PB-013-payment-processing",
+const ConsultantEarnings = lazy(() =>
+  import("@/pages/consultant/ConsultantEarnings").then((m) => ({
+    default: m.ConsultantEarnings,
+  })),
 );
 
 // Admin
@@ -171,15 +169,11 @@ const AdminCommunity = stub(
   "PB-007 Community moderation",
   ".specify/specs/PB-007-community-chat",
 );
-const AdminPayments = stub(
-  "@norra-mmhamed",
-  "PB-013 Payments",
-  ".specify/specs/PB-013-payment-processing",
+const AdminPayments = lazy(() =>
+  import("@/pages/admin/AdminPayments").then((m) => ({ default: m.AdminPayments })),
 );
-const AdminProfitShare = stub(
-  "@TasneemShaaban",
-  "PB-014 Profit share",
-  ".specify/specs/PB-014-profit-share",
+const AdminProfitShare = lazy(() =>
+  import("@/pages/admin/AdminProfitShare").then((m) => ({ default: m.AdminProfitShare })),
 );
 const AdminAuditLog = lazy(() =>
   import("@/pages/admin/AuditLogViewer").then((m) => ({ default: m.AuditLogViewer })),

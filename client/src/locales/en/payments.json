@@ -1,0 +1,103 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "empty": "No records found.",
+    "prev": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{total}}",
+    "retry": "Retry",
+    "loadError": "Could not load data."
+  },
+  "paymentStatus": {
+    "Pending": "Pending",
+    "Held": "Held",
+    "Captured": "Captured",
+    "Refunded": "Refunded",
+    "PartiallyRefunded": "Partially refunded",
+    "Failed": "Failed",
+    "Cancelled": "Cancelled",
+    "Disputed": "Disputed"
+  },
+  "paymentType": {
+    "ConsultantBooking": "Consultant booking",
+    "CompanyReview": "Company review"
+  },
+  "payoutStatus": {
+    "Pending": "Pending",
+    "InTransit": "In transit",
+    "Paid": "Paid",
+    "Failed": "Failed"
+  },
+  "paymentHeaders": {
+    "type": "Type",
+    "amount": "Amount",
+    "status": "Status",
+    "profitShare": "Platform fee",
+    "payee": "Payee share",
+    "refunded": "Refunded",
+    "created": "Date"
+  },
+  "payoutHeaders": {
+    "amount": "Amount",
+    "status": "Status",
+    "payments": "Payments",
+    "initiated": "Initiated",
+    "paid": "Paid",
+    "reference": "Reference"
+  },
+  "adminPayments": {
+    "title": "Payments",
+    "subtitle": "Every transaction on the platform — filter, inspect, and refund.",
+    "allStatuses": "All statuses",
+    "allTypes": "All types",
+    "actions": "Actions",
+    "refund": "Refund",
+    "refundConfirm": "Issue a full refund for this payment?",
+    "refundReasonPrompt": "Refund reason (optional):",
+    "refundSuccess": "Refund processed.",
+    "refundError": "Could not process the refund.",
+    "empty": "No payments match these filters."
+  },
+  "profitShare": {
+    "title": "Profit share",
+    "subtitle": "The platform's commission rate per payment type.",
+    "currentRate": "Current rate",
+    "notConfigured": "Using the default rate (no override set).",
+    "newRate": "New rate (%)",
+    "rateRange": "Between 0 and 50%.",
+    "notes": "Notes (optional)",
+    "notesPlaceholder": "Why is the rate changing?",
+    "save": "Save rate",
+    "saving": "Saving…",
+    "saveSuccess": "Profit-share rate updated.",
+    "saveError": "Could not update the rate.",
+    "invalidRate": "Enter a rate between 0 and 50.",
+    "historyTitle": "Change history",
+    "historyEmpty": "No changes recorded yet.",
+    "hType": "Type",
+    "hRate": "Rate",
+    "hFrom": "Effective from",
+    "hTo": "Effective to",
+    "hNotes": "Notes",
+    "active": "Active"
+  },
+  "billing": {
+    "title": "Billing",
+    "subtitle": "Your review payments and the payouts you have received.",
+    "paymentsTitle": "Review payments",
+    "payoutsTitle": "Payouts",
+    "noPayments": "No payments yet.",
+    "noPayouts": "No payouts yet."
+  },
+  "earnings": {
+    "title": "Earnings",
+    "subtitle": "Your booking income and the payouts you have received.",
+    "totalEarned": "Total earned",
+    "totalPaidOut": "Total paid out",
+    "awaitingPayout": "Awaiting payout",
+    "paymentsTitle": "Booking payments",
+    "payoutsTitle": "Payouts",
+    "noPayments": "No payments yet.",
+    "noPayouts": "No payouts yet."
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "common": {
+    "loading": "جارٍ التحميل…",
+    "empty": "لا توجد سجلات.",
+    "prev": "السابق",
+    "next": "التالي",
+    "pageOf": "صفحة {{page}} من {{total}}",
+    "retry": "إعادة المحاولة",
+    "loadError": "تعذّر تحميل البيانات."
+  },
+  "paymentStatus": {
+    "Pending": "قيد الانتظار",
+    "Held": "محجوز",
+    "Captured": "محصّل",
+    "Refunded": "مُسترَد",
+    "PartiallyRefunded": "مُسترَد جزئياً",
+    "Failed": "فشل",
+    "Cancelled": "ملغى",
+    "Disputed": "متنازَع عليه"
+  },
+  "paymentType": {
+    "ConsultantBooking": "حجز استشاري",
+    "CompanyReview": "مراجعة شركة"
+  },
+  "payoutStatus": {
+    "Pending": "قيد الانتظار",
+    "InTransit": "قيد التحويل",
+    "Paid": "مدفوع",
+    "Failed": "فشل"
+  },
+  "paymentHeaders": {
+    "type": "النوع",
+    "amount": "المبلغ",
+    "status": "الحالة",
+    "profitShare": "عمولة المنصة",
+    "payee": "حصة المستفيد",
+    "refunded": "المُسترَد",
+    "created": "التاريخ"
+  },
+  "payoutHeaders": {
+    "amount": "المبلغ",
+    "status": "الحالة",
+    "payments": "المدفوعات",
+    "initiated": "بدأ في",
+    "paid": "دُفع في",
+    "reference": "المرجع"
+  },
+  "adminPayments": {
+    "title": "المدفوعات",
+    "subtitle": "كل المعاملات على المنصة — تصفية ومراجعة واسترداد.",
+    "allStatuses": "كل الحالات",
+    "allTypes": "كل الأنواع",
+    "actions": "إجراءات",
+    "refund": "استرداد",
+    "refundConfirm": "هل تريد استرداد كامل المبلغ لهذه الدفعة؟",
+    "refundReasonPrompt": "سبب الاسترداد (اختياري):",
+    "refundSuccess": "تمت معالجة الاسترداد.",
+    "refundError": "تعذّرت معالجة الاسترداد.",
+    "empty": "لا توجد مدفوعات مطابقة لهذه التصفية."
+  },
+  "profitShare": {
+    "title": "حصة الأرباح",
+    "subtitle": "نسبة عمولة المنصة لكل نوع دفع.",
+    "currentRate": "النسبة الحالية",
+    "notConfigured": "تُستخدم النسبة الافتراضية (لا يوجد تخصيص).",
+    "newRate": "النسبة الجديدة (٪)",
+    "rateRange": "بين 0 و50٪.",
+    "notes": "ملاحظات (اختياري)",
+    "notesPlaceholder": "لماذا تتغيّر النسبة؟",
+    "save": "حفظ النسبة",
+    "saving": "جارٍ الحفظ…",
+    "saveSuccess": "تم تحديث نسبة حصة الأرباح.",
+    "saveError": "تعذّر تحديث النسبة.",
+    "invalidRate": "أدخل نسبة بين 0 و50.",
+    "historyTitle": "سجل التغييرات",
+    "historyEmpty": "لا توجد تغييرات مسجّلة بعد.",
+    "hType": "النوع",
+    "hRate": "النسبة",
+    "hFrom": "سارية من",
+    "hTo": "سارية حتى",
+    "hNotes": "ملاحظات",
+    "active": "نشطة"
+  },
+  "billing": {
+    "title": "الفوترة",
+    "subtitle": "مدفوعات المراجعات والتحويلات التي استلمتها.",
+    "paymentsTitle": "مدفوعات المراجعات",
+    "payoutsTitle": "التحويلات",
+    "noPayments": "لا توجد مدفوعات بعد.",
+    "noPayouts": "لا توجد تحويلات بعد."
+  },
+  "earnings": {
+    "title": "الأرباح",
+    "subtitle": "دخل الحجوزات والتحويلات التي استلمتها.",
+    "totalEarned": "إجمالي الأرباح",
+    "totalPaidOut": "إجمالي المدفوع",
+    "awaitingPayout": "في انتظار التحويل",
+    "paymentsTitle": "مدفوعات الحجوزات",
+    "payoutsTitle": "التحويلات",
+    "noPayments": "لا توجد مدفوعات بعد.",
+    "noPayouts": "لا توجد تحويلات بعد."
+  }
+}

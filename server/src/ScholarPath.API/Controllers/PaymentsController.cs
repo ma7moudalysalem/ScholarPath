@@ -6,8 +6,11 @@ using ScholarPath.Application.Payments.Commands.CreateConnectAccount;
 using ScholarPath.Application.Payments.Commands.CreatePaymentIntent;
 using ScholarPath.Application.Payments.Commands.CapturePaymentIntent;
 using ScholarPath.Application.Payments.Commands.RefundPayment;
+using ScholarPath.Application.Audit.DTOs;
 using ScholarPath.Application.Payments.Queries.GetMyPayouts;
 using ScholarPath.Application.Payments.Queries.GetPayment;
+using ScholarPath.Application.Payments.Queries.GetPayments;
+using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Settings;
 
 namespace ScholarPath.API.Controllers;
@@ -113,6 +116,26 @@ public sealed class PaymentsController(IMediator mediator) : ControllerBase
     {
         var result = await mediator.Send(new GetPaymentQuery(id), ct);
         return result is null ? NotFound() : Ok(result);
+    }
+
+    // ── GET /api/payments ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Lists payments newest-first. Admins see every payment; everyone else sees
+    /// only payments they are a party to. Supports status/type filters + paging.
+    /// </summary>
+    [HttpGet]
+    [ProducesResponseType(typeof(PagedResult<PaymentDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<PaymentDto>>> GetPayments(
+        [FromQuery] PaymentStatus? status,
+        [FromQuery] PaymentType? type,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+    {
+        var result = await mediator.Send(
+            new GetPaymentsQuery(status, type, page, pageSize), ct);
+        return Ok(result);
     }
 
     // ── GET /api/payments/payouts ─────────────────────────────────────────────
