@@ -92,7 +92,10 @@ public sealed class JwtRs256Tests
         var opts = BaseOptions();
         using var db = CreateDb();
         var clock = Substitute.For<IDateTimeService>();
-        clock.UtcNow.Returns(new DateTimeOffset(2026, 5, 17, 12, 0, 0, TimeSpan.Zero));
+        // Use the real "now" — the token is validated below with
+        // ValidateLifetime=true against the wall clock, so a hard-coded date
+        // would make this test a time-bomb.
+        clock.UtcNow.Returns(DateTimeOffset.UtcNow);
 
         var sut = new TokenService(
             Options.Create(opts),

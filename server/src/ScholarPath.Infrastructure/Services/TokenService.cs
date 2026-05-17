@@ -155,11 +155,14 @@ public sealed class TokenService(
         var signingKey = keyProvider.GetSigningKey();
         var creds = new SigningCredentials(signingKey, SecurityAlgorithms.RsaSha256);
 
+        // notBefore must come from the same clock as `expires` (the injected
+        // IDateTimeService) — mixing in DateTime.UtcNow makes the token's
+        // not-before/expiry inconsistent whenever the clock is overridden.
         var token = new JwtSecurityToken(
             issuer: _opts.Issuer,
             audience: _opts.Audience,
             claims: claims,
-            notBefore: DateTime.UtcNow,
+            notBefore: clock.UtcNow.UtcDateTime,
             expires: expires.UtcDateTime,
             signingCredentials: creds);
 
