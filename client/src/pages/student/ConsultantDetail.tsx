@@ -4,17 +4,30 @@ import {
   type MockAvailabilityState,
 } from "@/lib/mockAvailabilityStore";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 
 type Tone = "green" | "blue" | "amber" | "gray";
 
+type SlotTagKey = "next" | "available" | "popular" | "limited";
+type SlotDayKey = "tomorrow" | "saturday" | "sunday" | "monday" | "tuesday";
+type BadgeKey =
+  | "availableToday"
+  | "liveSchedule"
+  | "noAvailability"
+  | "available"
+  | "thisWeek"
+  | "weekend";
+
 type SlotCard = {
   id: string;
+  dayKey?: SlotDayKey;
   dayLabel: string;
   dateLabel: string;
   timeLabel: string;
   durationLabel: string;
-  tagLabel: string;
+  durationMinutes: number;
+  tagKey: SlotTagKey;
   tagTone: Tone;
 };
 
@@ -27,9 +40,10 @@ type ConsultantProfile = {
   sessions: string;
   fee: string;
   baseDuration: string;
-  badge: string;
+  baseDurationMinutes: number;
+  badgeKey: BadgeKey;
   tags: Array<{
-    label: string;
+    key: string;
     bg: string;
     text: string;
   }>;
@@ -46,20 +60,21 @@ const consultants: ConsultantProfile[] = [
     sessions: "124",
     fee: "$35",
     baseDuration: "45 min",
-    badge: "Live schedule",
+    baseDurationMinutes: 45,
+    badgeKey: "liveSchedule",
     tags: [
       {
-        label: "UK Admissions",
+        key: "uk-admissions",
         bg: "bg-[#eef2ff]",
         text: "text-[#4338ca]",
       },
       {
-        label: "Essays",
+        key: "essays",
         bg: "bg-[#eff6ff]",
         text: "text-[#1d4ed8]",
       },
       {
-        label: "Interview Prep",
+        key: "interview-prep",
         bg: "bg-[#fffbeb]",
         text: "text-[#b45309]",
       },
@@ -74,20 +89,21 @@ const consultants: ConsultantProfile[] = [
     sessions: "89",
     fee: "$25",
     baseDuration: "30 min",
-    badge: "This week",
+    baseDurationMinutes: 30,
+    badgeKey: "thisWeek",
     tags: [
       {
-        label: "Visa Support",
+        key: "visa-support",
         bg: "bg-[#eef2ff]",
         text: "text-[#4338ca]",
       },
       {
-        label: "University Choice",
+        key: "university-choice",
         bg: "bg-[#eff6ff]",
         text: "text-[#1d4ed8]",
       },
       {
-        label: "Funding Plans",
+        key: "funding-plans",
         bg: "bg-[#fffbeb]",
         text: "text-[#b45309]",
       },
@@ -95,38 +111,46 @@ const consultants: ConsultantProfile[] = [
     staticSlots: [
       {
         id: "2-slot-1",
+        dayKey: "tomorrow",
         dayLabel: "Tomorrow",
         dateLabel: "26 Apr 2026",
         timeLabel: "4:00 PM",
         durationLabel: "30 min",
-        tagLabel: "Available",
+        durationMinutes: 30,
+        tagKey: "available",
         tagTone: "green",
       },
       {
         id: "2-slot-2",
+        dayKey: "saturday",
         dayLabel: "Saturday",
         dateLabel: "27 Apr 2026",
         timeLabel: "12:30 PM",
         durationLabel: "30 min",
-        tagLabel: "Popular",
+        durationMinutes: 30,
+        tagKey: "popular",
         tagTone: "amber",
       },
       {
         id: "2-slot-3",
+        dayKey: "sunday",
         dayLabel: "Sunday",
         dateLabel: "28 Apr 2026",
         timeLabel: "5:00 PM",
         durationLabel: "30 min",
-        tagLabel: "Available",
+        durationMinutes: 30,
+        tagKey: "available",
         tagTone: "green",
       },
       {
         id: "2-slot-4",
+        dayKey: "monday",
         dayLabel: "Monday",
         dateLabel: "29 Apr 2026",
         timeLabel: "6:00 PM",
         durationLabel: "30 min",
-        tagLabel: "Available",
+        durationMinutes: 30,
+        tagKey: "available",
         tagTone: "green",
       },
     ],
@@ -140,20 +164,21 @@ const consultants: ConsultantProfile[] = [
     sessions: "102",
     fee: "$40",
     baseDuration: "60 min",
-    badge: "Weekend",
+    baseDurationMinutes: 60,
+    badgeKey: "weekend",
     tags: [
       {
-        label: "Full Funding",
+        key: "full-funding",
         bg: "bg-[#eef2ff]",
         text: "text-[#4338ca]",
       },
       {
-        label: "Application Review",
+        key: "application-review",
         bg: "bg-[#eff6ff]",
         text: "text-[#1d4ed8]",
       },
       {
-        label: "Planning",
+        key: "planning",
         bg: "bg-[#fffbeb]",
         text: "text-[#b45309]",
       },
@@ -161,38 +186,46 @@ const consultants: ConsultantProfile[] = [
     staticSlots: [
       {
         id: "3-slot-1",
+        dayKey: "saturday",
         dayLabel: "Saturday",
         dateLabel: "27 Apr 2026",
         timeLabel: "11:00 AM",
         durationLabel: "60 min",
-        tagLabel: "Popular",
+        durationMinutes: 60,
+        tagKey: "popular",
         tagTone: "amber",
       },
       {
         id: "3-slot-2",
+        dayKey: "sunday",
         dayLabel: "Sunday",
         dateLabel: "28 Apr 2026",
         timeLabel: "2:00 PM",
         durationLabel: "60 min",
-        tagLabel: "Available",
+        durationMinutes: 60,
+        tagKey: "available",
         tagTone: "green",
       },
       {
         id: "3-slot-3",
+        dayKey: "monday",
         dayLabel: "Monday",
         dateLabel: "29 Apr 2026",
         timeLabel: "8:00 PM",
         durationLabel: "60 min",
-        tagLabel: "Available",
+        durationMinutes: 60,
+        tagKey: "available",
         tagTone: "green",
       },
       {
         id: "3-slot-4",
+        dayKey: "tuesday",
         dayLabel: "Tuesday",
         dateLabel: "30 Apr 2026",
         timeLabel: "5:30 PM",
         durationLabel: "60 min",
-        tagLabel: "Limited",
+        durationMinutes: 60,
+        tagKey: "limited",
         tagTone: "blue",
       },
     ],
@@ -245,7 +278,7 @@ function getToneClasses(tone: Tone) {
   }
 }
 
-function getDynamicBadge(availability: MockAvailabilityState) {
+function getDynamicBadge(availability: MockAvailabilityState): BadgeKey {
   const today = new Date();
   const weekdayKey = weekdayKeyByIndex[today.getDay()];
   const todayKey = formatDateKey(today);
@@ -257,11 +290,11 @@ function getDynamicBadge(availability: MockAvailabilityState) {
   const todayConfig = availability.days.find((day) => day.key === weekdayKey);
 
   if (todayConfig?.isEnabled && !blockedSet.has(todayKey)) {
-    return "Available today";
+    return "availableToday";
   }
 
   const hasEnabledDay = availability.days.some((day) => day.isEnabled);
-  return hasEnabledDay ? "Live schedule" : "No availability";
+  return hasEnabledDay ? "liveSchedule" : "noAvailability";
 }
 
 function buildDynamicSlots(availability: MockAvailabilityState, limit = 6): SlotCard[] {
@@ -299,14 +332,15 @@ function buildDynamicSlots(availability: MockAvailabilityState, limit = 6): Slot
     const slotTone: Tone =
       slots.length === 0 ? "blue" : dayConfig.slotDuration === "60" ? "amber" : "green";
 
-    const slotLabel =
-      slots.length === 0 ? "Next" : dayConfig.slotDuration === "60" ? "Popular" : "Available";
+    const slotTagKey: SlotTagKey =
+      slots.length === 0 ? "next" : dayConfig.slotDuration === "60" ? "popular" : "available";
 
     const sharedData = {
       dayLabel: dayConfig.label,
       dateLabel: formatDateLabel(date),
       durationLabel: `${dayConfig.slotDuration} min`,
-      tagLabel: slotLabel,
+      durationMinutes: Number(dayConfig.slotDuration) || 0,
+      tagKey: slotTagKey,
       tagTone: slotTone,
     };
 
@@ -320,7 +354,7 @@ function buildDynamicSlots(availability: MockAvailabilityState, limit = 6): Slot
       slots.push({
         id: `${weekdayKey}-${dateKey}-end`,
         ...sharedData,
-        tagLabel: slots.length === limit - 1 ? "Limited" : "Available",
+        tagKey: slots.length === limit - 1 ? "limited" : "available",
         tagTone: slots.length === limit - 1 ? "blue" : "green",
         timeLabel: formatTimeLabel(dayConfig.end),
       });
@@ -343,6 +377,7 @@ function buildCheckoutLink(consultantId: string, slot: SlotCard) {
 }
 
 export function ConsultantDetail() {
+  const { t } = useTranslation("consultants");
   const { id } = useParams();
   const [availability, setAvailability] = useState<MockAvailabilityState>(() =>
     getMockAvailability(),
@@ -371,31 +406,30 @@ export function ConsultantDetail() {
 
   const primarySlot = slots[0];
 
-  const availabilityBadge = useMemo(() => {
+  const availabilityBadgeKey = useMemo<BadgeKey>(() => {
     if (consultant.id === "1") {
       return getDynamicBadge(availability);
     }
 
-    return consultant.badge;
+    return consultant.badgeKey;
   }, [consultant, availability]);
 
-  const durationDisplay =
-    consultant.id === "1" && primarySlot ? primarySlot.durationLabel : consultant.baseDuration;
+  const durationMinutes =
+    consultant.id === "1" && primarySlot
+      ? primarySlot.durationMinutes
+      : consultant.baseDurationMinutes;
 
   return (
     <main className="min-h-screen bg-[#f5f5f7]">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-[#2563eb]">PB-006</p>
+          <p className="text-sm font-medium text-[#2563eb]">{t("moduleTag")}</p>
 
           <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
-            Consultant profile
+            {t("detail.title")}
           </h1>
 
-          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">
-            Review the consultant&apos;s expertise, credentials, ratings, fee, and upcoming
-            availability before booking.
-          </p>
+          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("detail.subtitle")}</p>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-12">
@@ -405,48 +439,55 @@ export function ConsultantDetail() {
                 <p className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
                   {consultant.name}
                 </p>
-                <p className="mt-2 text-sm leading-6 text-[#4b5563]">{consultant.expertise}</p>
+                <p className="mt-2 text-sm leading-6 text-[#4b5563]">
+                  {t(`profiles.${consultant.id}.expertise`)}
+                </p>
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {consultant.tags.map((tag) => (
                     <span
-                      key={tag.label}
+                      key={tag.key}
                       className={`rounded-full px-3 py-1 text-xs font-medium ${tag.bg} ${tag.text}`}
                     >
-                      {tag.label}
+                      {t(`tags.${tag.key}`)}
                     </span>
                   ))}
                 </div>
               </div>
 
               <span className="rounded-full bg-[#f0fdf4] px-3 py-1 text-xs font-medium text-[#15803d]">
-                {availabilityBadge}
+                {t(`badge.${availabilityBadgeKey}`)}
               </span>
             </div>
 
-            <p className="mt-6 text-sm leading-7 text-[#4b5563]">{consultant.bio}</p>
+            <p className="mt-6 text-sm leading-7 text-[#4b5563]">
+              {t(`profiles.${consultant.id}.bio`)}
+            </p>
 
             <div className="mt-6 grid gap-4 rounded-xl bg-[#f9fafb] p-5 sm:grid-cols-3">
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Rating
+                  {t("detail.rating")}
                 </p>
                 <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{consultant.rating}</p>
               </div>
 
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Sessions
+                  {t("detail.sessions")}
                 </p>
                 <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{consultant.sessions}</p>
               </div>
 
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Fee
+                  {t("detail.fee")}
                 </p>
                 <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                  {consultant.fee} / {durationDisplay}
+                  {t("detail.feeValue", {
+                    fee: consultant.fee,
+                    duration: t("duration.minutes", { count: durationMinutes }),
+                  })}
                 </p>
               </div>
             </div>
@@ -454,7 +495,7 @@ export function ConsultantDetail() {
 
           <aside className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-4">
             <p className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-              Booking overview
+              {t("detail.bookingOverview")}
             </p>
 
             {primarySlot ? (
@@ -462,25 +503,28 @@ export function ConsultantDetail() {
                 <div className="mt-5 space-y-4">
                   <div>
                     <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                      Next slot
+                      {t("detail.nextSlot")}
                     </p>
                     <p className="mt-1 text-sm text-[#1d1d1f]">
-                      {primarySlot.dayLabel} · {primarySlot.timeLabel}
+                      {primarySlot.dayKey ? t(`slotDay.${primarySlot.dayKey}`) : primarySlot.dayLabel}{" "}
+                      · {primarySlot.timeLabel}
                     </p>
                   </div>
 
                   <div>
                     <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                      Session format
+                      {t("detail.sessionFormat")}
                     </p>
-                    <p className="mt-1 text-sm text-[#1d1d1f]">1:1 online consultation</p>
+                    <p className="mt-1 text-sm text-[#1d1d1f]">{t("detail.sessionFormatValue")}</p>
                   </div>
 
                   <div>
                     <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                      Duration
+                      {t("detail.duration")}
                     </p>
-                    <p className="mt-1 text-sm text-[#1d1d1f]">{primarySlot.durationLabel}</p>
+                    <p className="mt-1 text-sm text-[#1d1d1f]">
+                      {t("duration.minutes", { count: primarySlot.durationMinutes })}
+                    </p>
                   </div>
                 </div>
 
@@ -489,23 +533,20 @@ export function ConsultantDetail() {
                     to={buildCheckoutLink(consultant.id, primarySlot)}
                     className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                   >
-                    Book this consultant
+                    {t("detail.bookConsultant")}
                   </Link>
 
                   <Link
                     to="/dev/consultants"
                     className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                   >
-                    Back to consultants
+                    {t("detail.backToConsultants")}
                   </Link>
                 </div>
               </>
             ) : (
               <div className="mt-5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4">
-                <p className="text-sm leading-6 text-[#4b5563]">
-                  No open slots are visible right now. Update consultant availability to make
-                  sessions bookable again.
-                </p>
+                <p className="text-sm leading-6 text-[#4b5563]">{t("detail.noSlotsBooking")}</p>
               </div>
             )}
           </aside>
@@ -515,17 +556,17 @@ export function ConsultantDetail() {
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Upcoming availability
+                {t("detail.upcomingAvailability")}
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-[#4b5563]">
                 {consultant.id === "1"
-                  ? "These slot cards now read directly from the consultant availability store."
-                  : "These sample slot cards show upcoming booking options for this consultant."}
+                  ? t("detail.upcomingLive")
+                  : t("detail.upcomingStatic")}
               </p>
             </div>
 
             <span className="inline-flex rounded-full bg-[#eff6ff] px-3 py-1 text-xs font-medium text-[#1d4ed8]">
-              {slots.length} open slots
+              {t("detail.openSlots", { count: slots.length })}
             </span>
           </div>
 
@@ -539,7 +580,7 @@ export function ConsultantDetail() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                        {slot.dayLabel}
+                        {slot.dayKey ? t(`slotDay.${slot.dayKey}`) : slot.dayLabel}
                       </p>
                       <p className="mt-1 text-sm leading-6 text-[#4b5563]">{slot.dateLabel}</p>
                     </div>
@@ -549,24 +590,24 @@ export function ConsultantDetail() {
                         slot.tagTone,
                       )}`}
                     >
-                      {slot.tagLabel}
+                      {t(`slotTag.${slot.tagKey}`)}
                     </span>
                   </div>
 
                   <div className="mt-5 grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                        Time
+                        {t("detail.slotTime")}
                       </p>
                       <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{slot.timeLabel}</p>
                     </div>
 
                     <div>
                       <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                        Duration
+                        {t("detail.slotDuration")}
                       </p>
                       <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                        {slot.durationLabel}
+                        {t("duration.minutes", { count: slot.durationMinutes })}
                       </p>
                     </div>
                   </div>
@@ -575,16 +616,14 @@ export function ConsultantDetail() {
                     to={buildCheckoutLink(consultant.id, slot)}
                     className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-4 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                   >
-                    Select this slot
+                    {t("detail.selectSlot")}
                   </Link>
                 </article>
               ))}
             </div>
           ) : (
             <div className="mt-6 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-5">
-              <p className="text-sm leading-6 text-[#4b5563]">
-                No upcoming slots are currently available for this consultant.
-              </p>
+              <p className="text-sm leading-6 text-[#4b5563]">{t("detail.noUpcomingSlots")}</p>
             </div>
           )}
         </div>

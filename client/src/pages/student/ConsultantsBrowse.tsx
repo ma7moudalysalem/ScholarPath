@@ -4,17 +4,30 @@ import {
   type MockAvailabilityState,
 } from "@/lib/mockAvailabilityStore";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 type Tone = "green" | "blue" | "amber" | "gray";
 
+type SlotTagKey = "next" | "available" | "popular" | "limited";
+type SlotDayKey = "tomorrow" | "saturday" | "sunday" | "monday" | "tuesday";
+type BadgeKey =
+  | "availableToday"
+  | "liveSchedule"
+  | "noAvailability"
+  | "available"
+  | "thisWeek"
+  | "weekend";
+
 type SlotCard = {
   id: string;
+  dayKey?: SlotDayKey;
   dayLabel: string;
   dateLabel: string;
   timeLabel: string;
   durationLabel: string;
-  tagLabel: string;
+  durationMinutes: number;
+  tagKey: SlotTagKey;
   tagTone: Tone;
 };
 
@@ -28,16 +41,16 @@ type ConsultantCard = {
   sessions: string;
   fee: string;
   feeValue: number;
-  duration: string;
+  durationMinutes: number;
   durationValue: number;
   expertiseKeys: string[];
   tags: Array<{
-    label: string;
+    key: string;
     bg: string;
     text: string;
   }>;
   staticBadge?: {
-    label: string;
+    key: BadgeKey;
     className: string;
   };
   staticSlots?: SlotCard[];
@@ -66,11 +79,11 @@ type SearchFormState = {
 
 type BrowseConsultant = ConsultantCard & {
   badge: {
-    label: string;
+    key: BadgeKey;
     className: string;
   };
   slots: SlotCard[];
-  nextSlot: string | null;
+  nextSlot: SlotCard | null;
   isLive: boolean;
   isAvailableToday: boolean;
   hasAvailability: boolean;
@@ -96,22 +109,22 @@ const consultants: ConsultantCard[] = [
     sessions: "124",
     fee: "$35",
     feeValue: 35,
-    duration: "45 min",
+    durationMinutes: 45,
     durationValue: 45,
     expertiseKeys: ["scholarship-strategy", "application-review", "interview-prep"],
     tags: [
       {
-        label: "UK Admissions",
+        key: "uk-admissions",
         bg: "bg-[#eef2ff]",
         text: "text-[#4338ca]",
       },
       {
-        label: "Essays",
+        key: "essays",
         bg: "bg-[#eff6ff]",
         text: "text-[#1d4ed8]",
       },
       {
-        label: "Interview Prep",
+        key: "interview-prep",
         bg: "bg-[#fffbeb]",
         text: "text-[#b45309]",
       },
@@ -128,56 +141,62 @@ const consultants: ConsultantCard[] = [
     sessions: "89",
     fee: "$25",
     feeValue: 25,
-    duration: "30 min",
+    durationMinutes: 30,
     durationValue: 30,
     expertiseKeys: ["visa-support", "funding-plans"],
     tags: [
       {
-        label: "Visa Support",
+        key: "visa-support",
         bg: "bg-[#eef2ff]",
         text: "text-[#4338ca]",
       },
       {
-        label: "University Choice",
+        key: "university-choice",
         bg: "bg-[#eff6ff]",
         text: "text-[#1d4ed8]",
       },
       {
-        label: "Funding Plans",
+        key: "funding-plans",
         bg: "bg-[#fffbeb]",
         text: "text-[#b45309]",
       },
     ],
     staticBadge: {
-      label: "This week",
+      key: "thisWeek",
       className: "bg-[#fffbeb] text-[#b45309]",
     },
     staticSlots: [
       {
         id: "2-slot-1",
+        dayKey: "tomorrow",
         dayLabel: "Tomorrow",
         dateLabel: "26 Apr 2026",
         timeLabel: "4:00 PM",
         durationLabel: "30 min",
-        tagLabel: "Available",
+        durationMinutes: 30,
+        tagKey: "available",
         tagTone: "green",
       },
       {
         id: "2-slot-2",
+        dayKey: "saturday",
         dayLabel: "Saturday",
         dateLabel: "27 Apr 2026",
         timeLabel: "12:30 PM",
         durationLabel: "30 min",
-        tagLabel: "Popular",
+        durationMinutes: 30,
+        tagKey: "popular",
         tagTone: "amber",
       },
       {
         id: "2-slot-3",
+        dayKey: "sunday",
         dayLabel: "Sunday",
         dateLabel: "28 Apr 2026",
         timeLabel: "5:00 PM",
         durationLabel: "30 min",
-        tagLabel: "Available",
+        durationMinutes: 30,
+        tagKey: "available",
         tagTone: "green",
       },
     ],
@@ -193,56 +212,62 @@ const consultants: ConsultantCard[] = [
     sessions: "102",
     fee: "$40",
     feeValue: 40,
-    duration: "60 min",
+    durationMinutes: 60,
     durationValue: 60,
     expertiseKeys: ["funding-plans", "application-review", "scholarship-strategy"],
     tags: [
       {
-        label: "Full Funding",
+        key: "full-funding",
         bg: "bg-[#eef2ff]",
         text: "text-[#4338ca]",
       },
       {
-        label: "Application Review",
+        key: "application-review",
         bg: "bg-[#eff6ff]",
         text: "text-[#1d4ed8]",
       },
       {
-        label: "Planning",
+        key: "planning",
         bg: "bg-[#fffbeb]",
         text: "text-[#b45309]",
       },
     ],
     staticBadge: {
-      label: "Weekend",
+      key: "weekend",
       className: "bg-[#eff6ff] text-[#1d4ed8]",
     },
     staticSlots: [
       {
         id: "3-slot-1",
+        dayKey: "saturday",
         dayLabel: "Saturday",
         dateLabel: "27 Apr 2026",
         timeLabel: "11:00 AM",
         durationLabel: "60 min",
-        tagLabel: "Popular",
+        durationMinutes: 60,
+        tagKey: "popular",
         tagTone: "amber",
       },
       {
         id: "3-slot-2",
+        dayKey: "sunday",
         dayLabel: "Sunday",
         dateLabel: "28 Apr 2026",
         timeLabel: "2:00 PM",
         durationLabel: "60 min",
-        tagLabel: "Available",
+        durationMinutes: 60,
+        tagKey: "available",
         tagTone: "green",
       },
       {
         id: "3-slot-3",
+        dayKey: "monday",
         dayLabel: "Monday",
         dateLabel: "29 Apr 2026",
         timeLabel: "8:00 PM",
         durationLabel: "60 min",
-        tagLabel: "Available",
+        durationMinutes: 60,
+        tagKey: "available",
         tagTone: "green",
       },
     ],
@@ -299,7 +324,7 @@ function buildDynamicBadge(
   availability: MockAvailabilityState,
   slots: SlotCard[],
 ): {
-  label: string;
+  key: BadgeKey;
   className: string;
   isLive: boolean;
   isAvailableToday: boolean;
@@ -322,7 +347,7 @@ function buildDynamicBadge(
 
   if (isAvailableToday) {
     return {
-      label: "Available today",
+      key: "availableToday",
       className: "bg-[#f0fdf4] text-[#15803d]",
       isLive: true,
       isAvailableToday: true,
@@ -332,7 +357,7 @@ function buildDynamicBadge(
 
   if (hasEnabledDay && hasAvailability) {
     return {
-      label: "Live schedule",
+      key: "liveSchedule",
       className: "bg-[#f0fdf4] text-[#15803d]",
       isLive: true,
       isAvailableToday: false,
@@ -341,7 +366,7 @@ function buildDynamicBadge(
   }
 
   return {
-    label: "No availability",
+    key: "noAvailability",
     className: "bg-[#f3f4f6] text-[#4b5563]",
     isLive: false,
     isAvailableToday: false,
@@ -378,8 +403,8 @@ function buildDynamicSlots(availability: MockAvailabilityState, limit = 6): Slot
     const slotTone: Tone =
       slots.length === 0 ? "blue" : dayConfig.slotDuration === "60" ? "amber" : "green";
 
-    const slotLabel =
-      slots.length === 0 ? "Next" : dayConfig.slotDuration === "60" ? "Popular" : "Available";
+    const slotTagKey: SlotTagKey =
+      slots.length === 0 ? "next" : dayConfig.slotDuration === "60" ? "popular" : "available";
 
     slots.push({
       id: `${weekdayKey}-${dateKey}-${slots.length}`,
@@ -387,7 +412,8 @@ function buildDynamicSlots(availability: MockAvailabilityState, limit = 6): Slot
       dateLabel: formatDateLabel(date),
       timeLabel: formatTimeLabel(dayConfig.start),
       durationLabel: `${dayConfig.slotDuration} min`,
-      tagLabel: slotLabel,
+      durationMinutes: Number(dayConfig.slotDuration) || 0,
+      tagKey: slotTagKey,
       tagTone: slotTone,
     });
   }
@@ -405,11 +431,6 @@ function buildCheckoutLink(consultantId: string, slot: SlotCard) {
   });
 
   return `/dev/checkout?${params.toString()}`;
-}
-
-function buildNextSlotLabel(slot?: SlotCard) {
-  if (!slot) return "No open slots";
-  return `${slot.dayLabel} · ${slot.timeLabel}`;
 }
 
 function matchesPriceFilter(consultant: BrowseConsultant, value: PriceSelectFilter) {
@@ -434,6 +455,7 @@ function matchesAvailabilitySelect(consultant: BrowseConsultant, value: Availabi
 }
 
 export function ConsultantsBrowse() {
+  const { t } = useTranslation("consultants");
   const [availability, setAvailability] = useState<MockAvailabilityState>(() =>
     getMockAvailability(),
   );
@@ -460,11 +482,11 @@ export function ConsultantsBrowse() {
         return {
           ...consultant,
           badge: {
-            label: consultantOneBadge.label,
+            key: consultantOneBadge.key,
             className: consultantOneBadge.className,
           },
           slots: consultantOneSlots,
-          nextSlot: buildNextSlotLabel(consultantOneSlots[0]),
+          nextSlot: consultantOneSlots[0] ?? null,
           isLive: consultantOneBadge.isLive,
           isAvailableToday: consultantOneBadge.isAvailableToday,
           hasAvailability: consultantOneBadge.hasAvailability,
@@ -476,11 +498,11 @@ export function ConsultantsBrowse() {
       return {
         ...consultant,
         badge: consultant.staticBadge ?? {
-          label: "Available",
+          key: "available",
           className: "bg-[#f0fdf4] text-[#15803d]",
         },
         slots,
-        nextSlot: buildNextSlotLabel(slots[0]),
+        nextSlot: slots[0] ?? null,
         isLive: true,
         isAvailableToday: false,
         hasAvailability: slots.length > 0,
@@ -494,9 +516,9 @@ export function ConsultantsBrowse() {
     return consultantCards.filter((consultant) => {
       const searchableText = [
         consultant.name,
-        consultant.expertise,
-        consultant.description,
-        ...consultant.tags.map((tag) => tag.label),
+        t(`profiles.${consultant.id}.expertise`),
+        t(`profiles.${consultant.id}.description`),
+        ...consultant.tags.map((tag) => t(`tags.${tag.key}`)),
       ]
         .join(" ")
         .toLowerCase();
@@ -513,7 +535,7 @@ export function ConsultantsBrowse() {
 
       return queryMatch && expertiseMatch && priceMatch && ratingMatch && availabilityMatch;
     });
-  }, [appliedSearch, consultantCards]);
+  }, [appliedSearch, consultantCards, t]);
 
   const filteredConsultants = useMemo(() => {
     return searchedConsultants.filter((consultant) => {
@@ -554,16 +576,13 @@ export function ConsultantsBrowse() {
     <main className="min-h-screen bg-[#f5f5f7]">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-[#2563eb]">PB-006</p>
+          <p className="text-sm font-medium text-[#2563eb]">{t("moduleTag")}</p>
 
           <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
-            Browse consultants
+            {t("browse.title")}
           </h1>
 
-          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">
-            Explore consultant profiles, compare expertise areas, and review availability before
-            selecting a session.
-          </p>
+          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("browse.subtitle")}</p>
         </div>
 
         <form
@@ -576,7 +595,7 @@ export function ConsultantsBrowse() {
                 htmlFor="consultant-search"
                 className="mb-2 block text-xs font-medium text-[#6b7280]"
               >
-                Search
+                {t("search.label")}
               </label>
               <input
                 id="consultant-search"
@@ -585,7 +604,7 @@ export function ConsultantsBrowse() {
                 onChange={(event) =>
                   setSearchForm((current) => ({ ...current, query: event.target.value }))
                 }
-                placeholder="Search by consultant name, expertise, or keyword"
+                placeholder={t("search.placeholder")}
                 className="h-12 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-[#1d1d1f] transition outline-none placeholder:text-[#9ca3af] focus:border-[#93c5fd] focus:ring-2 focus:ring-[#dbeafe]"
               />
             </div>
@@ -595,7 +614,7 @@ export function ConsultantsBrowse() {
                 htmlFor="expertise-filter"
                 className="mb-2 block text-xs font-medium text-[#6b7280]"
               >
-                Expertise
+                {t("filters.expertise")}
               </label>
               <select
                 id="expertise-filter"
@@ -608,12 +627,16 @@ export function ConsultantsBrowse() {
                 }
                 className="h-12 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-[#1d1d1f] transition outline-none focus:border-[#93c5fd] focus:ring-2 focus:ring-[#dbeafe]"
               >
-                <option value="all">All</option>
-                <option value="scholarship-strategy">Scholarship Strategy</option>
-                <option value="visa-support">Visa Support</option>
-                <option value="application-review">Application Review</option>
-                <option value="interview-prep">Interview Prep</option>
-                <option value="funding-plans">Funding Plans</option>
+                <option value="all">{t("expertiseOptions.all")}</option>
+                <option value="scholarship-strategy">
+                  {t("expertiseOptions.scholarship-strategy")}
+                </option>
+                <option value="visa-support">{t("expertiseOptions.visa-support")}</option>
+                <option value="application-review">
+                  {t("expertiseOptions.application-review")}
+                </option>
+                <option value="interview-prep">{t("expertiseOptions.interview-prep")}</option>
+                <option value="funding-plans">{t("expertiseOptions.funding-plans")}</option>
               </select>
             </div>
 
@@ -622,7 +645,7 @@ export function ConsultantsBrowse() {
                 htmlFor="price-filter"
                 className="mb-2 block text-xs font-medium text-[#6b7280]"
               >
-                Price
+                {t("filters.price")}
               </label>
               <select
                 id="price-filter"
@@ -635,10 +658,10 @@ export function ConsultantsBrowse() {
                 }
                 className="h-12 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-[#1d1d1f] transition outline-none focus:border-[#93c5fd] focus:ring-2 focus:ring-[#dbeafe]"
               >
-                <option value="any">Any</option>
-                <option value="under30">Under $30</option>
-                <option value="30to35">$30 - $35</option>
-                <option value="above35">Above $35</option>
+                <option value="any">{t("priceOptions.any")}</option>
+                <option value="under30">{t("priceOptions.under30")}</option>
+                <option value="30to35">{t("priceOptions.30to35")}</option>
+                <option value="above35">{t("priceOptions.above35")}</option>
               </select>
             </div>
 
@@ -647,7 +670,7 @@ export function ConsultantsBrowse() {
                 htmlFor="rating-filter"
                 className="mb-2 block text-xs font-medium text-[#6b7280]"
               >
-                Rating
+                {t("filters.rating")}
               </label>
               <select
                 id="rating-filter"
@@ -660,10 +683,10 @@ export function ConsultantsBrowse() {
                 }
                 className="h-12 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-[#1d1d1f] transition outline-none focus:border-[#93c5fd] focus:ring-2 focus:ring-[#dbeafe]"
               >
-                <option value="any">Any</option>
-                <option value="4plus">4.0+</option>
-                <option value="4_5plus">4.5+</option>
-                <option value="4_8plus">4.8+</option>
+                <option value="any">{t("ratingOptions.any")}</option>
+                <option value="4plus">{t("ratingOptions.4plus")}</option>
+                <option value="4_5plus">{t("ratingOptions.4_5plus")}</option>
+                <option value="4_8plus">{t("ratingOptions.4_8plus")}</option>
               </select>
             </div>
 
@@ -672,7 +695,7 @@ export function ConsultantsBrowse() {
                 htmlFor="availability-filter"
                 className="mb-2 block text-xs font-medium text-[#6b7280]"
               >
-                Availability
+                {t("filters.availability")}
               </label>
               <select
                 id="availability-filter"
@@ -685,10 +708,10 @@ export function ConsultantsBrowse() {
                 }
                 className="h-12 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-[#1d1d1f] transition outline-none focus:border-[#93c5fd] focus:ring-2 focus:ring-[#dbeafe]"
               >
-                <option value="all">All</option>
-                <option value="live">Live schedule</option>
-                <option value="availableToday">Available today</option>
-                <option value="unavailable">No availability</option>
+                <option value="all">{t("availabilityOptions.all")}</option>
+                <option value="live">{t("availabilityOptions.live")}</option>
+                <option value="availableToday">{t("availabilityOptions.availableToday")}</option>
+                <option value="unavailable">{t("availabilityOptions.unavailable")}</option>
               </select>
             </div>
           </div>
@@ -698,7 +721,7 @@ export function ConsultantsBrowse() {
               type="submit"
               className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
             >
-              Search consultants
+              {t("search.submit")}
             </button>
 
             <button
@@ -706,7 +729,7 @@ export function ConsultantsBrowse() {
               onClick={handleResetFilters}
               className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
             >
-              Reset filters
+              {t("search.reset")}
             </button>
           </div>
         </form>
@@ -723,7 +746,7 @@ export function ConsultantsBrowse() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                All consultants
+                {t("quickFilters.all")}
               </button>
 
               <button
@@ -735,7 +758,7 @@ export function ConsultantsBrowse() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                Live schedule
+                {t("quickFilters.live")}
               </button>
 
               <button
@@ -747,7 +770,7 @@ export function ConsultantsBrowse() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                Available today
+                {t("quickFilters.availableToday")}
               </button>
 
               <button
@@ -759,35 +782,35 @@ export function ConsultantsBrowse() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                No availability
+                {t("quickFilters.unavailable")}
               </button>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="rounded-xl bg-[#f9fafb] px-4 py-3">
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Total
+                  {t("stats.total")}
                 </p>
                 <p className="mt-1 text-lg font-semibold text-[#1d1d1f]">{totalConsultants}</p>
               </div>
 
               <div className="rounded-xl bg-[#f9fafb] px-4 py-3">
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Live
+                  {t("stats.live")}
                 </p>
                 <p className="mt-1 text-lg font-semibold text-[#1d1d1f]">{liveCount}</p>
               </div>
 
               <div className="rounded-xl bg-[#f9fafb] px-4 py-3">
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Today
+                  {t("stats.today")}
                 </p>
                 <p className="mt-1 text-lg font-semibold text-[#1d1d1f]">{availableTodayCount}</p>
               </div>
 
               <div className="rounded-xl bg-[#f9fafb] px-4 py-3">
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Unavailable
+                  {t("stats.unavailable")}
                 </p>
                 <p className="mt-1 text-lg font-semibold text-[#1d1d1f]">{unavailableCount}</p>
               </div>
@@ -798,15 +821,13 @@ export function ConsultantsBrowse() {
         <div className="mt-8 flex items-end justify-between gap-4">
           <div>
             <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-              Available consultants
+              {t("results.heading")}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#4b5563]">
-              Explore verified profiles and choose the consultant that best matches your needs.
-            </p>
+            <p className="mt-2 text-sm leading-6 text-[#4b5563]">{t("results.subtitle")}</p>
           </div>
 
           <p className="shrink-0 text-sm font-medium text-[#2563eb]">
-            {filteredConsultants.length} result{filteredConsultants.length === 1 ? "" : "s"}
+            {t("results.count", { count: filteredConsultants.length })}
           </p>
         </div>
 
@@ -822,70 +843,87 @@ export function ConsultantsBrowse() {
                     <h3 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
                       {consultant.name}
                     </h3>
-                    <p className="mt-2 text-sm leading-6 text-[#4b5563]">{consultant.expertise}</p>
+                    <p className="mt-2 text-sm leading-6 text-[#4b5563]">
+                      {t(`profiles.${consultant.id}.expertise`)}
+                    </p>
                   </div>
 
                   <span
                     className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${consultant.badge.className}`}
                   >
-                    {consultant.badge.label}
+                    {t(`badge.${consultant.badge.key}`)}
                   </span>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {consultant.tags.map((tag) => (
                     <span
-                      key={tag.label}
+                      key={tag.key}
                       className={`rounded-full px-3 py-1 text-xs font-medium ${tag.bg} ${tag.text}`}
                     >
-                      {tag.label}
+                      {t(`tags.${tag.key}`)}
                     </span>
                   ))}
                 </div>
 
-                <p className="mt-5 text-sm leading-7 text-[#4b5563]">{consultant.description}</p>
+                <p className="mt-5 text-sm leading-7 text-[#4b5563]">
+                  {t(`profiles.${consultant.id}.description`)}
+                </p>
 
                 <div className="mt-6 grid gap-4 rounded-xl bg-[#f9fafb] p-4 sm:grid-cols-2">
                   <div>
                     <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                      Rating
+                      {t("card.rating")}
                     </p>
                     <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{consultant.rating}</p>
                   </div>
 
                   <div>
                     <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                      Sessions
+                      {t("card.sessions")}
                     </p>
                     <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{consultant.sessions}</p>
                   </div>
 
                   <div>
                     <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                      Fee
+                      {t("card.fee")}
                     </p>
                     <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{consultant.fee}</p>
                   </div>
 
                   <div>
                     <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                      Base duration
+                      {t("card.baseDuration")}
                     </p>
-                    <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{consultant.duration}</p>
+                    <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                      {t("duration.minutes", { count: consultant.durationMinutes })}
+                    </p>
                   </div>
                 </div>
 
                 <div className="mt-6 flex min-h-0 flex-1 flex-col rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <h4 className="text-base font-semibold text-[#1d1d1f]">Quick availability</h4>
+                    <h4 className="text-base font-semibold text-[#1d1d1f]">
+                      {t("card.quickAvailability")}
+                    </h4>
                     <span className="rounded-full bg-[#eff6ff] px-3 py-1 text-xs font-medium text-[#1d4ed8]">
-                      {consultant.slots.length} open slot{consultant.slots.length === 1 ? "" : "s"}
+                      {t("card.openSlots", { count: consultant.slots.length })}
                     </span>
                   </div>
 
                   <p className="mt-3 text-sm text-[#4b5563]">
-                    Next slot:{" "}
-                    <span className="font-medium text-[#1d1d1f]">{consultant.nextSlot}</span>
+                    {t("card.nextSlot")}{" "}
+                    <span className="font-medium text-[#1d1d1f]">
+                      {consultant.nextSlot
+                        ? t("nextSlotLabel.value", {
+                            day: consultant.nextSlot.dayKey
+                              ? t(`slotDay.${consultant.nextSlot.dayKey}`)
+                              : consultant.nextSlot.dayLabel,
+                            time: consultant.nextSlot.timeLabel,
+                          })
+                        : t("nextSlotLabel.none")}
+                    </span>
                   </p>
 
                   {consultant.slots.length > 0 ? (
@@ -900,7 +938,8 @@ export function ConsultantsBrowse() {
                             <div className="flex items-start justify-between gap-3">
                               <div>
                                 <p className="text-sm font-medium text-[#1d1d1f]">
-                                  {slot.dayLabel} · {slot.timeLabel}
+                                  {slot.dayKey ? t(`slotDay.${slot.dayKey}`) : slot.dayLabel} ·{" "}
+                                  {slot.timeLabel}
                                 </p>
                                 <p className="mt-1 text-sm text-[#4b5563]">{slot.dateLabel}</p>
                               </div>
@@ -910,14 +949,16 @@ export function ConsultantsBrowse() {
                                   slot.tagTone,
                                 )}`}
                               >
-                                {slot.tagLabel}
+                                {t(`slotTag.${slot.tagKey}`)}
                               </span>
                             </div>
 
                             <div className="mt-3 flex items-center justify-between">
-                              <p className="text-sm text-[#4b5563]">{slot.durationLabel}</p>
+                              <p className="text-sm text-[#4b5563]">
+                                {t("duration.minutes", { count: slot.durationMinutes })}
+                              </p>
                               <span className="text-sm font-medium text-[#2563eb]">
-                                Select slot
+                                {t("card.selectSlot")}
                               </span>
                             </div>
                           </Link>
@@ -926,9 +967,7 @@ export function ConsultantsBrowse() {
                     </div>
                   ) : (
                     <div className="mt-4 rounded-lg border border-[#e5e7eb] bg-white p-4">
-                      <p className="text-sm leading-6 text-[#4b5563]">
-                        No slots are visible right now for this consultant.
-                      </p>
+                      <p className="text-sm leading-6 text-[#4b5563]">{t("card.noSlotsVisible")}</p>
                     </div>
                   )}
 
@@ -937,7 +976,7 @@ export function ConsultantsBrowse() {
                       to={`/dev/consultants/${consultant.id}`}
                       className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                     >
-                      View consultant
+                      {t("card.viewConsultant")}
                     </Link>
 
                     {consultant.id === "1" ? (
@@ -945,18 +984,18 @@ export function ConsultantsBrowse() {
                         to="/dev/consultant/availability"
                         className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                       >
-                        Open availability source
+                        {t("card.openAvailabilitySource")}
                       </Link>
                     ) : consultant.slots[0] ? (
                       <Link
                         to={buildCheckoutLink(consultant.id, consultant.slots[0])}
                         className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                       >
-                        Book this consultant
+                        {t("card.bookConsultant")}
                       </Link>
                     ) : (
                       <span className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#d1d5db] bg-transparent px-5 text-sm font-medium text-[#9ca3af]">
-                        No slots available
+                        {t("card.noSlotsAvailable")}
                       </span>
                     )}
                   </div>
@@ -967,12 +1006,9 @@ export function ConsultantsBrowse() {
             <div className="lg:col-span-2 xl:col-span-3">
               <div className="rounded-2xl border border-[#e5e7eb] bg-white p-8 shadow-sm">
                 <h3 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                  No consultants matched your search
+                  {t("empty.title")}
                 </h3>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-[#4b5563]">
-                  Try broadening the keyword, changing the filter values, or reset the filters to
-                  view all available consultants again.
-                </p>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-[#4b5563]">{t("empty.body")}</p>
 
                 <div className="mt-6">
                   <button
@@ -980,7 +1016,7 @@ export function ConsultantsBrowse() {
                     onClick={handleResetFilters}
                     className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                   >
-                    Reset filters
+                    {t("empty.reset")}
                   </button>
                 </div>
               </div>
