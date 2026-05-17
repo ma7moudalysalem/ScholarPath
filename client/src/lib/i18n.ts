@@ -25,6 +25,7 @@ import enDocuments from "@/locales/en/documents.json";
 import enConsultants from "@/locales/en/consultants.json";
 import enBookings from "@/locales/en/bookings.json";
 import enConsultantPortal from "@/locales/en/consultantPortal.json";
+import enCommunity from "@/locales/en/community.json";
 
 import arCommon from "@/locales/ar/common.json";
 import arAuth from "@/locales/ar/auth.json";
@@ -49,6 +50,7 @@ import arDocuments from "@/locales/ar/documents.json";
 import arConsultants from "@/locales/ar/consultants.json";
 import arBookings from "@/locales/ar/bookings.json";
 import arConsultantPortal from "@/locales/ar/consultantPortal.json";
+import arCommunity from "@/locales/ar/community.json";
 
 export const supportedLanguages = ["en", "ar"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -89,6 +91,7 @@ void i18n
       "consultants",
       "bookings",
       "consultantPortal",
+      "community",
     ],
     defaultNS: "common",
     interpolation: { escapeValue: false },
@@ -122,6 +125,7 @@ void i18n
         consultants: enConsultants,
         bookings: enBookings,
         consultantPortal: enConsultantPortal,
+        community: enCommunity,
       },
       ar: {
         common: arCommon,
@@ -147,6 +151,7 @@ void i18n
         consultants: arConsultants,
         bookings: arBookings,
         consultantPortal: arConsultantPortal,
+        community: arCommunity,
       },
     },
   });
