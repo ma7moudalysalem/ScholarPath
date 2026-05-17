@@ -16,6 +16,7 @@ import enApplications from "@/locales/en/applications.json";
 import enCompany from "@/locales/en/company.json";
 import enProfile from "@/locales/en/profile.json";
 import enNotifications from "@/locales/en/notifications.json";
+import enDashboard from "@/locales/en/dashboard.json";
 
 import arCommon from "@/locales/ar/common.json";
 import arAuth from "@/locales/ar/auth.json";
@@ -31,6 +32,7 @@ import arApplications from "@/locales/ar/applications.json";
 import arCompany from "@/locales/ar/company.json";
 import arProfile from "@/locales/ar/profile.json";
 import arNotifications from "@/locales/ar/notifications.json";
+import arDashboard from "@/locales/ar/dashboard.json";
 
 export const supportedLanguages = ["en", "ar"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -62,6 +64,7 @@ void i18n
       "company",
       "profile",
       "notifications",
+      "dashboard",
     ],
     defaultNS: "common",
     interpolation: { escapeValue: false },
@@ -86,6 +89,7 @@ void i18n
         company: enCompany,
         profile: enProfile,
         notifications: enNotifications,
+        dashboard: enDashboard,
       },
       ar: {
         common: arCommon,
@@ -102,6 +106,7 @@ void i18n
         company: arCompany,
         profile: arProfile,
         notifications: arNotifications,
+        dashboard: arDashboard,
       },
     },
   });

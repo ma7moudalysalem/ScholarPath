@@ -1,0 +1,46 @@
+{
+  "student": {
+    "title": "Welcome back, {{name}}",
+    "subtitle": "Your scholarship journey at a glance.",
+    "cards": {
+      "scholarships": { "title": "Browse scholarships", "desc": "Discover and filter opportunities." },
+      "applications": { "title": "My applications", "desc": "Track every application's status." },
+      "bookmarks": { "title": "Saved", "desc": "Scholarships you bookmarked." },
+      "consultants": { "title": "Find a consultant", "desc": "Book 1:1 guidance sessions." },
+      "bookings": { "title": "My bookings", "desc": "Upcoming and past sessions." },
+      "community": { "title": "Community", "desc": "Ask questions and share tips." },
+      "messages": { "title": "Messages", "desc": "Your conversations." },
+      "ai": { "title": "AI tools", "desc": "Recommendations and assistance." },
+      "resources": { "title": "Resources", "desc": "Guides and articles." }
+    }
+  },
+  "consultant": {
+    "title": "Welcome back, {{name}}",
+    "subtitle": "Manage your sessions and availability.",
+    "cards": {
+      "availability": { "title": "Availability", "desc": "Set your weekly schedule." },
+      "bookings": { "title": "Bookings", "desc": "Incoming and upcoming sessions." },
+      "earnings": { "title": "Earnings", "desc": "Payouts and revenue." }
+    }
+  },
+  "admin": {
+    "title": "Admin console",
+    "subtitle": "Platform operations and moderation.",
+    "cards": {
+      "users": { "title": "Users", "desc": "Manage accounts and roles." },
+      "onboarding": { "title": "Onboarding queue", "desc": "Review pending accounts." },
+      "upgrades": { "title": "Upgrade requests", "desc": "Role-upgrade approvals." },
+      "broadcast": { "title": "Broadcast", "desc": "Send platform-wide notices." },
+      "analytics": { "title": "Analytics", "desc": "Usage and growth metrics." },
+      "aiEconomy": { "title": "AI economy", "desc": "AI cost and usage analytics." },
+      "redactionAudit": { "title": "Redaction audit", "desc": "Review AI redaction samples." },
+      "scholarships": { "title": "Scholarships", "desc": "Moderate listings." },
+      "articles": { "title": "Articles", "desc": "Moderate resource articles." },
+      "community": { "title": "Community", "desc": "Moderate posts and flags." },
+      "payments": { "title": "Payments", "desc": "Transactions and refunds." },
+      "profitShare": { "title": "Profit share", "desc": "Configure platform fees." },
+      "auditLog": { "title": "Audit log", "desc": "System action history." },
+      "settings": { "title": "Settings", "desc": "Platform configuration." }
+    }
+  }
+}

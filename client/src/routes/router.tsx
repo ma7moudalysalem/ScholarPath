@@ -40,10 +40,8 @@ const stub = (owner: string, moduleName: string, specPath: string) => () => (
 );
 
 // Student
-const StudentDashboard = stub(
-  "@Madiha6776 + everyone",
-  "Student Dashboard",
-  ".specify/specs/PB-001-auth-access-onboarding",
+const StudentDashboard = lazy(() =>
+  import("@/pages/student/StudentDashboard").then((m) => ({ default: m.StudentDashboard })),
 );
 const StudentApplications = lazy(() =>
   import("@/pages/student/Applications").then((m) => ({ default: m.Applications })),
@@ -107,10 +105,10 @@ const CompanyBilling = stub(
 );
 
 // Consultant
-const ConsultantDashboard = stub(
-  "@norra-mmhamed",
-  "Consultant Dashboard",
-  ".specify/specs/PB-006-consultant-booking",
+const ConsultantDashboard = lazy(() =>
+  import("@/pages/consultant/ConsultantDashboard").then((m) => ({
+    default: m.ConsultantDashboard,
+  })),
 );
 const ConsultantAvailability = lazy(() =>
   import("@/pages/consultant/ConsultantAvailability").then((m) => ({
@@ -134,10 +132,8 @@ const ConsultantEarnings = stub(
 );
 
 // Admin
-const AdminDashboard = stub(
-  "@ma7moudalysalem",
-  "PB-011 Admin dashboard",
-  ".specify/specs/PB-011-admin-portal",
+const AdminDashboard = lazy(() =>
+  import("@/pages/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard })),
 );
 const AdminUsers = lazy(() =>
   import("@/pages/admin/UsersAdmin").then((m) => ({ default: m.UsersAdmin })),
@@ -154,15 +150,11 @@ const AdminBroadcast = lazy(() =>
 const AdminAnalytics = lazy(() =>
   import("@/pages/admin/AnalyticsPage").then((m) => ({ default: m.AnalyticsPage })),
 );
-const AdminAiEconomy = stub(
-  "@ma7moudalysalem",
-  "PB-017 AI economy analytics",
-  ".specify/specs/PB-017-ai-economy-analytics",
+const AdminAiEconomy = lazy(() =>
+  import("@/pages/admin/AiEconomyPage").then((m) => ({ default: m.AiEconomyPage })),
 );
-const AdminRedactionAudit = stub(
-  "@ma7moudalysalem",
-  "PB-012 Redaction audit",
-  ".specify/specs/PB-012-audit-compliance",
+const AdminRedactionAudit = lazy(() =>
+  import("@/pages/admin/RedactionAuditPage").then((m) => ({ default: m.RedactionAuditPage })),
 );
 const AdminScholarships = stub(
   "@yousra-elnoby",
@@ -189,10 +181,8 @@ const AdminProfitShare = stub(
   "PB-014 Profit share",
   ".specify/specs/PB-014-profit-share",
 );
-const AdminAuditLog = stub(
-  "@ma7moudalysalem",
-  "PB-012 Audit log",
-  ".specify/specs/PB-012-audit-compliance",
+const AdminAuditLog = lazy(() =>
+  import("@/pages/admin/AuditLogViewer").then((m) => ({ default: m.AuditLogViewer })),
 );
 const AdminSettings = stub(
   "@ma7moudalysalem",
