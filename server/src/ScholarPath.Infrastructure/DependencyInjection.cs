@@ -185,6 +185,7 @@ public static class DependencyInjection
         services.AddScoped<IUserAdministration, UserAdministration>();
         services.AddScoped<IEmailChangeService, EmailChangeService>();
         services.AddScoped<IAdminReadService, AdminReadService>();
+        services.AddScoped<IConsultantReadService, ConsultantReadService>();
         services.AddScoped<AiCostGate>();
 
         // Jobs

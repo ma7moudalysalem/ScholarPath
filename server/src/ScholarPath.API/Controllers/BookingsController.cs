@@ -10,6 +10,11 @@ using ScholarPath.Application.ConsultantBookings.Commands.RequestBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.RescheduleBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
 using ScholarPath.Application.ConsultantBookings.Commands.SubmitConsultantRating;
+using ScholarPath.Application.ConsultantBookings.DTOs;
+using ScholarPath.Application.ConsultantBookings.Queries.GetBookingById;
+using ScholarPath.Application.ConsultantBookings.Queries.GetConsultantBookings;
+using ScholarPath.Application.ConsultantBookings.Queries.GetMyAvailability;
+using ScholarPath.Application.ConsultantBookings.Queries.GetMyBookings;
 
 namespace ScholarPath.API.Controllers;
 
@@ -24,6 +29,47 @@ public sealed class BookingsController : ControllerBase
     {
         _sender = sender;
     }
+
+    // ─── Read / query endpoints ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Lists the authenticated student's consultant bookings, newest first.
+    /// </summary>
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(IReadOnlyList<BookingListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<BookingListItemDto>>> GetMyBookings(
+        CancellationToken cancellationToken)
+        => Ok(await _sender.Send(new GetMyBookingsQuery(), cancellationToken));
+
+    /// <summary>
+    /// Lists the authenticated consultant's own (incoming) bookings, newest first.
+    /// </summary>
+    [HttpGet("consultant")]
+    [ProducesResponseType(typeof(IReadOnlyList<BookingListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<BookingListItemDto>>> GetConsultantBookings(
+        CancellationToken cancellationToken)
+        => Ok(await _sender.Send(new GetConsultantBookingsQuery(), cancellationToken));
+
+    /// <summary>
+    /// Returns the authenticated consultant's own active availability rules.
+    /// </summary>
+    [HttpGet("me/availability")]
+    [ProducesResponseType(typeof(IReadOnlyList<AvailabilityRuleDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<AvailabilityRuleDto>>> GetMyAvailability(
+        CancellationToken cancellationToken)
+        => Ok(await _sender.Send(new GetMyAvailabilityQuery(), cancellationToken));
+
+    /// <summary>
+    /// Returns one booking's full detail. Authorized to the booking's student,
+    /// its consultant, or an admin — otherwise 403.
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(BookingDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BookingDetailDto>> GetBookingById(
+        Guid id, CancellationToken cancellationToken)
+        => Ok(await _sender.Send(new GetBookingByIdQuery(id), cancellationToken));
 
     [HttpPost("/api/consultants/{id:guid}/book")]
     public async Task<IActionResult> RequestBooking(
