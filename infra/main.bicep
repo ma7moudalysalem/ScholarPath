@@ -165,7 +165,9 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 7
-    enablePurgeProtection: true
+    // Purge protection deliberately left off: a graduation-demo subscription
+    // is torn down / redeployed often, and protection would lock the vault
+    // name for 7 days after every delete. Enable it for a real production vault.
     publicNetworkAccess: 'Enabled'
   }
 }
