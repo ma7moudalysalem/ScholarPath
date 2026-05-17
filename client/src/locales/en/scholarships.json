@@ -55,6 +55,7 @@
     "funding": "Funding",
     "level": "Level",
     "deadline": "Deadline",
+    "category": "Category",
     "country": "Country",
     "reviewFee": "Review Fee",
     "eligibility": "Eligibility",

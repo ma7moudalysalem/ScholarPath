@@ -80,11 +80,21 @@ export function Chat() {
       }
     });
 
-    void connection.start().then(() => {
-      hubConnectionRef.current = connection;
-    });
+    let cancelled = false;
+    connection
+      .start()
+      .then(() => {
+        if (!cancelled) hubConnectionRef.current = connection;
+      })
+      .catch((err: unknown) => {
+        // The cleanup below aborts an in-flight start() (notably under React
+        // StrictMode's double-invoke) — that rejection is expected. Surface
+        // only failures from a still-live effect.
+        if (!cancelled) console.warn("Chat hub failed to start", err);
+      });
 
     return () => {
+      cancelled = true;
       void connection.stop();
     };
   }, [accessToken, selectedConv, currentUser?.id, qc]);

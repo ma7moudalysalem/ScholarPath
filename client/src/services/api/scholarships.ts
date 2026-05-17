@@ -1,66 +1,61 @@
 import { apiClient } from "@/services/api/client";
 import type { FundingType, AcademicLevel, ListingMode } from "@/types/domain";
 
-// ── DTOs ──────────────────────────────────────────────────────────────────────
+// ── Frontend view models ──────────────────────────────────────────────────────
+//
+// The backend ships already-localised, flat DTOs (a single `title` /
+// `description` chosen server-side from the `Accept-Language` header — see
+// ScholarshipDto / ScholarshipDetailDto). The pages, however, were written
+// against a bilingual shape (`titleEn` / `titleAr` …). To avoid rewriting
+// every consumer we keep these bilingual view models and map the wire DTO
+// into them inside the service: both language fields receive the one
+// localised string the server returned, so `isRtl ? titleAr : titleEn`
+// still renders correctly.
 
 export interface ScholarshipListItem {
   id: string;
-  slug: string;
+  slug: string | null;
   titleEn: string;
   titleAr: string;
   descriptionEn: string;
   descriptionAr: string;
   deadline: string;
   fundingType: FundingType;
-  mode: ListingMode;
   targetLevel: AcademicLevel;
-  categoryId?: string | null;
+  categoryName?: string | null;
+  ownerCompanyName?: string | null;
   isFeatured: boolean;
-  reviewFeeUsd?: number | null;
-  ownerCompanyId?: string | null;
-  country?: string | null;
-  tags?: string[];
-  externalUrl?: string | null;
-  status: "Draft" | "Open" | "Closed" | "Archived" | "UnderReview";
-  matchScore?: number | null;
+  status: ScholarshipStatus;
 }
 
 export interface ScholarshipDetail extends ScholarshipListItem {
-  formSchemaJson?: string | null;
-  requiredDocuments?: string[];
+  mode: ListingMode;
+  externalUrl?: string | null;
   eligibilityCriteria?: string | null;
-  ownerCompanyName?: string | null;
-  createdAt: string;
-  updatedAt?: string | null;
+  applicationFormSchemaJson?: string | null;
+  requiredDocuments?: string[];
 }
 
 export interface SearchScholarshipsRequest {
   query?: string;
-  countries?: string[];
+  country?: string;
+  categoryId?: string;
   deadlineFrom?: string;
   deadlineTo?: string;
   fundingTypes?: FundingType[];
   academicLevels?: AcademicLevel[];
-  tags?: string[];
-  isFeatured?: boolean;
-  sort?: "relevance" | "deadline" | "newest" | "recommended";
+  /** Maps to the server's `FundedOnly` flag (fully- or partially-funded only). */
+  fundedOnly?: boolean;
   page?: number;
   pageSize?: number;
 }
 
+/** Paged scholarship list — mirrors what `ScholarshipsPage` consumes. */
 export interface Paginated<T> {
   items: T[];
   page: number;
-  pageSize: number;
   total: number;
   totalPages: number;
-}
-
-export interface BookmarkedScholarship {
-  id: string;
-  scholarshipId: string;
-  scholarship: ScholarshipListItem;
-  savedAt: string;
 }
 
 export type ScholarshipStatus =
@@ -93,45 +88,154 @@ export interface PaginatedMyScholarships {
   hasNextPage: boolean;
 }
 
+// ── Wire DTOs (exactly what the .NET API serialises — camelCase, enum strings) ─
+
+/** Server ScholarshipDto (GET /api/scholarships item). */
+interface ScholarshipWireDto {
+  id: string;
+  title: string;
+  description: string;
+  categoryName: string | null;
+  ownerCompanyName: string | null;
+  status: ScholarshipStatus;
+  fundingType: FundingType;
+  targetLevel: AcademicLevel;
+  deadline: string;
+  isFeatured: boolean;
+  slug: string | null;
+}
+
+/** Server ScholarshipChildDto. */
+interface ScholarshipChildWireDto {
+  childType: string;
+  key: string;
+  value: string | null;
+  sortOrder: number;
+}
+
+/** Server ScholarshipDetailDto (GET /api/scholarships/{id}). */
+interface ScholarshipDetailWireDto extends ScholarshipWireDto {
+  externalApplicationUrl: string | null;
+  mode: ListingMode;
+  eligibilityRequirements: string | null;
+  children: ScholarshipChildWireDto[];
+  applicationFormSchemaJson: string | null;
+  requiredDocumentsJson: string | null;
+}
+
+/** Server PaginatedList<T>. */
+interface PaginatedListWireDto<T> {
+  items: T[];
+  pageNumber: number;
+  totalPages: number;
+  totalCount: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+// ── Wire → view-model mappers ──────────────────────────────────────────────────
+
+function toListItem(dto: ScholarshipWireDto): ScholarshipListItem {
+  return {
+    id: dto.id,
+    slug: dto.slug,
+    // The server already localised `title`/`description`; mirror into both
+    // language slots so RTL/LTR consumers both render the right string.
+    titleEn: dto.title,
+    titleAr: dto.title,
+    descriptionEn: dto.description,
+    descriptionAr: dto.description,
+    deadline: dto.deadline,
+    fundingType: dto.fundingType,
+    targetLevel: dto.targetLevel,
+    categoryName: dto.categoryName,
+    ownerCompanyName: dto.ownerCompanyName,
+    isFeatured: dto.isFeatured,
+    status: dto.status,
+  };
+}
+
+/** Parses the server's JSON string column into a string[] (tolerant of nulls). */
+function parseStringArray(json: string | null): string[] | undefined {
+  if (!json) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(json);
+    return Array.isArray(parsed) ? parsed.map(String) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function toDetail(dto: ScholarshipDetailWireDto): ScholarshipDetail {
+  // RequiredDocuments may be a JSON array, or the generic "RequiredDoc"
+  // child rows — fall back to the children when the JSON column is empty.
+  const childDocs = dto.children
+    .filter((c) => c.childType === "RequiredDoc")
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((c) => c.value ?? c.key);
+
+  return {
+    ...toListItem(dto),
+    mode: dto.mode,
+    externalUrl: dto.externalApplicationUrl,
+    eligibilityCriteria: dto.eligibilityRequirements,
+    applicationFormSchemaJson: dto.applicationFormSchemaJson,
+    requiredDocuments: parseStringArray(dto.requiredDocumentsJson) ?? (childDocs.length > 0 ? childDocs : undefined),
+  };
+}
+
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const scholarshipsApi = {
+  /**
+   * Browse/search scholarships — `GET /api/scholarships`, bound from
+   * `GetScholarshipsQuery` ([FromQuery]). The server takes a single funding
+   * type / academic level / country, so the multi-select filters are
+   * narrowed to their first value here.
+   */
   async search(
     req: SearchScholarshipsRequest,
   ): Promise<Paginated<ScholarshipListItem>> {
-    const { data } = await apiClient.post<Paginated<ScholarshipListItem>>(
-      "/api/scholarships/search",
-      req,
+    const params: Record<string, string | number | boolean> = {
+      pageNumber: req.page ?? 1,
+      pageSize: req.pageSize ?? 12,
+    };
+    if (req.query) params.term = req.query;
+    if (req.country) params.country = req.country;
+    if (req.categoryId) params.categoryId = req.categoryId;
+    if (req.deadlineFrom) params.deadlineFrom = req.deadlineFrom;
+    if (req.deadlineTo) params.deadlineTo = req.deadlineTo;
+    if (req.fundingTypes && req.fundingTypes.length > 0)
+      params.fundingType = req.fundingTypes[0];
+    if (req.academicLevels && req.academicLevels.length > 0)
+      params.academicLevel = req.academicLevels[0];
+    if (req.fundedOnly) params.fundedOnly = true;
+
+    const { data } = await apiClient.get<PaginatedListWireDto<ScholarshipWireDto>>(
+      "/api/scholarships",
+      { params },
     );
-    return data;
+    return {
+      items: data.items.map(toListItem),
+      page: data.pageNumber,
+      total: data.totalCount,
+      totalPages: data.totalPages,
+    };
   },
 
   async getById(id: string): Promise<ScholarshipDetail> {
-    const { data } = await apiClient.get<ScholarshipDetail>(
+    const { data } = await apiClient.get<ScholarshipDetailWireDto>(
       `/api/scholarships/${id}`,
     );
-    return data;
+    return toDetail(data);
   },
 
+  /** Toggles the bookmark; the server returns the raw new boolean state. */
   async toggleBookmark(id: string): Promise<{ bookmarked: boolean }> {
-    const { data } = await apiClient.post<{ bookmarked: boolean }>(
+    const { data } = await apiClient.post<boolean>(
       `/api/scholarships/${id}/bookmark`,
     );
-    return data;
-  },
-
-  async getBookmarks(): Promise<BookmarkedScholarship[]> {
-    const { data } = await apiClient.get<BookmarkedScholarship[]>(
-      "/api/scholarships/bookmarks",
-    );
-    return data;
-  },
-
-  async getFeatured(): Promise<ScholarshipListItem[]> {
-    const { data } = await apiClient.get<ScholarshipListItem[]>(
-      "/api/scholarships/featured",
-    );
-    return data;
+    return { bookmarked: data };
   },
 
   // ── Company: own scholarships ────────────────────────────────────────────────

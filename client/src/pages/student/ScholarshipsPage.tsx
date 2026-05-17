@@ -31,13 +31,6 @@ const ACADEMIC_LEVELS: AcademicLevel[] = [
   "Other",
 ];
 
-const SORT_OPTIONS = [
-  "relevance",
-  "deadline",
-  "newest",
-  "recommended",
-] as const;
-
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function FundingBadge({ type }: { type: FundingType }) {
@@ -68,7 +61,6 @@ export function ScholarshipsPage() {
 
   // ── Filters state ─────────────────────────────────────────────────────────
   const [query, setQuery]                   = useState("");
-  const [sort, setSort]                     = useState<SearchScholarshipsRequest["sort"]>("relevance");
   const [fundingTypes, setFundingTypes]     = useState<FundingType[]>([]);
   const [academicLevels, setAcademicLevels] = useState<AcademicLevel[]>([]);
   const [deadlineFrom, setDeadlineFrom]     = useState("");
@@ -78,7 +70,6 @@ export function ScholarshipsPage() {
 
   const req: SearchScholarshipsRequest = {
     query:          query          || undefined,
-    sort,
     fundingTypes:   fundingTypes.length   > 0 ? fundingTypes   : undefined,
     academicLevels: academicLevels.length > 0 ? academicLevels : undefined,
     deadlineFrom:   deadlineFrom   || undefined,
@@ -156,7 +147,7 @@ export function ScholarshipsPage() {
         )}
       </div>
 
-      {/* ── Search + Sort bar ── */}
+      {/* ── Search bar ── */}
       <div className="flex flex-wrap items-center gap-3">
         <label className="relative min-w-55 flex-1">
           <Search
@@ -171,21 +162,6 @@ export function ScholarshipsPage() {
             className="h-10 w-full rounded-md border border-border-subtle bg-bg-elevated ps-10 pe-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           />
         </label>
-
-        <select
-          value={sort}
-          onChange={(e) => {
-            setSort(e.target.value as SearchScholarshipsRequest["sort"]);
-            setPage(1);
-          }}
-          className="h-10 rounded-md border border-border-subtle bg-bg-elevated px-3 text-sm"
-        >
-          {SORT_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {t(`scholarships:sort.${s}`)}
-            </option>
-          ))}
-        </select>
 
         <button
           type="button"

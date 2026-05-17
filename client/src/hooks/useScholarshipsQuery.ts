@@ -5,7 +5,6 @@ import {
   type SearchScholarshipsRequest,
   type ScholarshipListItem,
   type ScholarshipDetail,
-  type BookmarkedScholarship,
   type Paginated,
 } from "@/services/api/scholarships";
 
@@ -28,22 +27,6 @@ export function useScholarshipDetailQuery(id: string | undefined) {
   });
 }
 
-export function useBookmarksQuery() {
-  return useQuery<BookmarkedScholarship[]>({
-    queryKey: queryKeys.scholarships.bookmarks,
-    queryFn: () => scholarshipsApi.getBookmarks(),
-    staleTime: 60_000,
-  });
-}
-
-export function useFeaturedScholarshipsQuery() {
-  return useQuery<ScholarshipListItem[]>({
-    queryKey: [...queryKeys.scholarships.all, "featured"],
-    queryFn: () => scholarshipsApi.getFeatured(),
-    staleTime: 5 * 60_000,
-  });
-}
-
 // ── Mutations ─────────────────────────────────────────────────────────────────
 
 export function useToggleBookmarkMutation() {
@@ -53,9 +36,6 @@ export function useToggleBookmarkMutation() {
     mutationFn: (scholarshipId: string) =>
       scholarshipsApi.toggleBookmark(scholarshipId),
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.scholarships.bookmarks,
-      });
       void queryClient.invalidateQueries({
         queryKey: queryKeys.scholarships.all,
       });

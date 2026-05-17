@@ -180,20 +180,6 @@ export function ScholarshipDetail() {
         <p className="mt-4 text-sm leading-relaxed text-text-secondary">
           {description}
         </p>
-
-        {/* Tags */}
-        {data.tags && data.tags.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {data.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-border-subtle bg-bg-canvas px-2.5 py-0.5 text-xs text-text-secondary"
-              >
-                {"#"}{tag}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* ── Details card ── */}
@@ -225,19 +211,11 @@ export function ScholarshipDetail() {
             </span>
           </DetailRow>
 
-          {data.country && (
-            <DetailRow label={t("scholarships:detail.country")}>
+          {data.categoryName && (
+            <DetailRow label={t("scholarships:detail.category")}>
               <span className="inline-flex items-center gap-1.5">
                 <Globe aria-hidden className="size-4 text-text-tertiary" />
-                {data.country}
-              </span>
-            </DetailRow>
-          )}
-
-          {data.reviewFeeUsd != null && (
-            <DetailRow label={t("scholarships:detail.reviewFee")}>
-              <span className="font-medium text-text-primary">
-                {"$"}{data.reviewFeeUsd.toFixed(2)}
+                {data.categoryName}
               </span>
             </DetailRow>
           )}
