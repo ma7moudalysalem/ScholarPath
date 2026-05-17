@@ -315,9 +315,30 @@ export function AppRouter() {
               </RequireRole>
             }
           />
-          <Route path="/company/scholarships"          element={<CompanyScholarships />} />
-          <Route path="/company/applications-review"   element={<CompanyApplicationsReview />} />
-          <Route path="/company/billing"               element={<CompanyBilling />} />
+          <Route
+            path="/company/scholarships"
+            element={
+              <RequireRole roles={["Company"]}>
+                <CompanyScholarships />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/company/applications-review"
+            element={
+              <RequireRole roles={["Company"]}>
+                <CompanyApplicationsReview />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/company/billing"
+            element={
+              <RequireRole roles={["Company"]}>
+                <CompanyBilling />
+              </RequireRole>
+            }
+          />
 
           <Route
             path="/consultant"
@@ -327,10 +348,38 @@ export function AppRouter() {
               </RequireRole>
             }
           />
-          <Route path="/consultant/availability"   element={<ConsultantAvailability />} />
-          <Route path="/consultant/bookings"       element={<ConsultantBookings />} />
-          <Route path="/consultant/bookings/:id"   element={<ConsultantBookingDetails />} />
-          <Route path="/consultant/earnings"       element={<ConsultantEarnings />} />
+          <Route
+            path="/consultant/availability"
+            element={
+              <RequireRole roles={["Consultant"]}>
+                <ConsultantAvailability />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/consultant/bookings"
+            element={
+              <RequireRole roles={["Consultant"]}>
+                <ConsultantBookings />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/consultant/bookings/:id"
+            element={
+              <RequireRole roles={["Consultant"]}>
+                <ConsultantBookingDetails />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/consultant/earnings"
+            element={
+              <RequireRole roles={["Consultant"]}>
+                <ConsultantEarnings />
+              </RequireRole>
+            }
+          />
         </Route>
 
         {/* Admin */}
