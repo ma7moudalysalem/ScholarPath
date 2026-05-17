@@ -34,6 +34,12 @@ yarn-error.log*
 secrets.json
 user-secrets/
 
+# Private keys — JWT RS256 dev signing key (Jwt:DevKeyPath) and the like.
+# Never commit private key material; production keys live in Azure Key Vault.
+*.pem
+*.key
+*.pfx
+
 # ============================== IDEs / editors ==============================
 .vs/
 .vscode/*

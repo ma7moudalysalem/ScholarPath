@@ -8,7 +8,29 @@ public sealed class JwtOptions
     public int AccessTokenExpirationMinutes { get; set; } = 60;
     public int RefreshTokenExpirationDays { get; set; } = 7;
     public int RefreshTokenRememberMeExpirationDays { get; set; } = 30;
-    public string SigningKey { get; set; } = default!; // dev only — use RS256 + Key Vault in prod
+
+    // ─── RS256 asymmetric signing ────────────────────────────────────────────
+    // Tokens are signed with an RSA private key and validated with the matching
+    // public key. The key itself is supplied by an IJwtKeyProvider, never stored
+    // here in plain config.
+
+    /// <summary>
+    /// Azure Key Vault base URI (e.g. https://scholarpath-kv.vault.azure.net/).
+    /// When set, the production <c>KeyVaultJwtKeyProvider</c> is selected and the
+    /// RSA key is fetched from the vault via <c>DefaultAzureCredential</c>.
+    /// Leave empty in development to use the local key provider.
+    /// </summary>
+    public string? KeyVaultUri { get; set; }
+
+    /// <summary>Name of the RSA key inside Key Vault. Used only when <see cref="KeyVaultUri"/> is set.</summary>
+    public string KeyName { get; set; } = "scholarpath-jwt-signing";
+
+    /// <summary>
+    /// Filesystem path to an RSA private-key PEM used by the development key
+    /// provider. If the file is missing an ephemeral RSA-2048 key is generated
+    /// at startup. Never commit a real private key to source control.
+    /// </summary>
+    public string? DevKeyPath { get; set; }
 }
 
 public sealed class StripeOptions

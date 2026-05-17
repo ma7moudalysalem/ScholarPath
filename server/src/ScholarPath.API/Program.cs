@@ -1,4 +1,3 @@
-using System.Text;
 using System.Text.Json.Serialization;
 using Hangfire;
 using Hangfire.MemoryStorage;
@@ -19,6 +18,7 @@ using ScholarPath.Infrastructure.Hubs;
 using ScholarPath.Infrastructure.Jobs;
 using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Infrastructure.Persistence.Seed;
+using ScholarPath.Infrastructure.Services;
 using ScholarPath.Infrastructure.Settings;
 using Serilog;
 
@@ -49,6 +49,12 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("Jwt section missing.");
 
+// RS256: the RSA public key used to validate tokens comes from IJwtKeyProvider
+// (Azure Key Vault in production, a local/ephemeral key in development).
+// GetOrCreate memoises the provider per configuration, so this is the SAME
+// instance AddInfrastructureServices registered for the token signer above.
+var jwtKeyProvider = JwtKeyProviderRegistration.GetOrCreate(builder.Configuration);
+
 builder.Services
     .AddAuthentication(opts =>
     {
@@ -67,7 +73,8 @@ builder.Services
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtOptions.Issuer,
             ValidAudience = jwtOptions.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+            ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
+            IssuerSigningKey = jwtKeyProvider.GetValidationKey(),
             ClockSkew = TimeSpan.FromMinutes(1),
         };
 
@@ -180,6 +187,23 @@ if (hangfireOpts.Enabled)
 
 // ─── Build app ───────────────────────────────────────────────────────────────
 var app = builder.Build();
+
+// ─── JWT key provenance ──────────────────────────────────────────────────────
+// The key provider is constructed before the logging pipeline exists, so report
+// where the RS256 signing key came from now. A warning here means a dev-only
+// situation (e.g. an ephemeral key) that must not reach production.
+{
+    var jwtKeyStatus = jwtKeyProvider.Describe(out var jwtKeyWarning);
+    var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("JwtKey");
+    if (jwtKeyWarning)
+    {
+        startupLogger.LogWarning("{JwtKeyStatus}", jwtKeyStatus);
+    }
+    else
+    {
+        startupLogger.LogInformation("{JwtKeyStatus}", jwtKeyStatus);
+    }
+}
 
 // ─── Pipeline ────────────────────────────────────────────────────────────────
 app.UseSerilogRequestLogging();

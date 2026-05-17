@@ -1,34 +1,34 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 using Microsoft.IdentityModel.Tokens;
 
 namespace ScholarPath.IntegrationTests.Helpers;
 
 /// <summary>
-/// Generates JWT tokens for integration tests using the same
-/// signing key, issuer, and audience as the API (from appsettings.json).
+/// Generates RS256 JWT tokens for integration tests. The tokens are signed with
+/// the API's own RSA signing key — obtained from the running host's
+/// <c>IJwtKeyProvider</c> — so they validate against the real
+/// <c>AddJwtBearer</c> pipeline. Issuer and audience match the API config.
 /// </summary>
 public static class TestJwtHelper
 {
-    // Must match appsettings.json → Jwt section exactly
-    private const string SigningKey =
-        "PLACEHOLDER_JWT_DEV_SIGNING_KEY_AT_LEAST_64_CHARS_FOR_HMAC_SHA256_xxxxx";
-
+    // Must match appsettings.json → Jwt section.
     private const string Issuer = "https://scholarpath.local";
     private const string Audience = "https://scholarpath.local";
 
-    public static string GenerateStudentToken(Guid userId)
-        => GenerateToken(userId, "Student");
+    public static string GenerateStudentToken(RsaSecurityKey signingKey, Guid userId)
+        => GenerateToken(signingKey, userId, "Student");
 
-    public static string GenerateConsultantToken(Guid userId)
-        => GenerateToken(userId, "Consultant");
+    public static string GenerateConsultantToken(RsaSecurityKey signingKey, Guid userId)
+        => GenerateToken(signingKey, userId, "Consultant");
 
-    public static string GenerateAdminToken(Guid userId)
-        => GenerateToken(userId, "Admin");
+    public static string GenerateAdminToken(RsaSecurityKey signingKey, Guid userId)
+        => GenerateToken(signingKey, userId, "Admin");
 
-    public static string GenerateToken(Guid userId, string role)
+    public static string GenerateToken(RsaSecurityKey signingKey, Guid userId, string role)
     {
+        ArgumentNullException.ThrowIfNull(signingKey);
+
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
@@ -37,8 +37,7 @@ public static class TestJwtHelper
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SigningKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var creds = new SigningCredentials(signingKey, SecurityAlgorithms.RsaSha256);
 
         var token = new JwtSecurityToken(
             issuer: Issuer,

@@ -84,6 +84,15 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, StubPasswordHasher>();
         services.AddSingleton<ISsoService, StubSsoService>();
 
+        // JWT signing key source (RS256). Key Vault when a vault URI is
+        // configured (production); otherwise the local PEM / ephemeral-key
+        // provider for development. Registered as a single shared instance so
+        // the token signer (private key) and the JWT-bearer validator (public
+        // key) use the SAME RSA key — critical for the dev provider, whose
+        // ephemeral key must not differ between the two. The instance is built
+        // here and also handed to AddJwtBearer in Program.cs.
+        services.AddSingleton(JwtKeyProviderRegistration.GetOrCreate(config));
+
         // Email: real SMTP via MailKit when Email:Provider = "MailKit"; else the dev stub.
         var emailProvider = config.GetValue<string>($"{EmailOptions.SectionName}:Provider");
         if (string.Equals(emailProvider, "MailKit", StringComparison.OrdinalIgnoreCase))

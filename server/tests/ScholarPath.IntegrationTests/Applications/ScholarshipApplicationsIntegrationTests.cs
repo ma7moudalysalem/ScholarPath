@@ -64,11 +64,18 @@ public class ScholarshipApplicationsFactory : WebApplicationFactory<Program>, IA
     // ── Helpers ───────────────────────────────────────────────────────────────
     public HttpClient CreateStudentClient()
     {
+        // Sign the test token with the API's own RS256 signing key so it
+        // validates against the real AddJwtBearer pipeline. The host and the
+        // test share a process, so the key provider is resolvable from DI.
+        var signingKey = Services
+            .GetRequiredService<ScholarPath.Infrastructure.Services.IJwtKeyProvider>()
+            .GetSigningKey();
+
         var client = CreateClient();
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue(
                 "Bearer",
-                TestJwtHelper.GenerateStudentToken(SeededStudentId));
+                TestJwtHelper.GenerateStudentToken(signingKey, SeededStudentId));
         return client;
     }
 

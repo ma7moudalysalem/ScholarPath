@@ -17,6 +17,7 @@ namespace ScholarPath.Infrastructure.Services;
 
 public sealed class TokenService(
     IOptions<JwtOptions> jwtOptions,
+    IJwtKeyProvider keyProvider,
     ApplicationDbContext db,
     IDateTimeService clock,
     ILogger<TokenService> logger) : ITokenService
@@ -148,10 +149,11 @@ public sealed class TokenService(
             claims.Add(new Claim(ClaimTypes.Role, r));
         }
 
-        // For the scaffold we use HMAC-SHA256 with the SigningKey from options.
-        // Production: swap to RS256 with Azure Key Vault private key.
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_opts.SigningKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        // RS256: sign with the RSA private key supplied by the key provider
+        // (Azure Key Vault in production, a local/ephemeral key in development).
+        // The `kid` header lets validators select the matching public key.
+        var signingKey = keyProvider.GetSigningKey();
+        var creds = new SigningCredentials(signingKey, SecurityAlgorithms.RsaSha256);
 
         var token = new JwtSecurityToken(
             issuer: _opts.Issuer,
