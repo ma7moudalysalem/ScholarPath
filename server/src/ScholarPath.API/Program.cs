@@ -284,7 +284,7 @@ if (hangfireOpts.Enabled)
     recurring.AddOrUpdate<IRedactionAuditSamplingJob>("redaction-audit-sampling", j => j.RunAsync(CancellationToken.None), "0 2 1 * *");
 }
 
-// ─── Database migrate + seed ─────────────────────────────────────────────────
+// ─── Database migration (synchronous — the app needs the schema present) ─────
 using (var scope = app.Services.CreateScope())
 {
     var sp = scope.ServiceProvider;
@@ -293,24 +293,40 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var db = sp.GetRequiredService<ApplicationDbContext>();
-        var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
-        var rm = sp.GetRequiredService<RoleManager<ApplicationRole>>();
-
-        // Always bring the schema up to date — pending EF migrations are applied
-        // on every startup (idempotent; a no-op once the database is current).
+        // Pending EF migrations are applied on every startup (idempotent;
+        // a no-op once the database is current).
         await db.Database.MigrateAsync(CancellationToken.None).ConfigureAwait(false);
-
-        // Seed demo data in Development, or in any environment where the
-        // `SeedDemoData` flag is set (e.g. the graduation-demo Azure deployment).
-        if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("SeedDemoData"))
-        {
-            await DbSeeder.SeedAsync(db, um, rm, logger, CancellationToken.None).ConfigureAwait(false);
-        }
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Database migrate/seed failed.");
+        logger.LogError(ex, "Database migration failed.");
     }
+}
+
+// ─── Demo seed — runs in the BACKGROUND after the app has started, so a large
+//     dataset never blocks (or times out) application startup on a small
+//     hosting tier. The seeder is idempotent, so running it on every boot is
+//     safe. Seeded in Development, or wherever the `SeedDemoData` flag is set.
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("SeedDemoData"))
+{
+    app.Lifetime.ApplicationStarted.Register(() => _ = Task.Run(async () =>
+    {
+        using var scope = app.Services.CreateScope();
+        var sp = scope.ServiceProvider;
+        var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("DbSeeder");
+
+        try
+        {
+            var db = sp.GetRequiredService<ApplicationDbContext>();
+            var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
+            var rm = sp.GetRequiredService<RoleManager<ApplicationRole>>();
+            await DbSeeder.SeedAsync(db, um, rm, logger, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Background demo seed failed.");
+        }
+    }));
 }
 
 app.Run();
