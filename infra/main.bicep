@@ -36,6 +36,9 @@ param baseName string = 'scholarpath'
 @description('Azure region for all resources. Defaults to the resource group location.')
 param location string = resourceGroup().location
 
+@description('Region for the Static Web App. SWA exists in only a few regions (centralus, eastus2, eastasia, westeurope, westus2) — kept separate from `location` so the rest of the stack can deploy to a region that does support it.')
+param staticWebAppLocation string = 'eastus2'
+
 @description('Deployment environment discriminator (suffixed onto resource names).')
 @allowed([
   'dev'
@@ -398,9 +401,9 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
 
 resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
   name: staticWebAppName
-  // Static Web Apps are only available in a subset of regions; Free tier
-  // is broadly available. Override if your RG region lacks SWA support.
-  location: location
+  // SWA exists in only a few regions — on its own param so the rest of the
+  // stack can deploy to a region that does not support Static Web Apps.
+  location: staticWebAppLocation
   tags: tags
   sku: {
     name: 'Free'
