@@ -1,8 +1,10 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ScholarPath.Application.Auth.DTOs;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Common.Models;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -13,7 +15,10 @@ public sealed class RegisterCommandHandler(
     IApplicationDbContext db,
     IPasswordHasher passwordHasher,
     ITokenService tokenService,
-    IDateTimeService clock)
+    IDateTimeService clock,
+    IEmailVerificationService emailVerification,
+    IEmailService emailService,
+    IOptions<AppOptions> appOptions)
     : IRequestHandler<RegisterCommand, AuthTokensDto>
 {
     public async Task<AuthTokensDto> Handle(RegisterCommand request, CancellationToken ct)
@@ -46,6 +51,11 @@ public sealed class RegisterCommandHandler(
 
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
+
+        // Send the email-verification link (FR-215). Best-effort — email is a side
+        // channel; a delivery failure must not break registration.
+        await EmailVerificationSender.SendAsync(
+            user, emailVerification, emailService, appOptions.Value.ClientUrl, ct);
 
         var tokens = tokenService.IssueTokens(user, roles: [], activeRole: null, request.RememberMe);
         return AuthDtoFactory.Build(tokens, user, roles: []);

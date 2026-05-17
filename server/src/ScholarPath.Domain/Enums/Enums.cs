@@ -303,3 +303,21 @@ public enum CancellationReason
     RejectedByConsultant = 7,
     Other = 99
 }
+
+/// <summary>
+/// Folder a vault document is filed under (FR-216). Lets a user organise
+/// their personal document store and attach the right file to an application.
+/// </summary>
+public enum DocumentCategory
+{
+    Other = 0,
+    Transcript = 1,
+    Certificate = 2,
+    RecommendationLetter = 3,
+    PersonalStatement = 4,
+    Resume = 5,
+    IdentityDocument = 6,
+    ProofOfEnglish = 7,
+    FinancialDocument = 8,
+    Portfolio = 9,
+}

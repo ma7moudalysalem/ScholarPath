@@ -60,6 +60,8 @@ public interface IApplicationDbContext
     DbSet<ResourceProgress> ResourceProgress { get; }
     DbSet<ResourceProgressChild> ResourceProgressChildren { get; }
 
+    DbSet<Document> Documents { get; }
+
     DbSet<Notification> Notifications { get; }
     DbSet<NotificationPreference> NotificationPreferences { get; }
 

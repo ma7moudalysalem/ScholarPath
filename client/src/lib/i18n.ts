@@ -21,6 +21,7 @@ import enPayments from "@/locales/en/payments.json";
 import enResources from "@/locales/en/resources.json";
 import enModeration from "@/locales/en/moderation.json";
 import enSettings from "@/locales/en/settings.json";
+import enDocuments from "@/locales/en/documents.json";
 
 import arCommon from "@/locales/ar/common.json";
 import arAuth from "@/locales/ar/auth.json";
@@ -41,6 +42,7 @@ import arPayments from "@/locales/ar/payments.json";
 import arResources from "@/locales/ar/resources.json";
 import arModeration from "@/locales/ar/moderation.json";
 import arSettings from "@/locales/ar/settings.json";
+import arDocuments from "@/locales/ar/documents.json";
 
 export const supportedLanguages = ["en", "ar"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -77,6 +79,7 @@ void i18n
       "resources",
       "moderation",
       "settings",
+      "documents",
     ],
     defaultNS: "common",
     interpolation: { escapeValue: false },
@@ -106,6 +109,7 @@ void i18n
         resources: enResources,
         moderation: enModeration,
         settings: enSettings,
+        documents: enDocuments,
       },
       ar: {
         common: arCommon,
@@ -127,6 +131,7 @@ void i18n
         resources: arResources,
         moderation: arModeration,
         settings: arSettings,
+        documents: arDocuments,
       },
     },
   });

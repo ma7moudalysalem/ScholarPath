@@ -1,0 +1,56 @@
+{
+  "title": "خزنة المستندات",
+  "subtitle": "ارفع مستنداتك الشخصية ونظّمها — كشوف الدرجات والشهادات وخطابات التوصية — وأعد استخدامها في طلباتك.",
+  "upload": {
+    "heading": "رفع مستند",
+    "pickFile": "اختر ملفًا",
+    "noFile": "لم يتم اختيار ملف",
+    "category": "التصنيف",
+    "submit": "رفع",
+    "uploading": "جارٍ الرفع…",
+    "success": "تم رفع المستند.",
+    "error": "تعذّر رفع المستند.",
+    "tooLarge": "يجب ألا يتجاوز حجم الملف 25 ميجابايت.",
+    "hint": "ملفات PDF أو Word أو صور أو نصوص بحجم أقصاه 25 ميجابايت."
+  },
+  "list": {
+    "loading": "جارٍ تحميل المستندات…",
+    "loadError": "تعذّر تحميل مستنداتك.",
+    "retry": "إعادة المحاولة",
+    "empty": "خزنتك فارغة. ارفع أول مستند لك من الأعلى.",
+    "filterAll": "كل التصنيفات",
+    "count_zero": "لا توجد مستندات",
+    "count_one": "مستند واحد",
+    "count_two": "مستندان",
+    "count_few": "{{count}} مستندات",
+    "count_many": "{{count}} مستندًا",
+    "count_other": "{{count}} مستند"
+  },
+  "headers": {
+    "name": "الملف",
+    "category": "التصنيف",
+    "size": "الحجم",
+    "uploaded": "تاريخ الرفع",
+    "actions": "إجراءات"
+  },
+  "actions": {
+    "download": "تنزيل",
+    "delete": "حذف",
+    "deleteConfirm": "هل تريد حذف هذا المستند؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deleteSuccess": "تم حذف المستند.",
+    "deleteError": "تعذّر حذف المستند.",
+    "downloadError": "تعذّر تنزيل المستند."
+  },
+  "category": {
+    "Other": "أخرى",
+    "Transcript": "كشف الدرجات",
+    "Certificate": "شهادة",
+    "RecommendationLetter": "خطاب توصية",
+    "PersonalStatement": "خطاب الدوافع",
+    "Resume": "السيرة الذاتية",
+    "IdentityDocument": "وثيقة هوية",
+    "ProofOfEnglish": "إثبات إجادة الإنجليزية",
+    "FinancialDocument": "مستند مالي",
+    "Portfolio": "ملف الأعمال"
+  }
+}

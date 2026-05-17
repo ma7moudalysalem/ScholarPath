@@ -1,0 +1,52 @@
+{
+  "title": "Document vault",
+  "subtitle": "Upload and organise your personal documents — transcripts, certificates, letters — and reuse them on your applications.",
+  "upload": {
+    "heading": "Upload a document",
+    "pickFile": "Choose file",
+    "noFile": "No file selected",
+    "category": "Category",
+    "submit": "Upload",
+    "uploading": "Uploading…",
+    "success": "Document uploaded.",
+    "error": "Could not upload the document.",
+    "tooLarge": "The file must be 25 MB or smaller.",
+    "hint": "PDF, Word, image, or text files up to 25 MB."
+  },
+  "list": {
+    "loading": "Loading documents…",
+    "loadError": "Could not load your documents.",
+    "retry": "Retry",
+    "empty": "Your vault is empty. Upload your first document above.",
+    "filterAll": "All categories",
+    "count_one": "{{count}} document",
+    "count_other": "{{count}} documents"
+  },
+  "headers": {
+    "name": "File",
+    "category": "Category",
+    "size": "Size",
+    "uploaded": "Uploaded",
+    "actions": "Actions"
+  },
+  "actions": {
+    "download": "Download",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this document? This cannot be undone.",
+    "deleteSuccess": "Document deleted.",
+    "deleteError": "Could not delete the document.",
+    "downloadError": "Could not download the document."
+  },
+  "category": {
+    "Other": "Other",
+    "Transcript": "Transcript",
+    "Certificate": "Certificate",
+    "RecommendationLetter": "Recommendation letter",
+    "PersonalStatement": "Personal statement",
+    "Resume": "Resume / CV",
+    "IdentityDocument": "Identity document",
+    "ProofOfEnglish": "Proof of English",
+    "FinancialDocument": "Financial document",
+    "Portfolio": "Portfolio"
+  }
+}

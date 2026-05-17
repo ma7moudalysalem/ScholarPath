@@ -41,3 +41,21 @@ public interface IBlobStorageService
     Task DeleteAsync(string blobUrl, CancellationToken ct);
     Task<Stream> DownloadAsync(string blobUrl, CancellationToken ct);
 }
+
+/// <summary>
+/// Thin abstraction over ASP.NET Identity's built-in email-confirmation tokens
+/// (FR-215). Infrastructure implements this with <c>UserManager</c>'s
+/// <c>GenerateEmailConfirmationTokenAsync</c> / <c>ConfirmEmailAsync</c> — no
+/// custom token entity is involved.
+/// </summary>
+public interface IEmailVerificationService
+{
+    /// <summary>Generates an Identity email-confirmation token for the user, or null if not found.</summary>
+    Task<string?> GenerateConfirmationTokenAsync(Guid userId, CancellationToken ct);
+
+    /// <summary>
+    /// Confirms the user's email with an Identity token. Returns true on success,
+    /// false if the user is missing or the token is invalid/expired.
+    /// </summary>
+    Task<bool> ConfirmEmailAsync(Guid userId, string token, CancellationToken ct);
+}

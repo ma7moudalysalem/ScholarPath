@@ -1,9 +1,11 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using ScholarPath.Application.Auth.Commands.Register;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Common.Models;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -20,6 +22,8 @@ public sealed class RegisterCommandHandlerTests : IDisposable
     private readonly IPasswordHasher _hasher = Substitute.For<IPasswordHasher>();
     private readonly ITokenService _tokens = Substitute.For<ITokenService>();
     private readonly IDateTimeService _clock = Substitute.For<IDateTimeService>();
+    private readonly IEmailVerificationService _emailVerification = Substitute.For<IEmailVerificationService>();
+    private readonly IEmailService _email = Substitute.For<IEmailService>();
     private readonly RegisterCommandHandler _handler;
     private readonly DateTimeOffset _now = new(2026, 5, 16, 12, 0, 0, TimeSpan.Zero);
 
@@ -35,8 +39,12 @@ public sealed class RegisterCommandHandlerTests : IDisposable
         _tokens.IssueTokens(Arg.Any<ApplicationUser>(), Arg.Any<IEnumerable<string>>(),
                 Arg.Any<string?>(), Arg.Any<bool>())
             .Returns(new TokenPair("access", "refresh", _now.AddHours(1), _now.AddDays(7)));
+        _emailVerification.GenerateConfirmationTokenAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns("confirm-token");
 
-        _handler = new RegisterCommandHandler(_db, _hasher, _tokens, _clock);
+        _handler = new RegisterCommandHandler(
+            _db, _hasher, _tokens, _clock, _emailVerification, _email,
+            Options.Create(new AppOptions()));
     }
 
     private static RegisterCommand Cmd()
@@ -54,6 +62,19 @@ public sealed class RegisterCommandHandlerTests : IDisposable
         user.AccountStatus.Should().Be(AccountStatus.Unassigned);
         user.IsOnboardingComplete.Should().BeFalse();
         user.PasswordHash.Should().Be("hashed");
+        user.EmailConfirmed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_NewEmail_SendsVerificationEmail()
+    {
+        await _handler.Handle(Cmd(), CancellationToken.None);
+
+        await _emailVerification.Received(1)
+            .GenerateConfirmationTokenAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await _email.Received(1).SendAsync(
+            Arg.Is<EmailMessage>(m => m.To == Email && m.HtmlBody.Contains("verify-email")),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -77,6 +77,9 @@ public class ApplicationDbContext(
     public DbSet<ResourceProgress> ResourceProgress => Set<ResourceProgress>();
     public DbSet<ResourceProgressChild> ResourceProgressChildren => Set<ResourceProgressChild>();
 
+    // Document vault (FR-216)
+    public DbSet<Document> Documents => Set<Document>();
+
     // Notifications
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();

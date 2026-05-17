@@ -84,6 +84,9 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, StubPasswordHasher>();
         services.AddSingleton<ISsoService, StubSsoService>();
 
+        // Email verification (FR-215) — wraps Identity's built-in confirmation tokens.
+        services.AddScoped<IEmailVerificationService, EmailVerificationService>();
+
         // JWT signing key source (RS256). Key Vault when a vault URI is
         // configured (production); otherwise the local PEM / ephemeral-key
         // provider for development. Registered as a single shared instance so
@@ -100,7 +103,10 @@ public static class DependencyInjection
         else
             services.AddSingleton<IEmailService, StubEmailService>();
 
-        services.AddSingleton<IBlobStorageService, StubBlobStorageService>();
+        // File storage: real provider driven by Storage:Provider (Local | AzureBlob).
+        // The document vault (FR-216) needs working upload/download/delete, which the
+        // dev stub cannot give. FileStorageService honours both providers.
+        services.AddSingleton<IBlobStorageService, FileStorageService>();
 
         // Stripe: the real client only when a genuine secret key (sk_...) is
         // configured; placeholder values fall through to the dev stub.

@@ -7,10 +7,12 @@ using ScholarPath.Application.Auth.Commands.Login;
 using ScholarPath.Application.Auth.Commands.Logout;
 using ScholarPath.Application.Auth.Commands.RefreshToken;
 using ScholarPath.Application.Auth.Commands.Register;
+using ScholarPath.Application.Auth.Commands.ResendVerificationEmail;
 using ScholarPath.Application.Auth.Commands.ResetPassword;
 using ScholarPath.Application.Auth.Commands.SelectRole;
 using ScholarPath.Application.Auth.Commands.SsoLogin;
 using ScholarPath.Application.Auth.Commands.SwitchRole;
+using ScholarPath.Application.Auth.Commands.VerifyEmail;
 using ScholarPath.Application.Auth.DTOs;
 using ScholarPath.Application.Auth.Queries.GetCurrentUser;
 using ScholarPath.Application.Common.Interfaces;
@@ -92,6 +94,29 @@ public sealed class AuthController(IMediator mediator, ISsoService ssoService) :
         [FromBody] ResetPasswordRequestDto request, CancellationToken ct)
     {
         await mediator.Send(new ResetPasswordCommand(request.Token, request.NewPassword), ct);
+        return NoContent();
+    }
+
+    /// <summary>Confirm an email address using the token from the verification link (FR-215).</summary>
+    [HttpPost("verify-email")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> VerifyEmail(
+        [FromBody] VerifyEmailRequestDto request, CancellationToken ct)
+    {
+        await mediator.Send(new VerifyEmailCommand(request.UserId, request.Token), ct);
+        return NoContent();
+    }
+
+    /// <summary>Re-send the email-verification link. Always returns 204 (no account enumeration).</summary>
+    [HttpPost("resend-verification")]
+    [EnableRateLimiting("auth")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> ResendVerification(
+        [FromBody] ResendVerificationRequestDto request, CancellationToken ct)
+    {
+        await mediator.Send(new ResendVerificationEmailCommand(request.Email), ct);
         return NoContent();
     }
 
