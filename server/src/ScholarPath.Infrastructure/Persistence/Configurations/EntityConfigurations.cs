@@ -311,9 +311,7 @@ public sealed class ApplicationTrackerConfiguration : IEntityTypeConfiguration<A
         // إضافة Unique Filtered Index لمنع التقديم المتكرر (السباق اللحظي)
         // الشرط: الطالب لا يمكنه التقديم على نفس المنحة إذا كان لديه طلب (Draft أو Pending أو UnderReview)
         
-           .HasDatabaseName("UX_Applications_Student_Scholarship_Active")
-            .HasFilter($"[Status] NOT IN ('{(int)ApplicationStatus.Withdrawn}', '{(int)ApplicationStatus.Rejected}', '{(int)ApplicationStatus.Accepted}')")
-            .IsUnique();
+            .HasDatabaseName("UX_Applications_Student_Scholarship_Active");
 
         b.Property(a => a.Status)
             .HasConversion<string>();
