@@ -6,7 +6,7 @@
 //   - App Service for the .NET 10 API
 //   - Static Web App for the React client
 //   - Azure SQL (logical server + database)
-//   - Azure Cache for Redis
+//   - Azure Cache for Redis (OPTIONAL — off by default; the app runs without it)
 //   - Key Vault (connection strings; the RS256 JWT signing key is uploaded
 //     manually post-provision — see docs/deployment.md §5)
 //   - Application Insights (+ Log Analytics workspace)
@@ -65,7 +65,10 @@ param sqlAdminPassword string
 @description('SKU name for the Azure SQL database.')
 param sqlDatabaseSku string = 'Basic'
 
-@description('SKU for Azure Cache for Redis. family C / capacity 0 == Basic 250 MB.')
+@description('Deploy Azure Cache for Redis. OFF by default — Redis has no free tier (~16 USD/mo) and the app runs fine without it. Turn on only for production load.')
+param deployRedis bool = false
+
+@description('SKU for Azure Cache for Redis (used only when deployRedis is true). family C / capacity 0 == Basic 250 MB.')
 @allowed([
   'Basic'
   'Standard'
@@ -183,11 +186,14 @@ resource sqlConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   }
 }
 
-// Redis connection string secret.
-resource redisConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+// Redis connection string secret (only when Redis is deployed).
+resource redisConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (deployRedis) {
   parent: keyVault
   name: 'Redis--ConnectionString'
   properties: {
+    // redisConnectionSecret shares the `if (deployRedis)` condition with the
+    // `redis` resource, so `redis` is always present here — Bicep can't prove it.
+    #disable-next-line BCP318 BCP422
     value: '${redis.properties.hostName}:${redis.properties.sslPort},password=${redis.listKeys().primaryKey},ssl=True,abortConnect=False'
     contentType: 'text/plain'
   }
@@ -257,7 +263,7 @@ resource sqlAllowAzureServices 'Microsoft.Sql/servers/firewallRules@2023-08-01-p
 
 // ─── Azure Cache for Redis ──────────────────────────────────────────────────
 
-resource redis 'Microsoft.Cache/redis@2024-03-01' = {
+resource redis 'Microsoft.Cache/redis@2024-03-01' = if (deployRedis) {
   name: redisName
   location: location
   tags: tags
@@ -310,7 +316,7 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
         allowedOrigins: empty(clientCorsOrigin) ? [] : [clientCorsOrigin]
         supportCredentials: true
       }
-      appSettings: [
+      appSettings: concat([
         {
           name: 'ASPNETCORE_ENVIRONMENT'
           value: 'Production'
@@ -321,9 +327,9 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ConnectionStrings__DefaultConnection'
           value: '@Microsoft.KeyVault(SecretUri=${sqlConnectionSecret.properties.secretUri})'
         }
-        // RS256 JWT: the API reads the RSA signing key from Key Vault itself
-        // at runtime (DefaultAzureCredential + SecretClient), so no Key Vault
-        // *reference* here — just point it at the vault and the secret name.
+        // RS256 JWT + field encryption: the API reads these keys from Key
+        // Vault itself at runtime (DefaultAzureCredential + SecretClient), so
+        // no Key Vault *reference* here — just point it at the vault.
         {
           name: 'Jwt__KeyVaultUri'
           value: keyVault.properties.vaultUri
@@ -341,12 +347,12 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
           value: jwtAudience
         }
         {
-          name: 'Redis__Enabled'
-          value: 'true'
+          name: 'FieldEncryption__KeyVaultUri'
+          value: keyVault.properties.vaultUri
         }
         {
-          name: 'Redis__ConnectionString'
-          value: '@Microsoft.KeyVault(SecretUri=${redisConnectionSecret.properties.secretUri})'
+          name: 'Redis__Enabled'
+          value: string(deployRedis)
         }
         // Hangfire recurring jobs run in-process; enable in the deployed app.
         {
@@ -374,7 +380,14 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ApplicationInsights__ConnectionString'
           value: appInsights.properties.ConnectionString
         }
-      ]
+      ], deployRedis ? [
+        {
+          name: 'Redis__ConnectionString'
+          // This entry only exists when deployRedis is true, so the secret does too.
+          #disable-next-line BCP318
+          value: '@Microsoft.KeyVault(SecretUri=${redisConnectionSecret.properties.secretUri})'
+        }
+      ] : [])
     }
   }
 }

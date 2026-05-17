@@ -284,7 +284,7 @@ if (hangfireOpts.Enabled)
     recurring.AddOrUpdate<IRedactionAuditSamplingJob>("redaction-audit-sampling", j => j.RunAsync(CancellationToken.None), "0 2 1 * *");
 }
 
-// ─── Seed database ───────────────────────────────────────────────────────────
+// ─── Database migrate + seed ─────────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
     var sp = scope.ServiceProvider;
@@ -296,14 +296,20 @@ using (var scope = app.Services.CreateScope())
         var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
         var rm = sp.GetRequiredService<RoleManager<ApplicationRole>>();
 
-        if (app.Environment.IsDevelopment())
+        // Always bring the schema up to date — pending EF migrations are applied
+        // on every startup (idempotent; a no-op once the database is current).
+        await db.Database.MigrateAsync(CancellationToken.None).ConfigureAwait(false);
+
+        // Seed demo data in Development, or in any environment where the
+        // `SeedDemoData` flag is set (e.g. the graduation-demo Azure deployment).
+        if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("SeedDemoData"))
         {
             await DbSeeder.SeedAsync(db, um, rm, logger, CancellationToken.None).ConfigureAwait(false);
         }
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Database seed failed.");
+        logger.LogError(ex, "Database migrate/seed failed.");
     }
 }
 
