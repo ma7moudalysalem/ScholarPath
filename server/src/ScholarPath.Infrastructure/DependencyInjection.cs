@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.Configure<AppOptions>(config.GetSection(AppOptions.SectionName));
         services.Configure<AuthenticationOptions>(config.GetSection(AuthenticationOptions.SectionName));
         services.Configure<FileScanningOptions>(config.GetSection(FileScanningOptions.SectionName));
+        services.Configure<FieldEncryptionOptions>(config.GetSection(FieldEncryptionOptions.SectionName));
 
         // Project AiOptions into the Application-side snapshot so the cost gate
         // doesn't have to know about Infrastructure's full options type.
@@ -114,6 +115,19 @@ public static class DependencyInjection
         // ephemeral key must not differ between the two. The instance is built
         // here and also handed to AddJwtBearer in Program.cs.
         services.AddSingleton(JwtKeyProviderRegistration.GetOrCreate(config));
+
+        // Application-level field encryption (security NFR). Azure SQL TDE already
+        // encrypts the whole database file at rest; this is the second, stronger
+        // layer — specific sensitive columns are AES-256-GCM encrypted by the API
+        // so they stay ciphertext even to direct DB query access. The AES key
+        // comes from Key Vault when FieldEncryption:KeyVaultUri is set
+        // (production); otherwise the local provider reads a fixed Base64 dev key.
+        // Registered as a single shared instance so every consumer encrypts and
+        // decrypts with the same key bytes. AesGcmFieldEncryptionService is a
+        // singleton too — it holds only the immutable key — and is consumed by
+        // the EF Core EncryptedStringConverter wired up in ApplicationDbContext.
+        services.AddSingleton(FieldEncryptionKeyProviderRegistration.GetOrCreate(config));
+        services.AddSingleton<IFieldEncryptionService, AesGcmFieldEncryptionService>();
 
         // Email: real SMTP via MailKit when Email:Provider = "MailKit"; else the dev stub.
         var emailProvider = config.GetValue<string>($"{EmailOptions.SectionName}:Provider");

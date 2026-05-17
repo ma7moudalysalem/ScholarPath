@@ -1,20 +1,39 @@
 using MediatR;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Common;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Infrastructure.Persistence.Configurations;
 using System.Reflection;
 
 namespace ScholarPath.Infrastructure.Persistence;
 
+/// <param name="encryption">
+/// Application-level field-encryption service. Optional: when supplied (the
+/// running app) <see cref="OnModelCreating"/> wires the AES-256-GCM
+/// <see cref="EncryptedStringConverter"/> onto the sensitive columns. When
+/// <see langword="null"/> (EF design-time tooling, in-memory unit-test contexts)
+/// the columns are mapped as plain strings — migrations only ever change column
+/// width, never the data, so a design-time context needs no key.
+/// </param>
 public class ApplicationDbContext(
     DbContextOptions<ApplicationDbContext> options,
-    IMediator? mediator = null)
+    IMediator? mediator = null,
+    IFieldEncryptionService? encryption = null)
     : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>(options),
       IApplicationDbContext
 {
+    /// <summary>
+    /// True when an <see cref="IFieldEncryptionService"/> was injected, so
+    /// <see cref="OnModelCreating"/> wires the field-encryption value converter.
+    /// Read by <see cref="EncryptionAwareModelCacheKeyFactory"/> to keep the
+    /// encryption-on and encryption-off models in separate cache slots.
+    /// </summary>
+    internal bool FieldEncryptionEnabled => encryption is not null;
+
     // Users + onboarding
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
@@ -91,6 +110,17 @@ public class ApplicationDbContext(
     public DbSet<UserRiskFlag> UserRiskFlags => Set<UserRiskFlag>();
     public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+
+        // ApplicationDbContext's model varies at runtime — the field-encryption
+        // converter is only applied when an IFieldEncryptionService was injected.
+        // Swap in a cache-key factory that accounts for that, so an
+        // encryption-aware context and a plain one never share a cached model.
+        optionsBuilder.ReplaceService<IModelCacheKeyFactory, EncryptionAwareModelCacheKeyFactory>();
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
@@ -114,6 +144,17 @@ public class ApplicationDbContext(
         builder.Entity<Microsoft.AspNetCore.Identity.IdentityUserLogin<Guid>>().ToTable("UserLogins");
         builder.Entity<Microsoft.AspNetCore.Identity.IdentityUserToken<Guid>>().ToTable("UserTokens");
         builder.Entity<Microsoft.AspNetCore.Identity.IdentityRoleClaim<Guid>>().ToTable("RoleClaims");
+
+        // Application-level encryption of sensitive columns at rest (security
+        // NFR): wire the AES-256-GCM ValueConverter onto the chosen PII columns.
+        // The column list lives in EntityConfigurations so it sits next to the
+        // rest of the mapping. Skipped when no encryption service is available
+        // (design-time tooling / in-memory test contexts) — those never persist
+        // production data.
+        if (encryption is not null)
+        {
+            builder.ApplyFieldEncryption(encryption);
+        }
 
         // SQL Server refuses multiple CASCADE paths to the same table — which
         // any entity with 2+ FKs to ApplicationUser triggers. Rather than

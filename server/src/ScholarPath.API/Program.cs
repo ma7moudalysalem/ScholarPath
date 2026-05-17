@@ -205,6 +205,23 @@ var app = builder.Build();
     }
 }
 
+// ─── Field-encryption key provenance ─────────────────────────────────────────
+// Same pattern as the JWT key: report where the AES-256 key for application-level
+// column encryption came from. A warning means the development key is in use.
+{
+    var fieldKeyProvider = FieldEncryptionKeyProviderRegistration.GetOrCreate(builder.Configuration);
+    var fieldKeyStatus = fieldKeyProvider.Describe(out var fieldKeyWarning);
+    var fieldKeyLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("FieldEncryptionKey");
+    if (fieldKeyWarning)
+    {
+        fieldKeyLogger.LogWarning("{FieldKeyStatus}", fieldKeyStatus);
+    }
+    else
+    {
+        fieldKeyLogger.LogInformation("{FieldKeyStatus}", fieldKeyStatus);
+    }
+}
+
 // ─── Pipeline ────────────────────────────────────────────────────────────────
 app.UseSerilogRequestLogging();
 app.UseMiddleware<SecurityHeadersMiddleware>();

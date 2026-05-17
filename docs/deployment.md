@@ -202,7 +202,64 @@ refresh tokens).
 
 ---
 
-## 6. Antivirus scanning of uploads
+## 6. Encrypting sensitive fields at rest
+
+The database has **two** at-rest encryption layers:
+
+1. **Azure SQL Transparent Data Encryption (TDE)** encrypts the whole database
+   — data files, log files and backups — and is **on by default** for Azure
+   SQL Database. It needs no configuration and protects against someone
+   obtaining the physical storage or a backup file.
+2. **Application-level field encryption** is a second, stronger layer for the
+   most sensitive columns. The API encrypts specific personal-data columns
+   with **AES-256-GCM** *before* they reach SQL Server, so they stay
+   ciphertext even to someone with a direct `SELECT` on the table — TDE alone
+   does not protect against that, because TDE decrypts transparently for any
+   authenticated query. Currently encrypted: the user profile **biography**
+   and an application's **personal notes**.
+
+Field encryption is controlled by the `FieldEncryption` config section:
+
+| Setting | Meaning |
+|---------|---------|
+| `FieldEncryption__KeyVaultUri` | Azure Key Vault URI. When set (production) the AES key is read from the vault; when empty (development) the local `FieldEncryption__DevKey` is used. |
+| `FieldEncryption__KeyName` | Key Vault **secret** name holding the Base64 AES key (default `field-encryption-key`). |
+| `FieldEncryption__DevKey` | Development-only Base64 256-bit key. Never set in production — leave it empty and use Key Vault. |
+
+The AES key is a **256-bit key, Base64-encoded, stored as a Key Vault secret**
+— exactly like the JWT key in §5, and resolved at runtime by the API itself
+via `DefaultAzureCredential` (the App Service managed identity already has the
+**Key Vault Secrets User** role). Set `FieldEncryption__KeyVaultUri` and
+`FieldEncryption__KeyName` as plain app settings on the API App Service.
+
+Generate a key and upload it as the Key Vault secret `field-encryption-key`:
+
+```bash
+# 32 random bytes (256 bits), Base64-encoded
+openssl rand -base64 32 > field-encryption-key.txt
+az keyvault secret set \
+  --vault-name <KEY_VAULT_NAME> \
+  --name field-encryption-key \
+  --file field-encryption-key.txt
+```
+
+This is a one-time post-provision step (the Bicep deployment does **not**
+create this secret). Delete the local `field-encryption-key.txt` once it is
+uploaded.
+
+> **The field-encryption key must be stable — never rotate it casually.**
+> Unlike the JWT key, rotating this key does **not** silently re-encrypt
+> existing rows: a value encrypted under the old key can only be decrypted
+> with the old key. The ciphertext envelope carries a version segment
+> (`enc:v1:`) precisely so a future key rotation can be done as a deliberate,
+> versioned migration. Decryption transparently passes through any value that
+> is **not** an `enc:v1:` envelope, so enabling the feature over a database of
+> pre-existing plaintext rows is safe — old rows keep reading and are
+> encrypted on their next write.
+
+---
+
+## 7. Antivirus scanning of uploads
 
 Every file upload (the document vault, profile photos) is virus-scanned
 **before** the bytes are persisted (SRS security NFR). Scanning goes through
@@ -240,12 +297,12 @@ and uploads will be rejected — until that finishes. Give it a generous
 
 ---
 
-## 7. GitHub configuration
+## 8. GitHub configuration
 
 The deploy workflow authenticates to Azure with **OIDC** (federated
 credentials) — there is no Azure client secret stored in GitHub.
 
-### 7.1 Create an app registration with a federated credential
+### 8.1 Create an app registration with a federated credential
 
 ```bash
 # Create the app registration + service principal
@@ -275,7 +332,7 @@ az ad app federated-credential create \
 > Environments, add matching federated credentials (e.g.
 > `repo:ma7moudalysalem/ScholarPath:environment:production`).
 
-### 7.2 Repository **secrets**
+### 8.2 Repository **secrets**
 
 `Settings → Secrets and variables → Actions → Secrets`:
 
@@ -284,10 +341,10 @@ az ad app federated-credential create \
 | `AZURE_CLIENT_ID` | `appId` of the app registration above. |
 | `AZURE_TENANT_ID` | `az account show --query tenantId -o tsv`. |
 | `AZURE_SUBSCRIPTION_ID` | `az account show --query id -o tsv`. |
-| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Static Web App deployment token (see §7.4). |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Static Web App deployment token (see §8.4). |
 | `VITE_STRIPE_PUBLISHABLE_KEY` | Stripe publishable (`pk_...`) key for the client build. |
 
-### 7.3 Repository **variables**
+### 8.3 Repository **variables**
 
 `Settings → Secrets and variables → Actions → Variables`:
 
@@ -298,7 +355,7 @@ az ad app federated-credential create \
 | `VITE_GOOGLE_CLIENT_ID` | Google OAuth client id. |
 | `VITE_MICROSOFT_CLIENT_ID` | Microsoft OAuth client id. |
 
-### 7.4 Static Web App deployment token
+### 8.4 Static Web App deployment token
 
 ```bash
 az staticwebapp secrets list \
@@ -311,7 +368,7 @@ Store the result as the `AZURE_STATIC_WEB_APPS_API_TOKEN` secret.
 
 ---
 
-## 8. Deploying
+## 9. Deploying
 
 Once the infrastructure exists and GitHub is configured:
 
@@ -329,9 +386,9 @@ The workflow:
 
 ---
 
-## 9. Post-deploy steps
+## 10. Post-deploy steps
 
-### 9.1 Database migrations
+### 10.1 Database migrations
 
 EF Core migrations are applied by `DbSeeder.SeedAsync`, which calls
 `Database.MigrateAsync()`. In `Program.cs` the seeder runs **only in the
@@ -363,7 +420,7 @@ az sql server firewall-rule create \
 
 Remove the rule again when you are done.
 
-### 9.2 Seeding
+### 10.2 Seeding
 
 `DbSeeder` also seeds roles and baseline data, but — like migrations — only
 in `Development`. For a production environment, seed the reference data
@@ -371,7 +428,7 @@ deliberately (e.g. run the API once against the prod DB with
 `ASPNETCORE_ENVIRONMENT=Development` from a trusted host, or add a dedicated
 seed step). Do **not** leave the App Service running as `Development`.
 
-### 9.3 Smoke test
+### 10.3 Smoke test
 
 ```bash
 curl -fsS https://<api-host>/health        # expect HTTP 200
@@ -383,7 +440,7 @@ the client origin via `clientCorsOrigin` / `Cors__AllowedOrigins__0`).
 
 ---
 
-## 10. Configuration reference
+## 11. Configuration reference
 
 App settings the API reads in Azure (most are set by the Bicep template):
 
@@ -394,10 +451,12 @@ App settings the API reads in Azure (most are set by the Bicep template):
 | `Jwt__KeyVaultUri` | App setting — the Key Vault URI. The API reads the RS256 signing key from this vault at runtime via its managed identity. |
 | `Jwt__KeyName` | App setting (`jwtKeyName` param, default `scholarpath-jwt-signing`) — the Key Vault secret name of the RSA private key. |
 | `Jwt__Issuer` / `Jwt__Audience` | App setting (`jwtIssuer` / `jwtAudience` params). |
+| `FieldEncryption__KeyVaultUri` | App setting — the Key Vault URI. Set in production so the API reads the AES field-encryption key from Key Vault (§6). |
+| `FieldEncryption__KeyName` | App setting (default `field-encryption-key`) — the Key Vault secret name of the Base64 AES-256 key. |
 | `Redis__Enabled` / `Redis__ConnectionString` | App setting / Key Vault reference. |
 | `Hangfire__Enabled` | `true` — recurring jobs run in-process. |
 | `Cors__AllowedOrigins__0` / `App__ClientUrl` | The Static Web App URL. |
-| `FileScanning__Enabled` | `true` in production — turns on ClamAV scanning of uploads (§6). |
+| `FileScanning__Enabled` | `true` in production — turns on ClamAV scanning of uploads (§7). |
 | `FileScanning__ClamAvHost` / `FileScanning__ClamAvPort` | App setting — host/port of the reachable `clamd` daemon. |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | App setting (from App Insights). |
 

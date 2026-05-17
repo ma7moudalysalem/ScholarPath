@@ -1,9 +1,61 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Infrastructure.Persistence.Configurations;
+
+// ===================== Application-level field encryption =====================
+
+/// <summary>
+/// Wires the AES-256-GCM <see cref="EncryptedStringConverter"/> onto the columns
+/// that hold genuinely-sensitive free-text PII (SRS security NFR — a second layer
+/// on top of Azure SQL TDE). Invoked from <c>ApplicationDbContext.OnModelCreating</c>.
+/// <para>
+/// <b>An encrypted column cannot be queried by value</b> — no <c>Where</c>,
+/// <c>OrderBy</c>, <c>Join</c>, index or unique constraint may reference it. The
+/// columns below were each grep-confirmed across the whole codebase to appear
+/// only in <c>Select</c> projections and direct assignments, never in a query
+/// predicate:
+/// </para>
+/// <list type="bullet">
+///   <item><description>
+///   <see cref="UserProfile.Biography"/> — free-text personal bio. Read only via
+///   <c>Select</c> (ProfileMapper, ProfileCompletenessCalculator, the resource
+///   publish-rule checks) and written by UpdateProfile. No index references it.
+///   </description></item>
+///   <item><description>
+///   <see cref="ApplicationTracker.PersonalNotes"/> — the applicant's private
+///   notes. Read only via <c>Select</c> (GetApplicationDetail, the data-export
+///   job) and written by StartApplication. No index references it.
+///   </description></item>
+/// </list>
+/// <para>
+/// Deliberately NOT encrypted: emails / names (login + uniqueness lookups),
+/// slugs, Stripe identifiers (webhook lookups), enums, foreign keys, indexed
+/// columns, and <c>UserProfile.DateOfBirth</c> (a typed <c>date</c> column, not
+/// free text — a string converter would change its storage type).
+/// </para>
+/// </summary>
+public static class FieldEncryptionModelBuilderExtensions
+{
+    public static void ApplyFieldEncryption(this ModelBuilder builder, IFieldEncryptionService encryption)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(encryption);
+
+        var converter = new EncryptedStringConverter(encryption);
+
+        builder.Entity<UserProfile>()
+            .Property(p => p.Biography)
+            .HasConversion(converter);
+
+        builder.Entity<ApplicationTracker>()
+            .Property(a => a.PersonalNotes)
+            .HasConversion(converter);
+    }
+}
 
 // ============================== Identity ==============================
 
@@ -35,7 +87,12 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
 {
     public void Configure(EntityTypeBuilder<UserProfile> b)
     {
-        b.Property(p => p.Biography).HasMaxLength(4000);
+        // Biography is AES-256-GCM encrypted at rest (see FieldEncryptionModelBuilderExtensions).
+        // The Base64 ciphertext envelope is markedly longer than the up-to-4000-char
+        // plaintext, so the column is widened to nvarchar(max): SQL Server caps a
+        // bounded nvarchar at 4000, hence MAX is the only width that fits the
+        // ciphertext. The plaintext length cap is still enforced by the validator.
+        b.Property(p => p.Biography);
         b.Property(p => p.FieldOfStudy).HasMaxLength(200);
         b.Property(p => p.CurrentInstitution).HasMaxLength(200);
         b.Property(p => p.Nationality).HasMaxLength(64);
@@ -231,7 +288,11 @@ public sealed class ApplicationTrackerConfiguration : IEntityTypeConfiguration<A
         b.Property(a => a.ExternalTrackingUrl).HasMaxLength(2048);
         b.Property(a => a.ExternalReferenceId).HasMaxLength(256);
         b.Property(a => a.DecisionReason).HasMaxLength(2000);
-        b.Property(a => a.PersonalNotes).HasMaxLength(4000);
+        // PersonalNotes is AES-256-GCM encrypted at rest (see FieldEncryptionModelBuilderExtensions).
+        // Widened to nvarchar(max): the Base64 ciphertext is longer than the
+        // up-to-4000-char plaintext and SQL Server caps a bounded nvarchar at 4000.
+        // The plaintext length cap is still enforced by the validator.
+        b.Property(a => a.PersonalNotes);
         b.Property(a => a.RowVersion).IsRowVersion();
 
         b.Ignore(a => a.IsActive);

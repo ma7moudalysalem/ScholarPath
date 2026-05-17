@@ -33,6 +33,40 @@ public sealed class JwtOptions
     public string? DevKeyPath { get; set; }
 }
 
+/// <summary>
+/// Application-level encryption of sensitive database columns at rest (SRS
+/// security NFR). The key itself is supplied by an <c>IFieldEncryptionKeyProvider</c>,
+/// never stored here in plain config: Key Vault when <see cref="KeyVaultUri"/> is
+/// set (production), the Base64 <see cref="DevKey"/> otherwise (development).
+/// </summary>
+public sealed class FieldEncryptionOptions
+{
+    public const string SectionName = "FieldEncryption";
+
+    /// <summary>
+    /// Azure Key Vault base URI (e.g. https://scholarpath-kv.vault.azure.net/).
+    /// When set, the production <c>KeyVaultFieldEncryptionKeyProvider</c> is
+    /// selected and the AES key is read from the vault via
+    /// <c>DefaultAzureCredential</c>. Leave empty in development to use the local
+    /// key provider.
+    /// </summary>
+    public string? KeyVaultUri { get; set; }
+
+    /// <summary>
+    /// Name of the Key Vault <b>secret</b> holding the Base64-encoded 256-bit AES
+    /// key. Used only when <see cref="KeyVaultUri"/> is set.
+    /// </summary>
+    public string KeyName { get; set; } = "field-encryption-key";
+
+    /// <summary>
+    /// Base64-encoded 256-bit AES key used by the development key provider. Field
+    /// encryption needs a key that is stable across restarts, so this is a fixed
+    /// configured value — never an ephemeral key. A real key must never be
+    /// committed; production reads it from Key Vault instead.
+    /// </summary>
+    public string? DevKey { get; set; }
+}
+
 public sealed class AuthenticationOptions
 {
     public const string SectionName = "Authentication";
