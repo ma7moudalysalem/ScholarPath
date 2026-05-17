@@ -1,0 +1,40 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "_comment": "Non-secret deployment parameters for infra/main.bicep. Secrets (sqlAdminPassword, jwtSigningKey) are intentionally omitted — pass them on the az CLI command line or via a pipeline secret. See docs/deployment.md.",
+  "parameters": {
+    "baseName": {
+      "value": "scholarpath"
+    },
+    "environmentName": {
+      "value": "prod"
+    },
+    "appServicePlanSku": {
+      "value": "B1"
+    },
+    "sqlAdminLogin": {
+      "value": "scholarpathadmin"
+    },
+    "sqlDatabaseSku": {
+      "value": "Basic"
+    },
+    "redisSkuName": {
+      "value": "Basic"
+    },
+    "redisCapacity": {
+      "value": 0
+    },
+    "jwtIssuer": {
+      "value": "https://scholarpath-prod.example.com"
+    },
+    "jwtAudience": {
+      "value": "https://scholarpath-prod.example.com"
+    },
+    "clientCorsOrigin": {
+      "value": ""
+    },
+    "keyVaultAdminObjectId": {
+      "value": ""
+    }
+  }
+}
