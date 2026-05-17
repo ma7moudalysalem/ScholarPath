@@ -1,1 +1,247 @@
-{}
+{
+  "tag": "PB-006",
+  "status": {
+    "pending": "Pending consultant response",
+    "accepted": "Accepted",
+    "completed": "Completed",
+    "rejected": "Rejected",
+    "cancelled": "Cancelled"
+  },
+  "holdStatus": {
+    "active": "Authorization hold active",
+    "readyForCapture": "Ready for capture",
+    "captured": "Payment captured",
+    "released": "Hold released",
+    "none": "No active hold"
+  },
+  "list": {
+    "title": "My bookings",
+    "subtitle": "Track your consultation requests, confirmed sessions, completed bookings, and closed outcomes from the student side.",
+    "bookAnother": "Book another consultation"
+  },
+  "stats": {
+    "total": "Total bookings",
+    "pending": "Pending",
+    "accepted": "Accepted",
+    "completed": "Completed",
+    "closed": "Closed"
+  },
+  "filters": {
+    "all": "All bookings",
+    "pending": "Pending",
+    "accepted": "Accepted",
+    "completed": "Completed",
+    "closed": "Closed"
+  },
+  "fields": {
+    "bookingReference": "Booking reference",
+    "session": "Session",
+    "dateTime": "Date & time",
+    "duration": "Duration",
+    "fee": "Fee",
+    "holdStatus": "Hold status",
+    "bookingNote": "Booking note",
+    "consultant": "Consultant",
+    "studentEmail": "Student email",
+    "sessionTopic": "Session topic",
+    "sessionType": "Session type",
+    "currentStage": "Current stage",
+    "selectedDate": "Selected date",
+    "selectedTime": "Selected time",
+    "topic": "Topic",
+    "requestStatus": "Request status",
+    "currentState": "Current state",
+    "consultantFee": "Consultant fee",
+    "billingContact": "Billing contact",
+    "selectedSlot": "Selected slot",
+    "confirmation": "Confirmation"
+  },
+  "notes": {
+    "pending": "Your booking request is waiting for the consultant to review it.",
+    "accepted": "The consultant accepted your request and the session is now confirmed.",
+    "completed": "The consultation was delivered successfully and the booking is closed.",
+    "rejected": "The consultant rejected this request and the payment hold should be released.",
+    "cancelled": "This booking was cancelled before final completion.",
+    "default": "Waiting for consultant review."
+  },
+  "card": {
+    "quickActions": "Quick actions",
+    "viewDetails": "View booking details",
+    "viewConsultant": "View consultant"
+  },
+  "empty": {
+    "title": "No bookings in this view",
+    "description": "No bookings match the selected filter right now. Try another filter or create a new consultation booking.",
+    "browseConsultants": "Browse consultants"
+  },
+  "details": {
+    "title": "Booking details",
+    "subtitle": "Review your consultation request, booking status, payment-hold state, and workflow progress from the student side.",
+    "summaryTitle": "Booking summary",
+    "holdTitle": "Payment hold status",
+    "timelineTitle": "Booking timeline",
+    "quickActionsTitle": "Quick actions",
+    "guidanceTitle": "Student guidance",
+    "backToBookings": "Back to my bookings",
+    "viewConsultant": "View consultant",
+    "bookAnother": "Book another consultation"
+  },
+  "notFound": {
+    "title": "Booking not found",
+    "description": "The selected booking could not be found in the current mock store.",
+    "backToBookings": "Back to my bookings"
+  },
+  "summaries": {
+    "pending": "Your booking request was created successfully and is now waiting for the consultant to review it.",
+    "accepted": "The consultant accepted your request. Your consultation is now confirmed at the selected date and time.",
+    "completed": "The consultation was completed successfully and the booking is now closed from the student side.",
+    "rejected": "The consultant rejected this request, so the booking will not proceed.",
+    "cancelled": "This booking was cancelled before final completion and remains visible in your booking history.",
+    "default": "Your booking is waiting for consultant review."
+  },
+  "holdNotes": {
+    "pending": "The payment authorization hold is active, but the amount is not captured until the consultant accepts the session.",
+    "accepted": "Your payment hold remains valid and will move to capture after the consultation is delivered.",
+    "completed": "The payment was captured after successful delivery of the consultation session.",
+    "rejected": "The authorization hold should be reversed and no consultation session is scheduled for this request.",
+    "cancelled": "No consultation session is active for this request and no payment capture should remain.",
+    "default": "The system is waiting for the next booking workflow step."
+  },
+  "guidance": {
+    "pending": "Pending requests are still under consultant review and may move to confirmed or rejected depending on consultant action.",
+    "confirmed": "Confirmed requests mean your slot is reserved and the consultant accepted the session.",
+    "closed": "Completed requests are closed successfully. Rejected and cancelled requests remain visible in history for reference."
+  },
+  "timeline": {
+    "pending": {
+      "step1Title": "Booking request created",
+      "step1Description": "You selected a consultation slot and completed the checkout flow.",
+      "step2Title": "Authorization hold placed",
+      "step2Description": "The system placed a temporary payment hold for the consultation fee.",
+      "step3Title": "Consultant review pending",
+      "step3Description": "The consultant still needs to accept or reject your request.",
+      "step4Title": "Session confirmation",
+      "step4Description": "This step will complete after the consultant accepts your request."
+    },
+    "confirmed": {
+      "step1Title": "Booking request created",
+      "step1Description": "Your consultation request was submitted successfully.",
+      "step2Title": "Authorization hold placed",
+      "step2Description": "The payment hold was authorized for this booking request.",
+      "step3Title": "Consultant accepted request",
+      "step3Description": "The consultant reviewed your request and confirmed the session.",
+      "step4Title": "Session confirmed",
+      "step4Description": "Your consultation is scheduled and ready for delivery."
+    },
+    "completed": {
+      "step1Title": "Booking request created",
+      "step1Description": "Your consultation request was submitted successfully.",
+      "step2Title": "Consultant accepted request",
+      "step2Description": "The consultation was approved and scheduled.",
+      "step3Title": "Consultation delivered",
+      "step3Description": "The session was completed successfully.",
+      "step4Title": "Payment captured",
+      "step4Description": "The authorized amount was captured after delivery."
+    },
+    "rejected": {
+      "step1Title": "Booking request created",
+      "step1Description": "Your consultation request entered the booking workflow.",
+      "step2Title": "Authorization hold placed",
+      "step2Description": "The temporary hold was created before consultant review.",
+      "step3Title": "Consultant rejected request",
+      "step3Description": "The request was not approved, so the booking will not proceed.",
+      "step4Title": "Hold release flow",
+      "step4Description": "The payment authorization should be released automatically."
+    },
+    "cancelled": {
+      "step1Title": "Booking request entered workflow",
+      "step1Description": "The consultation request was created successfully.",
+      "step2Title": "Cancellation recorded",
+      "step2Description": "The booking was cancelled before final completion.",
+      "step3Title": "Payment flow closed",
+      "step3Description": "No active hold remains for this booking.",
+      "step4Title": "Booking archived",
+      "step4Description": "The cancelled request remains visible in booking history."
+    }
+  },
+  "checkout": {
+    "title": "Booking checkout",
+    "subtitle": "Review the selected consultant, session details, and payment summary before confirming your booking.",
+    "sessionType": "1:1 online consultation",
+    "noSlot": {
+      "title": "No consultation slot selected",
+      "description": "Start from the consultant browsing flow, choose a consultant, and select an available slot before continuing to checkout.",
+      "browseConsultants": "Browse consultants",
+      "openBookings": "Open my bookings"
+    },
+    "holdSummaryEmpty": "No consultation slot selected yet",
+    "referencePlaceholder": "Will be generated after slot selection",
+    "success": {
+      "badge": "Request created",
+      "title": "Payment hold authorized",
+      "description": "The checkout form is valid and the booking request was added to the shared mock store successfully.",
+      "summaryTitle": "Booking request summary",
+      "requestStatusValue": "Awaiting consultant acceptance",
+      "openBookings": "Open my bookings",
+      "openThisBooking": "Open this booking"
+    },
+    "sessionSummary": {
+      "title": "Session summary",
+      "description": "Confirm the consultant and selected slot before moving to payment."
+    },
+    "payment": {
+      "methodTitle": "Payment method",
+      "cardOption": "Card payment",
+      "cardOptionDescription": "This page is prepared for Stripe handoff. These inputs simulate the payment capture step until real Stripe Elements are connected.",
+      "cardholderName": "Cardholder name",
+      "cardholderNamePlaceholder": "Full name on card",
+      "cardNumber": "Card number",
+      "cardNumberPlaceholder": "1234 1234 1234 1234",
+      "expiryDate": "Expiry date",
+      "expiryDatePlaceholder": "MM/YY",
+      "cvc": "CVC",
+      "cvcPlaceholder": "123",
+      "billingEmail": "Billing email",
+      "billingEmailPlaceholder": "student@example.com",
+      "billingCountry": "Billing country"
+    },
+    "countries": {
+      "egypt": "Egypt",
+      "saudiArabia": "Saudi Arabia",
+      "unitedArabEmirates": "United Arab Emirates",
+      "jordan": "Jordan",
+      "qatar": "Qatar"
+    },
+    "savePaymentMethod": {
+      "label": "Save payment method for future bookings",
+      "description": "Placeholder behavior for a future stored-card flow."
+    },
+    "holdNotice": {
+      "title": "Authorization hold notice",
+      "description": "When you continue, the system will place a payment hold for this booking request. The amount is captured only after the consultant accepts the session.",
+      "acceptLabel": "I understand and accept the payment hold behavior for this booking."
+    },
+    "priceSummary": {
+      "title": "Price summary",
+      "sessionFee": "Session fee",
+      "serviceFee": "Service fee",
+      "tax": "Tax",
+      "total": "Total",
+      "heldAmount": "Held amount"
+    },
+    "confirmationNote": "By continuing, you confirm the selected consultant, selected slot, payment hold behavior, and booking terms before moving to payment.",
+    "payNow": "Authorize payment hold",
+    "backToProfile": "Back to profile"
+  },
+  "errors": {
+    "cardholderNameRequired": "Cardholder name is required.",
+    "cardNumberDigits": "Card number must contain 16 digits.",
+    "expiryFormat": "Expiry date must be in MM/YY format.",
+    "expiryMonthRange": "Expiry month must be between 01 and 12.",
+    "cvcDigits": "CVC must contain 3 digits.",
+    "billingEmailRequired": "Billing email is required.",
+    "billingEmailInvalid": "Enter a valid billing email.",
+    "billingCountryRequired": "Billing country is required.",
+    "holdNoticeRequired": "You must confirm the payment hold notice before continuing."
+  }
+}

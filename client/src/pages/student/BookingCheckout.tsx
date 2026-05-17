@@ -1,5 +1,7 @@
 import { createMockBookingRequest, type MockBookingRecord } from "@/lib/mockBookingStore";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Link, useLocation } from "react-router";
 
 type ConsultantSummary = {
@@ -58,6 +60,22 @@ const defaultFormState: CheckoutFormState = {
   acceptHoldNotice: false,
 };
 
+const billingCountries = [
+  "Egypt",
+  "Saudi Arabia",
+  "United Arab Emirates",
+  "Jordan",
+  "Qatar",
+] as const;
+
+const billingCountryKeys: Record<string, string> = {
+  Egypt: "checkout.countries.egypt",
+  "Saudi Arabia": "checkout.countries.saudiArabia",
+  "United Arab Emirates": "checkout.countries.unitedArabEmirates",
+  Jordan: "checkout.countries.jordan",
+  Qatar: "checkout.countries.qatar",
+};
+
 function sanitizeDigits(value: string) {
   return value.replace(/\D/g, "");
 }
@@ -95,49 +113,50 @@ function parseNumericFee(value: string) {
   return Number.isFinite(amount) ? amount.toFixed(2) : "0.00";
 }
 
-function validateForm(values: CheckoutFormState): CheckoutErrors {
+function validateForm(values: CheckoutFormState, t: TFunction): CheckoutErrors {
   const errors: CheckoutErrors = {};
 
   if (!values.cardholderName.trim()) {
-    errors.cardholderName = "Cardholder name is required.";
+    errors.cardholderName = t("errors.cardholderNameRequired");
   }
 
   if (sanitizeDigits(values.cardNumber).length < 16) {
-    errors.cardNumber = "Card number must contain 16 digits.";
+    errors.cardNumber = t("errors.cardNumberDigits");
   }
 
   const expiryDigits = sanitizeDigits(values.expiryDate);
   if (expiryDigits.length !== 4) {
-    errors.expiryDate = "Expiry date must be in MM/YY format.";
+    errors.expiryDate = t("errors.expiryFormat");
   } else {
     const month = Number(expiryDigits.slice(0, 2));
     if (month < 1 || month > 12) {
-      errors.expiryDate = "Expiry month must be between 01 and 12.";
+      errors.expiryDate = t("errors.expiryMonthRange");
     }
   }
 
   if (sanitizeDigits(values.cvc).length < 3) {
-    errors.cvc = "CVC must contain 3 digits.";
+    errors.cvc = t("errors.cvcDigits");
   }
 
   if (!values.billingEmail.trim()) {
-    errors.billingEmail = "Billing email is required.";
+    errors.billingEmail = t("errors.billingEmailRequired");
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.billingEmail.trim())) {
-    errors.billingEmail = "Enter a valid billing email.";
+    errors.billingEmail = t("errors.billingEmailInvalid");
   }
 
   if (!values.billingCountry.trim()) {
-    errors.billingCountry = "Billing country is required.";
+    errors.billingCountry = t("errors.billingCountryRequired");
   }
 
   if (!values.acceptHoldNotice) {
-    errors.acceptHoldNotice = "You must confirm the payment hold notice before continuing.";
+    errors.acceptHoldNotice = t("errors.holdNoticeRequired");
   }
 
   return errors;
 }
 
 export function BookingCheckout() {
+  const { t } = useTranslation("bookings");
   const location = useLocation();
   const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
 
@@ -162,21 +181,21 @@ export function BookingCheckout() {
 
   const bookingReference = useMemo(() => {
     if (!hasCompleteSlotParams) {
-      return "Will be generated after slot selection";
+      return t("checkout.referencePlaceholder");
     }
 
     return buildBookingReference(consultant.id, selectedDate, selectedTime);
-  }, [consultant.id, hasCompleteSlotParams, selectedDate, selectedTime]);
+  }, [consultant.id, hasCompleteSlotParams, selectedDate, selectedTime, t]);
 
   const feeAmount = useMemo(() => parseNumericFee(consultant.fee), [consultant.fee]);
 
   const holdSummary = useMemo(() => {
     if (!hasCompleteSlotParams) {
-      return "No consultation slot selected yet";
+      return t("checkout.holdSummaryEmpty");
     }
 
     return `${selectedDay} · ${selectedDate} · ${selectedTime} · ${selectedDuration}`;
-  }, [hasCompleteSlotParams, selectedDay, selectedDate, selectedTime, selectedDuration]);
+  }, [hasCompleteSlotParams, selectedDay, selectedDate, selectedTime, selectedDuration, t]);
 
   function updateField<K extends keyof CheckoutFormState>(key: K, value: CheckoutFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -190,7 +209,7 @@ export function BookingCheckout() {
       return;
     }
 
-    const nextErrors = validateForm(form);
+    const nextErrors = validateForm(form, t);
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
@@ -220,31 +239,27 @@ export function BookingCheckout() {
       <main className="min-h-screen bg-[#f5f5f7]">
         <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
           <div className="space-y-3">
-            <p className="text-sm font-medium text-[#2563eb]">PB-006</p>
+            <p className="text-sm font-medium text-[#2563eb]">{t("tag")}</p>
 
             <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
-              Booking checkout
+              {t("checkout.title")}
             </h1>
 
-            <p className="max-w-3xl text-base leading-7 text-[#4b5563]">
-              Review the selected consultant, session details, and payment summary before confirming
-              your booking.
-            </p>
+            <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("checkout.subtitle")}</p>
           </div>
 
           <div className="mt-8 rounded-2xl border border-[#e5e7eb] bg-white p-8 shadow-sm">
             <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-              No consultation slot selected
+              {t("checkout.noSlot.title")}
             </h2>
 
             <p className="mt-3 text-sm leading-7 text-[#4b5563]">
-              Start from the consultant browsing flow, choose a consultant, and select an available
-              slot before continuing to checkout.
+              {t("checkout.noSlot.description")}
             </p>
 
             <div className="mt-6 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4">
               <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                Current state
+                {t("fields.currentState")}
               </p>
               <p className="mt-2 text-sm font-medium text-[#1d1d1f]">{holdSummary}</p>
             </div>
@@ -254,14 +269,14 @@ export function BookingCheckout() {
                 to="/dev/consultants"
                 className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
               >
-                Browse consultants
+                {t("checkout.noSlot.browseConsultants")}
               </Link>
 
               <Link
                 to="/dev/bookings"
                 className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
               >
-                Open my bookings
+                {t("checkout.noSlot.openBookings")}
               </Link>
             </div>
           </div>
@@ -275,35 +290,31 @@ export function BookingCheckout() {
       <main className="min-h-screen bg-[#f5f5f7]">
         <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
           <div className="space-y-3">
-            <p className="text-sm font-medium text-[#2563eb]">PB-006</p>
+            <p className="text-sm font-medium text-[#2563eb]">{t("tag")}</p>
 
             <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
-              Booking checkout
+              {t("checkout.title")}
             </h1>
 
-            <p className="max-w-3xl text-base leading-7 text-[#4b5563]">
-              Review the selected consultant, session details, and payment summary before confirming
-              your booking.
-            </p>
+            <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("checkout.subtitle")}</p>
           </div>
 
           <div className="mt-8 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <p className="text-xs font-medium tracking-[0.02em] text-[#15803d] uppercase">
-                  PB-006
+                  {t("tag")}
                 </p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-[-0.01em] text-[#166534]">
-                  Payment hold authorized
+                  {t("checkout.success.title")}
                 </h2>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-[#166534]">
-                  The checkout form is valid and the booking request was added to the shared mock
-                  store successfully.
+                  {t("checkout.success.description")}
                 </p>
               </div>
 
               <span className="inline-flex rounded-full bg-[#dcfce7] px-3 py-1 text-xs font-medium text-[#15803d]">
-                Request created
+                {t("checkout.success.badge")}
               </span>
             </div>
           </div>
@@ -311,13 +322,13 @@ export function BookingCheckout() {
           <div className="mt-6 grid gap-6 lg:grid-cols-12">
             <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-8">
               <h3 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Booking request summary
+                {t("checkout.success.summaryTitle")}
               </h3>
 
               <div className="mt-5 grid gap-4 rounded-xl bg-[#f9fafb] p-5 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Booking reference
+                    {t("fields.bookingReference")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                     {submittedBooking.reference}
@@ -326,16 +337,16 @@ export function BookingCheckout() {
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Request status
+                    {t("fields.requestStatus")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                    Awaiting consultant acceptance
+                    {t("checkout.success.requestStatusValue")}
                   </p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Consultant
+                    {t("fields.consultant")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                     {submittedBooking.consultantName}
@@ -344,7 +355,7 @@ export function BookingCheckout() {
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Session type
+                    {t("fields.sessionType")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                     {submittedBooking.sessionType}
@@ -353,7 +364,7 @@ export function BookingCheckout() {
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Selected date
+                    {t("fields.selectedDate")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                     {selectedDay} · {submittedBooking.date}
@@ -362,14 +373,14 @@ export function BookingCheckout() {
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Selected time
+                    {t("fields.selectedTime")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{submittedBooking.time}</p>
                 </div>
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Duration
+                    {t("fields.duration")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                     {submittedBooking.duration}
@@ -378,7 +389,7 @@ export function BookingCheckout() {
 
                 <div>
                   <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                    Topic
+                    {t("fields.topic")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                     {submittedBooking.topic}
@@ -389,28 +400,30 @@ export function BookingCheckout() {
 
             <aside className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-4">
               <h3 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Payment summary
+                {t("checkout.priceSummary.title")}
               </h3>
 
               <div className="mt-5 space-y-4 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#4b5563]">Session fee</span>
+                  <span className="text-[#4b5563]">{t("checkout.priceSummary.sessionFee")}</span>
                   <span className="font-medium text-[#1d1d1f]">${feeAmount}</span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-[#4b5563]">Service fee</span>
+                  <span className="text-[#4b5563]">{t("checkout.priceSummary.serviceFee")}</span>
                   <span className="font-medium text-[#1d1d1f]">$0.00</span>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-[#4b5563]">Tax</span>
+                  <span className="text-[#4b5563]">{t("checkout.priceSummary.tax")}</span>
                   <span className="font-medium text-[#1d1d1f]">$0.00</span>
                 </div>
 
                 <div className="border-t border-[#e5e7eb] pt-4">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-[#1d1d1f]">Held amount</span>
+                    <span className="font-medium text-[#1d1d1f]">
+                      {t("checkout.priceSummary.heldAmount")}
+                    </span>
                     <span className="text-2xl font-semibold text-[#1d1d1f]">${feeAmount}</span>
                   </div>
                 </div>
@@ -418,7 +431,7 @@ export function BookingCheckout() {
 
               <div className="mt-6 rounded-xl bg-[#f9fafb] p-4">
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Billing contact
+                  {t("fields.billingContact")}
                 </p>
                 <p className="mt-2 text-sm font-medium text-[#1d1d1f]">{form.cardholderName}</p>
                 <p className="mt-1 text-sm text-[#4b5563]">{form.billingEmail}</p>
@@ -430,14 +443,14 @@ export function BookingCheckout() {
                   to="/dev/bookings"
                   className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                 >
-                  Open my bookings
+                  {t("checkout.success.openBookings")}
                 </Link>
 
                 <Link
                   to={`/dev/bookings/${submittedBooking.id}`}
                   className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                 >
-                  Open this booking
+                  {t("checkout.success.openThisBooking")}
                 </Link>
               </div>
             </aside>
@@ -451,14 +464,13 @@ export function BookingCheckout() {
     <main className="min-h-screen bg-[#f5f5f7]">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-[#2563eb]">PB-006</p>
+          <p className="text-sm font-medium text-[#2563eb]">{t("tag")}</p>
 
-          <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">Booking checkout</h1>
+          <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
+            {t("checkout.title")}
+          </h1>
 
-          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">
-            Review the selected consultant, session details, and payment summary before confirming
-            your booking.
-          </p>
+          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("checkout.subtitle")}</p>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-12">
@@ -468,17 +480,17 @@ export function BookingCheckout() {
             onSubmit={handleSubmit}
           >
             <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-              Session summary
+              {t("checkout.sessionSummary.title")}
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-[#4b5563]">
-              Confirm the consultant and selected slot before moving to payment.
+              {t("checkout.sessionSummary.description")}
             </p>
 
             <div className="mt-5 grid gap-4 rounded-xl bg-[#f9fafb] p-5 sm:grid-cols-2">
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Consultant
+                  {t("fields.consultant")}
                 </p>
                 <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{consultant.name}</p>
                 <p className="mt-2 text-sm leading-6 text-[#4b5563]">{consultant.expertise}</p>
@@ -486,14 +498,16 @@ export function BookingCheckout() {
 
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Session type
+                  {t("fields.sessionType")}
                 </p>
-                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">1:1 online consultation</p>
+                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                  {t("checkout.sessionType")}
+                </p>
               </div>
 
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Selected date
+                  {t("fields.selectedDate")}
                 </p>
                 <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                   {selectedDay} · {selectedDate}
@@ -502,21 +516,21 @@ export function BookingCheckout() {
 
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Selected time
+                  {t("fields.selectedTime")}
                 </p>
                 <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{selectedTime}</p>
               </div>
 
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Duration
+                  {t("fields.duration")}
                 </p>
                 <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{selectedDuration}</p>
               </div>
 
               <div>
                 <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                  Consultant fee
+                  {t("fields.consultantFee")}
                 </p>
                 <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                   {consultant.fee} / {selectedDuration}
@@ -526,17 +540,18 @@ export function BookingCheckout() {
 
             <div className="mt-6">
               <h3 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                Payment method
+                {t("checkout.payment.methodTitle")}
               </h3>
 
               <div className="mt-4 rounded-xl border border-[#2563eb] bg-[#eff6ff] p-4">
                 <div className="flex items-start gap-3">
                   <input checked readOnly type="radio" className="mt-1 h-4 w-4 accent-[#2563eb]" />
                   <div>
-                    <p className="text-sm font-medium text-[#1d1d1f]">Card payment</p>
+                    <p className="text-sm font-medium text-[#1d1d1f]">
+                      {t("checkout.payment.cardOption")}
+                    </p>
                     <p className="mt-1 text-sm leading-6 text-[#4b5563]">
-                      This page is prepared for Stripe handoff. These inputs simulate the payment
-                      capture step until real Stripe Elements are connected.
+                      {t("checkout.payment.cardOptionDescription")}
                     </p>
                   </div>
                 </div>
@@ -545,12 +560,14 @@ export function BookingCheckout() {
 
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-[#1d1d1f]">Cardholder name</label>
+                <label className="block text-sm font-medium text-[#1d1d1f]">
+                  {t("checkout.payment.cardholderName")}
+                </label>
                 <input
                   type="text"
                   value={form.cardholderName}
                   onChange={(event) => updateField("cardholderName", event.target.value)}
-                  placeholder="Full name on card"
+                  placeholder={t("checkout.payment.cardholderNamePlaceholder")}
                   className={`mt-2 h-12 w-full rounded-lg border bg-white px-4 text-sm text-[#1d1d1f] transition outline-none placeholder:text-[#9ca3af] ${
                     errors.cardholderName
                       ? "border-[#ef4444] focus:border-[#ef4444]"
@@ -563,7 +580,9 @@ export function BookingCheckout() {
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-[#1d1d1f]">Card number</label>
+                <label className="block text-sm font-medium text-[#1d1d1f]">
+                  {t("checkout.payment.cardNumber")}
+                </label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -571,7 +590,7 @@ export function BookingCheckout() {
                   onChange={(event) =>
                     updateField("cardNumber", formatCardNumber(event.target.value))
                   }
-                  placeholder="1234 1234 1234 1234"
+                  placeholder={t("checkout.payment.cardNumberPlaceholder")}
                   className={`mt-2 h-12 w-full rounded-lg border bg-white px-4 text-sm text-[#1d1d1f] transition outline-none placeholder:text-[#9ca3af] ${
                     errors.cardNumber
                       ? "border-[#ef4444] focus:border-[#ef4444]"
@@ -584,7 +603,9 @@ export function BookingCheckout() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#1d1d1f]">Expiry date</label>
+                <label className="block text-sm font-medium text-[#1d1d1f]">
+                  {t("checkout.payment.expiryDate")}
+                </label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -592,7 +613,7 @@ export function BookingCheckout() {
                   onChange={(event) =>
                     updateField("expiryDate", formatExpiryDate(event.target.value))
                   }
-                  placeholder="MM/YY"
+                  placeholder={t("checkout.payment.expiryDatePlaceholder")}
                   className={`mt-2 h-12 w-full rounded-lg border bg-white px-4 text-sm text-[#1d1d1f] transition outline-none placeholder:text-[#9ca3af] ${
                     errors.expiryDate
                       ? "border-[#ef4444] focus:border-[#ef4444]"
@@ -605,7 +626,9 @@ export function BookingCheckout() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#1d1d1f]">CVC</label>
+                <label className="block text-sm font-medium text-[#1d1d1f]">
+                  {t("checkout.payment.cvc")}
+                </label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -613,7 +636,7 @@ export function BookingCheckout() {
                   onChange={(event) =>
                     updateField("cvc", sanitizeDigits(event.target.value).slice(0, 3))
                   }
-                  placeholder="123"
+                  placeholder={t("checkout.payment.cvcPlaceholder")}
                   className={`mt-2 h-12 w-full rounded-lg border bg-white px-4 text-sm text-[#1d1d1f] transition outline-none placeholder:text-[#9ca3af] ${
                     errors.cvc
                       ? "border-[#ef4444] focus:border-[#ef4444]"
@@ -624,12 +647,14 @@ export function BookingCheckout() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#1d1d1f]">Billing email</label>
+                <label className="block text-sm font-medium text-[#1d1d1f]">
+                  {t("checkout.payment.billingEmail")}
+                </label>
                 <input
                   type="email"
                   value={form.billingEmail}
                   onChange={(event) => updateField("billingEmail", event.target.value)}
-                  placeholder="student@example.com"
+                  placeholder={t("checkout.payment.billingEmailPlaceholder")}
                   className={`mt-2 h-12 w-full rounded-lg border bg-white px-4 text-sm text-[#1d1d1f] transition outline-none placeholder:text-[#9ca3af] ${
                     errors.billingEmail
                       ? "border-[#ef4444] focus:border-[#ef4444]"
@@ -642,7 +667,9 @@ export function BookingCheckout() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#1d1d1f]">Billing country</label>
+                <label className="block text-sm font-medium text-[#1d1d1f]">
+                  {t("checkout.payment.billingCountry")}
+                </label>
                 <select
                   value={form.billingCountry}
                   onChange={(event) => updateField("billingCountry", event.target.value)}
@@ -652,11 +679,11 @@ export function BookingCheckout() {
                       : "border-[#d1d5db] focus:border-[#2563eb]"
                   }`}
                 >
-                  <option>Egypt</option>
-                  <option>Saudi Arabia</option>
-                  <option>United Arab Emirates</option>
-                  <option>Jordan</option>
-                  <option>Qatar</option>
+                  {billingCountries.map((country) => (
+                    <option key={country} value={country}>
+                      {t(billingCountryKeys[country])}
+                    </option>
+                  ))}
                 </select>
                 {errors.billingCountry && (
                   <p className="mt-2 text-sm text-[#dc2626]">{errors.billingCountry}</p>
@@ -673,19 +700,20 @@ export function BookingCheckout() {
               />
               <div>
                 <p className="text-sm font-medium text-[#1d1d1f]">
-                  Save payment method for future bookings
+                  {t("checkout.savePaymentMethod.label")}
                 </p>
                 <p className="mt-1 text-sm leading-6 text-[#4b5563]">
-                  Placeholder behavior for a future stored-card flow.
+                  {t("checkout.savePaymentMethod.description")}
                 </p>
               </div>
             </label>
 
             <div className="mt-6 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4">
-              <p className="text-sm font-medium text-[#1d1d1f]">Authorization hold notice</p>
+              <p className="text-sm font-medium text-[#1d1d1f]">
+                {t("checkout.holdNotice.title")}
+              </p>
               <p className="mt-2 text-sm leading-7 text-[#4b5563]">
-                When you continue, the system will place a payment hold for this booking request.
-                The amount is captured only after the consultant accepts the session.
+                {t("checkout.holdNotice.description")}
               </p>
             </div>
 
@@ -698,7 +726,7 @@ export function BookingCheckout() {
                   className="mt-1 h-4 w-4 accent-[#2563eb]"
                 />
                 <span className="text-sm text-[#1d1d1f]">
-                  I understand and accept the payment hold behavior for this booking.
+                  {t("checkout.holdNotice.acceptLabel")}
                 </span>
               </label>
 
@@ -710,28 +738,30 @@ export function BookingCheckout() {
 
           <aside className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-4">
             <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-              Price summary
+              {t("checkout.priceSummary.title")}
             </h2>
 
             <div className="mt-5 space-y-4 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[#4b5563]">Session fee</span>
+                <span className="text-[#4b5563]">{t("checkout.priceSummary.sessionFee")}</span>
                 <span className="font-medium text-[#1d1d1f]">${feeAmount}</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-[#4b5563]">Service fee</span>
+                <span className="text-[#4b5563]">{t("checkout.priceSummary.serviceFee")}</span>
                 <span className="font-medium text-[#1d1d1f]">$0.00</span>
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-[#4b5563]">Tax</span>
+                <span className="text-[#4b5563]">{t("checkout.priceSummary.tax")}</span>
                 <span className="font-medium text-[#1d1d1f]">$0.00</span>
               </div>
 
               <div className="border-t border-[#e5e7eb] pt-4">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-[#1d1d1f]">Total</span>
+                  <span className="font-medium text-[#1d1d1f]">
+                    {t("checkout.priceSummary.total")}
+                  </span>
                   <span className="text-2xl font-semibold text-[#1d1d1f]">${feeAmount}</span>
                 </div>
               </div>
@@ -739,25 +769,24 @@ export function BookingCheckout() {
 
             <div className="mt-6 rounded-xl bg-[#f9fafb] p-4">
               <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                Selected slot
+                {t("fields.selectedSlot")}
               </p>
               <p className="mt-2 text-sm font-medium text-[#1d1d1f]">{holdSummary}</p>
             </div>
 
             <div className="mt-4 rounded-xl bg-[#f9fafb] p-4">
               <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                Booking reference
+                {t("fields.bookingReference")}
               </p>
               <p className="mt-2 text-sm font-medium text-[#1d1d1f]">{bookingReference}</p>
             </div>
 
             <div className="mt-4 rounded-xl bg-[#f9fafb] p-4">
               <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                Confirmation
+                {t("fields.confirmation")}
               </p>
               <p className="mt-2 text-sm leading-7 text-[#4b5563]">
-                By continuing, you confirm the selected consultant, selected slot, payment hold
-                behavior, and booking terms before moving to payment.
+                {t("checkout.confirmationNote")}
               </p>
             </div>
 
@@ -767,14 +796,14 @@ export function BookingCheckout() {
                 form="checkout-form"
                 className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
               >
-                Authorize payment hold
+                {t("checkout.payNow")}
               </button>
 
               <Link
                 to={`/dev/consultants/${consultant.id}`}
                 className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
               >
-                Back to profile
+                {t("checkout.backToProfile")}
               </Link>
             </div>
           </aside>

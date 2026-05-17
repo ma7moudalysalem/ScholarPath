@@ -5,53 +5,61 @@ import {
   type MockBookingRecord,
 } from "@/lib/mockBookingStore";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 type StudentFilter = "all" | "pending" | "confirmed" | "completed" | "closed";
 
-function getStudentStatusMeta(status: BookingWorkflowStatus) {
+type StudentStatusMeta = {
+  labelKey: string;
+  badgeClassName: string;
+  holdStatusKey: string;
+  noteKey: string;
+};
+
+function getStudentStatusMeta(status: BookingWorkflowStatus): StudentStatusMeta {
   switch (status) {
     case "pending":
       return {
-        label: "Pending consultant response",
+        labelKey: "status.pending",
         badgeClassName: "bg-[#fffbeb] text-[#b45309]",
-        holdStatus: "Authorization hold active",
-        note: "Your booking request is waiting for the consultant to review it.",
+        holdStatusKey: "holdStatus.active",
+        noteKey: "notes.pending",
       };
     case "confirmed":
       return {
-        label: "Accepted",
+        labelKey: "status.accepted",
         badgeClassName: "bg-[#eff6ff] text-[#1d4ed8]",
-        holdStatus: "Ready for capture",
-        note: "The consultant accepted your request and the session is now confirmed.",
+        holdStatusKey: "holdStatus.readyForCapture",
+        noteKey: "notes.accepted",
       };
     case "completed":
       return {
-        label: "Completed",
+        labelKey: "status.completed",
         badgeClassName: "bg-[#f0fdf4] text-[#15803d]",
-        holdStatus: "Payment captured",
-        note: "The consultation was delivered successfully and the booking is closed.",
+        holdStatusKey: "holdStatus.captured",
+        noteKey: "notes.completed",
       };
     case "rejected":
       return {
-        label: "Rejected",
+        labelKey: "status.rejected",
         badgeClassName: "bg-[#fef2f2] text-[#dc2626]",
-        holdStatus: "Hold released",
-        note: "The consultant rejected this request and the payment hold should be released.",
+        holdStatusKey: "holdStatus.released",
+        noteKey: "notes.rejected",
       };
     case "cancelled":
       return {
-        label: "Cancelled",
+        labelKey: "status.cancelled",
         badgeClassName: "bg-[#f3f4f6] text-[#4b5563]",
-        holdStatus: "No active hold",
-        note: "This booking was cancelled before final completion.",
+        holdStatusKey: "holdStatus.none",
+        noteKey: "notes.cancelled",
       };
     default:
       return {
-        label: "Pending consultant response",
+        labelKey: "status.pending",
         badgeClassName: "bg-[#fffbeb] text-[#b45309]",
-        holdStatus: "Authorization hold active",
-        note: "Waiting for consultant review.",
+        holdStatusKey: "holdStatus.active",
+        noteKey: "notes.default",
       };
   }
 }
@@ -61,6 +69,7 @@ function isClosedStatus(status: BookingWorkflowStatus) {
 }
 
 export function StudentBookings() {
+  const { t } = useTranslation("bookings");
   const [bookings, setBookings] = useState<MockBookingRecord[]>(() => getMockBookings());
   const [filter, setFilter] = useState<StudentFilter>("all");
 
@@ -99,48 +108,47 @@ export function StudentBookings() {
     <main className="min-h-screen bg-[#f5f5f7]">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <p className="text-sm font-medium text-[#2563eb]">PB-006</p>
+          <p className="text-sm font-medium text-[#2563eb]">{t("tag")}</p>
 
-          <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">My bookings</h1>
+          <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
+            {t("list.title")}
+          </h1>
 
-          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">
-            Track your consultation requests, confirmed sessions, completed bookings, and closed
-            outcomes from the student side.
-          </p>
+          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("list.subtitle")}</p>
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-              Total bookings
+              {t("stats.total")}
             </p>
             <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.total}</p>
           </div>
 
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-              Pending
+              {t("stats.pending")}
             </p>
             <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.pending}</p>
           </div>
 
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-              Accepted
+              {t("stats.accepted")}
             </p>
             <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.confirmed}</p>
           </div>
 
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-              Completed
+              {t("stats.completed")}
             </p>
             <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.completed}</p>
           </div>
 
           <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
             <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-              Closed
+              {t("stats.closed")}
             </p>
             <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.closed}</p>
           </div>
@@ -158,7 +166,7 @@ export function StudentBookings() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                All bookings
+                {t("filters.all")}
               </button>
 
               <button
@@ -170,7 +178,7 @@ export function StudentBookings() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                Pending
+                {t("filters.pending")}
               </button>
 
               <button
@@ -182,7 +190,7 @@ export function StudentBookings() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                Accepted
+                {t("filters.accepted")}
               </button>
 
               <button
@@ -194,7 +202,7 @@ export function StudentBookings() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                Completed
+                {t("filters.completed")}
               </button>
 
               <button
@@ -206,7 +214,7 @@ export function StudentBookings() {
                     : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
                 }`}
               >
-                Closed
+                {t("filters.closed")}
               </button>
             </div>
 
@@ -214,7 +222,7 @@ export function StudentBookings() {
               to="/dev/consultants"
               className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
             >
-              Book another consultation
+              {t("list.bookAnother")}
             </Link>
           </div>
         </div>
@@ -239,7 +247,7 @@ export function StudentBookings() {
                         <span
                           className={`rounded-full px-3 py-1 text-xs font-medium ${statusMeta.badgeClassName}`}
                         >
-                          {statusMeta.label}
+                          {t(statusMeta.labelKey)}
                         </span>
                       </div>
 
@@ -248,7 +256,7 @@ export function StudentBookings() {
                       <div className="mt-6 grid gap-4 rounded-xl bg-[#f9fafb] p-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Booking reference
+                            {t("fields.bookingReference")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                             {booking.reference}
@@ -257,7 +265,7 @@ export function StudentBookings() {
 
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Session
+                            {t("fields.session")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                             {booking.sessionType}
@@ -266,7 +274,7 @@ export function StudentBookings() {
 
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Date & time
+                            {t("fields.dateTime")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                             {booking.date} · {booking.time}
@@ -275,7 +283,7 @@ export function StudentBookings() {
 
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Duration
+                            {t("fields.duration")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
                             {booking.duration}
@@ -284,47 +292,49 @@ export function StudentBookings() {
 
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Fee
+                            {t("fields.fee")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{booking.fee}</p>
                         </div>
 
                         <div>
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Hold status
+                            {t("fields.holdStatus")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                            {statusMeta.holdStatus}
+                            {t(statusMeta.holdStatusKey)}
                           </p>
                         </div>
 
                         <div className="sm:col-span-2 lg:col-span-2">
                           <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
-                            Booking note
+                            {t("fields.bookingNote")}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
-                            {statusMeta.note}
+                            {t(statusMeta.noteKey)}
                           </p>
                         </div>
                       </div>
                     </div>
 
                     <aside className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4 xl:max-w-[280px]">
-                      <h3 className="text-base font-semibold text-[#1d1d1f]">Quick actions</h3>
+                      <h3 className="text-base font-semibold text-[#1d1d1f]">
+                        {t("card.quickActions")}
+                      </h3>
 
                       <div className="mt-4 flex flex-col gap-3">
                         <Link
                           to={`/dev/bookings/${booking.id}`}
                           className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                         >
-                          View booking details
+                          {t("card.viewDetails")}
                         </Link>
 
                         <Link
                           to={`/dev/consultants/${booking.consultantId}`}
                           className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
                         >
-                          View consultant
+                          {t("card.viewConsultant")}
                         </Link>
                       </div>
                     </aside>
@@ -335,12 +345,11 @@ export function StudentBookings() {
           ) : (
             <div className="rounded-2xl border border-[#e5e7eb] bg-white p-8 shadow-sm">
               <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
-                No bookings in this view
+                {t("empty.title")}
               </h2>
 
               <p className="mt-3 max-w-2xl text-sm leading-7 text-[#4b5563]">
-                No bookings match the selected filter right now. Try another filter or create a new
-                consultation booking.
+                {t("empty.description")}
               </p>
 
               <div className="mt-6">
@@ -348,7 +357,7 @@ export function StudentBookings() {
                   to="/dev/consultants"
                   className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
                 >
-                  Browse consultants
+                  {t("empty.browseConsultants")}
                 </Link>
               </div>
             </div>
