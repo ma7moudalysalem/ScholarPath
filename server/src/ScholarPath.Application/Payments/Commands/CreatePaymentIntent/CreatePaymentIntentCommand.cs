@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.ProfitShare;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -89,9 +90,9 @@ public sealed class CreatePaymentIntentCommandHandler(
             .OrderByDescending(c => c.EffectiveFrom)
             .FirstOrDefaultAsync(ct);
 
-        var platformPct = profitConfig?.Percentage ?? 0.10m;
-        var profitShareCents = (long)Math.Round(request.AmountCents * platformPct);
-        var payeeAmountCents = request.AmountCents - profitShareCents;
+        var platformPct = profitConfig?.Percentage
+            ?? ProfitShareCalculator.DefaultPercentage(request.Type);
+        var breakdown = ProfitShareCalculator.Calculate(request.AmountCents, platformPct);
 
         // 2. Capture method per type
         var captureMethod = request.Type == PaymentType.ConsultantBooking
@@ -141,8 +142,8 @@ public sealed class CreatePaymentIntentCommandHandler(
             Status = PaymentStatus.Pending,
             AmountCents = request.AmountCents,
             Currency = request.Currency.ToUpper(),
-            ProfitShareAmountCents = profitShareCents,
-            PayeeAmountCents = payeeAmountCents,
+            ProfitShareAmountCents = breakdown.ProfitShareAmountCents,
+            PayeeAmountCents = breakdown.PayeeAmountCents,
             RefundedAmountCents = 0,
             PayerUserId = payerUserId,
             PayeeUserId = request.PayeeUserId,

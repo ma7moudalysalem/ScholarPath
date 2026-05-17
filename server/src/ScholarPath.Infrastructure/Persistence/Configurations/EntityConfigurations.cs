@@ -45,6 +45,8 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
         b.Property(p => p.Gpa).HasPrecision(4, 2);
         b.Property(p => p.SessionFeeUsd).HasPrecision(10, 2);
         b.Property(p => p.AcademicLevel).HasConversion<string>().HasMaxLength(32);
+        b.Property(p => p.StripeConnectAccountId).HasMaxLength(256);
+        b.Property(p => p.StripeConnectStatus).HasConversion<string>().HasMaxLength(24);
         b.Property(p => p.RowVersion).IsRowVersion();
         b.HasIndex(p => p.UserId).IsUnique();
 
@@ -392,6 +394,7 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         b.HasIndex(p => p.StripePaymentIntentId);
         b.HasIndex(p => new { p.PayerUserId, p.Status });
         b.HasIndex(p => new { p.PayeeUserId, p.Status });
+        b.HasIndex(p => p.PayoutId);
         b.HasQueryFilter(p => !p.IsDeleted);
     }
 }
@@ -432,6 +435,12 @@ public sealed class ProfitShareConfigConfiguration : IEntityTypeConfiguration<Pr
         b.Property(p => p.Notes).HasMaxLength(1000);
         b.Property(p => p.RowVersion).IsRowVersion();
         b.HasIndex(p => new { p.PaymentType, p.EffectiveTo });
+
+        // PB-014 AC#1: at most one active config (EffectiveTo IS NULL) per payment type
+        b.HasIndex(p => p.PaymentType)
+            .IsUnique()
+            .HasFilter("[EffectiveTo] IS NULL")
+            .HasDatabaseName("UX_ProfitShareConfig_ActivePerType");
     }
 }
 

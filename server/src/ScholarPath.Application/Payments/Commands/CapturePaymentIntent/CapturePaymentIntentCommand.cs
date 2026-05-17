@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.ProfitShare;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Payments.Commands.CapturePaymentIntent;
@@ -91,6 +92,19 @@ public sealed class CapturePaymentIntentCommandHandler(
 
         if (stripeResult.LatestChargeId is not null)
             payment.StripeChargeId = stripeResult.LatestChargeId;
+
+        // PB-014 AC#3/#4: lock in the profit-share split at capture time from the
+        // active config. This snapshot is immutable and is exactly what payouts pay.
+        var activeConfig = await db.ProfitShareConfigs
+            .Where(c => c.PaymentType == payment.Type && c.EffectiveTo == null)
+            .OrderByDescending(c => c.EffectiveFrom)
+            .FirstOrDefaultAsync(ct);
+
+        var percentage = activeConfig?.Percentage
+            ?? ProfitShareCalculator.DefaultPercentage(payment.Type);
+        var breakdown = ProfitShareCalculator.Calculate(payment.AmountCents, percentage);
+        payment.ProfitShareAmountCents = breakdown.ProfitShareAmountCents;
+        payment.PayeeAmountCents = breakdown.PayeeAmountCents;
 
         await db.SaveChangesAsync(ct);
 

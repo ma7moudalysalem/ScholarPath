@@ -363,6 +363,10 @@ public sealed class StripeService(
             string? paymentIntentId = null;
             string? chargeId = null;
             long? amountCents = null;
+            string? connectAccountId = null;
+            bool? connectPayoutsEnabled = null;
+            string? payoutId = null;
+            string? payoutFailureMessage = null;
             switch (stripeEvent.Data?.Object)
             {
                 case PaymentIntent pi:
@@ -374,6 +378,14 @@ public sealed class StripeService(
                     paymentIntentId = ch.PaymentIntentId;
                     amountCents = ch.Amount;
                     break;
+                case Account acct:
+                    connectAccountId = acct.Id;
+                    connectPayoutsEnabled = acct.PayoutsEnabled;
+                    break;
+                case Payout po:
+                    payoutId = po.Id;
+                    payoutFailureMessage = po.FailureMessage;
+                    break;
             }
 
             return new StripeWebhookParseResult(
@@ -382,7 +394,11 @@ public sealed class StripeService(
                 paymentIntentId,
                 chargeId,
                 amountCents,
-                dataJson);
+                dataJson,
+                connectAccountId,
+                connectPayoutsEnabled,
+                payoutId,
+                payoutFailureMessage);
         }
         catch (StripeException ex)
         {

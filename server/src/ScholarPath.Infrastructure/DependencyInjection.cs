@@ -83,10 +83,17 @@ public static class DependencyInjection
         services.AddSingleton<IPasswordHasher, StubPasswordHasher>();
         services.AddSingleton<ISsoService, StubSsoService>();
 
-        // Email, blob, Stripe, AI, notifications, audit — all stubbed by default
+        // Email, blob, AI, notifications, audit — stubbed by default
         services.AddSingleton<IEmailService, StubEmailService>();
         services.AddSingleton<IBlobStorageService, StubBlobStorageService>();
-        services.AddSingleton<IStripeService, StubStripeService>();
+
+        // Stripe: the real client only when a genuine secret key (sk_...) is
+        // configured; placeholder values fall through to the dev stub.
+        var stripeSecretKey = config.GetValue<string>($"{StripeOptions.SectionName}:SecretKey");
+        if (stripeSecretKey is not null && stripeSecretKey.StartsWith("sk_", StringComparison.Ordinal))
+            services.AddSingleton<IStripeService, StripeService>();
+        else
+            services.AddSingleton<IStripeService, StubStripeService>();
 
         // AI provider selection: Local (default, deterministic, offline) or
         // OpenAi (real provider, needs Ai:OpenAi:ApiKey). Swap via config —

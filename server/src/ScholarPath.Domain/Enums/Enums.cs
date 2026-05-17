@@ -116,6 +116,14 @@ public enum PayoutStatus
     Failed = 3,
 }
 
+public enum StripeConnectStatus
+{
+    None = 0,
+    Pending = 1,
+    Verified = 2,
+    Restricted = 3,
+}
+
 public enum NotificationChannel
 {
     InApp = 0,

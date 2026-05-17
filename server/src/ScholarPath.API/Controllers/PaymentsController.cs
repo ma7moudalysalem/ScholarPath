@@ -2,10 +2,11 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Payments.Commands.CreateConnectAccount;
 using ScholarPath.Application.Payments.Commands.CreatePaymentIntent;
 using ScholarPath.Application.Payments.Commands.CapturePaymentIntent;
 using ScholarPath.Application.Payments.Commands.RefundPayment;
+using ScholarPath.Application.Payments.Queries.GetMyPayouts;
 using ScholarPath.Application.Payments.Queries.GetPayment;
 using ScholarPath.Infrastructure.Settings;
 
@@ -17,9 +18,7 @@ namespace ScholarPath.API.Controllers;
 [ApiController]
 [Route("api/payments")]
 [Authorize]
-public sealed class PaymentsController(
-    IMediator mediator,
-    IStripeService stripeService) : ControllerBase
+public sealed class PaymentsController(IMediator mediator) : ControllerBase
 {
     // ── POST /api/payments/intent ─────────────────────────────────────────────
 
@@ -83,26 +82,21 @@ public sealed class PaymentsController(
     // ── POST /api/payments/connect/onboard ────────────────────────────────────
 
     /// <summary>
-    /// Generates a Stripe Connect onboarding link for the authenticated consultant.
+    /// Creates or reuses the authenticated payee's Stripe Connect account and
+    /// returns a fresh onboarding link. Available to consultants and companies.
     /// </summary>
     [HttpPost("connect/onboard")]
-    [Authorize(Roles = "Consultant")]
-    [ProducesResponseType(typeof(ConnectOnboardingResult), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<ConnectOnboardingResult>> Onboard(
+    [Authorize(Roles = "Consultant,Company")]
+    [ProducesResponseType(typeof(CreateConnectAccountResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<CreateConnectAccountResult>> Onboard(
         [FromBody] ConnectOnboardingRequest body,
         CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(body.ConnectAccountId))
-            return BadRequest("ConnectAccountId is required.");
+        var result = await mediator.Send(
+            new CreateConnectAccountCommand(body.ReturnUrl, body.RefreshUrl), ct);
 
-        var url = await stripeService.CreateConnectOnboardingLinkAsync(
-            body.ConnectAccountId,
-            body.RefreshUrl,
-            body.ReturnUrl,
-            ct);
-
-        return Ok(new ConnectOnboardingResult(url));
+        return Ok(result);
     }
 
     // ── GET /api/payments/{id} ────────────────────────────────────────────────
@@ -120,6 +114,20 @@ public sealed class PaymentsController(
         var result = await mediator.Send(new GetPaymentQuery(id), ct);
         return result is null ? NotFound() : Ok(result);
     }
+
+    // ── GET /api/payments/payouts ─────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns the authenticated payee's own payouts (consultants and companies).
+    /// </summary>
+    [HttpGet("payouts")]
+    [Authorize(Roles = "Consultant,Company")]
+    [ProducesResponseType(typeof(IReadOnlyList<PayoutDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<PayoutDto>>> GetMyPayouts(CancellationToken ct)
+    {
+        var result = await mediator.Send(new GetMyPayoutsQuery(), ct);
+        return Ok(result);
+    }
 }
 
 // ─── Request / Response DTOs (controller-level) ───────────────────────────────
@@ -129,8 +137,5 @@ public sealed record RefundPaymentRequest(
     string? Reason);
 
 public sealed record ConnectOnboardingRequest(
-    string ConnectAccountId,
     string RefreshUrl,
     string ReturnUrl);
-
-public sealed record ConnectOnboardingResult(string OnboardingUrl);

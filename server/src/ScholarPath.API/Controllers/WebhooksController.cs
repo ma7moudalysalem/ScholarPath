@@ -43,7 +43,11 @@ public class WebhooksController(
                 parsed.PaymentIntentId,
                 parsed.ChargeId,
                 parsed.AmountCents,
-                parsed.DataJson);
+                parsed.DataJson,
+                parsed.ConnectAccountId,
+                parsed.ConnectPayoutsEnabled,
+                parsed.PayoutId,
+                parsed.PayoutFailureMessage);
 
             await mediator.Send(command, ct);
             return Ok();

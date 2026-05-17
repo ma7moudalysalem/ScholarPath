@@ -133,4 +133,37 @@ public class CapturePaymentIntentCommandHandlerTests
         v.Validate(new CapturePaymentIntentCommand(Guid.NewGuid()))
             .IsValid.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Capture_writes_profit_share_snapshot_from_active_config()
+    {
+        using var db = CreateDb();
+        db.ProfitShareConfigs.Add(new ProfitShareConfig
+        {
+            Id = Guid.NewGuid(),
+            PaymentType = PaymentType.ConsultantBooking,
+            Percentage = 0.20m,
+            EffectiveFrom = DateTimeOffset.UtcNow.AddDays(-1),
+            EffectiveTo = null,
+            SetByAdminId = Guid.NewGuid(),
+        });
+        var payment = MakeHeldPayment();   // AmountCents = 5000, Type defaults to ConsultantBooking
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        var stripe = Substitute.For<IStripeService>();
+        stripe.CapturePaymentIntentAsync(
+                Arg.Any<string>(), Arg.Any<long?>(),
+                Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new StripePaymentIntentResult(
+                payment.StripePaymentIntentId!, "succeeded", null, "ch_x"));
+
+        await new CapturePaymentIntentCommandHandler(
+                db, stripe, NullLogger<CapturePaymentIntentCommandHandler>.Instance)
+            .Handle(new CapturePaymentIntentCommand(payment.Id), default);
+
+        var updated = await db.Payments.FindAsync(payment.Id);
+        updated!.ProfitShareAmountCents.Should().Be(1000);   // 20% of 5000
+        updated.PayeeAmountCents.Should().Be(4000);
+    }
 }

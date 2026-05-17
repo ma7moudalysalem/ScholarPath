@@ -34,6 +34,9 @@ public class Payment : AuditableEntity, ISoftDeletable
     public string? RefundReason { get; set; }
     public string? FailureReason { get; set; }
 
+    // Settlement — set when this payment is included in a payout batch (null = not yet paid out)
+    public Guid? PayoutId { get; set; }
+
     public bool IsDeleted { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public Guid? DeletedByUserId { get; set; }

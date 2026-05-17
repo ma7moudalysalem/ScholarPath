@@ -32,20 +32,6 @@ public sealed class NotificationDispatcherJob(ILogger<NotificationDispatcherJob>
     }
 }
 
-public interface IStripePayoutJob
-{
-    Task RunAsync(CancellationToken ct);
-}
-
-public sealed class StripePayoutJob(ILogger<StripePayoutJob> logger) : IStripePayoutJob
-{
-    public Task RunAsync(CancellationToken ct)
-    {
-        logger.LogInformation("[job] StripePayoutJob tick (stub)");
-        return Task.CompletedTask;
-    }
-}
-
 public interface IIntegrityCheckJob
 {
     Task RunAsync(CancellationToken ct);

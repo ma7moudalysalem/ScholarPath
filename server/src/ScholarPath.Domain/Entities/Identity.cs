@@ -112,6 +112,11 @@ public class UserProfile : AuditableEntity
     public string? LanguagesJson { get; set; }
     public DateTimeOffset? ConsultantVerifiedAt { get; set; }
 
+    // Stripe Connect — payee payout onboarding
+    public string? StripeConnectAccountId { get; set; }
+    public StripeConnectStatus StripeConnectStatus { get; set; } = StripeConnectStatus.None;
+    public DateTimeOffset? StripeConnectOnboardedAt { get; set; }
+
     // Computed
     public int? ProfileCompletenessPercent { get; set; }
 

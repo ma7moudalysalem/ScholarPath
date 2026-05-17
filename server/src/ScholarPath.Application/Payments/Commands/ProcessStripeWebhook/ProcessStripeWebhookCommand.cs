@@ -13,7 +13,11 @@ public sealed record ProcessStripeWebhookCommand(
     string? PaymentIntentId,
     string? ChargeId,
     long? AmountCents,
-    string DataJson) : IRequest<bool>;
+    string DataJson,
+    string? ConnectAccountId = null,
+    bool? ConnectPayoutsEnabled = null,
+    string? PayoutId = null,
+    string? PayoutFailureMessage = null) : IRequest<bool>;
 
 public sealed class ProcessStripeWebhookCommandHandler(
     IApplicationDbContext db,
@@ -41,11 +45,12 @@ public sealed class ProcessStripeWebhookCommandHandler(
         // consultant bookings use Payment, company reviews use CompanyReviewPayment.
         var matchedReview = await ApplyToCompanyReviewPaymentAsync(request, ct);
         var matchedPayment = await ApplyToPaymentAsync(request, ct);
+        var matchedConnect = await ApplyConnectOrPayoutAsync(request, ct);
 
-        if (!matchedReview && !matchedPayment)
+        if (!matchedReview && !matchedPayment && !matchedConnect)
         {
             logger.LogInformation(
-                "Webhook {EventId} ({Type}) matched no payment record (intent {IntentId}, charge {ChargeId}).",
+                "Webhook {EventId} ({Type}) matched no record (intent {IntentId}, charge {ChargeId}).",
                 request.EventId, request.EventType, request.PaymentIntentId, request.ChargeId);
         }
 
@@ -167,6 +172,62 @@ public sealed class ProcessStripeWebhookCommandHandler(
         }
 
         return true;
+    }
+
+    // PB-013 — Connect onboarding + payout lifecycle. account.updated drives payee
+    // verification; payout.paid / payout.failed finalize a Payout row.
+    private async Task<bool> ApplyConnectOrPayoutAsync(
+        ProcessStripeWebhookCommand request, CancellationToken ct)
+    {
+        switch (request.EventType)
+        {
+            case "account.updated":
+                if (string.IsNullOrEmpty(request.ConnectAccountId)) return false;
+
+                var profile = await db.UserProfiles
+                    .FirstOrDefaultAsync(p => p.StripeConnectAccountId == request.ConnectAccountId, ct);
+                if (profile is null) return false;
+
+                var verified = request.ConnectPayoutsEnabled == true;
+                profile.StripeConnectStatus = verified
+                    ? StripeConnectStatus.Verified
+                    : StripeConnectStatus.Pending;
+                if (verified && profile.StripeConnectOnboardedAt is null)
+                    profile.StripeConnectOnboardedAt = DateTimeOffset.UtcNow;
+
+                logger.LogInformation(
+                    "Connect account {AccountId} -> {Status} via webhook.",
+                    request.ConnectAccountId, profile.StripeConnectStatus);
+                return true;
+
+            case "payout.paid":
+            case "payout.failed":
+                if (string.IsNullOrEmpty(request.PayoutId)) return false;
+
+                var payout = await db.Payouts
+                    .FirstOrDefaultAsync(p => p.StripePayoutId == request.PayoutId, ct);
+                if (payout is null) return false;
+
+                if (request.EventType == "payout.paid")
+                {
+                    payout.Status = PayoutStatus.Paid;
+                    payout.PaidAt ??= DateTimeOffset.UtcNow;
+                }
+                else
+                {
+                    payout.Status = PayoutStatus.Failed;
+                    var reason = request.PayoutFailureMessage ?? "payout.failed";
+                    payout.FailureReason = reason.Length > 500 ? reason[..500] : reason;
+                }
+
+                logger.LogInformation(
+                    "Payout {PayoutId} -> {Status} via webhook.",
+                    request.PayoutId, payout.Status);
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     private async Task ConfirmBookingAsync(string? paymentIntentId, CancellationToken ct)
