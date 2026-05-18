@@ -97,32 +97,32 @@ export function BookingCheckout() {
   // ── No slot selected ───────────────────────────────────────────────────────
   if (!hasCompleteSlotParams) {
     return (
-      <main className="min-h-screen bg-[#f5f5f7]">
+      <main className="min-h-screen bg-bg-subtle">
         <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
           <div className="space-y-3">
-            <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
+            <h1 className="text-4xl font-bold tracking-[-0.02em] text-text-primary">
               {t("checkout.title")}
             </h1>
-            <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("checkout.subtitle")}</p>
+            <p className="max-w-3xl text-base leading-7 text-text-secondary">{t("checkout.subtitle")}</p>
           </div>
 
-          <div className="mt-8 rounded-2xl border border-[#e5e7eb] bg-white p-8 shadow-sm">
-            <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+          <div className="mt-8 rounded-2xl border border-border-subtle bg-bg-elevated p-8 shadow-sm">
+            <h2 className="text-2xl font-semibold tracking-[-0.01em] text-text-primary">
               {t("checkout.noSlot.title")}
             </h2>
-            <p className="mt-3 text-sm leading-7 text-[#4b5563]">
+            <p className="mt-3 text-sm leading-7 text-text-secondary">
               {t("checkout.noSlot.description")}
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/student/consultants"
-                className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
               >
                 {t("checkout.noSlot.browseConsultants")}
               </Link>
               <Link
                 to="/student/bookings"
-                className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+                className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-brand-500 bg-transparent px-5 text-sm font-medium text-brand-500 transition hover:bg-brand-50"
               >
                 {t("checkout.noSlot.openBookings")}
               </Link>
@@ -136,11 +136,11 @@ export function BookingCheckout() {
   // ── Loading consultant ─────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#f5f5f7]">
+      <main className="min-h-screen bg-bg-subtle">
         <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
           <div className="space-y-4">
-            <div className="h-10 w-64 animate-pulse rounded-lg bg-white" />
-            <div className="h-96 animate-pulse rounded-2xl border border-[#e5e7eb] bg-white shadow-sm" />
+            <div className="h-10 w-64 animate-pulse rounded-lg bg-bg-elevated" />
+            <div className="h-96 animate-pulse rounded-2xl border border-border-subtle bg-bg-elevated shadow-sm" />
           </div>
         </section>
       </main>
@@ -150,15 +150,15 @@ export function BookingCheckout() {
   // ── Error loading consultant ───────────────────────────────────────────────
   if (isError || !consultant) {
     return (
-      <main className="min-h-screen bg-[#f5f5f7]">
+      <main className="min-h-screen bg-bg-subtle">
         <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
-          <div className="rounded-2xl border border-[#fecaca] bg-[#fef2f2] p-6 text-sm font-medium text-[#dc2626]">
+          <div className="rounded-2xl border border-danger-200 bg-danger-50 p-6 text-sm font-medium text-danger-500">
             {t("states.error")}
           </div>
           <div className="mt-6">
             <Link
               to="/student/consultants"
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+              className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
             >
               {t("checkout.noSlot.browseConsultants")}
             </Link>
@@ -169,7 +169,7 @@ export function BookingCheckout() {
   }
 
   const sessionDetails = (
-    <div className="grid gap-4 rounded-xl bg-[#f9fafb] p-5 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 rounded-xl bg-bg-muted p-5 sm:grid-cols-2 lg:grid-cols-3">
       <Detail label={t("fields.consultant")} value={consultant.name} />
       <Detail label={t("fields.sessionType")} value={t("sessionType")} />
       <Detail label={t("fields.selectedDate")} value={formatDate(startAt, lang)} />
@@ -183,27 +183,27 @@ export function BookingCheckout() {
   );
 
   const priceSummary = (
-    <aside className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-4">
-      <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+    <aside className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm lg:col-span-4">
+      <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
         {t("checkout.priceSummary.title")}
       </h2>
       <div className="mt-5 space-y-4 text-sm">
         <div className="flex items-center justify-between">
-          <span className="text-[#4b5563]">{t("checkout.priceSummary.sessionFee")}</span>
-          <span className="font-medium text-[#1d1d1f]">{formatUsd(feeAmount)}</span>
+          <span className="text-text-secondary">{t("checkout.priceSummary.sessionFee")}</span>
+          <span className="font-medium text-text-primary">{formatUsd(feeAmount)}</span>
         </div>
-        <div className="border-t border-[#e5e7eb] pt-4">
+        <div className="border-t border-border-subtle pt-4">
           <div className="flex items-center justify-between">
-            <span className="font-medium text-[#1d1d1f]">{t("checkout.priceSummary.total")}</span>
-            <span className="text-2xl font-semibold text-[#1d1d1f]">{formatUsd(feeAmount)}</span>
+            <span className="font-medium text-text-primary">{t("checkout.priceSummary.total")}</span>
+            <span className="text-2xl font-semibold text-text-primary">{formatUsd(feeAmount)}</span>
           </div>
         </div>
       </div>
-      <div className="mt-6 rounded-xl bg-[#f9fafb] p-4">
-        <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+      <div className="mt-6 rounded-xl bg-bg-muted p-4">
+        <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
           {t("fields.selectedSlot")}
         </p>
-        <p className="mt-2 text-sm font-medium text-[#1d1d1f]">{slotSummary}</p>
+        <p className="mt-2 text-sm font-medium text-text-primary">{slotSummary}</p>
       </div>
     </aside>
   );
@@ -211,54 +211,54 @@ export function BookingCheckout() {
   // ── Done — booking requested + payment authorized ──────────────────────────
   if (createdBookingId && paid) {
     return (
-      <main className="min-h-screen bg-[#f5f5f7]">
+      <main className="min-h-screen bg-bg-subtle">
         <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
           <div className="space-y-3">
-            <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
+            <h1 className="text-4xl font-bold tracking-[-0.02em] text-text-primary">
               {t("checkout.title")}
             </h1>
-            <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("checkout.subtitle")}</p>
+            <p className="max-w-3xl text-base leading-7 text-text-secondary">{t("checkout.subtitle")}</p>
           </div>
 
-          <div className="mt-8 rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-6">
+          <div className="mt-8 rounded-xl border border-success-200 bg-success-50 p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[#166534]">
+                <h2 className="text-2xl font-semibold tracking-[-0.01em] text-success-700">
                   {t("checkout.success.title")}
                 </h2>
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-[#166534]">
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-success-700">
                   {t("checkout.success.description")}
                 </p>
               </div>
-              <span className="inline-flex rounded-full bg-[#dcfce7] px-3 py-1 text-xs font-medium text-[#15803d]">
+              <span className="inline-flex rounded-full bg-success-100 px-3 py-1 text-xs font-medium text-success-600">
                 {t("checkout.success.badge")}
               </span>
             </div>
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-12">
-            <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-8">
-              <h3 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+            <section className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm lg:col-span-8">
+              <h3 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                 {t("checkout.success.summaryTitle")}
               </h3>
               <div className="mt-5">{sessionDetails}</div>
             </section>
 
-            <aside className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-4">
-              <h3 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+            <aside className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm lg:col-span-4">
+              <h3 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                 {t("checkout.priceSummary.title")}
               </h3>
               <div className="mt-5 space-y-4 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-[#4b5563]">{t("checkout.priceSummary.sessionFee")}</span>
-                  <span className="font-medium text-[#1d1d1f]">{formatUsd(feeAmount)}</span>
+                  <span className="text-text-secondary">{t("checkout.priceSummary.sessionFee")}</span>
+                  <span className="font-medium text-text-primary">{formatUsd(feeAmount)}</span>
                 </div>
-                <div className="border-t border-[#e5e7eb] pt-4">
+                <div className="border-t border-border-subtle pt-4">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-[#1d1d1f]">
+                    <span className="font-medium text-text-primary">
                       {t("checkout.priceSummary.total")}
                     </span>
-                    <span className="text-2xl font-semibold text-[#1d1d1f]">
+                    <span className="text-2xl font-semibold text-text-primary">
                       {formatUsd(feeAmount)}
                     </span>
                   </div>
@@ -267,13 +267,13 @@ export function BookingCheckout() {
               <div className="mt-6 flex flex-col gap-3">
                 <Link
                   to={`/student/bookings/${createdBookingId}`}
-                  className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                  className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
                 >
                   {t("checkout.success.openThisBooking")}
                 </Link>
                 <Link
                   to="/student/bookings"
-                  className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+                  className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-brand-500 bg-transparent px-5 text-sm font-medium text-brand-500 transition hover:bg-brand-50"
                 >
                   {t("checkout.success.openBookings")}
                 </Link>
@@ -288,27 +288,27 @@ export function BookingCheckout() {
   // ── Payment step — booking requested, authorize the fee with Stripe ────────
   if (createdBookingId) {
     return (
-      <main className="min-h-screen bg-[#f5f5f7]">
+      <main className="min-h-screen bg-bg-subtle">
         <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
           <div className="space-y-3">
-            <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
+            <h1 className="text-4xl font-bold tracking-[-0.02em] text-text-primary">
               {t("checkout.title")}
             </h1>
-            <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("checkout.subtitle")}</p>
+            <p className="max-w-3xl text-base leading-7 text-text-secondary">{t("checkout.subtitle")}</p>
           </div>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-12">
-            <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-8">
-              <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+            <section className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm lg:col-span-8">
+              <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                 {t("checkout.paymentStep.title")}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-[#4b5563]">
+              <p className="mt-2 text-sm leading-6 text-text-secondary">
                 {t("checkout.paymentStep.description")}
               </p>
 
               <div className="mt-5">{sessionDetails}</div>
 
-              <div className="mt-6 rounded-xl border border-[#e5e7eb] p-5">
+              <div className="mt-6 rounded-xl border border-border-subtle p-5">
                 <StripeCheckout
                   bookingId={createdBookingId}
                   amountCents={Math.round(feeAmount * 100)}
@@ -327,33 +327,33 @@ export function BookingCheckout() {
 
   // ── Review + request the booking ───────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-[#f5f5f7]">
+    <main className="min-h-screen bg-bg-subtle">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
+          <h1 className="text-4xl font-bold tracking-[-0.02em] text-text-primary">
             {t("checkout.title")}
           </h1>
-          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("checkout.subtitle")}</p>
+          <p className="max-w-3xl text-base leading-7 text-text-secondary">{t("checkout.subtitle")}</p>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-12">
           <form
             id="checkout-form"
-            className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-8"
+            className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm lg:col-span-8"
             onSubmit={handleRequestBooking}
           >
-            <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+            <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
               {t("checkout.sessionSummary.title")}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#4b5563]">
+            <p className="mt-2 text-sm leading-6 text-text-secondary">
               {t("checkout.sessionSummary.description")}
             </p>
 
             <div className="mt-5">{sessionDetails}</div>
 
-            <div className="mt-6 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4">
-              <p className="text-sm font-medium text-[#1d1d1f]">{t("checkout.holdNotice.title")}</p>
-              <p className="mt-2 text-sm leading-7 text-[#4b5563]">
+            <div className="mt-6 rounded-xl border border-border-subtle bg-bg-muted p-4">
+              <p className="text-sm font-medium text-text-primary">{t("checkout.holdNotice.title")}</p>
+              <p className="mt-2 text-sm leading-7 text-text-secondary">
                 {t("checkout.holdNotice.description")}
               </p>
             </div>
@@ -367,44 +367,44 @@ export function BookingCheckout() {
                     setAcceptHold(event.target.checked);
                     setAcceptError(false);
                   }}
-                  className="mt-1 h-4 w-4 accent-[#2563eb]"
+                  className="mt-1 h-4 w-4 accent-brand-500"
                 />
-                <span className="text-sm text-[#1d1d1f]">
+                <span className="text-sm text-text-primary">
                   {t("checkout.holdNotice.acceptLabel")}
                 </span>
               </label>
               {acceptError && (
-                <p className="mt-2 text-sm text-[#dc2626]">{t("errors.holdNoticeRequired")}</p>
+                <p className="mt-2 text-sm text-danger-500">{t("errors.holdNoticeRequired")}</p>
               )}
             </div>
           </form>
 
-          <aside className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-4">
-            <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+          <aside className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm lg:col-span-4">
+            <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
               {t("checkout.priceSummary.title")}
             </h2>
             <div className="mt-5 space-y-4 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[#4b5563]">{t("checkout.priceSummary.sessionFee")}</span>
-                <span className="font-medium text-[#1d1d1f]">{formatUsd(feeAmount)}</span>
+                <span className="text-text-secondary">{t("checkout.priceSummary.sessionFee")}</span>
+                <span className="font-medium text-text-primary">{formatUsd(feeAmount)}</span>
               </div>
-              <div className="border-t border-[#e5e7eb] pt-4">
+              <div className="border-t border-border-subtle pt-4">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-[#1d1d1f]">
+                  <span className="font-medium text-text-primary">
                     {t("checkout.priceSummary.total")}
                   </span>
-                  <span className="text-2xl font-semibold text-[#1d1d1f]">
+                  <span className="text-2xl font-semibold text-text-primary">
                     {formatUsd(feeAmount)}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-6 rounded-xl bg-[#f9fafb] p-4">
-              <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+            <div className="mt-6 rounded-xl bg-bg-muted p-4">
+              <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                 {t("fields.selectedSlot")}
               </p>
-              <p className="mt-2 text-sm font-medium text-[#1d1d1f]">{slotSummary}</p>
+              <p className="mt-2 text-sm font-medium text-text-primary">{slotSummary}</p>
             </div>
 
             <div className="mt-6 flex flex-col gap-3">
@@ -412,7 +412,7 @@ export function BookingCheckout() {
                 type="submit"
                 form="checkout-form"
                 disabled={requestBooking.isPending}
-                className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {requestBooking.isPending
                   ? t("states.submitting")
@@ -420,7 +420,7 @@ export function BookingCheckout() {
               </button>
               <Link
                 to={`/student/consultants/${consultant.id}`}
-                className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+                className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-brand-500 bg-transparent px-5 text-sm font-medium text-brand-500 transition hover:bg-brand-50"
               >
                 {t("checkout.backToProfile")}
               </Link>
@@ -435,8 +435,8 @@ export function BookingCheckout() {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">{label}</p>
-      <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{value}</p>
+      <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">{label}</p>
+      <p className="mt-1 text-sm font-medium text-text-primary">{value}</p>
     </div>
   );
 }

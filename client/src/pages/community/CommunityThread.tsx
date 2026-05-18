@@ -182,12 +182,12 @@ export function CommunityThread() {
             value={replyBody}
             onChange={(e) => setReplyBody(e.target.value)}
             placeholder={t("thread.replyPlaceholder")}
-            className="w-full bg-bg-elevated border border-border-subtle rounded-2xl p-6 pr-16 outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all shadow-sm min-h-[120px] resize-none"
+            className="w-full bg-bg-elevated border border-border-subtle rounded-2xl p-6 pe-16 outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all shadow-sm min-h-[120px] resize-none"
           />
           <button
             type="submit"
             disabled={replyMutation.isPending || !replyBody.trim()}
-            className="absolute right-4 bottom-4 p-3 bg-brand-500 text-white rounded-xl shadow-lg hover:bg-brand-600 disabled:opacity-50 disabled:shadow-none transition-all"
+            className="absolute end-4 bottom-4 p-3 bg-brand-500 text-white rounded-xl shadow-lg hover:bg-brand-600 disabled:opacity-50 disabled:shadow-none transition-all"
           >
             <Send size={20} />
           </button>
@@ -195,9 +195,9 @@ export function CommunityThread() {
       </div>
 
       {/* Replies List */}
-      <div className="space-y-6 relative before:absolute before:left-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-border-subtle">
+      <div className="space-y-6 relative before:absolute before:start-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-border-subtle">
         {thread.replies.map((reply) => (
-          <div key={reply.id} className="relative pl-12">
+          <div key={reply.id} className="relative ps-12">
             <div className="bg-bg-elevated p-6 rounded-2xl border border-border-subtle shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">

@@ -15,10 +15,7 @@ export function ApplicationCard({ application, onClick }: ApplicationCardProps) 
   return (
     <div
       onClick={onClick}
-      className={cn(
-        "group relative flex flex-col space-y-3 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm transition-all hover:shadow-md cursor-grab active:cursor-grabbing",
-        "dark:bg-slate-900 dark:border-slate-800"
-      )}
+      className="group relative flex flex-col space-y-3 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm transition-all hover:shadow-md cursor-grab active:cursor-grabbing"
     >
       <div className="flex items-start justify-between">
         <h3 className="line-clamp-2 text-sm font-semibold text-text-primary group-hover:text-brand-600 transition-colors">
@@ -31,11 +28,11 @@ export function ApplicationCard({ application, onClick }: ApplicationCardProps) 
 
       <div className="flex flex-col space-y-1.5">
         <div className="flex items-center text-xs text-text-secondary">
-          <Building2 size={14} className="mr-1.5 shrink-0" />
+          <Building2 size={14} className="me-1.5 shrink-0" />
           <span className="truncate">{application.companyName || "External Provider"}</span>
         </div>
         <div className="flex items-center text-xs text-text-tertiary">
-          <Calendar size={14} className="mr-1.5 shrink-0" />
+          <Calendar size={14} className="me-1.5 shrink-0" />
           <span>
             {t("card.updated")}: {format(new Date(application.updatedAt), "MMM d, yyyy")}
           </span>
@@ -47,16 +44,16 @@ export function ApplicationCard({ application, onClick }: ApplicationCardProps) 
           className={cn(
             "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider",
             application.mode === "External"
-              ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
-              : "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400"
+              ? "bg-warning-50 text-warning-600"
+              : "bg-brand-50 text-brand-600"
           )}
         >
           {application.mode === "External" ? t("card.external") : t("card.inApp")}
         </span>
-        
-        <button className="flex items-center text-xs font-medium text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity">
+
+        <button type="button" className="flex items-center text-xs font-medium text-brand-600 opacity-0 group-hover:opacity-100 transition-opacity">
           {t("card.viewDetails")}
-          <ArrowRight size={12} className="ml-1" />
+          <ArrowRight size={12} className="ms-1 rtl:rotate-180" />
         </button>
       </div>
     </div>

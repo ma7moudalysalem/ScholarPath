@@ -45,23 +45,23 @@ export function NewMessageModal({ isOpen, onOpenChange, onSelectContact }: NewMe
     <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex w-full max-w-md -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex w-full max-w-md -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-bg-elevated p-6 shadow-2xl">
           <div className="mb-4 flex items-center justify-between">
-            <Dialog.Title className="text-xl font-semibold text-slate-900 dark:text-white">
+            <Dialog.Title className="text-xl font-semibold text-text-primary">
               {t("chat.new_message_title", "New Message")}
             </Dialog.Title>
-            <Dialog.Close className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+            <Dialog.Close className="text-text-tertiary hover:text-text-secondary transition-colors">
               <X size={20} />
             </Dialog.Close>
           </div>
 
-          <Dialog.Description className="mb-4 text-sm text-slate-500 dark:text-slate-400">
+          <Dialog.Description className="mb-4 text-sm text-text-secondary">
             {t("chat.new_message_desc", "Search for a person to start a conversation with.")}
           </Dialog.Description>
 
           <div className="relative mb-4">
             <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary"
+              className="absolute start-3 top-1/2 -translate-y-1/2 text-text-tertiary"
               size={16}
             />
             <input
@@ -70,7 +70,7 @@ export function NewMessageModal({ isOpen, onOpenChange, onSelectContact }: NewMe
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("chat.contact_search_placeholder", "Search by name...")}
-              className="w-full rounded-xl border border-border-subtle bg-bg-elevated py-2 pl-9 pr-4 text-sm outline-none transition-all focus:ring-2 focus:ring-brand-400"
+              className="w-full rounded-xl border border-border-subtle bg-bg-elevated py-2 ps-9 pe-4 text-sm outline-none transition-all focus:ring-2 focus:ring-brand-400"
             />
           </div>
 

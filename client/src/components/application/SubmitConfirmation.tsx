@@ -24,53 +24,53 @@ export function ApplicationSubmitConfirmation({
   return (
     <div className="mx-auto max-w-2xl p-6">
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900/30">
-          <CreditCard className="h-8 w-8 text-primary-600 dark:text-primary-400" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-50">
+          <CreditCard className="h-8 w-8 text-brand-500" />
         </div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-text-primary">
           {t('submit.title')}
         </h1>
-        <p className="mt-2 text-slate-500 dark:text-slate-400">
+        <p className="mt-2 text-text-secondary">
           {t('submit.subtitle', { scholarship: scholarshipTitle })}
         </p>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 overflow-hidden mb-6">
-        <div className="border-b border-slate-100 bg-slate-50/50 p-6 dark:border-slate-800/50 dark:bg-slate-800/20">
+      <div className="rounded-xl border border-border-subtle bg-bg-elevated shadow-sm overflow-hidden mb-6">
+        <div className="border-b border-border-subtle bg-bg-muted/50 p-6">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-slate-500 dark:text-slate-400">{t('submit.reviewFee')}</span>
-            <span className="text-xl font-bold text-slate-900 dark:text-white">${reviewFeeUsd.toFixed(2)}</span>
+            <span className="text-sm font-medium text-text-secondary">{t('submit.reviewFee')}</span>
+            <span className="text-xl font-bold text-text-primary">${reviewFeeUsd.toFixed(2)}</span>
           </div>
-          
-          <div className="flex items-start space-x-3 rounded-lg bg-blue-50 p-4 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+
+          <div className="flex items-start space-x-3 rounded-lg bg-brand-50 p-4 text-sm text-brand-700">
             <Info className="mt-0.5 shrink-0" size={16} />
             <div className="space-y-1">
               <p className="font-medium">{t('submit.escrowNoticeTitle')}</p>
-              <p className="text-blue-700 dark:text-blue-400/80">
+              <p className="text-brand-600">
                 {t('submit.escrowNoticeDesc', { company: companyName })}
               </p>
             </div>
           </div>
         </div>
-        
+
         <div className="p-6">
           <div className="space-y-4">
-            <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-4">
+            <p className="text-sm font-medium text-text-secondary mb-4">
               {t('submit.paymentDetails')}
             </p>
-            <StripeCheckout 
+            <StripeCheckout
               bookingId={applicationId}
               amountCents={Math.round(reviewFeeUsd * 100)}
-              onSuccess={onPaymentSuccess} 
+              onSuccess={onPaymentSuccess}
             />
           </div>
         </div>
       </div>
-      
+
       <div className="text-center">
         <button
           onClick={onCancel}
-          className="text-sm font-medium text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+          className="text-sm font-medium text-text-secondary hover:text-text-primary transition-colors"
         >
           {t('common.cancelAndReturn')}
         </button>

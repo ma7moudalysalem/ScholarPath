@@ -33,8 +33,8 @@ export function AddExternalApplicationModal({
     <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-bg-elevated shadow-2xl dark:bg-slate-900">
-          <div className="flex items-center justify-between border-b border-border-subtle p-6 pb-4 dark:border-slate-800">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-bg-elevated shadow-2xl">
+          <div className="flex items-center justify-between border-b border-border-subtle p-6 pb-4">
             <Dialog.Title className="text-xl font-semibold text-text-primary">
               {t("addExternalModal.title")}
             </Dialog.Title>
@@ -185,19 +185,19 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder={t("addExternalModal.scholarshipPlaceholder")}
-                  className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas ps-10 pe-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-slate-800"
+                  className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas ps-10 pe-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 />
               </div>
 
               {debouncedTerm.length > 0 && (
-                <div className="max-h-48 overflow-y-auto rounded-md border border-border-subtle dark:border-slate-800">
+                <div className="max-h-48 overflow-y-auto rounded-md border border-border-subtle">
                   {isSearching ? (
                     <div className="flex items-center justify-center gap-2 p-4 text-sm text-text-tertiary">
                       <Loader2 size={16} className="animate-spin" aria-hidden />
                       {t("addExternalModal.searching")}
                     </div>
                   ) : results && results.items.length > 0 ? (
-                    <ul className="divide-y divide-border-subtle dark:divide-slate-800">
+                    <ul className="divide-y divide-border-subtle">
                       {results.items.map((s) => (
                         <li key={s.id}>
                           <button
@@ -206,7 +206,7 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
                               setSelectedId(s.id);
                               setSelectedTitle(s.titleEn);
                             }}
-                            className="block w-full px-3 py-2 text-start text-sm text-text-primary transition-colors hover:bg-bg-subtle dark:hover:bg-slate-800"
+                            className="block w-full px-3 py-2 text-start text-sm text-text-primary transition-colors hover:bg-bg-subtle"
                           >
                             {s.titleEn}
                           </button>
@@ -231,7 +231,7 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
             </p>
           )}
           {isInAppListing && (
-            <p className="flex items-start gap-1.5 rounded-md bg-amber-500/10 p-2 text-xs text-amber-600 dark:text-amber-400">
+            <p className="flex items-start gap-1.5 rounded-md bg-warning-50 p-2 text-xs text-warning-600">
               <AlertTriangle size={14} aria-hidden className="mt-0.5 shrink-0" />
               {t("addExternalModal.notExternalListing")}
             </p>
@@ -255,7 +255,7 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
             value={trackingUrl}
             onChange={(e) => setTrackingUrl(e.target.value)}
             placeholder={t("addExternalModal.trackingUrlPlaceholder")}
-            className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-slate-800"
+            className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           />
         </div>
 
@@ -277,7 +277,7 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
             onChange={(e) => setReferenceId(e.target.value)}
             placeholder={t("addExternalModal.referenceIdPlaceholder")}
             maxLength={200}
-            className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-slate-800"
+            className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           />
         </div>
 
@@ -299,17 +299,17 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
             placeholder={t("addExternalModal.notesPlaceholder")}
             rows={3}
             maxLength={4000}
-            className="w-full rounded-md border border-border-subtle bg-bg-canvas px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:bg-slate-800"
+            className="w-full rounded-md border border-border-subtle bg-bg-canvas px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           />
         </div>
       </div>
 
       {/* ── Footer ── */}
-      <div className="mt-6 flex justify-end gap-3 border-t border-border-subtle pt-4 dark:border-slate-800">
+      <div className="mt-6 flex justify-end gap-3 border-t border-border-subtle pt-4">
         <Dialog.Close asChild>
           <button
             type="button"
-            className="rounded-md px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-subtle dark:hover:bg-slate-800"
+            className="rounded-md px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-subtle"
           >
             {t("addExternalModal.cancel")}
           </button>

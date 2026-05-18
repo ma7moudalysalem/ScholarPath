@@ -1,237 +1,168 @@
 # ScholarPath Design System
-## Inspired by Apple's Design Philosophy — Adapted for an Education Platform
+
+> Single source of truth for colours, typography, spacing, and motion tokens.
+> All tokens are defined in `client/src/theme/globals.css` under `@theme {}`.
+> Tailwind v4 exposes every token as a utility class automatically — no config file needed.
 
 ---
 
-## 1. Visual Theme & Atmosphere
+## Colour Tokens
 
-ScholarPath adopts Apple's philosophy of **controlled elegance** — vast expanses of clean backgrounds serve as canvases for scholarship content that is presented as the hero. The interface retreats until it becomes invisible, letting students focus on opportunities, not chrome.
+### Backgrounds
 
-The design is **reductive but warm** — unlike Apple's stark product photography, ScholarPath uses the same spatial discipline but with a warmer educational tone. Bilingual support (EN/AR) requires careful typography handling with the `{Field}` / `{Field}Ar` pattern throughout.
-
-**Key Characteristics:**
-- Inter font family (closest open-source match to SF Pro's proportions)
-- Binary light/dark section rhythm: white (`#ffffff`) alternating with light gray (`#f5f5f7`)
-- Single accent color: ScholarPath Blue (`#2563eb`) reserved for interactive elements
-- Tight headline line-heights (1.07-1.14) creating compressed, confident impact
-- Full-width section layout with centered content — clean, focused
-- Pill-shaped CTAs (980px radius) for primary actions
-- Generous whitespace between sections
-- RTL-ready layout for Arabic content
-
-## 2. Color Palette & Roles
-
-### Primary
-- **White** (`#ffffff`): Primary page background, card surfaces
-- **Light Gray** (`#f5f5f7`): Alternate section backgrounds, sidebar areas
-- **Near Black** (`#1d1d1f`): Primary text on light backgrounds
-
-### Interactive
-- **ScholarPath Blue** (`#2563eb`): Primary CTA backgrounds, focus rings, active states
-- **Link Blue** (`#1d4ed8`): Inline text links on light backgrounds
-- **Bright Blue** (`#60a5fa`): Links on dark backgrounds, info states
-
-### Semantic
-- **Success Green** (`#16a34a`): Accepted status, eligibility match, completion
-- **Warning Amber** (`#d97706`): Pending status, deadline approaching, needs attention
-- **Error Red** (`#dc2626`): Rejected status, errors, destructive actions
-- **Info Blue** (`#2563eb`): Informational banners, tips
+| Token | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `bg-bg-canvas` | `#ffffff` | `#000000` | Root page background |
+| `bg-bg-subtle` | `#f5f5f7` | `#0b0b0f` | Section/sidebar background |
+| `bg-bg-elevated` | `#ffffff` | `#1f2937` | Cards, modals, inputs |
+| `bg-bg-muted` | `#fafafa` | `#111827` | Inner card areas, data grids |
 
 ### Text
-- **Near Black** (`#1d1d1f`): Primary body text
-- **Gray 600** (`#4b5563`): Secondary text, descriptions
-- **Gray 400** (`#9ca3af`): Placeholder text, disabled states, tertiary info
-- **White** (`#ffffff`): Text on dark/blue backgrounds
 
-### Surface
-- **Card White** (`#ffffff`): Card backgrounds with subtle shadow
-- **Card Gray** (`#f9fafb`): Subtle card variant
-- **Dark Surface** (`#111827`): Dark mode backgrounds, hero sections
-- **Dark Card** (`#1f2937`): Cards on dark backgrounds
+| Token | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `text-text-primary` | `#1d1d1f` | `#f5f5f7` | Headings, body, labels |
+| `text-text-secondary` | `#4b5563` | `#d1d5db` | Descriptions, captions |
+| `text-text-tertiary` | `#9ca3af` | `#6b7280` | Placeholders, metadata |
+| `text-text-on-brand` | `#ffffff` | `#ffffff` | Text on brand-coloured backgrounds |
+| `text-text-inverse` | `#ffffff` | `#ffffff` | Text on dark surfaces |
 
-### Status Colors (Application Tracking)
-- **Planned** (`#6366f1`): Indigo - intention phase
-- **Applied** (`#2563eb`): Blue - active
-- **Pending** (`#d97706`): Amber - waiting
-- **Accepted** (`#16a34a`): Green - success
-- **Rejected** (`#dc2626`): Red - declined
+### Borders
 
-## 3. Typography Rules
+| Token | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `border-border-subtle` | `#e5e7eb` | `#1f2937` | Card outlines, dividers |
+| `border-border-default` | `#d1d5db` | `#374151` | Input borders |
+| `border-border-strong` | `#9ca3af` | `#4b5563` | Emphasis borders |
 
-### Font Family
-- **Primary**: `Inter`, with fallbacks: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
-- **Arabic**: `"IBM Plex Sans Arabic"`, with fallbacks: `"Noto Sans Arabic", sans-serif`
-- **Monospace**: `"JetBrains Mono", "Fira Code", "Consolas", monospace` (code snippets, reference numbers)
+### Brand (Blue)
 
-### Hierarchy
+| Token | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `bg-brand-50` | `#eff6ff` | `#0c1a3a` | Chip/badge backgrounds |
+| `brand-100` | `#dbeafe` | — | Focus rings |
+| `brand-300` | `#93c5fd` | — | Focus border |
+| `brand-500` | `#2563eb` | `#60a5fa` | Primary buttons, links |
+| `brand-600` | `#1d4ed8` | `#3b82f6` | Button hover |
+| `brand-700` | `#1e40af` | `#2563eb` | Dark text on light chips |
 
-| Role | Size | Weight | Line Height | Letter Spacing | Usage |
-|------|------|--------|-------------|----------------|-------|
-| Display Hero | 48px (3rem) | 700 | 1.08 | -0.02em | Landing page hero headlines |
-| Page Title | 36px (2.25rem) | 700 | 1.11 | -0.02em | Page headings (Dashboard, Scholarships) |
-| Section Heading | 28px (1.75rem) | 600 | 1.14 | -0.01em | Section titles within pages |
-| Card Title | 20px (1.25rem) | 600 | 1.2 | -0.01em | Scholarship card titles, widget headings |
-| Subtitle | 18px (1.125rem) | 500 | 1.33 | normal | Subtitles, lead paragraphs |
-| Body | 16px (1rem) | 400 | 1.5 | normal | Standard reading text |
-| Body Small | 14px (0.875rem) | 400 | 1.43 | normal | Secondary descriptions, metadata |
-| Caption | 12px (0.75rem) | 500 | 1.33 | 0.01em | Labels, timestamps, badges |
-| Micro | 10px (0.625rem) | 500 | 1.4 | 0.02em | Legal, footnotes |
+### Semantic — Success
 
-### Principles
-- **Weight restraint**: 400 (regular) and 600 (semibold) carry 90% of the UI. 700 (bold) for hero headlines only.
-- **Negative tracking on headlines**: -0.02em on display/title sizes creates Apple-like compressed confidence.
-- **RTL support**: All text containers must use `direction: inherit` and logical properties (`margin-inline-start` not `margin-left`).
+| Token | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `success-50` | `#f0fdf4` | `#052e16` | Alert / badge background |
+| `success-100` | `#dcfce7` | `#14532d` | Success banner fill |
+| `success-200` | `#bbf7d0` | `#166534` | Success banner border |
+| `success-500` | `#16a34a` | — | Icon fill |
+| `success-600` | `#15803d` | — | Badge text |
+| `success-700` | `#166534` | — | Heavy text on success bg |
 
-## 4. Component Stylings
+### Semantic — Warning
 
-### Buttons
+| Token | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `warning-50` | `#fffbeb` | `#1a0e00` | Badge background |
+| `warning-500` | `#d97706` | — | Icon fill |
+| `warning-600` | `#b45309` | — | Badge text, border |
 
-**Primary Blue (CTA)**
-- Background: `#2563eb`
-- Text: `#ffffff`
-- Padding: 10px 20px
-- Radius: 8px
-- Font: Inter, 16px, weight 500
-- Hover: `#1d4ed8` (darker)
-- Active: `#1e40af`
-- Focus: 2px solid `#2563eb` outline with 2px offset
+### Semantic — Danger
 
-**Secondary (Outline)**
-- Background: transparent
-- Text: `#2563eb`
-- Border: 1.5px solid `#2563eb`
-- Radius: 8px
-- Hover: `#eff6ff` background tint
+| Token | Light | Dark | Usage |
+|-------|-------|------|-------|
+| `danger-50` | `#fef2f2` | `#2c0a0a` | Error alert background |
+| `danger-200` | `#fecaca` | `#7f1d1d` | Error alert border |
+| `danger-400` | `#f87171` | — | Focus border on error inputs |
+| `danger-500` | `#dc2626` | — | Error text / icon |
 
-**Pill Link**
-- Background: transparent
-- Text: `#1d4ed8`
-- Radius: 980px (full pill)
-- Border: 1px solid `#1d4ed8`
-- Font: Inter, 14px, weight 500
-- Use: "Learn more", "View details" inline CTAs
+### Application Status (Kanban)
 
-**Destructive**
-- Background: `#dc2626`
-- Text: `#ffffff`
-- Radius: 8px
-- Hover: `#b91c1c`
+| Token | Value | Usage |
+|-------|-------|-------|
+| `status-planned` | `#6366f1` | Planned application |
+| `status-applied` | `#2563eb` | Submitted |
+| `status-pending` | `#d97706` | Under review |
+| `status-accepted` | `#16a34a` | Accepted |
+| `status-rejected` | `#dc2626` | Rejected |
+| `status-withdrawn` | `#64748b` | Withdrawn |
 
-### Cards
-- Background: `#ffffff`
-- Border: 1px solid `#e5e7eb`
-- Radius: 12px
-- Shadow: `0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)`
-- Hover: `0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)` + translateY(-1px)
-- Padding: 24px
+---
 
-### Navigation
-- Background: `rgba(255, 255, 255, 0.8)` with `backdrop-filter: saturate(180%) blur(20px)`
-- Height: 64px
-- Border-bottom: 1px solid `rgba(0,0,0,0.08)`
-- Logo: ScholarPath wordmark, Inter 20px weight 700, `#1d1d1f`
-- Links: Inter 14px weight 500, `#4b5563`, hover `#1d1d1f`
-- Active link: `#2563eb` with 2px bottom border
+## Typography Scale
 
-### Status Badges
-- Radius: 9999px (full pill)
-- Padding: 2px 10px
-- Font: Inter 12px weight 500
-- Each status has background tint + text color:
-  - Planned: bg `#eef2ff`, text `#4338ca`
-  - Applied: bg `#eff6ff`, text `#1d4ed8`
-  - Pending: bg `#fffbeb`, text `#b45309`
-  - Accepted: bg `#f0fdf4`, text `#15803d`
-  - Rejected: bg `#fef2f2`, text `#b91c1c`
+| Token | Size | Usage |
+|-------|------|-------|
+| `text-xs` | 12 px | Captions, metadata, uppercase labels |
+| `text-sm` | 14 px | Body small, form fields, badges |
+| `text-base` | 16 px | Body default |
+| `text-lg` | 18 px | Card headings |
+| `text-xl` | 20 px | Section sub-headings |
+| `text-2xl` | 28 px | Card titles, booking names |
+| `text-3xl` | 36 px | Stat numbers |
+| `text-4xl` | 48 px | Page titles |
+| `text-5xl` | 64 px | Hero headline |
+| `text-6xl` | 80 px | Marketing display |
 
-### Form Inputs
-- Background: `#ffffff`
-- Border: 1.5px solid `#d1d5db`
-- Radius: 8px
-- Padding: 10px 14px
-- Font: Inter 16px
-- Focus: border `#2563eb`, ring `0 0 0 3px rgba(37,99,235,0.1)`
-- Error: border `#dc2626`, ring `0 0 0 3px rgba(220,38,38,0.1)`
+**Fonts**
+- Latin: `Inter`, then system-ui sans
+- Arabic/RTL: `IBM Plex Sans Arabic`, `Noto Sans Arabic`, Geeza Pro
+- Code: `JetBrains Mono`
 
-## 5. Layout Principles
+**Heading defaults** (via `@layer base`): `font-weight: 600`, `letter-spacing: -0.02em`, `line-height: 1.08`.
 
-### Spacing Scale (8px base)
-4, 8, 12, 16, 20, 24, 32, 40, 48, 64, 80, 96, 128
+---
 
-### Grid
-- Max content width: 1280px
-- Page padding: 16px (mobile), 24px (tablet), 32px (desktop)
-- Sidebar: 256px fixed width on desktop, drawer on mobile
-- Card grid: 1 col (mobile) -> 2 col (tablet) -> 3 col (desktop)
+## Spacing Rhythm
 
-### Whitespace
-- **Section spacing**: 64px-96px between major page sections
-- **Card gap**: 24px between cards in grid
-- **Content breathing**: 48px padding inside major containers
+Use Tailwind's default 4 px base grid. Prefer:
+- `gap-3` / `gap-4` / `gap-6` inside grid/flex layouts
+- `p-4` / `p-5` / `p-6` for card padding
+- `py-10` for page vertical rhythm
+- `mt-8` between major page sections
 
-## 6. Depth & Elevation
+---
 
-| Level | Shadow | Usage |
-|-------|--------|-------|
-| Level 0 | none | Flat content, inline elements |
-| Level 1 | `0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)` | Cards, dropdowns |
-| Level 2 | `0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)` | Hover cards, popovers |
-| Level 3 | `0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05)` | Modals, drawers |
-| Navigation | `backdrop-filter: saturate(180%) blur(20px)` on semi-transparent | Sticky nav |
+## Radii
 
-## 7. Do's and Don'ts
+| Token | Value | Usage |
+|-------|-------|-------|
+| `rounded-sm` | 6 px | Tags, chips |
+| `rounded-md` | 8 px | Inputs, small buttons |
+| `rounded-lg` | 12 px | Buttons, action rows |
+| `rounded-xl` | 16 px | Cards, form panels |
+| `rounded-2xl` | 24 px | Main content cards |
+| `rounded-full` | 980 px | Badges, pill buttons, avatars |
 
-### Do
-- Use ScholarPath Blue (`#2563eb`) ONLY for interactive elements
-- Alternate between white and `#f5f5f7` section backgrounds
-- Use 980px pill radius for inline CTAs
-- Keep scholarship cards clean with generous padding
-- Use status-colored badges for application tracking
-- Support RTL layout with logical CSS properties
-- Use subtle shadows — Apple-like, not Material Design
-- Compress headline line-heights for confident typography
+---
 
-### Don't
-- Don't introduce additional accent colors beyond the semantic set
-- Don't use heavy shadows or multiple shadow layers
-- Don't use borders heavier than 1.5px
-- Don't apply wide letter-spacing — Inter runs tight like SF Pro
-- Don't center-align body text — left-align (or right-align for Arabic)
-- Don't use gradients on backgrounds — solid colors only
-- Don't make cards overly decorative — content is the hero
+## Shadows
 
-## 8. Responsive Behavior
+| Token | Usage |
+|-------|-------|
+| `shadow-xs` | Inline elements, tight lift |
+| `shadow-sm` | Cards, dropdowns |
+| `shadow-md` | Hover lift, popovers |
+| `shadow-lg` | Modals, drawers |
+| `shadow-focus` | Keyboard focus ring (auto via `:focus-visible`) |
 
-### Breakpoints
-| Name | Width | Layout |
-|------|-------|--------|
-| Mobile | <640px | Single column, bottom nav, drawer sidebar |
-| Tablet | 640-1024px | 2-column grids, collapsible sidebar |
-| Desktop | 1024-1280px | Full layout, fixed sidebar |
-| Large | >1280px | Centered with generous margins |
+---
 
-### Touch Targets
-- Minimum: 44x44px
-- Primary CTAs: 48px height
-- Navigation items: 44px height
-- Card click areas: entire card surface
+## Motion
 
-## 9. Agent Prompt Guide
+| Token | Duration | Easing | Usage |
+|-------|----------|--------|-------|
+| `duration-fast` | 120 ms | — | Icon swaps, badge transitions |
+| `duration-base` | 200 ms | `ease-out-apple` | Buttons, inputs |
+| `duration-slow` | 320 ms | `ease-in-out-apple` | Panel slides |
+| `duration-slower` | 500 ms | — | Page transitions |
 
-### Quick Color Reference
-- Primary CTA: `#2563eb`
-- Page background: `#ffffff` / `#f5f5f7`
-- Heading text: `#1d1d1f`
-- Body text: `#4b5563`
-- Link: `#1d4ed8`
-- Success: `#16a34a`
-- Warning: `#d97706`
-- Error: `#dc2626`
-- Card border: `#e5e7eb`
-- Card shadow: `0 1px 3px rgba(0,0,0,0.1)`
-- Focus ring: `#2563eb`
+All transitions respect `prefers-reduced-motion` — durations collapse to `0.01 ms` globally.
 
-### Example Prompts
-- "Create a scholarship card: white bg, 12px radius, 1px solid #e5e7eb border, subtle shadow. Scholarship title at 20px Inter weight 600. Provider name at 14px #4b5563. Deadline badge in amber. Two pill CTAs: 'Learn more' (outline blue, 980px radius) and 'Save' (filled blue, 8px radius)."
-- "Build the ScholarPath nav: sticky, 64px height, white bg with backdrop blur, 1px bottom border. Logo left (Inter 20px bold), links center (14px medium #4b5563), auth buttons right (primary blue CTA)."
-- "Design the dashboard summary: white bg section with 4 stat cards in a grid. Each card has an icon, count (36px bold), and label (14px #4b5563). Cards have 12px radius, subtle shadow, 24px padding."
+---
+
+## Rules
+
+1. **No raw hex values in JSX/TSX.** Always use a token class.
+2. **No `slate-*`, `gray-*`, or `primary-*` classes** — they bypass dark mode.
+3. **No hardcoded `dark:` variants** for colours — dark mode is handled by the token overrides in `globals.css`.
+4. Every interactive element needs a visible `:focus-visible` ring (provided globally via base styles).
+5. Every screen must pass EN + AR (RTL) + light + dark mode review.

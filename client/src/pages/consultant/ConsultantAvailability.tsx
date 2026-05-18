@@ -159,65 +159,65 @@ export function ConsultantAvailability() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7]">
+    <main className="min-h-screen bg-bg-subtle">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
+          <h1 className="text-4xl font-bold tracking-[-0.02em] text-text-primary">
             {t("availability.title")}
           </h1>
 
-          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">
+          <p className="max-w-3xl text-base leading-7 text-text-secondary">
             {t("availability.subtitle")}
           </p>
         </div>
 
         {isError ? (
-          <div className="mt-8 rounded-2xl border border-[#fecaca] bg-[#fef2f2] p-6 text-sm font-medium text-[#dc2626]">
+          <div className="mt-8 rounded-2xl border border-danger-200 bg-danger-50 p-6 text-sm font-medium text-danger-500">
             {t("states.error")}
           </div>
         ) : isLoading ? (
           <div className="mt-8 space-y-4">
-            <div className="h-24 animate-pulse rounded-xl border border-[#e5e7eb] bg-white shadow-sm" />
-            <div className="h-96 animate-pulse rounded-xl border border-[#e5e7eb] bg-white shadow-sm" />
+            <div className="h-24 animate-pulse rounded-xl border border-border-subtle bg-bg-elevated shadow-sm" />
+            <div className="h-96 animate-pulse rounded-xl border border-border-subtle bg-bg-elevated shadow-sm" />
           </div>
         ) : (
           <>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-                <div className="inline-flex rounded-full bg-[#eff6ff] px-3 py-1 text-xs font-medium text-[#1d4ed8]">
+              <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
+                <div className="inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600">
                   {t("availability.stats.activeDays")}
                 </div>
-                <p className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-[#1d1d1f]">
+                <p className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-text-primary">
                   {activeDaysCount}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-                <div className="inline-flex rounded-full bg-[#f0fdf4] px-3 py-1 text-xs font-medium text-[#15803d]">
+              <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
+                <div className="inline-flex rounded-full bg-success-50 px-3 py-1 text-xs font-medium text-success-600">
                   {t("availability.stats.adHocSlots")}
                 </div>
-                <p className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-[#1d1d1f]">
+                <p className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-text-primary">
                   {adHocRules.length}
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-                <div className="inline-flex rounded-full bg-[#f3f4f6] px-3 py-1 text-xs font-medium text-[#4b5563]">
+              <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
+                <div className="inline-flex rounded-full bg-bg-subtle px-3 py-1 text-xs font-medium text-text-secondary">
                   {t("availability.stats.timezone")}
                 </div>
-                <p className="mt-4 text-sm font-semibold text-[#1d1d1f]">{timezone}</p>
+                <p className="mt-4 text-sm font-semibold text-text-primary">{timezone}</p>
               </div>
             </div>
 
             <div className="mt-8 grid gap-6 xl:grid-cols-12">
               <section className="space-y-6 xl:col-span-8">
-                <div className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
+                <div className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
                   <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                     <div>
-                      <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                      <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-text-primary">
                         {t("availability.weeklySchedule.title")}
                       </h2>
-                      <p className="mt-2 max-w-3xl text-sm leading-6 text-[#4b5563]">
+                      <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
                         {t("availability.weeklySchedule.description")}
                       </p>
                     </div>
@@ -227,20 +227,20 @@ export function ConsultantAvailability() {
                     {rows.map((row) => (
                       <article
                         key={row.key}
-                        className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-5"
+                        className="rounded-xl border border-border-subtle bg-bg-muted p-5"
                       >
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                           <div className="space-y-3">
                             <div className="flex flex-wrap items-center gap-3">
-                              <p className="text-xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                              <p className="text-xl font-semibold tracking-[-0.01em] text-text-primary">
                                 {t(`weekdays.${row.key}`)}
                               </p>
 
                               <span
                                 className={`rounded-full px-3 py-1 text-xs font-medium ${
                                   row.isEnabled
-                                    ? "bg-[#f0fdf4] text-[#15803d]"
-                                    : "bg-[#f3f4f6] text-[#4b5563]"
+                                    ? "bg-success-50 text-success-600"
+                                    : "bg-bg-subtle text-text-secondary"
                                 }`}
                               >
                                 {row.isEnabled
@@ -251,7 +251,7 @@ export function ConsultantAvailability() {
 
                             <div className="grid gap-4 sm:grid-cols-2">
                               <label className="block">
-                                <span className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                                <span className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                                   {t("availability.weeklySchedule.startTime")}
                                 </span>
                                 <input
@@ -261,12 +261,12 @@ export function ConsultantAvailability() {
                                   onChange={(event) =>
                                     handleTimeChange(row.key, "start", event.target.value)
                                   }
-                                  className="mt-2 h-11 w-full rounded-lg border border-[#d1d5db] bg-white px-3 text-sm text-[#1d1d1f] outline-none focus:border-[#2563eb] disabled:cursor-not-allowed disabled:bg-[#f3f4f6]"
+                                  className="mt-2 h-11 w-full rounded-lg border border-border-default bg-bg-elevated px-3 text-sm text-text-primary outline-none focus:border-brand-500 disabled:cursor-not-allowed disabled:bg-bg-subtle"
                                 />
                               </label>
 
                               <label className="block">
-                                <span className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                                <span className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                                   {t("availability.weeklySchedule.endTime")}
                                 </span>
                                 <input
@@ -276,7 +276,7 @@ export function ConsultantAvailability() {
                                   onChange={(event) =>
                                     handleTimeChange(row.key, "end", event.target.value)
                                   }
-                                  className="mt-2 h-11 w-full rounded-lg border border-[#d1d5db] bg-white px-3 text-sm text-[#1d1d1f] outline-none focus:border-[#2563eb] disabled:cursor-not-allowed disabled:bg-[#f3f4f6]"
+                                  className="mt-2 h-11 w-full rounded-lg border border-border-default bg-bg-elevated px-3 text-sm text-text-primary outline-none focus:border-brand-500 disabled:cursor-not-allowed disabled:bg-bg-subtle"
                                 />
                               </label>
                             </div>
@@ -287,8 +287,8 @@ export function ConsultantAvailability() {
                             onClick={() => handleToggleDay(row.key)}
                             className={`inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-medium transition lg:w-[170px] ${
                               row.isEnabled
-                                ? "border border-[#dc2626] bg-white text-[#dc2626] hover:bg-[#fef2f2]"
-                                : "bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
+                                ? "border border-danger-500 bg-bg-elevated text-danger-500 hover:bg-danger-50"
+                                : "bg-brand-500 text-white hover:bg-brand-600"
                             }`}
                           >
                             {row.isEnabled
@@ -301,23 +301,23 @@ export function ConsultantAvailability() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-                  <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                <div className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+                  <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-text-primary">
                     {t("availability.bookingRules.title")}
                   </h2>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-[#4b5563]">
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
                     {t("availability.bookingRules.description")}
                   </p>
 
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
                     <label className="block">
-                      <span className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                      <span className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                         {t("availability.bookingRules.timezone")}
                       </span>
                       <select
                         value={timezone}
                         onChange={(event) => setTimezone(event.target.value)}
-                        className="mt-2 h-11 w-full rounded-lg border border-[#d1d5db] bg-white px-3 text-sm text-[#1d1d1f] outline-none focus:border-[#2563eb]"
+                        className="mt-2 h-11 w-full rounded-lg border border-border-default bg-bg-elevated px-3 text-sm text-text-primary outline-none focus:border-brand-500"
                       >
                         {timezoneOptions.map((option) => (
                           <option key={option} value={option}>
@@ -330,11 +330,11 @@ export function ConsultantAvailability() {
                 </div>
 
                 {adHocRules.length > 0 ? (
-                  <div className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-                    <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                  <div className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+                    <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-text-primary">
                       {t("availability.adHoc.title")}
                     </h2>
-                    <p className="mt-2 max-w-3xl text-sm leading-6 text-[#4b5563]">
+                    <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
                       {t("availability.adHoc.description")}
                     </p>
 
@@ -342,7 +342,7 @@ export function ConsultantAvailability() {
                       {adHocRules.map((rule) => (
                         <div
                           key={rule.id}
-                          className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] px-4 py-3 text-sm font-medium text-[#1d1d1f]"
+                          className="rounded-xl border border-border-subtle bg-bg-muted px-4 py-3 text-sm font-medium text-text-primary"
                         >
                           {rule.specificStartAt
                             ? `${formatDate(rule.specificStartAt, lang)} · ${formatTime(
@@ -361,8 +361,8 @@ export function ConsultantAvailability() {
               </section>
 
               <aside className="space-y-6 xl:col-span-4">
-                <div className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-                  <p className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                <div className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+                  <p className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                     {t("availability.quickActions.title")}
                   </p>
 
@@ -371,7 +371,7 @@ export function ConsultantAvailability() {
                       type="button"
                       onClick={handleSave}
                       disabled={updateMutation.isPending}
-                      className="inline-flex h-11 items-center justify-center rounded-lg bg-[#2563eb] px-4 text-sm font-medium text-white transition hover:bg-[#1d4ed8] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {updateMutation.isPending
                         ? t("states.submitting")
@@ -380,26 +380,26 @@ export function ConsultantAvailability() {
 
                     <Link
                       to="/consultant/bookings"
-                      className="inline-flex h-11 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-4 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+                      className="inline-flex h-11 items-center justify-center rounded-lg border-[1.5px] border-brand-500 bg-transparent px-4 text-sm font-medium text-brand-500 transition hover:bg-brand-50"
                     >
                       {t("availability.quickActions.openBookings")}
                     </Link>
 
                     <Link
                       to="/student/consultants"
-                      className="inline-flex h-11 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-4 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+                      className="inline-flex h-11 items-center justify-center rounded-lg border-[1.5px] border-brand-500 bg-transparent px-4 text-sm font-medium text-brand-500 transition hover:bg-brand-50"
                     >
                       {t("availability.quickActions.openMarketplace")}
                     </Link>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-                  <p className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                <div className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+                  <p className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                     {t("availability.notes.title")}
                   </p>
 
-                  <div className="mt-5 space-y-3 text-sm leading-6 text-[#4b5563]">
+                  <div className="mt-5 space-y-3 text-sm leading-6 text-text-secondary">
                     <p>{t("availability.notes.line1")}</p>
                     <p>{t("availability.notes.line2")}</p>
                   </div>

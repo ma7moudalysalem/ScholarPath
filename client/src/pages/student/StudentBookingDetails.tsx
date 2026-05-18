@@ -72,12 +72,12 @@ export function StudentBookingDetails() {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#f5f5f7]">
+      <main className="min-h-screen bg-bg-subtle">
         <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
           <div className="space-y-4">
-            <div className="h-10 w-64 animate-pulse rounded-lg bg-white" />
-            <div className="h-72 animate-pulse rounded-2xl border border-[#e5e7eb] bg-white shadow-sm" />
-            <div className="h-40 animate-pulse rounded-2xl border border-[#e5e7eb] bg-white shadow-sm" />
+            <div className="h-10 w-64 animate-pulse rounded-lg bg-bg-elevated" />
+            <div className="h-72 animate-pulse rounded-2xl border border-border-subtle bg-bg-elevated shadow-sm" />
+            <div className="h-40 animate-pulse rounded-2xl border border-border-subtle bg-bg-elevated shadow-sm" />
           </div>
         </section>
       </main>
@@ -86,15 +86,15 @@ export function StudentBookingDetails() {
 
   if (isError || !booking) {
     return (
-      <main className="min-h-screen bg-[#f5f5f7]">
+      <main className="min-h-screen bg-bg-subtle">
         <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
-          <div className="rounded-2xl border border-[#e5e7eb] bg-white p-8 shadow-sm">
-            <h1 className="text-2xl font-semibold text-[#1d1d1f]">{t("notFound.title")}</h1>
-            <p className="mt-3 text-sm leading-7 text-[#4b5563]">{t("notFound.description")}</p>
+          <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-8 shadow-sm">
+            <h1 className="text-2xl font-semibold text-text-primary">{t("notFound.title")}</h1>
+            <p className="mt-3 text-sm leading-7 text-text-secondary">{t("notFound.description")}</p>
             <div className="mt-6">
               <Link
                 to="/student/bookings"
-                className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
               >
                 {t("notFound.backToBookings")}
               </Link>
@@ -108,16 +108,16 @@ export function StudentBookingDetails() {
   const bucket = statusBucket(booking.status);
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7]">
+    <main className="min-h-screen bg-bg-subtle">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
+              <h1 className="text-4xl font-bold tracking-[-0.02em] text-text-primary">
                 {t("details.title")}
               </h1>
 
-              <p className="mt-3 max-w-3xl text-base leading-7 text-[#4b5563]">
+              <p className="mt-3 max-w-3xl text-base leading-7 text-text-secondary">
                 {t("details.subtitle")}
               </p>
             </div>
@@ -134,62 +134,62 @@ export function StudentBookingDetails() {
 
         <div className="mt-8 grid gap-6 lg:grid-cols-12">
           <section className="space-y-6 lg:col-span-8">
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+            <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+              <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                 {t("details.summaryTitle")}
               </h2>
 
-              <p className="mt-3 text-sm leading-7 text-[#4b5563]">{t(`summaries.${bucket}`)}</p>
+              <p className="mt-3 text-sm leading-7 text-text-secondary">{t(`summaries.${bucket}`)}</p>
 
-              <div className="mt-5 grid gap-4 rounded-xl bg-[#f9fafb] p-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-5 grid gap-4 rounded-xl bg-bg-muted p-5 sm:grid-cols-2 xl:grid-cols-3">
                 <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                  <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                     {t("fields.consultant")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                  <p className="mt-1 text-sm font-medium text-text-primary">
                     {booking.consultantName}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                  <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                     {t("fields.sessionType")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">{t("sessionType")}</p>
+                  <p className="mt-1 text-sm font-medium text-text-primary">{t("sessionType")}</p>
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                  <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                     {t("fields.selectedDate")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                  <p className="mt-1 text-sm font-medium text-text-primary">
                     {formatDate(booking.scheduledStartAt, lang)}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                  <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                     {t("fields.selectedTime")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                  <p className="mt-1 text-sm font-medium text-text-primary">
                     {formatTime(booking.scheduledStartAt, lang)}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                  <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                     {t("fields.duration")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                  <p className="mt-1 text-sm font-medium text-text-primary">
                     {durationLabel(booking.durationMinutes, t)}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                  <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                     {t("fields.fee")}
                   </p>
-                  <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                  <p className="mt-1 text-sm font-medium text-text-primary">
                     {formatUsd(booking.priceUsd)}
                   </p>
                 </div>
@@ -197,18 +197,18 @@ export function StudentBookingDetails() {
             </div>
 
             {booking.meetingUrl ? (
-              <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+              <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+                <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                   {t("details.meetingTitle")}
                 </h2>
 
-                <div className="mt-5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-5">
-                  <p className="text-sm leading-7 text-[#4b5563]">{t("details.meetingNote")}</p>
+                <div className="mt-5 rounded-xl border border-border-subtle bg-bg-muted p-5">
+                  <p className="text-sm leading-7 text-text-secondary">{t("details.meetingNote")}</p>
                   <a
                     href={booking.meetingUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                    className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
                   >
                     {t("details.joinMeeting")}
                   </a>
@@ -216,8 +216,8 @@ export function StudentBookingDetails() {
               </div>
             ) : null}
 
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+            <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+              <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                 {t("details.timelineTitle")}
               </h2>
 
@@ -228,17 +228,17 @@ export function StudentBookingDetails() {
                       <div
                         className={[
                           "mt-1 h-3.5 w-3.5 rounded-full",
-                          step.isDone ? "bg-[#2563eb]" : "bg-[#d1d5db]",
+                          step.isDone ? "bg-brand-500" : "bg-border-default",
                         ].join(" ")}
                       />
                       {index < timeline.length - 1 ? (
-                        <div className="mt-2 h-full min-h-[48px] w-px bg-[#e5e7eb]" />
+                        <div className="mt-2 h-full min-h-[48px] w-px bg-border-subtle" />
                       ) : null}
                     </div>
 
                     <div className="pb-4">
-                      <p className="text-sm font-medium text-[#1d1d1f]">{t(step.titleKey)}</p>
-                      <p className="mt-1 text-sm leading-6 text-[#4b5563]">
+                      <p className="text-sm font-medium text-text-primary">{t(step.titleKey)}</p>
+                      <p className="mt-1 text-sm leading-6 text-text-secondary">
                         {t(step.descriptionKey)}
                       </p>
                     </div>
@@ -249,41 +249,41 @@ export function StudentBookingDetails() {
           </section>
 
           <aside className="space-y-6 lg:col-span-4">
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+            <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+              <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                 {t("details.quickActionsTitle")}
               </h2>
 
               <div className="mt-5 flex flex-col gap-3">
                 <Link
                   to="/student/bookings"
-                  className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                  className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
                 >
                   {t("details.backToBookings")}
                 </Link>
 
                 <Link
                   to={`/student/consultants/${booking.consultantId}`}
-                  className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+                  className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-brand-500 bg-transparent px-5 text-sm font-medium text-brand-500 transition hover:bg-brand-50"
                 >
                   {t("details.viewConsultant")}
                 </Link>
 
                 <Link
                   to="/student/consultants"
-                  className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+                  className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-brand-500 bg-transparent px-5 text-sm font-medium text-brand-500 transition hover:bg-brand-50"
                 >
                   {t("details.bookAnother")}
                 </Link>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+            <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+              <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                 {t("details.guidanceTitle")}
               </h2>
 
-              <div className="mt-5 space-y-3 text-sm leading-7 text-[#4b5563]">
+              <div className="mt-5 space-y-3 text-sm leading-7 text-text-secondary">
                 <p>{t("guidance.pending")}</p>
                 <p>{t("guidance.confirmed")}</p>
                 <p>{t("guidance.closed")}</p>

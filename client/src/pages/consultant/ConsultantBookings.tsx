@@ -40,18 +40,18 @@ export function ConsultantBookings() {
   }, [bookings, filter]);
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7]">
+    <main className="min-h-screen bg-bg-subtle">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
+          <h1 className="text-4xl font-bold tracking-[-0.02em] text-text-primary">
             {t("bookings.title")}
           </h1>
 
-          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("bookings.subtitle")}</p>
+          <p className="max-w-3xl text-base leading-7 text-text-secondary">{t("bookings.subtitle")}</p>
         </div>
 
         {isError ? (
-          <div className="mt-8 rounded-2xl border border-[#fecaca] bg-[#fef2f2] p-6 text-sm font-medium text-[#dc2626]">
+          <div className="mt-8 rounded-2xl border border-danger-200 bg-danger-50 p-6 text-sm font-medium text-danger-500">
             {t("states.error")}
           </div>
         ) : isLoading ? (
@@ -59,50 +59,50 @@ export function ConsultantBookings() {
             {Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={index}
-                className="h-48 animate-pulse rounded-2xl border border-[#e5e7eb] bg-white shadow-sm"
+                className="h-48 animate-pulse rounded-2xl border border-border-subtle bg-bg-elevated shadow-sm"
               />
             ))}
           </div>
         ) : (
           <>
             <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+              <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("bookings.summary.total")}
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.total}</p>
+                <p className="mt-2 text-3xl font-semibold text-text-primary">{summary.total}</p>
               </div>
 
-              <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+              <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("bookings.summary.pending")}
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.pending}</p>
+                <p className="mt-2 text-3xl font-semibold text-text-primary">{summary.pending}</p>
               </div>
 
-              <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+              <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("bookings.summary.confirmed")}
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.confirmed}</p>
+                <p className="mt-2 text-3xl font-semibold text-text-primary">{summary.confirmed}</p>
               </div>
 
-              <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+              <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("bookings.summary.completed")}
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.completed}</p>
+                <p className="mt-2 text-3xl font-semibold text-text-primary">{summary.completed}</p>
               </div>
 
-              <div className="rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+              <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("bookings.summary.closed")}
                 </p>
-                <p className="mt-2 text-3xl font-semibold text-[#1d1d1f]">{summary.closed}</p>
+                <p className="mt-2 text-3xl font-semibold text-text-primary">{summary.closed}</p>
               </div>
             </div>
 
-            <div className="mt-8 rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+            <div className="mt-8 rounded-2xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-wrap gap-3">
                   {(["all", "pending", "confirmed", "completed", "closed"] as const).map(
@@ -113,8 +113,8 @@ export function ConsultantBookings() {
                         onClick={() => setFilter(key)}
                         className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                           filter === key
-                            ? "bg-[#2563eb] text-white"
-                            : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
+                            ? "bg-brand-500 text-white"
+                            : "bg-bg-subtle text-text-secondary hover:bg-border-subtle"
                         }`}
                       >
                         {t(`bookings.filters.${key}`)}
@@ -125,7 +125,7 @@ export function ConsultantBookings() {
 
                 <Link
                   to="/consultant/availability"
-                  className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                  className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
                 >
                   {t("bookings.openAvailability")}
                 </Link>
@@ -137,7 +137,7 @@ export function ConsultantBookings() {
                 filteredBookings.map((booking) => (
                   <article
                     key={booking.id}
-                    className="rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm"
+                    className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm"
                   >
                     <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
                       <div className="min-w-0 flex-1">
@@ -147,7 +147,7 @@ export function ConsultantBookings() {
                             name={booking.studentName}
                             className="size-10 shrink-0"
                           />
-                          <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                          <h2 className="text-2xl font-semibold tracking-[-0.01em] text-text-primary">
                             {booking.studentName}
                           </h2>
 
@@ -160,74 +160,74 @@ export function ConsultantBookings() {
                           </span>
                         </div>
 
-                        <div className="mt-6 grid gap-4 rounded-xl bg-[#f9fafb] p-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="mt-6 grid gap-4 rounded-xl bg-bg-muted p-4 sm:grid-cols-2 lg:grid-cols-4">
                           {booking.studentEmail ? (
                             <div>
-                              <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                              <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                                 {t("bookings.card.studentEmail")}
                               </p>
-                              <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                              <p className="mt-1 text-sm font-medium text-text-primary">
                                 {booking.studentEmail}
                               </p>
                             </div>
                           ) : null}
 
                           <div>
-                            <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                            <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                               {t("bookings.card.session")}
                             </p>
-                            <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                            <p className="mt-1 text-sm font-medium text-text-primary">
                               {t("sessionType")}
                             </p>
                           </div>
 
                           <div>
-                            <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                            <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                               {t("bookings.card.dateTime")}
                             </p>
-                            <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                            <p className="mt-1 text-sm font-medium text-text-primary">
                               {formatDateTime(booking.scheduledStartAt, lang)}
                             </p>
                           </div>
 
                           <div>
-                            <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                            <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                               {t("bookings.card.duration")}
                             </p>
-                            <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                            <p className="mt-1 text-sm font-medium text-text-primary">
                               {durationLabel(booking.durationMinutes, t)}
                             </p>
                           </div>
 
                           <div>
-                            <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                            <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                               {t("bookings.card.fee")}
                             </p>
-                            <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                            <p className="mt-1 text-sm font-medium text-text-primary">
                               {formatUsd(booking.priceUsd)}
                             </p>
                           </div>
 
                           <div className="sm:col-span-2 lg:col-span-3">
-                            <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                            <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                               {t("bookings.card.consultantNote")}
                             </p>
-                            <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                            <p className="mt-1 text-sm font-medium text-text-primary">
                               {t(`bookings.note.${statusBucket(booking.status)}`)}
                             </p>
                           </div>
                         </div>
                       </div>
 
-                      <aside className="w-full rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4 xl:max-w-[280px]">
-                        <h3 className="text-base font-semibold text-[#1d1d1f]">
+                      <aside className="w-full rounded-xl border border-border-subtle bg-bg-muted p-4 xl:max-w-[280px]">
+                        <h3 className="text-base font-semibold text-text-primary">
                           {t("bookings.card.quickActions")}
                         </h3>
 
                         <div className="mt-4 flex flex-col gap-3">
                           <Link
                             to={`/consultant/bookings/${booking.id}`}
-                            className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                            className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
                           >
                             {t("bookings.card.viewDetails")}
                           </Link>
@@ -237,19 +237,19 @@ export function ConsultantBookings() {
                   </article>
                 ))
               ) : (
-                <div className="rounded-2xl border border-[#e5e7eb] bg-white p-8 shadow-sm">
-                  <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-8 shadow-sm">
+                  <h2 className="text-2xl font-semibold tracking-[-0.01em] text-text-primary">
                     {t("bookings.empty.title")}
                   </h2>
 
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[#4b5563]">
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
                     {t("bookings.empty.description")}
                   </p>
 
                   <div className="mt-6">
                     <Link
                       to="/consultant/availability"
-                      className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                      className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
                     >
                       {t("bookings.openAvailability")}
                     </Link>

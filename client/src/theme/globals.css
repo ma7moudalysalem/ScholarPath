@@ -35,14 +35,21 @@
   --color-border-strong: #9ca3af;
 
   /* Semantic */
-  --color-success-500: #16a34a;
   --color-success-50: #f0fdf4;
-  --color-warning-500: #d97706;
+  --color-success-100: #dcfce7;
+  --color-success-200: #bbf7d0;
+  --color-success-500: #16a34a;
+  --color-success-600: #15803d;
+  --color-success-700: #166534;
   --color-warning-50: #fffbeb;
-  --color-danger-500: #dc2626;
+  --color-warning-500: #d97706;
+  --color-warning-600: #b45309;
   --color-danger-50: #fef2f2;
-  --color-info-500: #2563eb;
+  --color-danger-200: #fecaca;
+  --color-danger-400: #f87171;
+  --color-danger-500: #dc2626;
   --color-info-50: #eff6ff;
+  --color-info-500: #2563eb;
 
   /* Application status (kanban) */
   --color-status-planned: #6366f1;
@@ -108,9 +115,19 @@ html[data-theme="dark"] {
   --color-border-default: #374151;
   --color-border-strong: #4b5563;
 
+  --color-brand-50: #0c1a3a;
   --color-brand-500: #60a5fa;
   --color-brand-600: #3b82f6;
   --color-brand-700: #2563eb;
+
+  /* Semantic backgrounds darken in dark mode */
+  --color-success-50: #052e16;
+  --color-success-100: #14532d;
+  --color-success-200: #166534;
+  --color-warning-50: #1a0e00;
+  --color-danger-50: #2c0a0a;
+  --color-danger-200: #7f1d1d;
+  --color-info-50: #0c1a3a;
 }
 
 /* ─── RTL flip for Arabic ───────────────────────────────────── */

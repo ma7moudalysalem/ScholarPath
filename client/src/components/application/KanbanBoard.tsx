@@ -34,7 +34,7 @@ export function KanbanBoard({ applications, onStatusChange }: KanbanBoardProps) 
               <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">
                 {t(`kanban.columns.${status}`)}
               </h3>
-              <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs font-medium text-text-secondary dark:bg-slate-800">
+              <span className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs font-medium text-text-secondary">
                 {columnApps.length}
               </span>
             </div>
@@ -42,7 +42,7 @@ export function KanbanBoard({ applications, onStatusChange }: KanbanBoardProps) 
             <div
               className={cn(
                 "flex min-h-[500px] flex-col space-y-3 rounded-xl bg-bg-subtle/50 p-3 transition-colors",
-                "dark:bg-slate-900/40 border border-transparent",
+                "border border-transparent",
                 "hover:border-brand-200/50 dark:hover:border-brand-800/30"
               )}
               onDragOver={(e: React.DragEvent) => e.preventDefault()}
@@ -70,7 +70,7 @@ export function KanbanBoard({ applications, onStatusChange }: KanbanBoardProps) 
               </AnimatePresence>
 
               {columnApps.length === 0 && (
-                <div className="flex flex-1 flex-col items-center justify-center border-2 border-dashed border-border-subtle rounded-xl p-8 text-center text-text-tertiary dark:border-slate-800">
+                <div className="flex flex-1 flex-col items-center justify-center border-2 border-dashed border-border-subtle rounded-xl p-8 text-center text-text-tertiary">
                   <p className="text-xs">{t("kanban.emptyColumn")}</p>
                 </div>
               )}

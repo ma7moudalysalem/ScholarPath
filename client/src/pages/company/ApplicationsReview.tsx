@@ -30,7 +30,7 @@ export function ApplicationsReview() {
 
   const handleDecision = (id: string, status: 'Accepted' | 'Rejected') => {
     const reason = window.prompt(status === 'Rejected' ? 'Reason for rejection (optional):' : 'Notes for acceptance (optional):');
-    if (reason === null) return; // User cancelled prompt
+    if (reason === null) return;
     reviewMutation.mutate({ id, status, reason });
   };
 
@@ -43,99 +43,99 @@ export function ApplicationsReview() {
   return (
     <div className="mx-auto max-w-7xl p-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <h1 className="text-2xl font-bold tracking-tight text-text-primary">
           Review Applications
         </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400">
+        <p className="text-sm text-text-secondary">
           Manage and review incoming scholarship applications.
         </p>
       </div>
 
       <div className="mb-6 flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
           <input
             type="text"
             placeholder="Search students or scholarships..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-10 pr-4 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-800 dark:bg-slate-900 dark:text-white"
+            className="w-full rounded-lg border border-border-subtle bg-bg-elevated py-2 ps-10 pe-4 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-100"
           />
         </div>
-        
-        <button className="flex items-center space-x-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+
+        <button className="flex items-center space-x-2 rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 text-sm font-medium text-text-secondary hover:bg-bg-subtle transition-colors">
           <Filter size={18} />
           <span>Filters</span>
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="overflow-hidden rounded-xl border border-border-subtle bg-bg-elevated shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
+          <table className="w-full text-start text-sm">
+            <thead className="bg-bg-muted text-xs font-semibold uppercase text-text-tertiary">
               <tr>
                 <th className="px-6 py-4">Student</th>
                 <th className="px-6 py-4">Scholarship</th>
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Submitted</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-4 text-end">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-border-subtle">
               {isLoading ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center">
                     <div className="flex justify-center">
-                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
                     </div>
                   </td>
                 </tr>
               ) : filteredApps.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={5} className="px-6 py-12 text-center text-text-secondary">
                     No applications found.
                   </td>
                 </tr>
               ) : (
                 filteredApps.map((app: CompanyApplicationRow) => (
-                  <tr key={app.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                  <tr key={app.id} className="hover:bg-bg-muted/50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-slate-900 dark:text-white">{app.studentName}</div>
-                      <div className="text-xs text-slate-500">{app.studentEmail}</div>
+                      <div className="font-medium text-text-primary">{app.studentName}</div>
+                      <div className="text-xs text-text-tertiary">{app.studentEmail}</div>
                     </td>
-                    <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
+                    <td className="px-6 py-4 text-text-secondary">
                       {app.scholarshipTitle}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        app.status === 'Accepted' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' :
-                        app.status === 'Rejected' ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400' :
-                        'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                        app.status === 'Accepted' ? 'bg-success-50 text-success-700' :
+                        app.status === 'Rejected' ? 'bg-danger-50 text-danger-500' :
+                        'bg-warning-50 text-warning-600'
                       }`}>
-                        {app.status === 'Pending' ? <Clock size={12} className="mr-1" /> : null}
+                        {app.status === 'Pending' ? <Clock size={12} className="me-1" /> : null}
                         {app.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-500">
+                    <td className="px-6 py-4 text-text-tertiary">
                       {new Date(app.createdAt).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-end">
                       <div className="flex justify-end space-x-2">
-                        <button className="p-1.5 text-slate-400 hover:text-primary-600 transition-colors" title="View details">
+                        <button type="button" className="p-1.5 text-text-tertiary hover:text-brand-600 transition-colors" aria-label="View details">
                           <Eye size={18} />
                         </button>
                         {app.status === 'Pending' && (
                           <>
-                            <button 
+                            <button
                               onClick={() => handleDecision(app.id, 'Accepted')}
-                              className="p-1.5 text-slate-400 hover:text-emerald-600 transition-colors" 
+                              className="p-1.5 text-text-tertiary hover:text-success-600 transition-colors"
                               title="Accept"
                             >
                               <CheckCircle size={18} />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleDecision(app.id, 'Rejected')}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors" 
+                              className="p-1.5 text-text-tertiary hover:text-danger-500 transition-colors"
                               title="Reject"
                             >
                               <XCircle size={18} />

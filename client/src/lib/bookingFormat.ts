@@ -79,20 +79,20 @@ export function statusBucket(status: BookingStatus): BookingStatusBucket {
 export function statusBadgeClass(status: BookingStatus): string {
   switch (status) {
     case "Requested":
-      return "bg-[#fffbeb] text-[#b45309]";
+      return "bg-warning-50 text-warning-600";
     case "Confirmed":
-      return "bg-[#eff6ff] text-[#1d4ed8]";
+      return "bg-brand-50 text-brand-600";
     case "Completed":
-      return "bg-[#f0fdf4] text-[#15803d]";
+      return "bg-success-50 text-success-600";
     case "Rejected":
     case "NoShowStudent":
     case "NoShowConsultant":
-      return "bg-[#fef2f2] text-[#dc2626]";
+      return "bg-danger-50 text-danger-500";
     case "Expired":
     case "Cancelled":
-      return "bg-[#f3f4f6] text-[#4b5563]";
+      return "bg-bg-subtle text-text-secondary";
     default:
-      return "bg-[#f3f4f6] text-[#4b5563]";
+      return "bg-bg-subtle text-text-secondary";
   }
 }
 

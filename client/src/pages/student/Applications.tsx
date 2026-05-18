@@ -75,11 +75,11 @@ export function Applications() {
         </div>
 
         <div className="flex items-center space-x-3">
-          <div className="flex rounded-lg border border-border-subtle bg-bg-elevated p-1 shadow-sm dark:bg-slate-900 dark:border-slate-800">
-            <button className="rounded-md bg-bg-subtle px-2 py-1 text-brand-600 dark:bg-slate-800">
-              <LayoutGrid size={18} />
+          <div className="flex rounded-lg border border-border-subtle bg-bg-elevated p-1 shadow-sm">
+            <button type="button" aria-label="Grid view" className="rounded-md bg-bg-subtle px-2 py-1 text-brand-600">
+              <LayoutGrid size={18} aria-hidden />
             </button>
-            <button className="rounded-md px-2 py-1 text-text-tertiary hover:bg-bg-subtle transition-colors dark:hover:bg-slate-800">
+            <button type="button" aria-label="List view" className="rounded-md px-2 py-1 text-text-tertiary hover:bg-bg-subtle transition-colors">
               <ListFilter size={18} />
             </button>
           </div>
@@ -88,7 +88,7 @@ export function Applications() {
             onClick={() => setIsAddExternalOpen(true)}
             className="cta-pill bg-brand-600 text-white hover:bg-brand-700 shadow-sm flex items-center"
           >
-            <Plus size={18} className="mr-1.5" />
+            <Plus size={18} className="me-1.5" />
             {t("addExternal")}
           </button>
         </div>

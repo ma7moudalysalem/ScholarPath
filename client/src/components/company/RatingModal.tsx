@@ -50,17 +50,17 @@ export function RatingModal({
     <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-2xl dark:bg-slate-900">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-bg-elevated p-6 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
-            <Dialog.Title className="text-xl font-semibold text-slate-900 dark:text-white">
+            <Dialog.Title className="text-xl font-semibold text-text-primary">
               {t('reviews.rateCompanyTitle', { company: companyName })}
             </Dialog.Title>
-            <Dialog.Close className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
+            <Dialog.Close className="text-text-tertiary hover:text-text-secondary transition-colors">
               <X size={20} />
             </Dialog.Close>
           </div>
 
-          <Dialog.Description className="mb-6 text-sm text-slate-500 dark:text-slate-400">
+          <Dialog.Description className="mb-6 text-sm text-text-secondary">
             {t('reviews.rateCompanyDescription')}
           </Dialog.Description>
 
@@ -73,14 +73,14 @@ export function RatingModal({
                   onMouseEnter={() => setHoverRating(star)}
                   onMouseLeave={() => setHoverRating(0)}
                   onClick={() => setRating(star)}
-                  className="focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-full p-1 transition-transform hover:scale-110"
+                  className="focus:outline-none focus:ring-2 focus:ring-brand-300 focus:ring-offset-2 rounded-full p-1 transition-transform hover:scale-110"
                 >
                   <Star
                     size={32}
                     className={`${
                       (hoverRating || rating) >= star
                         ? 'fill-amber-400 text-amber-400'
-                        : 'text-slate-300 dark:text-slate-600'
+                        : 'text-border-strong'
                     } transition-colors`}
                   />
                 </button>
@@ -88,8 +88,8 @@ export function RatingModal({
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="comment" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                {t('reviews.commentLabel')} <span className="text-slate-400 text-xs font-normal">({t('reviews.optional')})</span>
+              <label htmlFor="comment" className="block text-sm font-medium text-text-secondary">
+                {t('reviews.commentLabel')} <span className="text-text-tertiary text-xs font-normal">({t('reviews.optional')})</span>
               </label>
               <textarea
                 id="comment"
@@ -97,7 +97,7 @@ export function RatingModal({
                 onChange={(e) => setComment(e.target.value)}
                 placeholder={t('reviews.commentPlaceholder')}
                 rows={4}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-primary-400 dark:focus:ring-primary-400"
+                className="w-full rounded-md border border-border-default bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-300 focus:outline-none focus:ring-1 focus:ring-brand-100"
               />
             </div>
 
@@ -105,7 +105,7 @@ export function RatingModal({
               <Dialog.Close asChild>
                 <button
                   type="button"
-                  className="rounded-md px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+                  className="rounded-md px-4 py-2 text-sm font-medium text-text-secondary hover:bg-bg-subtle transition-colors"
                 >
                   {t('common.cancel')}
                 </button>
@@ -113,7 +113,7 @@ export function RatingModal({
               <button
                 type="submit"
                 disabled={isSubmitting || rating === 0}
-                className="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
                 {isSubmitting ? t('common.submitting') : t('common.submit')}
               </button>

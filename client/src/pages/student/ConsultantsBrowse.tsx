@@ -109,25 +109,25 @@ export function ConsultantsBrowse() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7]">
+    <main className="min-h-screen bg-bg-subtle">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
+          <h1 className="text-4xl font-bold tracking-[-0.02em] text-text-primary">
             {t("browse.title")}
           </h1>
 
-          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("browse.subtitle")}</p>
+          <p className="max-w-3xl text-base leading-7 text-text-secondary">{t("browse.subtitle")}</p>
         </div>
 
         <form
           onSubmit={handleSearchSubmit}
-          className="mt-8 rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm"
+          className="mt-8 rounded-2xl border border-border-subtle bg-bg-elevated p-5 shadow-sm"
         >
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-12">
             <div className="xl:col-span-6">
               <label
                 htmlFor="consultant-search"
-                className="mb-2 block text-xs font-medium text-[#6b7280]"
+                className="mb-2 block text-xs font-medium text-text-secondary"
               >
                 {t("search.label")}
               </label>
@@ -139,12 +139,12 @@ export function ConsultantsBrowse() {
                   setSearchForm((current) => ({ ...current, query: event.target.value }))
                 }
                 placeholder={t("search.placeholder")}
-                className="h-12 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-[#1d1d1f] transition outline-none placeholder:text-[#9ca3af] focus:border-[#93c5fd] focus:ring-2 focus:ring-[#dbeafe]"
+                className="h-12 w-full rounded-xl border border-border-default bg-bg-elevated px-4 text-sm text-text-primary transition outline-none placeholder:text-text-tertiary focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
               />
             </div>
 
             <div className="xl:col-span-2">
-              <label htmlFor="price-filter" className="mb-2 block text-xs font-medium text-[#6b7280]">
+              <label htmlFor="price-filter" className="mb-2 block text-xs font-medium text-text-secondary">
                 {t("filters.price")}
               </label>
               <select
@@ -156,7 +156,7 @@ export function ConsultantsBrowse() {
                     price: event.target.value as PriceSelectFilter,
                   }))
                 }
-                className="h-12 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-[#1d1d1f] transition outline-none focus:border-[#93c5fd] focus:ring-2 focus:ring-[#dbeafe]"
+                className="h-12 w-full rounded-xl border border-border-default bg-bg-elevated px-4 text-sm text-text-primary transition outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
               >
                 <option value="any">{t("priceOptions.any")}</option>
                 <option value="under30">{t("priceOptions.under30")}</option>
@@ -168,7 +168,7 @@ export function ConsultantsBrowse() {
             <div className="xl:col-span-2">
               <label
                 htmlFor="rating-filter"
-                className="mb-2 block text-xs font-medium text-[#6b7280]"
+                className="mb-2 block text-xs font-medium text-text-secondary"
               >
                 {t("filters.rating")}
               </label>
@@ -181,7 +181,7 @@ export function ConsultantsBrowse() {
                     rating: event.target.value as RatingSelectFilter,
                   }))
                 }
-                className="h-12 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-[#1d1d1f] transition outline-none focus:border-[#93c5fd] focus:ring-2 focus:ring-[#dbeafe]"
+                className="h-12 w-full rounded-xl border border-border-default bg-bg-elevated px-4 text-sm text-text-primary transition outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
               >
                 <option value="any">{t("ratingOptions.any")}</option>
                 <option value="4plus">{t("ratingOptions.4plus")}</option>
@@ -193,7 +193,7 @@ export function ConsultantsBrowse() {
             <div className="xl:col-span-2">
               <label
                 htmlFor="availability-filter"
-                className="mb-2 block text-xs font-medium text-[#6b7280]"
+                className="mb-2 block text-xs font-medium text-text-secondary"
               >
                 {t("filters.availability")}
               </label>
@@ -206,7 +206,7 @@ export function ConsultantsBrowse() {
                     availability: event.target.value as AvailabilitySelectFilter,
                   }))
                 }
-                className="h-12 w-full rounded-xl border border-[#d1d5db] bg-white px-4 text-sm text-[#1d1d1f] transition outline-none focus:border-[#93c5fd] focus:ring-2 focus:ring-[#dbeafe]"
+                className="h-12 w-full rounded-xl border border-border-default bg-bg-elevated px-4 text-sm text-text-primary transition outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
               >
                 <option value="all">{t("availabilityOptions.all")}</option>
                 <option value="available">{t("availabilityOptions.available")}</option>
@@ -218,7 +218,7 @@ export function ConsultantsBrowse() {
           <div className="mt-5 flex flex-wrap gap-3">
             <button
               type="submit"
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+              className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
             >
               {t("search.submit")}
             </button>
@@ -226,14 +226,14 @@ export function ConsultantsBrowse() {
             <button
               type="button"
               onClick={handleResetFilters}
-              className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+              className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-brand-500 bg-transparent px-5 text-sm font-medium text-brand-500 transition hover:bg-brand-50"
             >
               {t("search.reset")}
             </button>
           </div>
         </form>
 
-        <div className="mt-6 rounded-2xl border border-[#e5e7eb] bg-white p-5 shadow-sm">
+        <div className="mt-6 rounded-2xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap gap-3">
               {(["all", "available", "unavailable"] as const).map((key) => (
@@ -243,8 +243,8 @@ export function ConsultantsBrowse() {
                   onClick={() => setQuickFilter(key)}
                   className={`rounded-full px-4 py-2 text-sm font-medium transition ${
                     quickFilter === key
-                      ? "bg-[#2563eb] text-white"
-                      : "bg-[#f3f4f6] text-[#4b5563] hover:bg-[#e5e7eb]"
+                      ? "bg-brand-500 text-white"
+                      : "bg-bg-subtle text-text-secondary hover:bg-border-subtle"
                   }`}
                 >
                   {t(`quickFilters.${key}`)}
@@ -253,25 +253,25 @@ export function ConsultantsBrowse() {
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-xl bg-[#f9fafb] px-4 py-3">
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+              <div className="rounded-xl bg-bg-muted px-4 py-3">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("stats.total")}
                 </p>
-                <p className="mt-1 text-lg font-semibold text-[#1d1d1f]">{totalConsultants}</p>
+                <p className="mt-1 text-lg font-semibold text-text-primary">{totalConsultants}</p>
               </div>
 
-              <div className="rounded-xl bg-[#f9fafb] px-4 py-3">
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+              <div className="rounded-xl bg-bg-muted px-4 py-3">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("stats.available")}
                 </p>
-                <p className="mt-1 text-lg font-semibold text-[#1d1d1f]">{availableCount}</p>
+                <p className="mt-1 text-lg font-semibold text-text-primary">{availableCount}</p>
               </div>
 
-              <div className="rounded-xl bg-[#f9fafb] px-4 py-3">
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+              <div className="rounded-xl bg-bg-muted px-4 py-3">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("stats.unavailable")}
                 </p>
-                <p className="mt-1 text-lg font-semibold text-[#1d1d1f]">{unavailableCount}</p>
+                <p className="mt-1 text-lg font-semibold text-text-primary">{unavailableCount}</p>
               </div>
             </div>
           </div>
@@ -279,21 +279,21 @@ export function ConsultantsBrowse() {
 
         <div className="mt-8 flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+            <h2 className="text-2xl font-semibold tracking-[-0.01em] text-text-primary">
               {t("results.heading")}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-[#4b5563]">{t("results.subtitle")}</p>
+            <p className="mt-2 text-sm leading-6 text-text-secondary">{t("results.subtitle")}</p>
           </div>
 
           {!isLoading && !isError ? (
-            <p className="shrink-0 text-sm font-medium text-[#2563eb]">
+            <p className="shrink-0 text-sm font-medium text-brand-500">
               {t("results.count", { count: filteredConsultants.length })}
             </p>
           ) : null}
         </div>
 
         {isError ? (
-          <div className="mt-6 rounded-2xl border border-[#fecaca] bg-[#fef2f2] p-6 text-sm font-medium text-[#dc2626]">
+          <div className="mt-6 rounded-2xl border border-danger-200 bg-danger-50 p-6 text-sm font-medium text-danger-500">
             {t("states.error")}
           </div>
         ) : isLoading ? (
@@ -301,7 +301,7 @@ export function ConsultantsBrowse() {
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={index}
-                className="h-80 animate-pulse rounded-2xl border border-[#e5e7eb] bg-white shadow-sm"
+                className="h-80 animate-pulse rounded-2xl border border-border-subtle bg-bg-elevated shadow-sm"
               />
             ))}
           </div>
@@ -311,7 +311,7 @@ export function ConsultantsBrowse() {
               filteredConsultants.map((consultant) => (
                 <article
                   key={consultant.id}
-                  className="flex h-full flex-col rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-sm"
+                  className="flex h-full flex-col rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-start gap-3">
@@ -322,11 +322,11 @@ export function ConsultantsBrowse() {
                         initialsClassName="text-lg"
                       />
                       <div className="min-w-0">
-                        <h3 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                        <h3 className="text-2xl font-semibold tracking-[-0.01em] text-text-primary">
                           {consultant.name}
                         </h3>
                         {consultant.biography ? (
-                          <p className="mt-2 text-sm leading-6 text-[#4b5563]">
+                          <p className="mt-2 text-sm leading-6 text-text-secondary">
                             {consultant.biography}
                           </p>
                         ) : null}
@@ -336,8 +336,8 @@ export function ConsultantsBrowse() {
                     <span
                       className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
                         consultant.hasAvailability
-                          ? "bg-[#f0fdf4] text-[#15803d]"
-                          : "bg-[#f3f4f6] text-[#4b5563]"
+                          ? "bg-success-50 text-success-600"
+                          : "bg-bg-subtle text-text-secondary"
                       }`}
                     >
                       {t(
@@ -353,22 +353,22 @@ export function ConsultantsBrowse() {
                       consultant.expertiseTags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-[#eef2ff] px-3 py-1 text-xs font-medium text-[#4338ca]"
+                          className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
                         >
                           {tag}
                         </span>
                       ))
                     ) : (
-                      <span className="text-xs text-[#9ca3af]">{t("card.noExpertiseTags")}</span>
+                      <span className="text-xs text-text-tertiary">{t("card.noExpertiseTags")}</span>
                     )}
                   </div>
 
-                  <div className="mt-6 grid gap-4 rounded-xl bg-[#f9fafb] p-4 sm:grid-cols-2">
+                  <div className="mt-6 grid gap-4 rounded-xl bg-bg-muted p-4 sm:grid-cols-2">
                     <div>
-                      <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                      <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                         {t("card.rating")}
                       </p>
-                      <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                      <p className="mt-1 text-sm font-medium text-text-primary">
                         {consultant.averageRating != null
                           ? t("card.ratingValue", {
                               rating: consultant.averageRating.toFixed(1),
@@ -379,19 +379,19 @@ export function ConsultantsBrowse() {
                     </div>
 
                     <div>
-                      <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                      <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                         {t("card.sessions")}
                       </p>
-                      <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                      <p className="mt-1 text-sm font-medium text-text-primary">
                         {consultant.completedSessionCount}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                      <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                         {t("card.fee")}
                       </p>
-                      <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                      <p className="mt-1 text-sm font-medium text-text-primary">
                         {consultant.sessionFeeUsd != null
                           ? formatUsd(consultant.sessionFeeUsd)
                           : t("card.feeUnset")}
@@ -399,10 +399,10 @@ export function ConsultantsBrowse() {
                     </div>
 
                     <div>
-                      <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                      <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                         {t("card.baseDuration")}
                       </p>
-                      <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                      <p className="mt-1 text-sm font-medium text-text-primary">
                         {consultant.sessionDurationMinutes != null
                           ? durationLabel(consultant.sessionDurationMinutes, t)
                           : t("card.durationUnset")}
@@ -413,7 +413,7 @@ export function ConsultantsBrowse() {
                   <div className="mt-6 flex flex-1 flex-col justify-end gap-3">
                     <Link
                       to={`/student/consultants/${consultant.id}`}
-                      className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                      className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
                     >
                       {t("card.viewConsultant")}
                     </Link>
@@ -422,11 +422,11 @@ export function ConsultantsBrowse() {
               ))
             ) : (
               <div className="lg:col-span-2 xl:col-span-3">
-                <div className="rounded-2xl border border-[#e5e7eb] bg-white p-8 shadow-sm">
-                  <h3 className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-8 shadow-sm">
+                  <h3 className="text-2xl font-semibold tracking-[-0.01em] text-text-primary">
                     {consultants.length === 0 ? t("empty.noConsultants") : t("empty.title")}
                   </h3>
-                  <p className="mt-3 max-w-2xl text-sm leading-7 text-[#4b5563]">
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-text-secondary">
                     {consultants.length === 0 ? t("empty.noConsultantsBody") : t("empty.body")}
                   </p>
 
@@ -435,7 +435,7 @@ export function ConsultantsBrowse() {
                       <button
                         type="button"
                         onClick={handleResetFilters}
-                        className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                        className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
                       >
                         {t("empty.reset")}
                       </button>

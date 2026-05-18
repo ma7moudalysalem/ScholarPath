@@ -224,13 +224,13 @@ export function Chat() {
             </button>
           </div>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={16} />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={16} />
             <input
               type="text"
               value={conversationSearch}
               onChange={(e) => setConversationSearch(e.target.value)}
               placeholder={t("chat.search_placeholder", "Search conversations...")}
-              className="w-full pl-9 pr-4 py-2 bg-bg-elevated border border-border-subtle rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-400 transition-all"
+              className="w-full ps-9 pe-4 py-2 bg-bg-elevated border border-border-subtle rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-400 transition-all"
             />
           </div>
         </div>
@@ -260,7 +260,7 @@ export function Chat() {
                     className="w-12 h-12 border-2 border-white"
                   />
                   {conv.isOnline && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-success-500 border-2 border-white rounded-full" />
+                    <div className="absolute bottom-0 end-0 w-3 h-3 bg-success-500 border-2 border-bg-elevated rounded-full" />
                   )}
                 </div>
                 <div className="flex-1 text-start overflow-hidden">

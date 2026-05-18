@@ -42,11 +42,11 @@ export function ConsultantDetail() {
 
   if (isConsultantLoading) {
     return (
-      <main className="min-h-screen bg-[#f5f5f7]">
+      <main className="min-h-screen bg-bg-subtle">
         <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
           <div className="space-y-4">
-            <div className="h-10 w-64 animate-pulse rounded-lg bg-white" />
-            <div className="h-72 animate-pulse rounded-2xl border border-[#e5e7eb] bg-white shadow-sm" />
+            <div className="h-10 w-64 animate-pulse rounded-lg bg-bg-elevated" />
+            <div className="h-72 animate-pulse rounded-2xl border border-border-subtle bg-bg-elevated shadow-sm" />
           </div>
         </section>
       </main>
@@ -55,15 +55,15 @@ export function ConsultantDetail() {
 
   if (isConsultantError || !consultant) {
     return (
-      <main className="min-h-screen bg-[#f5f5f7]">
+      <main className="min-h-screen bg-bg-subtle">
         <section className="mx-auto w-full max-w-[960px] px-4 py-10 sm:px-6 lg:px-8">
-          <div className="rounded-2xl border border-[#fecaca] bg-[#fef2f2] p-6 text-sm font-medium text-[#dc2626]">
+          <div className="rounded-2xl border border-danger-200 bg-danger-50 p-6 text-sm font-medium text-danger-500">
             {t("states.error")}
           </div>
           <div className="mt-6">
             <Link
               to="/student/consultants"
-              className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+              className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
             >
               {t("detail.backToConsultants")}
             </Link>
@@ -74,18 +74,18 @@ export function ConsultantDetail() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7]">
+    <main className="min-h-screen bg-bg-subtle">
       <section className="mx-auto w-full max-w-[1280px] px-4 py-10 sm:px-6 lg:px-8">
         <div className="space-y-3">
-          <h1 className="text-4xl font-bold tracking-[-0.02em] text-[#1d1d1f]">
+          <h1 className="text-4xl font-bold tracking-[-0.02em] text-text-primary">
             {t("detail.title")}
           </h1>
 
-          <p className="max-w-3xl text-base leading-7 text-[#4b5563]">{t("detail.subtitle")}</p>
+          <p className="max-w-3xl text-base leading-7 text-text-secondary">{t("detail.subtitle")}</p>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-12">
-          <section className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-8">
+          <section className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm lg:col-span-8">
             <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-4">
                 <UserAvatar
@@ -95,11 +95,11 @@ export function ConsultantDetail() {
                   initialsClassName="text-xl"
                 />
                 <div>
-                  <p className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                  <p className="text-2xl font-semibold tracking-[-0.01em] text-text-primary">
                     {consultant.name}
                   </p>
                   {consultant.countryOfResidence ? (
-                    <p className="mt-1 text-sm text-[#4b5563]">
+                    <p className="mt-1 text-sm text-text-secondary">
                       {consultant.countryOfResidence}
                     </p>
                   ) : null}
@@ -109,13 +109,13 @@ export function ConsultantDetail() {
                       consultant.expertiseTags.map((tag) => (
                         <span
                           key={tag}
-                          className="rounded-full bg-[#eef2ff] px-3 py-1 text-xs font-medium text-[#4338ca]"
+                          className="rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700"
                         >
                           {tag}
                         </span>
                       ))
                     ) : (
-                      <span className="text-xs text-[#9ca3af]">
+                      <span className="text-xs text-text-tertiary">
                         {t("card.noExpertiseTags")}
                       </span>
                     )}
@@ -126,8 +126,8 @@ export function ConsultantDetail() {
               <span
                 className={`rounded-full px-3 py-1 text-xs font-medium ${
                   consultant.hasAvailability
-                    ? "bg-[#f0fdf4] text-[#15803d]"
-                    : "bg-[#f3f4f6] text-[#4b5563]"
+                    ? "bg-success-50 text-success-600"
+                    : "bg-bg-subtle text-text-secondary"
                 }`}
               >
                 {t(consultant.hasAvailability ? "badge.available" : "badge.noAvailability")}
@@ -135,15 +135,15 @@ export function ConsultantDetail() {
             </div>
 
             {consultant.biography ? (
-              <p className="mt-6 text-sm leading-7 text-[#4b5563]">{consultant.biography}</p>
+              <p className="mt-6 text-sm leading-7 text-text-secondary">{consultant.biography}</p>
             ) : null}
 
-            <div className="mt-6 grid gap-4 rounded-xl bg-[#f9fafb] p-5 sm:grid-cols-3">
+            <div className="mt-6 grid gap-4 rounded-xl bg-bg-muted p-5 sm:grid-cols-3">
               <div>
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("detail.rating")}
                 </p>
-                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                <p className="mt-1 text-sm font-medium text-text-primary">
                   {consultant.averageRating != null
                     ? t("card.ratingValue", {
                         rating: consultant.averageRating.toFixed(1),
@@ -154,19 +154,19 @@ export function ConsultantDetail() {
               </div>
 
               <div>
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("detail.sessions")}
                 </p>
-                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                <p className="mt-1 text-sm font-medium text-text-primary">
                   {consultant.completedSessionCount}
                 </p>
               </div>
 
               <div>
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("detail.fee")}
                 </p>
-                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                <p className="mt-1 text-sm font-medium text-text-primary">
                   {consultant.sessionFeeUsd != null
                     ? consultant.sessionDurationMinutes != null
                       ? t("detail.feeValue", {
@@ -180,11 +180,11 @@ export function ConsultantDetail() {
             </div>
 
             {consultant.languages.length > 0 ? (
-              <div className="mt-4 rounded-xl bg-[#f9fafb] p-5">
-                <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+              <div className="mt-4 rounded-xl bg-bg-muted p-5">
+                <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                   {t("detail.languages")}
                 </p>
-                <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                <p className="mt-1 text-sm font-medium text-text-primary">
                   {consultant.languages.join(" · ")}
                 </p>
               </div>
@@ -192,25 +192,25 @@ export function ConsultantDetail() {
 
             {consultant.recentReviews.length > 0 ? (
               <div className="mt-6">
-                <h2 className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                   {t("detail.reviewsTitle")}
                 </h2>
                 <div className="mt-4 space-y-3">
                   {consultant.recentReviews.map((review) => (
                     <div
                       key={review.id}
-                      className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4"
+                      className="rounded-xl border border-border-subtle bg-bg-muted p-4"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-medium text-[#1d1d1f]">{review.studentName}</p>
-                        <span className="rounded-full bg-[#fffbeb] px-3 py-1 text-xs font-medium text-[#b45309]">
+                        <p className="text-sm font-medium text-text-primary">{review.studentName}</p>
+                        <span className="rounded-full bg-warning-50 px-3 py-1 text-xs font-medium text-warning-600">
                           {t("detail.reviewRating", { rating: review.rating })}
                         </span>
                       </div>
                       {review.comment ? (
-                        <p className="mt-2 text-sm leading-6 text-[#4b5563]">{review.comment}</p>
+                        <p className="mt-2 text-sm leading-6 text-text-secondary">{review.comment}</p>
                       ) : null}
-                      <p className="mt-2 text-xs text-[#9ca3af]">
+                      <p className="mt-2 text-xs text-text-tertiary">
                         {formatDate(review.createdAt, lang)}
                       </p>
                     </div>
@@ -220,41 +220,41 @@ export function ConsultantDetail() {
             ) : null}
           </section>
 
-          <aside className="rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm lg:col-span-4">
-            <p className="text-lg font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+          <aside className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm lg:col-span-4">
+            <p className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
               {t("detail.bookingOverview")}
             </p>
 
             {isSlotsLoading ? (
-              <div className="mt-5 h-40 animate-pulse rounded-xl bg-[#f9fafb]" />
+              <div className="mt-5 h-40 animate-pulse rounded-xl bg-bg-muted" />
             ) : isSlotsError ? (
-              <div className="mt-5 rounded-xl border border-[#fecaca] bg-[#fef2f2] p-4 text-sm font-medium text-[#dc2626]">
+              <div className="mt-5 rounded-xl border border-danger-200 bg-danger-50 p-4 text-sm font-medium text-danger-500">
                 {t("states.slotsError")}
               </div>
             ) : primarySlot ? (
               <>
                 <div className="mt-5 space-y-4">
                   <div>
-                    <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                    <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                       {t("detail.nextSlot")}
                     </p>
-                    <p className="mt-1 text-sm text-[#1d1d1f]">
+                    <p className="mt-1 text-sm text-text-primary">
                       {formatDate(primarySlot.startAt, lang)} · {formatTime(primarySlot.startAt, lang)}
                     </p>
                   </div>
 
                   <div>
-                    <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                    <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                       {t("detail.sessionFormat")}
                     </p>
-                    <p className="mt-1 text-sm text-[#1d1d1f]">{t("detail.sessionFormatValue")}</p>
+                    <p className="mt-1 text-sm text-text-primary">{t("detail.sessionFormatValue")}</p>
                   </div>
 
                   <div>
-                    <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                    <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                       {t("detail.duration")}
                     </p>
-                    <p className="mt-1 text-sm text-[#1d1d1f]">
+                    <p className="mt-1 text-sm text-text-primary">
                       {durationLabel(primarySlot.durationMinutes, t)}
                     </p>
                   </div>
@@ -263,40 +263,40 @@ export function ConsultantDetail() {
                 <div className="mt-6 flex flex-col gap-3">
                   <Link
                     to={buildCheckoutLink(consultant.id, primarySlot)}
-                    className="inline-flex h-12 items-center justify-center rounded-lg bg-[#2563eb] px-5 text-sm font-medium text-white transition hover:bg-[#1d4ed8]"
+                    className="inline-flex h-12 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
                   >
                     {t("detail.bookConsultant")}
                   </Link>
 
                   <Link
                     to="/student/consultants"
-                    className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-5 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+                    className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-brand-500 bg-transparent px-5 text-sm font-medium text-brand-500 transition hover:bg-brand-50"
                   >
                     {t("detail.backToConsultants")}
                   </Link>
                 </div>
               </>
             ) : (
-              <div className="mt-5 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-4">
-                <p className="text-sm leading-6 text-[#4b5563]">{t("detail.noSlotsBooking")}</p>
+              <div className="mt-5 rounded-xl border border-border-subtle bg-bg-muted p-4">
+                <p className="text-sm leading-6 text-text-secondary">{t("detail.noSlotsBooking")}</p>
               </div>
             )}
           </aside>
         </div>
 
-        <div className="mt-8 rounded-xl border border-[#e5e7eb] bg-white p-6 shadow-sm">
+        <div className="mt-8 rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+              <h2 className="text-[1.75rem] font-semibold tracking-[-0.01em] text-text-primary">
                 {t("detail.upcomingAvailability")}
               </h2>
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-[#4b5563]">
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-text-secondary">
                 {t("detail.upcomingLive")}
               </p>
             </div>
 
             {!isSlotsLoading && !isSlotsError ? (
-              <span className="inline-flex rounded-full bg-[#eff6ff] px-3 py-1 text-xs font-medium text-[#1d4ed8]">
+              <span className="inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600">
                 {t("detail.openSlots", { count: slots.length })}
               </span>
             ) : null}
@@ -305,11 +305,11 @@ export function ConsultantDetail() {
           {isSlotsLoading ? (
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: 3 }).map((_, index) => (
-                <div key={index} className="h-44 animate-pulse rounded-xl bg-[#f9fafb]" />
+                <div key={index} className="h-44 animate-pulse rounded-xl bg-bg-muted" />
               ))}
             </div>
           ) : isSlotsError ? (
-            <div className="mt-6 rounded-xl border border-[#fecaca] bg-[#fef2f2] p-5 text-sm font-medium text-[#dc2626]">
+            <div className="mt-6 rounded-xl border border-danger-200 bg-danger-50 p-5 text-sm font-medium text-danger-500">
               {t("states.slotsError")}
             </div>
           ) : slots.length > 0 ? (
@@ -317,35 +317,35 @@ export function ConsultantDetail() {
               {slots.map((slot) => (
                 <article
                   key={`${slot.availabilityId}-${slot.startAt}`}
-                  className="rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-5"
+                  className="rounded-xl border border-border-subtle bg-bg-muted p-5"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-2xl font-semibold tracking-[-0.01em] text-[#1d1d1f]">
+                      <p className="text-2xl font-semibold tracking-[-0.01em] text-text-primary">
                         {formatDate(slot.startAt, lang)}
                       </p>
-                      <p className="mt-1 text-sm leading-6 text-[#4b5563]">
+                      <p className="mt-1 text-sm leading-6 text-text-secondary">
                         {formatTime(slot.startAt, lang)} – {formatTime(slot.endAt, lang)}
                       </p>
                     </div>
 
-                    <span className="rounded-full bg-[#f0fdf4] px-3 py-1 text-xs font-medium text-[#15803d]">
+                    <span className="rounded-full bg-success-50 px-3 py-1 text-xs font-medium text-success-600">
                       {t("slotTag.available")}
                     </span>
                   </div>
 
                   <div className="mt-5">
-                    <p className="text-[10px] font-medium tracking-[0.02em] text-[#9ca3af] uppercase">
+                    <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                       {t("detail.slotDuration")}
                     </p>
-                    <p className="mt-1 text-sm font-medium text-[#1d1d1f]">
+                    <p className="mt-1 text-sm font-medium text-text-primary">
                       {durationLabel(slot.durationMinutes, t)}
                     </p>
                   </div>
 
                   <Link
                     to={buildCheckoutLink(consultant.id, slot)}
-                    className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg border-[1.5px] border-[#2563eb] bg-transparent px-4 text-sm font-medium text-[#2563eb] transition hover:bg-[#eff6ff]"
+                    className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg border-[1.5px] border-brand-500 bg-transparent px-4 text-sm font-medium text-brand-500 transition hover:bg-brand-50"
                   >
                     {t("detail.selectSlot")}
                   </Link>
@@ -353,8 +353,8 @@ export function ConsultantDetail() {
               ))}
             </div>
           ) : (
-            <div className="mt-6 rounded-xl border border-[#e5e7eb] bg-[#f9fafb] p-5">
-              <p className="text-sm leading-6 text-[#4b5563]">{t("detail.noUpcomingSlots")}</p>
+            <div className="mt-6 rounded-xl border border-border-subtle bg-bg-muted p-5">
+              <p className="text-sm leading-6 text-text-secondary">{t("detail.noUpcomingSlots")}</p>
             </div>
           )}
         </div>

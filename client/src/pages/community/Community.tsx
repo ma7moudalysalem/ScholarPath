@@ -127,13 +127,13 @@ export function Community() {
           </div>
 
           <form onSubmit={handleSearch} className="relative w-full md:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
             <input
               type="text"
               placeholder={t("feed.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl border border-border-subtle bg-bg-elevated focus:ring-2 focus:ring-brand-400 focus:border-transparent outline-none transition-all text-sm shadow-sm"
+              className="w-full ps-10 pe-4 py-2 rounded-xl border border-border-subtle bg-bg-elevated focus:ring-2 focus:ring-brand-400 focus:border-transparent outline-none transition-all text-sm shadow-sm"
             />
           </form>
         </div>
@@ -154,14 +154,14 @@ export function Community() {
                 <div className="flex gap-4">
                   {/* Vote Side */}
                   <div className="hidden sm:flex flex-col items-center gap-1 bg-bg-subtle rounded-xl p-2 h-fit">
-                    <button className="text-text-tertiary hover:text-brand-500 transition-colors">
-                      <ArrowUp size={20} />
+                    <button type="button" aria-label="Upvote" className="text-text-tertiary hover:text-brand-500 transition-colors">
+                      <ArrowUp size={20} aria-hidden />
                     </button>
                     <span className="text-sm font-bold text-text-secondary">
                       {post.upvoteCount - post.downvoteCount}
                     </span>
-                    <button className="text-text-tertiary hover:text-danger-500 transition-colors">
-                      <ArrowDown size={20} />
+                    <button type="button" aria-label="Downvote" className="text-text-tertiary hover:text-danger-500 transition-colors">
+                      <ArrowDown size={20} aria-hidden />
                     </button>
                   </div>
 

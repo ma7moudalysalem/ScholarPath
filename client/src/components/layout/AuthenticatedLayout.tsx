@@ -163,7 +163,7 @@ export function AuthenticatedLayout() {
             <Bell aria-hidden className="size-4" />
           </NavLink>
           {user && (
-            <div className="ml-2 flex items-center gap-2 rounded-md bg-bg-elevated px-3 py-1.5 text-sm">
+            <div className="ms-2 flex items-center gap-2 rounded-md bg-bg-elevated px-3 py-1.5 text-sm">
               <HeaderAvatar userId={user.id} firstName={user.firstName} />
               <span className="font-medium">{user.fullName}</span>
             </div>

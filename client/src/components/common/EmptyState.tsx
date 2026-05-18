@@ -3,8 +3,11 @@ import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface EmptyStateProps {
-  owner: string;
-  module: string;
+  /** @deprecated kept for backwards compat — no longer rendered */
+  owner?: string;
+  /** @deprecated kept for backwards compat — no longer rendered */
+  module?: string;
+  /** @deprecated kept for backwards compat — no longer rendered */
   specPath?: string;
   className?: string;
   title?: string;
@@ -14,7 +17,7 @@ export interface EmptyStateProps {
 /**
  * Placeholder shown on every module page stub. Teammates replace this with real UI.
  */
-export function EmptyState({ owner, module, specPath, className, title, body }: EmptyStateProps) {
+export function EmptyState({ className, title, body }: EmptyStateProps) {
   const { t } = useTranslation("emptyStates");
 
   return (
@@ -32,22 +35,7 @@ export function EmptyState({ owner, module, specPath, className, title, body }: 
         {title ?? t("generic.title")}
       </h2>
 
-      <p className="mb-6 max-w-md text-base text-text-secondary">{body ?? t("generic.body")}</p>
-
-      <dl className="grid gap-2 text-sm text-text-tertiary">
-        <div>
-          <dt className="inline font-medium text-text-secondary">{t("generic.ownerLabel")}: </dt>
-          <dd className="inline">{owner}</dd>
-        </div>
-        <div>
-          <dt className="inline font-medium text-text-secondary">{t("generic.moduleLabel")}: </dt>
-          <dd className="inline">{module}</dd>
-        </div>
-      </dl>
-
-      {specPath && (
-        <p className="mt-4 font-mono text-xs text-text-tertiary">{specPath}</p>
-      )}
+      <p className="max-w-md text-base text-text-secondary">{body ?? t("generic.body")}</p>
     </section>
   );
 }
