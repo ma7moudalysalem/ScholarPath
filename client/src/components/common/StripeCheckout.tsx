@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { paymentsApi } from "@/services/api/payments";
 
@@ -12,21 +13,32 @@ interface StripeCheckoutProps {
 }
 
 /**
- * REFERENCE STRIPE CHECKOUT — Nora replaces stub backend with real PaymentIntent creation.
- * Flow: create PaymentIntent (capture_method=manual) → render PaymentElement → confirm → hold.
- * Capture happens server-side when Consultant accepts the booking.
+ * Real Stripe Elements checkout for a consultant booking.
+ *
+ * Flow: create a manual-capture PaymentIntent for the booking → render the
+ * Stripe PaymentElement → confirm → the session fee is authorized (held).
+ * Capture happens server-side when the consultant accepts the booking.
  */
-export function StripeCheckout({ bookingId, amountCents, currency = "USD", onSuccess }: StripeCheckoutProps) {
+export function StripeCheckout({
+  bookingId,
+  amountCents,
+  currency = "USD",
+  onSuccess,
+}: StripeCheckoutProps) {
+  const { t } = useTranslation("bookings");
   const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const configured = Boolean(publishableKey) && publishableKey !== "pk_test_PLACEHOLDER";
+
   const stripePromise = useMemo<Promise<Stripe | null> | null>(
-    () => (publishableKey && publishableKey !== "pk_test_PLACEHOLDER" ? loadStripe(publishableKey) : null),
-    [publishableKey],
+    () => (configured ? loadStripe(publishableKey) : null),
+    [configured, publishableKey],
   );
 
   useEffect(() => {
+    if (!configured) return;
     let cancelled = false;
     paymentsApi
       .createIntent({ amountCents, currency, captureMethod: "manual", bookingId })
@@ -34,31 +46,33 @@ export function StripeCheckout({ bookingId, amountCents, currency = "USD", onSuc
         if (!cancelled) setClientSecret(res.clientSecret);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to create intent");
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : t("checkout.payment.failed"));
+        }
       });
     return () => {
       cancelled = true;
     };
-  }, [amountCents, currency, bookingId]);
+  }, [amountCents, currency, bookingId, configured, t]);
 
-  if (!publishableKey || publishableKey === "pk_test_PLACEHOLDER") {
+  if (!configured) {
     return (
-      <div className="rounded-lg border border-warning-500/40 bg-warning-50 p-4 text-sm text-warning-500">
-        Set <code>VITE_STRIPE_PUBLISHABLE_KEY</code> in <code>.env</code> to enable checkout.
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-600">
+        Set <code>VITE_STRIPE_PUBLISHABLE_KEY</code> to enable checkout.
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-danger-500/40 bg-danger-50 p-4 text-sm text-danger-500">
+      <div className="rounded-lg border border-rose-300 bg-rose-50 p-4 text-sm text-rose-600">
         {error}
       </div>
     );
   }
 
   if (!clientSecret || !stripePromise) {
-    return <div className="text-sm text-text-tertiary">Preparing secure checkout…</div>;
+    return <div className="text-sm text-text-tertiary">{t("checkout.payment.preparing")}</div>;
   }
 
   return (
@@ -69,6 +83,7 @@ export function StripeCheckout({ bookingId, amountCents, currency = "USD", onSuc
 }
 
 function CheckoutInner({ onSuccess }: { onSuccess?: () => void }) {
+  const { t } = useTranslation("bookings");
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -78,19 +93,16 @@ function CheckoutInner({ onSuccess }: { onSuccess?: () => void }) {
     if (!stripe || !elements) return;
     setSubmitting(true);
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      redirect: "if_required",
-    });
+    const { error } = await stripe.confirmPayment({ elements, redirect: "if_required" });
 
     setSubmitting(false);
 
     if (error) {
-      toast.error(error.message ?? "Payment failed");
+      toast.error(error.message ?? t("checkout.payment.failed"));
       return;
     }
 
-    toast.success("Payment authorized — held until consultant accepts.");
+    toast.success(t("checkout.payment.authorized"));
     onSuccess?.();
   };
 
@@ -100,9 +112,11 @@ function CheckoutInner({ onSuccess }: { onSuccess?: () => void }) {
       <button
         type="submit"
         disabled={!stripe || submitting}
-        className="cta-pill w-full bg-text-primary py-3 text-base text-text-inverse hover:bg-text-primary/90 disabled:opacity-50 dark:bg-brand-500 dark:text-text-on-brand"
+        className="inline-flex h-12 w-full items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-text-on-brand transition hover:bg-brand-600 disabled:opacity-50"
       >
-        {submitting ? "Authorizing…" : "Authorize payment (hold)"}
+        {submitting
+          ? t("checkout.payment.authorizing")
+          : t("checkout.payment.authorize")}
       </button>
     </form>
   );

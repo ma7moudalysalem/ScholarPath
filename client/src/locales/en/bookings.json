@@ -130,7 +130,17 @@
       "title": "Session summary",
       "description": "Confirm the consultant and selected slot before sending your booking request."
     },
+    "continueToPayment": "Continue to payment",
+    "paymentStep": {
+      "title": "Payment",
+      "description": "Authorize the session fee — it is held securely and only charged when the consultant accepts your booking."
+    },
     "payment": {
+      "preparing": "Preparing secure checkout…",
+      "authorize": "Authorize payment",
+      "authorizing": "Authorizing…",
+      "failed": "Payment failed. Please try again.",
+      "authorized": "Payment authorized — held until the consultant accepts.",
       "methodTitle": "Payment method",
       "cardOption": "Card payment",
       "cardOptionDescription": "This page is prepared for Stripe handoff. These inputs simulate the payment step until real Stripe Elements are connected.",
