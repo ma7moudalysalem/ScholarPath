@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -170,7 +170,6 @@ function SidebarContent({
 
 export function AuthenticatedLayout() {
   const { t } = useTranslation(["common", "nav"]);
-  const navigate = useNavigate();
   const { user } = useAuthStore();
   const role = user?.activeRole ?? user?.roles[0] ?? "Student";
   const navItems = useMemo(() => NAV_BY_ROLE[role] ?? NAV_BY_ROLE.Student, [role]);
@@ -178,13 +177,12 @@ export function AuthenticatedLayout() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Close drawer on resize to desktop — uses a ref-based handler to avoid
-  // calling setState inside an effect body (satisfies react-hooks/set-state-in-effect)
-  const setDrawerOpenRef = useRef(setDrawerOpen);
-  setDrawerOpenRef.current = setDrawerOpen;
+  // Close drawer on resize to desktop — setState inside an event handler (not
+  // the effect body itself) is allowed by react-hooks/set-state-in-effect.
+  // The useState setter is guaranteed stable, so no ref is needed.
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth >= 768) setDrawerOpenRef.current(false);
+      if (window.innerWidth >= 768) setDrawerOpen(false);
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
