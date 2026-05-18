@@ -114,11 +114,18 @@ public static partial class DbSeeder
         ApplicationDbContext db, DemoUsers users, IReadOnlyList<Category> categories,
         ILogger logger, CancellationToken ct)
     {
+        const int CatalogueTarget = 1000;
         var existing = await db.Scholarships.ToListAsync(ct).ConfigureAwait(false);
-        if (existing.Count > 0)
+        if (existing.Count >= CatalogueTarget)
         {
             return existing;
         }
+
+        var usedSlugs = existing
+            .Where(s => !string.IsNullOrEmpty(s.Slug))
+            .Select(s => s.Slug!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var seedCurated = existing.Count == 0;
 
         var now = DateTimeOffset.UtcNow;
         Category Cat(string slug) => categories.First(c => c.Slug == slug);
@@ -370,6 +377,25 @@ public static partial class DbSeeder
             },
         };
 
+        // The curated rows are only inserted on a fresh database; otherwise keep
+        // the existing catalogue and just top up the generated volume.
+        if (!seedCurated)
+        {
+            list.Clear();
+        }
+
+        foreach (var curated in list.Where(s => s.Slug is not null))
+        {
+            usedSlugs.Add(curated.Slug!);
+        }
+
+        var toGenerate = CatalogueTarget - existing.Count - list.Count;
+        if (toGenerate > 0)
+        {
+            list.AddRange(GenerateScholarshipCatalogue(
+                toGenerate, now, categories, users.Companies, users.PrimaryAdmin.Id, usedSlugs));
+        }
+
         // Shared in-app application form schema + required docs for InApp listings.
         const string formSchema = """{"fields":[{"key":"motivation","label":"Motivation statement","type":"textarea","required":true},{"key":"gpa","label":"Current GPA","type":"number","required":true}]}""";
         const string requiredDocs = """["Transcript","RecommendationLetter","PersonalStatement"]""";
@@ -395,7 +421,7 @@ public static partial class DbSeeder
         db.ScholarshipChildren.AddRange(children);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         logger.LogInformation("Seeded {N} scholarships (+{C} child rows) covering all statuses and modes", list.Count, children.Count);
-        return list;
+        return await db.Scholarships.ToListAsync(ct).ConfigureAwait(false);
     }
 
     /// <summary>
