@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, Suspense } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
@@ -280,7 +280,15 @@ export function AuthenticatedLayout() {
         </header>
 
         <main className="flex-1 p-4 sm:p-6">
-          <Outlet />
+          <Suspense
+            fallback={
+              <div className="flex min-h-[60vh] items-center justify-center">
+                <div className="size-7 animate-spin rounded-full border-2 border-border-subtle border-t-brand-500" />
+              </div>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
