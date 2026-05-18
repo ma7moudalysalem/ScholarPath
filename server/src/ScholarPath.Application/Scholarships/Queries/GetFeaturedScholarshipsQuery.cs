@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Scholarships.DTOs;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Scholarships.Queries;
 
@@ -25,7 +26,7 @@ public record GetFeaturedScholarshipsQuery : IRequest<IReadOnlyList<ScholarshipD
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
-public class GetFeaturedScholarshipsQueryHandler(IApplicationDbContext db)
+public class GetFeaturedScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
     : IRequestHandler<GetFeaturedScholarshipsQuery, IReadOnlyList<ScholarshipDto>>
 {
     public async Task<IReadOnlyList<ScholarshipDto>> Handle(
@@ -33,6 +34,7 @@ public class GetFeaturedScholarshipsQueryHandler(IApplicationDbContext db)
     {
         var lang = request.Language.ToLower() == "ar" ? "ar" : "en";
         var limit = Math.Clamp(request.Limit, 1, 24);
+        var userId = currentUser.UserId;
 
         return await db.Scholarships
             .AsNoTracking()
@@ -55,7 +57,9 @@ public class GetFeaturedScholarshipsQueryHandler(IApplicationDbContext db)
                 FundingType = s.FundingType.ToString(),
                 TargetLevel = s.TargetLevel.ToString(),
                 IsFeatured = s.IsFeatured,
-                Slug = s.Slug
+                Slug = s.Slug,
+                IsBookmarked = userId != null && db.SavedScholarships.Any(
+                    sv => sv.ScholarshipId == s.Id && sv.UserId == userId)
             })
             .ToListAsync(ct);
     }

@@ -11,6 +11,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
+import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -68,6 +69,7 @@ export function ScholarshipDetail() {
   const { id }       = useParams<{ id: string }>();
   const { t, i18n } = useTranslation(["scholarships", "common"]);
   const isRtl        = i18n.dir() === "rtl";
+  const dateLocale   = isRtl ? ar : undefined;
   const BackIcon     = isRtl ? ArrowRight : ArrowLeft;
 
   const navigate     = useNavigate();
@@ -177,10 +179,20 @@ export function ScholarshipDetail() {
               type="button"
               onClick={handleBookmark}
               aria-label={t("scholarships:bookmark.toggle")}
+              aria-pressed={data.isBookmarked}
               disabled={bookmarkMut.isPending}
-              className="rounded-lg border border-border-subtle bg-bg-canvas p-2 text-text-tertiary transition hover:border-brand-500 hover:text-brand-500 disabled:opacity-50"
+              className={cn(
+                "rounded-lg border p-2 transition disabled:opacity-50",
+                data.isBookmarked
+                  ? "border-brand-500 bg-brand-500/10 text-brand-500"
+                  : "border-border-subtle bg-bg-canvas text-text-tertiary hover:border-brand-500 hover:text-brand-500",
+              )}
             >
-              <Bookmark aria-hidden className="size-5" />
+              <Bookmark
+                aria-hidden
+                className="size-5"
+                fill={data.isBookmarked ? "currentColor" : "none"}
+              />
             </button>
 
             <span
@@ -233,7 +245,7 @@ export function ScholarshipDetail() {
               )}
             >
               <Calendar aria-hidden className="size-4 text-text-tertiary" />
-              {format(deadlineDate, "dd MMMM yyyy")}
+              {format(deadlineDate, "dd MMMM yyyy", { locale: dateLocale })}
             </span>
           </DetailRow>
 

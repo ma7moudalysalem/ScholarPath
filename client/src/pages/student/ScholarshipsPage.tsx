@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Search, Bookmark, Filter, X } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
+import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -56,11 +57,45 @@ function FundingBadge({ type }: { type: FundingType }) {
   );
 }
 
+/**
+ * Bookmark toggle shown on every scholarship card. A filled icon means the
+ * scholarship is saved, so the student can tell at a glance — while browsing —
+ * which scholarships they have already bookmarked.
+ */
+function BookmarkButton({
+  scholarshipId,
+  isBookmarked,
+  onToggle,
+}: {
+  scholarshipId: string;
+  isBookmarked: boolean;
+  onToggle: (e: React.MouseEvent, id: string) => void;
+}) {
+  const { t } = useTranslation("scholarships");
+  return (
+    <button
+      type="button"
+      onClick={(e) => onToggle(e, scholarshipId)}
+      aria-label={t("bookmark.toggle")}
+      aria-pressed={isBookmarked}
+      className={cn(
+        "absolute inset-e-3 top-3 rounded-md p-1.5 transition",
+        isBookmarked
+          ? "text-brand-500 hover:bg-brand-500/10"
+          : "text-text-tertiary hover:bg-bg-subtle hover:text-brand-500",
+      )}
+    >
+      <Bookmark aria-hidden className="size-4" fill={isBookmarked ? "currentColor" : "none"} />
+    </button>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export function ScholarshipsPage() {
   const { t, i18n } = useTranslation(["scholarships", "common"]);
   const isRtl = i18n.dir() === "rtl";
+  const dateLocale = isRtl ? ar : undefined;
 
   // ── Filters state ─────────────────────────────────────────────────────────
   const [query, setQuery]                   = useState("");
@@ -300,6 +335,12 @@ export function ScholarshipsPage() {
                   to={`/student/scholarships/${s.id}`}
                   className="group relative flex flex-col rounded-xl border border-brand-500/30 bg-brand-500/5 p-5 shadow-xs transition hover:border-brand-500/60 hover:shadow-sm"
                 >
+                  <BookmarkButton
+                    scholarshipId={s.id}
+                    isBookmarked={s.isBookmarked}
+                    onToggle={handleBookmark}
+                  />
+
                   <span className="mb-3 inline-flex w-fit items-center rounded-full bg-brand-500/10 px-2 py-0.5 text-xs font-medium text-brand-500">
                     ★ {t("scholarships:card.featured")}
                   </span>
@@ -326,7 +367,7 @@ export function ScholarshipsPage() {
                           ? t("scholarships:card.closed")
                           : isUrgent
                             ? t("scholarships:card.daysLeft", { count: daysLeft })
-                            : format(deadlineDate, "dd MMM yyyy")}
+                            : format(deadlineDate, "dd MMM yyyy", { locale: dateLocale })}
                       </span>
                     </div>
                   </div>
@@ -376,15 +417,11 @@ export function ScholarshipsPage() {
                 to={`/student/scholarships/${s.id}`}
                 className="group relative flex flex-col rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-xs transition hover:border-brand-500/40 hover:shadow-sm"
               >
-                {/* Bookmark button */}
-                <button
-                  type="button"
-                  onClick={(e) => handleBookmark(e, s.id)}
-                  aria-label={t("scholarships:bookmark.toggle")}
-                  className="absolute inset-e-4 top-4 text-text-tertiary transition hover:text-brand-500"
-                >
-                  <Bookmark aria-hidden className="size-4" />
-                </button>
+                <BookmarkButton
+                  scholarshipId={s.id}
+                  isBookmarked={s.isBookmarked}
+                  onToggle={handleBookmark}
+                />
 
                 {/* Featured badge */}
                 {s.isFeatured && (
@@ -415,7 +452,7 @@ export function ScholarshipsPage() {
                         ? t("scholarships:card.closed")
                         : isUrgent
                           ? t("scholarships:card.daysLeft", { count: daysLeft })
-                          : format(deadlineDate, "dd MMM yyyy")}
+                          : format(deadlineDate, "dd MMM yyyy", { locale: dateLocale })}
                     </span>
                   </div>
                 </div>

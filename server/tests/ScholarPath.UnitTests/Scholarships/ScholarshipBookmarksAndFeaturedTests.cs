@@ -180,7 +180,7 @@ public sealed class ScholarshipBookmarksAndFeaturedTests : IDisposable
         _db.Scholarships.AddRange(featuredOpen, notFeatured, featuredDraft, featuredClosed, featuredDeleted);
         await _db.SaveChangesAsync();
 
-        var handler = new GetFeaturedScholarshipsQueryHandler(_db);
+        var handler = new GetFeaturedScholarshipsQueryHandler(_db, UserStub(null));
 
         var result = await handler.Handle(new GetFeaturedScholarshipsQuery(), CancellationToken.None);
 
@@ -197,7 +197,7 @@ public sealed class ScholarshipBookmarksAndFeaturedTests : IDisposable
         _db.Scholarships.AddRange(third, first, second);
         await _db.SaveChangesAsync();
 
-        var handler = new GetFeaturedScholarshipsQueryHandler(_db);
+        var handler = new GetFeaturedScholarshipsQueryHandler(_db, UserStub(null));
 
         var result = await handler.Handle(new GetFeaturedScholarshipsQuery(), CancellationToken.None);
 
@@ -211,7 +211,7 @@ public sealed class ScholarshipBookmarksAndFeaturedTests : IDisposable
             _db.Scholarships.Add(NewScholarship(isFeatured: true, featuredOrder: i));
         await _db.SaveChangesAsync();
 
-        var handler = new GetFeaturedScholarshipsQueryHandler(_db);
+        var handler = new GetFeaturedScholarshipsQueryHandler(_db, UserStub(null));
 
         var result = await handler.Handle(
             new GetFeaturedScholarshipsQuery { Limit = 3 }, CancellationToken.None);
@@ -225,7 +225,7 @@ public sealed class ScholarshipBookmarksAndFeaturedTests : IDisposable
         _db.Scholarships.Add(NewScholarship(isFeatured: true));
         await _db.SaveChangesAsync();
 
-        var handler = new GetFeaturedScholarshipsQueryHandler(_db);
+        var handler = new GetFeaturedScholarshipsQueryHandler(_db, UserStub(null));
 
         var result = await handler.Handle(
             new GetFeaturedScholarshipsQuery { Language = "ar" }, CancellationToken.None);
@@ -239,7 +239,7 @@ public sealed class ScholarshipBookmarksAndFeaturedTests : IDisposable
         _db.Scholarships.Add(NewScholarship(isFeatured: false));
         await _db.SaveChangesAsync();
 
-        var handler = new GetFeaturedScholarshipsQueryHandler(_db);
+        var handler = new GetFeaturedScholarshipsQueryHandler(_db, UserStub(null));
 
         var result = await handler.Handle(new GetFeaturedScholarshipsQuery(), CancellationToken.None);
 

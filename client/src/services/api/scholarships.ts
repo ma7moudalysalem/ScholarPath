@@ -26,6 +26,8 @@ export interface ScholarshipListItem {
   ownerCompanyName?: string | null;
   isFeatured: boolean;
   status: ScholarshipStatus;
+  /** True when the signed-in student has this scholarship bookmarked. */
+  isBookmarked: boolean;
 }
 
 export interface ScholarshipDetail extends ScholarshipListItem {
@@ -118,6 +120,7 @@ interface ScholarshipWireDto {
   deadline: string;
   isFeatured: boolean;
   slug: string | null;
+  isBookmarked: boolean;
 }
 
 /** Server ScholarshipChildDto. */
@@ -176,6 +179,7 @@ function toListItem(dto: ScholarshipWireDto): ScholarshipListItem {
     ownerCompanyName: dto.ownerCompanyName,
     isFeatured: dto.isFeatured,
     status: dto.status,
+    isBookmarked: dto.isBookmarked ?? false,
   };
 }
 

@@ -82,7 +82,9 @@ public class GetMyBookmarkedScholarshipsQueryHandler(
                     FundingType = scholarship.FundingType.ToString(),
                     TargetLevel = scholarship.TargetLevel.ToString(),
                     IsFeatured = scholarship.IsFeatured,
-                    Slug = scholarship.Slug
+                    Slug = scholarship.Slug,
+                    // Every row in this list is, by definition, bookmarked.
+                    IsBookmarked = true
                 }
             };
 

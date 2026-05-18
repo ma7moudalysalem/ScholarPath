@@ -17,6 +17,9 @@ namespace ScholarPath.Application.Scholarships.DTOs
         public DateTimeOffset Deadline { get; init; }
         public bool IsFeatured { get; init; }
         public string? Slug { get; init; }
+
+        /// <summary>True when the current user has this scholarship bookmarked.</summary>
+        public bool IsBookmarked { get; init; }
     }
 
     public record ScholarshipDetailDto : ScholarshipDto

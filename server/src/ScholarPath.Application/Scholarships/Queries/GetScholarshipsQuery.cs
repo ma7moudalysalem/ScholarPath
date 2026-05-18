@@ -4,6 +4,7 @@ using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Common.Models;
 using ScholarPath.Application.Scholarships.DTOs;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Scholarships.Queries;
 
@@ -23,12 +24,13 @@ public record GetScholarshipsQuery : IRequest<PaginatedList<ScholarshipDto>>
     public bool? FundedOnly { get; init; }
 }
 
-public class GetScholarshipsQueryHandler(IApplicationDbContext db)
+public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
     : IRequestHandler<GetScholarshipsQuery, PaginatedList<ScholarshipDto>>
 {
     public async Task<PaginatedList<ScholarshipDto>> Handle(GetScholarshipsQuery request, CancellationToken ct)
     {
         var lang = request.Language.ToLower() == "ar" ? "ar" : "en";
+        var userId = currentUser.UserId;
         var query = db.Scholarships.AsNoTracking();
 
         //  Full-Text Search 
@@ -69,7 +71,9 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db)
             FundingType = s.FundingType.ToString(),
             TargetLevel = s.TargetLevel.ToString(),
             IsFeatured = s.IsFeatured,
-            Slug = s.Slug
+            Slug = s.Slug,
+            IsBookmarked = userId != null && db.SavedScholarships.Any(
+                sv => sv.ScholarshipId == s.Id && sv.UserId == userId)
         });
 
         return await PaginatedList<ScholarshipDto>.CreateAsync(result, request.PageNumber, request.PageSize);

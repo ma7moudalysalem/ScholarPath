@@ -8,6 +8,8 @@ using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using FluentAssertions;
 using FluentValidation.TestHelper;
+using NSubstitute;
+using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.UnitTests.Scholarships;
 
@@ -75,7 +77,7 @@ public sealed class ScholarshipTests : IDisposable
     public async Task GetById_ShouldThrowNotFoundException_WhenRecordDoesNotExist()
     {
         // Arrange
-        var handler = new GetScholarshipByIdQueryHandler(_context);
+        var handler = new GetScholarshipByIdQueryHandler(_context, Substitute.For<ICurrentUserService>());
         var query = new GetScholarshipByIdQuery(Guid.NewGuid());
 
         // Act
@@ -103,7 +105,7 @@ public sealed class ScholarshipTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        var handler = new GetScholarshipByIdQueryHandler(_context);
+        var handler = new GetScholarshipByIdQueryHandler(_context, Substitute.For<ICurrentUserService>());
         var query = new GetScholarshipByIdQuery(id, "en");
 
         // Act
