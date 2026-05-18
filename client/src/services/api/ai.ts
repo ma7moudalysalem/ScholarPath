@@ -42,6 +42,15 @@ export interface EligibilityDto {
   generatedAt: string;
 }
 
+/** A knowledge-base document the RAG retriever used to ground a chat answer. */
+export interface ChatSourceDto {
+  title: string;
+  sourceType: "Scholarship" | "Faq" | string;
+  scholarshipId: string | null;
+  /** Cosine similarity in [-1, 1]; higher is more relevant. */
+  score: number;
+}
+
 export interface ChatAnswerDto {
   sessionId: string;
   message: string;
@@ -50,6 +59,8 @@ export interface ChatAnswerDto {
   completionTokens: number;
   estimatedCostUsd: number;
   answeredAt: string;
+  /** SRS PB-016 — the RAG citations behind this answer. */
+  sources: ChatSourceDto[];
 }
 
 export interface AiInteractionRow {

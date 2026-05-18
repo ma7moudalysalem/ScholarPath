@@ -1,0 +1,135 @@
+{
+  "datasetName": "scholarpath-faq",
+  "version": "1.0",
+  "description": "Curated help knowledge base for the ScholarPath AI assistant. Each entry is indexed into the RAG knowledge base so the chatbot can ground its answers in how the platform actually works.",
+  "faqs": [
+    {
+      "key": "find-scholarships",
+      "questionEn": "How do I find scholarships on ScholarPath?",
+      "questionAr": "كيف أجد المنح الدراسية على ScholarPath؟",
+      "answerEn": "Open the Scholarships tab to browse every open listing. You can search by keyword and filter by funding type, academic level, country, and deadline. Featured scholarships are highlighted at the top of the page.",
+      "answerAr": "افتح تبويب المنح لتصفح كل القوائم المفتوحة. يمكنك البحث بكلمة مفتاحية والتصفية حسب نوع التمويل والمستوى الأكاديمي والدولة والموعد النهائي. تظهر المنح المميزة في أعلى الصفحة.",
+      "tags": ["scholarships", "search", "browse"]
+    },
+    {
+      "key": "recommendations",
+      "questionEn": "How does ScholarPath recommend scholarships for me?",
+      "questionAr": "كيف يقترح ScholarPath منحًا مناسبة لي؟",
+      "answerEn": "The Recommendations tab on the AI page ranks open scholarships against your profile and gives each one a match score with a short explanation. Keep your preferred fields, countries, and academic level up to date in your profile to sharpen the results.",
+      "answerAr": "يرتّب تبويب الاقتراحات في صفحة الذكاء الاصطناعي المنح المفتوحة حسب توافقها مع ملفك الشخصي، ويمنح كل منحة نسبة توافق مع شرح مختصر. حدِّث مجالاتك ودولك المفضلة ومستواك الأكاديمي في ملفك لتحسين النتائج.",
+      "tags": ["ai", "recommendations", "profile"]
+    },
+    {
+      "key": "eligibility-check",
+      "questionEn": "How do I check if I am eligible for a scholarship?",
+      "questionAr": "كيف أتحقق من أهليتي لمنحة معينة؟",
+      "answerEn": "Use the Eligibility checker tab on the AI page. Search for a scholarship, select it, and the checker compares your profile against each listed criterion and returns an overall verdict — Eligible, Partially eligible, or Not eligible — plus what to improve.",
+      "answerAr": "استخدم تبويب فحص الأهلية في صفحة الذكاء الاصطناعي. ابحث عن منحة واخترها، فيقارن الفاحص ملفك بكل معيار مدرج ويعطيك نتيجة إجمالية — مؤهَّل أو مؤهَّل جزئيًا أو غير مؤهَّل — مع ما يمكن تحسينه.",
+      "tags": ["ai", "eligibility", "criteria"]
+    },
+    {
+      "key": "apply-in-app",
+      "questionEn": "How do I apply for a scholarship through ScholarPath?",
+      "questionAr": "كيف أتقدم لمنحة من خلال ScholarPath؟",
+      "answerEn": "Open the scholarship and tap Apply. In-app listings open an application form you fill in directly. You can keep only one active application per scholarship at a time, and you track its status from the Applications tab.",
+      "answerAr": "افتح المنحة واضغط تقديم. القوائم داخل التطبيق تفتح نموذج تقديم تملؤه مباشرة. يمكنك الاحتفاظ بطلب نشط واحد فقط لكل منحة في وقت واحد، وتتابع حالته من تبويب الطلبات.",
+      "tags": ["applications", "apply"]
+    },
+    {
+      "key": "external-applications",
+      "questionEn": "What is an external application and how do I track one?",
+      "questionAr": "ما هو الطلب الخارجي وكيف أتابعه؟",
+      "answerEn": "Some scholarships are applied for on the provider's own website. For those, use Add External in the Applications tab to record the scholarship, the deadline, and your progress so every application stays in one tracker.",
+      "answerAr": "بعض المنح يتم التقديم لها على موقع الجهة المانحة نفسها. لتلك المنح استخدم \"إضافة طلب خارجي\" في تبويب الطلبات لتسجيل المنحة والموعد النهائي وتقدّمك، حتى تبقى كل الطلبات في متابع واحد.",
+      "tags": ["applications", "external", "tracking"]
+    },
+    {
+      "key": "bookmarks",
+      "questionEn": "How do I save a scholarship to review later?",
+      "questionAr": "كيف أحفظ منحة لمراجعتها لاحقًا؟",
+      "answerEn": "Tap the bookmark icon on any scholarship card or detail page. Saved scholarships appear in your bookmarks list, newest first, so you can compare options before applying.",
+      "answerAr": "اضغط أيقونة الحفظ على أي بطاقة منحة أو صفحة تفاصيل. تظهر المنح المحفوظة في قائمة المحفوظات لديك، الأحدث أولًا، لتقارن الخيارات قبل التقديم.",
+      "tags": ["scholarships", "bookmarks"]
+    },
+    {
+      "key": "deadlines",
+      "questionEn": "Where do I see scholarship deadlines?",
+      "questionAr": "أين أرى المواعيد النهائية للمنح؟",
+      "answerEn": "Every scholarship card and detail page shows its deadline, and listings closing within seven days are flagged as urgent. Sort the Scholarships list by deadline to see the nearest closing dates first.",
+      "answerAr": "تعرض كل بطاقة منحة وصفحة تفاصيل موعدها النهائي، وتُوسم المنح التي تغلق خلال سبعة أيام بأنها عاجلة. رتّب قائمة المنح حسب الموعد النهائي لرؤية أقرب مواعيد الإغلاق أولًا.",
+      "tags": ["scholarships", "deadlines"]
+    },
+    {
+      "key": "consultants",
+      "questionEn": "How do I book a session with a consultant?",
+      "questionAr": "كيف أحجز جلسة مع مستشار؟",
+      "answerEn": "Open the Consultants tab, choose a consultant, and pick an available time slot. Sessions are paid; the fee is held in escrow and released to the consultant only after the session is completed.",
+      "answerAr": "افتح تبويب المستشارين، اختر مستشارًا، وحدّد موعدًا متاحًا. الجلسات مدفوعة؛ تُحجز الرسوم في حساب ضمان ولا تُحوَّل للمستشار إلا بعد اكتمال الجلسة.",
+      "tags": ["consultants", "bookings", "payments"]
+    },
+    {
+      "key": "escrow-payments",
+      "questionEn": "How do payments and escrow work for bookings?",
+      "questionAr": "كيف تعمل المدفوعات وحساب الضمان للحجوزات؟",
+      "answerEn": "When you book a paid consultant session, your payment is captured and held in escrow. The funds are released to the consultant after the session completes; if the session is cancelled under the policy, the hold is refunded to you.",
+      "answerAr": "عند حجز جلسة مستشار مدفوعة يُحتجز مبلغك في حساب ضمان. تُحوَّل الأموال للمستشار بعد اكتمال الجلسة؛ وإذا أُلغيت الجلسة وفق السياسة يُسترَد المبلغ المحجوز إليك.",
+      "tags": ["payments", "escrow", "bookings"]
+    },
+    {
+      "key": "complete-profile",
+      "questionEn": "Why should I complete my profile?",
+      "questionAr": "لماذا يجب أن أكمل ملفي الشخصي؟",
+      "answerEn": "Your profile drives the AI features. Preferred fields, preferred countries, academic level, nationality, and field of study all feed the recommendation match scores and the eligibility checker, so a fuller profile gives more accurate results.",
+      "answerAr": "ملفك الشخصي يشغّل ميزات الذكاء الاصطناعي. المجالات والدول المفضلة والمستوى الأكاديمي والجنسية ومجال الدراسة كلها تغذّي نسب توافق الاقتراحات وفاحص الأهلية، فكلما اكتمل ملفك زادت دقة النتائج.",
+      "tags": ["profile", "ai"]
+    },
+    {
+      "key": "ai-chatbot",
+      "questionEn": "What can the ScholarPath AI assistant help with?",
+      "questionAr": "بماذا يمكن أن يساعدني مساعد ScholarPath الذكي؟",
+      "answerEn": "The assistant answers questions about scholarships, deadlines, eligibility, applications, consultants, and how to use the platform. It grounds answers in ScholarPath's own knowledge base, and every answer is advisory — verify important details with the official listing.",
+      "answerAr": "يجيب المساعد عن أسئلة المنح والمواعيد والأهلية والطلبات والمستشارين وكيفية استخدام المنصة. يؤسّس إجاباته على قاعدة معرفة ScholarPath، وكل إجابة استرشادية — تحقّق من التفاصيل المهمة من القائمة الرسمية.",
+      "tags": ["ai", "chatbot"]
+    },
+    {
+      "key": "ai-disclaimer",
+      "questionEn": "Can I rely entirely on the AI answers?",
+      "questionAr": "هل أعتمد كليًا على إجابات الذكاء الاصطناعي؟",
+      "answerEn": "No. AI guidance is advisory and may be incomplete or outdated. Always confirm funding amounts, eligibility rules, and deadlines against the official scholarship source before you apply or make a decision.",
+      "answerAr": "لا. إرشاد الذكاء الاصطناعي استرشادي وقد يكون غير مكتمل أو قديمًا. تأكّد دائمًا من مبالغ التمويل وقواعد الأهلية والمواعيد من المصدر الرسمي للمنحة قبل التقديم أو اتخاذ القرار.",
+      "tags": ["ai", "disclaimer"]
+    },
+    {
+      "key": "community-forum",
+      "questionEn": "How do I ask a question in the community?",
+      "questionAr": "كيف أطرح سؤالًا في المجتمع؟",
+      "answerEn": "Open the Community tab and use Ask a Question to create a post. Choose a category so the right people see it; other members can answer, vote, and discuss.",
+      "answerAr": "افتح تبويب المجتمع واستخدم \"اطرح سؤالًا\" لإنشاء منشور. اختر تصنيفًا ليصل لأصحاب الاختصاص؛ ويمكن للأعضاء الآخرين الإجابة والتصويت والنقاش.",
+      "tags": ["community", "forum"]
+    },
+    {
+      "key": "account-roles",
+      "questionEn": "What account types does ScholarPath have?",
+      "questionAr": "ما أنواع الحسابات في ScholarPath؟",
+      "answerEn": "ScholarPath has four roles: Student (find and apply for scholarships), Company (post and manage scholarships), Consultant (offer paid guidance sessions), and Admin (moderate listings and the platform).",
+      "answerAr": "يضم ScholarPath أربعة أدوار: طالب (يبحث عن المنح ويتقدم لها)، وشركة (تنشر المنح وتديرها)، ومستشار (يقدّم جلسات إرشاد مدفوعة)، ومشرف (يراجع القوائم ويدير المنصة).",
+      "tags": ["account", "roles"]
+    },
+    {
+      "key": "language-support",
+      "questionEn": "Does ScholarPath support Arabic?",
+      "questionAr": "هل يدعم ScholarPath اللغة العربية؟",
+      "answerEn": "Yes. ScholarPath is fully bilingual in English and Arabic, with right-to-left layout for Arabic. Switch languages from the interface and all pages, including AI answers, follow your choice.",
+      "answerAr": "نعم. ScholarPath ثنائي اللغة بالكامل بالإنجليزية والعربية، مع تخطيط من اليمين إلى اليسار للعربية. بدّل اللغة من الواجهة وستتبع كل الصفحات اختيارك، بما في ذلك إجابات الذكاء الاصطناعي.",
+      "tags": ["language", "arabic", "accessibility"]
+    },
+    {
+      "key": "document-vault",
+      "questionEn": "Where do I store my application documents?",
+      "questionAr": "أين أحفظ مستندات طلبي؟",
+      "answerEn": "Use the Document vault to upload and keep transcripts, certificates, and other files securely. You can reuse stored documents across multiple scholarship applications instead of uploading them each time.",
+      "answerAr": "استخدم خزنة المستندات لرفع كشوف الدرجات والشهادات والملفات الأخرى وحفظها بأمان. يمكنك إعادة استخدام المستندات المحفوظة عبر عدة طلبات منح بدلًا من رفعها في كل مرة.",
+      "tags": ["documents", "vault"]
+    }
+  ]
+}

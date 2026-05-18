@@ -1,8 +1,10 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
+using ScholarPath.Infrastructure.Settings;
 
 namespace ScholarPath.Infrastructure.Services;
 
@@ -15,7 +17,10 @@ namespace ScholarPath.Infrastructure.Services;
 /// The shape matches a real AI provider: inputs, outputs, token counts, cost.
 /// Tokens/cost are synthetic (deterministic) so tests and dashboards still work.
 /// </summary>
-public sealed class LocalAiService(ApplicationDbContext db) : IAiService
+public sealed class LocalAiService(
+    ApplicationDbContext db,
+    IKnowledgeRetriever retriever,
+    IOptions<AiOptions> opts) : IAiService
 {
     private const string Disclaimer = "AI-generated guidance. Verify with official sources before acting.";
 
@@ -182,21 +187,47 @@ public sealed class LocalAiService(ApplicationDbContext db) : IAiService
         return EligibilityVerdict.Eligible;
     }
 
-    public Task<AiChatResponse> AskAsync(
+    /// <summary>
+    /// Retrieval-Augmented chat — the offline path. It runs the same RAG
+    /// retrieval as the cloud providers, then answers <em>extractively</em>:
+    /// it surfaces the most relevant indexed document rather than generating
+    /// free text. When nothing relevant is found it falls back to the keyword
+    /// router. This keeps RAG demonstrable with no API key configured.
+    /// </summary>
+    public async Task<AiChatResponse> AskAsync(
         Guid userId, string sessionId, string message, CancellationToken ct)
     {
         var msg = (message ?? string.Empty).Trim();
-        var reply = RouteChat(msg);
-        var chars = reply.Length;
-        var promptTokens = Math.Max(1, msg.Length / 4);
-        var completionTokens = Math.Max(1, chars / 4);
+        var arabic = RagSupport.IsArabic(msg);
 
-        return Task.FromResult(new AiChatResponse(
+        var docs = await retriever.RetrieveAsync(msg, opts.Value.RagTopK, ct).ConfigureAwait(false);
+        var relevant = docs.Where(d => d.Score >= opts.Value.RagMinScore).ToList();
+
+        string reply;
+        if (relevant.Count > 0)
+        {
+            var top = relevant[0];
+            var body = (arabic ? top.ContentAr : top.ContentEn).Trim();
+            var lead = arabic
+                ? "وجدت هذا في قاعدة معرفة ScholarPath:"
+                : "Here is what I found in ScholarPath's knowledge base:";
+            reply = $"{lead}\n\n{body}";
+        }
+        else
+        {
+            reply = RouteChat(msg);
+        }
+
+        var promptTokens = Math.Max(1, msg.Length / 4);
+        var completionTokens = Math.Max(1, reply.Length / 4);
+
+        return new AiChatResponse(
             Message: reply,
             Disclaimer: Disclaimer,
             PromptTokens: promptTokens,
             CompletionTokens: completionTokens,
-            EstimatedCostUsd: FakeCostPerChatTurn));
+            EstimatedCostUsd: FakeCostPerChatTurn,
+            Sources: RagSupport.ToSources(relevant, arabic));
     }
 
     // ─── helpers ──────────────────────────────────────────────────────────

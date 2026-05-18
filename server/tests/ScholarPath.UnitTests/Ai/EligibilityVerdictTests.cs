@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Infrastructure.Services;
+using ScholarPath.Infrastructure.Settings;
 using Xunit;
 using FluentAssertions;
 
@@ -25,7 +27,17 @@ public sealed class EligibilityVerdictTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _db = new ApplicationDbContext(options);
-        _ai = new LocalAiService(_db);
+        // Eligibility checking does not touch RAG retrieval — a no-op retriever
+        // and default options satisfy the constructor.
+        _ai = new LocalAiService(_db, new NoopRetriever(), Options.Create(new AiOptions()));
+    }
+
+    /// <summary>A retriever stub that returns nothing — RAG is irrelevant to these tests.</summary>
+    private sealed class NoopRetriever : IKnowledgeRetriever
+    {
+        public Task<IReadOnlyList<RetrievedDocument>> RetrieveAsync(
+            string query, int topK, CancellationToken ct)
+            => Task.FromResult<IReadOnlyList<RetrievedDocument>>([]);
     }
 
     private async Task<Guid> SeedScholarshipAsync(

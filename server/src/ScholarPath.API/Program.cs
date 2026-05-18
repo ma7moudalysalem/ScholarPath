@@ -11,6 +11,8 @@ using Microsoft.OpenApi;
 using Scalar.AspNetCore;
 using ScholarPath.API.Middleware;
 using ScholarPath.Application;
+using ScholarPath.Application.Ai.Commands.ImportExternalScholarships;
+using ScholarPath.Application.Ai.Commands.RebuildKnowledgeBase;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Infrastructure;
@@ -321,10 +323,17 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("SeedDem
             var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
             var rm = sp.GetRequiredService<RoleManager<ApplicationRole>>();
             await DbSeeder.SeedAsync(db, um, rm, logger, CancellationToken.None).ConfigureAwait(false);
+
+            // Bootstrap the RAG pipeline once the demo data exists: import the
+            // curated external scholarships dataset, then build and embed the
+            // knowledge base so the chatbot is grounded. Both steps are idempotent.
+            var mediator = sp.GetRequiredService<MediatR.IMediator>();
+            await mediator.Send(new ImportExternalScholarshipsCommand(), CancellationToken.None).ConfigureAwait(false);
+            await mediator.Send(new RebuildKnowledgeBaseCommand(), CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Background demo seed failed.");
+            logger.LogError(ex, "Background demo seed / RAG bootstrap failed.");
         }
     }));
 }

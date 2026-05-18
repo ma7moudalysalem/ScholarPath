@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
+import { Link } from "react-router";
 import { useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Send, MessageSquare } from "lucide-react";
-import { aiApi, type ChatAnswerDto } from "@/services/api/ai";
+import { Send, MessageSquare, FileText } from "lucide-react";
+import { aiApi, type ChatAnswerDto, type ChatSourceDto } from "@/services/api/ai";
 import { AiDisclaimer } from "./AiDisclaimer";
 
 interface Turn {
@@ -12,6 +13,7 @@ interface Turn {
   cost?: number;
   prompt?: number;
   completion?: number;
+  sources?: ChatSourceDto[];
 }
 
 export function Chatbot() {
@@ -27,7 +29,14 @@ export function Chatbot() {
       setSessionId(dto.sessionId);
       setTurns((prev) => [
         ...prev,
-        { role: "assistant", text: dto.message, cost: dto.estimatedCostUsd, prompt: dto.promptTokens, completion: dto.completionTokens },
+        {
+          role: "assistant",
+          text: dto.message,
+          cost: dto.estimatedCostUsd,
+          prompt: dto.promptTokens,
+          completion: dto.completionTokens,
+          sources: dto.sources,
+        },
       ]);
       // Scroll to bottom after the DOM updates
       queueMicrotask(() => scrollRef.current?.scrollTo({ top: 1e9, behavior: "smooth" }));
@@ -75,6 +84,34 @@ export function Chatbot() {
                 {t(turn.role === "user" ? "ai:chat.you" : "ai:chat.assistant")}
               </div>
               <p className="mt-0.5 whitespace-pre-wrap">{turn.text}</p>
+              {turn.role === "assistant" && turn.sources && turn.sources.length > 0 && (
+                <div className="mt-2 border-t border-border-subtle pt-1.5">
+                  <div className="text-[10px] font-semibold uppercase tracking-wide opacity-60">
+                    {t("ai:chat.sources")}
+                  </div>
+                  <ul className="mt-1 space-y-0.5">
+                    {turn.sources.map((src, si) => (
+                      <li key={si} className="text-[11px]">
+                        {src.sourceType === "Scholarship" && src.scholarshipId ? (
+                          <Link
+                            to={`/student/scholarships/${src.scholarshipId}`}
+                            className="inline-flex items-center gap-1 text-brand-500 hover:underline"
+                          >
+                            <FileText aria-hidden className="size-3 shrink-0" />
+                            {src.title}
+                          </Link>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 opacity-70">
+                            <FileText aria-hidden className="size-3 shrink-0" />
+                            {src.title}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {turn.role === "assistant" && turn.cost != null && (
                 <div className="mt-1 text-[10px] tabular-nums opacity-60">
                   {t("ai:chat.costHint", {

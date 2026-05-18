@@ -68,7 +68,8 @@
     "assistant": "Assistant",
     "emptyHint": "I can point you to scholarships, deadlines, and applications. What are you looking for?",
     "thinking": "Thinking…",
-    "costHint": "Est. ${{cost}} used · {{prompt}}↑ / {{completion}}↓ tokens"
+    "costHint": "Est. ${{cost}} used · {{prompt}}↑ / {{completion}}↓ tokens",
+    "sources": "Sources"
   },
   "errors": {
     "budgetExceeded": "You've hit today's AI budget. Try again after midnight UTC.",

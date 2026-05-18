@@ -661,6 +661,29 @@ public sealed class AiRedactionAuditSampleConfiguration : IEntityTypeConfigurati
     }
 }
 
+public sealed class KnowledgeDocumentConfiguration : IEntityTypeConfiguration<KnowledgeDocument>
+{
+    public void Configure(EntityTypeBuilder<KnowledgeDocument> b)
+    {
+        b.Property(d => d.SourceType).HasConversion<string>().HasMaxLength(24);
+        b.Property(d => d.SourceKey).IsRequired().HasMaxLength(200);
+        b.Property(d => d.TitleEn).IsRequired().HasMaxLength(300);
+        b.Property(d => d.TitleAr).IsRequired().HasMaxLength(300);
+        b.Property(d => d.ContentEn).IsRequired();
+        b.Property(d => d.ContentAr).IsRequired();
+        b.Property(d => d.ContentHash).IsRequired().HasMaxLength(64);
+        b.Property(d => d.EmbeddingModel).HasMaxLength(64);
+        b.Property(d => d.RowVersion).IsRowVersion();
+
+        // Computed flag — not a column.
+        b.Ignore(d => d.IsEmbedded);
+
+        // One row per source object — the natural upsert / dedup key.
+        b.HasIndex(d => new { d.SourceType, d.SourceKey }).IsUnique();
+        b.HasIndex(d => d.SourceId);
+    }
+}
+
 // ============================== Resources ==============================
 
 public sealed class ResourceConfiguration : IEntityTypeConfiguration<Resource>

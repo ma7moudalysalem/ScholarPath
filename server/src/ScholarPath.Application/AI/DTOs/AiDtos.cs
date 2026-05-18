@@ -38,7 +38,8 @@ public sealed record ChatAnswerDto(
     int PromptTokens,
     int CompletionTokens,
     decimal EstimatedCostUsd,
-    DateTimeOffset AnsweredAt);
+    DateTimeOffset AnsweredAt,
+    IReadOnlyList<ChatSourceDto> Sources);
 
 public sealed record AiInteractionRowDto(
     Guid Id,

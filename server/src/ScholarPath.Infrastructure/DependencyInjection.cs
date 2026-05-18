@@ -160,19 +160,49 @@ public static class DependencyInjection
         else
             services.AddSingleton<IStripeService, StubStripeService>();
 
-        // AI provider selection: Local (default, deterministic, offline) or
-        // OpenAi (real provider, needs Ai:OpenAi:ApiKey). Swap via config —
-        // no code changes. OpenAI service itself falls back to Local on
-        // network failure so the UX degrades gracefully.
+        // ── AI provider + RAG pipeline ──
+        // Provider is config-driven (no code change):
+        //   Stub / Local → deterministic offline scoring + local-hash embeddings
+        //   OpenAi       → OpenAI chat (needs Ai:OpenAi:ApiKey)
+        //   AzureOpenAi  → Azure OpenAI chat + embeddings (needs Ai:AzureOpenAi:*)
+        // Every provider grounds the chatbot in the RAG knowledge base, and the
+        // cloud providers degrade to the local path on a network failure.
         var aiProvider = config.GetValue<string>($"{AiOptions.SectionName}:Provider") ?? "Stub";
-        if (string.Equals(aiProvider, "OpenAi", StringComparison.OrdinalIgnoreCase))
+        var useAzureAi = string.Equals(aiProvider, "AzureOpenAi", StringComparison.OrdinalIgnoreCase);
+        var useOpenAi = string.Equals(aiProvider, "OpenAi", StringComparison.OrdinalIgnoreCase);
+
+        // Embeddings: Azure when selected, otherwise the deterministic offline
+        // local-hash embedder (no API key, no cost).
+        if (useAzureAi)
+        {
+            services.AddHttpClient("azure-openai");
+            services.AddScoped<IEmbeddingService, AzureOpenAiEmbeddingService>();
+        }
+        else
+        {
+            services.AddScoped<IEmbeddingService, LocalEmbeddingService>();
+        }
+
+        // RAG knowledge base — bundled datasets, retriever, and indexer.
+        services.AddSingleton<IDatasetProvider, EmbeddedDatasetProvider>();
+        services.AddScoped<IKnowledgeRetriever, KnowledgeRetriever>();
+        services.AddScoped<IKnowledgeBaseIndexer, KnowledgeBaseIndexer>();
+
+        // LocalAiService is always registered as a concrete service so the cloud
+        // providers can delegate scoring to it and fall back to it.
+        services.AddScoped<LocalAiService>();
+        if (useAzureAi)
+        {
+            services.AddScoped<IAiService, AzureOpenAiService>();
+        }
+        else if (useOpenAi)
         {
             services.AddHttpClient("openai");
             services.AddScoped<IAiService, OpenAiService>();
         }
         else
         {
-            services.AddScoped<IAiService, LocalAiService>();
+            services.AddScoped<IAiService>(sp => sp.GetRequiredService<LocalAiService>());
         }
 
         // Notifications: catalog renders the bilingual text; the real dispatcher

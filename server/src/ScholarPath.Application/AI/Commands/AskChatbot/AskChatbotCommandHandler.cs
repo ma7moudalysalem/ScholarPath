@@ -54,11 +54,17 @@ public sealed partial class AskChatbotCommandHandler(
         {
             var result = await ai.AskAsync(userId, sessionId, redacted, ct).ConfigureAwait(false);
 
+            var sources = result.Sources
+                .Select(s => new ChatSourceDto(s.Title, s.SourceType, s.ScholarshipId, s.Score))
+                .ToList();
+
             interaction.ResponseText = result.Message;
             interaction.PromptTokens = result.PromptTokens;
             interaction.CompletionTokens = result.CompletionTokens;
             interaction.CostUsd = result.EstimatedCostUsd;
             interaction.CompletedAt = clock.UtcNow;
+            // Record which knowledge-base documents grounded the answer (RAG audit trail).
+            interaction.MetadataJson = System.Text.Json.JsonSerializer.Serialize(new { sources });
 
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
@@ -69,7 +75,8 @@ public sealed partial class AskChatbotCommandHandler(
                 result.PromptTokens,
                 result.CompletionTokens,
                 result.EstimatedCostUsd,
-                interaction.CompletedAt.Value);
+                interaction.CompletedAt.Value,
+                sources);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

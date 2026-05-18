@@ -1,61 +1,57 @@
-using System.Net.Http.Json;
 using System.Text.Json;
+using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Domain.Enums;
-using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Infrastructure.Settings;
 
 namespace ScholarPath.Infrastructure.Services;
 
 /// <summary>
-/// Real OpenAI provider. Activated by setting Ai:Provider = "OpenAi" and
-/// providing Ai:OpenAi:ApiKey. Falls back to LocalAiService's scoring logic
-/// whenever we need deterministic profile matching (recommendations,
-/// eligibility), since the LLM isn't great at scoring against a private
-/// schema — we only use OpenAI for the free-form chat turn + a natural-
-/// language explanation pass on top of locally-scored items.
+/// Real OpenAI provider. Activated by setting <c>Ai:Provider = OpenAi</c> and
+/// providing <c>Ai:OpenAi:ApiKey</c>.
 ///
-/// Pricing table is per-million-tokens (gpt-4o-mini today). Update when the
-/// model changes.
+/// Chat is Retrieval-Augmented: the message is embedded, the most similar
+/// knowledge-base documents are retrieved, and that context is injected into
+/// the prompt. Recommendation scoring and eligibility delegate to
+/// <see cref="LocalAiService"/> — the LLM only rewrites recommendation
+/// explanations, since it is not good at scoring against a private schema.
+///
+/// Pricing constants are per-token for gpt-4o-mini; update when the model changes.
 /// </summary>
 public sealed class OpenAiService(
-    ApplicationDbContext db,
     IHttpClientFactory httpFactory,
     IOptions<AiOptions> opts,
+    IKnowledgeRetriever retriever,
+    LocalAiService localAi,
     ILogger<OpenAiService> logger) : IAiService
 {
     private const string Disclaimer = "AI-generated guidance. Verify with official sources before acting.";
     private const string ChatCompletionsPath = "v1/chat/completions";
 
-    // gpt-4o-mini pricing as of 2026-04 — $0.15 / 1M input, $0.60 / 1M output
+    // gpt-4o-mini pricing as of 2026-04 — $0.15 / 1M input, $0.60 / 1M output.
     private const decimal InputCostPerToken = 0.15m / 1_000_000m;
     private const decimal OutputCostPerToken = 0.60m / 1_000_000m;
-
-    // Delegate to LocalAiService for the scoring so both providers agree on
-    // the fit score math — OpenAI just rephrases the explanation.
-    private readonly LocalAiService _local = new(db);
 
     public async Task<AiRecommendationResult> GenerateRecommendationsAsync(
         Guid userId, int topN, CancellationToken ct)
     {
-        var local = await _local.GenerateRecommendationsAsync(userId, topN, ct).ConfigureAwait(false);
-        if (local.Items.Count == 0) return local;
+        var scored = await localAi.GenerateRecommendationsAsync(userId, topN, ct).ConfigureAwait(false);
+        if (scored.Items.Count == 0) return scored;
 
         // Optional LLM rewrite of each explanation. If the API is unreachable,
         // fall back to the local explanations — the match score + ID stay the
         // same either way, so the UX degrades gracefully.
         try
         {
-            var sys = "You rewrite scholarship match explanations into concise (max 140 chars) English and Arabic sentences. Reply ONLY as JSON: {\"en\":\"...\",\"ar\":\"...\"}.";
-            var items = new List<AiRecommendationItem>(local.Items.Count);
-            var totalPromptTok = local.PromptTokens;
-            var totalCompletionTok = local.CompletionTokens;
+            const string sys = "You rewrite scholarship match explanations into concise (max 140 chars) "
+                + "English and Arabic sentences. Reply ONLY as JSON: {\"en\":\"...\",\"ar\":\"...\"}.";
+            var items = new List<AiRecommendationItem>(scored.Items.Count);
+            var totalPromptTok = scored.PromptTokens;
+            var totalCompletionTok = scored.CompletionTokens;
 
-            foreach (var i in local.Items)
+            foreach (var i in scored.Items)
             {
                 var user = $"Score: {i.MatchScore}/100\nOriginal EN: {i.ExplanationEn}\nOriginal AR: {i.ExplanationAr}";
                 var (text, pTok, cTok) = await ChatCompletionAsync(sys, user, ct).ConfigureAwait(false);
@@ -71,35 +67,52 @@ public sealed class OpenAiService(
         catch (HttpRequestException ex)
         {
             logger.LogWarning(ex, "OpenAI rewrite failed; returning local explanations.");
-            return local;
+            return scored;
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
             logger.LogWarning("OpenAI rewrite timed out; returning local explanations.");
-            return local;
+            return scored;
         }
     }
 
     public Task<AiEligibilityResult> CheckEligibilityAsync(Guid userId, Guid scholarshipId, CancellationToken ct)
         // Eligibility is structured — local scoring is strictly better than LLM guesswork.
-        => _local.CheckEligibilityAsync(userId, scholarshipId, ct);
+        => localAi.CheckEligibilityAsync(userId, scholarshipId, ct);
 
-    public async Task<AiChatResponse> AskAsync(Guid userId, string sessionId, string message, CancellationToken ct)
+    public async Task<AiChatResponse> AskAsync(
+        Guid userId, string sessionId, string message, CancellationToken ct)
     {
-        const string sys =
-            "You are ScholarPath's help assistant. Stay within: scholarships, applications, eligibility, deadlines, "
-            + "consultants, bookings. Keep answers under 600 characters. Never quote personal identifiers back to the user.";
+        var msg = (message ?? string.Empty).Trim();
+        var arabic = RagSupport.IsArabic(msg);
+        var ai = opts.Value;
 
+        // ── Retrieve (the "R" in RAG) ──
+        var docs = await retriever.RetrieveAsync(msg, ai.RagTopK, ct).ConfigureAwait(false);
+        var relevant = docs.Where(d => d.Score >= ai.RagMinScore).ToList();
+        var context = RagSupport.BuildContextBlock(relevant, arabic);
+
+        // ── Augment + generate ──
         try
         {
-            var (text, pTok, cTok) = await ChatCompletionAsync(sys, message, ct).ConfigureAwait(false);
+            var system = arabic ? RagSupport.ChatSystemAr : RagSupport.ChatSystemEn;
+            var user = RagSupport.BuildUserPrompt(context, msg, arabic);
+
+            var (text, pTok, cTok) = await ChatCompletionAsync(system, user, ct).ConfigureAwait(false);
             var cost = pTok * InputCostPerToken + cTok * OutputCostPerToken;
-            return new AiChatResponse(text, Disclaimer, pTok, cTok, cost);
+            return new AiChatResponse(
+                text, Disclaimer, pTok, cTok, cost,
+                RagSupport.ToSources(relevant, arabic));
         }
         catch (HttpRequestException ex)
         {
-            logger.LogWarning(ex, "OpenAI chat failed; falling back to local router.");
-            return await _local.AskAsync(userId, sessionId, message, ct).ConfigureAwait(false);
+            logger.LogWarning(ex, "OpenAI chat failed; falling back to the local RAG router.");
+            return await localAi.AskAsync(userId, sessionId, msg, ct).ConfigureAwait(false);
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            logger.LogWarning("OpenAI chat timed out; falling back to the local RAG router.");
+            return await localAi.AskAsync(userId, sessionId, msg, ct).ConfigureAwait(false);
         }
     }
 
@@ -127,7 +140,7 @@ public sealed class OpenAiService(
                 new { role = "user",   content = user   },
             },
             temperature = 0.3,
-            max_tokens = 256,
+            max_tokens = 400,
         };
 
         using var resp = await client.PostAsJsonAsync(ChatCompletionsPath, body, ct).ConfigureAwait(false);

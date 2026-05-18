@@ -205,6 +205,45 @@ export interface BroadcastBody {
   targetRole?: string | null;
 }
 
+// ─── AI / RAG knowledge base ─────────────────────────────────────────────
+export interface KnowledgeBaseStatus {
+  totalDocuments: number;
+  scholarshipDocuments: number;
+  faqDocuments: number;
+  embeddedDocuments: number;
+  pendingDocuments: number;
+  activeEmbeddingModel: string;
+  lastIndexedAt: string | null;
+}
+
+export interface KnowledgeBaseRebuildResult {
+  upserted: number;
+  reembedded: number;
+  removed: number;
+  skipped: number;
+  status: KnowledgeBaseStatus;
+}
+
+export interface DatasetImportResult {
+  datasetName: string;
+  totalInDataset: number;
+  created: number;
+  updated: number;
+  skipped: number;
+}
+
+export interface DatasetImportWithRebuild {
+  import: DatasetImportResult;
+  knowledgeBase: KnowledgeBaseRebuildResult;
+}
+
+export interface FineTuningDataset {
+  fileName: string;
+  exampleCount: number;
+  jsonl: string;
+  generatedAt: string;
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────
 export const adminApi = {
   // users
@@ -273,6 +312,32 @@ export const adminApi = {
     const { data } = await apiClient.get<AiUsageSummaryDto>(
       "/api/admin/analytics/ai-usage",
       { params: { windowDays } },
+    );
+    return data;
+  },
+
+  // AI / RAG knowledge base
+  async knowledgeBaseStatus(): Promise<KnowledgeBaseStatus> {
+    const { data } = await apiClient.get<KnowledgeBaseStatus>("/api/admin/ai/knowledge-base");
+    return data;
+  },
+  async rebuildKnowledgeBase(force = false): Promise<KnowledgeBaseRebuildResult> {
+    const { data } = await apiClient.post<KnowledgeBaseRebuildResult>(
+      "/api/admin/ai/knowledge-base/rebuild",
+      null,
+      { params: { force } },
+    );
+    return data;
+  },
+  async importExternalDataset(): Promise<DatasetImportWithRebuild> {
+    const { data } = await apiClient.post<DatasetImportWithRebuild>(
+      "/api/admin/ai/datasets/import",
+    );
+    return data;
+  },
+  async fineTuningDataset(): Promise<FineTuningDataset> {
+    const { data } = await apiClient.get<FineTuningDataset>(
+      "/api/admin/ai/fine-tuning/dataset",
     );
     return data;
   },

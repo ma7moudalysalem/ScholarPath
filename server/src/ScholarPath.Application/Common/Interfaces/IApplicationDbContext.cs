@@ -53,6 +53,7 @@ public interface IApplicationDbContext
     DbSet<AiInteraction> AiInteractions { get; }
     DbSet<RecommendationClickEvent> RecommendationClickEvents { get; }
     DbSet<AiRedactionAuditSample> AiRedactionAuditSamples { get; }
+    DbSet<KnowledgeDocument> KnowledgeDocuments { get; }
 
     DbSet<Resource> Resources { get; }
     DbSet<ResourceChild> ResourceChapters { get; }

@@ -172,6 +172,12 @@ public sealed class AiOptions
     /// <summary>Per-user rolling 24h cost ceiling. The command layer refuses AI calls that would push a user over this.</summary>
     public decimal DailyUserCostLimitUsd { get; set; } = 1.00m;
 
+    /// <summary>RAG: how many knowledge-base documents to retrieve as grounding context per chat turn.</summary>
+    public int RagTopK { get; set; } = 4;
+
+    /// <summary>RAG: minimum cosine similarity for a retrieved document to be treated as relevant context.</summary>
+    public double RagMinScore { get; set; } = 0.15;
+
     public OpenAiOptions OpenAi { get; set; } = new();
     public AzureOpenAiOptions AzureOpenAi { get; set; } = new();
 }
@@ -186,7 +192,24 @@ public sealed class AzureOpenAiOptions
 {
     public string? Endpoint { get; set; }
     public string? ApiKey { get; set; }
+
+    /// <summary>Chat-completions deployment name.</summary>
     public string DeploymentName { get; set; } = "gpt-4o-mini";
+
+    /// <summary>Embeddings deployment name — produces the RAG knowledge-base vectors.</summary>
+    public string EmbeddingDeploymentName { get; set; } = "text-embedding-3-small";
+
+    /// <summary>Dimensionality of the embeddings deployment (text-embedding-3-small = 1536).</summary>
+    public int EmbeddingDimensions { get; set; } = 1536;
+
+    /// <summary>Azure OpenAI REST API version.</summary>
+    public string ApiVersion { get; set; } = "2024-10-21";
+
+    /// <summary>
+    /// Optional deployment name of a fine-tuned chat model. When set, chat uses
+    /// it instead of <see cref="DeploymentName"/> — see the fine-tuning runbook.
+    /// </summary>
+    public string? FineTunedDeploymentName { get; set; }
 }
 
 /// <summary>

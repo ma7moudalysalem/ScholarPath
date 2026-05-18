@@ -64,4 +64,15 @@ public sealed record AiChatResponse(
     string Disclaimer,
     int PromptTokens,
     int CompletionTokens,
-    decimal EstimatedCostUsd);
+    decimal EstimatedCostUsd,
+    IReadOnlyList<ChatSource> Sources);
+
+/// <summary>
+/// A knowledge-base document the RAG retriever surfaced as grounding context
+/// for a chat answer — shown to the user as a citation.
+/// </summary>
+public sealed record ChatSource(
+    string Title,
+    string SourceType,            // "Scholarship" | "Faq"
+    Guid? ScholarshipId,
+    double Score);

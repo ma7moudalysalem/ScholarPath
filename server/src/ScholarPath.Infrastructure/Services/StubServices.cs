@@ -89,7 +89,8 @@ public sealed class StubAiService : IAiService
             Disclaimer,
             PromptTokens: 0,
             CompletionTokens: 0,
-            EstimatedCostUsd: 0m));
+            EstimatedCostUsd: 0m,
+            Sources: []));
 }
 
 public sealed class StubNotificationDispatcher(ILogger<StubNotificationDispatcher> logger) : INotificationDispatcher

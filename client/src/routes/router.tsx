@@ -148,6 +148,9 @@ const AdminAnalytics = lazy(() =>
 const AdminAiEconomy = lazy(() =>
   import("@/pages/admin/AiEconomyPage").then((m) => ({ default: m.AiEconomyPage })),
 );
+const AdminKnowledgeBase = lazy(() =>
+  import("@/pages/admin/AdminKnowledgeBase").then((m) => ({ default: m.AdminKnowledgeBase })),
+);
 const AdminRedactionAudit = lazy(() =>
   import("@/pages/admin/RedactionAuditPage").then((m) => ({ default: m.RedactionAuditPage })),
 );
@@ -403,6 +406,7 @@ export function AppRouter() {
           <Route path="/admin/broadcast"        element={<AdminBroadcast />} />
           <Route path="/admin/analytics"        element={<AdminAnalytics />} />
           <Route path="/admin/ai-economy"       element={<AdminAiEconomy />} />
+          <Route path="/admin/knowledge-base"   element={<AdminKnowledgeBase />} />
           <Route path="/admin/redaction-audit"  element={<AdminRedactionAudit />} />
           <Route path="/admin/scholarships"     element={<AdminScholarships />} />
           <Route path="/admin/articles"         element={<AdminArticles />} />

@@ -52,4 +52,12 @@
     <PackageReference Include="nClam" />
   </ItemGroup>
 
+  <ItemGroup Label="RAG datasets">
+    <!-- Curated datasets embedded into the assembly so they ship with every
+         deployment. Read at runtime by EmbeddedDatasetProvider. -->
+    <EmbeddedResource Include="..\..\datasets\*.json">
+      <LogicalName>ScholarPath.Datasets.%(FileName)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>

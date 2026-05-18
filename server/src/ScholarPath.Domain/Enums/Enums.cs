@@ -229,6 +229,18 @@ public enum AiProvider
 }
 
 /// <summary>
+/// Origin of a <c>KnowledgeDocument</c> in the RAG knowledge base.
+/// </summary>
+public enum KnowledgeSourceType
+{
+    /// <summary>Indexed from a scholarship listing (in-app or imported from a dataset).</summary>
+    Scholarship = 0,
+
+    /// <summary>A curated help / frequently-asked-question entry.</summary>
+    Faq = 1,
+}
+
+/// <summary>
 /// PII-redaction audit verdict per sample (PB-017 US-178 / FR-255).
 /// </summary>
 public enum RedactionVerdict

@@ -68,7 +68,8 @@
     "assistant": "المساعد",
     "emptyHint": "يمكنني إرشادك إلى المنح والمواعيد والتقديم. عمّ تبحث؟",
     "thinking": "جارٍ التفكير…",
-    "costHint": "تكلفة تقديرية ${{cost}} · رموز {{prompt}}↑ / {{completion}}↓"
+    "costHint": "تكلفة تقديرية ${{cost}} · رموز {{prompt}}↑ / {{completion}}↓",
+    "sources": "المصادر"
   },
   "errors": {
     "budgetExceeded": "وصلت إلى حد الاستخدام اليومي. حاول بعد منتصف الليل بتوقيت UTC.",
