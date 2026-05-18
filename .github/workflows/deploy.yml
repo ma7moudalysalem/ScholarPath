@@ -45,6 +45,10 @@ concurrency:
 env:
   DOTNET_VERSION: "10.0.x"
   NODE_VERSION: "22"
+  # Run JavaScript-based actions that still declare Node 20 (checkout,
+  # setup-node, setup-dotnet, azure/login) on Node 24. GitHub forces this by
+  # default from June 2026; opting in now clears the deprecation warnings.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   # ─── Build + publish + deploy the .NET API ───────────────────────────
