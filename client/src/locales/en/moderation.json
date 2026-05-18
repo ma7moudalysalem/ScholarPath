@@ -31,7 +31,12 @@
     "openExternal": "Open external listing",
     "noFormData": "No form data was submitted.",
     "noNotes": "You have not added any notes.",
-    "notProvided": "—"
+    "notProvided": "—",
+    "submit": "Submit application",
+    "submitting": "Submitting…",
+    "submittedToast": "Application submitted.",
+    "submitConflict": "This application can't be submitted right now.",
+    "draftHint": "This application is a draft — submit it when you're ready."
   },
   "applicationStatus": {
     "Draft": "Draft",

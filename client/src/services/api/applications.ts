@@ -123,4 +123,22 @@ export const applicationsApi = {
     const { data } = await apiClient.get<ApplicationDetail>(`/api/applications/${id}`);
     return data;
   },
+
+  /**
+   * Starts a new in-app application (Draft status) for the given scholarship.
+   * Returns the new application id. The server rejects external listings,
+   * closed scholarships, and duplicate active applications with 409.
+   */
+  async start(scholarshipId: string, personalNotes?: string | null): Promise<string> {
+    const { data } = await apiClient.post<string>("/api/applications", {
+      scholarshipId,
+      personalNotes: personalNotes ?? null,
+    });
+    return data;
+  },
+
+  /** Submits a Draft application — transitions it to Pending. */
+  async submit(id: string): Promise<void> {
+    await apiClient.put(`/api/applications/${id}/submit`);
+  },
 };

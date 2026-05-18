@@ -1,8 +1,9 @@
 import { useParams, Link } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowLeft, ExternalLink, Send } from "lucide-react";
 import {
   applicationsApi,
   type ApplicationDetail,
@@ -42,10 +43,28 @@ export function StudentApplicationDetail() {
   const { t } = useTranslation(["moderation", "common"]);
   const { id } = useParams<{ id: string }>();
 
+  const queryClient = useQueryClient();
+
   const { data, isLoading, isError } = useQuery<ApplicationDetail>({
     queryKey: ["application", "detail", id],
     queryFn: () => applicationsApi.getById(id!),
     enabled: !!id,
+  });
+
+  // Submit a Draft application — transitions it to Pending.
+  const submitMut = useMutation({
+    mutationFn: () => applicationsApi.submit(id!),
+    onSuccess: () => {
+      toast.success(t("moderation:appDetail.submittedToast"));
+      void queryClient.invalidateQueries({ queryKey: ["application", "detail", id] });
+    },
+    onError: (err: { status?: number }) => {
+      toast.error(
+        err.status === 409
+          ? t("moderation:appDetail.submitConflict")
+          : t("common:status.error"),
+      );
+    },
   });
 
   if (isLoading) {
@@ -101,6 +120,23 @@ export function StudentApplicationDetail() {
           {t(`moderation:applicationStatus.${data.status}`)}
         </span>
       </div>
+
+      {data.status === "Draft" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+          <p className="text-sm text-amber-600">{t("moderation:appDetail.draftHint")}</p>
+          <button
+            type="button"
+            onClick={() => submitMut.mutate()}
+            disabled={submitMut.isPending}
+            className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-text-on-brand transition hover:bg-brand-600 disabled:opacity-50"
+          >
+            <Send aria-hidden className="size-4" />
+            {submitMut.isPending
+              ? t("moderation:appDetail.submitting")
+              : t("moderation:appDetail.submit")}
+          </button>
+        </div>
+      )}
 
       <section className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
         <h2 className="mb-3 text-lg font-semibold text-text-primary">

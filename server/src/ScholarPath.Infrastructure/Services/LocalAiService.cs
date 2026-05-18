@@ -158,25 +158,35 @@ public sealed class LocalAiService(
         var matches = criteria.Count(c => c.Match == "yes");
         var verdict = DeriveVerdict(criteria);
 
-        var summaryEn = verdict switch
-        {
-            EligibilityVerdict.Eligible =>
-                "You appear to meet all listed criteria.",
-            EligibilityVerdict.NotEligible =>
-                $"You match {matches} of {criteria.Count} criteria, but one or more requirements are not met. Review the items marked 'no' before applying.",
-            _ =>
-                $"You match {matches} of {criteria.Count} criteria. Review the partial items before applying.",
-        };
+        // When every criterion is "unknown" the student's profile holds no
+        // usable data — any verdict would be misleading, so the summary says
+        // so plainly and points the student at completing their profile.
+        var profileIncomplete = criteria.Count > 0
+            && criteria.All(c => string.Equals(c.Match, "unknown", StringComparison.OrdinalIgnoreCase));
 
-        var summaryAr = verdict switch
-        {
-            EligibilityVerdict.Eligible =>
-                "يبدو أنك تستوفي جميع المعايير المدرجة.",
-            EligibilityVerdict.NotEligible =>
-                $"تطابقت مع {matches} من {criteria.Count} معايير، لكن واحدًا أو أكثر من المتطلبات غير مستوفى. راجع البنود غير المطابقة قبل التقديم.",
-            _ =>
-                $"تطابقت مع {matches} من {criteria.Count} معايير. راجع البنود الجزئية قبل التقديم.",
-        };
+        var summaryEn = profileIncomplete
+            ? "We couldn't assess your eligibility — your profile has no academic level, nationality, or field of study yet. Complete your profile, then run the check again."
+            : verdict switch
+            {
+                EligibilityVerdict.Eligible =>
+                    "You appear to meet all listed criteria.",
+                EligibilityVerdict.NotEligible =>
+                    $"You match {matches} of {criteria.Count} criteria, but one or more requirements are not met. Review the items marked 'no' before applying.",
+                _ =>
+                    $"You match {matches} of {criteria.Count} criteria. Review the partial items before applying.",
+            };
+
+        var summaryAr = profileIncomplete
+            ? "تعذّر تقييم أهليتك — ملفك لا يحتوي بعد على المستوى الأكاديمي أو الجنسية أو مجال الدراسة. أكمل ملفك ثم أعد الفحص."
+            : verdict switch
+            {
+                EligibilityVerdict.Eligible =>
+                    "يبدو أنك تستوفي جميع المعايير المدرجة.",
+                EligibilityVerdict.NotEligible =>
+                    $"تطابقت مع {matches} من {criteria.Count} معايير، لكن واحدًا أو أكثر من المتطلبات غير مستوفى. راجع البنود غير المطابقة قبل التقديم.",
+                _ =>
+                    $"تطابقت مع {matches} من {criteria.Count} معايير. راجع البنود الجزئية قبل التقديم.",
+            };
 
         return new AiEligibilityResult(criteria, summaryEn, summaryAr, Disclaimer, verdict);
     }

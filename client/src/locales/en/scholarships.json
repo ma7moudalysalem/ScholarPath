@@ -65,6 +65,9 @@
     "eligibility": "Eligibility",
     "documents": "Required Documents",
     "apply": "Apply Now",
-    "applyExternal": "Apply on External Site"
+    "applyExternal": "Apply on External Site",
+    "applying": "Applying…",
+    "applyStarted": "Application started — review and submit it.",
+    "alreadyApplied": "You already have an application for this scholarship."
   }
 }

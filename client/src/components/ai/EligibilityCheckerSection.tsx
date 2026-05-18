@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -94,6 +95,14 @@ export function EligibilityCheckerSection() {
       ) ?? [],
     [eligibility.data],
   );
+
+  // When every criterion is "unknown" the student's profile has no usable
+  // data — a verdict would mislead, so a "complete your profile" prompt is
+  // shown in its place.
+  const profileIncomplete =
+    !!eligibility.data &&
+    eligibility.data.criteria.length > 0 &&
+    eligibility.data.criteria.every((c) => c.match === "unknown");
 
   const reset = () => {
     setSelected(null);
@@ -223,20 +232,34 @@ export function EligibilityCheckerSection() {
 
           {eligibility.data && (
             <>
-              {/* Overall verdict (FR-117) */}
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
-                  {t("ai:eligibility.verdictLabel")}
-                </span>
-                <span
-                  className={cn(
-                    "inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ring-1",
-                    VERDICT_STYLES[eligibility.data.verdict],
-                  )}
-                >
-                  {t(`ai:eligibility.verdict.${eligibility.data.verdict}`)}
-                </span>
-              </div>
+              {/* Overall verdict (FR-117) — or a profile-completion prompt */}
+              {profileIncomplete ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
+                  <p className="text-sm text-amber-600">
+                    {t("ai:eligibility.completeProfile")}
+                  </p>
+                  <Link
+                    to="/profile"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-brand-500 px-3 py-1.5 text-xs font-medium text-text-on-brand transition hover:bg-brand-600"
+                  >
+                    {t("ai:eligibility.goToProfile")}
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                    {t("ai:eligibility.verdictLabel")}
+                  </span>
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ring-1",
+                      VERDICT_STYLES[eligibility.data.verdict],
+                    )}
+                  >
+                    {t(`ai:eligibility.verdict.${eligibility.data.verdict}`)}
+                  </span>
+                </div>
+              )}
 
               {/* Summary */}
               <div className="rounded-md border border-border-subtle bg-bg-subtle/40 p-3 text-sm">

@@ -1,5 +1,6 @@
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+import { useMutation } from "@tanstack/react-query";
 import {
   ArrowRight,
   ArrowLeft,
@@ -16,6 +17,7 @@ import {
   useScholarshipDetailQuery,
   useToggleBookmarkMutation,
 } from "@/hooks/useScholarshipsQuery";
+import { applicationsApi } from "@/services/api/applications";
 import type { FundingType } from "@/types/domain";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -66,8 +68,27 @@ export function ScholarshipDetail() {
   const isRtl        = i18n.dir() === "rtl";
   const BackIcon     = isRtl ? ArrowRight : ArrowLeft;
 
+  const navigate     = useNavigate();
   const { data, isLoading, isError } = useScholarshipDetailQuery(id);
   const bookmarkMut = useToggleBookmarkMutation();
+
+  // In-app apply — creates a Draft application, then opens it so the student
+  // can review and submit it. External listings use the external-URL button.
+  const applyMut = useMutation({
+    mutationFn: (scholarshipId: string) => applicationsApi.start(scholarshipId),
+    onSuccess: (applicationId) => {
+      toast.success(t("scholarships:detail.applyStarted"));
+      navigate(`/student/applications/${applicationId}`);
+    },
+    onError: (err: { status?: number }) => {
+      if (err.status === 409) {
+        toast.error(t("scholarships:detail.alreadyApplied"));
+        navigate("/student/applications");
+      } else {
+        toast.error(t("common:status.error"));
+      }
+    },
+  });
 
   const handleBookmark = () => {
     if (!id) return;
@@ -271,18 +292,21 @@ export function ScholarshipDetail() {
             <ExternalLink aria-hidden className="size-4" />
           </a>
         ) : (
-          <Link
-            to={`/student/applications/new?scholarshipId=${data.id}`}
+          <button
+            type="button"
+            onClick={() => applyMut.mutate(data.id)}
+            disabled={isClosed || applyMut.isPending}
             className={cn(
               "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition",
-              isClosed
-                ? "pointer-events-none bg-bg-subtle text-text-tertiary opacity-60"
+              isClosed || applyMut.isPending
+                ? "cursor-not-allowed bg-bg-subtle text-text-tertiary opacity-60"
                 : "bg-brand-500 text-text-on-brand hover:bg-brand-600",
             )}
-            aria-disabled={isClosed}
           >
-            {t("scholarships:detail.apply")}
-          </Link>
+            {applyMut.isPending
+              ? t("scholarships:detail.applying")
+              : t("scholarships:detail.apply")}
+          </button>
         )}
 
         <Link

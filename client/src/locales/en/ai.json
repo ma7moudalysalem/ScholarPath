@@ -53,6 +53,8 @@
     "listing": "Listing",
     "unknownValue": "Not set",
     "anyValue": "Any",
+    "completeProfile": "Complete your profile for an accurate eligibility result.",
+    "goToProfile": "Go to profile",
     "improve": {
       "heading": "What to improve",
       "intro": "Strengthen these areas to improve your eligibility.",

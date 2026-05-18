@@ -31,7 +31,12 @@
     "openExternal": "فتح الإعلان الخارجي",
     "noFormData": "لم يتم تقديم أي بيانات في النموذج.",
     "noNotes": "لم تقم بإضافة أي ملاحظات.",
-    "notProvided": "—"
+    "notProvided": "—",
+    "submit": "إرسال الطلب",
+    "submitting": "جارٍ الإرسال…",
+    "submittedToast": "تم إرسال الطلب.",
+    "submitConflict": "لا يمكن إرسال هذا الطلب الآن.",
+    "draftHint": "هذا الطلب مسودة — أرسله عندما تكون جاهزًا."
   },
   "applicationStatus": {
     "Draft": "مسودّة",
