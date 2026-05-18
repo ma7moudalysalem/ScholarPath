@@ -14,6 +14,7 @@ import { SkeletonCardGrid } from "@/components/common/Skeleton";
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function FundingBadge({ type }: { type: FundingType }) {
+  const { t } = useTranslation("scholarships");
   const colors: Record<FundingType, string> = {
     FullyFunded:     "bg-success-100 text-success-600",
     PartiallyFunded: "bg-brand-100 text-brand-600",
@@ -28,7 +29,7 @@ function FundingBadge({ type }: { type: FundingType }) {
         colors[type],
       )}
     >
-      {type.replace(/([A-Z])/g, " $1").trim()}
+      {t(`fundingType.${type}`)}
     </span>
   );
 }
@@ -157,7 +158,7 @@ export function BookmarksPage() {
                 <FundingBadge type={scholarship.fundingType} />
 
                 <div className="flex items-center justify-between text-xs text-text-tertiary">
-                  <span>{scholarship.targetLevel}</span>
+                  <span>{t(`scholarships:level.${scholarship.targetLevel}`)}</span>
                   <span
                     className={cn(
                       "font-medium",

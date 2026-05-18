@@ -65,7 +65,7 @@ void i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    fallbackLng: "en",
+    fallbackLng: "ar",
     supportedLngs: supportedLanguages,
     ns: [
       "common",
@@ -96,9 +96,12 @@ void i18n
     defaultNS: "common",
     interpolation: { escapeValue: false },
     detection: {
-      order: ["localStorage", "navigator"],
+      // Arabic-first: the app defaults to Arabic; only an explicit saved
+      // choice overrides it. The key is versioned so existing visitors are
+      // re-defaulted to Arabic rather than kept on a stale English cache.
+      order: ["localStorage"],
       caches: ["localStorage"],
-      lookupLocalStorage: "scholarpath_lang",
+      lookupLocalStorage: "scholarpath_lang_v2",
     },
     resources: {
       en: {

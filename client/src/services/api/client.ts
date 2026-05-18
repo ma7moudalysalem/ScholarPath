@@ -6,6 +6,7 @@ import type {
   InternalAxiosRequestConfig,
 } from "axios";
 import { useAuthStore } from "@/stores/authStore";
+import i18n from "@/lib/i18n";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -40,11 +41,10 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     config.headers = config.headers ?? {};
     (config.headers as Record<string, string>)["Authorization"] = `Bearer ${tokens.accessToken}`;
   }
-  const lang = localStorage.getItem("scholarpath_lang");
-  if (lang) {
-    config.headers = config.headers ?? {};
-    (config.headers as Record<string, string>)["Accept-Language"] = lang;
-  }
+  // Read the active UI language straight from i18n so the server-localised
+  // responses always match what the user sees (no localStorage drift).
+  config.headers = config.headers ?? {};
+  (config.headers as Record<string, string>)["Accept-Language"] = i18n.language || "ar";
   return config;
 });
 
