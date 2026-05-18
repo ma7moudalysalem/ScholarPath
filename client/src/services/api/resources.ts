@@ -41,6 +41,42 @@ export interface PaginatedResources {
   hasNextPage: boolean;
 }
 
+/** One chapter of a multi-part resource. */
+export interface ResourceChapter {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  contentMarkdownEn: string | null;
+  contentMarkdownAr: string | null;
+  sortOrder: number;
+  estimatedReadMinutes: number;
+}
+
+/** Full resource detail — server ResourceDetailDto. */
+export interface ResourceDetail {
+  id: string;
+  slug: string;
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
+  contentMarkdownEn: string | null;
+  contentMarkdownAr: string | null;
+  externalLinkUrl: string | null;
+  coverImageUrl: string | null;
+  authorUserId: string;
+  authorRole: string;
+  authorName: string | null;
+  type: ResourceType;
+  status: ResourceStatus;
+  categorySlug: string | null;
+  tags: string[];
+  isFeatured: boolean;
+  publishedAt: string | null;
+  rejectionReason: string | null;
+  chapters: ResourceChapter[];
+}
+
 export interface SearchResourcesParams {
   term?: string;
   categorySlug?: string;
@@ -66,6 +102,14 @@ export const resourcesApi = {
   /** Featured resources for the hub. */
   async getFeatured(): Promise<ResourceListItem[]> {
     const { data } = await apiClient.get<ResourceListItem[]>("/api/resources/featured");
+    return data;
+  },
+
+  /** Full detail of a single resource, by id or slug. */
+  async getDetail(idOrSlug: string): Promise<ResourceDetail> {
+    const { data } = await apiClient.get<ResourceDetail>(
+      `/api/resources/${encodeURIComponent(idOrSlug)}`,
+    );
     return data;
   },
 

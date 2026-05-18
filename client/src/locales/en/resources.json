@@ -23,6 +23,17 @@
     "next": "Next",
     "pageOf": "Page {{page}} of {{total}}"
   },
+  "detail": {
+    "back": "Back to resources",
+    "by": "By {{author}}",
+    "publishedOn": "Published {{date}}",
+    "openExternal": "Open resource link",
+    "chapters": "Chapters",
+    "readTime": "{{minutes}} min read",
+    "loadError": "Could not load this resource.",
+    "notFound": "This resource could not be found.",
+    "retry": "Retry"
+  },
   "moderation": {
     "title": "Resource moderation",
     "subtitle": "Review and publish resources submitted by authors.",

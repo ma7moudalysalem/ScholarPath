@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { BookOpen, ExternalLink, Search } from "lucide-react";
@@ -162,7 +163,10 @@ function ResourceCard({
     : resource.descriptionEn ?? resource.descriptionAr;
 
   return (
-    <article className="flex flex-col rounded-lg border border-border-subtle bg-bg-elevated p-4">
+    <Link
+      to={`/student/resources/${resource.slug}`}
+      className="flex flex-col rounded-lg border border-border-subtle bg-bg-elevated p-4 transition hover:border-brand-500 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+    >
       {resource.coverImageUrl ? (
         <img
           src={resource.coverImageUrl}
@@ -211,6 +215,6 @@ function ResourceCard({
           {t("resources:browse.openLink")}
         </span>
       )}
-    </article>
+    </Link>
   );
 }

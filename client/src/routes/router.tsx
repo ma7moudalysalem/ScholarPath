@@ -73,6 +73,11 @@ const StudentResources = lazy(() =>
     default: m.StudentResources,
   })),
 );
+const StudentResourceDetail = lazy(() =>
+  import("@/pages/student/ResourceDetail").then((m) => ({
+    default: m.ResourceDetail,
+  })),
+);
 const StudentDocuments = lazy(() =>
   import("@/pages/student/Documents").then((m) => ({ default: m.Documents })),
 );
@@ -311,6 +316,7 @@ export function AppRouter() {
 
           {/* Others */}
           <Route path="/student/resources"         element={<StudentResources />} />
+          <Route path="/student/resources/:idOrSlug" element={<StudentResourceDetail />} />
           <Route path="/student/documents"         element={<StudentDocuments />} />
           <Route path="/student/ai"                element={<StudentAi />} />
 
