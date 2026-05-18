@@ -29,6 +29,9 @@ export interface ForumThread {
   replies: ForumPost[];
 }
 
+/** Vote direction on the wire — must match the server VoteType enum (Up / Down). */
+export type VoteType = "Up" | "Down";
+
 export type PostModerationStatus =
   | "Visible"
   | "Hidden"
@@ -91,7 +94,7 @@ export const communityApi = {
     return data;
   },
 
-  async toggleVote(postId: string, voteType: "Upvote" | "Downvote"): Promise<void> {
+  async toggleVote(postId: string, voteType: VoteType): Promise<void> {
     await apiClient.post(`/api/community/posts/${postId}/vote`, { voteType });
   },
 

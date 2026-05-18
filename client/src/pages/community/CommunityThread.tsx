@@ -10,7 +10,8 @@ import {
   Send,
   Shield
 } from "lucide-react";
-import { communityApi } from "@/services/api/community";
+import { communityApi, type VoteType } from "@/services/api/community";
+import { toast } from "sonner";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -32,14 +33,14 @@ export function CommunityThread() {
   });
 
   const voteMutation = useMutation({
-    mutationFn: ({ postId, type }: { postId: string; type: "Upvote" | "Downvote" }) => 
+    mutationFn: ({ postId, type }: { postId: string; type: VoteType }) =>
       communityApi.toggleVote(postId, type),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
     },
     onError: () => {
-      alert(t("actions.voteError"));
-    }
+      toast.error(t("actions.voteError"));
+    },
   });
 
   const replyMutation = useMutation({
@@ -48,12 +49,12 @@ export function CommunityThread() {
       setReplyBody("");
       void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
     },
-    onError: (error) => {
-      console.error("Failed to reply", error);
-    }
+    onError: () => {
+      toast.error(t("actions.replyError"));
+    },
   });
 
-  const handleVote = (postId: string, type: "Upvote" | "Downvote") => {
+  const handleVote = (postId: string, type: VoteType) => {
     voteMutation.mutate({ postId, type });
   };
 
@@ -112,15 +113,15 @@ export function CommunityThread() {
           <div className="flex gap-6">
             {/* Vote Side */}
             <div className="flex flex-col items-center gap-2 bg-bg-subtle rounded-2xl p-2 h-fit">
-              <button 
-                onClick={() => handleVote(thread.post.id, "Upvote")}
+              <button
+                onClick={() => handleVote(thread.post.id, "Up")}
                 className="p-1 hover:text-brand-500 transition-colors"
               >
                 <ArrowUp size={24} />
               </button>
               <span className="font-bold text-lg">{thread.post.upvoteCount - thread.post.downvoteCount}</span>
-              <button 
-                onClick={() => handleVote(thread.post.id, "Downvote")}
+              <button
+                onClick={() => handleVote(thread.post.id, "Down")}
                 className="p-1 hover:text-danger-500 transition-colors"
               >
                 <ArrowDown size={24} />
@@ -213,8 +214,8 @@ export function CommunityThread() {
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button 
-                    onClick={() => handleVote(reply.id, "Upvote")}
+                  <button
+                    onClick={() => handleVote(reply.id, "Up")}
                     className="p-1 text-text-tertiary hover:text-brand-500 transition-colors"
                   >
                     <ArrowUp size={16} />

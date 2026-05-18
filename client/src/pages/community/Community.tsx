@@ -11,13 +11,14 @@ import {
   Filter,
   ChevronRight
 } from "lucide-react";
-import { communityApi, type ForumCategory } from "@/services/api/community";
+import { communityApi, type ForumCategory, type VoteType } from "@/services/api/community";
 import { AskQuestionModal } from "@/components/community/AskQuestionModal";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { Link } from "react-router";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
-import { useQuery, keepPreviousData } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export function Community() {
   const { t, i18n } = useTranslation("community");
@@ -47,6 +48,21 @@ export function Community() {
   });
 
   const posts = postsData?.items ?? [];
+
+  const qc = useQueryClient();
+  const voteMutation = useMutation({
+    mutationFn: ({ postId, type }: { postId: string; type: VoteType }) =>
+      communityApi.toggleVote(postId, type),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["community", "posts"] }),
+    onError: () => toast.error(t("actions.voteError")),
+  });
+
+  // The vote buttons sit inside the post Link — block navigation when voting.
+  const handleVote = (e: React.MouseEvent, postId: string, type: VoteType) => {
+    e.preventDefault();
+    e.stopPropagation();
+    voteMutation.mutate({ postId, type });
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,13 +170,23 @@ export function Community() {
                 <div className="flex gap-4">
                   {/* Vote Side */}
                   <div className="hidden sm:flex flex-col items-center gap-1 bg-bg-subtle rounded-xl p-2 h-fit">
-                    <button type="button" aria-label="Upvote" className="text-text-tertiary hover:text-brand-500 transition-colors">
+                    <button
+                      type="button"
+                      aria-label="Upvote"
+                      onClick={(e) => handleVote(e, post.id, "Up")}
+                      className="text-text-tertiary hover:text-brand-500 transition-colors"
+                    >
                       <ArrowUp size={20} aria-hidden />
                     </button>
                     <span className="text-sm font-bold text-text-secondary">
                       {post.upvoteCount - post.downvoteCount}
                     </span>
-                    <button type="button" aria-label="Downvote" className="text-text-tertiary hover:text-danger-500 transition-colors">
+                    <button
+                      type="button"
+                      aria-label="Downvote"
+                      onClick={(e) => handleVote(e, post.id, "Down")}
+                      className="text-text-tertiary hover:text-danger-500 transition-colors"
+                    >
                       <ArrowDown size={20} aria-hidden />
                     </button>
                   </div>

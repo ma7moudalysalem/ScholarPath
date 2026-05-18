@@ -21,7 +21,8 @@
   "actions": {
     "flagReasonPrompt": "Reason for flagging:",
     "flagSuccess": "Thank you. The content has been reported.",
-    "voteError": "You cannot vote on your own post."
+    "voteError": "You cannot vote on your own post.",
+    "replyError": "Could not post your reply. Please try again."
   },
   "ask": {
     "title": "Ask a Question",
