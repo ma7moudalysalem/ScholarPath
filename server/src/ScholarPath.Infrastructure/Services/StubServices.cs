@@ -1,13 +1,13 @@
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.Notifications;
-using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Infrastructure.Services;
 
 /// <summary>
-/// Stub implementations used as defaults in dev. Swap to real providers via DI registration.
-/// Teammates replace these with production logic per their module specs.
+/// Default fallback implementations, registered by <c>AddInfrastructureServices</c>
+/// only when the corresponding real provider is not configured (no SMTP host,
+/// no OAuth credentials, no Stripe key, no ClamAV daemon). <c>StubPasswordHasher</c>
+/// is always used — it wraps the ASP.NET Identity password hasher.
 /// </summary>
 
 public sealed class StubEmailService(ILogger<StubEmailService> logger) : IEmailService
@@ -16,28 +16,6 @@ public sealed class StubEmailService(ILogger<StubEmailService> logger) : IEmailS
     {
         logger.LogInformation("[stub-email] to={To} subject={Subject}", message.To, message.Subject);
         return Task.CompletedTask;
-    }
-}
-
-public sealed class StubBlobStorageService(ILogger<StubBlobStorageService> logger) : IBlobStorageService
-{
-    public Task<string> UploadAsync(Stream content, string fileName, string contentType, string container, CancellationToken ct)
-    {
-        var fakeUrl = $"https://scholarpath-stub.blob/{container}/{Guid.NewGuid()}/{fileName}";
-        logger.LogInformation("[stub-blob] upload {File} -> {Url}", fileName, fakeUrl);
-        return Task.FromResult(fakeUrl);
-    }
-
-    public Task DeleteAsync(string blobUrl, CancellationToken ct)
-    {
-        logger.LogInformation("[stub-blob] delete {Url}", blobUrl);
-        return Task.CompletedTask;
-    }
-
-    public Task<Stream> DownloadAsync(string blobUrl, CancellationToken ct)
-    {
-        logger.LogInformation("[stub-blob] download {Url}", blobUrl);
-        return Task.FromResult<Stream>(new MemoryStream());
     }
 }
 
@@ -67,55 +45,6 @@ public sealed class StubPasswordHasher : IPasswordHasher
         _hasher.VerifyHashedPassword(new object(), hash, password)
             is Microsoft.AspNetCore.Identity.PasswordVerificationResult.Success
             or Microsoft.AspNetCore.Identity.PasswordVerificationResult.SuccessRehashNeeded;
-}
-
-public sealed class StubAiService : IAiService
-{
-    private const string Disclaimer = "AI-generated guidance. Verify with official sources before acting.";
-
-    public Task<AiRecommendationResult> GenerateRecommendationsAsync(Guid userId, int topN, CancellationToken ct) =>
-        Task.FromResult(new AiRecommendationResult(Array.Empty<AiRecommendationItem>(), Disclaimer, 0, 0));
-
-    public Task<AiEligibilityResult> CheckEligibilityAsync(Guid userId, Guid scholarshipId, CancellationToken ct) =>
-        Task.FromResult(new AiEligibilityResult(
-            Array.Empty<AiEligibilityCriterion>(),
-            "No eligibility data available in stub mode.",
-            "لا تتوفر بيانات أهلية في وضع التجربة.",
-            Disclaimer,
-            EligibilityVerdict.NotEligible));
-
-    public Task<AiChatResponse> AskAsync(Guid userId, string sessionId, string message, CancellationToken ct) =>
-        Task.FromResult(new AiChatResponse(
-            $"(stub) I heard: {message[..Math.Min(message.Length, 120)]}",
-            Disclaimer,
-            PromptTokens: 0,
-            CompletionTokens: 0,
-            EstimatedCostUsd: 0m,
-            Sources: []));
-}
-
-public sealed class StubNotificationDispatcher(ILogger<StubNotificationDispatcher> logger) : INotificationDispatcher
-{
-    public Task DispatchAsync(Guid recipientUserId, NotificationType type, NotificationParams parameters, string? deepLink, string? idempotencyKey, CancellationToken ct)
-    {
-        logger.LogInformation("[stub-notif] user={UserId} type={Type}", recipientUserId, type);
-        return Task.CompletedTask;
-    }
-
-    public Task DispatchBroadcastAsync(IReadOnlyCollection<Guid> recipientUserIds, NotificationType type, NotificationParams parameters, CancellationToken ct)
-    {
-        logger.LogInformation("[stub-notif] broadcast type={Type} recipients={Count}", type, recipientUserIds.Count);
-        return Task.CompletedTask;
-    }
-}
-
-public sealed class StubAuditService(ILogger<StubAuditService> logger) : IAuditService
-{
-    public Task WriteAsync(AuditAction action, string targetType, Guid? targetId, string? beforeJson, string? afterJson, string? summary, CancellationToken ct)
-    {
-        logger.LogInformation("[stub-audit] {Action} {TargetType} {TargetId}", action, targetType, targetId);
-        return Task.CompletedTask;
-    }
 }
 
 public sealed class StubStripeService(ILogger<StubStripeService> logger) : IStripeService

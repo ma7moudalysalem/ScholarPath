@@ -224,6 +224,37 @@ var app = builder.Build();
     }
 }
 
+// ─── Upload antivirus-scanning provenance ────────────────────────────────────
+// Antivirus scanning of uploaded files is feature-flagged (FileScanning:Enabled).
+// When it is off, NoOpFileScanService is registered and uploads are NOT scanned
+// for malware — acceptable in dev, but a security gap in production. Report the
+// state on every boot so a production deploy without a ClamAV daemon cannot slip
+// through unnoticed.
+{
+    var fileScanningEnabled = builder.Configuration
+        .GetValue<bool>($"{FileScanningOptions.SectionName}:Enabled");
+    var fileScanLogger = app.Services.GetRequiredService<ILoggerFactory>()
+        .CreateLogger("FileScanning");
+    if (fileScanningEnabled)
+    {
+        fileScanLogger.LogInformation(
+            "Upload antivirus scanning is ENABLED — uploads are scanned via ClamAV before storage.");
+    }
+    else if (app.Environment.IsProduction())
+    {
+        fileScanLogger.LogWarning(
+            "Upload antivirus scanning is DISABLED in Production (FileScanning:Enabled=false) — "
+            + "uploaded files are NOT scanned for malware. Provision a ClamAV daemon and set "
+            + "FileScanning:Enabled=true with ClamAvHost/ClamAvPort.");
+    }
+    else
+    {
+        fileScanLogger.LogInformation(
+            "Upload antivirus scanning is disabled (FileScanning:Enabled=false) — "
+            + "expected outside production; no ClamAV daemon required.");
+    }
+}
+
 // ─── Pipeline ────────────────────────────────────────────────────────────────
 app.UseSerilogRequestLogging();
 app.UseMiddleware<SecurityHeadersMiddleware>();

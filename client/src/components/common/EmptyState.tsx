@@ -6,12 +6,6 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface EmptyStateProps {
-  /** @deprecated kept for backwards compat — no longer rendered */
-  owner?: string;
-  /** @deprecated kept for backwards compat — no longer rendered */
-  module?: string;
-  /** @deprecated kept for backwards compat — no longer rendered */
-  specPath?: string;
   className?: string;
   icon?: LucideIcon;
   title?: string;
