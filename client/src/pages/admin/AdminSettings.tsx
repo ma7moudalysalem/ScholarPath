@@ -39,7 +39,7 @@ export function AdminSettings() {
       )}
 
       {query.isError && !query.isLoading && (
-        <div className="rounded-lg border border-border-subtle bg-bg-elevated p-6 text-sm text-red-500">
+        <div className="rounded-lg border border-danger-200 bg-danger-50 p-6 text-sm text-danger-500">
           {t("settings:loadError")}
         </div>
       )}

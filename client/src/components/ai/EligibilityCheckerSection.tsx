@@ -22,24 +22,24 @@ import { AiDisclaimer } from "./AiDisclaimer";
 // ── Visual maps ───────────────────────────────────────────────────────────────
 
 const VERDICT_STYLES: Record<EligibilityVerdict, string> = {
-  Eligible:          "bg-emerald-500/10 text-emerald-600 ring-emerald-500/20",
-  PartiallyEligible: "bg-amber-500/10 text-amber-600 ring-amber-500/20",
-  NotEligible:       "bg-rose-500/10 text-rose-600 ring-rose-500/20",
+  Eligible:          "bg-success-100 text-success-600 ring-success-500/20",
+  PartiallyEligible: "bg-warning-50 text-warning-600 ring-warning-500/20",
+  NotEligible:       "bg-danger-50 text-danger-500 ring-danger-400/20",
 };
 
 const MATCH_BADGE: Record<EligibilityMatch, string> = {
-  yes:     "bg-emerald-500/10 text-emerald-600",
-  partial: "bg-amber-500/10 text-amber-600",
-  no:      "bg-rose-500/10 text-rose-600",
+  yes:     "bg-success-100 text-success-600",
+  partial: "bg-warning-50 text-warning-600",
+  no:      "bg-danger-50 text-danger-500",
   unknown: "bg-bg-subtle text-text-tertiary",
 };
 
 function MatchIcon({ m }: { m: EligibilityMatch }) {
   const cls = "size-4 shrink-0";
   switch (m) {
-    case "yes":     return <Check aria-hidden className={cn(cls, "text-emerald-500")} />;
-    case "no":      return <X aria-hidden className={cn(cls, "text-rose-500")} />;
-    case "partial": return <Minus aria-hidden className={cn(cls, "text-amber-500")} />;
+    case "yes":     return <Check aria-hidden className={cn(cls, "text-success-500")} />;
+    case "no":      return <X aria-hidden className={cn(cls, "text-danger-500")} />;
+    case "partial": return <Minus aria-hidden className={cn(cls, "text-warning-500")} />;
     default:        return <CircleHelp aria-hidden className={cn(cls, "text-text-tertiary")} />;
   }
 }
@@ -166,7 +166,7 @@ export function EligibilityCheckerSection() {
           )}
 
           {canSearch && search.isError && (
-            <p className="text-sm text-rose-600">{t("ai:eligibility.searchError")}</p>
+            <p className="text-sm text-danger-500">{t("ai:eligibility.searchError")}</p>
           )}
 
           {canSearch && search.data && search.data.items.length === 0 && (
@@ -223,7 +223,7 @@ export function EligibilityCheckerSection() {
           )}
 
           {eligibility.isError && (
-            <p className="rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600">
+            <p className="rounded-md border border-danger-200 bg-danger-50 p-3 text-sm text-danger-500">
               {errStatus === 409
                 ? t("ai:errors.budgetExceeded")
                 : t("ai:eligibility.error")}
@@ -234,8 +234,8 @@ export function EligibilityCheckerSection() {
             <>
               {/* Overall verdict (FR-117) — or a profile-completion prompt */}
               {profileIncomplete ? (
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
-                  <p className="text-sm text-amber-600">
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-warning-500/30 bg-warning-50 p-3">
+                  <p className="text-sm text-warning-600">
                     {t("ai:eligibility.completeProfile")}
                   </p>
                   <Link
@@ -332,7 +332,7 @@ export function EligibilityCheckerSection() {
                         <li key={c.nameEn} className="flex items-start gap-2 text-sm">
                           <span
                             aria-hidden
-                            className="mt-1.5 size-1.5 shrink-0 rounded-full bg-amber-500"
+                            className="mt-1.5 size-1.5 shrink-0 rounded-full bg-warning-500"
                           />
                           <span>
                             <span className="font-medium">{isAr ? c.nameAr : c.nameEn}</span>

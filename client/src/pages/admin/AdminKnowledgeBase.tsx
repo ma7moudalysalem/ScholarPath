@@ -168,7 +168,7 @@ export function AdminKnowledgeBase() {
       )}
 
       {status.isError && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
+        <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-500">
           {t("common:status.error", { defaultValue: "Something went wrong." })}
         </div>
       )}

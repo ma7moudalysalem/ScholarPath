@@ -27,7 +27,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
             </Link>
             <Link
               to="/register"
-              className="cta-pill bg-text-primary text-text-inverse hover:bg-text-primary/90 dark:bg-brand-500 dark:text-text-on-brand"
+              className="cta-pill btn-brand bg-brand-500 text-white"
             >
               {t("cta.getStarted")}
             </Link>

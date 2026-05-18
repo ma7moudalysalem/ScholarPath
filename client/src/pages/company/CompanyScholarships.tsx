@@ -10,12 +10,12 @@ import {
 function statusBadgeClass(s: ScholarshipStatus): string {
   switch (s) {
     case "Open":
-      return "bg-emerald-500/10 text-emerald-500";
+      return "bg-success-100 text-success-600";
     case "UnderReview":
-      return "bg-amber-500/10 text-amber-600";
+      return "bg-warning-50 text-warning-600";
     case "Closed":
     case "Archived":
-      return "bg-rose-500/10 text-rose-500";
+      return "bg-danger-50 text-danger-500";
     default:
       return "bg-bg-subtle text-text-tertiary";
   }

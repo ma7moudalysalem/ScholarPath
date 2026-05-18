@@ -283,7 +283,7 @@ export function Documents() {
                         onClick={() => handleDelete(doc.id)}
                         disabled={deleteMutation.isPending}
                         aria-label={t("documents:actions.delete")}
-                        className="inline-flex items-center gap-1 rounded-md border border-border-subtle px-2 py-1 text-xs text-text-secondary transition hover:border-rose-500 hover:text-rose-500 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-md border border-border-subtle px-2 py-1 text-xs text-text-secondary transition hover:border-danger-400 hover:text-danger-500 disabled:opacity-50"
                       >
                         <Trash2 aria-hidden className="size-3.5" />
                         {t("documents:actions.delete")}

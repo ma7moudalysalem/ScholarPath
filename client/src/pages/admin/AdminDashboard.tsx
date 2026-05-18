@@ -10,7 +10,7 @@ interface KpiProps {
 
 function Kpi({ label, value, accent = "brand" }: KpiProps) {
   const color =
-    accent === "success" ? "text-emerald-500" : accent === "warning" ? "text-amber-500" : "text-brand-500";
+    accent === "success" ? "text-success-500" : accent === "warning" ? "text-warning-500" : "text-brand-500";
   return (
     <div className="rounded-lg border border-border-subtle bg-bg-elevated p-4">
       <div className="text-xs font-medium uppercase tracking-wide text-text-tertiary">{label}</div>

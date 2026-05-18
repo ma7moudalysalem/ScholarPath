@@ -134,7 +134,7 @@ export function AdminCommunity() {
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{p.authorName}</td>
                 <td className="px-4 py-3">
-                  <span className="font-medium text-rose-500">
+                  <span className="font-medium text-danger-500">
                     {t("moderation:communityModeration.flags", {
                       count: p.validFlagCount,
                     })}
@@ -147,7 +147,7 @@ export function AdminCommunity() {
                 </td>
                 <td className="px-4 py-3">
                   {p.isAutoHidden && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-warning-50 px-2 py-0.5 text-xs font-medium text-warning-600">
                       <EyeOff className="size-3" />
                       {t("moderation:communityModeration.autoHidden")}
                     </span>
@@ -159,7 +159,7 @@ export function AdminCommunity() {
                       type="button"
                       disabled={busy}
                       onClick={() => keepMut.mutate(p.id)}
-                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-emerald-500 hover:text-emerald-500 disabled:opacity-50"
+                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-success-500 hover:text-success-600 disabled:opacity-50"
                     >
                       {t("moderation:communityModeration.keep")}
                     </button>
@@ -167,7 +167,7 @@ export function AdminCommunity() {
                       type="button"
                       disabled={busy}
                       onClick={() => confirmRemove(p.id)}
-                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-rose-500 hover:text-rose-500 disabled:opacity-50"
+                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500 disabled:opacity-50"
                     >
                       {t("moderation:communityModeration.remove")}
                     </button>

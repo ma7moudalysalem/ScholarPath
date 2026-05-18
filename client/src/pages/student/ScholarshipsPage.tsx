@@ -36,10 +36,10 @@ const ACADEMIC_LEVELS: AcademicLevel[] = [
 
 function FundingBadge({ type }: { type: FundingType }) {
   const colors: Record<FundingType, string> = {
-    FullyFunded:     "bg-emerald-500/10 text-emerald-600",
-    PartiallyFunded: "bg-blue-500/10 text-blue-600",
-    TuitionOnly:     "bg-purple-500/10 text-purple-600",
-    StipendOnly:     "bg-amber-500/10 text-amber-600",
+    FullyFunded:     "bg-success-100 text-success-600",
+    PartiallyFunded: "bg-brand-100 text-brand-600",
+    TuitionOnly:     "bg-info-50 text-brand-700",
+    StipendOnly:     "bg-warning-50 text-warning-600",
     Other:           "bg-bg-subtle text-text-tertiary",
   };
   return (
@@ -317,7 +317,7 @@ export function ScholarshipsPage() {
                       <span
                         className={cn(
                           "font-medium",
-                          isUrgent ? "text-rose-500" : "text-text-tertiary",
+                          isUrgent ? "text-danger-500" : "text-text-tertiary",
                         )}
                       >
                         {daysLeft < 0
@@ -349,7 +349,7 @@ export function ScholarshipsPage() {
 
       {/* ── Error state ── */}
       {isError && (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
+        <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-500">
           {t("common:status.error")}
         </div>
       )}
@@ -415,7 +415,7 @@ export function ScholarshipsPage() {
                     <span
                       className={cn(
                         "font-medium",
-                        isUrgent ? "text-rose-500" : "text-text-tertiary",
+                        isUrgent ? "text-danger-500" : "text-text-tertiary",
                       )}
                     >
                       {daysLeft < 0

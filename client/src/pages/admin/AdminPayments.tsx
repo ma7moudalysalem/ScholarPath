@@ -28,18 +28,18 @@ const PAGE_SIZE = 20;
 function statusBadgeClass(s: PaymentStatus): string {
   switch (s) {
     case "Captured":
-      return "bg-emerald-500/10 text-emerald-500";
+      return "bg-success-100 text-success-600";
     case "Held":
     case "Pending":
-      return "bg-amber-500/10 text-amber-600";
+      return "bg-warning-50 text-warning-600";
     case "Refunded":
     case "PartiallyRefunded":
-      return "bg-sky-500/10 text-sky-500";
+      return "bg-brand-50 text-brand-600";
     case "Failed":
     case "Cancelled":
-      return "bg-rose-500/10 text-rose-500";
+      return "bg-danger-50 text-danger-500";
     case "Disputed":
-      return "bg-orange-500/10 text-orange-500";
+      return "bg-warning-50 text-warning-500";
     default:
       return "bg-bg-subtle text-text-tertiary";
   }
@@ -205,7 +205,7 @@ export function AdminPayments() {
                       type="button"
                       disabled={refundMut.isPending}
                       onClick={() => confirmRefund(p)}
-                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-rose-500 hover:text-rose-500 disabled:opacity-50"
+                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500 disabled:opacity-50"
                     >
                       {t("payments:adminPayments.refund")}
                     </button>

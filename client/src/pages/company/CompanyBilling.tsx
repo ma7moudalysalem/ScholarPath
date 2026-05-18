@@ -13,16 +13,16 @@ import {
 function paymentBadge(s: PaymentStatus): string {
   switch (s) {
     case "Captured":
-      return "bg-emerald-500/10 text-emerald-500";
+      return "bg-success-100 text-success-600";
     case "Held":
     case "Pending":
-      return "bg-amber-500/10 text-amber-600";
+      return "bg-warning-50 text-warning-600";
     case "Refunded":
     case "PartiallyRefunded":
-      return "bg-sky-500/10 text-sky-500";
+      return "bg-brand-50 text-brand-600";
     case "Failed":
     case "Cancelled":
-      return "bg-rose-500/10 text-rose-500";
+      return "bg-danger-50 text-danger-500";
     default:
       return "bg-bg-subtle text-text-tertiary";
   }
@@ -31,12 +31,12 @@ function paymentBadge(s: PaymentStatus): string {
 function payoutBadge(s: PayoutStatus): string {
   switch (s) {
     case "Paid":
-      return "bg-emerald-500/10 text-emerald-500";
+      return "bg-success-100 text-success-600";
     case "InTransit":
     case "Pending":
-      return "bg-amber-500/10 text-amber-600";
+      return "bg-warning-50 text-warning-600";
     case "Failed":
-      return "bg-rose-500/10 text-rose-500";
+      return "bg-danger-50 text-danger-500";
     default:
       return "bg-bg-subtle text-text-tertiary";
   }

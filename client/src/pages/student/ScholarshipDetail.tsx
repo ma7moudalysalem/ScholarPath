@@ -42,10 +42,10 @@ function DetailRow({
 function FundingBadge({ type }: { type?: FundingType }) {
   if (!type) return null;
   const colors: Record<FundingType, string> = {
-    FullyFunded:     "bg-emerald-500/10 text-emerald-600",
-    PartiallyFunded: "bg-blue-500/10 text-blue-600",
-    TuitionOnly:     "bg-purple-500/10 text-purple-600",
-    StipendOnly:     "bg-amber-500/10 text-amber-600",
+    FullyFunded:     "bg-success-100 text-success-600",
+    PartiallyFunded: "bg-brand-100 text-brand-600",
+    TuitionOnly:     "bg-info-50 text-brand-700",
+    StipendOnly:     "bg-warning-50 text-warning-600",
     Other:           "bg-bg-subtle text-text-tertiary",
   };
   return (
@@ -118,7 +118,7 @@ export function ScholarshipDetail() {
   if (isError || !data) {
     return (
       <div className="mx-auto max-w-3xl">
-        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
+        <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-500">
           {t("common:status.error")}
         </div>
       </div>
@@ -183,10 +183,10 @@ export function ScholarshipDetail() {
               className={cn(
                 "rounded-full px-2.5 py-0.5 text-xs font-medium",
                 isClosed
-                  ? "bg-rose-500/10 text-rose-600"
+                  ? "bg-danger-50 text-danger-500"
                   : isUrgent
-                    ? "bg-amber-500/10 text-amber-600"
-                    : "bg-emerald-500/10 text-emerald-600",
+                    ? "bg-warning-50 text-warning-600"
+                    : "bg-success-100 text-success-600",
               )}
             >
               {isClosed
@@ -225,7 +225,7 @@ export function ScholarshipDetail() {
             <span
               className={cn(
                 "inline-flex items-center gap-1.5",
-                isUrgent ? "font-medium text-rose-500" : "text-text-primary",
+                isUrgent ? "font-medium text-danger-500" : "text-text-primary",
               )}
             >
               <Calendar aria-hidden className="size-4 text-text-tertiary" />

@@ -17,13 +17,13 @@ const ROLES = ["Student", "Company", "Consultant", "Admin", "Moderator"];
 function statusBadgeClass(s: AccountStatus): string {
   switch (s) {
     case "Active":
-      return "bg-emerald-500/10 text-emerald-500";
+      return "bg-success-100 text-success-600";
     case "PendingApproval":
-      return "bg-amber-500/10 text-amber-600";
+      return "bg-warning-50 text-warning-600";
     case "Suspended":
-      return "bg-orange-500/10 text-orange-500";
+      return "bg-warning-50 text-warning-500";
     case "Deactivated":
-      return "bg-rose-500/10 text-rose-500";
+      return "bg-danger-50 text-danger-500";
     default:
       return "bg-bg-subtle text-text-tertiary";
   }
@@ -169,7 +169,7 @@ export function UsersAdmin() {
                             ? t("admin:users.atRiskTooltip", { score: (u.riskScore * 100).toFixed(0) })
                             : t("admin:users.atRiskGeneric")
                         }
-                        className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600"
+                        className="inline-flex items-center gap-1 rounded-full bg-warning-50 px-1.5 py-0.5 text-[10px] font-medium text-warning-600"
                       >
                         <span aria-hidden>⚠</span>
                         {t("admin:users.atRisk")}
@@ -202,7 +202,7 @@ export function UsersAdmin() {
                       <button
                         type="button"
                         onClick={() => changeStatus(u, "Suspended")}
-                        className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-amber-500 hover:text-amber-500"
+                        className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-warning-500 hover:text-warning-600"
                       >
                         {t("admin:users.actions.suspend")}
                       </button>
@@ -210,7 +210,7 @@ export function UsersAdmin() {
                     <button
                       type="button"
                       onClick={() => confirmDelete(u)}
-                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-rose-500 hover:text-rose-500"
+                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500"
                     >
                       {t("admin:users.actions.delete")}
                     </button>

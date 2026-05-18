@@ -13,18 +13,18 @@ import {
 function statusBadgeClass(s: ApplicationStatus): string {
   switch (s) {
     case "Accepted":
-      return "bg-emerald-500/10 text-emerald-500";
+      return "bg-success-100 text-success-600";
     case "Rejected":
     case "Withdrawn":
-      return "bg-rose-500/10 text-rose-500";
+      return "bg-danger-50 text-danger-500";
     case "UnderReview":
     case "Shortlisted":
     case "WaitingResult":
-      return "bg-sky-500/10 text-sky-500";
+      return "bg-brand-50 text-brand-600";
     case "Pending":
     case "Applied":
     case "Intending":
-      return "bg-amber-500/10 text-amber-600";
+      return "bg-warning-50 text-warning-600";
     default:
       return "bg-bg-subtle text-text-tertiary";
   }
@@ -122,8 +122,8 @@ export function StudentApplicationDetail() {
       </div>
 
       {data.status === "Draft" && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-          <p className="text-sm text-amber-600">{t("moderation:appDetail.draftHint")}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning-500/30 bg-warning-50 p-4">
+          <p className="text-sm text-warning-600">{t("moderation:appDetail.draftHint")}</p>
           <button
             type="button"
             onClick={() => submitMut.mutate()}

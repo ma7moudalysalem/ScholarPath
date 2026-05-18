@@ -1,139 +1,162 @@
 @import "tailwindcss";
 
 /*
-  Tailwind v4 design tokens for ScholarPath.
-  Apple-inspired: binary light/dark surfaces, tight headline leading, pill CTAs.
-  Blended from getdesign.md/apple + getdesign.md/linear + getdesign.md/vercel.
+  ScholarPath Design System — v2
+  Direction: Modern SaaS (Linear / Notion / Mercury)
+  Palette: off-white canvas · deep-navy text · electric-blue brand · navy dark mode
+  Type:     Plus Jakarta Sans (display) + Inter (body)
 */
 
 @theme {
-  /* ─── Colors ──────────────────────────────────────────────── */
-  --color-bg-canvas: #ffffff;
-  --color-bg-subtle: #f5f5f7;
-  --color-bg-elevated: #ffffff;
-  --color-bg-muted: #fafafa;
+  /* ─── Surfaces ──────────────────────────────────────────────── */
+  --color-bg-canvas:   #fafbfd;   /* off-white canvas — not harsh pure white   */
+  --color-bg-subtle:   #f2f4f9;   /* section / sidebar / hover backgrounds     */
+  --color-bg-elevated: #ffffff;   /* cards, modals, inputs — visually "lifted" */
+  --color-bg-muted:    #f6f7fc;   /* inner card rows, data cells               */
 
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #2563eb;
-  --color-brand-600: #1d4ed8;
-  --color-brand-700: #1e40af;
-  --color-brand-800: #1e3a8a;
-  --color-brand-900: #172554;
+  /* ─── Brand — electric blue (more distinctive than Tailwind default) ── */
+  --color-brand-50:  #eff5ff;
+  --color-brand-100: #dce9ff;
+  --color-brand-200: #bbd4ff;
+  --color-brand-300: #8db7ff;
+  --color-brand-400: #5c93ff;
+  --color-brand-500: #1760f0;
+  --color-brand-600: #1250d9;
+  --color-brand-700: #0f3fb5;
+  --color-brand-800: #0c2f8a;
+  --color-brand-900: #081d5c;
 
-  --color-text-primary: #1d1d1f;
-  --color-text-secondary: #4b5563;
-  --color-text-tertiary: #9ca3af;
-  --color-text-on-brand: #ffffff;
-  --color-text-inverse: #ffffff;
+  /* ─── Text — deep navy palette ─────────────────────────────── */
+  --color-text-primary:   #0b0f1e;   /* near-black with navy undertone */
+  --color-text-secondary: #4a5270;   /* muted navy-grey                */
+  --color-text-tertiary:  #8f98b5;   /* placeholders, metadata         */
+  --color-text-on-brand:  #ffffff;
+  --color-text-inverse:   #ffffff;
 
-  --color-border-subtle: #e5e7eb;
-  --color-border-default: #d1d5db;
-  --color-border-strong: #9ca3af;
+  /* ─── Borders ───────────────────────────────────────────────── */
+  --color-border-subtle:  #e6eaf5;
+  --color-border-default: #cdd2e8;
+  --color-border-strong:  #9ba5c2;
 
-  /* Semantic */
-  --color-success-50: #f0fdf4;
+  /* ─── Semantic — Success ────────────────────────────────────── */
+  --color-success-50:  #f0fdf4;
   --color-success-100: #dcfce7;
   --color-success-200: #bbf7d0;
   --color-success-500: #16a34a;
   --color-success-600: #15803d;
   --color-success-700: #166534;
-  --color-warning-50: #fffbeb;
+
+  /* ─── Semantic — Warning ────────────────────────────────────── */
+  --color-warning-50:  #fffbeb;
   --color-warning-500: #d97706;
   --color-warning-600: #b45309;
-  --color-danger-50: #fef2f2;
+
+  /* ─── Semantic — Danger ─────────────────────────────────────── */
+  --color-danger-50:  #fef2f2;
   --color-danger-200: #fecaca;
   --color-danger-400: #f87171;
   --color-danger-500: #dc2626;
-  --color-info-50: #eff6ff;
-  --color-info-500: #2563eb;
 
-  /* Application status (kanban) */
-  --color-status-planned: #6366f1;
-  --color-status-applied: #2563eb;
-  --color-status-pending: #d97706;
-  --color-status-accepted: #16a34a;
-  --color-status-rejected: #dc2626;
+  /* ─── Semantic — Info ───────────────────────────────────────── */
+  --color-info-50:  #eff5ff;
+  --color-info-500: #1760f0;
+
+  /* ─── Application status (Kanban) ───────────────────────────── */
+  --color-status-planned:   #6366f1;
+  --color-status-applied:   #1760f0;
+  --color-status-pending:   #d97706;
+  --color-status-accepted:  #16a34a;
+  --color-status-rejected:  #dc2626;
   --color-status-withdrawn: #64748b;
 
-  /* ─── Typography ──────────────────────────────────────────── */
-  --font-sans:
-    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    sans-serif;
-  --font-arabic: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Geeza Pro", sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+  /* ─── Typography ────────────────────────────────────────────── */
+  --font-display: "Plus Jakarta Sans", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-arabic:  "IBM Plex Sans Arabic", "Noto Sans Arabic", "Geeza Pro", sans-serif;
+  --font-mono:    "JetBrains Mono", "SF Mono", Consolas, monospace;
 
-  --text-xs: 0.75rem; /* 12px */
-  --text-sm: 0.875rem; /* 14px */
-  --text-base: 1rem; /* 16px */
-  --text-lg: 1.125rem; /* 18px */
-  --text-xl: 1.25rem; /* 20px */
-  --text-2xl: 1.75rem; /* 28px */
-  --text-3xl: 2.25rem; /* 36px */
-  --text-4xl: 3rem; /* 48px */
-  --text-5xl: 4rem; /* 64px */
-  --text-6xl: 5rem; /* 80px */
+  --text-xs:   0.75rem;    /* 12 px */
+  --text-sm:   0.875rem;   /* 14 px */
+  --text-base: 1rem;       /* 16 px */
+  --text-lg:   1.125rem;   /* 18 px */
+  --text-xl:   1.25rem;    /* 20 px */
+  --text-2xl:  1.75rem;    /* 28 px */
+  --text-3xl:  2.25rem;    /* 36 px */
+  --text-4xl:  3rem;       /* 48 px */
+  --text-5xl:  4rem;       /* 64 px */
+  --text-6xl:  5rem;       /* 80 px */
 
-  /* ─── Spacing / radii / shadows ───────────────────────────── */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* ─── Radii ─────────────────────────────────────────────────── */
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  24px;
   --radius-pill: 980px;
 
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-sm: 0 2px 4px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 8px 24px -4px rgb(0 0 0 / 0.08);
-  --shadow-lg: 0 20px 40px -10px rgb(0 0 0 / 0.1);
-  --shadow-focus: 0 0 0 3px rgb(37 99 235 / 0.35);
+  /* ─── Shadows — multi-layer, navy-tinted ────────────────────── */
+  --shadow-xs:    0 1px 2px rgb(11 15 30 / 0.04);
+  --shadow-sm:    0 1px 3px rgb(11 15 30 / 0.06), 0 1px 2px rgb(11 15 30 / 0.03);
+  --shadow-md:    0 4px 16px rgb(11 15 30 / 0.08), 0 2px 4px rgb(11 15 30 / 0.04);
+  --shadow-lg:    0 16px 48px rgb(11 15 30 / 0.12), 0 4px 16px rgb(11 15 30 / 0.06);
+  --shadow-focus: 0 0 0 3px rgb(23 96 240 / 0.2);
+  --shadow-brand: 0 4px 20px rgb(23 96 240 / 0.28);   /* glow for primary buttons */
 
-  /* ─── Motion ──────────────────────────────────────────────── */
-  --duration-fast: 120ms;
-  --duration-base: 200ms;
-  --duration-slow: 320ms;
-  --duration-slower: 500ms;
-  --ease-out-apple: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-in-apple: cubic-bezier(0.64, 0, 0.78, 0);
+  /* ─── Motion ─────────────────────────────────────────────────── */
+  --duration-fast:     120ms;
+  --duration-base:     200ms;
+  --duration-slow:     320ms;
+  --duration-slower:   500ms;
+  --ease-out-apple:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-apple:     cubic-bezier(0.64, 0, 0.78, 0);
   --ease-in-out-apple: cubic-bezier(0.45, 0, 0.55, 1);
 }
 
-/* ─── Dark mode via data-theme attribute ────────────────────── */
+/* ─── Dark mode — deep navy, not harsh black ────────────────── */
 html[data-theme="dark"] {
-  --color-bg-canvas: #000000;
-  --color-bg-subtle: #0b0b0f;
-  --color-bg-elevated: #1f2937;
-  --color-bg-muted: #111827;
+  --color-bg-canvas:   #080c18;   /* deep navy canvas */
+  --color-bg-subtle:   #0e1425;
+  --color-bg-elevated: #13192e;
+  --color-bg-muted:    #19203b;
 
-  --color-text-primary: #f5f5f7;
-  --color-text-secondary: #d1d5db;
-  --color-text-tertiary: #6b7280;
+  --color-text-primary:   #edf0f8;
+  --color-text-secondary: #8896b8;
+  --color-text-tertiary:  #4a5570;
 
-  --color-border-subtle: #1f2937;
-  --color-border-default: #374151;
-  --color-border-strong: #4b5563;
+  --color-border-subtle:  #1c2540;
+  --color-border-default: #273354;
+  --color-border-strong:  #3a4d70;
 
-  --color-brand-50: #0c1a3a;
-  --color-brand-500: #60a5fa;
-  --color-brand-600: #3b82f6;
-  --color-brand-700: #2563eb;
+  --color-brand-50:  #0c1635;
+  --color-brand-500: #5c93ff;
+  --color-brand-600: #4578f0;
+  --color-brand-700: #2560e5;
 
-  /* Semantic backgrounds darken in dark mode */
-  --color-success-50: #052e16;
+  --color-success-50:  #052e16;
   --color-success-100: #14532d;
   --color-success-200: #166534;
-  --color-warning-50: #1a0e00;
-  --color-danger-50: #2c0a0a;
-  --color-danger-200: #7f1d1d;
-  --color-info-50: #0c1a3a;
+  --color-warning-50:  #1a0e00;
+  --color-danger-50:   #2c0a0a;
+  --color-danger-200:  #7f1d1d;
+  --color-info-50:     #0c1635;
 }
 
-/* ─── RTL flip for Arabic ───────────────────────────────────── */
+/* ─── RTL / Arabic ──────────────────────────────────────────── */
 html[lang="ar"],
 html[dir="rtl"] {
   font-family: var(--font-arabic);
+}
+
+html[lang="ar"] h1,
+html[lang="ar"] h2,
+html[lang="ar"] h3,
+html[lang="ar"] h4,
+html[dir="rtl"] h1,
+html[dir="rtl"] h2,
+html[dir="rtl"] h3,
+html[dir="rtl"] h4 {
+  font-family: var(--font-arabic);
+  letter-spacing: 0;  /* Arabic script doesn't use letter-spacing */
 }
 
 /* ─── Base typography ───────────────────────────────────────── */
@@ -148,51 +171,74 @@ html[dir="rtl"] {
 
   body {
     font-size: var(--text-base);
-    line-height: 1.5;
+    line-height: 1.6;
+    letter-spacing: -0.011em;
     color: var(--color-text-primary);
     background: var(--color-bg-canvas);
   }
 
-  h1,
-  h2,
-  h3,
-  h4 {
-    letter-spacing: -0.02em;
-    line-height: 1.08;
+  /* Display font on all headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
     color: var(--color-text-primary);
-    font-weight: 600;
+    font-weight: 700;
   }
 
   h1 {
     font-size: var(--text-5xl);
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
   }
   h2 {
     font-size: var(--text-3xl);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
   }
   h3 {
     font-size: var(--text-2xl);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
   }
   h4 {
     font-size: var(--text-xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  h5, h6 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.4;
   }
 
-  /* Focus ring (keyboard-first) */
+  /* Keyboard focus ring */
   :focus-visible {
     outline: 2px solid var(--color-brand-500);
     outline-offset: 2px;
     box-shadow: var(--shadow-focus);
   }
 
-  /* Selection */
+  /* Text selection */
   ::selection {
     background: var(--color-brand-500);
     color: var(--color-text-on-brand);
   }
+
+  /* Thin, subtle scrollbars */
+  ::-webkit-scrollbar          { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track    { background: transparent; }
+  ::-webkit-scrollbar-thumb    { background: var(--color-border-default); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-border-strong); }
 }
 
-/* ─── Utility: Apple pill CTA variant (.cta-pill) ──────────── */
+/* ─── Component utilities ───────────────────────────────────── */
 @layer components {
+
+  /* Pill CTA (used on landing page / hero CTAs) */
   .cta-pill {
     display: inline-flex;
     align-items: center;
@@ -200,7 +246,10 @@ html[dir="rtl"] {
     border-radius: var(--radius-pill);
     padding-inline: 1.25rem;
     padding-block: 0.625rem;
-    font-weight: 500;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: var(--text-sm);
+    letter-spacing: -0.01em;
     transition:
       transform var(--duration-base) var(--ease-out-apple),
       box-shadow var(--duration-base) var(--ease-out-apple),
@@ -214,10 +263,51 @@ html[dir="rtl"] {
 
   .cta-pill:active {
     transform: translateY(0);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Brand-gradient button glow (apply alongside bg-brand-500) */
+  .btn-brand {
+    background: linear-gradient(135deg, var(--color-brand-500) 0%, var(--color-brand-600) 100%);
+    box-shadow: var(--shadow-brand);
+    transition:
+      transform var(--duration-base) var(--ease-out-apple),
+      box-shadow var(--duration-base) var(--ease-out-apple);
+  }
+
+  .btn-brand:hover {
+    box-shadow: 0 6px 28px rgb(23 96 240 / 0.38);
+    transform: translateY(-1px);
+  }
+
+  .btn-brand:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-brand);
+  }
+
+  /* Standard card shorthand */
+  .card {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Subtle glass morphism (navigation, overlays) */
+  .glass {
+    background: rgb(255 255 255 / 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgb(255 255 255 / 0.5);
+  }
+
+  html[data-theme="dark"] .glass {
+    background: rgb(19 25 46 / 0.82);
+    border: 1px solid rgb(255 255 255 / 0.07);
   }
 }
 
-/* ─── Reduced motion respect ────────────────────────────────── */
+/* ─── Reduced motion ────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

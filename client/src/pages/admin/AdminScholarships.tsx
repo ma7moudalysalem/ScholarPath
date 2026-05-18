@@ -21,12 +21,12 @@ const PAGE_SIZE = 20;
 function statusBadgeClass(s: ScholarshipStatus): string {
   switch (s) {
     case "Open":
-      return "bg-emerald-500/10 text-emerald-500";
+      return "bg-success-100 text-success-600";
     case "UnderReview":
-      return "bg-amber-500/10 text-amber-600";
+      return "bg-warning-50 text-warning-600";
     case "Closed":
     case "Archived":
-      return "bg-rose-500/10 text-rose-500";
+      return "bg-danger-50 text-danger-500";
     default:
       return "bg-bg-subtle text-text-tertiary";
   }
@@ -177,7 +177,7 @@ export function AdminScholarships() {
                         type="button"
                         disabled={busy}
                         onClick={() => approveMut.mutate(s.id)}
-                        className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-emerald-500 hover:text-emerald-500 disabled:opacity-50"
+                        className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-success-500 hover:text-success-600 disabled:opacity-50"
                       >
                         {t("moderation:scholarshipModeration.approve")}
                       </button>
@@ -185,7 +185,7 @@ export function AdminScholarships() {
                         type="button"
                         disabled={busy}
                         onClick={() => confirmReject(s.id)}
-                        className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-rose-500 hover:text-rose-500 disabled:opacity-50"
+                        className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500 disabled:opacity-50"
                       >
                         {t("moderation:scholarshipModeration.reject")}
                       </button>

@@ -12,10 +12,10 @@ import {
 const VERDICTS: RedactionVerdict[] = ["Clean", "MissedEmail", "MissedPhone", "MissedCard"];
 
 const VERDICT_STYLES: Record<RedactionVerdict, string> = {
-  Clean: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-400 dark:border-green-800",
-  MissedEmail: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
-  MissedPhone: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800",
-  MissedCard: "bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800",
+  Clean:       "bg-success-100 text-success-700 border-success-200",
+  MissedEmail: "bg-warning-50 text-warning-600 border-warning-500/30",
+  MissedPhone: "bg-warning-50 text-warning-600 border-warning-500/30",
+  MissedCard:  "bg-danger-50 text-danger-500 border-danger-200",
 };
 
 export function RedactionAuditPage() {
@@ -137,8 +137,8 @@ export function RedactionAuditPage() {
                       disabled={verdictMut.isPending}
                       className={`rounded-md border px-3 py-1 text-xs font-medium transition disabled:opacity-50 ${
                         v === "Clean"
-                          ? "border-green-200 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400 dark:hover:bg-green-950/40"
-                          : "border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-950/40"
+                          ? "border-success-200 text-success-700 hover:bg-success-100"
+                          : "border-warning-500/30 text-warning-600 hover:bg-warning-50"
                       }`}
                     >
                       {v}

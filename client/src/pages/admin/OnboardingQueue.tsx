@@ -67,14 +67,14 @@ export function OnboardingQueue() {
                     <button
                       type="button"
                       onClick={() => approve(u)}
-                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-emerald-500 hover:text-emerald-500"
+                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-success-500 hover:text-success-600"
                     >
                       {t("admin:onboarding.actions.approve")}
                     </button>
                     <button
                       type="button"
                       onClick={() => reject(u)}
-                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-rose-500 hover:text-rose-500"
+                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500"
                     >
                       {t("admin:onboarding.actions.reject")}
                     </button>

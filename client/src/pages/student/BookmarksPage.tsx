@@ -14,10 +14,10 @@ import type { FundingType } from "@/types/domain";
 
 function FundingBadge({ type }: { type: FundingType }) {
   const colors: Record<FundingType, string> = {
-    FullyFunded:     "bg-emerald-500/10 text-emerald-600",
-    PartiallyFunded: "bg-blue-500/10 text-blue-600",
-    TuitionOnly:     "bg-purple-500/10 text-purple-600",
-    StipendOnly:     "bg-amber-500/10 text-amber-600",
+    FullyFunded:     "bg-success-100 text-success-600",
+    PartiallyFunded: "bg-brand-100 text-brand-600",
+    TuitionOnly:     "bg-info-50 text-brand-700",
+    StipendOnly:     "bg-warning-50 text-warning-600",
     Other:           "bg-bg-subtle text-text-tertiary",
   };
   return (
@@ -70,7 +70,7 @@ export function BookmarksPage() {
   // ── Error ──────────────────────────────────────────────────────────────────
   if (isError) {
     return (
-      <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-600">
+      <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-500">
         {t("common:status.error")}
       </div>
     );
@@ -139,7 +139,7 @@ export function BookmarksPage() {
                 onClick={(e) => handleRemove(e, scholarship.id)}
                 aria-label={t("scholarships:bookmark.remove")}
                 disabled={bookmarkMut.isPending}
-                className="absolute inset-e-4 top-4 text-text-tertiary transition hover:text-rose-500 disabled:opacity-50"
+                className="absolute inset-e-4 top-4 text-text-tertiary transition hover:text-danger-500 disabled:opacity-50"
               >
                 <Trash2 aria-hidden className="size-4" />
               </button>
@@ -167,8 +167,8 @@ export function BookmarksPage() {
                   <span
                     className={cn(
                       "font-medium",
-                      isClosed  ? "text-rose-500"      :
-                      isUrgent  ? "text-amber-500"     : "text-text-tertiary",
+                      isClosed  ? "text-danger-500"    :
+                      isUrgent  ? "text-warning-500"   : "text-text-tertiary",
                     )}
                   >
                     {isClosed

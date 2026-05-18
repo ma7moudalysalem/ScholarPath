@@ -35,12 +35,12 @@ function actionBadgeClass(a: AuditAction): string {
     case "Rejected":
     case "LoginFailed":
     case "PaymentRefunded":
-      return "bg-rose-500/10 text-rose-500";
+      return "bg-danger-50 text-danger-500";
     case "Create":
     case "Approved":
     case "PaymentCaptured":
     case "Login":
-      return "bg-emerald-500/10 text-emerald-500";
+      return "bg-success-100 text-success-600";
     case "Update":
     case "RoleChanged":
     case "ConfigChanged":

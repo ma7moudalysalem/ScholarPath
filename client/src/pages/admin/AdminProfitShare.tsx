@@ -82,7 +82,7 @@ export function AdminProfitShare() {
                     {c.effectiveTo ? (
                       format(new Date(c.effectiveTo), "yyyy-MM-dd")
                     ) : (
-                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 font-medium text-emerald-500">
+                      <span className="rounded-full bg-success-100 px-2 py-0.5 font-medium text-success-600">
                         {t("payments:profitShare.active")}
                       </span>
                     )}

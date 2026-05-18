@@ -57,7 +57,7 @@ export function StripeCheckout({
 
   if (!configured) {
     return (
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-600">
+      <div className="rounded-lg border border-warning-500/30 bg-warning-50 p-4 text-sm text-warning-600">
         Set <code>VITE_STRIPE_PUBLISHABLE_KEY</code> to enable checkout.
       </div>
     );
@@ -65,7 +65,7 @@ export function StripeCheckout({
 
   if (error) {
     return (
-      <div className="rounded-lg border border-rose-300 bg-rose-50 p-4 text-sm text-rose-600">
+      <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-500">
         {error}
       </div>
     );

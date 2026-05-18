@@ -180,7 +180,7 @@ function ResourceCard({
           {t(`resources:resourceType.${resource.type}`)}
         </span>
         {resource.isFeatured && (
-          <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600">
+          <span className="rounded-full bg-warning-50 px-2 py-0.5 text-xs font-medium text-warning-600">
             {t("resources:browse.featured")}
           </span>
         )}
