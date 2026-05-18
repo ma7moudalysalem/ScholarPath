@@ -25,16 +25,24 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
 {
     // ─── Student write-side (PB-004) ─────────────────────────────────────────
 
-    /// <summary>Creates a new Draft application for the authenticated student.</summary>
+    /// <summary>
+    /// Starts — or resumes — a Draft application for the authenticated student.
+    /// Idempotent per (student, scholarship): if a non-terminal application
+    /// already exists it is returned with <c>alreadyExisted: true</c> rather
+    /// than rejected, so a repeated "Apply" click reopens the existing draft.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = "Student")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(StartApplicationResult), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(StartApplicationResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<Guid>> Start(StartApplicationCommand command, CancellationToken ct)
+    public async Task<ActionResult<StartApplicationResult>> Start(StartApplicationCommand command, CancellationToken ct)
     {
-        var id = await mediator.Send(command, ct);
-        return CreatedAtAction(nameof(GetById), new { id }, id);
+        var result = await mediator.Send(command, ct);
+        return result.AlreadyExisted
+            ? Ok(result)
+            : CreatedAtAction(nameof(GetById), new { id = result.ApplicationId }, result);
     }
 
     /// <summary>

@@ -16,13 +16,20 @@ namespace ScholarPath.Application.Applications.Commands.StartApplication;
     SummaryTemplate = "Started draft application for scholarship {ScholarshipId}")]
 public sealed record StartApplicationCommand(
     Guid ScholarshipId,
-    string? PersonalNotes) : IRequest<Guid>;
+    string? PersonalNotes) : IRequest<StartApplicationResult>;
+
+/// <summary>
+/// Outcome of <see cref="StartApplicationCommand"/>. <see cref="AlreadyExisted"/>
+/// is <see langword="true"/> when the student already had a non-terminal
+/// application for the scholarship, so it was resumed rather than created.
+/// </summary>
+public sealed record StartApplicationResult(Guid ApplicationId, bool AlreadyExisted);
 
 public sealed class StartApplicationCommandHandler(
     IApplicationDbContext db,
-    ICurrentUserService currentUser) : IRequestHandler<StartApplicationCommand, Guid>
+    ICurrentUserService currentUser) : IRequestHandler<StartApplicationCommand, StartApplicationResult>
 {
-    public async Task<Guid> Handle(StartApplicationCommand request, CancellationToken ct)
+    public async Task<StartApplicationResult> Handle(StartApplicationCommand request, CancellationToken ct)
     {
         // 1. Verify caller identity
         var userId = currentUser.UserId
@@ -44,19 +51,23 @@ public sealed class StartApplicationCommandHandler(
             throw new ConflictException(
                 "This scholarship is currently closed for applications.");
 
-        // 5. B1: prevent duplicate active applications.
-        //    IsActive is a computed (unmapped) property — inline the terminal-state
-        //    check so the predicate translates to SQL.
-        var hasActive = await db.Applications.AnyAsync(a =>
-            a.StudentId == userId &&
-            a.ScholarshipId == request.ScholarshipId &&
-            a.Status != ApplicationStatus.Withdrawn &&
-            a.Status != ApplicationStatus.Rejected &&
-            a.Status != ApplicationStatus.Accepted, ct);
+        // 5. B1: an in-app application is idempotent per (student, scholarship).
+        //    If the student already has a non-terminal application, resume it
+        //    instead of dead-ending on a 409 — a repeated "Apply" click then
+        //    simply reopens the existing draft. IsActive is a computed (unmapped)
+        //    property, so the terminal-state check is inlined to translate to SQL.
+        var existingId = await db.Applications
+            .Where(a =>
+                a.StudentId == userId &&
+                a.ScholarshipId == request.ScholarshipId &&
+                a.Status != ApplicationStatus.Withdrawn &&
+                a.Status != ApplicationStatus.Rejected &&
+                a.Status != ApplicationStatus.Accepted)
+            .Select(a => (Guid?)a.Id)
+            .FirstOrDefaultAsync(ct);
 
-        if (hasActive)
-            throw new ConflictException(
-                "You already have an active application for this scholarship.");
+        if (existingId is not null)
+            return new StartApplicationResult(existingId.Value, AlreadyExisted: true);
 
         // 6. Create the draft entity
         var entity = new ApplicationTracker
@@ -73,6 +84,6 @@ public sealed class StartApplicationCommandHandler(
         db.Applications.Add(entity);
         await db.SaveChangesAsync(ct);
 
-        return entity.Id;
+        return new StartApplicationResult(entity.Id, AlreadyExisted: false);
     }
 }

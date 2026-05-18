@@ -1,10 +1,14 @@
 using FluentAssertions;
 using FluentValidation.TestHelper;
+using Microsoft.EntityFrameworkCore;
+using NSubstitute;
 using ScholarPath.Application.Applications.Commands.StartApplication;
 using ScholarPath.Application.Applications.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
+using ScholarPath.Infrastructure.Persistence;
 using Xunit;
 
 namespace ScholarPath.UnitTests.Applications;
@@ -161,4 +165,122 @@ public class ApplicationTrackerIsActiveTests
         var app = new ApplicationTracker { Status = status };
         app.IsReadOnly.Should().BeFalse();
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Covers <see cref="StartApplicationCommandHandler"/> — in particular the
+/// idempotent-resume behaviour: a repeated "Apply" on a scholarship the student
+/// already has a live application for must reopen it, not dead-end on a 409.
+/// </summary>
+public sealed class StartApplicationCommandHandlerTests : IDisposable
+{
+    private readonly ApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
+    private readonly Guid _studentId = Guid.NewGuid();
+
+    public StartApplicationCommandHandlerTests()
+    {
+        _db = new ApplicationDbContext(
+            new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .Options);
+        _currentUser.UserId.Returns(_studentId);
+    }
+
+    private Guid SeedOpenScholarship()
+    {
+        var id = Guid.NewGuid();
+        _db.Scholarships.Add(new Scholarship
+        {
+            Id = id,
+            TitleEn = "Test Scholarship",
+            TitleAr = "منحة اختبار",
+            DescriptionEn = "Description",
+            DescriptionAr = "وصف",
+            Slug = $"test-{id:N}",
+            Mode = ListingMode.InApp,
+            Status = ScholarshipStatus.Open,
+            Deadline = DateTimeOffset.UtcNow.AddDays(30),
+        });
+        _db.SaveChanges();
+        return id;
+    }
+
+    private ApplicationTracker SeedApplication(Guid scholarshipId, ApplicationStatus status)
+    {
+        var app = new ApplicationTracker
+        {
+            Id = Guid.NewGuid(),
+            StudentId = _studentId,
+            ScholarshipId = scholarshipId,
+            Mode = ApplicationMode.InApp,
+            Status = status,
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-2),
+        };
+        _db.Applications.Add(app);
+        _db.SaveChanges();
+        return app;
+    }
+
+    private StartApplicationCommandHandler NewHandler() => new(_db, _currentUser);
+
+    [Fact]
+    public async Task Handle_NoExistingApplication_CreatesADraftApplication()
+    {
+        var scholarshipId = SeedOpenScholarship();
+
+        var result = await NewHandler().Handle(
+            new StartApplicationCommand(scholarshipId, null), CancellationToken.None);
+
+        result.AlreadyExisted.Should().BeFalse();
+        var apps = await _db.Applications.ToListAsync();
+        apps.Should().ContainSingle();
+        apps[0].Id.Should().Be(result.ApplicationId);
+        apps[0].Status.Should().Be(ApplicationStatus.Draft);
+    }
+
+    [Fact]
+    public async Task Handle_ActiveDraftAlreadyExists_ResumesItWithoutCreatingADuplicate()
+    {
+        var scholarshipId = SeedOpenScholarship();
+        var existing = SeedApplication(scholarshipId, ApplicationStatus.Draft);
+
+        var result = await NewHandler().Handle(
+            new StartApplicationCommand(scholarshipId, null), CancellationToken.None);
+
+        result.AlreadyExisted.Should().BeTrue();
+        result.ApplicationId.Should().Be(existing.Id);
+        (await _db.Applications.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_SubmittedApplicationAlreadyExists_ResumesItRatherThanErroring()
+    {
+        var scholarshipId = SeedOpenScholarship();
+        var existing = SeedApplication(scholarshipId, ApplicationStatus.Pending);
+
+        var result = await NewHandler().Handle(
+            new StartApplicationCommand(scholarshipId, null), CancellationToken.None);
+
+        result.AlreadyExisted.Should().BeTrue();
+        result.ApplicationId.Should().Be(existing.Id);
+    }
+
+    [Fact]
+    public async Task Handle_OnlyATerminalApplicationExists_CreatesAFreshDraft()
+    {
+        var scholarshipId = SeedOpenScholarship();
+        SeedApplication(scholarshipId, ApplicationStatus.Withdrawn);
+
+        var result = await NewHandler().Handle(
+            new StartApplicationCommand(scholarshipId, null), CancellationToken.None);
+
+        // A withdrawn application is terminal — re-applying must be allowed.
+        result.AlreadyExisted.Should().BeFalse();
+        (await _db.Applications.CountAsync()).Should().Be(2);
+    }
+
+    public void Dispose() => _db.Dispose();
 }

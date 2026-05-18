@@ -73,6 +73,13 @@ export interface ApplicationDetail {
   decisionAt: string | null;
 }
 
+/** Result of `POST /api/applications` — mirrors the server's StartApplicationResult. */
+export interface StartApplicationResult {
+  applicationId: string;
+  /** True when an existing non-terminal application was resumed, not created. */
+  alreadyExisted: boolean;
+}
+
 export const applicationsApi = {
   async getMyApplications(): Promise<StudentApplicationRow[]> {
     const { data } = await apiClient.get<StudentApplicationRow[]>("/api/applications/me");
@@ -125,12 +132,16 @@ export const applicationsApi = {
   },
 
   /**
-   * Starts a new in-app application (Draft status) for the given scholarship.
-   * Returns the new application id. The server rejects external listings,
-   * closed scholarships, and duplicate active applications with 409.
+   * Starts — or resumes — an in-app Draft application for the given scholarship.
+   * Idempotent: if the student already has a non-terminal application, the
+   * server returns it with `alreadyExisted: true` instead of erroring. External
+   * listings and closed scholarships are still rejected with 409.
    */
-  async start(scholarshipId: string, personalNotes?: string | null): Promise<string> {
-    const { data } = await apiClient.post<string>("/api/applications", {
+  async start(
+    scholarshipId: string,
+    personalNotes?: string | null,
+  ): Promise<StartApplicationResult> {
+    const { data } = await apiClient.post<StartApplicationResult>("/api/applications", {
       scholarshipId,
       personalNotes: personalNotes ?? null,
     });

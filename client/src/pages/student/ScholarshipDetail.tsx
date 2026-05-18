@@ -78,9 +78,13 @@ export function ScholarshipDetail() {
   // can review and submit it. External listings use the external-URL button.
   const applyMut = useMutation({
     mutationFn: (scholarshipId: string) => applicationsApi.start(scholarshipId),
-    onSuccess: (applicationId) => {
-      toast.success(t("scholarships:detail.applyStarted"));
-      navigate(`/student/applications/${applicationId}`);
+    onSuccess: (result) => {
+      toast.success(
+        result.alreadyExisted
+          ? t("scholarships:detail.applyResumed")
+          : t("scholarships:detail.applyStarted"),
+      );
+      navigate(`/student/applications/${result.applicationId}`);
     },
     onError: (err: { status?: number }) => {
       if (err.status === 409) {
