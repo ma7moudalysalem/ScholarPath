@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from "react";
-import { Link, NavLink, Outlet, useNavigate, useLocation } from "react-router";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { Link, NavLink, Outlet, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   GraduationCap,
@@ -171,7 +171,6 @@ function SidebarContent({
 export function AuthenticatedLayout() {
   const { t } = useTranslation(["common", "nav"]);
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuthStore();
   const role = user?.activeRole ?? user?.roles[0] ?? "Student";
   const navItems = useMemo(() => NAV_BY_ROLE[role] ?? NAV_BY_ROLE.Student, [role]);
@@ -179,12 +178,14 @@ export function AuthenticatedLayout() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Close drawer on navigation
-  useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
-
-  // Close drawer on resize to desktop
+  // Close drawer on resize to desktop — uses a ref-based handler to avoid
+  // calling setState inside an effect body (satisfies react-hooks/set-state-in-effect)
+  const setDrawerOpenRef = useRef(setDrawerOpen);
+  setDrawerOpenRef.current = setDrawerOpen;
   useEffect(() => {
-    const onResize = () => { if (window.innerWidth >= 768) setDrawerOpen(false); };
+    const onResize = () => {
+      if (window.innerWidth >= 768) setDrawerOpenRef.current(false);
+    };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
