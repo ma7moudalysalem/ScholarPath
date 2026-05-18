@@ -25,6 +25,9 @@ public static partial class DbSeeder
             .ToListAsync(ct).ConfigureAwait(false);
         if (existing.Count > 0)
         {
+            // Resources already seeded. Back-fill chapters when an earlier run
+            // created the resources before chapter seeding existed.
+            await SeedResourceChaptersAsync(db, existing, logger, ct).ConfigureAwait(false);
             return existing;
         }
 
@@ -203,32 +206,63 @@ public static partial class DbSeeder
         db.Resources.AddRange(resources);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        // Chapters for the two Guides (the first guide + the pending-review guide).
-        var chapters = new List<ResourceChild>();
-        var mainGuide = resources[0];
-        chapters.AddRange(
-        [
-            new ResourceChild { ResourceId = mainGuide.Id, TitleEn = "Researching scholarships", TitleAr = "البحث عن المنح", ContentMarkdownEn = "Use category filters and deadlines to build a shortlist.", ContentMarkdownAr = "استخدم فلاتر التصنيف والمواعيد لبناء قائمة مختصرة.", SortOrder = 1, EstimatedReadMinutes = 6 },
-            new ResourceChild { ResourceId = mainGuide.Id, TitleEn = "Preparing your documents", TitleAr = "تجهيز مستنداتك", ContentMarkdownEn = "Gather transcripts, references and a tailored statement.", ContentMarkdownAr = "اجمع كشوف الدرجات والتوصيات وبياناً مخصصاً.", SortOrder = 2, EstimatedReadMinutes = 8 },
-            new ResourceChild { ResourceId = mainGuide.Id, TitleEn = "Writing the personal statement", TitleAr = "كتابة البيان الشخصي", ContentMarkdownEn = "Tell a focused story that answers the prompt.", ContentMarkdownAr = "اروِ قصة مركزة تجيب عن السؤال.", SortOrder = 3, EstimatedReadMinutes = 10 },
-            new ResourceChild { ResourceId = mainGuide.Id, TitleEn = "Submitting and following up", TitleAr = "التقديم والمتابعة", ContentMarkdownEn = "Submit early and track the application status.", ContentMarkdownAr = "قدّم مبكراً وتابع حالة الطلب.", SortOrder = 4, EstimatedReadMinutes = 5 },
-        ]);
-
-        var pendingGuide = resources.First(r => r.Status == ResourceStatus.PendingReview);
-        chapters.AddRange(
-        [
-            new ResourceChild { ResourceId = pendingGuide.Id, TitleEn = "Fixed vs variable costs", TitleAr = "التكاليف الثابتة والمتغيرة", ContentMarkdownEn = "Separate rent and insurance from food and leisure.", ContentMarkdownAr = "افصل الإيجار والتأمين عن الطعام والترفيه.", SortOrder = 1, EstimatedReadMinutes = 5 },
-            new ResourceChild { ResourceId = pendingGuide.Id, TitleEn = "Building an emergency fund", TitleAr = "بناء صندوق للطوارئ", ContentMarkdownEn = "Aim for one month of expenses in reserve.", ContentMarkdownAr = "استهدف ادخار نفقات شهر كاحتياطي.", SortOrder = 2, EstimatedReadMinutes = 4 },
-        ]);
-
-        db.ResourceChapters.AddRange(chapters);
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
-        logger.LogInformation("Seeded {N} resources (+{C} chapters) covering all statuses and types", resources.Count, chapters.Count);
+        await SeedResourceChaptersAsync(db, resources, logger, ct).ConfigureAwait(false);
+        logger.LogInformation("Seeded {N} resources covering all statuses and types", resources.Count);
 
         // Re-load with chapters populated so the engagement seeder can use them.
         return await db.Resources.IgnoreQueryFilters()
             .Include(r => r.Chapters)
             .ToListAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Seeds chapter content for the multi-part guides. Idempotent on
+    /// <see cref="ResourceChild"/> being empty, so it back-fills chapters even
+    /// when the resources were created by an earlier seed run that predated
+    /// this code. Guides are matched by slug.
+    /// </summary>
+    private static async Task SeedResourceChaptersAsync(
+        ApplicationDbContext db, IReadOnlyList<Resource> resources, ILogger logger, CancellationToken ct)
+    {
+        if (await db.ResourceChapters.AnyAsync(ct).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        var mainGuide = resources.FirstOrDefault(
+            r => r.Slug == "complete-scholarship-application-guide");
+        var pendingGuide = resources.FirstOrDefault(
+            r => r.Slug == "budgeting-international-student");
+
+        var chapters = new List<ResourceChild>();
+        if (mainGuide is not null)
+        {
+            chapters.AddRange(
+            [
+                new ResourceChild { ResourceId = mainGuide.Id, TitleEn = "Researching scholarships", TitleAr = "البحث عن المنح", ContentMarkdownEn = "Use category filters and deadlines to build a shortlist.", ContentMarkdownAr = "استخدم فلاتر التصنيف والمواعيد لبناء قائمة مختصرة.", SortOrder = 1, EstimatedReadMinutes = 6 },
+                new ResourceChild { ResourceId = mainGuide.Id, TitleEn = "Preparing your documents", TitleAr = "تجهيز مستنداتك", ContentMarkdownEn = "Gather transcripts, references and a tailored statement.", ContentMarkdownAr = "اجمع كشوف الدرجات والتوصيات وبياناً مخصصاً.", SortOrder = 2, EstimatedReadMinutes = 8 },
+                new ResourceChild { ResourceId = mainGuide.Id, TitleEn = "Writing the personal statement", TitleAr = "كتابة البيان الشخصي", ContentMarkdownEn = "Tell a focused story that answers the prompt.", ContentMarkdownAr = "اروِ قصة مركزة تجيب عن السؤال.", SortOrder = 3, EstimatedReadMinutes = 10 },
+                new ResourceChild { ResourceId = mainGuide.Id, TitleEn = "Submitting and following up", TitleAr = "التقديم والمتابعة", ContentMarkdownEn = "Submit early and track the application status.", ContentMarkdownAr = "قدّم مبكراً وتابع حالة الطلب.", SortOrder = 4, EstimatedReadMinutes = 5 },
+            ]);
+        }
+
+        if (pendingGuide is not null)
+        {
+            chapters.AddRange(
+            [
+                new ResourceChild { ResourceId = pendingGuide.Id, TitleEn = "Fixed vs variable costs", TitleAr = "التكاليف الثابتة والمتغيرة", ContentMarkdownEn = "Separate rent and insurance from food and leisure.", ContentMarkdownAr = "افصل الإيجار والتأمين عن الطعام والترفيه.", SortOrder = 1, EstimatedReadMinutes = 5 },
+                new ResourceChild { ResourceId = pendingGuide.Id, TitleEn = "Building an emergency fund", TitleAr = "بناء صندوق للطوارئ", ContentMarkdownEn = "Aim for one month of expenses in reserve.", ContentMarkdownAr = "استهدف ادخار نفقات شهر كاحتياطي.", SortOrder = 2, EstimatedReadMinutes = 4 },
+            ]);
+        }
+
+        if (chapters.Count == 0)
+        {
+            return;
+        }
+
+        db.ResourceChapters.AddRange(chapters);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        logger.LogInformation("Seeded {C} resource chapters", chapters.Count);
     }
 
     /// <summary>
