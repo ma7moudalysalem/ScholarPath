@@ -77,18 +77,25 @@ export interface RefundPaymentBody {
 
 // ─── intent creation (used by the Stripe checkout widget) ────────────────────
 
+/**
+ * Body for `POST /api/payments/intent` — mirrors the server's
+ * `CreatePaymentIntentCommand`. The capture method is derived server-side from
+ * `type`, so it is not sent. The payer is always the authenticated caller.
+ */
 export interface CreateIntentRequest {
+  type: PaymentType;
   amountCents: number;
   currency: string;
-  captureMethod: "manual" | "automatic";
-  bookingId?: string;
-  applicationId?: string;
+  payeeUserId?: string | null;
+  relatedBookingId?: string | null;
+  relatedApplicationId?: string | null;
 }
 
+/** Mirrors the server's `CreatePaymentIntentResult`. */
 export interface CreateIntentResponse {
-  paymentIntentId: string;
+  paymentId: string;
   clientSecret: string;
-  status: string;
+  paymentIntentId: string;
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────

@@ -41,7 +41,12 @@ export function StripeCheckout({
     if (!configured) return;
     let cancelled = false;
     paymentsApi
-      .createIntent({ amountCents, currency, captureMethod: "manual", bookingId })
+      .createIntent({
+        type: "ConsultantBooking",
+        amountCents,
+        currency,
+        relatedBookingId: bookingId,
+      })
       .then((res) => {
         if (!cancelled) setClientSecret(res.clientSecret);
       })
