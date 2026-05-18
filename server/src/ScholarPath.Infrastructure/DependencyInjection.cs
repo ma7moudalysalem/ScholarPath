@@ -84,7 +84,7 @@ public static class DependencyInjection
 
         // Auth / Identity adapters
         services.AddScoped<ITokenService, TokenService>();
-        services.AddSingleton<IPasswordHasher, StubPasswordHasher>();
+        services.AddSingleton<IPasswordHasher, IdentityPasswordHasher>();
 
         // SSO: the real Google/Microsoft OAuth implementation by default. It
         // becomes fully functional once real client credentials replace the

@@ -5,9 +5,8 @@ namespace ScholarPath.Infrastructure.Services;
 
 /// <summary>
 /// Default fallback implementations, registered by <c>AddInfrastructureServices</c>
-/// only when the corresponding real provider is not configured (no SMTP host,
-/// no OAuth credentials, no Stripe key, no ClamAV daemon). <c>StubPasswordHasher</c>
-/// is always used — it wraps the ASP.NET Identity password hasher.
+/// only when the corresponding real provider is not configured: no SMTP host,
+/// no OAuth credentials, no Stripe key, or no ClamAV daemon.
 /// </summary>
 
 public sealed class StubEmailService(ILogger<StubEmailService> logger) : IEmailService
@@ -32,19 +31,6 @@ public sealed class StubSsoService : ISsoService
 
     public string BuildMicrosoftAuthorizeUrl(string redirectUri, string state) =>
         $"https://login.microsoftonline.com/common/oauth2/v2.0/authorize?redirect_uri={redirectUri}&state={state}&scope=openid%20email%20profile";
-}
-
-public sealed class StubPasswordHasher : IPasswordHasher
-{
-    // Wraps Identity's built-in PasswordHasher for v2 — but kept behind interface for testability.
-    private readonly Microsoft.AspNetCore.Identity.PasswordHasher<object> _hasher = new();
-
-    public string Hash(string password) => _hasher.HashPassword(new object(), password);
-
-    public bool Verify(string hash, string password) =>
-        _hasher.VerifyHashedPassword(new object(), hash, password)
-            is Microsoft.AspNetCore.Identity.PasswordVerificationResult.Success
-            or Microsoft.AspNetCore.Identity.PasswordVerificationResult.SuccessRehashNeeded;
 }
 
 public sealed class StubStripeService(ILogger<StubStripeService> logger) : IStripeService
