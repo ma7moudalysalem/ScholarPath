@@ -106,7 +106,9 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
     [Authorize(Roles = "Student")]
     public async Task<IActionResult> GetMyApplications(CancellationToken ct)
     {
-        var result = await mediator.Send(new GetMyApplicationsQuery(), ct);
+        var headerLang = Request.Headers.AcceptLanguage.ToString().Split(',').FirstOrDefault() ?? "en";
+        var lang = headerLang.StartsWith("ar", StringComparison.OrdinalIgnoreCase) ? "ar" : "en";
+        var result = await mediator.Send(new GetMyApplicationsQuery(lang), ct);
         return Ok(result);
     }
 

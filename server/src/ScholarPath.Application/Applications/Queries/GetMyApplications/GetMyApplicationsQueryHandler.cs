@@ -12,6 +12,7 @@ public sealed class GetMyApplicationsQueryHandler(
     public async Task<IReadOnlyList<StudentApplicationRow>> Handle(GetMyApplicationsQuery request, CancellationToken ct)
     {
         var studentId = currentUser.UserId;
+        var lang = request.Language.ToLower() == "ar" ? "ar" : "en";
 
         var applications = await db.Applications
             .AsNoTracking()
@@ -22,7 +23,9 @@ public sealed class GetMyApplicationsQueryHandler(
             .Select(a => new StudentApplicationRow(
                 a.Id,
                 a.ScholarshipId,
-                a.Scholarship!.TitleEn, // Fallback to EN
+                lang == "ar"
+                    ? (a.Scholarship!.TitleAr ?? a.Scholarship!.TitleEn)
+                    : (a.Scholarship!.TitleEn ?? a.Scholarship!.TitleAr),
                 a.Scholarship.OwnerCompanyId,
                 a.Scholarship.OwnerCompany != null ? a.Scholarship.OwnerCompany.FullName : null,
                 a.Status,

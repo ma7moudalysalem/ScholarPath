@@ -3,7 +3,7 @@ using ScholarPath.Application.Applications.DTOs;
 
 namespace ScholarPath.Application.Applications.Queries.GetMyApplications;
 
-public record GetMyApplicationsQuery() : IRequest<IReadOnlyList<StudentApplicationRow>>;
+public record GetMyApplicationsQuery(string Language = "en") : IRequest<IReadOnlyList<StudentApplicationRow>>;
 
 public record StudentApplicationRow(
     Guid ApplicationId,
