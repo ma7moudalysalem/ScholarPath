@@ -46,11 +46,12 @@ public sealed class CheckEligibilityCommandHandler(
             var result = await ai.CheckEligibilityAsync(userId, request.ScholarshipId, ct).ConfigureAwait(false);
 
             var criteria = result.Criteria
-                .Select(c => new EligibilityCriterionDto(c.Name, c.StudentValue, c.ListingRequirement, c.Match))
+                .Select(c => new EligibilityCriterionDto(
+                    c.NameEn, c.NameAr, c.StudentValue, c.ListingRequirement, c.Match))
                 .ToList();
 
             interaction.ResponseText = System.Text.Json.JsonSerializer.Serialize(
-                new { result.Summary, Verdict = result.Verdict.ToString(), criteria });
+                new { result.SummaryEn, result.SummaryAr, Verdict = result.Verdict.ToString(), criteria });
             interaction.CostUsd = EstimatedCost;
             interaction.CompletedAt = clock.UtcNow;
 
@@ -59,7 +60,8 @@ public sealed class CheckEligibilityCommandHandler(
             return new EligibilityDto(
                 request.ScholarshipId,
                 criteria,
-                result.Summary,
+                result.SummaryEn,
+                result.SummaryAr,
                 result.Verdict,
                 result.Disclaimer,
                 interaction.CompletedAt.Value);

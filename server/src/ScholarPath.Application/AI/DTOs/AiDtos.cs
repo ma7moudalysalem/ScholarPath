@@ -17,7 +17,8 @@ public sealed record RecommendationsDto(
     DateTimeOffset GeneratedAt);
 
 public sealed record EligibilityCriterionDto(
-    string Name,
+    string NameEn,
+    string NameAr,
     string StudentValue,
     string ListingRequirement,
     string Match);
@@ -25,7 +26,8 @@ public sealed record EligibilityCriterionDto(
 public sealed record EligibilityDto(
     Guid ScholarshipId,
     IReadOnlyList<EligibilityCriterionDto> Criteria,
-    string Summary,
+    string SummaryEn,
+    string SummaryAr,
     // SRS FR-117 — overall classification derived from the per-criterion verdicts.
     EligibilityVerdict Verdict,
     string Disclaimer,

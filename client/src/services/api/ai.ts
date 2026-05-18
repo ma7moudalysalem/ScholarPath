@@ -26,7 +26,8 @@ export interface RecommendationsDto {
 }
 
 export interface EligibilityCriterion {
-  name: string;
+  nameEn: string;
+  nameAr: string;
   studentValue: string;
   listingRequirement: string;
   match: EligibilityMatch;
@@ -35,7 +36,8 @@ export interface EligibilityCriterion {
 export interface EligibilityDto {
   scholarshipId: string;
   criteria: EligibilityCriterion[];
-  summary: string;
+  summaryEn: string;
+  summaryAr: string;
   /** SRS FR-117 — overall verdict derived server-side from `criteria`. */
   verdict: EligibilityVerdict;
   disclaimer: string;

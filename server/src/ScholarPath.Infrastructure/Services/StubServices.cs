@@ -80,6 +80,7 @@ public sealed class StubAiService : IAiService
         Task.FromResult(new AiEligibilityResult(
             Array.Empty<AiEligibilityCriterion>(),
             "No eligibility data available in stub mode.",
+            "لا تتوفر بيانات أهلية في وضع التجربة.",
             Disclaimer,
             EligibilityVerdict.NotEligible));
 

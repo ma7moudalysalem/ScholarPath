@@ -51,6 +51,8 @@
     },
     "you": "You",
     "listing": "Listing",
+    "unknownValue": "Not set",
+    "anyValue": "Any",
     "improve": {
       "heading": "What to improve",
       "intro": "Strengthen these areas to improve your eligibility.",

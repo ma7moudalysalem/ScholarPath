@@ -109,6 +109,7 @@ public sealed class LocalAiService(
             return new AiEligibilityResult(
                 Array.Empty<AiEligibilityCriterion>(),
                 "Scholarship not found.",
+                "المنحة غير موجودة.",
                 Disclaimer,
                 EligibilityVerdict.NotEligible);
         }
@@ -122,7 +123,8 @@ public sealed class LocalAiService(
 
         // Academic level
         criteria.Add(new AiEligibilityCriterion(
-            Name: "Academic level",
+            NameEn: "Academic level",
+            NameAr: "المستوى الأكاديمي",
             StudentValue: profile?.AcademicLevel?.ToString() ?? "unknown",
             ListingRequirement: scholarship.TargetLevel.ToString(),
             Match: profile?.AcademicLevel == scholarship.TargetLevel ? "yes"
@@ -132,7 +134,8 @@ public sealed class LocalAiService(
         var listingCountries = ParseJsonArray(scholarship.TargetCountriesJson);
         var studentCountry = profile?.Nationality ?? string.Empty;
         criteria.Add(new AiEligibilityCriterion(
-            Name: "Country",
+            NameEn: "Country",
+            NameAr: "الدولة",
             StudentValue: string.IsNullOrWhiteSpace(studentCountry) ? "unknown" : studentCountry,
             ListingRequirement: listingCountries.Count == 0 ? "any" : string.Join(", ", listingCountries),
             Match: listingCountries.Count == 0 ? "yes"
@@ -143,7 +146,8 @@ public sealed class LocalAiService(
         var tags = ParseJsonArray(scholarship.TagsJson);
         var fos = profile?.FieldOfStudy ?? string.Empty;
         criteria.Add(new AiEligibilityCriterion(
-            Name: "Field of study",
+            NameEn: "Field of study",
+            NameAr: "مجال الدراسة",
             StudentValue: string.IsNullOrWhiteSpace(fos) ? "unknown" : fos,
             ListingRequirement: tags.Count == 0 ? "any" : string.Join(", ", tags),
             Match: tags.Count == 0 ? "yes"
@@ -153,7 +157,8 @@ public sealed class LocalAiService(
 
         var matches = criteria.Count(c => c.Match == "yes");
         var verdict = DeriveVerdict(criteria);
-        var summary = verdict switch
+
+        var summaryEn = verdict switch
         {
             EligibilityVerdict.Eligible =>
                 "You appear to meet all listed criteria.",
@@ -163,7 +168,17 @@ public sealed class LocalAiService(
                 $"You match {matches} of {criteria.Count} criteria. Review the partial items before applying.",
         };
 
-        return new AiEligibilityResult(criteria, summary, Disclaimer, verdict);
+        var summaryAr = verdict switch
+        {
+            EligibilityVerdict.Eligible =>
+                "يبدو أنك تستوفي جميع المعايير المدرجة.",
+            EligibilityVerdict.NotEligible =>
+                $"تطابقت مع {matches} من {criteria.Count} معايير، لكن واحدًا أو أكثر من المتطلبات غير مستوفى. راجع البنود غير المطابقة قبل التقديم.",
+            _ =>
+                $"تطابقت مع {matches} من {criteria.Count} معايير. راجع البنود الجزئية قبل التقديم.",
+        };
+
+        return new AiEligibilityResult(criteria, summaryEn, summaryAr, Disclaimer, verdict);
     }
 
     /// <summary>

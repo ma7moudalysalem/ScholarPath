@@ -102,6 +102,16 @@ export function EligibilityCheckerSection() {
 
   const errStatus = (eligibility.error as { status?: number } | null)?.status;
 
+  // The server emits "unknown" (the student's profile field is empty) and
+  // "any" (the listing sets no restriction) as sentinels — localise them;
+  // every other value is real data shown as-is.
+  const localizeValue = (value: string) => {
+    const key = value.trim().toLowerCase();
+    if (key === "unknown") return t("ai:eligibility.unknownValue");
+    if (key === "any") return t("ai:eligibility.anyValue");
+    return value;
+  };
+
   return (
     <section className="space-y-4 rounded-lg border border-border-subtle bg-bg-elevated p-5">
       <header className="flex items-center gap-2">
@@ -233,7 +243,9 @@ export function EligibilityCheckerSection() {
                 <div className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
                   {t("ai:eligibility.summary")}
                 </div>
-                <p className="mt-1 text-text-primary">{eligibility.data.summary}</p>
+                <p className="mt-1 text-text-primary">
+                  {isAr ? eligibility.data.summaryAr : eligibility.data.summaryEn}
+                </p>
               </div>
 
               {/* Per-criterion comparison (FR-116) */}
@@ -244,22 +256,24 @@ export function EligibilityCheckerSection() {
                 <ul className="space-y-2">
                   {eligibility.data.criteria.map((c) => (
                     <li
-                      key={c.name}
+                      key={c.nameEn}
                       className="flex items-start gap-3 rounded-md border border-border-subtle p-3"
                     >
                       <MatchIcon m={c.match} />
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium">{c.name}</div>
+                        <div className="text-sm font-medium">{isAr ? c.nameAr : c.nameEn}</div>
                         <div className="mt-1 grid gap-1 text-xs text-text-secondary sm:grid-cols-2">
                           <div>
                             <span className="text-text-tertiary">{t("ai:eligibility.you")}:</span>{" "}
-                            <span className="text-text-primary">{c.studentValue}</span>
+                            <span className="text-text-primary">{localizeValue(c.studentValue)}</span>
                           </div>
                           <div>
                             <span className="text-text-tertiary">
                               {t("ai:eligibility.listing")}:
                             </span>{" "}
-                            <span className="text-text-primary">{c.listingRequirement}</span>
+                            <span className="text-text-primary">
+                              {localizeValue(c.listingRequirement)}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -292,15 +306,17 @@ export function EligibilityCheckerSection() {
                     </p>
                     <ul className="mt-2 space-y-1.5">
                       {improvements.map((c) => (
-                        <li key={c.name} className="flex items-start gap-2 text-sm">
+                        <li key={c.nameEn} className="flex items-start gap-2 text-sm">
                           <span
                             aria-hidden
                             className="mt-1.5 size-1.5 shrink-0 rounded-full bg-amber-500"
                           />
                           <span>
-                            <span className="font-medium">{c.name}</span>
+                            <span className="font-medium">{isAr ? c.nameAr : c.nameEn}</span>
                             {" — "}
-                            <span className="text-text-secondary">{c.listingRequirement}</span>
+                            <span className="text-text-secondary">
+                              {localizeValue(c.listingRequirement)}
+                            </span>
                           </span>
                         </li>
                       ))}

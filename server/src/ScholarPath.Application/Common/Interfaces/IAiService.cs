@@ -33,12 +33,14 @@ public sealed record AiRecommendationItem(
 
 public sealed record AiEligibilityResult(
     IReadOnlyList<AiEligibilityCriterion> Criteria,
-    string Summary,
+    string SummaryEn,
+    string SummaryAr,
     string Disclaimer,
     EligibilityVerdict Verdict);
 
 public sealed record AiEligibilityCriterion(
-    string Name,
+    string NameEn,
+    string NameAr,
     string StudentValue,
     string ListingRequirement,
     string Match); // "yes" | "partial" | "no" | "unknown"
