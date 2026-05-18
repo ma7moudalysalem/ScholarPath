@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Bookmark, Search, Trash2 } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
+import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -39,6 +40,7 @@ function FundingBadge({ type }: { type: FundingType }) {
 export function BookmarksPage() {
   const { t, i18n } = useTranslation(["scholarships", "common"]);
   const isRtl        = i18n.dir() === "rtl";
+  const dateLocale   = isRtl ? ar : undefined;
 
   const { data: bookmarks, isLoading, isError } = useBookmarksQuery();
   const bookmarkMut = useToggleBookmarkMutation();
@@ -170,13 +172,13 @@ export function BookmarksPage() {
                       ? t("scholarships:card.closed")
                       : isUrgent
                         ? t("scholarships:card.daysLeft", { count: daysLeft })
-                        : format(deadlineDate, "dd MMM yyyy")}
+                        : format(deadlineDate, "dd MMM yyyy", { locale: dateLocale })}
                   </span>
                 </div>
 
                 <p className="text-[11px] text-text-tertiary">
                   {t("scholarships:bookmarks.savedAt", {
-                    date: format(new Date(savedAt), "dd MMM yyyy"),
+                    date: format(new Date(savedAt), "dd MMM yyyy", { locale: dateLocale }),
                   })}
                 </p>
               </div>

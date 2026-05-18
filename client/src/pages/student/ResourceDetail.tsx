@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { ArrowLeft, ArrowRight, Calendar, ExternalLink } from "lucide-react";
 import {
   resourcesApi,
@@ -137,6 +138,7 @@ export function ResourceDetail() {
   const { t, i18n } = useTranslation(["resources", "common"]);
   const isAr = i18n.language.startsWith("ar");
   const isRtl = i18n.dir() === "rtl";
+  const dateLocale = isAr ? ar : undefined;
   const BackIcon = isRtl ? ArrowRight : ArrowLeft;
 
   const { data, isLoading, isError, error, refetch } = useQuery<ResourceDetailDto>({
@@ -229,7 +231,7 @@ export function ResourceDetail() {
               <span className="inline-flex items-center gap-1.5">
                 <Calendar aria-hidden className="size-4 text-text-tertiary" />
                 {t("resources:detail.publishedOn", {
-                  date: format(new Date(data.publishedAt), "dd MMMM yyyy"),
+                  date: format(new Date(data.publishedAt), "dd MMMM yyyy", { locale: dateLocale }),
                 })}
               </span>
             )}

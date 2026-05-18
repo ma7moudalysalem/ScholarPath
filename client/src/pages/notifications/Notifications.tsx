@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import { Bell, Check, CheckCheck } from "lucide-react";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import {
   notificationsApi,
   type NotificationItem,
@@ -43,7 +44,9 @@ export function Notifications() {
   const isAr = i18n.language === "ar";
   const fmtDate = (iso: string) => {
     try {
-      return format(new Date(iso), isAr ? "d MMM yyyy, HH:mm" : "MMM d, yyyy, HH:mm");
+      return format(new Date(iso), isAr ? "d MMM yyyy, HH:mm" : "MMM d, yyyy, HH:mm", {
+        locale: isAr ? ar : undefined,
+      });
     } catch {
       return iso;
     }

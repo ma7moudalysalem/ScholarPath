@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import { Download, FileText, Trash2, Upload } from "lucide-react";
 import {
@@ -21,7 +22,8 @@ function formatBytes(bytes: number): string {
 }
 
 export function Documents() {
-  const { t } = useTranslation(["documents", "common"]);
+  const { t, i18n } = useTranslation(["documents", "common"]);
+  const dateLocale = i18n.dir() === "rtl" ? ar : undefined;
   const queryClient = useQueryClient();
 
   const [filter, setFilter] = useState<DocumentCategory | "">("");
@@ -265,7 +267,7 @@ export function Documents() {
                     {formatBytes(doc.sizeBytes)}
                   </td>
                   <td className="px-4 py-3 text-text-secondary">
-                    {format(new Date(doc.uploadedAt), "dd MMM yyyy")}
+                    {format(new Date(doc.uploadedAt), "dd MMM yyyy", { locale: dateLocale })}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
