@@ -174,7 +174,25 @@ public class ApplicationDbContext(
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // أضيفي هذا التعديل داخل الكلاس الموجود سابقاً
+        // Stamp audit timestamps before persisting: CreatedAt on new rows (only
+        // when not already set, so seeders keep their intentional back-dated
+        // values) and UpdatedAt on every modification. Without this, entities
+        // created through commands (forum posts/replies, etc.) would persist
+        // with CreatedAt = default (0001-01-01), breaking date display and any
+        // ordering by creation time.
+        var auditNow = DateTimeOffset.UtcNow;
+        foreach (var entry in ChangeTracker.Entries<AuditableEntity>())
+        {
+            if (entry.State == EntityState.Added && entry.Entity.CreatedAt == default)
+            {
+                entry.Entity.CreatedAt = auditNow;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = auditNow;
+            }
+        }
+
         try
         {
             var result = await base.SaveChangesAsync(cancellationToken);
