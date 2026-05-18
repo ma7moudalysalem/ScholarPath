@@ -28,6 +28,21 @@
     "closed": "Closed",
     "daysLeft": "{{count}} days left"
   },
+  "fundingType": {
+    "FullyFunded": "Fully Funded",
+    "PartiallyFunded": "Partially Funded",
+    "TuitionOnly": "Tuition Only",
+    "StipendOnly": "Stipend Only",
+    "Other": "Other"
+  },
+  "level": {
+    "HighSchool": "High School",
+    "Undergrad": "Undergraduate",
+    "Masters": "Master's",
+    "PhD": "PhD",
+    "PostDoc": "Postdoctoral",
+    "Other": "Other"
+  },
   "featured": {
     "title": "Featured Scholarships",
     "subtitle": "Hand-picked opportunities worth a closer look."

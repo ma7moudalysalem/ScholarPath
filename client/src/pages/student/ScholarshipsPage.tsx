@@ -36,6 +36,7 @@ const ACADEMIC_LEVELS: AcademicLevel[] = [
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function FundingBadge({ type }: { type: FundingType }) {
+  const { t } = useTranslation("scholarships");
   const colors: Record<FundingType, string> = {
     FullyFunded:     "bg-success-100 text-success-600",
     PartiallyFunded: "bg-brand-100 text-brand-600",
@@ -50,7 +51,7 @@ function FundingBadge({ type }: { type: FundingType }) {
         colors[type],
       )}
     >
-      {type.replace(/([A-Z])/g, " $1").trim()}
+      {t(`fundingType.${type}`)}
     </span>
   );
 }
@@ -218,7 +219,7 @@ export function ScholarshipsPage() {
                       : "border-border-subtle bg-bg-canvas text-text-secondary hover:border-border-default",
                   )}
                 >
-                  {ft.replace(/([A-Z])/g, " $1").trim()}
+                  {t(`scholarships:fundingType.${ft}`)}
                 </button>
               ))}
             </div>
@@ -241,7 +242,7 @@ export function ScholarshipsPage() {
                       : "border-border-subtle bg-bg-canvas text-text-secondary hover:border-border-default",
                   )}
                 >
-                  {lvl}
+                  {t(`scholarships:level.${lvl}`)}
                 </button>
               ))}
             </div>
@@ -314,7 +315,7 @@ export function ScholarshipsPage() {
                   <div className="mt-auto space-y-2">
                     <FundingBadge type={s.fundingType} />
                     <div className="flex items-center justify-between text-xs text-text-tertiary">
-                      <span>{s.targetLevel}</span>
+                      <span>{t(`scholarships:level.${s.targetLevel}`)}</span>
                       <span
                         className={cn(
                           "font-medium",
@@ -403,7 +404,7 @@ export function ScholarshipsPage() {
                 <div className="mt-auto space-y-2">
                   <FundingBadge type={s.fundingType} />
                   <div className="flex items-center justify-between text-xs text-text-tertiary">
-                    <span>{s.targetLevel}</span>
+                    <span>{t(`scholarships:level.${s.targetLevel}`)}</span>
                     <span
                       className={cn(
                         "font-medium",

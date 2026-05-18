@@ -28,6 +28,21 @@
     "closed": "مغلقة",
     "daysLeft": "{{count}} أيام متبقية"
   },
+  "fundingType": {
+    "FullyFunded": "ممولة بالكامل",
+    "PartiallyFunded": "ممولة جزئياً",
+    "TuitionOnly": "الرسوم الدراسية فقط",
+    "StipendOnly": "راتب المعيشة فقط",
+    "Other": "أخرى"
+  },
+  "level": {
+    "HighSchool": "الثانوية",
+    "Undergrad": "البكالوريوس",
+    "Masters": "الماجستير",
+    "PhD": "الدكتوراه",
+    "PostDoc": "ما بعد الدكتوراه",
+    "Other": "أخرى"
+  },
   "featured": {
     "title": "المنح المميزة",
     "subtitle": "فرص مختارة بعناية تستحق نظرة أقرب."

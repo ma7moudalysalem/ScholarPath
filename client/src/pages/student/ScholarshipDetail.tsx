@@ -41,6 +41,7 @@ function DetailRow({
 }
 
 function FundingBadge({ type }: { type?: FundingType }) {
+  const { t } = useTranslation("scholarships");
   if (!type) return null;
   const colors: Record<FundingType, string> = {
     FullyFunded:     "bg-success-100 text-success-600",
@@ -56,7 +57,7 @@ function FundingBadge({ type }: { type?: FundingType }) {
         colors[type],
       )}
     >
-      {type.replace(/([A-Z])/g, " $1").trim()}
+      {t(`fundingType.${type}`)}
     </span>
   );
 }
@@ -216,7 +217,7 @@ export function ScholarshipDetail() {
           <DetailRow label={t("scholarships:detail.level")}>
             <span className="inline-flex items-center gap-1.5">
               <GraduationCap aria-hidden className="size-4 text-text-tertiary" />
-              {data.targetLevel}
+              {t(`scholarships:level.${data.targetLevel}`)}
             </span>
           </DetailRow>
 

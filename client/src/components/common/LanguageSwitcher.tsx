@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Languages } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 
 export function LanguageSwitcher({ className }: { className?: string }) {
@@ -9,7 +10,13 @@ export function LanguageSwitcher({ className }: { className?: string }) {
   return (
     <button
       type="button"
-      onClick={() => void i18n.changeLanguage(next)}
+      onClick={() =>
+        void i18n.changeLanguage(next).then(() => {
+          // The API localises responses by Accept-Language — drop cached data
+          // so every list/detail refetches in the newly selected language.
+          void queryClient.invalidateQueries();
+        })
+      }
       aria-label={t("language.label")}
       className={cn(
         "inline-flex items-center gap-2 rounded-md border border-border-subtle bg-bg-elevated px-3 py-1.5 text-sm font-medium text-text-primary transition hover:border-border-default",
