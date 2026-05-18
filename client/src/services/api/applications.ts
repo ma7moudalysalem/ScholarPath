@@ -80,6 +80,13 @@ export interface StartApplicationResult {
   alreadyExisted: boolean;
 }
 
+/** Body for `PUT /api/applications/{id}/draft` — mirrors SaveApplicationDraftCommand. */
+export interface SaveApplicationDraftBody {
+  formDataJson: string | null;
+  attachedDocumentsJson: string | null;
+  personalNotes: string | null;
+}
+
 export const applicationsApi = {
   async getMyApplications(): Promise<StudentApplicationRow[]> {
     const { data } = await apiClient.get<StudentApplicationRow[]>("/api/applications/me");
@@ -146,6 +153,14 @@ export const applicationsApi = {
       personalNotes: personalNotes ?? null,
     });
     return data;
+  },
+
+  /**
+   * Saves the in-progress form answers, attached documents and notes on a
+   * Draft application. The server rejects a non-Draft application with 409.
+   */
+  async saveDraft(id: string, body: SaveApplicationDraftBody): Promise<void> {
+    await apiClient.put(`/api/applications/${id}/draft`, { applicationId: id, ...body });
   },
 
   /** Submits a Draft application — transitions it to Pending. */

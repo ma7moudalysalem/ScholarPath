@@ -2,6 +2,7 @@ using FluentAssertions;
 using FluentValidation.TestHelper;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
+using ScholarPath.Application.Applications.Commands.SaveApplicationDraft;
 using ScholarPath.Application.Applications.Commands.StartApplication;
 using ScholarPath.Application.Applications.Common;
 using ScholarPath.Application.Common.Exceptions;
@@ -280,6 +281,86 @@ public sealed class StartApplicationCommandHandlerTests : IDisposable
         // A withdrawn application is terminal — re-applying must be allowed.
         result.AlreadyExisted.Should().BeFalse();
         (await _db.Applications.CountAsync()).Should().Be(2);
+    }
+
+    public void Dispose() => _db.Dispose();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Covers <see cref="SaveApplicationDraftCommandHandler"/> — persisting the
+/// student's in-progress form answers, and the guards that keep a submitted
+/// application read-only and a draft editable only by its owner.
+/// </summary>
+public sealed class SaveApplicationDraftCommandHandlerTests : IDisposable
+{
+    private readonly ApplicationDbContext _db;
+    private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
+    private readonly Guid _studentId = Guid.NewGuid();
+
+    public SaveApplicationDraftCommandHandlerTests()
+    {
+        _db = new ApplicationDbContext(
+            new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .Options);
+        _currentUser.UserId.Returns(_studentId);
+    }
+
+    private ApplicationTracker SeedApplication(ApplicationStatus status, Guid? studentId = null)
+    {
+        var app = new ApplicationTracker
+        {
+            Id = Guid.NewGuid(),
+            StudentId = studentId ?? _studentId,
+            ScholarshipId = Guid.NewGuid(),
+            Mode = ApplicationMode.InApp,
+            Status = status,
+            CreatedAt = DateTimeOffset.UtcNow.AddDays(-1),
+        };
+        _db.Applications.Add(app);
+        _db.SaveChanges();
+        return app;
+    }
+
+    private SaveApplicationDraftCommandHandler NewHandler() => new(_db, _currentUser);
+
+    [Fact]
+    public async Task Handle_DraftOwnedByCaller_PersistsTheAnswers()
+    {
+        var app = SeedApplication(ApplicationStatus.Draft);
+
+        await NewHandler().Handle(
+            new SaveApplicationDraftCommand(app.Id, """{"gpa":3.9}""", """["cv.pdf"]""", "my notes"),
+            CancellationToken.None);
+
+        var saved = await _db.Applications.FindAsync(app.Id);
+        saved!.FormDataJson.Should().Be("""{"gpa":3.9}""");
+        saved.AttachedDocumentsJson.Should().Be("""["cv.pdf"]""");
+        saved.PersonalNotes.Should().Be("my notes");
+    }
+
+    [Fact]
+    public async Task Handle_AlreadySubmittedApplication_ThrowsConflict()
+    {
+        var app = SeedApplication(ApplicationStatus.Pending);
+
+        var act = () => NewHandler().Handle(
+            new SaveApplicationDraftCommand(app.Id, "{}", null, null), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task Handle_DraftOwnedByAnotherStudent_ThrowsNotFound()
+    {
+        var app = SeedApplication(ApplicationStatus.Draft, studentId: Guid.NewGuid());
+
+        var act = () => NewHandler().Handle(
+            new SaveApplicationDraftCommand(app.Id, "{}", null, null), CancellationToken.None);
+
+        await act.Should().ThrowAsync<NotFoundException>();
     }
 
     public void Dispose() => _db.Dispose();

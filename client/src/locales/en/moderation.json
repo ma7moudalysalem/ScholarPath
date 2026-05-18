@@ -36,7 +36,23 @@
     "submitting": "Submitting…",
     "submittedToast": "Application submitted.",
     "submitConflict": "This application can't be submitted right now.",
-    "draftHint": "This application is a draft — submit it when you're ready."
+    "draftHint": "This application is a draft — submit it when you're ready.",
+    "form": {
+      "title": "Application form",
+      "intro": "Fill in the answers, attach the required documents, then submit.",
+      "required": "required",
+      "documents": "Documents",
+      "requiredDocsHint": "Required document types: {{docs}}",
+      "attachLabel": "Attach from your uploaded documents",
+      "noVaultDocs": "You haven't uploaded any documents yet.",
+      "goToDocuments": "Go to my documents",
+      "notesPlaceholder": "Private notes for yourself before you submit…",
+      "save": "Save draft",
+      "saving": "Saving…",
+      "saved": "Draft saved.",
+      "saveError": "Could not save the draft.",
+      "incomplete": "Fill in every required field and attach at least one document before submitting."
+    }
   },
   "applicationStatus": {
     "Draft": "Draft",

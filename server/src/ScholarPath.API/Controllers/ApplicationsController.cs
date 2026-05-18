@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Applications.Commands.ExternalIntent;
 using ScholarPath.Application.Applications.Commands.ReviewApplication;
+using ScholarPath.Application.Applications.Commands.SaveApplicationDraft;
 using ScholarPath.Application.Applications.Commands.StartApplication;
 using ScholarPath.Application.Applications.Commands.SubmitApplication;
 using ScholarPath.Application.Applications.Commands.UpdateExternalStatus;
@@ -59,6 +60,28 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
     {
         var id = await mediator.Send(command, ct);
         return CreatedAtAction(nameof(GetById), new { id }, id);
+    }
+
+    /// <summary>
+    /// Saves the in-progress form answers, attached documents and personal notes
+    /// on a Draft application owned by the authenticated student.
+    /// </summary>
+    [HttpPut("{id:guid}/draft")]
+    [Authorize(Roles = "Student")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult> SaveDraft(
+        Guid id, SaveApplicationDraftCommand command, CancellationToken ct)
+    {
+        if (id != command.ApplicationId)
+        {
+            return BadRequest("Route application id does not match body application id.");
+        }
+
+        await mediator.Send(command, ct);
+        return NoContent();
     }
 
     /// <summary>Submits a Draft application, transitioning it to Pending.</summary>
