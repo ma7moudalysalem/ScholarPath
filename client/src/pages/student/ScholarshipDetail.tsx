@@ -19,6 +19,7 @@ import {
 } from "@/hooks/useScholarshipsQuery";
 import { applicationsApi } from "@/services/api/applications";
 import type { FundingType } from "@/types/domain";
+import { SkeletonDetailCard } from "@/components/common/Skeleton";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -106,10 +107,8 @@ export function ScholarshipDetail() {
   // ── Loading skeleton ───────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-3xl space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded-md bg-bg-elevated" />
-        <div className="h-64 animate-pulse rounded-xl bg-bg-elevated" />
-        <div className="h-40 animate-pulse rounded-xl bg-bg-elevated" />
+      <div className="mx-auto max-w-3xl">
+        <SkeletonDetailCard />
       </div>
     );
   }

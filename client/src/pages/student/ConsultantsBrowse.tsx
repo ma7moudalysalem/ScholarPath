@@ -298,11 +298,22 @@ export function ConsultantsBrowse() {
           </div>
         ) : isLoading ? (
           <div className="mt-6 grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-80 animate-pulse rounded-2xl border border-border-subtle bg-bg-elevated shadow-sm"
-              />
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex flex-col gap-4 rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="skeleton size-14 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <div className="skeleton h-4 w-2/3" />
+                    <div className="skeleton h-3 w-1/2" />
+                  </div>
+                </div>
+                <div className="skeleton h-3 w-full" />
+                <div className="skeleton h-3 w-4/5" />
+                <div className="mt-2 flex gap-2">
+                  <div className="skeleton h-6 w-20 rounded-full" />
+                  <div className="skeleton h-6 w-16 rounded-full" />
+                </div>
+              </div>
             ))}
           </div>
         ) : (

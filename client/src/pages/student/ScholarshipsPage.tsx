@@ -12,6 +12,7 @@ import {
 } from "@/hooks/useScholarshipsQuery";
 import type { FundingType, AcademicLevel } from "@/types/domain";
 import type { SearchScholarshipsRequest } from "@/services/api/scholarships";
+import { SkeletonCardGrid } from "@/components/common/Skeleton";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -336,16 +337,7 @@ export function ScholarshipsPage() {
       )}
 
       {/* ── Loading skeletons ── */}
-      {isLoading && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-52 animate-pulse rounded-xl border border-border-subtle bg-bg-elevated"
-            />
-          ))}
-        </div>
-      )}
+      {isLoading && <SkeletonCardGrid count={6} />}
 
       {/* ── Error state ── */}
       {isError && (
