@@ -93,7 +93,124 @@ public static partial class DbSeeder
         };
 
         await SeedUserProfilesAsync(db, users, logger, ct).ConfigureAwait(false);
+        await SeedTeamAccountsAsync(db, userManager, logger, ct).ConfigureAwait(false);
         return users;
+    }
+
+    /// <summary>
+    /// Seeds the project team's own demo accounts — one account per role for
+    /// every team member, so each can sign in and exercise every role
+    /// (Student, Company, Consultant, Admin). Emails follow
+    /// <c>{role}.{name}@scholarpath.local</c>; the password is the standard
+    /// demo password for that role. Idempotent — re-running creates nothing
+    /// that already exists.
+    /// </summary>
+    private static async Task SeedTeamAccountsAsync(
+        ApplicationDbContext db,
+        UserManager<ApplicationUser> userManager,
+        ILogger logger,
+        CancellationToken ct)
+    {
+        // (display name, email slug)
+        var team = new[]
+        {
+            ("Tasneem", "tasneem"),
+            ("Mimi", "mimi"),
+            ("Nour", "nour"),
+            ("Yousra", "yousra"),
+            ("Nadia", "nadia"),
+        };
+
+        // (role, email slug, demo password)
+        var roles = new[]
+        {
+            ("Student", "student", "Student123!"),
+            ("Company", "company", "Company123!"),
+            ("Consultant", "consultant", "Consult123!"),
+            ("Admin", "admin", "Admin123!"),
+        };
+
+        var withProfile = (await db.UserProfiles
+                .Select(p => p.UserId)
+                .ToListAsync(ct).ConfigureAwait(false))
+            .ToHashSet();
+
+        var profilesAdded = 0;
+        foreach (var (displayName, nameSlug) in team)
+        {
+            foreach (var (role, roleSlug, password) in roles)
+            {
+                var email = $"{roleSlug}.{nameSlug}@scholarpath.local";
+                var user = await EnsureUserAsync(
+                    userManager, email, password, displayName, "Team",
+                    role, AccountStatus.Active, "EG", logger).ConfigureAwait(false);
+
+                if (!withProfile.Contains(user.Id))
+                {
+                    db.UserProfiles.Add(BuildTeamProfile(user, role));
+                    withProfile.Add(user.Id);
+                    profilesAdded++;
+                }
+            }
+        }
+
+        if (profilesAdded > 0)
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+
+        logger.LogInformation(
+            "Seeded team accounts: {Members} members x {Roles} roles ({Profiles} profiles added)",
+            team.Length, roles.Length, profilesAdded);
+    }
+
+    /// <summary>Builds a role-appropriate profile for a team demo account.</summary>
+    private static UserProfile BuildTeamProfile(ApplicationUser user, string role)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var p = new UserProfile
+        {
+            UserId = user.Id,
+            Timezone = "Africa/Cairo",
+            Nationality = "EG",
+            CreatedAt = now.AddDays(-30),
+            ProfileCompletenessPercent = 85,
+            Biography = $"ScholarPath project team member — {role} demo account.",
+        };
+
+        switch (role)
+        {
+            case "Student":
+                p.AcademicLevel = AcademicLevel.Masters;
+                p.FieldOfStudy = "Computer Science";
+                p.CurrentInstitution = "Ain Shams University";
+                p.Gpa = 3.7m;
+                p.GpaScale = "4.0";
+                p.PreferredCountriesJson = """["US","GB","DE","CA"]""";
+                p.PreferredFieldsJson = """["Computer Science","Data Science"]""";
+                break;
+
+            case "Company":
+                p.OrganizationLegalName = $"{user.FirstName} Education Org";
+                p.OrganizationVerificationStatus = "Verified";
+                p.OrganizationVerifiedAt = now.AddDays(-20);
+                break;
+
+            case "Consultant":
+                p.SessionFeeUsd = 50m;
+                p.SessionDurationMinutes = 45;
+                p.ExpertiseTagsJson = """["University Selection","Statement of Purpose","Scholarship Strategy"]""";
+                p.LanguagesJson = """["en","ar"]""";
+                p.ConsultantVerifiedAt = now.AddDays(-20);
+                break;
+
+            // Admin — the base profile (bio only) is enough.
+            default:
+                p.ProfileCompletenessPercent = 60;
+                break;
+        }
+
+        return p;
     }
 
     /// <summary>
