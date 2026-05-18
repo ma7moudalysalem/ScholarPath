@@ -79,7 +79,12 @@
     "guidanceTitle": "Student guidance",
     "backToBookings": "Back to my bookings",
     "viewConsultant": "View consultant",
-    "bookAnother": "Book another consultation"
+    "bookAnother": "Book another consultation",
+    "cancelBooking": "Cancel booking",
+    "cancelling": "Cancelling…",
+    "cancelConfirm": "Cancel this booking request? The consultant has not responded yet, so the payment hold is released.",
+    "cancelSuccess": "Booking cancelled.",
+    "cancelError": "Could not cancel the booking."
   },
   "notFound": {
     "title": "Booking not found",

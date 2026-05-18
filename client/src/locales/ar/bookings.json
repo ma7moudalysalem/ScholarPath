@@ -79,7 +79,12 @@
     "guidanceTitle": "إرشادات الطالب",
     "backToBookings": "العودة إلى حجوزاتي",
     "viewConsultant": "عرض المستشار",
-    "bookAnother": "حجز استشارة أخرى"
+    "bookAnother": "حجز استشارة أخرى",
+    "cancelBooking": "إلغاء الحجز",
+    "cancelling": "جارٍ الإلغاء…",
+    "cancelConfirm": "إلغاء طلب الحجز هذا؟ المستشار لم يردّ بعد، لذا سيُحرَّر الحجز على الدفع.",
+    "cancelSuccess": "تم إلغاء الحجز.",
+    "cancelError": "تعذّر إلغاء الحجز."
   },
   "notFound": {
     "title": "الحجز غير موجود",
