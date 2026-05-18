@@ -94,6 +94,7 @@ public static partial class DbSeeder
 
         await SeedUserProfilesAsync(db, users, logger, ct).ConfigureAwait(false);
         await SeedTeamAccountsAsync(db, userManager, logger, ct).ConfigureAwait(false);
+        await SeedGeneratedUsersAsync(db, userManager, logger, ct).ConfigureAwait(false);
         return users;
     }
 
