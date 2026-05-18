@@ -21,6 +21,7 @@ namespace ScholarPath.Application.Scholarships.Queries
                 .AsNoTracking()
                 .Include(s => s.Category)
                 .Include(s => s.Children)
+                .Include(s => s.OwnerCompany)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, ct);
 
             if (entity == null) throw new NotFoundException(nameof(Scholarship), request.Id);
@@ -29,16 +30,29 @@ namespace ScholarPath.Application.Scholarships.Queries
             {
                 Id = entity.Id,
                 Title = lang == "ar" ? (entity.TitleAr ?? entity.TitleEn) : (entity.TitleEn ?? entity.TitleAr),
-                Description = lang == "ar" ? entity.DescriptionAr : entity.DescriptionEn,
-                CategoryName = lang == "ar" ? entity.Category?.NameAr ?? "" : entity.Category?.NameEn ?? "",
+                Description = lang == "ar"
+                    ? (entity.DescriptionAr ?? entity.DescriptionEn)
+                    : (entity.DescriptionEn ?? entity.DescriptionAr),
+                CategoryName = lang == "ar"
+                    ? (entity.Category?.NameAr ?? entity.Category?.NameEn ?? "")
+                    : (entity.Category?.NameEn ?? entity.Category?.NameAr ?? ""),
+                OwnerCompanyName = entity.OwnerCompany != null
+                    ? entity.OwnerCompany.FirstName + " " + entity.OwnerCompany.LastName
+                    : "Global Provider",
                 Status = entity.Status.ToString(),
+                FundingType = entity.FundingType.ToString(),
+                TargetLevel = entity.TargetLevel.ToString(),
+                IsFeatured = entity.IsFeatured,
+                Slug = entity.Slug,
                 Deadline = entity.Deadline,
                 Mode = entity.Mode.ToString(),
                 ExternalApplicationUrl = entity.ExternalApplicationUrl,
-                EligibilityRequirements = lang == "ar" ? entity.EligibilityRequirementsAr : entity.EligibilityRequirementsEn,
+                EligibilityRequirements = lang == "ar"
+                    ? (entity.EligibilityRequirementsAr ?? entity.EligibilityRequirementsEn)
+                    : (entity.EligibilityRequirementsEn ?? entity.EligibilityRequirementsAr),
                 ApplicationFormSchemaJson = entity.ApplicationFormSchemaJson,
                 RequiredDocumentsJson = entity.RequiredDocumentsJson,
-               
+
                 Children = entity.Children
                     .OrderBy(c => c.SortOrder)
                     .Select(c => new ScholarshipChildDto(
