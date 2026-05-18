@@ -14,6 +14,7 @@ import { chatApi, type ChatContact, type ChatConversation, type ChatMessage } fr
 import { useAuthStore } from "@/stores/authStore";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { createHubConnection } from "@/lib/signalr";
+import { usePresenceStore } from "@/stores/presenceStore";
 import type { HubConnection } from "@microsoft/signalr";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -38,6 +39,16 @@ export function Chat() {
 
   const hubConnectionRef = useRef<HubConnection | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Refs let the once-registered hub handlers read the latest selection /
+  // identity without the connection effect re-running (and reconnecting).
+  const selectedConvRef = useRef<ChatConversation | null>(null);
+  const currentUserIdRef = useRef<string | undefined>(currentUser?.id);
+
+  // Live chat presence — drives the online dots in the list + thread header.
+  const onlineUserIds = usePresenceStore((state) => state.onlineUserIds);
+  const selectedParticipantOnline = selectedConv
+    ? onlineUserIds.has(selectedConv.otherParticipantId) || selectedConv.isOnline
+    : false;
 
   const { data: conversations = [] } = useQuery({
     queryKey: ["chat", "conversations"],
@@ -67,37 +78,76 @@ export function Chat() {
     scrollToBottom();
   }, [messages]);
 
+  // Keep the handler-facing refs in sync with the latest render values.
+  useEffect(() => {
+    selectedConvRef.current = selectedConv;
+  }, [selectedConv]);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUser?.id;
+  }, [currentUser?.id]);
+
   useEffect(() => {
     if (!accessToken) return;
-    
+
     const connection = createHubConnection("/hubs/chat", accessToken);
-    
+    const presence = usePresenceStore.getState();
+
     connection.on("MessageReceived", (message: ChatMessage) => {
-      // If the message belongs to current conversation, refresh messages
-      if (selectedConv && (message.senderId === selectedConv.otherParticipantId || message.senderId === currentUser?.id)) {
-        void qc.invalidateQueries({ queryKey: ["chat", "messages", selectedConv.id] });
+      const conv = selectedConvRef.current;
+      // If the message belongs to the open conversation, refresh its messages.
+      if (
+        conv &&
+        (message.senderId === conv.otherParticipantId ||
+          message.senderId === currentUserIdRef.current)
+      ) {
+        void qc.invalidateQueries({ queryKey: ["chat", "messages", conv.id] });
       }
-      // Always refresh conversations to update last message/timestamp
+      // Always refresh conversations to update last message / timestamp.
       void qc.invalidateQueries({ queryKey: ["chat", "conversations"] });
     });
 
     connection.on("TypingStart", (conversationId: string, userId: string) => {
-      if (selectedConv?.id === conversationId && userId !== currentUser?.id) {
+      if (selectedConvRef.current?.id === conversationId && userId !== currentUserIdRef.current) {
         setTypingUser(userId);
       }
     });
 
     connection.on("TypingStop", (conversationId: string) => {
-      if (selectedConv?.id === conversationId) {
+      if (selectedConvRef.current?.id === conversationId) {
         setTypingUser(null);
       }
     });
 
+    // Live presence — UserOnline / UserOffline keep the presence store fresh.
+    connection.on("UserOnline", (userId: string) => presence.markOnline(userId));
+    connection.on("UserOffline", (userId: string) => presence.markOffline(userId));
+
     let cancelled = false;
     connection
       .start()
-      .then(() => {
-        if (!cancelled) hubConnectionRef.current = connection;
+      .then(async () => {
+        if (cancelled) return;
+        hubConnectionRef.current = connection;
+
+        // Re-join the open conversation: a connection that finishes starting
+        // after a conversation was already picked would otherwise miss its group.
+        const conv = selectedConvRef.current;
+        if (conv && !conv.id.startsWith("pending:")) {
+          try {
+            await connection.invoke("JoinConversation", conv.id);
+          } catch {
+            /* best-effort group re-join */
+          }
+        }
+
+        // Seed presence with everyone already online.
+        try {
+          const online = await connection.invoke<string[]>("GetOnlineUsers");
+          if (!cancelled) usePresenceStore.getState().setOnlineUsers(online);
+        } catch {
+          /* best-effort seed — UserOnline/UserOffline events still arrive */
+        }
       })
       .catch((err: unknown) => {
         // The cleanup below aborts an in-flight start() (notably under React
@@ -108,9 +158,11 @@ export function Chat() {
 
     return () => {
       cancelled = true;
+      hubConnectionRef.current = null;
+      usePresenceStore.getState().reset();
       void connection.stop();
     };
-  }, [accessToken, selectedConv, currentUser?.id, qc]);
+  }, [accessToken, qc]);
 
   useEffect(() => {
     // Skip pending (not-yet-created) conversations — their id is not a real
@@ -259,7 +311,7 @@ export function Chat() {
                     name={conv.otherParticipantName}
                     className="w-12 h-12 border-2 border-white"
                   />
-                  {conv.isOnline && (
+                  {(onlineUserIds.has(conv.otherParticipantId) || conv.isOnline) && (
                     <div className="absolute bottom-0 end-0 w-3 h-3 bg-success-500 border-2 border-bg-elevated rounded-full" />
                   )}
                 </div>
@@ -296,9 +348,15 @@ export function Chat() {
                 />
                 <div>
                   <h3 className="text-sm font-bold">{selectedConv.otherParticipantName}</h3>
-                  <span className="text-[10px] text-success-500 flex items-center gap-1 font-medium">
+                  <span
+                    className={`text-[10px] flex items-center gap-1 font-medium ${
+                      selectedParticipantOnline ? "text-success-500" : "text-text-tertiary"
+                    }`}
+                  >
                     <Circle size={8} fill="currentColor" />
-                    {selectedConv.isOnline ? t("chat.online", "Online") : t("chat.offline", "Offline")}
+                    {selectedParticipantOnline
+                      ? t("chat.online", "Online")
+                      : t("chat.offline", "Offline")}
                   </span>
                 </div>
               </div>

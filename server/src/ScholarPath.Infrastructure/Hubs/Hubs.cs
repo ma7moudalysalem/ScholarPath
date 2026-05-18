@@ -11,26 +11,37 @@ public abstract class AuthenticatedHub : Hub
 }
 
 /// <summary>Real-time 1:1 chat (PB-007).</summary>
-public sealed class ChatHub : AuthenticatedHub
+public sealed class ChatHub(IPresenceTracker presence) : AuthenticatedHub
 {
     public override async Task OnConnectedAsync()
     {
         await base.OnConnectedAsync();
-        if (Context.UserIdentifier != null)
+        var userId = Context.UserIdentifier;
+        if (userId is not null && presence.Connect(userId))
         {
-            // Simple presence broadcast
-            await Clients.All.SendAsync("UserOnline", Context.UserIdentifier);
+            // First live connection for this user — announce them online to
+            // everyone else. The caller seeds its own list via GetOnlineUsers,
+            // so it does not need (and should not get) this echo.
+            await Clients.Others.SendAsync("UserOnline", userId);
         }
     }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        if (Context.UserIdentifier != null)
+        var userId = Context.UserIdentifier;
+        if (userId is not null && presence.Disconnect(userId))
         {
-            await Clients.All.SendAsync("UserOffline", Context.UserIdentifier);
+            // Last live connection dropped (ref-count hit zero) — now offline.
+            await Clients.Others.SendAsync("UserOffline", userId);
         }
         await base.OnDisconnectedAsync(exception);
     }
+
+    /// <summary>
+    /// Returns every currently-online user id so a freshly-connected client can
+    /// seed its presence state instead of waiting for change events to trickle in.
+    /// </summary>
+    public IReadOnlyList<string> GetOnlineUsers() => presence.OnlineUsers();
 
     public Task JoinConversation(string conversationId) =>
         Groups.AddToGroupAsync(Context.ConnectionId, $"conversation:{conversationId}");

@@ -10,6 +10,7 @@ using ScholarPath.Application.Notifications;
 using ScholarPath.Application.Scholarships.Commands;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
+using ScholarPath.Infrastructure.Hubs;
 using ScholarPath.Infrastructure.Jobs;
 using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Infrastructure.Services;
@@ -211,6 +212,10 @@ public static class DependencyInjection
         services.AddScoped<INotificationDispatcher, NotificationDispatcher>();
         services.AddScoped<IChatRealtimeNotifier, ChatRealtimeNotifier>();
         services.AddScoped<ICommunityRealtimeNotifier, CommunityRealtimeNotifier>();
+
+        // Chat presence — in-memory, ref-counted SignalR connection tracking,
+        // shared by every ChatHub instance, so the UI can show live online dots.
+        services.AddSingleton<IPresenceTracker, PresenceTracker>();
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserAdministration, UserAdministration>();
         services.AddScoped<IEmailChangeService, EmailChangeService>();
