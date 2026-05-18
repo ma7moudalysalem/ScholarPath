@@ -35,16 +35,24 @@ public static partial class DbSeeder
     private static readonly string[] GenUserCountries =
         ["EG", "JO", "AE", "SA", "MA", "KW", "QA", "LB", "US", "GB", "CA", "DE", "FR"];
 
-    private static readonly string[] GenConsultantBios =
+    private static readonly (string En, string Ar)[] GenConsultantBios =
     [
-        "Former admissions officer guiding students into top universities — statements of purpose, school selection and interview preparation.",
-        "Scholarship strategist for fully funded Master's and PhD programmes; hundreds of students mentored across the region.",
-        "Study-abroad coach focused on STEM applicants — CV review, recommendation strategy and funding applications.",
-        "PhD holder supporting research-proposal writing and PostDoc / fellowship applications for North America and Europe.",
-        "Career mentor helping undergraduates plan competitive scholarship applications from the very first step.",
-        "Admissions consultant specialising in UK and European universities, with a strong record of funded offers.",
-        "Education advisor focused on Gulf and North-American scholarship opportunities for Arabic-speaking students.",
-        "Bilingual mentor supporting students through every stage of the application — search, writing, interview and decision.",
+        ("Former admissions officer guiding students into top universities — statements of purpose, school selection and interview preparation.",
+         "مسؤول قبول سابق يرشد الطلاب نحو أفضل الجامعات — خطابات الغرض واختيار الجامعة والتحضير للمقابلات."),
+        ("Scholarship strategist for fully funded Master's and PhD programmes; hundreds of students mentored across the region.",
+         "خبير استراتيجيات منح للبرامج الممولة بالكامل للماجستير والدكتوراه؛ أرشد مئات الطلاب في المنطقة."),
+        ("Study-abroad coach focused on STEM applicants — CV review, recommendation strategy and funding applications.",
+         "مدرّب للدراسة بالخارج متخصص في طلاب التخصصات العلمية — مراجعة السيرة الذاتية واستراتيجية التوصيات وطلبات التمويل."),
+        ("PhD holder supporting research-proposal writing and PostDoc / fellowship applications for North America and Europe.",
+         "حاصل على الدكتوراه يدعم كتابة المقترحات البحثية وطلبات ما بعد الدكتوراه والزمالات لأمريكا الشمالية وأوروبا."),
+        ("Career mentor helping undergraduates plan competitive scholarship applications from the very first step.",
+         "مرشد مهني يساعد طلاب البكالوريوس على التخطيط لطلبات منح تنافسية منذ الخطوة الأولى."),
+        ("Admissions consultant specialising in UK and European universities, with a strong record of funded offers.",
+         "مستشار قبول متخصص في الجامعات البريطانية والأوروبية، بسجل قوي من العروض المموّلة."),
+        ("Education advisor focused on Gulf and North-American scholarship opportunities for Arabic-speaking students.",
+         "مستشار تعليمي يركّز على فرص المنح في الخليج وأمريكا الشمالية للطلاب الناطقين بالعربية."),
+        ("Bilingual mentor supporting students through every stage of the application — search, writing, interview and decision.",
+         "مرشد ثنائي اللغة يدعم الطلاب في كل مراحل التقديم — البحث والكتابة والمقابلة واتخاذ القرار."),
     ];
 
     private static readonly string[] GenExpertiseSets =
@@ -165,7 +173,9 @@ public static partial class DbSeeder
         switch (role)
         {
             case "Consultant":
-                p.Biography = GenConsultantBios[rng.Next(GenConsultantBios.Length)];
+                var genBio = GenConsultantBios[rng.Next(GenConsultantBios.Length)];
+                p.Biography = genBio.En;
+                p.BiographyAr = genBio.Ar;
                 p.SessionFeeUsd = 15m + rng.Next(0, 18) * 5m;
                 p.SessionDurationMinutes = new[] { 30, 45, 60 }[rng.Next(3)];
                 p.ExpertiseTagsJson = GenExpertiseSets[rng.Next(GenExpertiseSets.Length)];

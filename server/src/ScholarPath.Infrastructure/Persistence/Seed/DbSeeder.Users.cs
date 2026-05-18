@@ -95,6 +95,7 @@ public static partial class DbSeeder
         await SeedUserProfilesAsync(db, users, logger, ct).ConfigureAwait(false);
         await SeedTeamAccountsAsync(db, userManager, logger, ct).ConfigureAwait(false);
         await SeedGeneratedUsersAsync(db, userManager, logger, ct).ConfigureAwait(false);
+        await SeedConsultantBiographyArAsync(db, logger, ct).ConfigureAwait(false);
         return users;
     }
 
@@ -177,6 +178,7 @@ public static partial class DbSeeder
             CreatedAt = now.AddDays(-30),
             ProfileCompletenessPercent = 85,
             Biography = $"ScholarPath project team member — {role} demo account.",
+            BiographyAr = $"عضو فريق مشروع ScholarPath — حساب تجريبي بدور {role}.",
         };
 
         switch (role)
@@ -367,14 +369,7 @@ public static partial class DbSeeder
         var consultantIndex = IndexOf(users.Consultants, u.Id);
         if (consultantIndex >= 0)
         {
-            var bios = new[]
-            {
-                "Former admissions officer with 8 years' experience guiding students into top-50 universities. I help with statements of purpose, school selection and interview prep.",
-                "Scholarship strategist specialising in fully funded Master's and PhD programmes in the UK and Gulf. 200+ students mentored.",
-                "Career and study-abroad coach focused on STEM applicants. I review CVs, recommendation strategy and funding applications.",
-                "PhD holder and peer reviewer. I support research-proposal writing and PostDoc / fellowship applications for North America.",
-                "Education consultant on a career break — currently not accepting new bookings.",
-            };
+            var bios = CuratedConsultantBios;
             var expertise = new[]
             {
                 """["Statement of Purpose","Interview Prep","University Selection"]""",
@@ -396,7 +391,8 @@ public static partial class DbSeeder
             var i = consultantIndex % bios.Length;
             var verified = consultantIndex < 4; // the deactivated one is not verified
 
-            p.Biography = bios[i];
+            p.Biography = bios[i].En;
+            p.BiographyAr = bios[i].Ar;
             p.SessionFeeUsd = fees[i];
             p.SessionDurationMinutes = durations[i];
             p.ExpertiseTagsJson = expertise[i];
@@ -439,5 +435,66 @@ public static partial class DbSeeder
 #pragma warning disable CA1308 // URL slug — invariant lower-casing is intentional.
         return value.ToLowerInvariant();
 #pragma warning restore CA1308
+    }
+
+    /// <summary>Bilingual bios for the five hand-curated demo consultants.</summary>
+    private static readonly (string En, string Ar)[] CuratedConsultantBios =
+    [
+        ("Former admissions officer with 8 years' experience guiding students into top-50 universities. I help with statements of purpose, school selection and interview prep.",
+         "مسؤولة قبول سابقة بخبرة 8 سنوات في إرشاد الطلاب إلى أفضل 50 جامعة. أساعد في خطابات الغرض واختيار الجامعة والتحضير للمقابلات."),
+        ("Scholarship strategist specialising in fully funded Master's and PhD programmes in the UK and Gulf. 200+ students mentored.",
+         "خبير استراتيجيات منح متخصص في برامج الماجستير والدكتوراه المموّلة بالكامل في بريطانيا والخليج. أرشدتُ أكثر من 200 طالب."),
+        ("Career and study-abroad coach focused on STEM applicants. I review CVs, recommendation strategy and funding applications.",
+         "مدرّب مهني وللدراسة بالخارج متخصص في طلاب التخصصات العلمية. أراجع السير الذاتية واستراتيجية التوصيات وطلبات التمويل."),
+        ("PhD holder and peer reviewer. I support research-proposal writing and PostDoc / fellowship applications for North America.",
+         "حاصل على الدكتوراه ومراجع أقران. أدعم كتابة المقترحات البحثية وطلبات ما بعد الدكتوراه والزمالات لأمريكا الشمالية."),
+        ("Education consultant on a career break — currently not accepting new bookings.",
+         "مستشارة تعليمية في إجازة مهنية — لا تقبل حجوزات جديدة حالياً."),
+    ];
+
+    /// <summary>
+    /// Back-fills <see cref="UserProfile.BiographyAr"/> for consultant profiles
+    /// seeded before the bilingual-bio change. Matches the stored English bio
+    /// against the seed pools. Idempotent — only rows still missing the Arabic
+    /// bio are touched.
+    /// </summary>
+    private static async Task SeedConsultantBiographyArAsync(
+        ApplicationDbContext db, ILogger logger, CancellationToken ct)
+    {
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (en, ar) in GenConsultantBios)
+        {
+            map[en] = ar;
+        }
+        foreach (var (en, ar) in CuratedConsultantBios)
+        {
+            map[en] = ar;
+        }
+        foreach (var role in new[] { "Student", "Company", "Consultant", "Admin" })
+        {
+            map[$"ScholarPath project team member — {role} demo account."]
+                = $"عضو فريق مشروع ScholarPath — حساب تجريبي بدور {role}.";
+        }
+
+        var profiles = await db.UserProfiles
+            .Where(p => p.BiographyAr == null && p.SessionFeeUsd != null && p.Biography != null)
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        var updated = 0;
+        foreach (var p in profiles)
+        {
+            if (p.Biography is not null && map.TryGetValue(p.Biography, out var ar))
+            {
+                p.BiographyAr = ar;
+                updated++;
+            }
+        }
+
+        if (updated > 0)
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+
+        logger.LogInformation("Back-filled {N} Arabic consultant bios", updated);
     }
 }

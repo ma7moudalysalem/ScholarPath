@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
@@ -21,6 +22,7 @@ public sealed class ConsultantReadServiceTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly IDateTimeService _clock = Substitute.For<IDateTimeService>();
+    private readonly IHttpContextAccessor _http = Substitute.For<IHttpContextAccessor>();
     private readonly ConsultantReadService _service;
 
     // A fixed "now" so recurring-slot expansion is deterministic.
@@ -37,7 +39,7 @@ public sealed class ConsultantReadServiceTests : IDisposable
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options);
         _clock.UtcNow.Returns(Now);
-        _service = new ConsultantReadService(_db, _clock);
+        _service = new ConsultantReadService(_db, _clock, _http);
 
         _db.Roles.Add(new ApplicationRole
         {

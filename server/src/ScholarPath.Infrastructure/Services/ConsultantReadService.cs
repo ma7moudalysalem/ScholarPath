@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.ConsultantBookings.DTOs;
@@ -17,7 +18,8 @@ namespace ScholarPath.Infrastructure.Services;
 /// </summary>
 public sealed class ConsultantReadService(
     ApplicationDbContext db,
-    IDateTimeService clock) : IConsultantReadService
+    IDateTimeService clock,
+    IHttpContextAccessor httpContext) : IConsultantReadService
 {
     private const string ConsultantRole = "Consultant";
 
@@ -26,6 +28,14 @@ public sealed class ConsultantReadService(
 
     /// <summary>Newest visible reviews surfaced on a consultant's detail page.</summary>
     private const int RecentReviewCount = 10;
+
+    /// <summary>Resolves the request UI language ("ar" / "en") from Accept-Language.</summary>
+    private string CurrentLang()
+    {
+        var header = httpContext.HttpContext?.Request.Headers.AcceptLanguage.ToString()
+                     ?? string.Empty;
+        return header.StartsWith("ar", StringComparison.OrdinalIgnoreCase) ? "ar" : "en";
+    }
 
     public async Task<IReadOnlyList<ConsultantSummaryDto>> BrowseConsultantsAsync(CancellationToken ct)
     {
@@ -56,6 +66,7 @@ public sealed class ConsultantReadService(
         var completed = await LoadCompletedCountsAsync(ids, ct).ConfigureAwait(false);
         var availabilityCounts = await LoadActiveAvailabilityCountsAsync(ids, ct).ConfigureAwait(false);
 
+        var lang = CurrentLang();
         return consultants
             .Select(c =>
             {
@@ -66,7 +77,9 @@ public sealed class ConsultantReadService(
                     Id = c.Id,
                     Name = $"{c.FirstName} {c.LastName}".Trim(),
                     PhotoUrl = c.ProfileImageUrl,
-                    Biography = c.Profile?.Biography,
+                    Biography = lang == "ar"
+                        ? c.Profile?.BiographyAr ?? c.Profile?.Biography
+                        : c.Profile?.Biography ?? c.Profile?.BiographyAr,
                     ExpertiseTags = ParseJsonArray(c.Profile?.ExpertiseTagsJson),
                     Languages = ParseJsonArray(c.Profile?.LanguagesJson),
                     SessionFeeUsd = c.Profile?.SessionFeeUsd,
@@ -136,6 +149,7 @@ public sealed class ConsultantReadService(
 
         var aggregate = ratings.GetValueOrDefault(consultantId);
         var ruleCount = availabilityCounts.GetValueOrDefault(consultantId);
+        var lang = CurrentLang();
 
         return new ConsultantDetailDto
         {
@@ -143,7 +157,9 @@ public sealed class ConsultantReadService(
             Name = $"{consultant.FirstName} {consultant.LastName}".Trim(),
             PhotoUrl = consultant.ProfileImageUrl,
             CountryOfResidence = consultant.CountryOfResidence,
-            Biography = consultant.Profile?.Biography,
+            Biography = lang == "ar"
+                ? consultant.Profile?.BiographyAr ?? consultant.Profile?.Biography
+                : consultant.Profile?.Biography ?? consultant.Profile?.BiographyAr,
             LinkedInUrl = consultant.Profile?.LinkedInUrl,
             WebsiteUrl = consultant.Profile?.WebsiteUrl,
             Timezone = consultant.Profile?.Timezone,

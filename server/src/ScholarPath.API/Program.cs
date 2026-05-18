@@ -78,6 +78,11 @@ builder.Services
             ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
             IssuerSigningKey = jwtKeyProvider.GetValidationKey(),
             ClockSkew = TimeSpan.FromMinutes(1),
+            // Dual-role model: [Authorize(Roles = ...)] is gated on the session's
+            // *active* role. The active_role claim is the one claim guaranteed on
+            // every token — including refresh-rotated ones, which do not re-list
+            // the full role set — so role checks stay correct after a refresh.
+            RoleClaimType = "active_role",
         };
 
         // Allow JWT via query string for SignalR

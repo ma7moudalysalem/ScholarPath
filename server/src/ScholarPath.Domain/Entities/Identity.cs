@@ -83,6 +83,7 @@ public class UserProfile : AuditableEntity
 {
     public Guid UserId { get; set; }
     public string? Biography { get; set; }
+    public string? BiographyAr { get; set; }
     public DateOnly? DateOfBirth { get; set; }
     public string? Nationality { get; set; }
     public string? LinkedInUrl { get; set; }
