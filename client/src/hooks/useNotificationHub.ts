@@ -1,7 +1,9 @@
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
 import { createNotificationHubConnection } from "@/services/signalR/hubs";
+import { UNREAD_COUNT_QUERY_KEY } from "@/services/api/notifications";
 
 interface HubNotificationPayload {
   titleEn: string;
@@ -24,6 +26,7 @@ interface HubNotificationPayload {
 export function useNotificationHub() {
   const tokens = useAuthStore((s) => s.tokens);
   const accessToken = tokens?.accessToken;
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!accessToken) return;
@@ -36,6 +39,8 @@ export function useNotificationHub() {
       toast(lang === "ar" ? payload.titleAr : payload.titleEn, {
         description: lang === "ar" ? payload.bodyAr : payload.bodyEn,
       });
+      // Bump the header bell badge the moment a notification lands.
+      void queryClient.invalidateQueries({ queryKey: UNREAD_COUNT_QUERY_KEY });
     });
 
     connection
@@ -54,5 +59,5 @@ export function useNotificationHub() {
       // stop() also aborts an in-flight start(); its rejection is handled above.
       void connection.stop();
     };
-  }, [accessToken]);
+  }, [accessToken, queryClient]);
 }

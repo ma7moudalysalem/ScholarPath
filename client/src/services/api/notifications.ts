@@ -1,5 +1,8 @@
 import { apiClient } from "@/services/api/client";
 
+/** React Query key for the unread-notification count (header bell badge). */
+export const UNREAD_COUNT_QUERY_KEY = ["notifications", "unread-count"] as const;
+
 /** A single in-app notification (PB-010) — mirrors NotificationDto. */
 export interface NotificationItem {
   id: string;

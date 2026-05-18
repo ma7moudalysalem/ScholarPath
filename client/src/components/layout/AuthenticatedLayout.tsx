@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import {
   GraduationCap,
   LayoutDashboard,
@@ -26,6 +27,7 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useAuthStore } from "@/stores/authStore";
 import { postAuthPath } from "@/services/api/auth";
 import { useNotificationHub } from "@/hooks/useNotificationHub";
+import { notificationsApi, UNREAD_COUNT_QUERY_KEY } from "@/services/api/notifications";
 import { cn } from "@/lib/utils";
 import { userPhotoUrl } from "@/lib/userPhoto";
 
@@ -197,6 +199,16 @@ export function AuthenticatedLayout() {
   // Subscribe to the notification hub while the user is authenticated
   useNotificationHub();
 
+  // Unread-notification count for the header bell badge. Polled as a safety
+  // net; the notification hub also invalidates this key the moment one arrives.
+  const { data: unreadCount = 0 } = useQuery({
+    queryKey: UNREAD_COUNT_QUERY_KEY,
+    queryFn: () => notificationsApi.unreadCount(),
+    enabled: !!user,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
   return (
     <div className="flex min-h-screen bg-bg-subtle text-text-primary">
 
@@ -265,10 +277,19 @@ export function AuthenticatedLayout() {
             <ThemeToggle />
             <NavLink
               to="/notifications"
-              className="inline-flex size-9 items-center justify-center rounded-md border border-border-subtle bg-bg-elevated text-text-primary transition hover:border-border-default"
-              aria-label={t("nav:common.notifications")}
+              className="relative inline-flex size-9 items-center justify-center rounded-md border border-border-subtle bg-bg-elevated text-text-primary transition hover:border-border-default"
+              aria-label={
+                unreadCount > 0
+                  ? `${t("nav:common.notifications")} (${unreadCount})`
+                  : t("nav:common.notifications")
+              }
             >
               <Bell aria-hidden className="size-4" />
+              {unreadCount > 0 && (
+                <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold leading-none text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </NavLink>
             {user && (
               <div className="ms-1 flex items-center gap-2 rounded-md bg-bg-elevated px-3 py-1.5 text-sm">
