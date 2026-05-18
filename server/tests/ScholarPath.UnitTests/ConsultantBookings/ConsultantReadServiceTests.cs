@@ -369,9 +369,9 @@ public sealed class ConsultantReadServiceTests : IDisposable
     [Fact]
     public async Task OpenSlots_ExpandsRecurringRuleIntoFutureDatedSlots()
     {
-        var consultant = SeedConsultant();
-        // Now is Monday 2026-05-18 09:00Z. A Tuesday 16:00-17:00 rule expands to
-        // one slot per Tuesday in the 28-day horizon.
+        var consultant = SeedConsultant(durationMinutes: 45);
+        // Now is Monday 2026-05-18 09:00Z. A Tuesday 16:00-17:00 rule sliced by
+        // the 45-minute session yields one bookable slot per Tuesday (16:00).
         SeedRecurringAvailability(consultant, DayOfWeek.Tuesday,
             new TimeOnly(16, 0), new TimeOnly(17, 0));
 
@@ -381,10 +381,36 @@ public sealed class ConsultantReadServiceTests : IDisposable
         result!.Should().NotBeEmpty();
         result.Should().OnlyContain(s => s.StartAt.DayOfWeek == DayOfWeek.Tuesday);
         result.Should().OnlyContain(s => s.StartAt > Now);
-        result[0].DurationMinutes.Should().Be(60);
+        result.Should().OnlyContain(s => s.DurationMinutes == 45);
         result[0].IsRecurring.Should().BeTrue();
         // First Tuesday after Mon 2026-05-18 is 2026-05-19 16:00Z.
         result[0].StartAt.Should().Be(new DateTimeOffset(2026, 5, 19, 16, 0, 0, TimeSpan.Zero));
+        result[0].EndAt.Should().Be(new DateTimeOffset(2026, 5, 19, 16, 45, 0, TimeSpan.Zero));
+    }
+
+    [Fact]
+    public async Task OpenSlots_SlicesAWideWindowIntoBackToBackSessionSlots()
+    {
+        // A 60-minute session over a Tuesday 16:00-19:00 (3-hour) window yields
+        // exactly three back-to-back slots: 16:00, 17:00, 18:00 — not one
+        // un-bookable 3-hour block.
+        var consultant = SeedConsultant(durationMinutes: 60);
+        SeedRecurringAvailability(consultant, DayOfWeek.Tuesday,
+            new TimeOnly(16, 0), new TimeOnly(19, 0));
+
+        var result = await _service.GetConsultantOpenSlotsAsync(consultant, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        // First Tuesday after Mon 2026-05-18 is 2026-05-19.
+        var firstTuesday = result!
+            .Where(s => s.StartAt.UtcDateTime.Date == new DateTime(2026, 5, 19))
+            .OrderBy(s => s.StartAt)
+            .ToList();
+        firstTuesday.Should().HaveCount(3);
+        firstTuesday.Should().OnlyContain(s => s.DurationMinutes == 60);
+        firstTuesday[0].StartAt.Should().Be(new DateTimeOffset(2026, 5, 19, 16, 0, 0, TimeSpan.Zero));
+        firstTuesday[1].StartAt.Should().Be(new DateTimeOffset(2026, 5, 19, 17, 0, 0, TimeSpan.Zero));
+        firstTuesday[2].StartAt.Should().Be(new DateTimeOffset(2026, 5, 19, 18, 0, 0, TimeSpan.Zero));
     }
 
     [Fact]

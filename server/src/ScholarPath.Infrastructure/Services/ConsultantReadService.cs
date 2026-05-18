@@ -194,6 +194,19 @@ public sealed class ConsultantReadService(
             return null;
         }
 
+        // A saved availability rule is a *window of openness*, not one bookable
+        // slot. Slice it into back-to-back session-sized slots so every offered
+        // slot's duration matches what RequestBookingCommandHandler enforces —
+        // otherwise a wide window (e.g. 16:00-20:00) is permanently un-bookable.
+        // When the consultant has no configured session length the whole
+        // window stands (the booking handler skips the duration check then).
+        var sessionMinutes = await db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == consultantId)
+            .Select(u => u.Profile != null ? u.Profile.SessionDurationMinutes : null)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+
         var nowUtc = clock.UtcNow;
         var horizonUtc = nowUtc.AddDays(OpenSlotHorizonDays);
 
@@ -226,15 +239,11 @@ public sealed class ConsultantReadService(
         {
             if (rule.IsRecurring)
             {
-                slots.AddRange(ExpandRecurringRule(rule, nowUtc, horizonUtc));
+                slots.AddRange(ExpandRecurringRule(rule, nowUtc, horizonUtc, sessionMinutes));
             }
             else
             {
-                var adHoc = TryBuildAdHocSlot(rule, nowUtc, horizonUtc);
-                if (adHoc is not null)
-                {
-                    slots.Add(adHoc);
-                }
+                slots.AddRange(BuildAdHocSlots(rule, nowUtc, horizonUtc, sessionMinutes));
             }
         }
 
@@ -260,7 +269,8 @@ public sealed class ConsultantReadService(
     private static IEnumerable<BookableSlotDto> ExpandRecurringRule(
         Domain.Entities.ConsultantAvailability rule,
         DateTimeOffset nowUtc,
-        DateTimeOffset horizonUtc)
+        DateTimeOffset horizonUtc,
+        int? sessionMinutes)
     {
         if (rule.DayOfWeek is null || rule.StartTime is null || rule.EndTime is null)
         {
@@ -272,9 +282,6 @@ public sealed class ConsultantReadService(
             yield break;
         }
 
-        var durationMinutes = (int)Math.Round(
-            (rule.EndTime.Value.ToTimeSpan() - rule.StartTime.Value.ToTimeSpan()).TotalMinutes);
-
         for (var date = nowUtc.UtcDateTime.Date;
              date <= horizonUtc.UtcDateTime.Date;
              date = date.AddDays(1))
@@ -284,12 +291,57 @@ public sealed class ConsultantReadService(
                 continue;
             }
 
-            var startUtc = new DateTimeOffset(
+            var windowStart = new DateTimeOffset(
                 date.Add(rule.StartTime.Value.ToTimeSpan()), TimeSpan.Zero);
-            var endUtc = new DateTimeOffset(
+            var windowEnd = new DateTimeOffset(
                 date.Add(rule.EndTime.Value.ToTimeSpan()), TimeSpan.Zero);
 
-            // Skip windows already in the past or beyond the horizon.
+            foreach (var (startUtc, endUtc) in SliceWindow(windowStart, windowEnd, sessionMinutes))
+            {
+                // Skip slots already in the past or beyond the horizon.
+                if (startUtc <= nowUtc || startUtc > horizonUtc)
+                {
+                    continue;
+                }
+
+                yield return new BookableSlotDto
+                {
+                    AvailabilityId = rule.Id,
+                    StartAt = startUtc,
+                    EndAt = endUtc,
+                    DurationMinutes = (int)Math.Round((endUtc - startUtc).TotalMinutes),
+                    IsRecurring = true,
+                    Timezone = rule.Timezone,
+                };
+            }
+        }
+    }
+
+    /// <summary>
+    /// Expands an ad-hoc rule's concrete window into session-sized bookable
+    /// slots, keeping only those still in the future and within the horizon.
+    /// </summary>
+    private static IEnumerable<BookableSlotDto> BuildAdHocSlots(
+        Domain.Entities.ConsultantAvailability rule,
+        DateTimeOffset nowUtc,
+        DateTimeOffset horizonUtc,
+        int? sessionMinutes)
+    {
+        if (rule.SpecificStartAt is null || rule.SpecificEndAt is null)
+        {
+            yield break;
+        }
+
+        var windowStart = rule.SpecificStartAt.Value.ToUniversalTime();
+        var windowEnd = rule.SpecificEndAt.Value.ToUniversalTime();
+
+        if (windowEnd <= windowStart)
+        {
+            yield break;
+        }
+
+        foreach (var (startUtc, endUtc) in SliceWindow(windowStart, windowEnd, sessionMinutes))
+        {
             if (startUtc <= nowUtc || startUtc > horizonUtc)
             {
                 continue;
@@ -300,45 +352,35 @@ public sealed class ConsultantReadService(
                 AvailabilityId = rule.Id,
                 StartAt = startUtc,
                 EndAt = endUtc,
-                DurationMinutes = durationMinutes,
-                IsRecurring = true,
+                DurationMinutes = (int)Math.Round((endUtc - startUtc).TotalMinutes),
+                IsRecurring = false,
                 Timezone = rule.Timezone,
             };
         }
     }
 
     /// <summary>
-    /// Builds a single slot from an ad-hoc rule when its concrete window is
-    /// valid and still in the future (within the horizon). Returns
-    /// <see langword="null"/> otherwise.
+    /// Slices an availability window into consecutive session-length slots.
+    /// A trailing remainder shorter than one session is dropped. When the
+    /// consultant has no configured session length the window is returned
+    /// whole — the booking handler skips the duration check in that case.
     /// </summary>
-    private static BookableSlotDto? TryBuildAdHocSlot(
-        Domain.Entities.ConsultantAvailability rule,
-        DateTimeOffset nowUtc,
-        DateTimeOffset horizonUtc)
+    private static IEnumerable<(DateTimeOffset Start, DateTimeOffset End)> SliceWindow(
+        DateTimeOffset windowStart, DateTimeOffset windowEnd, int? sessionMinutes)
     {
-        if (rule.SpecificStartAt is null || rule.SpecificEndAt is null)
+        if (sessionMinutes is null or <= 0)
         {
-            return null;
+            yield return (windowStart, windowEnd);
+            yield break;
         }
 
-        var startUtc = rule.SpecificStartAt.Value.ToUniversalTime();
-        var endUtc = rule.SpecificEndAt.Value.ToUniversalTime();
-
-        if (endUtc <= startUtc || startUtc <= nowUtc || startUtc > horizonUtc)
+        var session = TimeSpan.FromMinutes(sessionMinutes.Value);
+        for (var slotStart = windowStart;
+             slotStart + session <= windowEnd;
+             slotStart += session)
         {
-            return null;
+            yield return (slotStart, slotStart + session);
         }
-
-        return new BookableSlotDto
-        {
-            AvailabilityId = rule.Id,
-            StartAt = startUtc,
-            EndAt = endUtc,
-            DurationMinutes = (int)Math.Round((endUtc - startUtc).TotalMinutes),
-            IsRecurring = false,
-            Timezone = rule.Timezone,
-        };
     }
 
     // ── Aggregate loaders (batched, no N+1) ─────────────────────────────────────
