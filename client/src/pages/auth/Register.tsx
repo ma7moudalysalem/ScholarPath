@@ -9,7 +9,7 @@ import { motion } from "motion/react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
-import { ApiError } from "@/services/api/client";
+import { ApiError, apiErrorMessage } from "@/services/api/client";
 
 function makeRegisterSchema(t: TFunction) {
   return z.object({
@@ -48,7 +48,11 @@ export function Register() {
       navigate(postAuthPath(user), { replace: true });
     } catch (err) {
       const status = err instanceof ApiError ? err.status : 0;
-      toast.error(t(status === 409 ? "auth:errors.emailTaken" : "auth:errors.generic"));
+      toast.error(
+        status === 409
+          ? t("auth:errors.emailTaken")
+          : apiErrorMessage(err, t("auth:errors.generic")),
+      );
     }
   });
 

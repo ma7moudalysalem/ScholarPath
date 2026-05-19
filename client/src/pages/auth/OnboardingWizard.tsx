@@ -74,7 +74,7 @@ function PendingReview() {
   const removeMut = useMutation({
     mutationFn: (id: string) => documentsApi.remove(id),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["onboarding-documents"] }),
-    onError: () => toast.error(t("common:status.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
   });
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -189,8 +189,8 @@ export function OnboardingWizard() {
       navigate(role === "Student" ? "/profile" : postAuthPath(session), {
         replace: true,
       });
-    } catch {
-      toast.error(t("auth:errors.generic"));
+    } catch (err) {
+      toast.error(apiErrorMessage(err, t("auth:errors.generic")));
       setSubmitting(false);
     }
   }

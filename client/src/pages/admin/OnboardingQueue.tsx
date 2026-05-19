@@ -27,8 +27,8 @@ function OnboardingDocuments({ userId }: { userId: string }) {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-    } catch {
-      toast.error(t("common:status.error"));
+    } catch (err) {
+      toast.error(apiErrorMessage(err, t("common:status.error")));
     }
   };
 

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { authApi } from "@/services/api/auth";
+import { apiErrorMessage } from "@/services/api/client";
 
 type Status = "verifying" | "success" | "error";
 
@@ -20,6 +21,7 @@ export function VerifyEmail() {
   // A link missing its params is an error from the first render — deriving the
   // initial state avoids a setState call inside the effect.
   const [status, setStatus] = useState<Status>(userId && token ? "verifying" : "error");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const startedRef = useRef(false);
 
   useEffect(() => {
@@ -31,8 +33,11 @@ export function VerifyEmail() {
     authApi
       .verifyEmail(userId, token)
       .then(() => setStatus("success"))
-      .catch(() => setStatus("error"));
-  }, [userId, token]);
+      .catch((err: unknown) => {
+        setErrorMessage(apiErrorMessage(err, t("verifyEmail.errorBody")));
+        setStatus("error");
+      });
+  }, [userId, token, t]);
 
   return (
     <section className="mx-auto flex max-w-md flex-col items-center px-4 py-20 text-center sm:px-6">
@@ -65,7 +70,7 @@ export function VerifyEmail() {
           <h1 className="mb-2 text-2xl font-semibold text-text-primary">
             {t("verifyEmail.errorTitle")}
           </h1>
-          <p className="mb-6 text-text-secondary">{t("verifyEmail.errorBody")}</p>
+          <p className="mb-6 text-text-secondary">{errorMessage ?? t("verifyEmail.errorBody")}</p>
           <Link
             to="/login"
             className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-6 text-sm font-medium text-white transition hover:bg-brand-600"

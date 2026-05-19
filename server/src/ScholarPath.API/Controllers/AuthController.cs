@@ -146,7 +146,7 @@ public sealed class AuthController(IMediator mediator, ISsoService ssoService) :
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<AuthTokensDto>> SelectRole(
         [FromBody] SelectRoleRequestDto request, CancellationToken ct)
-        => Ok(await mediator.Send(new SelectRoleCommand(request.Role), ct));
+        => Ok(await mediator.Send(new SelectRoleCommand(request.Role, request.Details), ct));
 
     /// <summary>
     /// FR-231 — request a change to the registered email. Emails a confirmation

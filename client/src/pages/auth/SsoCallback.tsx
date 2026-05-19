@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
+import { apiErrorMessage } from "@/services/api/client";
 
 export function SsoCallback() {
   const { t } = useTranslation(["auth", "common"]);
@@ -24,9 +25,9 @@ export function SsoCallback() {
         const user = applyAuthSession(res);
         navigate(postAuthPath(user), { replace: true });
       })
-      .catch(() => {
+      .catch((err) => {
         setExchangeFailed(true);
-        toast.error(t("auth:errors.ssoFailed"));
+        toast.error(apiErrorMessage(err, t("auth:errors.ssoFailed")));
       });
   }, [code, provider, navigate, t]);
 
