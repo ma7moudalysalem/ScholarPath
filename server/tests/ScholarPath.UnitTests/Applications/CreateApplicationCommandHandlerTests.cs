@@ -188,6 +188,24 @@ public sealed class StartApplicationCommandHandlerTests : IDisposable
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options);
         _currentUser.UserId.Returns(_studentId);
+
+        // A student whose profile is complete enough to apply (TC-003 gate).
+        _db.Users.Add(new ApplicationUser
+        {
+            Id = _studentId,
+            FirstName = "Test",
+            LastName = "Student",
+            Email = "student@test.local",
+            UserName = "student@test.local",
+            Profile = new UserProfile
+            {
+                Id = Guid.NewGuid(),
+                UserId = _studentId,
+                AcademicLevel = AcademicLevel.Undergrad,
+                FieldOfStudy = "Computer Science",
+            },
+        });
+        _db.SaveChanges();
     }
 
     private Guid SeedOpenScholarship()

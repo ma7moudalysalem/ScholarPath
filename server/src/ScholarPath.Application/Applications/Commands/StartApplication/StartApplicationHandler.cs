@@ -46,6 +46,23 @@ public sealed class StartApplicationCommandHandler(
             throw new ConflictException(
                 "External listings must be tracked via ExternalIntentCommand.");
 
+        // TC-003: the student must complete the core of their profile before
+        // applying — without it the application is unreviewable and AI
+        // personalisation has no data to work with. Surfaced as a clear,
+        // actionable error rather than a misleading "scholarship closed".
+        var profile = await db.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.Profile)
+            .FirstOrDefaultAsync(ct);
+
+        if (profile is null
+            || profile.AcademicLevel is null
+            || string.IsNullOrWhiteSpace(profile.FieldOfStudy))
+        {
+            throw new ConflictException(
+                "Complete your profile — add your academic level and field of study — before applying for scholarships.");
+        }
+
         // 4. Scholarship must be open
         if (scholarship.Status != ScholarshipStatus.Open)
             throw new ConflictException(

@@ -19,6 +19,7 @@ import {
   useToggleBookmarkMutation,
 } from "@/hooks/useScholarshipsQuery";
 import { applicationsApi } from "@/services/api/applications";
+import { ApiError } from "@/services/api/client";
 import type { FundingType } from "@/types/domain";
 import { SkeletonDetailCard } from "@/components/common/Skeleton";
 
@@ -88,13 +89,14 @@ export function ScholarshipDetail() {
       );
       navigate(`/student/applications/${result.applicationId}`);
     },
-    onError: (err: { status?: number }) => {
-      if (err.status === 409) {
-        toast.error(t("scholarships:detail.alreadyApplied"));
-        navigate("/student/applications");
-      } else {
-        toast.error(t("common:status.error"));
-      }
+    onError: (err: unknown) => {
+      // Surface the server's actual reason (profile incomplete, scholarship
+      // closed, …) instead of a one-size-fits-all message (UAT TC-003).
+      toast.error(
+        err instanceof ApiError
+          ? (err.payload.detail ?? err.payload.title)
+          : t("common:status.error"),
+      );
     },
   });
 
