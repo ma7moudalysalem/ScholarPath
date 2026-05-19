@@ -67,13 +67,22 @@ public class GetMyBookmarkedScholarshipsQueryHandler(
                 Scholarship = new ScholarshipDto
                 {
                     Id = scholarship.Id,
+                    // Defensive null-coalescing — a bookmarked scholarship with
+                    // a missing translation or a null Category previously made
+                    // EF materialise NULL into a non-nullable string and threw
+                    // NullReferenceException on this endpoint (500). Mirror the
+                    // safe pattern from GetScholarshipByIdQuery.
                     Title = lang == "ar"
-                        ? (scholarship.TitleAr ?? scholarship.TitleEn)
-                        : (scholarship.TitleEn ?? scholarship.TitleAr),
-                    Description = lang == "ar" ? scholarship.DescriptionAr : scholarship.DescriptionEn,
-                    CategoryName = lang == "ar"
-                        ? scholarship.Category!.NameAr
-                        : scholarship.Category!.NameEn,
+                        ? (scholarship.TitleAr ?? scholarship.TitleEn ?? "")
+                        : (scholarship.TitleEn ?? scholarship.TitleAr ?? ""),
+                    Description = lang == "ar"
+                        ? (scholarship.DescriptionAr ?? scholarship.DescriptionEn ?? "")
+                        : (scholarship.DescriptionEn ?? scholarship.DescriptionAr ?? ""),
+                    CategoryName = scholarship.Category == null
+                        ? ""
+                        : lang == "ar"
+                            ? (scholarship.Category.NameAr ?? scholarship.Category.NameEn ?? "")
+                            : (scholarship.Category.NameEn ?? scholarship.Category.NameAr ?? ""),
                     OwnerCompanyName = scholarship.OwnerCompany != null
                         ? scholarship.OwnerCompany.FirstName + " " + scholarship.OwnerCompany.LastName
                         : "Global Provider",
