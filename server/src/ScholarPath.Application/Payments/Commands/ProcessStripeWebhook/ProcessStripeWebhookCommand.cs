@@ -273,36 +273,73 @@ public sealed class ProcessStripeWebhookCommandHandler(
         }
     }
 
-    // FR-194 — payment receipt / refund notice to the payer (student).
+    // FR-194 — payment-lifecycle notifications. The payer always hears about a
+    // hold, a capture (receipt), or a refund; the payee also hears about a
+    // capture so they know money landed on their balance.
     private async Task DispatchPaymentNotificationAsync(
         Payment payment, string eventType, CancellationToken ct)
     {
-        NotificationType? type = eventType switch
+        switch (eventType)
         {
-            "payment_intent.succeeded" => NotificationType.PaymentSuccess,
-            "charge.refunded" => NotificationType.PaymentRefunded,
-            _ => null,
-        };
-        if (type is null) return;
+            case "payment_intent.amount_capturable_updated":
+                await SafeDispatchAsync(
+                    payment.PayerUserId,
+                    NotificationType.PaymentHeld,
+                    payment.AmountCents, payment.Currency,
+                    idempotencyKey: $"payment-held:{payment.Id:N}",
+                    eventType, payment.Id, ct);
+                break;
 
+            case "payment_intent.succeeded":
+                await SafeDispatchAsync(
+                    payment.PayerUserId,
+                    NotificationType.PaymentSuccess,
+                    payment.AmountCents, payment.Currency,
+                    idempotencyKey: $"payment-receipt:{payment.Id:N}",
+                    eventType, payment.Id, ct);
+
+                if (payment.PayeeUserId is { } payeeId)
+                {
+                    await SafeDispatchAsync(
+                        payeeId,
+                        NotificationType.PaymentReceived,
+                        payment.PayeeAmountCents, payment.Currency,
+                        idempotencyKey: $"payment-received:{payment.Id:N}",
+                        eventType, payment.Id, ct);
+                }
+                break;
+
+            case "charge.refunded":
+                await SafeDispatchAsync(
+                    payment.PayerUserId,
+                    NotificationType.PaymentRefunded,
+                    payment.RefundedAmountCents, payment.Currency,
+                    idempotencyKey: $"payment-refund:{payment.Id:N}",
+                    eventType, payment.Id, ct);
+                break;
+        }
+    }
+
+    private async Task SafeDispatchAsync(
+        Guid recipientId, NotificationType type, long amountCents, string currency,
+        string idempotencyKey, string eventType, Guid paymentId, CancellationToken ct)
+    {
         try
         {
-            var isRefund = type == NotificationType.PaymentRefunded;
-            var amountCents = isRefund ? payment.RefundedAmountCents : payment.AmountCents;
-            var amountText = $"{payment.Currency} {amountCents / 100m:0.00}";
+            var amountText = $"{currency} {amountCents / 100m:0.00}";
             await notifications.DispatchAsync(
-                payment.PayerUserId,
-                type.Value,
+                recipientId,
+                type,
                 new NotificationParams { AmountText = amountText },
                 deepLink: null,
-                idempotencyKey: $"{(isRefund ? "payment-refund" : "payment-receipt")}:{payment.Id:N}",
+                idempotencyKey: idempotencyKey,
                 ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex,
-                "Failed to send the {EventType} notification for payment {PaymentId}.",
-                eventType, payment.Id);
+                "Failed to send the {EventType} notification ({Type}) for payment {PaymentId}.",
+                eventType, type, paymentId);
         }
     }
 

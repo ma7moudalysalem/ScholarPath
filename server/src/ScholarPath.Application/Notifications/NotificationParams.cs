@@ -30,6 +30,12 @@ public sealed record NotificationParams
     /// <summary>Refund variant for CompanyReviewRefunded: "Full", "Partial", or "Timeout".</summary>
     public string? RefundKind { get; init; }
 
+    /// <summary>A counterparty display name (consultant or student) for booking notifications.</summary>
+    public string? CounterpartyName { get; init; }
+
+    /// <summary>A pre-formatted UTC ISO timestamp for a booking's scheduled start, e.g. "2026-05-20 14:00 UTC".</summary>
+    public string? StartAtText { get; init; }
+
     /// <summary>Pre-rendered content for an admin Broadcast — bypasses the catalog templates.</summary>
     public NotificationContent? RawContent { get; init; }
 

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Events;
 using ScholarPath.Domain.Exceptions;
 using ScholarPath.Domain.Interfaces;
 
@@ -12,15 +13,18 @@ public sealed class RejectBookingCommandHandler : IRequestHandler<RejectBookingC
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IStripeService _stripeService;
+    private readonly IPublisher _publisher;
 
     public RejectBookingCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
-        IStripeService stripeService)
+        IStripeService stripeService,
+        IPublisher publisher)
     {
         _context = context;
         _currentUser = currentUser;
         _stripeService = stripeService;
+        _publisher = publisher;
     }
 
     public async Task Handle(RejectBookingCommand request, CancellationToken cancellationToken)
@@ -87,5 +91,12 @@ public sealed class RejectBookingCommandHandler : IRequestHandler<RejectBookingC
         booking.RejectedAt = DateTimeOffset.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        await _publisher.Publish(
+            new BookingRejectedEvent(
+                booking.Id,
+                booking.StudentId,
+                booking.ConsultantId),
+            cancellationToken);
     }
 }

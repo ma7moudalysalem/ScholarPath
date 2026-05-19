@@ -178,6 +178,8 @@ public enum NotificationType
     PayoutCompleted = 303,
     PayoutFailed = 304,
     PaymentDisputed = 305,
+    PaymentReceived = 306,
+    PaymentHeld = 307,
 
     // Admin / onboarding (PB-001, PB-011)
     OnboardingApproved = 400,

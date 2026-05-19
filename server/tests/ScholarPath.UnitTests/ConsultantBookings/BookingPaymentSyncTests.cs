@@ -152,7 +152,7 @@ public sealed class BookingPaymentSyncTests : IDisposable
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new StripePaymentIntentResult("pi_test", "canceled", null, null));
 
-        var handler = new RejectBookingCommandHandler(_db, _currentUser, _stripe);
+        var handler = new RejectBookingCommandHandler(_db, _currentUser, _stripe, _publisher);
         await handler.Handle(new RejectBookingCommand(booking.Id), default);
 
         var payment = await PaymentForAsync(booking.Id);

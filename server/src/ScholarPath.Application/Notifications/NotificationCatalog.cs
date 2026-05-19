@@ -65,6 +65,16 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"Your payment of {p.AmountText ?? "the session fee"} was received — keep this as your receipt.",
             $"تم استلام دفعتك بقيمة {p.AmountText ?? "رسوم الجلسة"} — احتفظ بهذا الإشعار كإيصال."),
 
+        NotificationType.PaymentReceived => new(
+            "Payment received", "تم استلام دفعة",
+            $"You received a payment of {p.AmountText ?? "the session fee"} for your consultation.",
+            $"استلمت دفعة بقيمة {p.AmountText ?? "رسوم الجلسة"} مقابل الاستشارة."),
+
+        NotificationType.PaymentHeld => new(
+            "Card authorised", "تم حجز المبلغ على البطاقة",
+            $"Your card was authorised for {p.AmountText ?? "the session fee"} — the charge is held until the consultant accepts your booking.",
+            $"تم حجز مبلغ {p.AmountText ?? "رسوم الجلسة"} على بطاقتك — لن يُخصم المبلغ حتى يقبل المستشار الحجز."),
+
         NotificationType.PaymentRefunded => new(
             "Payment refunded", "تم استرداد الدفعة",
             $"A refund of {p.AmountText ?? "your payment"} has been issued to your card.",
@@ -84,6 +94,31 @@ public sealed class NotificationCatalog : INotificationCatalog
             "Payout failed", "فشلت الدفعة",
             "We couldn't complete your payout. Our team is looking into it.",
             "تعذّر إتمام دفعتك، وفريقنا يتابع المشكلة."),
+
+        NotificationType.BookingRequested => new(
+            "New booking request", "طلب حجز جديد",
+            $"{p.CounterpartyName ?? "A student"} has requested a session with you{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" on {p.StartAtText}")}. Review the request from your bookings page.",
+            $"طلب {p.CounterpartyName ?? "أحد الطلاب"} حجز جلسة معك{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" بتاريخ {p.StartAtText}")}. راجِع الطلب من صفحة حجوزاتك."),
+
+        NotificationType.BookingConfirmed => new(
+            "Booking confirmed", "تم تأكيد الحجز",
+            $"Your booking{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" with {p.CounterpartyName}")} is confirmed{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" for {p.StartAtText}")}.",
+            $"تم تأكيد حجزك{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" مع {p.CounterpartyName}")}{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" بتاريخ {p.StartAtText}")}."),
+
+        NotificationType.BookingRejected => new(
+            "Booking declined", "تم رفض الحجز",
+            $"Your booking{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" with {p.CounterpartyName}")} was declined — any payment hold has been released.",
+            $"تم رفض حجزك{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" مع {p.CounterpartyName}")} — تم إلغاء أي حجز للمبلغ على بطاقتك."),
+
+        NotificationType.BookingCancelled => new(
+            "Booking cancelled", "تم إلغاء الحجز",
+            $"A booking{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" with {p.CounterpartyName}")}{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" on {p.StartAtText}")} was cancelled{(string.IsNullOrEmpty(p.Reason) ? string.Empty : $" ({p.Reason})")}.",
+            $"تم إلغاء حجز{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" مع {p.CounterpartyName}")}{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" بتاريخ {p.StartAtText}")}{(string.IsNullOrEmpty(p.Reason) ? string.Empty : $" ({p.Reason})")}."),
+
+        NotificationType.BookingCompleted => new(
+            "Session completed", "اكتملت الجلسة",
+            $"Your session{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" with {p.CounterpartyName}")} is complete — you can now leave a rating.",
+            $"اكتملت جلستك{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" مع {p.CounterpartyName}")} — يمكنك الآن إضافة تقييمك."),
 
         NotificationType.OnboardingApproved => new(
             "Account approved", "تم اعتماد حسابك",

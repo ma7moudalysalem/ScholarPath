@@ -4,6 +4,7 @@ using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Events;
 using ScholarPath.Domain.Exceptions;
 using ScholarPath.Domain.Interfaces;
 
@@ -14,15 +15,18 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IStripeService _stripeService;
+    private readonly IPublisher _publisher;
 
     public RequestBookingCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
-        IStripeService stripeService)
+        IStripeService stripeService,
+        IPublisher publisher)
     {
         _context = context;
         _currentUser = currentUser;
         _stripeService = stripeService;
+        _publisher = publisher;
     }
 
     public async Task<RequestBookingResult> Handle(RequestBookingCommand request, CancellationToken cancellationToken)
@@ -293,6 +297,14 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
 
         payment.RelatedBookingId = booking.Id;
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Notify the consultant that a new booking is waiting on their review.
+        await _publisher.Publish(
+            new BookingRequestedEvent(
+                booking.Id,
+                booking.StudentId,
+                booking.ConsultantId),
+            cancellationToken);
 
         // Return the intent's client secret so the checkout widget confirms
         // THIS intent — it must not create a second one (PB-006 Problem 1).
