@@ -23,6 +23,15 @@ export interface LoginRequest {
   rememberMe: boolean;
 }
 
+/** Onboarding profile details for a Company / Consultant — mirrors OnboardingDetails. */
+export interface OnboardingDetails {
+  organizationLegalName?: string | null;
+  organizationWebsite?: string | null;
+  biography?: string | null;
+  sessionFeeUsd?: number | null;
+  expertiseTags?: string[] | null;
+}
+
 export type SsoProvider = "google" | "microsoft";
 
 const apiBase = (): string => import.meta.env.VITE_API_BASE_URL ?? "";
@@ -47,9 +56,18 @@ export const authApi = {
   async logout(refreshToken: string): Promise<void> {
     await apiClient.post("/api/auth/logout", { refreshToken });
   },
-  /** One-time first-role selection for a newly-registered (Unassigned) account. */
-  async selectRole(role: "Student" | "Company" | "Consultant"): Promise<AuthTokensResponse> {
-    const { data } = await apiClient.post<AuthTokensResponse>("/api/auth/select-role", { role });
+  /**
+   * One-time first-role selection for a newly-registered (Unassigned) account.
+   * Company / Consultant also pass their onboarding profile details.
+   */
+  async selectRole(
+    role: "Student" | "Company" | "Consultant",
+    details?: OnboardingDetails,
+  ): Promise<AuthTokensResponse> {
+    const { data } = await apiClient.post<AuthTokensResponse>("/api/auth/select-role", {
+      role,
+      details: details ?? null,
+    });
     return data;
   },
   /** Redirects the browser to the provider's consent screen. */

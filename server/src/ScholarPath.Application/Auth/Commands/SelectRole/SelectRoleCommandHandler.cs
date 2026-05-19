@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -23,7 +24,9 @@ public sealed class SelectRoleCommandHandler(
         var userId = currentUser.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
-        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct)
+        var user = await db.Users
+            .Include(u => u.Profile)
+            .FirstOrDefaultAsync(u => u.Id == userId, ct)
             ?? throw new NotFoundException(nameof(ApplicationUser), userId);
 
         // Role selection is a one-time gate — only an Unassigned, role-less account qualifies.
@@ -46,6 +49,33 @@ public sealed class SelectRoleCommandHandler(
             // role itself is granted by ReviewOnboardingCommandHandler on approval.
             user.ActiveRole = request.Role;
             user.AccountStatus = AccountStatus.PendingApproval;
+
+            // Persist the onboarding profile details so the admin reviews a
+            // complete request, not a bare role pick.
+            if (request.Details is { } details)
+            {
+                user.Profile ??= new UserProfile
+                {
+                    UserId = userId,
+                    CreatedAt = DateTimeOffset.UtcNow,
+                };
+
+                if (request.Role == "Company")
+                {
+                    user.Profile.OrganizationLegalName = details.OrganizationLegalName;
+                    user.Profile.OrganizationWebsite = details.OrganizationWebsite;
+                    user.Profile.OrganizationVerificationStatus = "Pending";
+                }
+                else
+                {
+                    user.Profile.Biography = details.Biography;
+                    user.Profile.SessionFeeUsd = details.SessionFeeUsd;
+                    user.Profile.SessionDurationMinutes ??= 45;
+                    user.Profile.ExpertiseTagsJson = details.ExpertiseTags is { Length: > 0 } tags
+                        ? JsonSerializer.Serialize(tags)
+                        : null;
+                }
+            }
         }
 
         await db.SaveChangesAsync(ct);
