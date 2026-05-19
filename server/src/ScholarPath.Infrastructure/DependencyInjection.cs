@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using ScholarPath.Application.Ai.Common;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Common.Models;
 using ScholarPath.Application.Notifications;

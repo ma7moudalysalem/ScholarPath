@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
@@ -14,14 +16,17 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly ILogger<SubmitConsultantRatingCommandHandler> _logger;
+    private readonly BookingOptions _bookingOptions;
 
     public SubmitConsultantRatingCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
+        IOptions<BookingOptions> bookingOptions,
         ILogger<SubmitConsultantRatingCommandHandler> logger)
     {
         _context = context;
         _currentUser = currentUser;
+        _bookingOptions = bookingOptions.Value;
         _logger = logger;
     }
 
@@ -62,6 +67,7 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
         }
 
         var consultant = await _context.Users
+            .Include(u => u.Profile)
             .FirstOrDefaultAsync(u => u.Id == booking.ConsultantId, cancellationToken);
 
         if (consultant is null)
@@ -86,28 +92,33 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
         _context.ConsultantReviews.Add(review);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var last20Ratings = await _context.ConsultantReviews
+        // FR-094: when the consultant's recent ratings fall below the configured
+        // threshold, auto-suspend their *booking intake* (not the whole account)
+        // pending admin review — the consultant keeps full access otherwise.
+        var windowSize = _bookingOptions.LowRatingWindowSize;
+        var recentRatings = await _context.ConsultantReviews
             .Where(r =>
                 r.ConsultantId == booking.ConsultantId &&
                 !r.IsDeleted &&
                 !r.IsHiddenByAdmin)
             .OrderByDescending(r => r.CreatedAt)
-            .Take(20)
+            .Take(windowSize)
             .Select(r => r.Rating)
             .ToListAsync(cancellationToken);
 
-        if (last20Ratings.Count == 20)
+        if (recentRatings.Count >= windowSize)
         {
-            var average = last20Ratings.Average();
+            var average = recentRatings.Average();
 
-            if (average < 3.0)
+            if (average < _bookingOptions.LowRatingThreshold
+                && consultant.Profile is { BookingIntakeSuspendedAt: null } profile)
             {
-                consultant.AccountStatus = AccountStatus.Suspended;
+                profile.BookingIntakeSuspendedAt = DateTimeOffset.UtcNow;
 
                 _logger.LogWarning(
-                    "Auto-suspended consultant {ConsultantId} (avg rating {Avg} over last 20 sessions)",
-                    consultant.Id,
-                    average);
+                    "Auto-suspended booking intake for consultant {ConsultantId} " +
+                    "(avg rating {Avg} over last {Window} sessions, threshold {Threshold})",
+                    consultant.Id, average, windowSize, _bookingOptions.LowRatingThreshold);
 
                 await _context.SaveChangesAsync(cancellationToken);
             }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Admin.Commands.ApproveOnboarding;
 using ScholarPath.Application.Admin.Commands.ChangeUserRole;
+using ScholarPath.Application.Admin.Commands.ReinstateBookingIntake;
 using ScholarPath.Application.Admin.Commands.ReviewUpgradeRequest;
 using ScholarPath.Application.Admin.Commands.SendBroadcast;
 using ScholarPath.Application.Admin.Commands.SetUserStatus;
@@ -91,6 +92,16 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
         CancellationToken ct)
     {
         await mediator.Send(new SetUserStatusCommand(userId, body.Status, body.Reason), ct).ConfigureAwait(false);
+        return NoContent();
+    }
+
+    /// <summary>FR-094 — reinstates a consultant whose booking intake was auto-suspended for low ratings.</summary>
+    [HttpPost("users/{userId:guid}/reinstate-booking-intake")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ReinstateBookingIntake(Guid userId, CancellationToken ct)
+    {
+        await mediator.Send(new ReinstateBookingIntakeCommand(userId), ct).ConfigureAwait(false);
         return NoContent();
     }
 

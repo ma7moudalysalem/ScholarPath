@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
-using ScholarPath.Infrastructure.Settings;
 
 namespace ScholarPath.Infrastructure.Jobs;
 

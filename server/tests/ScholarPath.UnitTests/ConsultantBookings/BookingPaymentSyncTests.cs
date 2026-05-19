@@ -12,10 +12,10 @@ using ScholarPath.Application.ConsultantBookings.Commands.RejectBooking;
 using ScholarPath.Application.ConsultantBookings.Services;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Application.Common;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Jobs;
 using ScholarPath.Infrastructure.Persistence;
-using ScholarPath.Infrastructure.Settings;
 using Xunit;
 
 namespace ScholarPath.UnitTests.ConsultantBookings;

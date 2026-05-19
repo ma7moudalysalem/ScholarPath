@@ -113,6 +113,13 @@ public class UserProfile : AuditableEntity
     public string? LanguagesJson { get; set; }
     public DateTimeOffset? ConsultantVerifiedAt { get; set; }
 
+    /// <summary>
+    /// When set, the consultant's booking intake is suspended pending admin
+    /// review (FR-094 low-rating policy). The account itself stays active —
+    /// only new booking requests are blocked. Cleared by an admin reinstatement.
+    /// </summary>
+    public DateTimeOffset? BookingIntakeSuspendedAt { get; set; }
+
     // Stripe Connect — payee payout onboarding
     public string? StripeConnectAccountId { get; set; }
     public StripeConnectStatus StripeConnectStatus { get; set; } = StripeConnectStatus.None;

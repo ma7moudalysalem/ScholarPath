@@ -91,6 +91,14 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             throw new BookingDomainException("Requested duration does not match consultant session duration.");
         }
 
+        // FR-094: a consultant whose booking intake is suspended (low ratings,
+        // pending admin review) cannot receive new bookings.
+        if (consultant.Profile.BookingIntakeSuspendedAt is not null)
+        {
+            throw new BookingDomainException(
+                "This consultant is not currently accepting new bookings.");
+        }
+
         ConsultantAvailability? availability = null;
 
         if (request.AvailabilityId.HasValue)
