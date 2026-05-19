@@ -97,6 +97,21 @@ public enum PaymentType
     CompanyReview = 1,
 }
 
+/// <summary>Whether a financial-config rule's platform fee is a percentage or a flat amount.</summary>
+public enum FeeKind
+{
+    Percentage = 0,
+    FixedAmount = 1,
+}
+
+/// <summary>Lifecycle state of an admin financial-configuration rule (FR-163..176).</summary>
+public enum FinancialRuleStatus
+{
+    Draft = 0,
+    Active = 1,
+    Archived = 2,
+}
+
 public enum PaymentStatus
 {
     Pending = 0,

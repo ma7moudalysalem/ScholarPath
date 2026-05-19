@@ -39,6 +39,7 @@ public interface IApplicationDbContext
     DbSet<Payout> Payouts { get; }
     DbSet<StripeWebhookEvent> StripeWebhookEvents { get; }
     DbSet<ProfitShareConfig> ProfitShareConfigs { get; }
+    DbSet<FinancialConfigRule> FinancialConfigRules { get; }
 
     DbSet<ForumCategory> ForumCategories { get; }
     DbSet<ForumPost> ForumPosts { get; }

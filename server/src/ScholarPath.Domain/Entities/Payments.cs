@@ -79,3 +79,34 @@ public class ProfitShareConfig : AuditableEntity
     public Guid SetByAdminId { get; set; }
     public string? Notes { get; set; }
 }
+
+/// <summary>
+/// Admin-configured financial rule (FR-163..176): the platform fee and portal
+/// profit-share for a payment type. The fee is either a percentage of the gross
+/// or a flat amount — the admin chooses per rule (<see cref="FeeKind"/>); the
+/// profit-share is always a percentage. At most one rule per payment type may
+/// be <see cref="FinancialRuleStatus.Active"/> at a time.
+/// </summary>
+public class FinancialConfigRule : AuditableEntity
+{
+    public PaymentType PaymentType { get; set; }
+
+    /// <summary>Whether <see cref="FeePercentage"/> or <see cref="FeeAmountCents"/> applies.</summary>
+    public FeeKind FeeKind { get; set; }
+
+    /// <summary>Platform fee as a fraction of the gross (0–1) — set when FeeKind is Percentage.</summary>
+    public decimal? FeePercentage { get; set; }
+
+    /// <summary>Platform fee in cents — set when FeeKind is FixedAmount.</summary>
+    public long? FeeAmountCents { get; set; }
+
+    /// <summary>Portal profit-share as a fraction of the gross (0–1) — always a percentage.</summary>
+    public decimal ProfitSharePercentage { get; set; }
+
+    public FinancialRuleStatus Status { get; set; } = FinancialRuleStatus.Draft;
+    public DateTimeOffset EffectiveFrom { get; set; }
+    public DateTimeOffset? EffectiveTo { get; set; }
+
+    public Guid SetByAdminId { get; set; }
+    public string? Notes { get; set; }
+}

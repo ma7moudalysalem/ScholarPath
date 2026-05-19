@@ -512,6 +512,27 @@ public sealed class ProfitShareConfigConfiguration : IEntityTypeConfiguration<Pr
     }
 }
 
+public sealed class FinancialConfigRuleConfiguration : IEntityTypeConfiguration<FinancialConfigRule>
+{
+    public void Configure(EntityTypeBuilder<FinancialConfigRule> b)
+    {
+        b.Property(r => r.PaymentType).HasConversion<string>().HasMaxLength(32);
+        b.Property(r => r.FeeKind).HasConversion<string>().HasMaxLength(16);
+        b.Property(r => r.Status).HasConversion<string>().HasMaxLength(16);
+        b.Property(r => r.FeePercentage).HasPrecision(5, 4);
+        b.Property(r => r.ProfitSharePercentage).HasPrecision(5, 4);
+        b.Property(r => r.Notes).HasMaxLength(1000);
+        b.Property(r => r.RowVersion).IsRowVersion();
+        b.HasIndex(r => new { r.PaymentType, r.Status });
+
+        // FR-170: at most one Active rule per payment type.
+        b.HasIndex(r => r.PaymentType)
+            .IsUnique()
+            .HasFilter("[Status] = 'Active'")
+            .HasDatabaseName("UX_FinancialConfigRule_ActivePerType");
+    }
+}
+
 // ============================== Community + Chat ==============================
 
 public sealed class ForumCategoryConfiguration : IEntityTypeConfiguration<ForumCategory>

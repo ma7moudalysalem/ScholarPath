@@ -71,6 +71,7 @@ public class ApplicationDbContext(
     public DbSet<Payout> Payouts => Set<Payout>();
     public DbSet<StripeWebhookEvent> StripeWebhookEvents => Set<StripeWebhookEvent>();
     public DbSet<ProfitShareConfig> ProfitShareConfigs => Set<ProfitShareConfig>();
+    public DbSet<FinancialConfigRule> FinancialConfigRules => Set<FinancialConfigRule>();
 
     // Community
     public DbSet<ForumCategory> ForumCategories => Set<ForumCategory>();
