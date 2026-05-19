@@ -28,9 +28,12 @@ public sealed class ReviewOnboardingCommandHandler(
                 $"User {request.UserId} is in status {user.AccountStatus}; onboarding review only applies to PendingApproval.");
         }
 
+        // FR-152: a rejected applicant returns to Unassigned so they can correct
+        // their details and resubmit onboarding, rather than being locked out
+        // permanently. The rejection reason reaches them via the notification below.
         var newStatus = request.Decision == OnboardingDecision.Approve
             ? AccountStatus.Active
-            : AccountStatus.Deactivated;
+            : AccountStatus.Unassigned;
 
         var ok = await admin.SetAccountStatusAsync(
             request.UserId, newStatus, request.ReviewerNotes, ct).ConfigureAwait(false);

@@ -77,7 +77,11 @@ export function OnboardingWizard() {
     setSubmitting(true);
     try {
       const session = applyAuthSession(await authApi.selectRole(role, details));
-      navigate(postAuthPath(session), { replace: true });
+      // A new student lands on profile completion — they must fill their
+      // academic details before they can apply for scholarships (UAT TC-003).
+      navigate(role === "Student" ? "/profile" : postAuthPath(session), {
+        replace: true,
+      });
     } catch {
       toast.error(t("auth:errors.generic"));
       setSubmitting(false);

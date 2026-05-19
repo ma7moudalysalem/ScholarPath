@@ -66,7 +66,8 @@ public class ReviewOnboardingRoleGrantTests
         await db.SaveChangesAsync();
 
         var admin = Substitute.For<IUserAdministration>();
-        admin.SetAccountStatusAsync(userId, AccountStatus.Deactivated,
+        // A rejected applicant returns to Unassigned so they can resubmit (FR-152).
+        admin.SetAccountStatusAsync(userId, AccountStatus.Unassigned,
                 Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(true);
 
