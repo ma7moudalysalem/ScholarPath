@@ -14,6 +14,9 @@ const ForgotPassword = lazy(() =>
 const ResetPassword = lazy(() =>
   import("@/pages/auth/ResetPassword").then((m) => ({ default: m.ResetPassword })),
 );
+const VerifyEmail = lazy(() =>
+  import("@/pages/auth/VerifyEmail").then((m) => ({ default: m.VerifyEmail })),
+);
 const OnboardingWizard = lazy(() =>
   import("@/pages/auth/OnboardingWizard").then((m) => ({ default: m.OnboardingWizard })),
 );
@@ -249,6 +252,14 @@ export function AppRouter() {
           element={
             <PublicLayout>
               <ResetPassword />
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/verify-email"
+          element={
+            <PublicLayout>
+              <VerifyEmail />
             </PublicLayout>
           }
         />
