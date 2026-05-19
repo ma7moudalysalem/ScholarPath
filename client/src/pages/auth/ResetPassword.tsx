@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { authApi } from "@/services/api/auth";
+import { apiErrorMessage } from "@/services/api/client";
 
 export function ResetPassword() {
   const { t } = useTranslation(["auth", "common"]);
@@ -25,8 +26,8 @@ export function ResetPassword() {
       await authApi.resetPassword(token, newPassword);
       toast.success(t("auth:resetPassword.success"));
       navigate("/login", { replace: true });
-    } catch {
-      toast.error(t("auth:errors.generic"));
+    } catch (err) {
+      toast.error(apiErrorMessage(err, t("auth:errors.generic")));
     } finally {
       setSubmitting(false);
     }
@@ -54,6 +55,7 @@ export function ResetPassword() {
           value={newPassword}
           onChange={setNewPassword}
         />
+        <p className="text-xs text-text-tertiary">{t("auth:resetPassword.passwordHint")}</p>
         <Field
           id="confirm"
           label={t("auth:resetPassword.confirmLabel")}
