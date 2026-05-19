@@ -82,6 +82,39 @@ export type ScholarshipStatus =
   | "Archived"
   | "UnderReview";
 
+/** Server ScholarshipCategoryDto — populates the create/edit form's category dropdown. */
+export interface ScholarshipCategory {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  slug: string;
+}
+
+/**
+ * Body for `POST /api/scholarships` — every field the CreateScholarshipCommand
+ * accepts. `deadline` is an ISO-8601 instant (the server binds it to a
+ * DateTimeOffset and enforces "≥ 7 days from now").
+ */
+export interface CreateScholarshipInput {
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
+  categoryId: string;
+  deadline: string;
+  fundingType: FundingType;
+  targetLevel: AcademicLevel;
+}
+
+/**
+ * Body for `PUT /api/scholarships/{id}` — the update command doesn't accept
+ * funding type or target level (those are create-only), so they're omitted here.
+ */
+export type UpdateScholarshipInput = Omit<
+  CreateScholarshipInput,
+  "fundingType" | "targetLevel"
+>;
+
 /** Server MyScholarshipDto shape — company list + admin moderation rows. */
 export interface MyScholarship {
   id: string;
@@ -331,5 +364,36 @@ export const scholarshipsApi = {
   /** Admin-only: reject an under-review scholarship back to draft with a reason. */
   async reject(id: string, reason: string): Promise<void> {
     await apiClient.post(`/api/scholarships/${id}/reject`, { reason });
+  },
+
+  // ── Company CRUD ─────────────────────────────────────────────────────────────
+
+  /** Categories list for the create/edit form's dropdown. Public endpoint. */
+  async getCategories(): Promise<ScholarshipCategory[]> {
+    const { data } = await apiClient.get<ScholarshipCategory[]>(
+      "/api/scholarships/categories",
+    );
+    return data;
+  },
+
+  /** Company-only: create a new scholarship listing. */
+  async createScholarship(
+    input: CreateScholarshipInput,
+  ): Promise<{ id: string }> {
+    const { data } = await apiClient.post<string>("/api/scholarships", input);
+    return { id: data };
+  },
+
+  /** Company-only: edit one of the caller's own scholarship listings. */
+  async updateScholarship(
+    id: string,
+    input: UpdateScholarshipInput,
+  ): Promise<void> {
+    await apiClient.put(`/api/scholarships/${id}`, input);
+  },
+
+  /** Company / Admin: soft-delete (archive) a scholarship listing. */
+  async archiveScholarship(id: string): Promise<void> {
+    await apiClient.delete(`/api/scholarships/${id}`);
   },
 };

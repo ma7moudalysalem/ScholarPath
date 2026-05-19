@@ -100,6 +100,11 @@ const CompanyScholarships = lazy(() =>
     default: m.CompanyScholarships,
   })),
 );
+const CompanyScholarshipForm = lazy(() =>
+  import("@/pages/company/ScholarshipForm").then((m) => ({
+    default: m.ScholarshipForm,
+  })),
+);
 const CompanyApplicationsReview = lazy(() =>
   import("@/pages/company/ApplicationsReview").then((m) => ({ default: m.ApplicationsReview })),
 );
@@ -362,6 +367,22 @@ export function AppRouter() {
             element={
               <RequireRole roles={["Company"]}>
                 <CompanyScholarships />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/company/scholarships/new"
+            element={
+              <RequireRole roles={["Company"]}>
+                <CompanyScholarshipForm />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/company/scholarships/:id/edit"
+            element={
+              <RequireRole roles={["Company"]}>
+                <CompanyScholarshipForm />
               </RequireRole>
             }
           />

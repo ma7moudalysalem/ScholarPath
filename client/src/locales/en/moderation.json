@@ -81,7 +81,54 @@
       "title": "Title",
       "status": "Status",
       "deadline": "Deadline",
-      "applicants": "Applicants"
+      "applicants": "Applicants",
+      "actions": "Actions"
+    },
+    "actions": {
+      "createNew": "Create scholarship",
+      "edit": "Edit",
+      "archive": "Archive",
+      "archiveConfirm": "Archive this scholarship? Students can no longer find it after this.",
+      "archiveSuccess": "Scholarship archived.",
+      "reviewApplications": "Review applications"
+    },
+    "form": {
+      "titleCreate": "Create scholarship",
+      "titleEdit": "Edit scholarship",
+      "titleEn": "Title (English)",
+      "titleAr": "Title (Arabic)",
+      "descriptionEn": "Description (English)",
+      "descriptionAr": "Description (Arabic)",
+      "category": "Category",
+      "categoryPlaceholder": "Select a category…",
+      "categoryLoading": "Loading categories…",
+      "deadline": "Application deadline",
+      "deadlineHint": "At least 7 days from today.",
+      "fundingType": "Funding type",
+      "fundingTypeOptions": {
+        "FullyFunded": "Fully funded",
+        "PartiallyFunded": "Partially funded",
+        "TuitionOnly": "Tuition only",
+        "StipendOnly": "Stipend only",
+        "Other": "Other"
+      },
+      "targetLevel": "Target academic level",
+      "targetLevelOptions": {
+        "HighSchool": "High school",
+        "Undergrad": "Undergraduate",
+        "Masters": "Master's",
+        "PhD": "PhD",
+        "PostDoc": "Postdoctoral",
+        "Other": "Other"
+      },
+      "submitCreate": "Create",
+      "submitEdit": "Save",
+      "submitting": "Saving…",
+      "cancel": "Cancel",
+      "back": "Back",
+      "createSuccess": "Scholarship created.",
+      "updateSuccess": "Scholarship updated.",
+      "error": "Could not save the scholarship. Please try again."
     }
   },
   "scholarshipStatus": {

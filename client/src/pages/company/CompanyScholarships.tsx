@@ -1,11 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import { format } from "date-fns";
+import { toast } from "sonner";
+import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   scholarshipsApi,
   type MyScholarship,
   type ScholarshipStatus,
 } from "@/services/api/scholarships";
+import { apiErrorMessage } from "@/services/api/client";
 
 function statusBadgeClass(s: ScholarshipStatus): string {
   switch (s) {
@@ -24,21 +28,55 @@ function statusBadgeClass(s: ScholarshipStatus): string {
 export function CompanyScholarships() {
   const { t, i18n } = useTranslation(["moderation", "common"]);
   const isAr = i18n.language.startsWith("ar");
+  const queryClient = useQueryClient();
 
   const { data, isLoading, isError, refetch } = useQuery<MyScholarship[]>({
     queryKey: ["company", "scholarships", "mine"],
     queryFn: () => scholarshipsApi.getMine(),
   });
 
+  const archiveMut = useMutation({
+    mutationFn: (id: string) => scholarshipsApi.archiveScholarship(id),
+    onSuccess: () => {
+      toast.success(t("moderation:companyScholarships.actions.archiveSuccess"));
+      void queryClient.invalidateQueries({
+        queryKey: ["company", "scholarships", "mine"],
+      });
+    },
+    onError: (err) =>
+      toast.error(
+        apiErrorMessage(
+          err,
+          t("moderation:companyScholarships.form.error"),
+        ),
+      ),
+  });
+
+  function onArchiveClick(id: string) {
+    if (!window.confirm(t("moderation:companyScholarships.actions.archiveConfirm"))) {
+      return;
+    }
+    archiveMut.mutate(id);
+  }
+
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
-          {t("moderation:companyScholarships.title")}
-        </h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          {t("moderation:companyScholarships.subtitle")}
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+            {t("moderation:companyScholarships.title")}
+          </h1>
+          <p className="mt-1 text-sm text-text-secondary">
+            {t("moderation:companyScholarships.subtitle")}
+          </p>
+        </div>
+        <Link
+          to="/company/scholarships/new"
+          className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600"
+        >
+          <Plus aria-hidden className="size-4" />
+          {t("moderation:companyScholarships.actions.createNew")}
+        </Link>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border-subtle bg-bg-elevated">
@@ -57,19 +95,22 @@ export function CompanyScholarships() {
               <th className="px-4 py-3 text-start">
                 {t("moderation:companyScholarships.headers.applicants")}
               </th>
+              <th className="px-4 py-3 text-end">
+                {t("moderation:companyScholarships.headers.actions")}
+              </th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-text-tertiary">
+                <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
                   {t("moderation:companyScholarships.loading")}
                 </td>
               </tr>
             )}
             {isError && !isLoading && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-text-tertiary">
+                <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
                   {t("moderation:companyScholarships.loadError")}{" "}
                   <button
                     type="button"
@@ -83,7 +124,7 @@ export function CompanyScholarships() {
             )}
             {!isLoading && !isError && data?.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-text-tertiary">
+                <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
                   {t("moderation:companyScholarships.empty")}
                 </td>
               </tr>
@@ -107,6 +148,38 @@ export function CompanyScholarships() {
                   {format(new Date(s.deadline), "yyyy-MM-dd")}
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{s.applicantCount}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <Link
+                      to={`/company/applications-review?scholarshipId=${s.id}`}
+                      title={t("moderation:companyScholarships.actions.reviewApplications")}
+                      aria-label={t("moderation:companyScholarships.actions.reviewApplications")}
+                      className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-bg-subtle hover:text-brand-500"
+                    >
+                      <FileText aria-hidden className="size-4" />
+                    </Link>
+                    <Link
+                      to={`/company/scholarships/${s.id}/edit`}
+                      title={t("moderation:companyScholarships.actions.edit")}
+                      aria-label={t("moderation:companyScholarships.actions.edit")}
+                      className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-bg-subtle hover:text-brand-500"
+                    >
+                      <Pencil aria-hidden className="size-4" />
+                    </Link>
+                    {s.status !== "Archived" && (
+                      <button
+                        type="button"
+                        onClick={() => onArchiveClick(s.id)}
+                        disabled={archiveMut.isPending}
+                        title={t("moderation:companyScholarships.actions.archive")}
+                        aria-label={t("moderation:companyScholarships.actions.archive")}
+                        className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-danger-50 hover:text-danger-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Trash2 aria-hidden className="size-4" />
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

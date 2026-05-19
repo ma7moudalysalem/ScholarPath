@@ -1,6 +1,8 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Common.Models;
 using ScholarPath.Application.Scholarships.Commands;
 using ScholarPath.Application.Scholarships.Commands.ApproveScholarship;
@@ -16,7 +18,7 @@ namespace ScholarPath.API.Controllers
 {
     [ApiController]
     [Route("api/scholarships")] //  Convention route
-    public class ScholarshipsController(IMediator mediator) : ControllerBase //  ControllerBase
+    public class ScholarshipsController(IMediator mediator, IApplicationDbContext db) : ControllerBase //  ControllerBase
     {
         [HttpGet]
         public async Task<ActionResult<PaginatedList<ScholarshipDto>>> Get([FromQuery] GetScholarshipsQuery query)
@@ -73,6 +75,54 @@ namespace ScholarPath.API.Controllers
         public async Task<ActionResult<Guid>> Create(CreateScholarshipCommand command)
         {
             return await mediator.Send(command);
+        }
+
+        // Company edits one of its own listings — title/description/category/deadline only.
+        // FundingType and TargetLevel are create-only; the update command doesn't accept them.
+        [HttpPut("{id:guid}")]
+        [Authorize(Roles = "Company")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> Update(
+            Guid id, [FromBody] UpdateScholarshipBody body, CancellationToken ct)
+        {
+            await mediator.Send(new UpdateScholarshipCommand
+            {
+                Id = id,
+                TitleEn = body.TitleEn,
+                TitleAr = body.TitleAr,
+                DescriptionEn = body.DescriptionEn,
+                DescriptionAr = body.DescriptionAr,
+                Deadline = body.Deadline,
+                CategoryId = body.CategoryId,
+            }, ct);
+            return NoContent();
+        }
+
+        // Soft-delete (archive) — owning company or any Admin.
+        [HttpDelete("{id:guid}")]
+        [Authorize(Roles = "Company,Admin")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        public async Task<IActionResult> Archive(Guid id, CancellationToken ct)
+        {
+            await mediator.Send(new ArchiveScholarshipCommand(id), ct);
+            return NoContent();
+        }
+
+        // Categories list used to populate the scholarship-form dropdown.
+        [HttpGet("categories")]
+        [AllowAnonymous]
+        [ProducesResponseType(typeof(IReadOnlyList<ScholarshipCategoryDto>), StatusCodes.Status200OK)]
+        public async Task<ActionResult<IReadOnlyList<ScholarshipCategoryDto>>> Categories(CancellationToken ct)
+        {
+            var categories = await db.Categories
+                .OrderBy(c => c.DisplayOrder)
+                .Select(c => new ScholarshipCategoryDto(c.Id, c.NameEn, c.NameAr, c.Slug))
+                .ToListAsync(ct);
+            return Ok(categories);
         }
 
         [HttpPost("{id}/bookmark")]
@@ -137,4 +187,14 @@ namespace ScholarPath.API.Controllers
 
     public record ConfigureReviewFeeRequest(decimal ReviewFeeUsd);
     public record RejectScholarshipBody(string Reason);
+
+    public record UpdateScholarshipBody(
+        string TitleEn,
+        string TitleAr,
+        string DescriptionEn,
+        string DescriptionAr,
+        DateTimeOffset Deadline,
+        Guid CategoryId);
+
+    public record ScholarshipCategoryDto(Guid Id, string NameEn, string NameAr, string Slug);
 }

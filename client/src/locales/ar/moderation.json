@@ -81,7 +81,54 @@
       "title": "العنوان",
       "status": "الحالة",
       "deadline": "الموعد النهائي",
-      "applicants": "المتقدّمون"
+      "applicants": "المتقدّمون",
+      "actions": "الإجراءات"
+    },
+    "actions": {
+      "createNew": "إنشاء منحة",
+      "edit": "تعديل",
+      "archive": "أرشفة",
+      "archiveConfirm": "أرشفة هذه المنحة؟ لن يجدها الطلاب بعد ذلك.",
+      "archiveSuccess": "تمت أرشفة المنحة.",
+      "reviewApplications": "مراجعة الطلبات"
+    },
+    "form": {
+      "titleCreate": "إنشاء منحة",
+      "titleEdit": "تعديل المنحة",
+      "titleEn": "العنوان (بالإنجليزية)",
+      "titleAr": "العنوان (بالعربية)",
+      "descriptionEn": "الوصف (بالإنجليزية)",
+      "descriptionAr": "الوصف (بالعربية)",
+      "category": "الفئة",
+      "categoryPlaceholder": "اختر فئة…",
+      "categoryLoading": "جارٍ تحميل الفئات…",
+      "deadline": "الموعد النهائي للتقديم",
+      "deadlineHint": "بعد سبعة أيام من اليوم على الأقل.",
+      "fundingType": "نوع التمويل",
+      "fundingTypeOptions": {
+        "FullyFunded": "ممولة بالكامل",
+        "PartiallyFunded": "ممولة جزئيًا",
+        "TuitionOnly": "رسوم دراسية فقط",
+        "StipendOnly": "مخصصات فقط",
+        "Other": "أخرى"
+      },
+      "targetLevel": "المرحلة الأكاديمية المستهدفة",
+      "targetLevelOptions": {
+        "HighSchool": "الثانوية العامة",
+        "Undergrad": "البكالوريوس",
+        "Masters": "الماجستير",
+        "PhD": "الدكتوراه",
+        "PostDoc": "ما بعد الدكتوراه",
+        "Other": "أخرى"
+      },
+      "submitCreate": "إنشاء",
+      "submitEdit": "حفظ",
+      "submitting": "جارٍ الحفظ…",
+      "cancel": "إلغاء",
+      "back": "رجوع",
+      "createSuccess": "تم إنشاء المنحة.",
+      "updateSuccess": "تم تحديث المنحة.",
+      "error": "تعذّر حفظ المنحة. حاول مرة أخرى."
     }
   },
   "scholarshipStatus": {
