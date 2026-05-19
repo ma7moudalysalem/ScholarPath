@@ -142,12 +142,9 @@ export function ConsultantAvailability() {
       isActive: rule.isActive,
     }));
 
+    // An empty slot list is intentional — it clears the schedule into a valid
+    // "no availability" state (UAT TC-005).
     const slots = [...recurringSlots, ...adHocSlots];
-
-    if (slots.length === 0) {
-      toast.error(t("availability.errors.noSlots"));
-      return;
-    }
 
     updateMutation.mutate(
       { slots, replaceExisting: true },

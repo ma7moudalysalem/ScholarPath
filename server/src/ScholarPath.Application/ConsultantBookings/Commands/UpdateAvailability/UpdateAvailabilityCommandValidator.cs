@@ -7,10 +7,13 @@ public sealed class UpdateAvailabilityCommandValidator : AbstractValidator<Updat
 {
     public UpdateAvailabilityCommandValidator()
     {
-        RuleFor(x => x.Slots)
-            .NotNull()
-            .Must(x => x.Count > 0)
-            .WithMessage("At least one availability slot is required.");
+        RuleFor(x => x.Slots).NotNull();
+
+        // A "no availability" state is valid (UAT TC-005): an empty slot list is
+        // allowed when ReplaceExisting clears the consultant's whole schedule.
+        RuleFor(x => x)
+            .Must(x => x.ReplaceExisting || x.Slots is { Count: > 0 })
+            .WithMessage("At least one availability slot is required unless you are clearing your schedule.");
 
         RuleForEach(x => x.Slots)
             .SetValidator(new AvailabilityInputModelValidator());
