@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import {
   paymentsApi,
   formatMoneyCents,
@@ -11,6 +12,7 @@ import {
   type PaymentStatus,
   type PaymentType,
 } from "@/services/api/payments";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 
 const STATUSES: PaymentStatus[] = [
   "Pending",
@@ -46,7 +48,8 @@ function statusBadgeClass(s: PaymentStatus): string {
 }
 
 export function AdminPayments() {
-  const { t } = useTranslation(["payments", "common"]);
+  const { t, i18n } = useTranslation(["payments", "common"]);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const qc = useQueryClient();
 
   const [status, setStatus] = useState<PaymentStatus | "">("");
@@ -66,20 +69,29 @@ export function AdminPayments() {
     placeholderData: keepPreviousData,
   });
 
+  const [refundTargetId, setRefundTargetId] = useState<string | null>(null);
+
   const refundMut = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
       paymentsApi.refund(id, { reason }),
     onSuccess: () => {
       toast.success(t("payments:adminPayments.refundSuccess"));
       void qc.invalidateQueries({ queryKey: ["admin", "payments"] });
+      setRefundTargetId(null);
     },
-    onError: () => toast.error(t("payments:adminPayments.refundError")),
+    onError: () => {
+      toast.error(t("payments:adminPayments.refundError"));
+      setRefundTargetId(null);
+    },
   });
 
   const confirmRefund = (p: PaymentDto) => {
-    if (!window.confirm(t("payments:adminPayments.refundConfirm"))) return;
-    const reason = window.prompt(t("payments:adminPayments.refundReasonPrompt")) ?? undefined;
-    refundMut.mutate({ id: p.id, reason });
+    setRefundTargetId(p.id);
+  };
+
+  const submitRefund = (reason: string) => {
+    if (!refundTargetId) return;
+    refundMut.mutate({ id: refundTargetId, reason: reason || undefined });
   };
 
   const canRefund = (p: PaymentDto) => p.status === "Held" || p.status === "Captured";
@@ -197,7 +209,7 @@ export function AdminPayments() {
                   {formatMoneyCents(p.refundedAmountCents, p.currency)}
                 </td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {format(new Date(p.createdAt), "yyyy-MM-dd")}
+                  {format(new Date(p.createdAt), "yyyy-MM-dd", { locale: dateLocale })}
                 </td>
                 <td className="px-4 py-3 text-end">
                   {canRefund(p) && (
@@ -240,6 +252,21 @@ export function AdminPayments() {
           </div>
         </div>
       )}
+
+      <PromptDialog
+        open={refundTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRefundTargetId(null);
+        }}
+        title={t("payments:adminPayments.refund")}
+        description={t("payments:adminPayments.refundConfirm")}
+        inputLabel={t("payments:adminPayments.refundReasonPrompt")}
+        inputMultiline
+        variant="destructive"
+        confirmLabel={t("payments:adminPayments.refund")}
+        loading={refundMut.isPending}
+        onConfirm={submitRefund}
+      />
     </div>
   );
 }

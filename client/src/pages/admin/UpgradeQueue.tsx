@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import {
   adminApi,
   type PagedResult,
@@ -10,6 +11,7 @@ import {
   type UpgradeRequestStatus,
 } from "@/services/api/admin";
 import { apiErrorMessage } from "@/services/api/client";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 
 const FILTERS: { value: UpgradeRequestStatus | null; key: string }[] = [
   { value: "Pending", key: "pending" },
@@ -19,7 +21,8 @@ const FILTERS: { value: UpgradeRequestStatus | null; key: string }[] = [
 ];
 
 export function UpgradeQueue() {
-  const { t } = useTranslation(["admin", "common"]);
+  const { t, i18n } = useTranslation(["admin", "common"]);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const qc = useQueryClient();
   const [filter, setFilter] = useState<UpgradeRequestStatus | null>("Pending");
   const [page, setPage] = useState(1);
@@ -42,11 +45,20 @@ export function UpgradeQueue() {
     onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
   });
 
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
+
   const approve = (r: UpgradeRequestRow) => reviewMut.mutate({ id: r.id, approve: true });
   const reject = (r: UpgradeRequestRow) => {
-    const notes = window.prompt(t("admin:onboarding.reviewDialog.notesLabel"));
-    if (!notes) return;
-    reviewMut.mutate({ id: r.id, approve: false, notes });
+    setRejectTargetId(r.id);
+  };
+
+  const submitReject = (notes: string) => {
+    if (!rejectTargetId) return;
+    if (!notes) return; // Notes are required when rejecting
+    reviewMut.mutate(
+      { id: rejectTargetId, approve: false, notes },
+      { onSettled: () => setRejectTargetId(null) },
+    );
   };
 
   return (
@@ -92,7 +104,7 @@ export function UpgradeQueue() {
                 <td className="px-4 py-3">{r.target}</td>
                 <td className="px-4 py-3">{r.status}</td>
                 <td className="px-4 py-3 text-text-secondary">{r.reason ?? "—"}</td>
-                <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(r.createdAt), "yyyy-MM-dd")}</td>
+                <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(r.createdAt), "yyyy-MM-dd", { locale: dateLocale })}</td>
                 <td className="px-4 py-3 text-end">
                   {r.status === "Pending" && (
                     <div className="inline-flex gap-1.5">
@@ -110,6 +122,21 @@ export function UpgradeQueue() {
           </tbody>
         </table>
       </div>
+
+      <PromptDialog
+        open={rejectTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRejectTargetId(null);
+        }}
+        title={t("admin:onboarding.reviewDialog.title")}
+        inputLabel={t("admin:onboarding.reviewDialog.notesLabel")}
+        inputMultiline
+        variant="destructive"
+        confirmLabel={t("admin:onboarding.reviewDialog.reject")}
+        cancelLabel={t("admin:onboarding.reviewDialog.cancel")}
+        loading={reviewMut.isPending}
+        onConfirm={submitReject}
+      />
     </div>
   );
 }

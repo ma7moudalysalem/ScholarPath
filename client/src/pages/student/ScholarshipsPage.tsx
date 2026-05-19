@@ -290,6 +290,7 @@ export function ScholarshipsPage() {
               </label>
               <input
                 type="date"
+                dir="ltr"
                 value={deadlineFrom}
                 onChange={(e) => { setDeadlineFrom(e.target.value); setPage(1); }}
                 className="h-9 rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm"
@@ -301,6 +302,7 @@ export function ScholarshipsPage() {
               </label>
               <input
                 type="date"
+                dir="ltr"
                 value={deadlineTo}
                 onChange={(e) => { setDeadlineTo(e.target.value); setPage(1); }}
                 className="h-9 rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm"

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
 import {
   settingsApi,
@@ -107,6 +108,7 @@ function SettingRow({ setting }: { setting: PlatformSettingDto }) {
   });
 
   const isArabic = i18n.language.startsWith("ar");
+  const dateLocale = isArabic ? ar : undefined;
   const description = isArabic ? setting.descriptionAr : setting.descriptionEn;
   const dirty = draft !== setting.value;
 
@@ -120,7 +122,7 @@ function SettingRow({ setting }: { setting: PlatformSettingDto }) {
         <p className="mt-1 text-xs text-text-tertiary">
           {setting.updatedAt
             ? t("settings:lastUpdated", {
-                date: format(new Date(setting.updatedAt), "yyyy-MM-dd"),
+                date: format(new Date(setting.updatedAt), "yyyy-MM-dd", { locale: dateLocale }),
               })
             : t("settings:neverEdited")}
         </p>

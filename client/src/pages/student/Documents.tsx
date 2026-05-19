@@ -12,6 +12,7 @@ import {
   type DocumentItem,
 } from "@/services/api/documents";
 import { ApiError } from "@/services/api/client";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const MAX_BYTES = 25 * 1024 * 1024;
 
@@ -29,6 +30,7 @@ export function Documents() {
   const [filter, setFilter] = useState<DocumentCategory | "">("");
   const [uploadCategory, setUploadCategory] = useState<DocumentCategory>("Transcript");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, isError, refetch } = useQuery<DocumentItem[]>({
@@ -59,8 +61,12 @@ export function Documents() {
     onSuccess: () => {
       toast.success(t("documents:actions.deleteSuccess"));
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
+      setDeleteTargetId(null);
     },
-    onError: () => toast.error(t("documents:actions.deleteError")),
+    onError: () => {
+      toast.error(t("documents:actions.deleteError"));
+      setDeleteTargetId(null);
+    },
   });
 
   const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,9 +101,7 @@ export function Documents() {
   };
 
   const handleDelete = (id: string) => {
-    if (window.confirm(t("documents:actions.deleteConfirm"))) {
-      deleteMutation.mutate(id);
-    }
+    setDeleteTargetId(id);
   };
 
   return (
@@ -298,6 +302,21 @@ export function Documents() {
           </table>
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTargetId(null);
+        }}
+        title={t("documents:actions.delete")}
+        description={t("documents:actions.deleteConfirm")}
+        confirmLabel={t("documents:actions.delete")}
+        variant="destructive"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deleteTargetId) deleteMutation.mutate(deleteTargetId);
+        }}
+      />
     </div>
   );
 }

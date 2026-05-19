@@ -3,17 +3,20 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { EyeOff } from "lucide-react";
 import {
   communityApi,
   type CommunityPagedResult,
   type FlaggedPost,
 } from "@/services/api/community";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const PAGE_SIZE = 20;
 
 export function AdminCommunity() {
-  const { t } = useTranslation(["moderation", "common"]);
+  const { t, i18n } = useTranslation(["moderation", "common"]);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const qc = useQueryClient();
 
   const [page, setPage] = useState(1);
@@ -26,13 +29,19 @@ export function AdminCommunity() {
     placeholderData: keepPreviousData,
   });
 
+  const [removeTargetId, setRemoveTargetId] = useState<string | null>(null);
+
   const removeMut = useMutation({
     mutationFn: (id: string) => communityApi.removePost(id),
     onSuccess: () => {
       toast.success(t("moderation:communityModeration.removeSuccess"));
       void qc.invalidateQueries({ queryKey: ["admin", "community", "flagged"] });
+      setRemoveTargetId(null);
     },
-    onError: () => toast.error(t("moderation:communityModeration.removeError")),
+    onError: () => {
+      toast.error(t("moderation:communityModeration.removeError"));
+      setRemoveTargetId(null);
+    },
   });
 
   const keepMut = useMutation({
@@ -45,9 +54,7 @@ export function AdminCommunity() {
   });
 
   const confirmRemove = (id: string) => {
-    if (window.confirm(t("moderation:communityModeration.removeConfirm"))) {
-      removeMut.mutate(id);
-    }
+    setRemoveTargetId(id);
   };
 
   const busy = removeMut.isPending || keepMut.isPending;
@@ -129,7 +136,7 @@ export function AdminCommunity() {
                     {p.bodyPreview}
                   </p>
                   <p className="mt-1 text-xs text-text-tertiary">
-                    {format(new Date(p.createdAt), "yyyy-MM-dd")}
+                    {format(new Date(p.createdAt), "yyyy-MM-dd", { locale: dateLocale })}
                   </p>
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{p.authorName}</td>
@@ -204,6 +211,21 @@ export function AdminCommunity() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={removeTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRemoveTargetId(null);
+        }}
+        title={t("moderation:communityModeration.remove")}
+        description={t("moderation:communityModeration.removeConfirm")}
+        confirmLabel={t("moderation:communityModeration.remove")}
+        variant="destructive"
+        loading={removeMut.isPending}
+        onConfirm={() => {
+          if (removeTargetId) removeMut.mutate(removeTargetId);
+        }}
+      />
     </div>
   );
 }

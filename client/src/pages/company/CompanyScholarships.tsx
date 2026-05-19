@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import {
@@ -10,6 +12,7 @@ import {
   type ScholarshipStatus,
 } from "@/services/api/scholarships";
 import { apiErrorMessage } from "@/services/api/client";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 function statusBadgeClass(s: ScholarshipStatus): string {
   switch (s) {
@@ -28,12 +31,15 @@ function statusBadgeClass(s: ScholarshipStatus): string {
 export function CompanyScholarships() {
   const { t, i18n } = useTranslation(["moderation", "common"]);
   const isAr = i18n.language.startsWith("ar");
+  const dateLocale = isAr ? ar : undefined;
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError, refetch } = useQuery<MyScholarship[]>({
     queryKey: ["company", "scholarships", "mine"],
     queryFn: () => scholarshipsApi.getMine(),
   });
+
+  const [archiveTargetId, setArchiveTargetId] = useState<string | null>(null);
 
   const archiveMut = useMutation({
     mutationFn: (id: string) => scholarshipsApi.archiveScholarship(id),
@@ -42,22 +48,18 @@ export function CompanyScholarships() {
       void queryClient.invalidateQueries({
         queryKey: ["company", "scholarships", "mine"],
       });
+      setArchiveTargetId(null);
     },
-    onError: (err) =>
+    onError: (err) => {
       toast.error(
         apiErrorMessage(
           err,
           t("moderation:companyScholarships.form.error"),
         ),
-      ),
+      );
+      setArchiveTargetId(null);
+    },
   });
-
-  function onArchiveClick(id: string) {
-    if (!window.confirm(t("moderation:companyScholarships.actions.archiveConfirm"))) {
-      return;
-    }
-    archiveMut.mutate(id);
-  }
 
   return (
     <div className="space-y-5">
@@ -145,7 +147,7 @@ export function CompanyScholarships() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {format(new Date(s.deadline), "yyyy-MM-dd")}
+                  {format(new Date(s.deadline), "yyyy-MM-dd", { locale: dateLocale })}
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{s.applicantCount}</td>
                 <td className="px-4 py-3">
@@ -169,7 +171,7 @@ export function CompanyScholarships() {
                     {s.status !== "Archived" && (
                       <button
                         type="button"
-                        onClick={() => onArchiveClick(s.id)}
+                        onClick={() => setArchiveTargetId(s.id)}
                         disabled={archiveMut.isPending}
                         title={t("moderation:companyScholarships.actions.archive")}
                         aria-label={t("moderation:companyScholarships.actions.archive")}
@@ -185,6 +187,21 @@ export function CompanyScholarships() {
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        open={archiveTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setArchiveTargetId(null);
+        }}
+        title={t("moderation:companyScholarships.actions.archive")}
+        description={t("moderation:companyScholarships.actions.archiveConfirm")}
+        confirmLabel={t("moderation:companyScholarships.actions.archive")}
+        variant="destructive"
+        loading={archiveMut.isPending}
+        onConfirm={() => {
+          if (archiveTargetId) archiveMut.mutate(archiveTargetId);
+        }}
+      />
     </div>
   );
 }

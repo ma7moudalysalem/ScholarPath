@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import {
   paymentsApi,
   formatMoneyCents,
@@ -42,10 +43,11 @@ function payoutBadge(s: PayoutStatus): string {
   }
 }
 
-const dash = (iso: string | null) => (iso ? format(new Date(iso), "yyyy-MM-dd") : "—");
-
 export function CompanyBilling() {
-  const { t } = useTranslation(["payments", "common"]);
+  const { t, i18n } = useTranslation(["payments", "common"]);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
+  const dash = (iso: string | null) =>
+    iso ? format(new Date(iso), "yyyy-MM-dd", { locale: dateLocale }) : "—";
 
   const paymentsQuery = useQuery<PagedPayments>({
     queryKey: ["company", "billing", "payments"],

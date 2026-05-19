@@ -34,6 +34,11 @@
     "dark": "Dark",
     "system": "System"
   },
+  "dialog": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "processing": "Processing…"
+  },
   "role": {
     "switcher": "Role",
     "student": "Student",

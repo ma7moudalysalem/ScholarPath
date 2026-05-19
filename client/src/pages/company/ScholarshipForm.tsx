@@ -325,6 +325,7 @@ export function ScholarshipForm() {
             <input
               id="deadline"
               type="date"
+              dir="ltr"
               min={minDeadline}
               className={fieldClass}
               {...form.register("deadline")}

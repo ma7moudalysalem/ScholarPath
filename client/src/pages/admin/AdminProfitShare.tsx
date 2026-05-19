@@ -3,13 +3,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { profitShareApi, type ProfitShareConfigDto } from "@/services/api/profitShare";
 import type { PaymentType } from "@/services/api/payments";
 
 const TYPES: PaymentType[] = ["ConsultantBooking", "CompanyReview"];
 
 export function AdminProfitShare() {
-  const { t } = useTranslation(["payments", "common"]);
+  const { t, i18n } = useTranslation(["payments", "common"]);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
 
   const activeQuery = useQuery<ProfitShareConfigDto[]>({
     queryKey: ["admin", "profit-share", "active"],
@@ -76,11 +78,11 @@ export function AdminProfitShare() {
                   <td className="px-3 py-2">{t(`payments:paymentType.${c.paymentType}`)}</td>
                   <td className="px-3 py-2 font-medium">{(c.percentage * 100).toFixed(1)}%</td>
                   <td className="px-3 py-2 text-xs text-text-tertiary">
-                    {format(new Date(c.effectiveFrom), "yyyy-MM-dd")}
+                    {format(new Date(c.effectiveFrom), "yyyy-MM-dd", { locale: dateLocale })}
                   </td>
                   <td className="px-3 py-2 text-xs text-text-tertiary">
                     {c.effectiveTo ? (
-                      format(new Date(c.effectiveTo), "yyyy-MM-dd")
+                      format(new Date(c.effectiveTo), "yyyy-MM-dd", { locale: dateLocale })
                     ) : (
                       <span className="rounded-full bg-success-100 px-2 py-0.5 font-medium text-success-600">
                         {t("payments:profitShare.active")}

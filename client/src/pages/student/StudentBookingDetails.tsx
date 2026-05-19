@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 import { useBookingDetailQuery, useCancelBookingMutation } from "@/hooks/useBookingsQuery";
 import { BookingRecordings } from "@/components/booking/BookingRecordings";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { BookingDetail } from "@/services/api/bookings";
 import {
   durationLabel,
@@ -67,14 +68,21 @@ export function StudentBookingDetails() {
 
   const { data: booking, isLoading, isError } = useBookingDetailQuery(id);
   const cancelMut = useCancelBookingMutation();
+  const [cancelOpen, setCancelOpen] = useState(false);
 
   // A booking can be cancelled by the student while it is still awaiting the
   // consultant's response — the held payment is released, no charge is taken.
   const handleCancel = () => {
-    if (!id || !window.confirm(t("details.cancelConfirm"))) return;
+    if (!id) return;
     cancelMut.mutate(id, {
-      onSuccess: () => toast.success(t("details.cancelSuccess")),
-      onError: () => toast.error(t("details.cancelError")),
+      onSuccess: () => {
+        toast.success(t("details.cancelSuccess"));
+        setCancelOpen(false);
+      },
+      onError: () => {
+        toast.error(t("details.cancelError"));
+        setCancelOpen(false);
+      },
     });
   };
 
@@ -322,7 +330,7 @@ export function StudentBookingDetails() {
                 {booking.status === "Requested" && (
                   <button
                     type="button"
-                    onClick={handleCancel}
+                    onClick={() => setCancelOpen(true)}
                     disabled={cancelMut.isPending}
                     className="inline-flex h-12 items-center justify-center rounded-lg border-[1.5px] border-danger-500 bg-transparent px-5 text-sm font-medium text-danger-500 transition hover:bg-danger-50 disabled:opacity-50"
                   >
@@ -348,6 +356,17 @@ export function StudentBookingDetails() {
           </aside>
         </div>
       </section>
+
+      <ConfirmDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        title={t("details.cancelBooking")}
+        description={t("details.cancelConfirm")}
+        variant="destructive"
+        confirmLabel={t("details.cancelBooking")}
+        loading={cancelMut.isPending}
+        onConfirm={handleCancel}
+      />
     </main>
   );
 }

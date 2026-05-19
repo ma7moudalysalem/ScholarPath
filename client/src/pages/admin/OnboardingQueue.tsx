@@ -3,10 +3,12 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { FileText } from "lucide-react";
 import { adminApi, type OnboardingRequestRow, type PagedResult } from "@/services/api/admin";
 import { apiErrorMessage } from "@/services/api/client";
 import { documentsApi } from "@/services/api/documents";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 
 /** Lists the verification documents a pending applicant uploaded, with download links. */
 function OnboardingDocuments({ userId }: { userId: string }) {
@@ -60,7 +62,8 @@ function OnboardingDocuments({ userId }: { userId: string }) {
 }
 
 export function OnboardingQueue() {
-  const { t } = useTranslation(["admin", "common"]);
+  const { t, i18n } = useTranslation(["admin", "common"]);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const qc = useQueryClient();
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
 
@@ -85,11 +88,20 @@ export function OnboardingQueue() {
     onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
   });
 
+  const [rejectTargetUserId, setRejectTargetUserId] = useState<string | null>(null);
+
   const approve = (u: OnboardingRequestRow) => reviewMut.mutate({ userId: u.userId, approve: true });
   const reject = (u: OnboardingRequestRow) => {
-    const notes = window.prompt(t("admin:onboarding.reviewDialog.notesLabel"));
-    if (!notes) return;
-    reviewMut.mutate({ userId: u.userId, approve: false, notes });
+    setRejectTargetUserId(u.userId);
+  };
+
+  const submitReject = (notes: string) => {
+    if (!rejectTargetUserId) return;
+    if (!notes) return; // Notes are required when rejecting
+    reviewMut.mutate(
+      { userId: rejectTargetUserId, approve: false, notes },
+      { onSettled: () => setRejectTargetUserId(null) },
+    );
   };
 
   return (
@@ -122,7 +134,7 @@ export function OnboardingQueue() {
                     <td className="px-4 py-3 font-medium">{u.fullName}</td>
                     <td className="px-4 py-3">{u.email}</td>
                     <td className="px-4 py-3 text-text-secondary">{u.requestedRole ?? "—"}</td>
-                    <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(u.createdAt), "yyyy-MM-dd")}</td>
+                    <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(u.createdAt), "yyyy-MM-dd", { locale: dateLocale })}</td>
                     <td className="px-4 py-3 text-end">
                       <div className="inline-flex gap-1.5">
                         <button
@@ -169,6 +181,21 @@ export function OnboardingQueue() {
           </tbody>
         </table>
       </div>
+
+      <PromptDialog
+        open={rejectTargetUserId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRejectTargetUserId(null);
+        }}
+        title={t("admin:onboarding.reviewDialog.title")}
+        inputLabel={t("admin:onboarding.reviewDialog.notesLabel")}
+        inputMultiline
+        variant="destructive"
+        confirmLabel={t("admin:onboarding.reviewDialog.reject")}
+        cancelLabel={t("admin:onboarding.reviewDialog.cancel")}
+        loading={reviewMut.isPending}
+        onConfirm={submitReject}
+      />
     </div>
   );
 }

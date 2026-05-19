@@ -13,6 +13,7 @@ import {
   type PreviewParams,
 } from "@/services/api/financialConfig";
 import type { PaymentType } from "@/services/api/payments";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const PAYMENT_TYPES: PaymentType[] = ["ConsultantBooking", "CompanyReview"];
 const FEE_KINDS: FeeKind[] = ["Percentage", "FixedAmount"];
@@ -67,9 +68,21 @@ export function AdminFinancialConfig() {
     onError: (e) => toast.error(apiErr(e, t("payments:financialConfig.toast.error"))),
   });
 
-  const onLifecycle = (id: string, action: "activate" | "deactivate" | "archive") => {
-    if (!window.confirm(t(`payments:financialConfig.confirm.${action}`))) return;
-    lifecycle.mutate({ id, action });
+  type LifecycleAction = "activate" | "deactivate" | "archive";
+  const [lifecycleTarget, setLifecycleTarget] = useState<
+    | { id: string; action: LifecycleAction }
+    | null
+  >(null);
+
+  const onLifecycle = (id: string, action: LifecycleAction) => {
+    setLifecycleTarget({ id, action });
+  };
+
+  const submitLifecycle = () => {
+    if (!lifecycleTarget) return;
+    lifecycle.mutate(lifecycleTarget, {
+      onSettled: () => setLifecycleTarget(null),
+    });
   };
 
   const rules = rulesQuery.data ?? [];
@@ -246,6 +259,21 @@ export function AdminFinancialConfig() {
       </section>
 
       <Simulator rules={rules} />
+
+      <ConfirmDialog
+        open={lifecycleTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setLifecycleTarget(null);
+        }}
+        title={t(`payments:financialConfig.actions.${lifecycleTarget?.action ?? "activate"}`)}
+        description={t(`payments:financialConfig.confirm.${lifecycleTarget?.action ?? "activate"}`)}
+        confirmLabel={t(`payments:financialConfig.actions.${lifecycleTarget?.action ?? "activate"}`)}
+        variant={
+          lifecycleTarget?.action === "activate" ? "default" : "destructive"
+        }
+        loading={lifecycle.isPending}
+        onConfirm={submitLifecycle}
+      />
     </div>
   );
 }
@@ -466,6 +494,7 @@ function RuleForm({ rule, onClose }: { rule?: FinancialConfigRuleDto; onClose: (
         <Field label={t("payments:financialConfig.form.effectiveFrom")}>
           <input
             type="date"
+            dir="ltr"
             value={effectiveFrom}
             onChange={(e) => setEffectiveFrom(e.target.value)}
             className={INPUT_CLS}
@@ -475,6 +504,7 @@ function RuleForm({ rule, onClose }: { rule?: FinancialConfigRuleDto; onClose: (
         <Field label={t("payments:financialConfig.form.effectiveTo")}>
           <input
             type="date"
+            dir="ltr"
             value={effectiveTo}
             onChange={(e) => setEffectiveTo(e.target.value)}
             className={INPUT_CLS}

@@ -324,6 +324,7 @@ export function Profile() {
           <Field label={t("profile:fields.dateOfBirth")}>
             <input
               type="date"
+              dir="ltr"
               className={inputClass}
               value={form.dateOfBirth}
               onChange={(e) => set("dateOfBirth", e.target.value)}

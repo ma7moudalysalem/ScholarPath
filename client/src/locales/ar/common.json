@@ -34,6 +34,11 @@
     "dark": "داكن",
     "system": "تلقائي"
   },
+  "dialog": {
+    "confirm": "تأكيد",
+    "cancel": "إلغاء",
+    "processing": "جارٍ التنفيذ…"
+  },
   "role": {
     "switcher": "الدور",
     "student": "طالب",

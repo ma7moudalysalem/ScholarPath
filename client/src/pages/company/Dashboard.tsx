@@ -4,6 +4,7 @@ import { Star } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { companyReviewsApi } from '@/services/api/companyReviews';
 import { EmptyState } from '@/components/common/EmptyState';
+import { formatDate } from '@/lib/bookingFormat';
 
 export interface CompanyReviewRow {
   reviewId: string;
@@ -22,7 +23,7 @@ export interface CompanyRatingsSummaryDto {
 }
 
 export function CompanyDashboard() {
-  const { t } = useTranslation('company');
+  const { t, i18n } = useTranslation('company');
   const user = useAuthStore((state) => state.user);
 
   const { data, isLoading } = useQuery({
@@ -105,7 +106,7 @@ export function CompanyDashboard() {
                   )}
 
                   <div className="mt-auto pt-4 text-xs text-text-tertiary">
-                    {new Date(review.createdAt).toLocaleDateString()}
+                    {formatDate(review.createdAt, i18n.language)}
                   </div>
                 </div>
               ))}

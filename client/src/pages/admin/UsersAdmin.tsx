@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { Search } from "lucide-react";
 import {
   adminApi,
@@ -10,6 +11,8 @@ import {
   type AdminUserRow,
   type PagedResult,
 } from "@/services/api/admin";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 
 const STATUSES: AccountStatus[] = ["PendingApproval", "Active", "Suspended", "Deactivated"];
 const ROLES = ["Student", "Company", "Consultant", "Admin", "Moderator"];
@@ -30,7 +33,8 @@ function statusBadgeClass(s: AccountStatus): string {
 }
 
 export function UsersAdmin() {
-  const { t } = useTranslation(["admin", "common"]);
+  const { t, i18n } = useTranslation(["admin", "common"]);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const qc = useQueryClient();
 
   const [search, setSearch] = useState("");
@@ -85,17 +89,41 @@ export function UsersAdmin() {
     onError: () => toast.error(t("common:status.error")),
   });
 
+  // Suspend/Deactivate require a reason — surface that through a PromptDialog;
+  // Activate goes directly through the mutation with no extra dialog.
+  const [reasonTarget, setReasonTarget] = useState<
+    | { id: string; newStatus: AccountStatus }
+    | null
+  >(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+
   const changeStatus = (u: AdminUserRow, newStatus: AccountStatus) => {
     const needsReason = newStatus === "Suspended" || newStatus === "Deactivated";
-    const reason = needsReason ? window.prompt(t("admin:users.statusChange.reasonLabel")) : undefined;
-    if (needsReason && !reason) return;
-    statusMut.mutate({ id: u.id, newStatus, reason: reason ?? undefined });
+    if (needsReason) {
+      setReasonTarget({ id: u.id, newStatus });
+      return;
+    }
+    statusMut.mutate({ id: u.id, newStatus });
+  };
+
+  const submitReasonedStatus = (reason: string) => {
+    if (!reasonTarget) return;
+    if (!reason) return; // Reason is required for Suspend/Deactivate
+    statusMut.mutate(
+      { id: reasonTarget.id, newStatus: reasonTarget.newStatus, reason },
+      { onSettled: () => setReasonTarget(null) },
+    );
   };
 
   const confirmDelete = (u: AdminUserRow) => {
-    if (window.confirm(t("admin:users.statusChange.confirmDelete"))) {
-      deleteMut.mutate(u.id);
-    }
+    setDeleteTargetId(u.id);
+  };
+
+  const submitDelete = () => {
+    if (!deleteTargetId) return;
+    deleteMut.mutate(deleteTargetId, {
+      onSettled: () => setDeleteTargetId(null),
+    });
   };
 
   return (
@@ -192,9 +220,9 @@ export function UsersAdmin() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-xs text-text-secondary">{u.roles.join(", ") || "—"}</td>
-                <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(u.createdAt), "yyyy-MM-dd")}</td>
+                <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(u.createdAt), "yyyy-MM-dd", { locale: dateLocale })}</td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {u.lastLoginAt ? format(new Date(u.lastLoginAt), "yyyy-MM-dd HH:mm") : "—"}
+                  {u.lastLoginAt ? format(new Date(u.lastLoginAt), "yyyy-MM-dd HH:mm", { locale: dateLocale }) : "—"}
                 </td>
                 <td className="px-4 py-3 text-end">
                   <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
@@ -265,6 +293,34 @@ export function UsersAdmin() {
           </div>
         </div>
       )}
+
+      <PromptDialog
+        open={reasonTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setReasonTarget(null);
+        }}
+        title={t("admin:users.statusChange.title")}
+        inputLabel={t("admin:users.statusChange.reasonLabel")}
+        inputMultiline
+        confirmLabel={t("admin:users.statusChange.submit")}
+        cancelLabel={t("admin:users.statusChange.cancel")}
+        variant={reasonTarget?.newStatus === "Deactivated" ? "destructive" : "default"}
+        loading={statusMut.isPending}
+        onConfirm={submitReasonedStatus}
+      />
+
+      <ConfirmDialog
+        open={deleteTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTargetId(null);
+        }}
+        title={t("admin:users.actions.delete")}
+        description={t("admin:users.statusChange.confirmDelete")}
+        confirmLabel={t("admin:users.actions.delete")}
+        variant="destructive"
+        loading={deleteMut.isPending}
+        onConfirm={submitDelete}
+      />
     </div>
   );
 }

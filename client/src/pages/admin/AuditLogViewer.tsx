@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { Search, FilterX } from "lucide-react";
 import {
   adminApi,
@@ -53,7 +54,8 @@ function actionBadgeClass(a: AuditAction): string {
 }
 
 export function AuditLogViewer() {
-  const { t } = useTranslation(["admin", "common"]);
+  const { t, i18n } = useTranslation(["admin", "common"]);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
 
   const [search, setSearch] = useState("");
   const [action, setAction] = useState<AuditAction | "">("");
@@ -183,7 +185,7 @@ export function AuditLogViewer() {
             {data?.items.map((row: AuditLogDto) => (
               <tr key={row.id} className="border-t border-border-subtle hover:bg-bg-subtle/40">
                 <td className="px-4 py-3 text-xs tabular-nums text-text-tertiary">
-                  {format(new Date(row.occurredAt), "yyyy-MM-dd HH:mm:ss")}
+                  {format(new Date(row.occurredAt), "yyyy-MM-dd HH:mm:ss", { locale: dateLocale })}
                 </td>
                 <td className="px-4 py-3">
                   {row.actorEmail ? (

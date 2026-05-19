@@ -3,11 +3,13 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import {
   scholarshipsApi,
   type PaginatedMyScholarships,
   type ScholarshipStatus,
 } from "@/services/api/scholarships";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 
 const STATUSES: ScholarshipStatus[] = [
   "UnderReview",
@@ -35,6 +37,7 @@ function statusBadgeClass(s: ScholarshipStatus): string {
 export function AdminScholarships() {
   const { t, i18n } = useTranslation(["moderation", "common"]);
   const isAr = i18n.language.startsWith("ar");
+  const dateLocale = isAr ? ar : undefined;
   const qc = useQueryClient();
 
   const [status, setStatus] = useState<ScholarshipStatus>("UnderReview");
@@ -55,19 +58,30 @@ export function AdminScholarships() {
     onError: () => toast.error(t("moderation:scholarshipModeration.approveError")),
   });
 
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
+
   const rejectMut = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       scholarshipsApi.reject(id, reason),
     onSuccess: () => {
       toast.success(t("moderation:scholarshipModeration.rejectSuccess"));
       void qc.invalidateQueries({ queryKey: ["admin", "scholarships"] });
+      setRejectTargetId(null);
     },
-    onError: () => toast.error(t("moderation:scholarshipModeration.rejectError")),
+    onError: () => {
+      toast.error(t("moderation:scholarshipModeration.rejectError"));
+      setRejectTargetId(null);
+    },
   });
 
   const confirmReject = (id: string) => {
-    const reason = window.prompt(t("moderation:scholarshipModeration.rejectPrompt"));
-    if (reason && reason.trim()) rejectMut.mutate({ id, reason: reason.trim() });
+    setRejectTargetId(id);
+  };
+
+  const submitReject = (reason: string) => {
+    if (!rejectTargetId) return;
+    if (!reason) return; // Reason is required for rejection
+    rejectMut.mutate({ id: rejectTargetId, reason });
   };
 
   const busy = approveMut.isPending || rejectMut.isPending;
@@ -167,7 +181,7 @@ export function AdminScholarships() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {format(new Date(s.deadline), "yyyy-MM-dd")}
+                  {format(new Date(s.deadline), "yyyy-MM-dd", { locale: dateLocale })}
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{s.applicantCount}</td>
                 <td className="px-4 py-3 text-end">
@@ -223,6 +237,20 @@ export function AdminScholarships() {
           </div>
         </div>
       )}
+
+      <PromptDialog
+        open={rejectTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRejectTargetId(null);
+        }}
+        title={t("moderation:scholarshipModeration.reject")}
+        inputLabel={t("moderation:scholarshipModeration.rejectPrompt")}
+        inputMultiline
+        variant="destructive"
+        confirmLabel={t("moderation:scholarshipModeration.reject")}
+        loading={rejectMut.isPending}
+        onConfirm={submitReject}
+      />
     </div>
   );
 }

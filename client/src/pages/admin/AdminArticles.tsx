@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -5,6 +6,7 @@ import {
   resourcesApi,
   type ResourceListItem,
 } from "@/services/api/resources";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 
 export function AdminArticles() {
   const { t, i18n } = useTranslation(["resources", "common"]);
@@ -25,19 +27,30 @@ export function AdminArticles() {
     onError: () => toast.error(t("resources:moderation.approveError")),
   });
 
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
+
   const rejectMut = useMutation({
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       resourcesApi.reject(id, reason),
     onSuccess: () => {
       toast.success(t("resources:moderation.rejectSuccess"));
       void qc.invalidateQueries({ queryKey: ["admin", "resources", "pending"] });
+      setRejectTargetId(null);
     },
-    onError: () => toast.error(t("resources:moderation.rejectError")),
+    onError: () => {
+      toast.error(t("resources:moderation.rejectError"));
+      setRejectTargetId(null);
+    },
   });
 
   const confirmReject = (id: string) => {
-    const reason = window.prompt(t("resources:moderation.rejectPrompt"));
-    if (reason && reason.trim()) rejectMut.mutate({ id, reason: reason.trim() });
+    setRejectTargetId(id);
+  };
+
+  const submitReject = (reason: string) => {
+    if (!rejectTargetId) return;
+    if (!reason) return;
+    rejectMut.mutate({ id: rejectTargetId, reason });
   };
 
   const busy = approveMut.isPending || rejectMut.isPending;
@@ -143,6 +156,20 @@ export function AdminArticles() {
           </tbody>
         </table>
       </div>
+
+      <PromptDialog
+        open={rejectTargetId !== null}
+        onOpenChange={(open) => {
+          if (!open) setRejectTargetId(null);
+        }}
+        title={t("resources:moderation.reject")}
+        inputLabel={t("resources:moderation.rejectPrompt")}
+        inputMultiline
+        variant="destructive"
+        confirmLabel={t("resources:moderation.reject")}
+        loading={rejectMut.isPending}
+        onConfirm={submitReject}
+      />
     </div>
   );
 }

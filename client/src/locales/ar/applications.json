@@ -80,6 +80,8 @@
       "reject": "رفض"
     },
     "decision": {
+      "rejectTitle": "رفض الطلب",
+      "acceptTitle": "قبول الطلب",
       "rejectPrompt": "سبب الرفض (اختياري):",
       "acceptPrompt": "ملاحظات للقبول (اختياري):",
       "success": "تم تسجيل القرار بنجاح.",

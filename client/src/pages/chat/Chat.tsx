@@ -20,6 +20,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { NewMessageModal } from "@/components/chat/NewMessageModal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 export function Chat() {
   const { t, i18n } = useTranslation();
@@ -36,6 +37,8 @@ export function Chat() {
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const [conversationSearch, setConversationSearch] = useState("");
   const [isComposeOpen, setIsComposeOpen] = useState(false);
+  const [isBlockConfirmOpen, setBlockConfirmOpen] = useState(false);
+  const [isBlockSubmitting, setBlockSubmitting] = useState(false);
 
   const hubConnectionRef = useRef<HubConnection | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -240,15 +243,10 @@ export function Chat() {
     });
   };
 
-  const handleToggleBlock = async () => {
+  const confirmToggleBlock = async () => {
     if (!selectedConv) return;
     const isBlocked = selectedConv.isBlocked;
-    const confirmed = window.confirm(
-      isBlocked
-        ? t("chat.unblock_confirm", "Unblock this person? You will be able to message each other again.")
-        : t("chat.block_confirm", "Block this person? You will no longer be able to message each other."),
-    );
-    if (!confirmed) return;
+    setBlockSubmitting(true);
 
     try {
       if (isBlocked) {
@@ -276,6 +274,9 @@ export function Chat() {
           ? t("chat.unblock_error", "Could not unblock this user.")
           : t("chat.block_error", "Could not block this user."),
       );
+    } finally {
+      setBlockSubmitting(false);
+      setBlockConfirmOpen(false);
     }
   };
 
@@ -385,7 +386,7 @@ export function Chat() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleToggleBlock}
+                  onClick={() => setBlockConfirmOpen(true)}
                   title={
                     selectedConv.isBlocked
                       ? t("chat.unblock_user", "Unblock user")
@@ -497,6 +498,35 @@ export function Chat() {
         isOpen={isComposeOpen}
         onOpenChange={setIsComposeOpen}
         onSelectContact={handleSelectContact}
+      />
+
+      <ConfirmDialog
+        open={isBlockConfirmOpen}
+        onOpenChange={setBlockConfirmOpen}
+        title={
+          selectedConv?.isBlocked
+            ? t("chat.unblock_user", "Unblock user")
+            : t("chat.block_user", "Block user")
+        }
+        description={
+          selectedConv?.isBlocked
+            ? t(
+                "chat.unblock_confirm",
+                "Unblock this person? You will be able to message each other again.",
+              )
+            : t(
+                "chat.block_confirm",
+                "Block this person? You will no longer be able to message each other.",
+              )
+        }
+        confirmLabel={
+          selectedConv?.isBlocked
+            ? t("chat.unblock_user", "Unblock user")
+            : t("chat.block_user", "Block user")
+        }
+        variant={selectedConv?.isBlocked ? "default" : "destructive"}
+        loading={isBlockSubmitting}
+        onConfirm={confirmToggleBlock}
       />
     </div>
   );

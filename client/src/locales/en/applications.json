@@ -80,6 +80,8 @@
       "reject": "Reject"
     },
     "decision": {
+      "rejectTitle": "Reject application",
+      "acceptTitle": "Accept application",
       "rejectPrompt": "Reason for rejection (optional):",
       "acceptPrompt": "Notes for acceptance (optional):",
       "success": "Decision recorded successfully.",

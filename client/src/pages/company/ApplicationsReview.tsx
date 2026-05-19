@@ -9,6 +9,7 @@ import {
   type ApplicationStatus,
 } from "@/services/api/applications";
 import { apiErrorMessage } from "@/services/api/client";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 
 export function ApplicationsReview() {
   const { t, i18n } = useTranslation("applications");
@@ -21,6 +22,16 @@ export function ApplicationsReview() {
     queryFn: () => applicationsApi.getCompanyApplications(),
   });
   const applications = data?.items ?? [];
+
+  /**
+   * When set, a {@link PromptDialog} is open for the selected application and
+   * decision. Tracks both the row id and the requested status so the same
+   * dialog backs both "Accept" and "Reject" actions.
+   */
+  const [decisionTarget, setDecisionTarget] = useState<
+    | { id: string; status: "Accepted" | "Rejected" }
+    | null
+  >(null);
 
   const reviewMutation = useMutation({
     mutationFn: ({
@@ -35,20 +46,25 @@ export function ApplicationsReview() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company", "applications"] });
       toast.success(t("companyReview.decision.success"));
+      setDecisionTarget(null);
     },
     onError: (err) => {
       toast.error(apiErrorMessage(err, t("companyReview.decision.error")));
+      setDecisionTarget(null);
     },
   });
 
-  const handleDecision = (id: string, status: "Accepted" | "Rejected") => {
-    const reason = window.prompt(
-      status === "Rejected"
-        ? t("companyReview.decision.rejectPrompt")
-        : t("companyReview.decision.acceptPrompt"),
-    );
-    if (reason === null) return;
-    reviewMutation.mutate({ id, status, reason });
+  const handleDecisionClick = (id: string, status: "Accepted" | "Rejected") => {
+    setDecisionTarget({ id, status });
+  };
+
+  const submitDecision = (reason: string) => {
+    if (!decisionTarget) return;
+    reviewMutation.mutate({
+      id: decisionTarget.id,
+      status: decisionTarget.status,
+      reason: reason || undefined,
+    });
   };
 
   const filteredApps = applications.filter(
@@ -165,7 +181,7 @@ export function ApplicationsReview() {
                           <>
                             <button
                               type="button"
-                              onClick={() => handleDecision(app.id, "Accepted")}
+                              onClick={() => handleDecisionClick(app.id, "Accepted")}
                               className="p-1.5 text-text-tertiary transition-colors hover:text-success-600"
                               title={t("companyReview.actions.accept")}
                             >
@@ -173,7 +189,7 @@ export function ApplicationsReview() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDecision(app.id, "Rejected")}
+                              onClick={() => handleDecisionClick(app.id, "Rejected")}
                               className="p-1.5 text-text-tertiary transition-colors hover:text-danger-500"
                               title={t("companyReview.actions.reject")}
                             >
@@ -190,6 +206,32 @@ export function ApplicationsReview() {
           </table>
         </div>
       </div>
+
+      <PromptDialog
+        open={decisionTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDecisionTarget(null);
+        }}
+        title={
+          decisionTarget?.status === "Rejected"
+            ? t("companyReview.decision.rejectTitle")
+            : t("companyReview.decision.acceptTitle")
+        }
+        inputLabel={
+          decisionTarget?.status === "Rejected"
+            ? t("companyReview.decision.rejectPrompt")
+            : t("companyReview.decision.acceptPrompt")
+        }
+        inputMultiline
+        variant={decisionTarget?.status === "Rejected" ? "destructive" : "default"}
+        confirmLabel={
+          decisionTarget?.status === "Rejected"
+            ? t("companyReview.actions.reject")
+            : t("companyReview.actions.accept")
+        }
+        loading={reviewMutation.isPending}
+        onConfirm={submitDecision}
+      />
     </div>
   );
 }

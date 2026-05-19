@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Download, Trash2, Undo2 } from "lucide-react";
 import { dataPrivacyApi, type DataRequestDto } from "@/services/api/dataPrivacy";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 
 const KEY = ["me", "data-requests"] as const;
 
@@ -57,10 +58,13 @@ export function DataPrivacy() {
     (r) => r.type === "Delete" && r.status === "Pending",
   );
 
+  const isAr = i18n.language === "ar";
   const fmtDate = (iso: string | null) => {
     if (!iso) return "—";
     try {
-      return format(new Date(iso), i18n.language === "ar" ? "d MMM yyyy" : "MMM d, yyyy");
+      return format(new Date(iso), isAr ? "d MMM yyyy" : "MMM d, yyyy", {
+        locale: isAr ? ar : undefined,
+      });
     } catch {
       return iso;
     }

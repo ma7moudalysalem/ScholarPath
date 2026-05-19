@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
+import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import {
   Database,
@@ -40,7 +41,8 @@ function Stat({
  * fine-tuning dataset built from the platform's own data.
  */
 export function AdminKnowledgeBase() {
-  const { t } = useTranslation(["admin", "common"]);
+  const { t, i18n } = useTranslation(["admin", "common"]);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const qc = useQueryClient();
 
   const status = useQuery<KnowledgeBaseStatus>({
@@ -158,7 +160,7 @@ export function AdminKnowledgeBase() {
               {t("admin:knowledgeBase.lastIndexed", { defaultValue: "Last indexed" })}:{" "}
               <span className="font-medium text-text-primary">
                 {s.lastIndexedAt
-                  ? format(new Date(s.lastIndexedAt), "dd MMM yyyy, HH:mm")
+                  ? format(new Date(s.lastIndexedAt), "dd MMM yyyy, HH:mm", { locale: dateLocale })
                   : t("admin:knowledgeBase.never", { defaultValue: "never" })}
               </span>
             </span>
