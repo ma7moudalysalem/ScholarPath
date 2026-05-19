@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 import { useBookingDetailQuery, useCancelBookingMutation } from "@/hooks/useBookingsQuery";
+import { BookingRecordings } from "@/components/booking/BookingRecordings";
 import type { BookingDetail } from "@/services/api/bookings";
 import {
   durationLabel,
@@ -252,6 +253,10 @@ export function StudentBookingDetails() {
                   </Link>
                 </div>
               </div>
+            ) : null}
+
+            {booking.status !== "Requested" ? (
+              <BookingRecordings bookingId={booking.id} />
             ) : null}
 
             <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">

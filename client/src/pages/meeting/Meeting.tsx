@@ -36,6 +36,7 @@ export function Meeting() {
   const [camOn, setCamOn] = useState(true);
   const [remoteJoined, setRemoteJoined] = useState(false);
   const [hasCamera, setHasCamera] = useState(false);
+  const [recording, setRecording] = useState(false);
 
   const localVideoRef = useRef<HTMLDivElement>(null);
   const remoteVideoRef = useRef<HTMLDivElement>(null);
@@ -137,9 +138,27 @@ export function Meeting() {
           e.added.forEach(watchParticipant);
           if (call.remoteParticipants.length === 0) setRemoteJoined(false);
         });
+        // Start the session recording once the call is connected (PB-006).
+        // Idempotent server-side, so it is safe if both participants fire it.
+        let recordingStarted = false;
+        async function ensureRecording() {
+          if (recordingStarted || disposed) return;
+          recordingStarted = true;
+          try {
+            const serverCallId = await call.info.getServerCallId();
+            await meetingsApi.startRecording(bookingId!, serverCallId);
+            if (!disposed) setRecording(true);
+          } catch {
+            recordingStarted = false; // allow a retry on the next state change
+          }
+        }
+
         call.on("stateChanged", () => {
-          if (call.state === "Disconnected" && !disposed) setPhase("ended");
+          if (disposed) return;
+          if (call.state === "Connected") void ensureRecording();
+          if (call.state === "Disconnected") setPhase("ended");
         });
+        if (call.state === "Connected") void ensureRecording();
 
         if (!disposed) setPhase("connected");
       } catch (err) {
@@ -199,14 +218,27 @@ export function Meeting() {
     <main className="flex min-h-screen flex-col bg-neutral-950 text-white">
       <header className="flex items-center justify-between px-5 py-3">
         <h1 className="text-sm font-medium">{t("bookings:meeting.title")}</h1>
-        <span className="text-xs text-neutral-400">
-          {phase === "connected"
-            ? remoteJoined
-              ? t("bookings:meeting.connected")
-              : t("bookings:meeting.waiting")
-            : null}
-        </span>
+        <div className="flex items-center gap-3 text-xs">
+          {recording && (
+            <span className="flex items-center gap-1.5 text-danger-400">
+              <span aria-hidden className="size-2 animate-pulse rounded-full bg-danger-500" />
+              {t("bookings:meeting.recording")}
+            </span>
+          )}
+          <span className="text-neutral-400">
+            {phase === "connected"
+              ? remoteJoined
+                ? t("bookings:meeting.connected")
+                : t("bookings:meeting.waiting")
+              : null}
+          </span>
+        </div>
       </header>
+      {phase === "connected" && (
+        <p className="px-5 pb-1 text-[11px] text-neutral-500">
+          {t("bookings:meeting.recordingNotice")}
+        </p>
+      )}
 
       <div className="relative flex flex-1 items-center justify-center overflow-hidden px-4 pb-4">
         {phase === "joining" && (

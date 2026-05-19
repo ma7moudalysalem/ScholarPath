@@ -43,6 +43,12 @@ public class ConsultantBooking : AuditableEntity, ISoftDeletable
     // session is held in. Provisioned when the consultant accepts the booking.
     public string? MeetingRoomId { get; set; }
 
+    // Session recording (PB-006). RecordingStartedAt makes the start request
+    // idempotent; RecordingId links the ACS recording to this booking when the
+    // recording-ready webhook fires.
+    public DateTimeOffset? RecordingStartedAt { get; set; }
+    public string? RecordingId { get; set; }
+
     public BookingStatus Status { get; set; } = BookingStatus.Requested;
     public DateTimeOffset? RequestedAt { get; set; }
     public DateTimeOffset? ConfirmedAt { get; set; }

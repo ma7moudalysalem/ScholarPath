@@ -9,6 +9,7 @@ import {
   useMarkNoShowMutation,
   useRejectBookingMutation,
 } from "@/hooks/useBookingsQuery";
+import { BookingRecordings } from "@/components/booking/BookingRecordings";
 import {
   durationLabel,
   formatDate,
@@ -239,6 +240,8 @@ export function ConsultantBookingDetails() {
                 </div>
               </div>
             ) : null}
+
+            {!isRequested ? <BookingRecordings bookingId={booking.id} /> : null}
 
             <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
               <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">

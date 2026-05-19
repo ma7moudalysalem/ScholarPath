@@ -64,6 +64,8 @@ public interface IApplicationDbContext
 
     DbSet<Document> Documents { get; }
 
+    DbSet<SessionRecording> SessionRecordings { get; }
+
     DbSet<Notification> Notifications { get; }
     DbSet<NotificationPreference> NotificationPreferences { get; }
 

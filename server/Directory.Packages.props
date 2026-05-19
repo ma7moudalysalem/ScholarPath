@@ -75,6 +75,7 @@
     <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.7.0" />
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.24.0" />
     <PackageVersion Include="Azure.Communication.Identity" Version="1.3.1" />
+    <PackageVersion Include="Azure.Communication.CallAutomation" Version="1.5.1" />
   </ItemGroup>
   <ItemGroup Label="Antivirus scanning">
     <!-- nClam: managed client for the ClamAV clamd daemon (INSTREAM scanning). -->

@@ -102,7 +102,12 @@
     "camOff": "Turn camera off",
     "leave": "Leave",
     "you": "You",
-    "back": "Back"
+    "back": "Back",
+    "recording": "Recording",
+    "recordingNotice": "This session is being recorded. The recording is available afterwards to you, the consultant, and ScholarPath admins.",
+    "recordingsTitle": "Session recordings",
+    "download": "Download",
+    "downloadError": "Could not download the recording. Please try again."
   },
   "notFound": {
     "title": "Booking not found",

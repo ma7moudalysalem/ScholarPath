@@ -1,4 +1,5 @@
 using Azure.Communication;
+using Azure.Communication.CallAutomation;
 using Azure.Communication.Identity;
 using Microsoft.Extensions.Options;
 using ScholarPath.Application.Common.Interfaces;
@@ -12,15 +13,18 @@ namespace ScholarPath.Infrastructure.Services;
 /// group-call id (a GUID): no server-side room object is needed, the id is
 /// only handed to the two booking participants through the authorized join
 /// endpoint, and each participant gets a short-lived VoIP-scoped token minted
-/// from the ACS resource.
+/// from the ACS resource. Sessions are recorded via Call Automation.
 /// </summary>
 public sealed class AzureCommunicationMeetingService : IMeetingService
 {
     private readonly CommunicationIdentityClient _identityClient;
+    private readonly CallAutomationClient _callAutomationClient;
 
     public AzureCommunicationMeetingService(IOptions<AcsOptions> options)
     {
-        _identityClient = new CommunicationIdentityClient(options.Value.ConnectionString);
+        var connectionString = options.Value.ConnectionString;
+        _identityClient = new CommunicationIdentityClient(connectionString);
+        _callAutomationClient = new CallAutomationClient(connectionString);
     }
 
     public string Provider => "AzureCommunicationServices";
@@ -40,5 +44,21 @@ public sealed class AzureCommunicationMeetingService : IMeetingService
             Token: result.Value.AccessToken.Token,
             AcsUserId: result.Value.User.Id,
             ExpiresAt: result.Value.AccessToken.ExpiresOn);
+    }
+
+    public async Task<string> StartRecordingAsync(string serverCallId, CancellationToken ct)
+    {
+        var result = await _callAutomationClient.GetCallRecording()
+            .StartAsync(new StartRecordingOptions(new ServerCallLocator(serverCallId)), ct)
+            .ConfigureAwait(false);
+        return result.Value.RecordingId;
+    }
+
+    public async Task<Stream> DownloadRecordingAsync(string contentLocation, CancellationToken ct)
+    {
+        var result = await _callAutomationClient.GetCallRecording()
+            .DownloadStreamingAsync(new Uri(contentLocation), cancellationToken: ct)
+            .ConfigureAwait(false);
+        return result.Value;
     }
 }

@@ -9,10 +9,13 @@ using ScholarPath.Application.ConsultantBookings.Commands.RecordMeetingJoin;
 using ScholarPath.Application.ConsultantBookings.Commands.RejectBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.RequestBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.RescheduleBooking;
+using ScholarPath.Application.ConsultantBookings.Commands.StartMeetingRecording;
 using ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
 using ScholarPath.Application.ConsultantBookings.Commands.SubmitConsultantRating;
 using ScholarPath.Application.ConsultantBookings.DTOs;
+using ScholarPath.Application.ConsultantBookings.Queries.DownloadSessionRecording;
 using ScholarPath.Application.ConsultantBookings.Queries.GetBookingById;
+using ScholarPath.Application.ConsultantBookings.Queries.GetBookingRecordings;
 using ScholarPath.Application.ConsultantBookings.Queries.GetConsultantBookings;
 using ScholarPath.Application.ConsultantBookings.Queries.GetMyAvailability;
 using ScholarPath.Application.ConsultantBookings.Queries.GetMyBookings;
@@ -163,6 +166,39 @@ public sealed class BookingsController : ControllerBase
     public async Task<IActionResult> JoinMeeting(Guid id, CancellationToken cancellationToken)
         => Ok(await _sender.Send(new RecordMeetingJoinCommand(id), cancellationToken));
 
+    /// <summary>
+    /// PB-006 — starts recording the booking's video session. Idempotent; the
+    /// client supplies the live call's server call id.
+    /// </summary>
+    [HttpPost("{id:guid}/meeting/start-recording")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> StartMeetingRecording(
+        Guid id, [FromBody] StartRecordingBody body, CancellationToken cancellationToken)
+    {
+        await _sender.Send(new StartMeetingRecordingCommand(id, body.ServerCallId), cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Lists a booking's session recordings — booking student, consultant, or admin.</summary>
+    [HttpGet("{id:guid}/meeting/recordings")]
+    [ProducesResponseType(typeof(IReadOnlyList<SessionRecordingDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetMeetingRecordings(Guid id, CancellationToken cancellationToken)
+        => Ok(await _sender.Send(new GetBookingRecordingsQuery(id), cancellationToken));
+
+    /// <summary>Streams a session recording — booking student, consultant, or admin.</summary>
+    [HttpGet("meeting/recordings/{recordingId:guid}/download")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadMeetingRecording(
+        Guid recordingId, CancellationToken cancellationToken)
+    {
+        var result = await _sender.Send(new DownloadSessionRecordingQuery(recordingId), cancellationToken);
+        return File(result.Content, result.ContentType, result.FileName);
+    }
+
     [HttpPost("{id:guid}/no-show")]
     public async Task<IActionResult> MarkNoShow(
         Guid id,
@@ -222,3 +258,4 @@ public sealed class BookingsController : ControllerBase
 
 // ─── Request DTOs kept local to the controller ────────────────────────────────
 public sealed record ModerateConsultantReviewBody(bool Hide, string? AdminNote);
+public sealed record StartRecordingBody(string ServerCallId);

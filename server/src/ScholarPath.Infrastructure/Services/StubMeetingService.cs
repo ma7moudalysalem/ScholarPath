@@ -22,4 +22,10 @@ public sealed class StubMeetingService : IMeetingService
             Token: $"stub-token-{userId:N}",
             AcsUserId: $"stub-user-{userId:N}",
             ExpiresAt: DateTimeOffset.UtcNow.AddHours(2)));
+
+    public Task<string> StartRecordingAsync(string serverCallId, CancellationToken ct)
+        => Task.FromResult($"stub-recording-{Guid.NewGuid():N}");
+
+    public Task<Stream> DownloadRecordingAsync(string contentLocation, CancellationToken ct)
+        => Task.FromResult<Stream>(new MemoryStream());
 }

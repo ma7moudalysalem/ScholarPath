@@ -101,6 +101,9 @@ public class ApplicationDbContext(
     // Document vault (FR-216)
     public DbSet<Document> Documents => Set<Document>();
 
+    // Consultant-session recordings (PB-006)
+    public DbSet<SessionRecording> SessionRecordings => Set<SessionRecording>();
+
     // Notifications
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
