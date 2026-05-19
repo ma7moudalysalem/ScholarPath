@@ -9,6 +9,12 @@ public sealed class RequestBookingCommandValidator : AbstractValidator<RequestBo
         RuleFor(x => x.ConsultantId)
             .NotEmpty();
 
+        // FR-078: a booking must reference a published availability slot, so the
+        // requested time can be validated against the consultant's schedule.
+        RuleFor(x => x.AvailabilityId)
+            .NotNull()
+            .WithMessage("An availability slot must be selected.");
+
         RuleFor(x => x.ScheduledStartAt)
             .NotEmpty();
 

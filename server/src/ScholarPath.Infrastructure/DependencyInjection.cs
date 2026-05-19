@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.Configure<AuthenticationOptions>(config.GetSection(AuthenticationOptions.SectionName));
         services.Configure<FileScanningOptions>(config.GetSection(FileScanningOptions.SectionName));
         services.Configure<FieldEncryptionOptions>(config.GetSection(FieldEncryptionOptions.SectionName));
+        services.Configure<BookingOptions>(config.GetSection(BookingOptions.SectionName));
 
         // Project AiOptions into the Application-side snapshot so the cost gate
         // doesn't have to know about Infrastructure's full options type.

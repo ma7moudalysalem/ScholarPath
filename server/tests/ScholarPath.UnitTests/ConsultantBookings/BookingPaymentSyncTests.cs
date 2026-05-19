@@ -2,6 +2,7 @@ using FluentAssertions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.ConsultantBookings.Commands.AcceptBooking;
@@ -14,6 +15,7 @@ using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Jobs;
 using ScholarPath.Infrastructure.Persistence;
+using ScholarPath.Infrastructure.Settings;
 using Xunit;
 
 namespace ScholarPath.UnitTests.ConsultantBookings;
@@ -227,7 +229,9 @@ public sealed class BookingPaymentSyncTests : IDisposable
                 Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new StripePaymentIntentResult("pi_test", "canceled", null, null));
 
-        var job = new SessionExpiryJob(_db, _stripe, Substitute.For<ILogger<SessionExpiryJob>>());
+        var job = new SessionExpiryJob(
+            _db, _stripe, Options.Create(new BookingOptions()),
+            Substitute.For<ILogger<SessionExpiryJob>>());
         await job.RunAsync(default);
 
         var payment = await PaymentForAsync(booking.Id);

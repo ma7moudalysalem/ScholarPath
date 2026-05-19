@@ -220,6 +220,19 @@ public sealed class AzureOpenAiOptions
 /// (fail-closed). When false the <c>NoOpFileScanService</c> is used — for dev
 /// and tests where no ClamAV daemon runs.
 /// </summary>
+/// <summary>
+/// Consultant-booking tunables (PB-006). Currently the response window: how
+/// long a requested booking waits for the consultant to accept or reject it
+/// before <c>SessionExpiryJob</c> auto-expires it and releases the payment hold.
+/// </summary>
+public sealed class BookingOptions
+{
+    public const string SectionName = "Booking";
+
+    /// <summary>Hours a requested booking waits for a consultant response before it auto-expires.</summary>
+    public int ConsultantResponseWindowHours { get; set; } = 24;
+}
+
 public sealed class FileScanningOptions
 {
     public const string SectionName = "FileScanning";

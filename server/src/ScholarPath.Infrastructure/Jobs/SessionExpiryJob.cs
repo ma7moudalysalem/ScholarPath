@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Infrastructure.Settings;
 
 namespace ScholarPath.Infrastructure.Jobs;
 
@@ -10,20 +12,24 @@ public sealed class SessionExpiryJob : ISessionExpiryJob
     private readonly IApplicationDbContext _context;
     private readonly IStripeService _stripeService;
     private readonly ILogger<SessionExpiryJob> _logger;
+    private readonly int _responseWindowHours;
 
     public SessionExpiryJob(
         IApplicationDbContext context,
         IStripeService stripeService,
+        IOptions<BookingOptions> bookingOptions,
         ILogger<SessionExpiryJob> logger)
     {
         _context = context;
         _stripeService = stripeService;
+        _responseWindowHours = bookingOptions.Value.ConsultantResponseWindowHours;
         _logger = logger;
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        var expiryThreshold = DateTimeOffset.UtcNow.AddHours(-24);
+        // FR-083: the consultant response window is configurable (Booking:ConsultantResponseWindowHours).
+        var expiryThreshold = DateTimeOffset.UtcNow.AddHours(-_responseWindowHours);
 
         var bookings = await _context.Bookings
             .Include(b => b.Payment)

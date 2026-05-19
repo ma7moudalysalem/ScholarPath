@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.ConsultantBookings.DTOs;
 using ScholarPath.Domain.Enums;
@@ -261,10 +262,9 @@ public sealed class ConsultantReadService(
 
     /// <summary>
     /// Expands a weekly-recurring rule into one concrete slot per matching
-    /// weekday between now and the horizon. The recurring rule's
-    /// <see cref="TimeOnly"/> window is interpreted as a UTC wall-clock time —
-    /// the stored <c>Timezone</c> is surfaced on the DTO so the client can
-    /// localise it for display.
+    /// weekday between now and the horizon. The rule's <see cref="TimeOnly"/>
+    /// window is wall-clock time in the consultant's stored <c>Timezone</c>; it
+    /// is converted to a UTC instant here so every viewer sees the right moment.
     /// </summary>
     private static IEnumerable<BookableSlotDto> ExpandRecurringRule(
         Domain.Entities.ConsultantAvailability rule,
@@ -282,8 +282,16 @@ public sealed class ConsultantReadService(
             yield break;
         }
 
-        for (var date = nowUtc.UtcDateTime.Date;
-             date <= horizonUtc.UtcDateTime.Date;
+        // The rule's TimeOnly window is wall-clock time in the consultant's own
+        // timezone — iterate dates in that timezone and convert each slot to UTC,
+        // so a "Monday 17:00 Cairo" slot resolves to the correct instant for
+        // every viewer (UAT TC-005 / FR-078).
+        var tz = TimeZoneResolver.Resolve(rule.Timezone);
+        var nowLocal = TimeZoneInfo.ConvertTime(nowUtc, tz);
+        var horizonLocal = TimeZoneInfo.ConvertTime(horizonUtc, tz);
+
+        for (var date = nowLocal.Date;
+             date <= horizonLocal.Date;
              date = date.AddDays(1))
         {
             if (date.DayOfWeek != rule.DayOfWeek.Value)
@@ -291,10 +299,21 @@ public sealed class ConsultantReadService(
                 continue;
             }
 
+            var localStart = DateTime.SpecifyKind(
+                date.Add(rule.StartTime.Value.ToTimeSpan()), DateTimeKind.Unspecified);
+            var localEnd = DateTime.SpecifyKind(
+                date.Add(rule.EndTime.Value.ToTimeSpan()), DateTimeKind.Unspecified);
+
+            // Skip the rare local time that does not exist (DST spring-forward gap).
+            if (tz.IsInvalidTime(localStart) || tz.IsInvalidTime(localEnd))
+            {
+                continue;
+            }
+
             var windowStart = new DateTimeOffset(
-                date.Add(rule.StartTime.Value.ToTimeSpan()), TimeSpan.Zero);
+                TimeZoneInfo.ConvertTimeToUtc(localStart, tz), TimeSpan.Zero);
             var windowEnd = new DateTimeOffset(
-                date.Add(rule.EndTime.Value.ToTimeSpan()), TimeSpan.Zero);
+                TimeZoneInfo.ConvertTimeToUtc(localEnd, tz), TimeSpan.Zero);
 
             foreach (var (startUtc, endUtc) in SliceWindow(windowStart, windowEnd, sessionMinutes))
             {

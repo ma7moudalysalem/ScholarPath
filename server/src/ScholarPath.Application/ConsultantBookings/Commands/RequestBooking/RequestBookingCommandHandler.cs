@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
@@ -50,6 +51,12 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
         if (scheduledStartAtUtc >= scheduledEndAtUtc)
         {
             throw new BookingDomainException("ScheduledStartAt must be earlier than ScheduledEndAt.");
+        }
+
+        // FR-078/084: a booking can only be requested for a future time.
+        if (scheduledStartAtUtc <= DateTimeOffset.UtcNow)
+        {
+            throw new BookingDomainException("Booking start time must be in the future.");
         }
 
         var durationMinutes = (int)Math.Round((scheduledEndAtUtc - scheduledStartAtUtc).TotalMinutes);
@@ -111,6 +118,36 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
                     || scheduledEndAtUtc > availability.SpecificEndAt.Value.ToUniversalTime())
                 {
                     throw new BookingDomainException("Requested booking time is outside the selected availability range.");
+                }
+            }
+            else
+            {
+                if (availability.DayOfWeek is null
+                    || availability.StartTime is null
+                    || availability.EndTime is null)
+                {
+                    throw new BookingDomainException("Recurring availability slot is invalid.");
+                }
+
+                // FR-078: validate the requested time against the recurring rule
+                // in the consultant's own timezone (the rule's TimeOnly window),
+                // so a manipulated client cannot book outside published availability.
+                var tz = TimeZoneResolver.Resolve(availability.Timezone);
+                var localStart = TimeZoneInfo.ConvertTime(scheduledStartAtUtc, tz);
+                var localEnd = TimeZoneInfo.ConvertTime(scheduledEndAtUtc, tz);
+
+                if (localStart.DayOfWeek != availability.DayOfWeek.Value
+                    || localStart.Date != localEnd.Date)
+                {
+                    throw new BookingDomainException(
+                        "Requested booking day does not match the consultant's availability.");
+                }
+
+                if (TimeOnly.FromTimeSpan(localStart.TimeOfDay) < availability.StartTime.Value
+                    || TimeOnly.FromTimeSpan(localEnd.TimeOfDay) > availability.EndTime.Value)
+                {
+                    throw new BookingDomainException(
+                        "Requested booking time is outside the consultant's availability.");
                 }
             }
         }
