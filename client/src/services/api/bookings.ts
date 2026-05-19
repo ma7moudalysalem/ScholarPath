@@ -96,6 +96,14 @@ export interface RequestBookingInput {
   notes?: string | null;
 }
 
+/** Result of `POST /api/consultants/{id}/book` (`RequestBookingResult`). */
+export interface RequestBookingResult {
+  bookingId: string;
+  /** Stripe client secret of the booking's PaymentIntent — confirm THIS one. */
+  clientSecret: string | null;
+  paymentIntentId: string | null;
+}
+
 /** Body of `POST /api/bookings/{id}/reschedule` (`RescheduleBookingCommand`). */
 export interface RescheduleBookingInput {
   availabilityId?: string | null;
@@ -152,8 +160,8 @@ export const bookingsApi = {
    * Creates a booking request — `POST /api/consultants/{id}/book`. The route
    * consultant id must match the body, so the id is taken from `input`.
    */
-  async requestBooking(input: RequestBookingInput): Promise<{ bookingId: string }> {
-    const { data } = await apiClient.post<{ bookingId: string }>(
+  async requestBooking(input: RequestBookingInput): Promise<RequestBookingResult> {
+    const { data } = await apiClient.post<RequestBookingResult>(
       `/api/consultants/${input.consultantId}/book`,
       input,
     );

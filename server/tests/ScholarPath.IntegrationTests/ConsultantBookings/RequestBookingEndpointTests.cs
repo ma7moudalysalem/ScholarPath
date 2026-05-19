@@ -99,7 +99,7 @@ public sealed class RequestBookingEndpointTests : IntegrationTestBase
             currentUser.SetUser(studentId, studentEmail, "Student");
 
             var sender = sp.GetRequiredService<MediatR.ISender>();
-            bookingId = await sender.Send(command);
+            bookingId = (await sender.Send(command)).BookingId;
         });
 
         bookingId.Should().NotBeEmpty();

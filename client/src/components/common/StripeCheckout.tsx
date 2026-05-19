@@ -9,6 +9,13 @@ interface StripeCheckoutProps {
   bookingId: string;
   amountCents: number;
   currency?: string;
+  /**
+   * When provided, this PaymentIntent's client secret is confirmed directly —
+   * the widget does NOT create a new intent. The booking flow passes the intent
+   * RequestBooking already created, so a booking keeps exactly one intent
+   * (PB-006 gap report, Problem 1).
+   */
+  clientSecret?: string | null;
   onSuccess?: () => void;
 }
 
@@ -23,11 +30,12 @@ export function StripeCheckout({
   bookingId,
   amountCents,
   currency = "USD",
+  clientSecret: presetClientSecret,
   onSuccess,
 }: StripeCheckoutProps) {
   const { t } = useTranslation("bookings");
   const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(presetClientSecret ?? null);
   const [error, setError] = useState<string | null>(null);
 
   const configured = Boolean(publishableKey) && publishableKey !== "pk_test_PLACEHOLDER";
@@ -38,7 +46,10 @@ export function StripeCheckout({
   );
 
   useEffect(() => {
-    if (!configured) return;
+    // The booking flow passes an existing intent's client secret — the intent
+    // is already created, so the widget must not create a second one
+    // (PB-006 gap report, Problem 1).
+    if (!configured || presetClientSecret) return;
     let cancelled = false;
     paymentsApi
       .createIntent({
@@ -58,7 +69,7 @@ export function StripeCheckout({
     return () => {
       cancelled = true;
     };
-  }, [amountCents, currency, bookingId, configured, t]);
+  }, [amountCents, currency, bookingId, configured, presetClientSecret, t]);
 
   if (!configured) {
     return (

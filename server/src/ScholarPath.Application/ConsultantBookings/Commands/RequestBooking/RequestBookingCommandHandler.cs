@@ -9,7 +9,7 @@ using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.RequestBooking;
 
-public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookingCommand, Guid>
+public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookingCommand, RequestBookingResult>
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
@@ -25,7 +25,7 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
         _stripeService = stripeService;
     }
 
-    public async Task<Guid> Handle(RequestBookingCommand request, CancellationToken cancellationToken)
+    public async Task<RequestBookingResult> Handle(RequestBookingCommand request, CancellationToken cancellationToken)
     {
         if (!_currentUser.IsAuthenticated)
         {
@@ -291,6 +291,8 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
         payment.RelatedBookingId = booking.Id;
         await _context.SaveChangesAsync(cancellationToken);
 
-        return booking.Id;
+        // Return the intent's client secret so the checkout widget confirms
+        // THIS intent — it must not create a second one (PB-006 Problem 1).
+        return new RequestBookingResult(booking.Id, paymentIntent.ClientSecret, paymentIntent.Id);
     }
 }

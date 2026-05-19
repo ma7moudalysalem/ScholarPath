@@ -42,6 +42,7 @@ export function BookingCheckout() {
   const [acceptHold, setAcceptHold] = useState(false);
   const [acceptError, setAcceptError] = useState(false);
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paid, setPaid] = useState(false);
 
   const durationMinutes = useMemo(() => {
@@ -86,6 +87,7 @@ export function BookingCheckout() {
       {
         onSuccess: (result) => {
           setCreatedBookingId(result.bookingId);
+          setClientSecret(result.clientSecret);
           // A zero-fee session has nothing to charge — skip straight to done.
           if (feeAmount <= 0) setPaid(true);
         },
@@ -313,6 +315,7 @@ export function BookingCheckout() {
                   bookingId={createdBookingId}
                   amountCents={Math.round(feeAmount * 100)}
                   currency="USD"
+                  clientSecret={clientSecret}
                   onSuccess={() => setPaid(true)}
                 />
               </div>

@@ -82,8 +82,8 @@ public sealed class BookingsController : ControllerBase
             return BadRequest("Route consultant id does not match body consultant id.");
         }
 
-        var bookingId = await _sender.Send(command, cancellationToken);
-        return Ok(new { bookingId });
+        var result = await _sender.Send(command, cancellationToken);
+        return Ok(result);
     }
 
     [HttpPost("{id:guid}/accept")]
