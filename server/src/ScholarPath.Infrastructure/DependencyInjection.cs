@@ -163,6 +163,13 @@ public static class DependencyInjection
         else
             services.AddSingleton<IStripeService, StubStripeService>();
 
+        // ── Video meeting provider ──
+        // StubMeetingService keeps the booking + no-show flows working offline.
+        // The real AzureCommunicationMeetingService slots in here once an ACS
+        // resource is provisioned (Acs:ConnectionString) — config-driven, the
+        // same fallback pattern as the Stripe and SSO providers above.
+        services.AddSingleton<IMeetingService, StubMeetingService>();
+
         // ── AI provider + RAG pipeline ──
         // Provider is config-driven (no code change):
         //   Stub / Local → deterministic offline scoring + local-hash embeddings

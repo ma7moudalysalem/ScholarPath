@@ -9,6 +9,7 @@ using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Jobs;
 using ScholarPath.Infrastructure.Persistence;
+using ScholarPath.Infrastructure.Services;
 using Xunit;
 
 namespace ScholarPath.UnitTests.ConsultantBookings;
@@ -182,7 +183,7 @@ public sealed class MeetingNoShowTests
         db.Bookings.Add(booking);
         await db.SaveChangesAsync();
 
-        var sut = new RecordMeetingJoinCommandHandler(db, User(booking.StudentId));
+        var sut = new RecordMeetingJoinCommandHandler(db, User(booking.StudentId), new StubMeetingService());
         var result = await sut.Handle(new RecordMeetingJoinCommand(booking.Id), default);
 
         result.BookingId.Should().Be(booking.Id);
@@ -199,7 +200,7 @@ public sealed class MeetingNoShowTests
         db.Bookings.Add(booking);
         await db.SaveChangesAsync();
 
-        var sut = new RecordMeetingJoinCommandHandler(db, User(Guid.NewGuid()));
+        var sut = new RecordMeetingJoinCommandHandler(db, User(Guid.NewGuid()), new StubMeetingService());
         var act = () => sut.Handle(new RecordMeetingJoinCommand(booking.Id), default);
 
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
@@ -216,7 +217,7 @@ public sealed class MeetingNoShowTests
         db.Bookings.Add(booking);
         await db.SaveChangesAsync();
 
-        var sut = new RecordMeetingJoinCommandHandler(db, User(booking.StudentId));
+        var sut = new RecordMeetingJoinCommandHandler(db, User(booking.StudentId), new StubMeetingService());
         await sut.Handle(new RecordMeetingJoinCommand(booking.Id), default);
 
         (await db.Bookings.SingleAsync()).StudentJoinedAt.Should().Be(firstJoin);

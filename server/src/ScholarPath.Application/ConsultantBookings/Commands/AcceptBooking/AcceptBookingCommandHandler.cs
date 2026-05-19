@@ -14,17 +14,20 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IStripeService _stripeService;
+    private readonly IMeetingService _meetingService;
     private readonly IPublisher _publisher;
 
     public AcceptBookingCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
         IStripeService stripeService,
+        IMeetingService meetingService,
         IPublisher publisher)
     {
         _context = context;
         _currentUser = currentUser;
         _stripeService = stripeService;
+        _meetingService = meetingService;
         _publisher = publisher;
     }
 
@@ -115,6 +118,11 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
         booking.Status = BookingStatus.Confirmed;
         booking.ConfirmedAt = nowUtc;
         booking.MeetingUrl = request.MeetingUrl;
+
+        // PB-006 — provision the video-meeting room for the confirmed session.
+        // Each participant gets a join token from the booking's meeting room.
+        var room = await _meetingService.CreateRoomAsync(booking.Id, cancellationToken);
+        booking.MeetingRoomId = room.RoomId;
 
         await _context.SaveChangesAsync(cancellationToken);
 

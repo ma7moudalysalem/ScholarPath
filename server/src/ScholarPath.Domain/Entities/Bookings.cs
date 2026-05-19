@@ -39,6 +39,10 @@ public class ConsultantBooking : AuditableEntity, ISoftDeletable
     public decimal PriceUsd { get; set; }
     public string? MeetingUrl { get; set; }
 
+    // Video meeting (PB-006) — the Azure Communication Services room id the
+    // session is held in. Provisioned when the consultant accepts the booking.
+    public string? MeetingRoomId { get; set; }
+
     public BookingStatus Status { get; set; } = BookingStatus.Requested;
     public DateTimeOffset? RequestedAt { get; set; }
     public DateTimeOffset? ConfirmedAt { get; set; }

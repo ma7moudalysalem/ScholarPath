@@ -8,18 +8,27 @@ namespace ScholarPath.Application.ConsultantBookings.Commands.RecordMeetingJoin;
 
 /// <summary>
 /// Records that the authenticated participant (the booking's student or
-/// consultant) has joined the session room. The first join per party is kept —
+/// consultant) has joined the session room, and returns the credentials the
+/// client needs to enter the video meeting. The first join per party is kept —
 /// the no-show sweep job (FR-217) reads these timestamps to attribute an
 /// automated no-show to whichever party never joined.
 /// </summary>
 public sealed record RecordMeetingJoinCommand(Guid BookingId) : IRequest<MeetingJoinResult>;
 
-/// <summary>What the client needs to enter the session room.</summary>
-public sealed record MeetingJoinResult(Guid BookingId, string? MeetingUrl, DateTimeOffset JoinedAt);
+/// <summary>What the client needs to enter the video meeting room.</summary>
+public sealed record MeetingJoinResult(
+    Guid BookingId,
+    string? MeetingUrl,
+    string RoomId,
+    string AccessToken,
+    string AcsUserId,
+    DateTimeOffset TokenExpiresAt,
+    DateTimeOffset JoinedAt);
 
 public sealed class RecordMeetingJoinCommandHandler(
     IApplicationDbContext context,
-    ICurrentUserService currentUser)
+    ICurrentUserService currentUser,
+    IMeetingService meetingService)
     : IRequestHandler<RecordMeetingJoinCommand, MeetingJoinResult>
 {
     // A participant may enter the room from 15 minutes before the start until
@@ -68,6 +77,14 @@ public sealed class RecordMeetingJoinCommandHandler(
             throw new BookingDomainException("The session room has closed.");
         }
 
+        // Lazy-provision a room for bookings confirmed before meeting rooms
+        // existed, so every confirmed booking can still issue a join token.
+        if (string.IsNullOrEmpty(booking.MeetingRoomId))
+        {
+            var room = await meetingService.CreateRoomAsync(booking.Id, ct).ConfigureAwait(false);
+            booking.MeetingRoomId = room.RoomId;
+        }
+
         // First join per party wins — a re-join must not overwrite the
         // attendance proof the no-show sweep relies on.
         if (isStudent && booking.StudentJoinedAt is null)
@@ -81,7 +98,18 @@ public sealed class RecordMeetingJoinCommandHandler(
 
         await context.SaveChangesAsync(ct).ConfigureAwait(false);
 
+        var access = await meetingService
+            .IssueAccessTokenAsync(booking.MeetingRoomId, userId, ct)
+            .ConfigureAwait(false);
+
         var joinedAt = isStudent ? booking.StudentJoinedAt!.Value : booking.ConsultantJoinedAt!.Value;
-        return new MeetingJoinResult(booking.Id, booking.MeetingUrl, joinedAt);
+        return new MeetingJoinResult(
+            booking.Id,
+            booking.MeetingUrl,
+            booking.MeetingRoomId,
+            access.Token,
+            access.AcsUserId,
+            access.ExpiresAt,
+            joinedAt);
     }
 }

@@ -416,6 +416,7 @@ public sealed class ConsultantBookingConfiguration : IEntityTypeConfiguration<Co
     {
         b.Property(bk => bk.Status).HasConversion<string>().HasMaxLength(24);
         b.Property(bk => bk.MeetingUrl).HasMaxLength(2048);
+        b.Property(bk => bk.MeetingRoomId).HasMaxLength(64);
         b.Property(bk => bk.CancellationReason).HasConversion<string>().HasMaxLength(500); ;
         b.Property(bk => bk.StripePaymentIntentId).HasMaxLength(256);
         b.Property(bk => bk.PriceUsd).HasPrecision(10, 2);

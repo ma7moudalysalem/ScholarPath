@@ -16,6 +16,7 @@ using ScholarPath.Application.Common;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Jobs;
 using ScholarPath.Infrastructure.Persistence;
+using ScholarPath.Infrastructure.Services;
 using Xunit;
 
 namespace ScholarPath.UnitTests.ConsultantBookings;
@@ -105,7 +106,7 @@ public sealed class BookingPaymentSyncTests : IDisposable
                 Arg.Any<string>(), Arg.Any<long?>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new StripePaymentIntentResult("pi_test", "succeeded", null, "ch_test"));
 
-        var handler = new AcceptBookingCommandHandler(_db, _currentUser, _stripe, _publisher);
+        var handler = new AcceptBookingCommandHandler(_db, _currentUser, _stripe, new StubMeetingService(), _publisher);
         await handler.Handle(new AcceptBookingCommand(booking.Id, "https://meet.example/x"), default);
 
         var payment = await PaymentForAsync(booking.Id);
@@ -131,7 +132,7 @@ public sealed class BookingPaymentSyncTests : IDisposable
                 Arg.Any<string>(), Arg.Any<long?>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new StripePaymentIntentResult("pi_test", "succeeded", null, "ch_test"));
 
-        var handler = new AcceptBookingCommandHandler(_db, _currentUser, _stripe, _publisher);
+        var handler = new AcceptBookingCommandHandler(_db, _currentUser, _stripe, new StubMeetingService(), _publisher);
         await handler.Handle(new AcceptBookingCommand(booking.Id, "https://meet.example/x"), default);
 
         var payment = await PaymentForAsync(booking.Id);

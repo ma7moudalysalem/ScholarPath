@@ -62,6 +62,7 @@ public sealed record BookingDetailDto
     public int DurationMinutes { get; init; }
     public decimal PriceUsd { get; init; }
     public string? MeetingUrl { get; init; }
+    public string? MeetingRoomId { get; init; }
 
     // Workflow timestamps
     public DateTimeOffset? RequestedAt { get; init; }
