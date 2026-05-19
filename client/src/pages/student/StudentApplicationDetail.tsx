@@ -1,19 +1,32 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useParams, Link } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, Send, Save, FileText, FolderOpen } from "lucide-react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  Send,
+  Save,
+  FileText,
+  Loader2,
+  Upload,
+  X,
+} from "lucide-react";
 import {
   applicationsApi,
   type ApplicationDetail,
   type ApplicationStatus,
 } from "@/services/api/applications";
 import { scholarshipsApi } from "@/services/api/scholarships";
-import { documentsApi } from "@/services/api/documents";
-import { ApiError } from "@/services/api/client";
+import {
+  documentsApi,
+  documentCategories,
+  type DocumentCategory,
+} from "@/services/api/documents";
+import { ApiError, apiErrorMessage } from "@/services/api/client";
 
 // ── Application-form schema ───────────────────────────────────────────────────
 // A scholarship's ApplicationFormSchemaJson is { "fields": [{ key, label, type,
@@ -315,15 +328,56 @@ function DraftApplicationForm({
   const [formValues, setFormValues] = useState<Record<string, string>>(() =>
     parseFormValues(application.formDataJson),
   );
-  const [attached, setAttached] = useState<string[]>(() =>
-    parseStringArray(application.attachedDocumentsJson),
-  );
-  const [notes, setNotes] = useState(application.personalNotes ?? "");
 
-  const { data: documents = [] } = useQuery({
+  // Per-slot upload state: doc name → uploaded file name (or "" when empty).
+  // On mount we first-fit any previously saved attachments into the slots so
+  // re-editing a draft shows the previous files.
+  const [attachedByDoc, setAttachedByDoc] = useState<Record<string, string>>(() => {
+    const previous = parseStringArray(application.attachedDocumentsJson);
+    const initial: Record<string, string> = {};
+    requiredDocuments.forEach((docName, i) => {
+      initial[docName] = previous[i] ?? "";
+    });
+    return initial;
+  });
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  const [notes, setNotes] = useState(application.personalNotes ?? "");
+  const [confirmed, setConfirmed] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Refs for the hidden file inputs — keyed by required-doc name so the slot's
+  // "Upload" button can trigger its own input.
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // The "Reuse from vault" disclosure keeps the original vault-checkbox UX
+  // collapsed by default. The user picks a target slot and then ticks a vault
+  // doc to fill it — simpler than the previous free-form multi-attach.
+  const [vaultTargetSlot, setVaultTargetSlot] = useState<string>(
+    requiredDocuments[0] ?? "",
+  );
+  const { data: vaultDocs = [] } = useQuery({
     queryKey: ["documents", "all"],
     queryFn: () => documentsApi.list(),
   });
+
+  /** Case-insensitive lookup of the canonical DocumentCategory; falls back to "Other". */
+  const categoryFor = (docName: string): DocumentCategory => {
+    const lower = docName.toLowerCase();
+    return (
+      documentCategories.find((c) => c.toLowerCase() === lower) ?? "Other"
+    );
+  };
+
+  const labelFor = (docName: string): string =>
+    t("moderation:appDetail.documents.types." + docName, { defaultValue: docName });
+
+  const clearError = (key: string) =>
+    setErrors((es) => {
+      if (!es[key]) return es;
+      const next = { ...es };
+      delete next[key];
+      return next;
+    });
 
   const buildBody = () => {
     const formData: Record<string, string | number> = {};
@@ -331,6 +385,7 @@ function DraftApplicationForm({
       const value = (formValues[field.key] ?? "").trim();
       formData[field.key] = field.type === "number" && value !== "" ? Number(value) : value;
     }
+    const attached = Object.values(attachedByDoc).filter(Boolean);
     return {
       formDataJson:
         schemaFields.length > 0 ? JSON.stringify(formData) : application.formDataJson,
@@ -374,17 +429,68 @@ function DraftApplicationForm({
   });
 
   const handleSubmit = () => {
-    // Mirror the server completeness guard so the student gets a clear,
-    // localised message instead of a raw 409.
-    const missingField = schemaFields.some(
-      (field) => field.required && !(formValues[field.key] ?? "").trim(),
-    );
-    const missingDocs = requiredDocuments.length > 0 && attached.length === 0;
-    if (missingField || missingDocs) {
-      toast.error(t("moderation:appDetail.form.incomplete"));
+    // Per-field inline validation — collect everything missing so the student
+    // can see all gaps at once instead of fixing them one by one.
+    const next: Record<string, string> = {};
+    for (const field of schemaFields) {
+      if (field.required && !(formValues[field.key] ?? "").trim()) {
+        next[field.key] = t("moderation:appDetail.form.fieldRequired");
+      }
+    }
+    for (const docName of requiredDocuments) {
+      if (!attachedByDoc[docName]) {
+        next["documents." + docName] = t("moderation:appDetail.documents.missing");
+      }
+    }
+    if (!confirmed) {
+      next.confirm = t("moderation:appDetail.form.confirmRequired");
+    }
+    if (Object.keys(next).length > 0) {
+      setErrors(next);
       return;
     }
+    setErrors({});
     submitMut.mutate();
+  };
+
+  const pickFileForSlot = (docName: string) => {
+    fileInputRefs.current[docName]?.click();
+  };
+
+  const handleFilePicked = async (
+    docName: string,
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    // Always reset the input so picking the same file twice still fires onChange.
+    event.target.value = "";
+    if (!file) return;
+    setUploadingDoc(docName);
+    try {
+      const uploaded = await documentsApi.upload({
+        file,
+        category: categoryFor(docName),
+        applicationTrackerId: application.id,
+      });
+      setAttachedByDoc((prev) => ({ ...prev, [docName]: uploaded.fileName }));
+      clearError("documents." + docName);
+      void queryClient.invalidateQueries({ queryKey: ["documents", "all"] });
+    } catch (err) {
+      toast.error(
+        apiErrorMessage(err, t("moderation:appDetail.documents.uploadError")),
+      );
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
+
+  const removeFromSlot = (docName: string) => {
+    setAttachedByDoc((prev) => ({ ...prev, [docName]: "" }));
+  };
+
+  const fillSlotFromVault = (docName: string, fileName: string, checked: boolean) => {
+    setAttachedByDoc((prev) => ({ ...prev, [docName]: checked ? fileName : "" }));
+    if (checked) clearError("documents." + docName);
   };
 
   const busy = saveMut.isPending || submitMut.isPending;
@@ -420,9 +526,10 @@ function DraftApplicationForm({
                   id={`field-${field.key}`}
                   rows={4}
                   value={formValues[field.key] ?? ""}
-                  onChange={(e) =>
-                    setFormValues((v) => ({ ...v, [field.key]: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    setFormValues((v) => ({ ...v, [field.key]: e.target.value }));
+                    clearError(field.key);
+                  }}
                   className="w-full rounded-md border border-border-subtle bg-bg-canvas p-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 />
               ) : (
@@ -430,11 +537,15 @@ function DraftApplicationForm({
                   id={`field-${field.key}`}
                   type={field.type === "number" ? "number" : "text"}
                   value={formValues[field.key] ?? ""}
-                  onChange={(e) =>
-                    setFormValues((v) => ({ ...v, [field.key]: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    setFormValues((v) => ({ ...v, [field.key]: e.target.value }));
+                    clearError(field.key);
+                  }}
                   className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                 />
+              )}
+              {errors[field.key] && (
+                <p className="mt-1 text-xs text-danger-500">{errors[field.key]}</p>
               )}
             </div>
           ))}
@@ -445,50 +556,127 @@ function DraftApplicationForm({
         <h3 className="text-sm font-semibold text-text-primary">
           {t("moderation:appDetail.form.documents")}
         </h3>
-        {requiredDocuments.length > 0 && (
-          <p className="mt-0.5 text-xs text-text-tertiary">
-            {t("moderation:appDetail.form.requiredDocsHint", {
-              docs: requiredDocuments.join(", "),
-            })}
+
+        {requiredDocuments.length === 0 ? (
+          <p className="mt-1 text-xs text-text-tertiary">
+            {t("moderation:appDetail.form.requiredDocsHint", { docs: "—" })}
           </p>
-        )}
-        {documents.length === 0 ? (
-          <div className="mt-2 rounded-md border border-border-subtle bg-bg-subtle p-3 text-sm text-text-secondary">
-            <p>{t("moderation:appDetail.form.noVaultDocs")}</p>
-            <Link
-              to="/student/documents"
-              className="mt-1 inline-flex items-center gap-1 text-brand-500 underline"
-            >
-              <FolderOpen className="size-4" />
-              {t("moderation:appDetail.form.goToDocuments")}
-            </Link>
-          </div>
         ) : (
-          <div className="mt-2 space-y-1.5">
-            <p className="text-xs text-text-tertiary">
-              {t("moderation:appDetail.form.attachLabel")}
-            </p>
-            {documents.map((doc) => (
-              <label
-                key={doc.id}
-                className="flex items-center gap-2 text-sm text-text-secondary"
-              >
-                <input
-                  type="checkbox"
-                  checked={attached.includes(doc.fileName)}
-                  onChange={(e) =>
-                    setAttached((list) =>
-                      e.target.checked
-                        ? [...list, doc.fileName]
-                        : list.filter((name) => name !== doc.fileName),
-                    )
-                  }
-                  className="size-4 accent-brand-500"
-                />
-                <FileText className="size-4 text-text-tertiary" />
-                <span>{doc.fileName}</span>
-              </label>
-            ))}
+          <div className="mt-2 space-y-2">
+            {requiredDocuments.map((docName) => {
+              const attachedName = attachedByDoc[docName];
+              const isUploading = uploadingDoc === docName;
+              const errorKey = "documents." + docName;
+              return (
+                <div
+                  key={docName}
+                  className="rounded-md border border-border-subtle bg-bg-canvas p-3"
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <FileText className="size-4 text-text-tertiary" />
+                    <span className="flex-1 text-sm font-medium text-text-primary">
+                      {labelFor(docName)}
+                    </span>
+                    <input
+                      ref={(el) => {
+                        fileInputRefs.current[docName] = el;
+                      }}
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => handleFilePicked(docName, e)}
+                    />
+                    {attachedName ? (
+                      <span className="flex items-center gap-2 text-sm text-text-secondary">
+                        <span className="truncate max-w-[16rem]">{attachedName}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeFromSlot(docName)}
+                          disabled={busy || isUploading}
+                          className="inline-flex items-center gap-1 rounded-md border border-border-default px-2 py-1 text-xs font-medium text-text-primary transition hover:bg-bg-subtle disabled:opacity-50"
+                        >
+                          <X className="size-3.5" />
+                          {t("moderation:appDetail.documents.remove")}
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => pickFileForSlot(docName)}
+                        disabled={busy || isUploading}
+                        className="inline-flex items-center gap-2 rounded-md border border-border-default px-3 py-1.5 text-xs font-medium text-text-primary transition hover:bg-bg-subtle disabled:opacity-50"
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="size-3.5 animate-spin" />
+                            {t("moderation:appDetail.documents.uploading")}
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="size-3.5" />
+                            {t("moderation:appDetail.documents.uploadCta")}
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  {errors[errorKey] && (
+                    <p className="mt-1 text-xs text-danger-500">{errors[errorKey]}</p>
+                  )}
+                </div>
+              );
+            })}
+
+            {vaultDocs.length > 0 && (
+              <details className="mt-2 rounded-md border border-border-subtle bg-bg-subtle p-3 text-sm text-text-secondary">
+                <summary className="cursor-pointer text-text-primary">
+                  {t("moderation:appDetail.documents.reuseFromVault")}
+                </summary>
+                <div className="mt-3 space-y-2">
+                  {/* Pick a target slot, then tick a vault doc to fill it. */}
+                  <label className="flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
+                    <span>{t("moderation:appDetail.form.attachLabel")}</span>
+                    <select
+                      value={vaultTargetSlot}
+                      onChange={(e) => setVaultTargetSlot(e.target.value)}
+                      className="h-8 rounded-md border border-border-subtle bg-bg-canvas px-2 text-xs text-text-primary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                    >
+                      {requiredDocuments.map((docName) => (
+                        <option key={docName} value={docName}>
+                          {labelFor(docName)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="space-y-1.5">
+                    {vaultDocs.map((doc) => {
+                      const isFilling = attachedByDoc[vaultTargetSlot] === doc.fileName;
+                      return (
+                        <label
+                          key={doc.id}
+                          className="flex items-center gap-2 text-sm text-text-secondary"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isFilling}
+                            disabled={!vaultTargetSlot}
+                            onChange={(e) =>
+                              fillSlotFromVault(
+                                vaultTargetSlot,
+                                doc.fileName,
+                                e.target.checked,
+                              )
+                            }
+                            className="size-4 accent-brand-500"
+                          />
+                          <FileText className="size-4 text-text-tertiary" />
+                          <span className="truncate">{doc.fileName}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </details>
+            )}
           </div>
         )}
       </div>
@@ -510,7 +698,25 @@ function DraftApplicationForm({
         />
       </div>
 
-      <div className="flex flex-wrap gap-3 border-t border-border-subtle pt-4">
+      <div className="space-y-1 border-t border-border-subtle pt-4">
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={confirmed}
+            onChange={(e) => {
+              setConfirmed(e.target.checked);
+              clearError("confirm");
+            }}
+            className="mt-0.5 size-4 accent-brand-500"
+          />
+          <span>{t("moderation:appDetail.confirmLabel")}</span>
+        </label>
+        {errors.confirm && (
+          <p className="text-xs text-danger-500">{errors.confirm}</p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
         <button
           type="button"
           onClick={() => saveMut.mutate()}

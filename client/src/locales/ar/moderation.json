@@ -37,6 +37,7 @@
     "submittedToast": "تم إرسال الطلب.",
     "submitConflict": "لا يمكن إرسال هذا الطلب الآن.",
     "draftHint": "هذا الطلب مسودة — أرسله عندما تكون جاهزًا.",
+    "confirmLabel": "أؤكد أن بيانات الطلب صحيحة وجاهزة للإرسال.",
     "form": {
       "title": "نموذج الطلب",
       "intro": "املأ الإجابات، وأرفِق المستندات المطلوبة، ثم أرسِل الطلب.",
@@ -51,7 +52,29 @@
       "saving": "جارٍ الحفظ…",
       "saved": "تم حفظ المسودة.",
       "saveError": "تعذّر حفظ المسودة.",
-      "incomplete": "املأ كل حقل مطلوب وأرفِق مستندًا واحدًا على الأقل قبل الإرسال."
+      "incomplete": "املأ كل حقل مطلوب وأرفِق مستندًا واحدًا على الأقل قبل الإرسال.",
+      "fieldRequired": "هذا الحقل مطلوب.",
+      "confirmRequired": "أكّد البيانات قبل الإرسال."
+    },
+    "documents": {
+      "types": {
+        "Transcript": "كشف الدرجات",
+        "Certificate": "شهادة",
+        "RecommendationLetter": "خطاب توصية",
+        "PersonalStatement": "خطاب شخصي",
+        "Resume": "السيرة الذاتية",
+        "IdentityDocument": "وثيقة هوية",
+        "ProofOfEnglish": "إثبات إتقان الإنجليزية",
+        "FinancialDocument": "وثيقة مالية",
+        "Portfolio": "نموذج الأعمال",
+        "Other": "أخرى"
+      },
+      "uploadCta": "ارفع ملف",
+      "uploading": "جارٍ الرفع…",
+      "remove": "إزالة",
+      "uploadError": "تعذّر رفع الملف. حاول مرة أخرى.",
+      "reuseFromVault": "أو استخدم ملفاً سبق رفعه",
+      "missing": "هذا المستند مطلوب."
     }
   },
   "applicationStatus": {

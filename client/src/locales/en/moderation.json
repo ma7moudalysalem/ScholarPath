@@ -37,6 +37,7 @@
     "submittedToast": "Application submitted.",
     "submitConflict": "This application can't be submitted right now.",
     "draftHint": "This application is a draft — submit it when you're ready.",
+    "confirmLabel": "I confirm the application data is correct and ready to submit.",
     "form": {
       "title": "Application form",
       "intro": "Fill in the answers, attach the required documents, then submit.",
@@ -51,7 +52,29 @@
       "saving": "Saving…",
       "saved": "Draft saved.",
       "saveError": "Could not save the draft.",
-      "incomplete": "Fill in every required field and attach at least one document before submitting."
+      "incomplete": "Fill in every required field and attach at least one document before submitting.",
+      "fieldRequired": "This field is required.",
+      "confirmRequired": "Please confirm the data before submitting."
+    },
+    "documents": {
+      "types": {
+        "Transcript": "Transcript",
+        "Certificate": "Certificate",
+        "RecommendationLetter": "Recommendation letter",
+        "PersonalStatement": "Personal statement",
+        "Resume": "Resume / CV",
+        "IdentityDocument": "Identity document",
+        "ProofOfEnglish": "Proof of English",
+        "FinancialDocument": "Financial document",
+        "Portfolio": "Portfolio",
+        "Other": "Other"
+      },
+      "uploadCta": "Upload file",
+      "uploading": "Uploading…",
+      "remove": "Remove",
+      "uploadError": "Could not upload the file. Please try again.",
+      "reuseFromVault": "Or reuse a file you already uploaded",
+      "missing": "This document is required."
     }
   },
   "applicationStatus": {
