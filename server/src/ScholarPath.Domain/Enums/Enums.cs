@@ -348,4 +348,10 @@ public enum DocumentCategory
     ProofOfEnglish = 7,
     FinancialDocument = 8,
     Portfolio = 9,
+
+    /// <summary>
+    /// A verification document (business registration, professional credential)
+    /// a Company or Consultant uploads to support their onboarding request.
+    /// </summary>
+    OnboardingDocument = 10,
 }

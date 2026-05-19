@@ -77,7 +77,11 @@
     "actions": {
       "review": "Review",
       "approve": "Approve",
-      "reject": "Reject"
+      "reject": "Reject",
+      "documents": "Documents"
+    },
+    "documents": {
+      "empty": "This applicant hasn't uploaded any documents."
     },
     "reviewDialog": {
       "title": "Review onboarding request",

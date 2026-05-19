@@ -1,4 +1,5 @@
 import { apiClient } from "@/services/api/client";
+import type { DocumentItem } from "@/services/api/documents";
 import type { PagedResult } from "@/types/api";
 
 export type { PagedResult };
@@ -281,6 +282,13 @@ export const adminApi = {
   },
   async reviewOnboarding(userId: string, body: ReviewBody): Promise<void> {
     await apiClient.post(`/api/admin/onboarding-queue/${userId}/review`, body);
+  },
+  /** UAT TC-001/002 — verification documents a pending applicant uploaded for onboarding review. */
+  async getOnboardingDocuments(userId: string): Promise<DocumentItem[]> {
+    const { data } = await apiClient.get<DocumentItem[]>(
+      `/api/admin/onboarding-queue/${userId}/documents`,
+    );
+    return data;
   },
   async getUpgradeQueue(
     status: UpgradeRequestStatus | null = "Pending",

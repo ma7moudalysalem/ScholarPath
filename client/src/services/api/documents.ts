@@ -12,7 +12,8 @@ export type DocumentCategory =
   | "IdentityDocument"
   | "ProofOfEnglish"
   | "FinancialDocument"
-  | "Portfolio";
+  | "Portfolio"
+  | "OnboardingDocument";
 
 export const documentCategories: DocumentCategory[] = [
   "Transcript",

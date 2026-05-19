@@ -77,7 +77,11 @@
     "actions": {
       "review": "مراجعة",
       "approve": "موافقة",
-      "reject": "رفض"
+      "reject": "رفض",
+      "documents": "المستندات"
+    },
+    "documents": {
+      "empty": "لم يرفع مقدّم الطلب أي مستندات."
     },
     "reviewDialog": {
       "title": "مراجعة طلب التأهيل",

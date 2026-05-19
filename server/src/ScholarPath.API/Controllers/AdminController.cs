@@ -23,6 +23,8 @@ using ScholarPath.Application.Ai.DTOs;
 using ScholarPath.Application.Ai.Queries.GetAiUsageSummary;
 using ScholarPath.Application.Audit.DTOs;
 using ScholarPath.Application.Audit.Queries.GetAuditLog;
+using ScholarPath.Application.Documents;
+using ScholarPath.Application.Documents.Queries.GetUserOnboardingDocuments;
 using ScholarPath.Application.PlatformSettings;
 using ScholarPath.Application.PlatformSettings.Commands.UpdatePlatformSetting;
 using ScholarPath.Application.PlatformSettings.Queries.GetPlatformSettings;
@@ -153,6 +155,19 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
         var decision = body.Approve ? OnboardingDecision.Approve : OnboardingDecision.Reject;
         await mediator.Send(new ReviewOnboardingCommand(userId, decision, body.Notes), ct).ConfigureAwait(false);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Lists the verification documents a Company / Consultant uploaded for their
+    /// onboarding request, so the reviewer can inspect them before deciding.
+    /// </summary>
+    [HttpGet("onboarding-queue/{userId:guid}/documents")]
+    [ProducesResponseType(typeof(IReadOnlyList<DocumentDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetOnboardingDocuments(Guid userId, CancellationToken ct)
+    {
+        var result = await mediator
+            .Send(new GetUserOnboardingDocumentsQuery(userId), ct).ConfigureAwait(false);
+        return Ok(result);
     }
 
     [HttpGet("upgrade-queue")]
