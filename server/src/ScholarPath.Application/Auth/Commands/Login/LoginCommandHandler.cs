@@ -4,6 +4,7 @@ using ScholarPath.Application.Auth.DTOs;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Auth.Commands.Login;
@@ -65,6 +66,17 @@ public sealed class LoginCommandHandler(
 
             await db.SaveChangesAsync(ct);
             throw new ConflictException("Invalid email or password.");
+        }
+
+        // The password is correct — but an admin-disabled account must not be
+        // able to sign in. (Unassigned / PendingApproval still sign in: they
+        // need access to finish onboarding or see their pending-review state.)
+        if (user.AccountStatus is AccountStatus.Suspended or AccountStatus.Deactivated)
+        {
+            db.LoginAttempts.Add(BuildAttempt(
+                normalizedEmail, user.Id, false, $"Account {user.AccountStatus}", request, now));
+            await db.SaveChangesAsync(ct);
+            throw new ConflictException("This account is not active. Please contact support.");
         }
 
         user.AccessFailedCount = 0;
