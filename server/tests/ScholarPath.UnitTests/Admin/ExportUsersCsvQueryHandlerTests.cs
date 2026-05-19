@@ -23,7 +23,7 @@ public sealed class ExportUsersCsvQueryHandlerTests
 
     private static AdminUserRow Row(string email, string fullName, params string[] roles) =>
         new(Guid.NewGuid(), email, fullName, AccountStatus.Active, true,
-            roles, DateTimeOffset.UtcNow, null, false, null);
+            roles, DateTimeOffset.UtcNow, null, false, null, false);
 
     private static string Decode(byte[] content)
     {

@@ -103,6 +103,15 @@ public sealed class AdminReadService(
             .ToDictionaryAsync(x => x.UserId, x => (x.IsAtRisk, x.Score), ct)
             .ConfigureAwait(false);
 
+        // Batch-load consultants whose booking intake is suspended (FR-094).
+        var intakeSuspended = (await db.UserProfiles
+                .AsNoTracking()
+                .Where(p => ids.Contains(p.UserId) && p.BookingIntakeSuspendedAt != null)
+                .Select(p => p.UserId)
+                .ToListAsync(ct)
+                .ConfigureAwait(false))
+            .ToHashSet();
+
         var rows = pageUsers.Select(u =>
         {
             var risk = riskMap.TryGetValue(u.Id, out var r) ? r : (IsAtRisk: false, Score: (decimal?)null);
@@ -116,7 +125,8 @@ public sealed class AdminReadService(
                 u.CreatedAt,
                 u.LastLoginAt,
                 risk.IsAtRisk,
-                risk.Score);
+                risk.Score,
+                intakeSuspended.Contains(u.Id));
         }).ToList();
 
         return new PagedResult<AdminUserRow>(rows, page, pageSize, total);

@@ -12,7 +12,8 @@ public sealed record AdminUserRow(
     DateTimeOffset CreatedAt,
     DateTimeOffset? LastLoginAt,
     bool IsAtRisk,              // PB-018 FR-270 — reverse-ETL flag from Power BI
-    decimal? RiskScore);        // null when no UserRiskFlag row exists yet
+    decimal? RiskScore,         // null when no UserRiskFlag row exists yet
+    bool BookingIntakeSuspended); // FR-094 — consultant booking intake auto-suspended for low ratings
 
 public sealed record AdminUserDetail(
     Guid Id,

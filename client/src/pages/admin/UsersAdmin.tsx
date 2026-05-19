@@ -76,6 +76,15 @@ export function UsersAdmin() {
     onError: () => toast.error(t("common:status.error")),
   });
 
+  const reinstateMut = useMutation({
+    mutationFn: (id: string) => adminApi.reinstateBookingIntake(id),
+    onSuccess: () => {
+      toast.success(t("common:status.success"));
+      void qc.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+    onError: () => toast.error(t("common:status.error")),
+  });
+
   const changeStatus = (u: AdminUserRow, newStatus: AccountStatus) => {
     const needsReason = newStatus === "Suspended" || newStatus === "Deactivated";
     const reason = needsReason ? window.prompt(t("admin:users.statusChange.reasonLabel")) : undefined;
@@ -205,6 +214,17 @@ export function UsersAdmin() {
                         className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-warning-500 hover:text-warning-600"
                       >
                         {t("admin:users.actions.suspend")}
+                      </button>
+                    )}
+                    {u.bookingIntakeSuspended && (
+                      <button
+                        type="button"
+                        onClick={() => reinstateMut.mutate(u.id)}
+                        disabled={reinstateMut.isPending}
+                        title={t("admin:users.reinstateIntakeTooltip")}
+                        className="rounded-md border border-warning-500 px-2 py-1 text-xs text-warning-600 hover:bg-warning-50 disabled:opacity-50"
+                      >
+                        {t("admin:users.actions.reinstateIntake")}
                       </button>
                     )}
                     <button

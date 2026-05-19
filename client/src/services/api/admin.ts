@@ -76,6 +76,8 @@ export interface AdminUserRow {
   isAtRisk: boolean;
   /** Normalised 0..1 churn-risk score. Null when the user hasn't been scored yet. */
   riskScore: number | null;
+  /** FR-094 — true when a consultant's booking intake is auto-suspended for low ratings. */
+  bookingIntakeSuspended: boolean;
 }
 
 export interface AdminUserDetail extends Omit<AdminUserRow, "fullName"> {
@@ -263,6 +265,10 @@ export const adminApi = {
   },
   async changeUserRole(userId: string, role: string, operation: RoleOp): Promise<void> {
     await apiClient.post(`/api/admin/users/${userId}/roles`, { role, operation });
+  },
+  /** FR-094 — clears a consultant's auto-suspended booking intake after review. */
+  async reinstateBookingIntake(userId: string): Promise<void> {
+    await apiClient.post(`/api/admin/users/${userId}/reinstate-booking-intake`);
   },
 
   // onboarding / upgrade queues

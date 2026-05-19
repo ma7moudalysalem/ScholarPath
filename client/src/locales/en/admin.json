@@ -49,12 +49,14 @@
       "suspend": "Suspend",
       "deactivate": "Deactivate",
       "activate": "Activate",
-      "delete": "Delete"
+      "delete": "Delete",
+      "reinstateIntake": "Reinstate intake"
     },
     "empty": "No users matched the filters.",
     "atRisk": "At risk",
     "atRiskTooltip": "Churn-risk score {{score}}/100 (last Power BI dataflow run).",
     "atRiskGeneric": "Flagged by the churn-risk dataflow.",
+    "reinstateIntakeTooltip": "This consultant's booking intake was auto-suspended for low ratings. Reinstating lets them receive new bookings again.",
     "statusChange": {
       "title": "Change account status",
       "reasonLabel": "Reason (required for Suspend / Deactivate)",
