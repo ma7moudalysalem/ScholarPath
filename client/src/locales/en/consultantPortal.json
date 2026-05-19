@@ -84,7 +84,8 @@
       "selectedDate": "Selected date",
       "selectedTime": "Selected time",
       "duration": "Duration",
-      "fee": "Fee"
+      "fee": "Fee",
+      "studentNotes": "Student's note"
     },
     "meeting": {
       "title": "Video session",

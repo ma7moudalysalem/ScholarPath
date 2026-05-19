@@ -264,6 +264,13 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             DeletedByUserId = null
         };
 
+        // Normalise the optional note — blank-only strings become null so the
+        // consultant-side details page can skip the section cleanly instead of
+        // showing an empty box.
+        var normalisedNotes = string.IsNullOrWhiteSpace(request.Notes)
+            ? null
+            : request.Notes.Trim();
+
         var booking = new ConsultantBooking
         {
             StudentId = studentId,
@@ -273,6 +280,7 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             ScheduledEndAt = scheduledEndAtUtc,
             DurationMinutes = durationMinutes,
             PriceUsd = priceUsd,
+            StudentNotes = normalisedNotes,
             Status = BookingStatus.Requested,
             RequestedAt = nowUtc,
             StripePaymentIntentId = paymentIntent.Id,

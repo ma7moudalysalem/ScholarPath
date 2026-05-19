@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import { Star } from "lucide-react";
 import { useConsultantsQuery } from "@/hooks/useConsultantsQuery";
 import type { ConsultantSummary } from "@/services/api/consultants";
 import { durationLabel, formatUsd } from "@/lib/bookingFormat";
@@ -11,12 +12,15 @@ type BrowseFilter = "all" | "available" | "unavailable";
 type PriceSelectFilter = "any" | "under30" | "30to35" | "above35";
 type RatingSelectFilter = "any" | "4plus" | "4_5plus" | "4_8plus";
 type AvailabilitySelectFilter = "all" | "available" | "unavailable";
+type SortOption = "ratingDesc" | "feeAsc" | "feeDesc" | "experienceDesc";
 
 type SearchFormState = {
   query: string;
   price: PriceSelectFilter;
   rating: RatingSelectFilter;
   availability: AvailabilitySelectFilter;
+  specialization: string;
+  sort: SortOption;
 };
 
 const defaultSearchForm: SearchFormState = {
@@ -24,7 +28,45 @@ const defaultSearchForm: SearchFormState = {
   price: "any",
   rating: "any",
   availability: "all",
+  specialization: "any",
+  sort: "ratingDesc",
 };
+
+/**
+ * Five-star rating display used on the browse card. Whole stars are filled,
+ * a half-star approximation is drawn for the fractional remainder (rounded to
+ * the nearest 0.5), and the rest are outlined. Falls back to a neutral row of
+ * empty stars when the consultant has no reviews yet.
+ */
+function StarRating({ value, ariaLabel }: { value: number | null; ariaLabel?: string }) {
+  const rounded = value == null ? 0 : Math.round(value * 2) / 2;
+  return (
+    <div className="flex items-center gap-0.5" aria-label={ariaLabel} role="img">
+      {Array.from({ length: 5 }, (_, i) => {
+        const pos = i + 1;
+        const isFull = rounded >= pos;
+        const isHalf = !isFull && rounded >= pos - 0.5;
+        return (
+          <span key={i} className="relative inline-flex h-4 w-4">
+            <Star size={16} className="text-text-tertiary/40" strokeWidth={1.5} />
+            {(isFull || isHalf) && (
+              <span
+                className="absolute inset-0 overflow-hidden"
+                style={{ width: isHalf ? "50%" : "100%" }}
+              >
+                <Star
+                  size={16}
+                  className="text-amber-400 fill-amber-400"
+                  strokeWidth={1.5}
+                />
+              </span>
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 function matchesPriceFilter(consultant: ConsultantSummary, value: PriceSelectFilter) {
   if (value === "any") return true;
@@ -52,6 +94,42 @@ function matchesAvailabilityFilter(
   return value === "available" ? consultant.hasAvailability : !consultant.hasAvailability;
 }
 
+function matchesSpecializationFilter(consultant: ConsultantSummary, value: string) {
+  if (value === "any") return true;
+  // Case-insensitive match — consultants self-tag with arbitrary capitalisation,
+  // and the dropdown value is one of the canonical-cased tags we built from
+  // the union of all consultants' tags.
+  return consultant.expertiseTags.some(
+    (tag) => tag.toLowerCase() === value.toLowerCase(),
+  );
+}
+
+function compareBySort(
+  a: ConsultantSummary,
+  b: ConsultantSummary,
+  sort: SortOption,
+): number {
+  switch (sort) {
+    case "feeAsc": {
+      // Consultants with no published fee sink to the bottom — a "no fee" card
+      // doesn't help when the student is filtering by cheapest.
+      const af = a.sessionFeeUsd ?? Number.POSITIVE_INFINITY;
+      const bf = b.sessionFeeUsd ?? Number.POSITIVE_INFINITY;
+      return af - bf;
+    }
+    case "feeDesc": {
+      const af = a.sessionFeeUsd ?? -1;
+      const bf = b.sessionFeeUsd ?? -1;
+      return bf - af;
+    }
+    case "experienceDesc":
+      return b.completedSessionCount - a.completedSessionCount;
+    case "ratingDesc":
+    default:
+      return (b.averageRating ?? 0) - (a.averageRating ?? 0);
+  }
+}
+
 export function ConsultantsBrowse() {
   const { t } = useTranslation("consultants");
   const { data, isLoading, isError } = useConsultantsQuery();
@@ -70,10 +148,25 @@ export function ConsultantsBrowse() {
 
   const consultants = useMemo<ConsultantSummary[]>(() => data ?? [], [data]);
 
+  // Union of every expertise tag any consultant has self-declared — feeds the
+  // Specialization dropdown so it always reflects what's actually available
+  // (no empty buckets). Sorted alphabetically for predictable ordering.
+  const specializationOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const consultant of consultants) {
+      for (const tag of consultant.expertiseTags) {
+        const key = tag.trim().toLowerCase();
+        if (!key) continue;
+        if (!seen.has(key)) seen.set(key, tag.trim());
+      }
+    }
+    return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
+  }, [consultants]);
+
   const searchedConsultants = useMemo(() => {
     const normalizedQuery = appliedSearch.query.trim().toLowerCase();
 
-    return consultants.filter((consultant) => {
+    const matched = consultants.filter((consultant) => {
       const searchableText = [
         consultant.name,
         consultant.biography ?? "",
@@ -88,8 +181,16 @@ export function ConsultantsBrowse() {
       const priceMatch = matchesPriceFilter(consultant, appliedSearch.price);
       const ratingMatch = matchesRatingFilter(consultant, appliedSearch.rating);
       const availabilityMatch = matchesAvailabilityFilter(consultant, appliedSearch.availability);
+      const specMatch = matchesSpecializationFilter(consultant, appliedSearch.specialization);
 
-      return queryMatch && priceMatch && ratingMatch && availabilityMatch;
+      return queryMatch && priceMatch && ratingMatch && availabilityMatch && specMatch;
+    });
+
+    // Stable sort: by the chosen criterion first, then alphabetically by name
+    // so two rows that tie on the sort key always render in a deterministic order.
+    return [...matched].sort((a, b) => {
+      const primary = compareBySort(a, b, appliedSearch.sort);
+      return primary !== 0 ? primary : a.name.localeCompare(b.name);
     });
   }, [appliedSearch, consultants]);
 
@@ -219,6 +320,59 @@ export function ConsultantsBrowse() {
                 <option value="all">{t("availabilityOptions.all")}</option>
                 <option value="available">{t("availabilityOptions.available")}</option>
                 <option value="unavailable">{t("availabilityOptions.unavailable")}</option>
+              </select>
+            </div>
+
+            <div className="xl:col-span-6">
+              <label
+                htmlFor="specialization-filter"
+                className="mb-2 block text-xs font-medium text-text-secondary"
+              >
+                {t("filters.specialization")}
+              </label>
+              <select
+                id="specialization-filter"
+                value={searchForm.specialization}
+                onChange={(event) =>
+                  setSearchForm((current) => ({
+                    ...current,
+                    specialization: event.target.value,
+                  }))
+                }
+                disabled={specializationOptions.length === 0}
+                className="h-12 w-full rounded-xl border border-border-default bg-bg-elevated px-4 text-sm text-text-primary transition outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-100 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <option value="any">{t("specializationOptions.any")}</option>
+                {specializationOptions.map((tag) => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="xl:col-span-6">
+              <label
+                htmlFor="sort-filter"
+                className="mb-2 block text-xs font-medium text-text-secondary"
+              >
+                {t("filters.sortBy")}
+              </label>
+              <select
+                id="sort-filter"
+                value={searchForm.sort}
+                onChange={(event) =>
+                  setSearchForm((current) => ({
+                    ...current,
+                    sort: event.target.value as SortOption,
+                  }))
+                }
+                className="h-12 w-full rounded-xl border border-border-default bg-bg-elevated px-4 text-sm text-text-primary transition outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
+              >
+                <option value="ratingDesc">{t("sortOptions.ratingDesc")}</option>
+                <option value="experienceDesc">{t("sortOptions.experienceDesc")}</option>
+                <option value="feeAsc">{t("sortOptions.feeAsc")}</option>
+                <option value="feeDesc">{t("sortOptions.feeDesc")}</option>
               </select>
             </div>
           </div>
@@ -387,14 +541,30 @@ export function ConsultantsBrowse() {
                       <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
                         {t("card.rating")}
                       </p>
-                      <p className="mt-1 text-sm font-medium text-text-primary">
-                        {consultant.averageRating != null
-                          ? t("card.ratingValue", {
+                      {consultant.averageRating != null ? (
+                        <div className="mt-1 flex items-center gap-2">
+                          <StarRating
+                            value={consultant.averageRating}
+                            ariaLabel={t("card.ratingValue", {
                               rating: consultant.averageRating.toFixed(1),
                               count: consultant.reviewCount,
-                            })
-                          : t("card.noRating")}
-                      </p>
+                            })}
+                          />
+                          <span className="text-sm font-medium text-text-primary">
+                            {t("card.ratingValue", {
+                              rating: consultant.averageRating.toFixed(1),
+                              count: consultant.reviewCount,
+                            })}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-1 flex items-center gap-2">
+                          <StarRating value={null} />
+                          <span className="text-sm font-medium text-text-tertiary">
+                            {t("card.noRating")}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div>

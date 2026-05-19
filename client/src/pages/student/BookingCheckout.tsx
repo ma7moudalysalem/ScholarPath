@@ -6,6 +6,10 @@ import { useConsultantDetailQuery } from "@/hooks/useConsultantsQuery";
 import { useRequestBookingMutation } from "@/hooks/useBookingsQuery";
 import { durationLabel, formatDate, formatTime, formatUsd } from "@/lib/bookingFormat";
 import { StripeCheckout } from "@/components/common/StripeCheckout";
+import { apiErrorMessage } from "@/services/api/client";
+
+/** Validator on the server caps Notes at 1000 chars — mirror that here. */
+const NOTES_MAX = 1000;
 
 // ── Checkout slot contract ────────────────────────────────────────────────────
 //
@@ -41,6 +45,7 @@ export function BookingCheckout() {
 
   const [acceptHold, setAcceptHold] = useState(false);
   const [acceptError, setAcceptError] = useState(false);
+  const [notes, setNotes] = useState("");
   const [createdBookingId, setCreatedBookingId] = useState<string | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paid, setPaid] = useState(false);
@@ -72,6 +77,10 @@ export function BookingCheckout() {
       return;
     }
 
+    // Trim + null-out blank notes so the server stores a real null rather
+    // than an empty string — keeps the consultant's details page tidy.
+    const trimmedNotes = notes.trim();
+
     requestBooking.mutate(
       {
         consultantId: consultant.id,
@@ -82,7 +91,7 @@ export function BookingCheckout() {
           consultant.timezone ||
           Intl.DateTimeFormat().resolvedOptions().timeZone ||
           "UTC",
-        notes: null,
+        notes: trimmedNotes.length === 0 ? null : trimmedNotes,
       },
       {
         onSuccess: (result) => {
@@ -91,7 +100,10 @@ export function BookingCheckout() {
           // A zero-fee session has nothing to charge — skip straight to done.
           if (feeAmount <= 0) setPaid(true);
         },
-        onError: () => toast.error(t("states.error")),
+        // Surface the server-side detail (e.g. "Slot already taken") instead
+        // of a generic "We couldn't load your bookings" — the latter is
+        // misleading here because the load already succeeded.
+        onError: (err) => toast.error(apiErrorMessage(err, t("states.error"))),
       },
     );
   }
@@ -311,13 +323,33 @@ export function BookingCheckout() {
               <div className="mt-5">{sessionDetails}</div>
 
               <div className="mt-6 rounded-xl border border-border-subtle p-5">
-                <StripeCheckout
-                  bookingId={createdBookingId}
-                  amountCents={Math.round(feeAmount * 100)}
-                  currency="USD"
-                  clientSecret={clientSecret}
-                  onSuccess={() => setPaid(true)}
-                />
+                {clientSecret ? (
+                  <StripeCheckout
+                    bookingId={createdBookingId}
+                    amountCents={Math.round(feeAmount * 100)}
+                    currency="USD"
+                    clientSecret={clientSecret}
+                    onSuccess={() => setPaid(true)}
+                  />
+                ) : (
+                  // Defensive: an idempotency-replay of RequestBookingCommand can
+                  // return the cached PaymentIntent without surfacing its client
+                  // secret again. Mount-time Stripe Elements then throws on a
+                  // null secret and the user sees a cryptic JS error — show a
+                  // friendly fallback instead and surface the booking link so
+                  // they can cancel + retry rather than getting stuck.
+                  <div className="rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm leading-6 text-warning-700">
+                    <p className="font-medium">{t("checkout.paymentMissing")}</p>
+                    <div className="mt-4 flex gap-3">
+                      <Link
+                        to={`/student/bookings/${createdBookingId}`}
+                        className="inline-flex h-10 items-center justify-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white transition hover:bg-brand-600"
+                      >
+                        {t("checkout.success.openThisBooking")}
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -353,6 +385,25 @@ export function BookingCheckout() {
             </p>
 
             <div className="mt-5">{sessionDetails}</div>
+
+            <div className="mt-6">
+              <label htmlFor="booking-notes" className="block text-sm font-medium text-text-primary">
+                {t("checkout.notes.label")}
+              </label>
+              <textarea
+                id="booking-notes"
+                value={notes}
+                maxLength={NOTES_MAX}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder={t("checkout.notes.placeholder")}
+                rows={4}
+                className="mt-2 w-full resize-y rounded-xl border border-border-default bg-bg-elevated p-3 text-sm text-text-primary transition outline-none placeholder:text-text-tertiary focus:border-brand-300 focus:ring-2 focus:ring-brand-100"
+              />
+              <div className="mt-1 flex items-center justify-between text-xs text-text-tertiary">
+                <span>{t("checkout.notes.hint")}</span>
+                <span>{notes.length}/{NOTES_MAX}</span>
+              </div>
+            </div>
 
             <div className="mt-6 rounded-xl border border-border-subtle bg-bg-muted p-4">
               <p className="text-sm font-medium text-text-primary">{t("checkout.holdNotice.title")}</p>

@@ -52,6 +52,7 @@ public sealed class GetBookingByIdQueryHandler(
                 DurationMinutes = b.DurationMinutes,
                 PriceUsd = b.PriceUsd,
                 MeetingRoomId = b.MeetingRoomId,
+                StudentNotes = b.StudentNotes,
                 RequestedAt = b.RequestedAt,
                 ConfirmedAt = b.ConfirmedAt,
                 RejectedAt = b.RejectedAt,

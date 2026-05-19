@@ -63,6 +63,13 @@ public sealed record BookingDetailDto
     public string? MeetingUrl { get; init; }
     public string? MeetingRoomId { get; init; }
 
+    /// <summary>
+    /// Optional context note the student typed when requesting this booking —
+    /// usually "I want to focus on X." Shown to the consultant on the details
+    /// page so they can prep. Null when the student didn't add one.
+    /// </summary>
+    public string? StudentNotes { get; init; }
+
     // Workflow timestamps
     public DateTimeOffset? RequestedAt { get; init; }
     public DateTimeOffset? ConfirmedAt { get; init; }

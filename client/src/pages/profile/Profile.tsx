@@ -10,6 +10,7 @@ import {
 } from "@/services/api/profile";
 import { useAuthStore } from "@/stores/authStore";
 import { userPhotoUrl } from "@/lib/userPhoto";
+import { apiErrorMessage } from "@/services/api/client";
 
 const PROFILE_KEY = ["profile", "me"] as const;
 
@@ -178,7 +179,9 @@ export function Profile() {
       syncAuthUser(updated);
       toast.success(t("profile:saved"));
     },
-    onError: () => toast.error(t("profile:error")),
+    // Surface the validator / domain message the API returned so the user
+    // sees "Field X exceeds 300 chars" instead of the generic "Could not save".
+    onError: (err) => toast.error(apiErrorMessage(err, t("profile:error"))),
   });
 
   const photoMut = useMutation({
@@ -196,7 +199,7 @@ export function Profile() {
       setPhotoFailed(false);
       toast.success(t("profile:photo.saved"));
     },
-    onError: () => toast.error(t("profile:photo.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t("profile:photo.error"))),
   });
 
   if (isLoading) {

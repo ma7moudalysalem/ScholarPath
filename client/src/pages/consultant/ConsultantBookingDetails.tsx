@@ -207,6 +207,20 @@ export function ConsultantBookingDetails() {
                   </p>
                 </div>
               </div>
+
+              {/* Student's optional context note — only renders when the student
+                  actually attached one. Keeps the layout uncluttered for the
+                  common "no note" case. */}
+              {booking.studentNotes ? (
+                <div className="mt-5 rounded-xl border border-border-subtle bg-bg-elevated p-5">
+                  <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
+                    {t("details.summaryCard.studentNotes")}
+                  </p>
+                  <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-text-primary">
+                    {booking.studentNotes}
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             {isConfirmed ? (

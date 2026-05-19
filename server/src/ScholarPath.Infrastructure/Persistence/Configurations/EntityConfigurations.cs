@@ -420,6 +420,10 @@ public sealed class ConsultantBookingConfiguration : IEntityTypeConfiguration<Co
         b.Property(bk => bk.CancellationReason).HasConversion<string>().HasMaxLength(500); ;
         b.Property(bk => bk.StripePaymentIntentId).HasMaxLength(256);
         b.Property(bk => bk.PriceUsd).HasPrecision(10, 2);
+        // Free-text note from the student — capped so a paste-bomb can't grow
+        // a single booking row to multi-MB. The validator on the command also
+        // limits it; this is the SQL belt-and-braces.
+        b.Property(bk => bk.StudentNotes).HasMaxLength(2000);
         b.Property(bk => bk.RowVersion).IsRowVersion();
         b.HasIndex(bk => new { bk.ConsultantId, bk.ScheduledStartAt });
 

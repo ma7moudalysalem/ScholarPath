@@ -38,6 +38,13 @@ public class ConsultantBooking : AuditableEntity, ISoftDeletable
     public int DurationMinutes { get; set; }
     public decimal PriceUsd { get; set; }
 
+    // Optional free-text note the student attaches when requesting — usually a
+    // brief context blurb ("I'm applying for a Fulbright in CS, hoping to focus
+    // on the SOP"). Surfaced to the consultant on the booking-details page so
+    // they can prep for the session. Nullable + bounded so a misuse can't grow
+    // unbounded text.
+    public string? StudentNotes { get; set; }
+
     // Video meeting (PB-006) — the Azure Communication Services room id the
     // session is held in. Provisioned when the consultant accepts the booking.
     public string? MeetingRoomId { get; set; }

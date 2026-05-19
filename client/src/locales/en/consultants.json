@@ -19,7 +19,18 @@
   "filters": {
     "price": "Price",
     "rating": "Rating",
-    "availability": "Availability"
+    "availability": "Availability",
+    "specialization": "Specialization",
+    "sortBy": "Sort by"
+  },
+  "specializationOptions": {
+    "any": "All specialisations"
+  },
+  "sortOptions": {
+    "ratingDesc": "Top rated",
+    "feeAsc": "Lowest fee",
+    "feeDesc": "Highest fee",
+    "experienceDesc": "Most experienced"
   },
   "priceOptions": {
     "any": "Any",

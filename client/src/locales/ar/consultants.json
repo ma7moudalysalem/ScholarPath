@@ -19,7 +19,18 @@
   "filters": {
     "price": "السعر",
     "rating": "التقييم",
-    "availability": "الإتاحة"
+    "availability": "الإتاحة",
+    "specialization": "التخصص",
+    "sortBy": "ترتيب حسب"
+  },
+  "specializationOptions": {
+    "any": "كل التخصصات"
+  },
+  "sortOptions": {
+    "ratingDesc": "الأعلى تقييماً",
+    "feeAsc": "الأقل سعراً",
+    "feeDesc": "الأعلى سعراً",
+    "experienceDesc": "الأكثر خبرة"
   },
   "priceOptions": {
     "any": "الكل",

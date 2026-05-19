@@ -84,7 +84,8 @@
       "selectedDate": "التاريخ المحدَّد",
       "selectedTime": "الوقت المحدَّد",
       "duration": "المدة",
-      "fee": "الرسوم"
+      "fee": "الرسوم",
+      "studentNotes": "ملاحظة الطالب"
     },
     "meeting": {
       "title": "جلسة الفيديو",

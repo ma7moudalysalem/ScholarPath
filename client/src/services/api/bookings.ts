@@ -71,6 +71,12 @@ export interface BookingDetail extends BookingListItem {
   isNoShowStudent: boolean;
   isNoShowConsultant: boolean;
   noShowMarkedAt?: string | null;
+  /**
+   * Optional free-text note the student attached at booking time — surfaced to
+   * the consultant on their details page so they can prep. Null when none was
+   * left.
+   */
+  studentNotes?: string | null;
 }
 
 /** A single saved availability rule — `GET /api/bookings/me/availability`. */

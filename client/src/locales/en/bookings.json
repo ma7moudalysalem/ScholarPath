@@ -158,6 +158,12 @@
       "title": "Session summary",
       "description": "Confirm the consultant and selected slot before sending your booking request."
     },
+    "notes": {
+      "label": "Anything the consultant should know? (optional)",
+      "placeholder": "e.g. I'm applying for a Fulbright grant and want to focus on the personal statement.",
+      "hint": "Up to 1000 characters. Shown to the consultant on their booking-details page so they can prep."
+    },
+    "paymentMissing": "We couldn't open the payment form. Please cancel this booking and try again.",
     "continueToPayment": "Continue to payment",
     "paymentStep": {
       "title": "Payment",
