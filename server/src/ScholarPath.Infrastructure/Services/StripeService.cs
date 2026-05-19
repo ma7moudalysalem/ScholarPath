@@ -18,6 +18,23 @@ public sealed class StripeService(
 {
     private readonly StripeOptions _opts = options.Value;
 
+    // Stripe accepts only a fixed vocabulary for these optional fields; sending
+    // an unrecognised value is a hard 400 from the API. Booking handlers keep
+    // their own domain reason on the Payment row, so an unmapped value is just
+    // omitted here rather than failing the whole cancellation/refund.
+    private static readonly HashSet<string> ValidCancellationReasons =
+        new(StringComparer.OrdinalIgnoreCase)
+        { "duplicate", "fraudulent", "requested_by_customer", "abandoned" };
+
+    private static readonly HashSet<string> ValidRefundReasons =
+        new(StringComparer.OrdinalIgnoreCase)
+        { "duplicate", "fraudulent", "requested_by_customer" };
+
+    private static string? StripeReasonOrNull(string? reason, HashSet<string> allowed)
+        => reason is not null && allowed.TryGetValue(reason, out var canonical)
+            ? canonical
+            : null;
+
     // ── Create PaymentIntent ──────────────────────────────────────────────────
 
     public async Task<StripePaymentIntentResult> CreatePaymentIntentAsync(
@@ -132,7 +149,7 @@ public sealed class StripeService(
 
         var cancelOptions = new PaymentIntentCancelOptions
         {
-            CancellationReason = cancellationReason,
+            CancellationReason = StripeReasonOrNull(cancellationReason, ValidCancellationReasons),
         };
 
         var requestOptions = new RequestOptions
@@ -161,7 +178,9 @@ public sealed class StripeService(
             logger.LogError(ex,
                 "[stripe] Failed to cancel PaymentIntent {Id}",
                 paymentIntentId);
-            throw;
+            throw new BookingDomainException(
+                "The booking's payment hold could not be released. Please try again.",
+                ex);
         }
     }
 
@@ -180,7 +199,7 @@ public sealed class StripeService(
         {
             PaymentIntent = paymentIntentId,
             Amount = amountCents,
-            Reason = reason,
+            Reason = StripeReasonOrNull(reason, ValidRefundReasons),
         };
 
         var requestOptions = new RequestOptions
@@ -208,7 +227,9 @@ public sealed class StripeService(
             logger.LogError(ex,
                 "[stripe] Failed to refund PaymentIntent {Id}",
                 paymentIntentId);
-            throw;
+            throw new BookingDomainException(
+                "The refund could not be processed. Please try again.",
+                ex);
         }
     }
 

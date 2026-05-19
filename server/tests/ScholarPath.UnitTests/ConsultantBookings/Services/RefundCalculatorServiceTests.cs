@@ -1,5 +1,6 @@
 using ScholarPath.Application.ConsultantBookings.Services;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Exceptions;
 using Xunit;
 
 namespace ScholarPath.UnitTests.ConsultantBookings.Services;
@@ -151,7 +152,7 @@ public sealed class RefundCalculatorServiceTests
     {
         var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => _sut.Calculate(
+        var ex = Assert.Throws<BookingDomainException>(() => _sut.Calculate(
             bookingStatus: BookingStatus.Confirmed,
             cancelledByUserId: OtherUserId,
             studentId: StudentId,
@@ -168,7 +169,7 @@ public sealed class RefundCalculatorServiceTests
     {
         var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => _sut.Calculate(
+        var ex = Assert.Throws<BookingDomainException>(() => _sut.Calculate(
             bookingStatus: BookingStatus.Requested,
             cancelledByUserId: ConsultantId,
             studentId: StudentId,
@@ -185,7 +186,7 @@ public sealed class RefundCalculatorServiceTests
     {
         var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => _sut.Calculate(
+        var ex = Assert.Throws<BookingDomainException>(() => _sut.Calculate(
             bookingStatus: BookingStatus.NoShowStudent,
             cancelledByUserId: StudentId,
             studentId: StudentId,
@@ -202,7 +203,7 @@ public sealed class RefundCalculatorServiceTests
     {
         var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => _sut.Calculate(
+        var ex = Assert.Throws<BookingDomainException>(() => _sut.Calculate(
             bookingStatus: BookingStatus.Confirmed,
             cancelledByUserId: StudentId,
             studentId: StudentId,

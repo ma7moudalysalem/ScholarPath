@@ -1,4 +1,5 @@
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Exceptions;
 
 namespace ScholarPath.Application.ConsultantBookings.Services;
 
@@ -25,7 +26,7 @@ public sealed class RefundCalculatorService
         // (discounts, currency, re-pricing), so the stored snapshot is authoritative.
         if (amountCents < 0)
         {
-            throw new InvalidOperationException("Booking amount cannot be negative.");
+            throw new BookingDomainException("Booking amount cannot be negative.");
         }
 
         var cancelledByStudent = cancelledByUserId == studentId;
@@ -33,14 +34,14 @@ public sealed class RefundCalculatorService
 
         if (!cancelledByStudent && !cancelledByConsultant)
         {
-            throw new InvalidOperationException("Cancelling user is not related to this booking.");
+            throw new BookingDomainException("Cancelling user is not related to this booking.");
         }
 
         if (bookingStatus == BookingStatus.Requested)
         {
             if (!cancelledByStudent)
             {
-                throw new InvalidOperationException("Requested bookings can only be cancelled by the student. Consultants should reject them.");
+                throw new BookingDomainException("Requested bookings can only be cancelled by the student. Consultants should reject them.");
             }
 
             return new RefundCalculationResult
@@ -53,7 +54,7 @@ public sealed class RefundCalculatorService
 
         if (bookingStatus != BookingStatus.Confirmed)
         {
-            throw new InvalidOperationException("Only requested or confirmed bookings can be cancelled.");
+            throw new BookingDomainException("Only requested or confirmed bookings can be cancelled.");
         }
 
         if (cancelledByConsultant)

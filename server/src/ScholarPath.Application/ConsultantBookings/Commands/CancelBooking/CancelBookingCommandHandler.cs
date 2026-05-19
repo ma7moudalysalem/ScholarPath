@@ -90,7 +90,7 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
 
             var cancelResult = await _stripeService.CancelPaymentIntentAsync(
                 paymentIntentId: booking.StripePaymentIntentId,
-                cancellationReason: "requested_booking_cancelled",
+                cancellationReason: "requested_by_customer",
                 idempotencyKey: cancelIdempotencyKey,
                 ct: cancellationToken);
 
@@ -113,7 +113,7 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
             var refundResult = await _stripeService.RefundPaymentAsync(
                 paymentIntentId: booking.StripePaymentIntentId,
                 amountCents: refund.RefundAmountCents,
-                reason: refund.CancellationReason.ToString(),
+                reason: "requested_by_customer",
                 idempotencyKey: refundIdempotencyKey,
                 ct: cancellationToken);
 

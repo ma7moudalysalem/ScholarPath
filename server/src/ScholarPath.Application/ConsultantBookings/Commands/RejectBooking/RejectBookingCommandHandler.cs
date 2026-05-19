@@ -66,7 +66,7 @@ public sealed class RejectBookingCommandHandler : IRequestHandler<RejectBookingC
 
         var cancelResult = await _stripeService.CancelPaymentIntentAsync(
             paymentIntentId: booking.StripePaymentIntentId,
-            cancellationReason: "rejected_by_consultant",
+            cancellationReason: "abandoned",
             idempotencyKey: idempotencyKey,
             ct: cancellationToken);
 

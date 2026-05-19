@@ -300,10 +300,10 @@ export function ConsultantBookingDetails() {
                 <button
                   type="button"
                   onClick={handleCancel}
-                  disabled={(!isRequested && !isConfirmed) || isBusy}
+                  disabled={!isConfirmed || isBusy}
                   className={[
                     "inline-flex h-12 items-center justify-center rounded-lg px-5 text-sm font-medium transition",
-                    (isRequested || isConfirmed) && !isBusy
+                    isConfirmed && !isBusy
                       ? "border border-danger-500 bg-bg-elevated text-danger-500 hover:bg-danger-50"
                       : "cursor-not-allowed border border-border-subtle bg-bg-elevated text-text-tertiary",
                   ].join(" ")}
