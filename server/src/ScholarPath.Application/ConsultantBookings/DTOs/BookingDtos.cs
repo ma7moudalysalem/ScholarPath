@@ -73,9 +73,13 @@ public sealed record BookingDetailDto
     public CancellationReason? CancellationReason { get; init; }
     public Guid? CancelledByUserId { get; init; }
 
-    // Payment
+    // Payment outcome (FR-092/196) — the linked Payment row's live state.
     public Guid? PaymentId { get; init; }
     public string? StripePaymentIntentId { get; init; }
+    /// <summary>Status of the linked Payment row — null when no payment exists.</summary>
+    public PaymentStatus? PaymentStatus { get; init; }
+    public long? RefundedAmountCents { get; init; }
+    public string? RefundReason { get; init; }
 
     // No-show
     public bool IsNoShowStudent { get; init; }

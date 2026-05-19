@@ -1,4 +1,5 @@
 import { apiClient } from "@/services/api/client";
+import type { PaymentStatus } from "@/services/api/payments";
 
 // ── Domain enums (camelCase JSON serialises these enums as their string name) ──
 
@@ -65,6 +66,9 @@ export interface BookingDetail extends BookingListItem {
   cancelledByUserId?: string | null;
   paymentId?: string | null;
   stripePaymentIntentId?: string | null;
+  paymentStatus?: PaymentStatus | null;
+  refundedAmountCents?: number | null;
+  refundReason?: string | null;
   isNoShowStudent: boolean;
   isNoShowConsultant: boolean;
   noShowMarkedAt?: string | null;

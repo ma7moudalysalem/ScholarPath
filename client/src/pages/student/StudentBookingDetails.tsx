@@ -60,7 +60,7 @@ function buildTimeline(booking: BookingDetail): TimelineStep[] {
 }
 
 export function StudentBookingDetails() {
-  const { t, i18n } = useTranslation("bookings");
+  const { t, i18n } = useTranslation(["bookings", "payments"]);
   const lang = i18n.language;
   const { id } = useParams();
 
@@ -207,6 +207,34 @@ export function StudentBookingDetails() {
                 </div>
               </div>
             </div>
+
+            {booking.paymentStatus ? (
+              <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+                <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
+                  {t("details.paymentTitle")}
+                </h2>
+                <div className="mt-5 grid gap-4 rounded-xl bg-bg-muted p-5 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
+                      {t("details.paymentStatus")}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-text-primary">
+                      {t(`payments:paymentStatus.${booking.paymentStatus}`)}
+                    </p>
+                  </div>
+                  {booking.refundedAmountCents != null && booking.refundedAmountCents > 0 ? (
+                    <div>
+                      <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
+                        {t("details.refundedAmount")}
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-text-primary">
+                        {formatUsd(booking.refundedAmountCents / 100)}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
             {booking.meetingUrl ? (
               <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">

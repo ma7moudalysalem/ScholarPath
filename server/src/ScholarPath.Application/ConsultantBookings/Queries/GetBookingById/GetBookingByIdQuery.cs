@@ -4,6 +4,7 @@ using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.ConsultantBookings.DTOs;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Queries.GetBookingById;
@@ -61,6 +62,9 @@ public sealed class GetBookingByIdQueryHandler(
                 CancelledByUserId = b.CancelledByUserId,
                 PaymentId = b.PaymentId,
                 StripePaymentIntentId = b.StripePaymentIntentId,
+                PaymentStatus = b.Payment != null ? b.Payment.Status : (PaymentStatus?)null,
+                RefundedAmountCents = b.Payment != null ? b.Payment.RefundedAmountCents : (long?)null,
+                RefundReason = b.Payment != null ? b.Payment.RefundReason : null,
                 IsNoShowStudent = b.IsNoShowStudent,
                 IsNoShowConsultant = b.IsNoShowConsultant,
                 NoShowMarkedAt = b.NoShowMarkedAt,
