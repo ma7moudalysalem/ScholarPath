@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { useConsultantsQuery } from "@/hooks/useConsultantsQuery";
@@ -59,6 +59,14 @@ export function ConsultantsBrowse() {
   const [quickFilter, setQuickFilter] = useState<BrowseFilter>("all");
   const [searchForm, setSearchForm] = useState<SearchFormState>(defaultSearchForm);
   const [appliedSearch, setAppliedSearch] = useState<SearchFormState>(defaultSearchForm);
+
+  // Live search: debounce the form into the applied filters so results update
+  // ~250ms after the user stops typing — consistent, no submit press needed
+  // (UAT TC-004). The Search button still applies immediately.
+  useEffect(() => {
+    const timer = setTimeout(() => setAppliedSearch(searchForm), 250);
+    return () => clearTimeout(timer);
+  }, [searchForm]);
 
   const consultants = useMemo<ConsultantSummary[]>(() => data ?? [], [data]);
 
