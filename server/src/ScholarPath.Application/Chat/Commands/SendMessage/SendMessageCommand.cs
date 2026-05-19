@@ -6,6 +6,7 @@ using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Domain.Events;
 
 namespace ScholarPath.Application.Chat.Commands.SendMessage;
 [Auditable(AuditAction.Create, "ChatMessage",
@@ -27,7 +28,8 @@ public sealed class SendMessageCommandValidator : AbstractValidator<SendMessageC
 public sealed class SendMessageCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
-    IChatRealtimeNotifier chatNotifier)
+    IChatRealtimeNotifier chatNotifier,
+    IPublisher publisher)
     : IRequestHandler<SendMessageCommand, Guid>
 {
     public async Task<Guid> Handle(SendMessageCommand request, CancellationToken ct)
@@ -77,6 +79,19 @@ public sealed class SendMessageCommandHandler(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         await chatNotifier.NotifyNewMessageAsync(conversation.Id, message.Id, message.SenderId, message.Body, message.SentAt, ct);
+
+        // Fan out to the bell-icon + email notification for offline recipients —
+        // the realtime push above only reaches subscribers already in the
+        // conversation group, so anyone elsewhere in the app would otherwise
+        // miss the message until they refresh the chat page.
+        await publisher.Publish(
+            new ChatMessageReceivedEvent(
+                ConversationId: conversation.Id,
+                MessageId: message.Id,
+                SenderId: senderId,
+                RecipientId: request.RecipientId,
+                BodyPreview: request.Body),
+            ct).ConfigureAwait(false);
 
         return message.Id;
     }

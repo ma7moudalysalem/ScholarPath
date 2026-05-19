@@ -70,7 +70,19 @@
     "unblock_success": "تم إلغاء حظر المستخدم.",
     "unblock_error": "تعذّر إلغاء حظر هذا المستخدم.",
     "send_error": "تعذّر إرسال رسالتك.",
+    "send_blocked_error": "لا يمكنك إرسال رسالة — هذه المحادثة محظورة.",
     "empty_title": "محادثاتك",
-    "empty_desc": "اختر محادثة من الشريط الجانبي، أو ابدأ رسالة جديدة."
+    "empty_desc": "اختر محادثة من الشريط الجانبي، أو ابدأ رسالة جديدة.",
+    "thread_empty_title": "لا توجد رسائل بعد",
+    "thread_empty_desc": "كن أول من يبدأ الحديث.",
+    "thread_loading": "جارٍ تحميل الرسائل…",
+    "blocked_banner_you_blocked": "لقد قمت بحظر هذا الشخص. ألغِ الحظر لتتمكّنا من تبادل الرسائل مرة أخرى.",
+    "blocked_banner_they_blocked": "لا يمكنك الرد — تم حظر هذه المحادثة.",
+    "input_disabled_blocked": "المحادثة محظورة.",
+    "date_today": "اليوم",
+    "date_yesterday": "أمس",
+    "search_no_match": "لا توجد محادثات مطابقة.",
+    "header_search_aria": "ابحث في المحادثات",
+    "back_to_list": "العودة إلى المحادثات"
   }
 }

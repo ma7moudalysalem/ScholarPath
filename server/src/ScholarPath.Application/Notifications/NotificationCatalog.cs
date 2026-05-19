@@ -140,6 +140,15 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"Your upgrade request was not approved: {p.Reason ?? "see the reviewer notes"}.",
             $"لم تتم الموافقة على طلب ترقيتك: {p.Reason ?? "راجِع ملاحظات المراجِع"}."),
 
+        NotificationType.ChatMessageReceived => new(
+            "New message", "رسالة جديدة",
+            string.IsNullOrEmpty(p.Preview)
+                ? $"{p.CounterpartyName ?? "Someone"} sent you a message."
+                : $"{p.CounterpartyName ?? "Someone"}: {p.Preview}",
+            string.IsNullOrEmpty(p.Preview)
+                ? $"أرسل {p.CounterpartyName ?? "أحدهم"} رسالة جديدة لك."
+                : $"{p.CounterpartyName ?? "أحدهم"}: {p.Preview}"),
+
         // Admin-authored announcement — text comes through verbatim, not templated.
         NotificationType.Broadcast => p.RawContent ?? new(
             "Announcement", "إعلان", string.Empty, string.Empty),

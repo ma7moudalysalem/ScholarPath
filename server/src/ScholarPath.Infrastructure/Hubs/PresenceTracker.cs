@@ -1,3 +1,5 @@
+using ScholarPath.Application.Common.Interfaces;
+
 namespace ScholarPath.Infrastructure.Hubs;
 
 /// <summary>
@@ -27,8 +29,8 @@ public interface IPresenceTracker
     IReadOnlyList<string> OnlineUsers();
 }
 
-/// <inheritdoc />
-public sealed class PresenceTracker : IPresenceTracker
+/// <inheritdoc cref="IPresenceTracker"/>
+public sealed class PresenceTracker : IPresenceTracker, IChatPresenceQuery
 {
     private readonly object _gate = new();
     private readonly Dictionary<string, int> _connectionCounts = new();
@@ -73,6 +75,17 @@ public sealed class PresenceTracker : IPresenceTracker
         lock (_gate)
         {
             return _connectionCounts.Keys.ToList();
+        }
+    }
+
+    public bool IsOnline(Guid userId)
+    {
+        // Context.UserIdentifier on the JWT-authenticated hub serialises the
+        // user's Guid via ToString() — match that representation.
+        var key = userId.ToString();
+        lock (_gate)
+        {
+            return _connectionCounts.ContainsKey(key);
         }
     }
 }

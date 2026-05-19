@@ -234,7 +234,13 @@ public static class DependencyInjection
 
         // Chat presence — in-memory, ref-counted SignalR connection tracking,
         // shared by every ChatHub instance, so the UI can show live online dots.
-        services.AddSingleton<IPresenceTracker, PresenceTracker>();
+        // Resolves under two interfaces backed by the same singleton: the hub
+        // mutates state through IPresenceTracker; Application handlers read it
+        // through IChatPresenceQuery to suppress noisy email notifications when
+        // the recipient already has the chat page open.
+        services.AddSingleton<PresenceTracker>();
+        services.AddSingleton<IPresenceTracker>(sp => sp.GetRequiredService<PresenceTracker>());
+        services.AddSingleton<IChatPresenceQuery>(sp => sp.GetRequiredService<PresenceTracker>());
         services.AddScoped<IAuditService, AuditService>();
         services.AddScoped<IUserAdministration, UserAdministration>();
         services.AddScoped<IEmailChangeService, EmailChangeService>();

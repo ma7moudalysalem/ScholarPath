@@ -70,7 +70,19 @@
     "unblock_success": "User unblocked.",
     "unblock_error": "Could not unblock this user.",
     "send_error": "Could not send your message.",
+    "send_blocked_error": "You can't send a message — this conversation is blocked.",
     "empty_title": "Your Conversations",
-    "empty_desc": "Pick a conversation from the sidebar, or start a new message."
+    "empty_desc": "Pick a conversation from the sidebar, or start a new message.",
+    "thread_empty_title": "No messages yet",
+    "thread_empty_desc": "Be the first to say hello.",
+    "thread_loading": "Loading messages…",
+    "blocked_banner_you_blocked": "You blocked this person. Unblock to message each other again.",
+    "blocked_banner_they_blocked": "You can't reply — this conversation has been blocked.",
+    "input_disabled_blocked": "Conversation is blocked.",
+    "date_today": "Today",
+    "date_yesterday": "Yesterday",
+    "search_no_match": "No matching conversations.",
+    "header_search_aria": "Search conversations",
+    "back_to_list": "Back to conversations"
   }
 }

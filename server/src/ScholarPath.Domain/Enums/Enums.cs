@@ -196,6 +196,9 @@ public enum NotificationType
     ResourceApproved = 600,
     ResourceRejected = 601,
 
+    // Chat (PB-007)
+    ChatMessageReceived = 700,
+
     // Broadcast
     Broadcast = 900,
 }

@@ -39,5 +39,11 @@ public sealed record NotificationParams
     /// <summary>Pre-rendered content for an admin Broadcast — bypasses the catalog templates.</summary>
     public NotificationContent? RawContent { get; init; }
 
+    /// <summary>
+    /// A short text preview — used by chat notifications to show the first line
+    /// of the message body in the notification title/body.
+    /// </summary>
+    public string? Preview { get; init; }
+
     public static readonly NotificationParams Empty = new();
 }

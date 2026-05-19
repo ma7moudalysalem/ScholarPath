@@ -35,3 +35,17 @@ public record AdminBroadcastSentEvent(Guid BroadcastId, int RecipientCount) : Do
 
 public record ForumPostCreatedEvent(Guid PostId, Guid AuthorId, Guid CategoryId) : DomainEvent;
 public record ForumReplyCreatedEvent(Guid ReplyId, Guid ParentPostId, Guid AuthorId) : DomainEvent;
+
+/// <summary>
+/// Raised whenever a chat message lands in the database (PB-007). Drives the
+/// bell-icon notification + email so the recipient hears about it even when
+/// they don't have the chat page open. The realtime SignalR <c>MessageReceived</c>
+/// hub fan-out is independent — that one only reaches subscribers actively in
+/// the conversation group.
+/// </summary>
+public record ChatMessageReceivedEvent(
+    Guid ConversationId,
+    Guid MessageId,
+    Guid SenderId,
+    Guid RecipientId,
+    string BodyPreview) : DomainEvent;
