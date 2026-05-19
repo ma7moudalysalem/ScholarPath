@@ -118,11 +118,9 @@ export function ScholarshipForm() {
     enabled: Boolean(editingId),
   });
 
-  // Pre-fill the form in edit mode. The detail DTO is *localised* — the server
-  // returns only one title/description chosen from the Accept-Language header,
-  // and the client mirrors that single string into both `titleEn` and
-  // `titleAr` slots. So we cannot recover the "other" language here; we seed
-  // both EN/AR fields with the same localised string and let the user edit.
+  // Pre-fill the form in edit mode from the detail DTO, which now ships the
+  // raw bilingual title/description plus the raw categoryId — so the form
+  // edits both languages and the category dropdown comes up pre-selected.
   useEffect(() => {
     if (mode !== "edit" || !detailQuery.data) return;
     const d = detailQuery.data;
@@ -131,7 +129,7 @@ export function ScholarshipForm() {
       titleAr: d.titleAr ?? "",
       descriptionEn: d.descriptionEn ?? "",
       descriptionAr: d.descriptionAr ?? "",
-      categoryId: "", // server detail DTO doesn't expose the raw categoryId; user re-picks
+      categoryId: d.categoryId ?? "",
       deadline: d.deadline ? d.deadline.slice(0, 10) : "",
       fundingType: d.fundingType,
       targetLevel: d.targetLevel,

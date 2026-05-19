@@ -36,6 +36,9 @@ export interface ScholarshipDetail extends ScholarshipListItem {
   eligibilityCriteria?: string | null;
   applicationFormSchemaJson?: string | null;
   requiredDocuments?: string[];
+  /** Raw category id — populated by the server so the company edit form
+   *  pre-selects the dropdown instead of starting empty. */
+  categoryId?: string | null;
 }
 
 /**
@@ -172,6 +175,13 @@ interface ScholarshipDetailWireDto extends ScholarshipWireDto {
   children: ScholarshipChildWireDto[];
   applicationFormSchemaJson: string | null;
   requiredDocumentsJson: string | null;
+  // Raw bilingual + categoryId, shipped by the server alongside the localised
+  // title/description so the company edit form can recover both languages.
+  titleEn?: string | null;
+  titleAr?: string | null;
+  descriptionEn?: string | null;
+  descriptionAr?: string | null;
+  categoryId?: string | null;
 }
 
 /** Server PaginatedList<T>. */
@@ -235,8 +245,18 @@ function toDetail(dto: ScholarshipDetailWireDto): ScholarshipDetail {
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((c) => c.value ?? c.key);
 
+  const base = toListItem(dto);
+
+  // The detail DTO now ships the raw bilingual title/description alongside
+  // the localised single-string `title`/`description`. Prefer the raw fields
+  // when present so the company edit form can populate both EN+AR.
   return {
-    ...toListItem(dto),
+    ...base,
+    titleEn: dto.titleEn ?? base.titleEn,
+    titleAr: dto.titleAr ?? base.titleAr,
+    descriptionEn: dto.descriptionEn ?? base.descriptionEn,
+    descriptionAr: dto.descriptionAr ?? base.descriptionAr,
+    categoryId: dto.categoryId,
     mode: dto.mode,
     externalUrl: dto.externalApplicationUrl,
     eligibilityCriteria: dto.eligibilityRequirements,

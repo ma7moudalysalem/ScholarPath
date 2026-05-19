@@ -59,6 +59,13 @@ namespace ScholarPath.Application.Scholarships.Queries
                 ApplicationFormSchemaJson = entity.ApplicationFormSchemaJson,
                 RequiredDocumentsJson = entity.RequiredDocumentsJson,
 
+                // Raw bilingual + categoryId for the company edit form (PB-005).
+                TitleEn = entity.TitleEn,
+                TitleAr = entity.TitleAr,
+                DescriptionEn = entity.DescriptionEn,
+                DescriptionAr = entity.DescriptionAr,
+                CategoryId = entity.CategoryId,
+
                 Children = entity.Children
                     .OrderBy(c => c.SortOrder)
                     .Select(c => new ScholarshipChildDto(
