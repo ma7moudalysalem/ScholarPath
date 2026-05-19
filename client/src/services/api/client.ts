@@ -28,6 +28,26 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * The most specific human-readable message for an API error: the problem
+ * `detail`, else the first field-validation message (so a 422 surfaces the
+ * actual failed rule, not the generic "validation failures" title), else the
+ * `title`, else the supplied fallback.
+ */
+export function apiErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) {
+    if (err.payload.detail) return err.payload.detail;
+    const firstFieldError = err.payload.errors
+      ? Object.values(err.payload.errors)
+          .flat()
+          .find((m) => typeof m === "string" && m.length > 0)
+      : undefined;
+    if (firstFieldError) return firstFieldError;
+    if (err.payload.title) return err.payload.title;
+  }
+  return fallback;
+}
+
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL || "/",
   withCredentials: false,

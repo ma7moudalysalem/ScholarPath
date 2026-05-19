@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ApiError } from "@/services/api/client";
+import { apiErrorMessage } from "@/services/api/client";
 import {
   financialConfigApi,
   type CreateFinancialRuleBody,
@@ -31,7 +31,9 @@ const dateOnly = (iso: string) => iso.slice(0, 10);
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
 function apiErr(e: unknown, fallback: string): string {
-  return e instanceof ApiError ? (e.payload.detail ?? e.payload.title) : fallback;
+  // Surfaces the specific 422 field message (e.g. which financial-rule field
+  // failed), not the generic "validation failures" title.
+  return apiErrorMessage(e, fallback);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
