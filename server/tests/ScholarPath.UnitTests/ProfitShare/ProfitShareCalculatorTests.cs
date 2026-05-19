@@ -63,7 +63,7 @@ public class ProfitShareCalculatorTests
 
     [Theory]
     [InlineData(PaymentType.ConsultantBooking, 0.10)]
-    [InlineData(PaymentType.CompanyReview, 0.15)]
+    [InlineData(PaymentType.CompanyReview, 0.10)]
     public void DefaultPercentage_matches_PB014_defaults(PaymentType type, double expected)
     {
         ProfitShareCalculator.DefaultPercentage(type).Should().Be((decimal)expected);

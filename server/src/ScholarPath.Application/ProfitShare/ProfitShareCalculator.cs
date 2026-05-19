@@ -9,10 +9,14 @@ namespace ScholarPath.Application.ProfitShare;
 /// </summary>
 public static class ProfitShareCalculator
 {
-    /// <summary>Fallback rate, used only when no active ProfitShareConfig row exists.</summary>
+    /// <summary>
+    /// Fallback rate, used only when no financial rule / profit-share config is
+    /// in force. FR-204: the default portal profit-share is 10% for every
+    /// payment type unless an admin overrides it.
+    /// </summary>
     public static decimal DefaultPercentage(PaymentType type) => type switch
     {
-        PaymentType.CompanyReview => 0.15m,
+        PaymentType.CompanyReview => 0.10m,
         _ => 0.10m,
     };
 
