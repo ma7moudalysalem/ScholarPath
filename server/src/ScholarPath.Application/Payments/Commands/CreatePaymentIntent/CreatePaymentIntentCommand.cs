@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.ProfitShare;
+using ScholarPath.Application.FinancialConfig;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -81,10 +81,10 @@ public sealed class CreatePaymentIntentCommandHandler(
         var payerUserId = currentUser.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
-        // 1. Resolve profit-share percentage from the config in force right now.
-        var platformPct = await ProfitShareConfigResolver
-            .ResolveActivePercentageAsync(db, request.Type, ct);
-        var breakdown = ProfitShareCalculator.Calculate(request.AmountCents, platformPct);
+        // 1. Resolve the platform take from the financial rule in force (FR-163..176),
+        //    falling back to the legacy profit-share config when none is active.
+        var split = await FinancialRuleResolver
+            .ResolvePaymentSplitAsync(db, request.Type, request.AmountCents, ct);
 
         // 2. Capture method per type
         var captureMethod = request.Type == PaymentType.ConsultantBooking
@@ -134,8 +134,8 @@ public sealed class CreatePaymentIntentCommandHandler(
             Status = PaymentStatus.Pending,
             AmountCents = request.AmountCents,
             Currency = request.Currency.ToUpper(),
-            ProfitShareAmountCents = breakdown.ProfitShareAmountCents,
-            PayeeAmountCents = breakdown.PayeeAmountCents,
+            ProfitShareAmountCents = split.PlatformTakeCents,
+            PayeeAmountCents = split.PayeeNetCents,
             RefundedAmountCents = 0,
             PayerUserId = payerUserId,
             PayeeUserId = request.PayeeUserId,
