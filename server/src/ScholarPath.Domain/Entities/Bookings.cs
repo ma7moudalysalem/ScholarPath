@@ -58,6 +58,12 @@ public class ConsultantBooking : AuditableEntity, ISoftDeletable
     public bool IsNoShowConsultant { get; set; }
     public DateTimeOffset? NoShowMarkedAt { get; set; }
 
+    // Meeting attendance (FR-217) — when each party first joined the session
+    // room. Null means that party never joined; the no-show sweep job reads
+    // these to attribute an automated no-show.
+    public DateTimeOffset? StudentJoinedAt { get; set; }
+    public DateTimeOffset? ConsultantJoinedAt { get; set; }
+
     public bool IsDeleted { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public Guid? DeletedByUserId { get; set; }

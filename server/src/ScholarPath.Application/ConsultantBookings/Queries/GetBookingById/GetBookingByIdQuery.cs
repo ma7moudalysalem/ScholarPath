@@ -68,6 +68,8 @@ public sealed class GetBookingByIdQueryHandler(
                 IsNoShowStudent = b.IsNoShowStudent,
                 IsNoShowConsultant = b.IsNoShowConsultant,
                 NoShowMarkedAt = b.NoShowMarkedAt,
+                StudentJoinedAt = b.StudentJoinedAt,
+                ConsultantJoinedAt = b.ConsultantJoinedAt,
                 CreatedAt = b.CreatedAt,
             })
             .FirstOrDefaultAsync(ct)

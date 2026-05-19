@@ -86,6 +86,10 @@ public sealed record BookingDetailDto
     public bool IsNoShowConsultant { get; init; }
     public DateTimeOffset? NoShowMarkedAt { get; init; }
 
+    // Meeting attendance (FR-217) — when each party joined the session room.
+    public DateTimeOffset? StudentJoinedAt { get; init; }
+    public DateTimeOffset? ConsultantJoinedAt { get; init; }
+
     public DateTimeOffset CreatedAt { get; init; }
 }
 

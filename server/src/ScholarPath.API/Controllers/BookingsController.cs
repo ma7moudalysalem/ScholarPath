@@ -5,6 +5,7 @@ using ScholarPath.Application.ConsultantBookings.Commands.AcceptBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.CancelBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.HideConsultantReview;
 using ScholarPath.Application.ConsultantBookings.Commands.MarkNoShow;
+using ScholarPath.Application.ConsultantBookings.Commands.RecordMeetingJoin;
 using ScholarPath.Application.ConsultantBookings.Commands.RejectBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.RequestBooking;
 using ScholarPath.Application.ConsultantBookings.Commands.RescheduleBooking;
@@ -149,6 +150,18 @@ public sealed class BookingsController : ControllerBase
         await _sender.Send(command, cancellationToken);
         return NoContent();
     }
+
+    /// <summary>
+    /// FR-217 — records that the authenticated participant joined the booking's
+    /// session room. This attendance signal is what the automated no-show sweep
+    /// reads to attribute a no-show to whichever party never joined.
+    /// </summary>
+    [HttpPost("{id:guid}/meeting/join")]
+    [ProducesResponseType(typeof(MeetingJoinResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> JoinMeeting(Guid id, CancellationToken cancellationToken)
+        => Ok(await _sender.Send(new RecordMeetingJoinCommand(id), cancellationToken));
 
     [HttpPost("{id:guid}/no-show")]
     public async Task<IActionResult> MarkNoShow(
