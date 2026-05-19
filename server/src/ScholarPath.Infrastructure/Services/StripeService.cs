@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Domain.Exceptions;
 using ScholarPath.Infrastructure.Settings;
 using Stripe;
 
@@ -107,7 +108,15 @@ public sealed class StripeService(
             logger.LogError(ex,
                 "[stripe] Failed to capture PaymentIntent {Id}",
                 paymentIntentId);
-            throw;
+            // A capture failure is almost always a payment-state problem — the
+            // student never authorized the card, so the intent is not in
+            // `requires_capture`. Surface it as a clean 422 ("Booking rule
+            // violated"), not an opaque 500.
+            throw new BookingDomainException(
+                "The session fee could not be captured. The student may not have "
+                + "completed the card authorization for this booking yet — ask them "
+                + "to finish payment, then try accepting again.",
+                ex);
         }
     }
 
