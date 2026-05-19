@@ -50,7 +50,7 @@ public sealed class ProcessStripeWebhookCommandHandler(
         var matchedPayment = await ApplyToPaymentAsync(request, ct);
         var matchedConnect = await ApplyConnectOrPayoutAsync(request, ct);
 
-        if (!matchedReview && !matchedPayment && !matchedConnect)
+        if (!matchedReview && matchedPayment is null && !matchedConnect)
         {
             logger.LogInformation(
                 "Webhook {EventId} ({Type}) matched no record (intent {IntentId}, charge {ChargeId}).",
@@ -61,8 +61,13 @@ public sealed class ProcessStripeWebhookCommandHandler(
         webhookEvent.IsProcessed = true;
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        if (matchedPayment && request.EventType == "charge.dispute.created")
+        if (matchedPayment is not null && request.EventType == "charge.dispute.created")
             await NotifyAdminsOfDisputeAsync(request, ct);
+
+        // FR-194 (PB-006 gap P18): a captured payment sends the payer a receipt;
+        // a refund event sends a refund notice. Both in-app + email, idempotent.
+        if (matchedPayment is not null)
+            await DispatchPaymentNotificationAsync(matchedPayment, request.EventType, ct);
 
         return true;
     }
@@ -118,7 +123,7 @@ public sealed class ProcessStripeWebhookCommandHandler(
 
     // PB-006 — consultant-booking / generic payments. Keeps the Payment row and the
     // owning Booking in sync with Stripe (previously dropped: this path had no live handler).
-    private async Task<bool> ApplyToPaymentAsync(
+    private async Task<Payment?> ApplyToPaymentAsync(
         ProcessStripeWebhookCommand request, CancellationToken ct)
     {
         Payment? payment = null;
@@ -135,7 +140,7 @@ public sealed class ProcessStripeWebhookCommandHandler(
                 .FirstOrDefaultAsync(p => p.StripeChargeId == request.ChargeId, ct);
         }
 
-        if (payment is null) return false;
+        if (payment is null) return null;
 
         switch (request.EventType)
         {
@@ -183,7 +188,7 @@ public sealed class ProcessStripeWebhookCommandHandler(
                 break;
         }
 
-        return true;
+        return payment;
     }
 
     // PB-013 — Connect onboarding + payout lifecycle. account.updated drives payee
@@ -265,6 +270,39 @@ public sealed class ProcessStripeWebhookCommandHandler(
         {
             logger.LogWarning(ex,
                 "Failed to notify admins of the dispute for event {EventId}.", request.EventId);
+        }
+    }
+
+    // FR-194 — payment receipt / refund notice to the payer (student).
+    private async Task DispatchPaymentNotificationAsync(
+        Payment payment, string eventType, CancellationToken ct)
+    {
+        NotificationType? type = eventType switch
+        {
+            "payment_intent.succeeded" => NotificationType.PaymentSuccess,
+            "charge.refunded" => NotificationType.PaymentRefunded,
+            _ => null,
+        };
+        if (type is null) return;
+
+        try
+        {
+            var isRefund = type == NotificationType.PaymentRefunded;
+            var amountCents = isRefund ? payment.RefundedAmountCents : payment.AmountCents;
+            var amountText = $"{payment.Currency} {amountCents / 100m:0.00}";
+            await notifications.DispatchAsync(
+                payment.PayerUserId,
+                type.Value,
+                new NotificationParams { AmountText = amountText },
+                deepLink: null,
+                idempotencyKey: $"{(isRefund ? "payment-refund" : "payment-receipt")}:{payment.Id:N}",
+                ct).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to send the {EventType} notification for payment {PaymentId}.",
+                eventType, payment.Id);
         }
     }
 

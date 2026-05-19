@@ -60,6 +60,16 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"A community post was automatically hidden after {p.Count ?? 0} flags.",
             $"تم إخفاء منشور في المجتمع تلقائيًا بعد {p.Count ?? 0} بلاغات."),
 
+        NotificationType.PaymentSuccess => new(
+            "Payment receipt", "إيصال الدفع",
+            $"Your payment of {p.AmountText ?? "the session fee"} was received — keep this as your receipt.",
+            $"تم استلام دفعتك بقيمة {p.AmountText ?? "رسوم الجلسة"} — احتفظ بهذا الإشعار كإيصال."),
+
+        NotificationType.PaymentRefunded => new(
+            "Payment refunded", "تم استرداد الدفعة",
+            $"A refund of {p.AmountText ?? "your payment"} has been issued to your card.",
+            $"تم استرداد مبلغ {p.AmountText ?? "دفعتك"} إلى بطاقتك."),
+
         NotificationType.PaymentDisputed => new(
             "Payment dispute opened", "تم فتح نزاع على دفعة",
             $"A cardholder opened a payment dispute ({p.Reason ?? "unspecified"}). Review it in the payments dashboard.",
