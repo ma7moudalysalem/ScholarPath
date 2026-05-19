@@ -127,10 +127,7 @@ export function AiEconomyPage() {
               icon={DollarSign}
               label={t("admin:aiEconomy.totalCost", { defaultValue: "Total cost" })}
               value={formatUsd(q.data.totalCostUsd)}
-              hint={t("admin:aiEconomy.costHint", {
-                defaultValue: `${q.data.windowDays}-day window`,
-                count: q.data.windowDays,
-              })}
+              hint={t("admin:aiEconomy.costHint", { days: q.data.windowDays })}
             />
             <StatCard
               icon={Sparkles}

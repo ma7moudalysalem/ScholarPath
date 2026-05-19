@@ -20,6 +20,7 @@
     "loading": "Loading...",
     "saving": "Saving...",
     "saved": "Saved",
+    "success": "Done",
     "error": "Something went wrong"
   },
   "language": {

@@ -54,7 +54,9 @@ export function AdminKnowledgeBase() {
       qc.setQueryData(KB_KEY, r.status);
       toast.success(
         t("admin:knowledgeBase.rebuilt", {
-          defaultValue: `Knowledge base rebuilt — ${r.reembedded} embedded, ${r.upserted} new, ${r.removed} removed.`,
+          reembedded: r.reembedded,
+          upserted: r.upserted,
+          removed: r.removed,
         }),
       );
     },
@@ -67,7 +69,8 @@ export function AdminKnowledgeBase() {
       qc.setQueryData(KB_KEY, r.knowledgeBase.status);
       toast.success(
         t("admin:knowledgeBase.imported", {
-          defaultValue: `Imported — ${r.import.created} created, ${r.import.updated} updated.`,
+          created: r.import.created,
+          updated: r.import.updated,
         }),
       );
     },
@@ -87,9 +90,7 @@ export function AdminKnowledgeBase() {
       link.remove();
       URL.revokeObjectURL(url);
       toast.success(
-        t("admin:knowledgeBase.exported", {
-          defaultValue: `Exported ${d.exampleCount} fine-tuning examples.`,
-        }),
+        t("admin:knowledgeBase.exported", { n: d.exampleCount }),
       );
     },
     onError: () => toast.error(t("common:status.error", { defaultValue: "Something went wrong." })),
@@ -142,9 +143,7 @@ export function AdminKnowledgeBase() {
               value={`${s.embeddedDocuments}/${s.totalDocuments}`}
               hint={
                 s.pendingDocuments > 0
-                  ? t("admin:knowledgeBase.pending", {
-                      defaultValue: `${s.pendingDocuments} pending`,
-                    })
+                  ? t("admin:knowledgeBase.pending", { n: s.pendingDocuments })
                   : t("admin:knowledgeBase.allEmbedded", { defaultValue: "fully indexed" })
               }
             />
