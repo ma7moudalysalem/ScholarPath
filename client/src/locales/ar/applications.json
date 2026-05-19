@@ -55,5 +55,35 @@
     "pleaseSelectScholarship": "يرجى اختيار منحة دراسية.",
     "success": "تمت إضافة الطلب الخارجي.",
     "error": "تعذّر إضافة الطلب. يرجى المحاولة مرة أخرى."
+  },
+  "companyReview": {
+    "title": "مراجعة الطلبات",
+    "subtitle": "إدارة ومراجعة طلبات المنح الواردة.",
+    "searchPlaceholder": "ابحث عن طلاب أو منح…",
+    "filters": "الفلاتر",
+    "table": {
+      "student": "الطالب",
+      "scholarship": "المنحة",
+      "status": "الحالة",
+      "submitted": "تاريخ التقديم",
+      "actions": "إجراءات"
+    },
+    "empty": "لا توجد طلبات.",
+    "status": {
+      "Pending": "قيد المراجعة",
+      "Accepted": "مقبول",
+      "Rejected": "مرفوض"
+    },
+    "actions": {
+      "view": "عرض التفاصيل",
+      "accept": "قبول",
+      "reject": "رفض"
+    },
+    "decision": {
+      "rejectPrompt": "سبب الرفض (اختياري):",
+      "acceptPrompt": "ملاحظات للقبول (اختياري):",
+      "success": "تم تسجيل القرار بنجاح.",
+      "error": "تعذّر تسجيل القرار. حاول مرة أخرى."
+    }
   }
 }

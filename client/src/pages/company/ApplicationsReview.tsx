@@ -1,71 +1,95 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { CheckCircle, XCircle, Eye, Clock, Search, Filter } from 'lucide-react';
-import { applicationsApi, type CompanyApplicationRow, type ApplicationStatus } from '@/services/api/applications';
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { CheckCircle, XCircle, Eye, Clock, Search, Filter } from "lucide-react";
+import {
+  applicationsApi,
+  type CompanyApplicationRow,
+  type ApplicationStatus,
+} from "@/services/api/applications";
+import { apiErrorMessage } from "@/services/api/client";
 
 export function ApplicationsReview() {
-  useTranslation('applications');
+  const { t, i18n } = useTranslation("applications");
+  const lang = i18n.language;
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ['company', 'applications'],
+    queryKey: ["company", "applications"],
     queryFn: () => applicationsApi.getCompanyApplications(),
   });
   const applications = data?.items ?? [];
 
   const reviewMutation = useMutation({
-    mutationFn: ({ id, status, reason }: { id: string; status: ApplicationStatus; reason?: string }) =>
-      applicationsApi.reviewApplication(id, status, reason),
+    mutationFn: ({
+      id,
+      status,
+      reason,
+    }: {
+      id: string;
+      status: ApplicationStatus;
+      reason?: string;
+    }) => applicationsApi.reviewApplication(id, status, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company', 'applications'] });
-      toast.success('Decision recorded successfully');
+      queryClient.invalidateQueries({ queryKey: ["company", "applications"] });
+      toast.success(t("companyReview.decision.success"));
     },
-    onError: () => {
-      toast.error('Failed to record decision');
-    }
+    onError: (err) => {
+      toast.error(apiErrorMessage(err, t("companyReview.decision.error")));
+    },
   });
 
-  const handleDecision = (id: string, status: 'Accepted' | 'Rejected') => {
-    const reason = window.prompt(status === 'Rejected' ? 'Reason for rejection (optional):' : 'Notes for acceptance (optional):');
+  const handleDecision = (id: string, status: "Accepted" | "Rejected") => {
+    const reason = window.prompt(
+      status === "Rejected"
+        ? t("companyReview.decision.rejectPrompt")
+        : t("companyReview.decision.acceptPrompt"),
+    );
     if (reason === null) return;
     reviewMutation.mutate({ id, status, reason });
   };
 
-  const filteredApps = applications.filter((app: CompanyApplicationRow) =>
-    app.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.studentEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.scholarshipTitle.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredApps = applications.filter(
+    (app: CompanyApplicationRow) =>
+      app.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.studentEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.scholarshipTitle.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
     <div className="mx-auto max-w-7xl p-6">
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-text-primary">
-          Review Applications
+          {t("companyReview.title")}
         </h1>
         <p className="text-sm text-text-secondary">
-          Manage and review incoming scholarship applications.
+          {t("companyReview.subtitle")}
         </p>
       </div>
 
       <div className="mb-6 flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
         <div className="relative w-full max-w-sm">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 text-text-tertiary" size={18} />
+          <Search
+            className="absolute start-3 top-1/2 -translate-y-1/2 text-text-tertiary"
+            size={18}
+          />
           <input
             type="text"
-            placeholder="Search students or scholarships..."
+            placeholder={t("companyReview.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-lg border border-border-subtle bg-bg-elevated py-2 ps-10 pe-4 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-100"
           />
         </div>
 
-        <button className="flex items-center space-x-2 rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 text-sm font-medium text-text-secondary hover:bg-bg-subtle transition-colors">
+        <button
+          type="button"
+          className="flex items-center space-x-2 rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-subtle"
+        >
           <Filter size={18} />
-          <span>Filters</span>
+          <span>{t("companyReview.filters")}</span>
         </button>
       </div>
 
@@ -74,11 +98,13 @@ export function ApplicationsReview() {
           <table className="w-full text-start text-sm">
             <thead className="bg-bg-muted text-xs font-semibold uppercase text-text-tertiary">
               <tr>
-                <th className="px-6 py-4">Student</th>
-                <th className="px-6 py-4">Scholarship</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Submitted</th>
-                <th className="px-6 py-4 text-end">Actions</th>
+                <th className="px-6 py-4">{t("companyReview.table.student")}</th>
+                <th className="px-6 py-4">{t("companyReview.table.scholarship")}</th>
+                <th className="px-6 py-4">{t("companyReview.table.status")}</th>
+                <th className="px-6 py-4">{t("companyReview.table.submitted")}</th>
+                <th className="px-6 py-4 text-end">
+                  {t("companyReview.table.actions")}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border-subtle">
@@ -93,12 +119,12 @@ export function ApplicationsReview() {
               ) : filteredApps.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-text-secondary">
-                    No applications found.
+                    {t("companyReview.empty")}
                   </td>
                 </tr>
               ) : (
                 filteredApps.map((app: CompanyApplicationRow) => (
-                  <tr key={app.id} className="hover:bg-bg-muted/50 transition-colors">
+                  <tr key={app.id} className="transition-colors hover:bg-bg-muted/50">
                     <td className="px-6 py-4">
                       <div className="font-medium text-text-primary">{app.studentName}</div>
                       <div className="text-xs text-text-tertiary">{app.studentEmail}</div>
@@ -107,36 +133,49 @@ export function ApplicationsReview() {
                       {app.scholarshipTitle}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        app.status === 'Accepted' ? 'bg-success-50 text-success-700' :
-                        app.status === 'Rejected' ? 'bg-danger-50 text-danger-500' :
-                        'bg-warning-50 text-warning-600'
-                      }`}>
-                        {app.status === 'Pending' ? <Clock size={12} className="me-1" /> : null}
-                        {app.status}
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          app.status === "Accepted"
+                            ? "bg-success-50 text-success-700"
+                            : app.status === "Rejected"
+                              ? "bg-danger-50 text-danger-500"
+                              : "bg-warning-50 text-warning-600"
+                        }`}
+                      >
+                        {app.status === "Pending" ? (
+                          <Clock size={12} className="me-1" />
+                        ) : null}
+                        {t(`companyReview.status.${app.status}`)}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-text-tertiary">
-                      {new Date(app.createdAt).toLocaleDateString()}
+                      {new Date(app.createdAt).toLocaleDateString(lang)}
                     </td>
                     <td className="px-6 py-4 text-end">
                       <div className="flex justify-end space-x-2">
-                        <button type="button" className="p-1.5 text-text-tertiary hover:text-brand-600 transition-colors" aria-label="View details">
+                        <button
+                          type="button"
+                          className="p-1.5 text-text-tertiary transition-colors hover:text-brand-600"
+                          aria-label={t("companyReview.actions.view")}
+                          title={t("companyReview.actions.view")}
+                        >
                           <Eye size={18} />
                         </button>
-                        {app.status === 'Pending' && (
+                        {app.status === "Pending" && (
                           <>
                             <button
-                              onClick={() => handleDecision(app.id, 'Accepted')}
-                              className="p-1.5 text-text-tertiary hover:text-success-600 transition-colors"
-                              title="Accept"
+                              type="button"
+                              onClick={() => handleDecision(app.id, "Accepted")}
+                              className="p-1.5 text-text-tertiary transition-colors hover:text-success-600"
+                              title={t("companyReview.actions.accept")}
                             >
                               <CheckCircle size={18} />
                             </button>
                             <button
-                              onClick={() => handleDecision(app.id, 'Rejected')}
-                              className="p-1.5 text-text-tertiary hover:text-danger-500 transition-colors"
-                              title="Reject"
+                              type="button"
+                              onClick={() => handleDecision(app.id, "Rejected")}
+                              className="p-1.5 text-text-tertiary transition-colors hover:text-danger-500"
+                              title={t("companyReview.actions.reject")}
                             >
                               <XCircle size={18} />
                             </button>

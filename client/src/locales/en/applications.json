@@ -55,5 +55,35 @@
     "pleaseSelectScholarship": "Please select a scholarship.",
     "success": "External application added.",
     "error": "Could not add the application. Please try again."
+  },
+  "companyReview": {
+    "title": "Review Applications",
+    "subtitle": "Manage and review incoming scholarship applications.",
+    "searchPlaceholder": "Search students or scholarships...",
+    "filters": "Filters",
+    "table": {
+      "student": "Student",
+      "scholarship": "Scholarship",
+      "status": "Status",
+      "submitted": "Submitted",
+      "actions": "Actions"
+    },
+    "empty": "No applications found.",
+    "status": {
+      "Pending": "Pending",
+      "Accepted": "Accepted",
+      "Rejected": "Rejected"
+    },
+    "actions": {
+      "view": "View details",
+      "accept": "Accept",
+      "reject": "Reject"
+    },
+    "decision": {
+      "rejectPrompt": "Reason for rejection (optional):",
+      "acceptPrompt": "Notes for acceptance (optional):",
+      "success": "Decision recorded successfully.",
+      "error": "Failed to record decision. Please try again."
+    }
   }
 }
