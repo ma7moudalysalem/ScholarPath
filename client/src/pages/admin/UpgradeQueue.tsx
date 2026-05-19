@@ -9,6 +9,7 @@ import {
   type UpgradeRequestRow,
   type UpgradeRequestStatus,
 } from "@/services/api/admin";
+import { apiErrorMessage } from "@/services/api/client";
 
 const FILTERS: { value: UpgradeRequestStatus | null; key: string }[] = [
   { value: "Pending", key: "pending" },
@@ -36,7 +37,9 @@ export function UpgradeQueue() {
       toast.success(t("common:status.success"));
       void qc.invalidateQueries({ queryKey: ["admin", "upgrade-queue"] });
     },
-    onError: () => toast.error(t("common:status.error")),
+    // A 409 here means another admin already decided this request — surface
+    // that specific message instead of a generic "something went wrong".
+    onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
   });
 
   const approve = (r: UpgradeRequestRow) => reviewMut.mutate({ id: r.id, approve: true });
@@ -93,10 +96,10 @@ export function UpgradeQueue() {
                 <td className="px-4 py-3 text-end">
                   {r.status === "Pending" && (
                     <div className="inline-flex gap-1.5">
-                      <button type="button" onClick={() => approve(r)} className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-success-500 hover:text-success-600">
+                      <button type="button" onClick={() => approve(r)} disabled={reviewMut.isPending} className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-success-500 hover:text-success-600 disabled:opacity-50">
                         {t("admin:onboarding.actions.approve")}
                       </button>
-                      <button type="button" onClick={() => reject(r)} className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500">
+                      <button type="button" onClick={() => reject(r)} disabled={reviewMut.isPending} className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500 disabled:opacity-50">
                         {t("admin:onboarding.actions.reject")}
                       </button>
                     </div>

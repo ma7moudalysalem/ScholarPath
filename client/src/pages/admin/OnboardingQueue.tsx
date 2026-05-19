@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { FileText } from "lucide-react";
 import { adminApi, type OnboardingRequestRow, type PagedResult } from "@/services/api/admin";
+import { apiErrorMessage } from "@/services/api/client";
 import { documentsApi } from "@/services/api/documents";
 
 /** Lists the verification documents a pending applicant uploaded, with download links. */
@@ -79,7 +80,9 @@ export function OnboardingQueue() {
       void qc.invalidateQueries({ queryKey: ["admin", "onboarding-queue"] });
       void qc.invalidateQueries({ queryKey: ["admin", "analytics", "overview"] });
     },
-    onError: () => toast.error(t("common:status.error")),
+    // A 409 here means the applicant was already decided — surface that
+    // specific message instead of a generic "something went wrong".
+    onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
   });
 
   const approve = (u: OnboardingRequestRow) => reviewMut.mutate({ userId: u.userId, approve: true });
@@ -137,14 +140,16 @@ export function OnboardingQueue() {
                         <button
                           type="button"
                           onClick={() => approve(u)}
-                          className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-success-500 hover:text-success-600"
+                          disabled={reviewMut.isPending}
+                          className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-success-500 hover:text-success-600 disabled:opacity-50"
                         >
                           {t("admin:onboarding.actions.approve")}
                         </button>
                         <button
                           type="button"
                           onClick={() => reject(u)}
-                          className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500"
+                          disabled={reviewMut.isPending}
+                          className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500 disabled:opacity-50"
                         >
                           {t("admin:onboarding.actions.reject")}
                         </button>
