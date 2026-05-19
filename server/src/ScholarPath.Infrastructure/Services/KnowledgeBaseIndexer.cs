@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Ai.DTOs;
+using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
@@ -125,7 +126,11 @@ public sealed class KnowledgeBaseIndexer(
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "Embedding batch failed during the knowledge-base rebuild.");
-                throw;
+                throw new ServiceUnavailableException(
+                    $"The embedding provider '{model}' is unavailable or misconfigured, so the "
+                    + "knowledge base could not be rebuilt. Check the Ai:Provider setting and the "
+                    + "embedding endpoint/key, then retry.",
+                    ex);
             }
 
             for (var j = 0; j < batch.Count && j < vectors.Count; j++)

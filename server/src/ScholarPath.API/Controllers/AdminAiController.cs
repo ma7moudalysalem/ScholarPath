@@ -31,6 +31,7 @@ public sealed class AdminAiController(IMediator mediator) : ControllerBase
     /// </summary>
     [HttpPost("knowledge-base/rebuild")]
     [ProducesResponseType(typeof(KnowledgeBaseRebuildResultDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> RebuildKnowledgeBase(
         [FromQuery] bool force = false, CancellationToken ct = default)
         => Ok(await mediator.Send(new RebuildKnowledgeBaseCommand(force), ct).ConfigureAwait(false));
@@ -42,6 +43,7 @@ public sealed class AdminAiController(IMediator mediator) : ControllerBase
     /// </summary>
     [HttpPost("datasets/import")]
     [ProducesResponseType(typeof(DatasetImportWithRebuildDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> ImportDataset(CancellationToken ct)
     {
         var import = await mediator.Send(new ImportExternalScholarshipsCommand(), ct).ConfigureAwait(false);

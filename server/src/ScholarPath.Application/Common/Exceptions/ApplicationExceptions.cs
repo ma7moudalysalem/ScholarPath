@@ -37,4 +37,15 @@ public class StripeOperationException : Exception
     public StripeOperationException(string message) : base(message) { }
     public StripeOperationException(string message, Exception inner) : base(message, inner) { }
 }
+
+/// <summary>
+/// A required external dependency (an AI provider, a third-party API) was
+/// unavailable or misconfigured. Surfaced to the client as HTTP 503 with an
+/// actionable message rather than an opaque 500.
+/// </summary>
+public class ServiceUnavailableException : Exception
+{
+    public ServiceUnavailableException(string message) : base(message) { }
+    public ServiceUnavailableException(string message, Exception inner) : base(message, inner) { }
+}
 #pragma warning restore CA1032, RCS1194

@@ -57,6 +57,18 @@ public sealed class ExceptionHandlerMiddleware(
                 "Forbidden",
                 fex.Message).ConfigureAwait(false);
         }
+        catch (ServiceUnavailableException suex)
+        {
+            // A dependency (e.g. the AI embedding provider) was down or
+            // misconfigured — log the cause but return an actionable 503,
+            // not an opaque 500.
+            logger.LogError(suex, "A dependency was unavailable at {Path}", context.Request.Path);
+            await WriteProblemAsync(
+                context,
+                HttpStatusCode.ServiceUnavailable,
+                "Service unavailable",
+                suex.Message).ConfigureAwait(false);
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled exception at {Path}", context.Request.Path);
