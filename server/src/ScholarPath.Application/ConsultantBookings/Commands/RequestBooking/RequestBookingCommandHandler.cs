@@ -233,7 +233,11 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
         var payment = new Payment
         {
             Type = PaymentType.ConsultantBooking,
-            Status = PaymentStatus.Held,
+            // FR-080/186 (PB-006 gap P2): the manual-capture intent is not truly
+            // held until the student authorises the card. The Payment starts
+            // Pending and the Stripe `amount_capturable_updated` webhook flips it
+            // to Held once authorisation actually lands.
+            Status = PaymentStatus.Pending,
             AmountCents = amountCents,
             Currency = "USD",
             ProfitShareAmountCents = 0,
@@ -246,7 +250,7 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             IdempotencyKey = idempotencyKey,
             RelatedBookingId = null,
             RelatedApplicationId = null,
-            HeldAt = nowUtc,
+            HeldAt = null,
             CapturedAt = null,
             RefundedAt = null,
             RefundReason = null,

@@ -95,7 +95,9 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
         // FR-081/187/190: sync the internal Payment row with the Stripe capture —
         // mark it Captured and lock in the platform/payee split from the financial
         // rule in force, so payment history, payouts and reporting stay accurate.
-        if (booking.Payment is { Status: PaymentStatus.Held } payment)
+        // Accepts Held or Pending: the Stripe capture above already proved the
+        // intent was authorised, even if the Held webhook has not landed yet (P2).
+        if (booking.Payment is { Status: PaymentStatus.Held or PaymentStatus.Pending } payment)
         {
             payment.Status = PaymentStatus.Captured;
             payment.CapturedAt = nowUtc;

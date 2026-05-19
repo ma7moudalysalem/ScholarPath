@@ -118,6 +118,28 @@ public sealed class BookingPaymentSyncTests : IDisposable
     }
 
     [Fact]
+    public async Task Accept_captures_a_payment_still_Pending_when_the_Held_webhook_lagged()
+    {
+        _currentUser.IsAuthenticated.Returns(true);
+        _currentUser.IsInRole("Consultant").Returns(true);
+        _currentUser.UserId.Returns(_consultantId);
+        // P2: payment starts Pending; the Stripe capture proves authorisation
+        // even if the amount_capturable_updated webhook has not landed yet.
+        var booking = await SeedAsync(
+            BookingStatus.Requested, PaymentStatus.Pending, DateTimeOffset.UtcNow.AddDays(2));
+        _stripe.CapturePaymentIntentAsync(
+                Arg.Any<string>(), Arg.Any<long?>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new StripePaymentIntentResult("pi_test", "succeeded", null, "ch_test"));
+
+        var handler = new AcceptBookingCommandHandler(_db, _currentUser, _stripe, _publisher);
+        await handler.Handle(new AcceptBookingCommand(booking.Id, "https://meet.example/x"), default);
+
+        var payment = await PaymentForAsync(booking.Id);
+        payment.Status.Should().Be(PaymentStatus.Captured);
+        payment.CapturedAt.Should().NotBeNull();
+    }
+
+    [Fact]
     public async Task Reject_marks_the_payment_Cancelled()
     {
         _currentUser.IsAuthenticated.Returns(true);
