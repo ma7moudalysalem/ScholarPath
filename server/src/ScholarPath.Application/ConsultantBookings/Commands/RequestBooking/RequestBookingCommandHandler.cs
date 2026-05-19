@@ -272,7 +272,6 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             Status = BookingStatus.Requested,
             RequestedAt = nowUtc,
             StripePaymentIntentId = paymentIntent.Id,
-            MeetingUrl = null,
             Payment = payment,
             ConfirmedAt = null,
             RejectedAt = null,

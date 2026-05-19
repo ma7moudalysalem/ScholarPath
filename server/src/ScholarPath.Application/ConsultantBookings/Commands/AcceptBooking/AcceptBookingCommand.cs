@@ -11,6 +11,5 @@ namespace ScholarPath.Application.ConsultantBookings.Commands.AcceptBooking;
     SummaryTemplate = "Booking accepted: {TargetId}"
 )]
 public sealed record AcceptBookingCommand(
-    Guid BookingId,
-    string MeetingUrl
+    Guid BookingId
 ) : IRequest;

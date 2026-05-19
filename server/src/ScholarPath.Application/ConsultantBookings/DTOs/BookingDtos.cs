@@ -28,7 +28,6 @@ public sealed record BookingListItemDto
     public DateTimeOffset ScheduledEndAt { get; init; }
     public int DurationMinutes { get; init; }
     public decimal PriceUsd { get; init; }
-    public string? MeetingUrl { get; init; }
 
     public DateTimeOffset? RequestedAt { get; init; }
     public DateTimeOffset? ConfirmedAt { get; init; }

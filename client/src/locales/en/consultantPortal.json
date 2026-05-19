@@ -102,9 +102,6 @@
     },
     "actions": {
       "title": "Consultant actions",
-      "meetingUrlLabel": "Meeting link",
-      "meetingUrlPlaceholder": "https://meet.example.com/your-session",
-      "meetingUrlRequired": "A meeting link is required to accept the request.",
       "accept": "Accept request",
       "reject": "Reject request",
       "noShow": "Mark student no-show",

@@ -102,9 +102,6 @@
     },
     "actions": {
       "title": "إجراءات المستشار",
-      "meetingUrlLabel": "رابط الاجتماع",
-      "meetingUrlPlaceholder": "https://meet.example.com/your-session",
-      "meetingUrlRequired": "رابط الاجتماع مطلوب لقبول الطلب.",
       "accept": "قبول الطلب",
       "reject": "رفض الطلب",
       "noShow": "تسجيل عدم حضور الطالب",

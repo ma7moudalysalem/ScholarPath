@@ -109,7 +109,6 @@ public sealed class MarkNoShowEndpointTests : IntegrationTestBase
                 Status = BookingStatus.Confirmed,
                 RequestedAt = scheduledStartAt.AddHours(-2),
                 StripePaymentIntentId = paymentIntentId,
-                MeetingUrl = $"https://meet.scholarpath.local/{Guid.NewGuid():N}",
                 PaymentId = paymentId,
                 ConfirmedAt = scheduledStartAt.AddHours(-1),
                 RejectedAt = null,

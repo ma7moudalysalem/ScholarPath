@@ -18,7 +18,6 @@ public sealed record RecordMeetingJoinCommand(Guid BookingId) : IRequest<Meeting
 /// <summary>What the client needs to enter the video meeting room.</summary>
 public sealed record MeetingJoinResult(
     Guid BookingId,
-    string? MeetingUrl,
     string RoomId,
     string AccessToken,
     string AcsUserId,
@@ -105,7 +104,6 @@ public sealed class RecordMeetingJoinCommandHandler(
         var joinedAt = isStudent ? booking.StudentJoinedAt!.Value : booking.ConsultantJoinedAt!.Value;
         return new MeetingJoinResult(
             booking.Id,
-            booking.MeetingUrl,
             booking.MeetingRoomId,
             access.Token,
             access.AcsUserId,

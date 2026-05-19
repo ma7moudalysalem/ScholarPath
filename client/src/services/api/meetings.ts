@@ -7,7 +7,6 @@ import { apiClient } from "@/services/api/client";
  */
 export interface MeetingJoinResult {
   bookingId: string;
-  meetingUrl: string | null;
   roomId: string;
   accessToken: string;
   acsUserId: string;

@@ -107,7 +107,7 @@ public sealed class BookingPaymentSyncTests : IDisposable
             .Returns(new StripePaymentIntentResult("pi_test", "succeeded", null, "ch_test"));
 
         var handler = new AcceptBookingCommandHandler(_db, _currentUser, _stripe, new StubMeetingService(), _publisher);
-        await handler.Handle(new AcceptBookingCommand(booking.Id, "https://meet.example/x"), default);
+        await handler.Handle(new AcceptBookingCommand(booking.Id), default);
 
         var payment = await PaymentForAsync(booking.Id);
         payment.Status.Should().Be(PaymentStatus.Captured);
@@ -133,7 +133,7 @@ public sealed class BookingPaymentSyncTests : IDisposable
             .Returns(new StripePaymentIntentResult("pi_test", "succeeded", null, "ch_test"));
 
         var handler = new AcceptBookingCommandHandler(_db, _currentUser, _stripe, new StubMeetingService(), _publisher);
-        await handler.Handle(new AcceptBookingCommand(booking.Id, "https://meet.example/x"), default);
+        await handler.Handle(new AcceptBookingCommand(booking.Id), default);
 
         var payment = await PaymentForAsync(booking.Id);
         payment.Status.Should().Be(PaymentStatus.Captured);

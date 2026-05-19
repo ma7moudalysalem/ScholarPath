@@ -28,7 +28,6 @@ public sealed class AcceptBookingEndpointTests : IntegrationTestBase
 
         var scheduledStartAt = DateTimeOffset.UtcNow.AddDays(2);
         var scheduledEndAt = scheduledStartAt.AddHours(1);
-        var meetingUrl = $"https://meet.scholarpath.local/{Guid.NewGuid():N}";
 
         await ExecuteScopeAsync(async sp =>
         {
@@ -112,9 +111,7 @@ public sealed class AcceptBookingEndpointTests : IntegrationTestBase
             await Task.CompletedTask;
         });
 
-        var command = new AcceptBookingCommand(
-            BookingId: bookingId,
-            MeetingUrl: meetingUrl);
+        var command = new AcceptBookingCommand(BookingId: bookingId);
 
         var response = await Client.PostAsJsonAsync(
             $"/api/bookings/{bookingId:D}/accept",
@@ -136,7 +133,7 @@ public sealed class AcceptBookingEndpointTests : IntegrationTestBase
             booking!.StudentId.Should().Be(studentId);
             booking.ConsultantId.Should().Be(consultantId);
             booking.Status.Should().Be(BookingStatus.Confirmed);
-            booking.MeetingUrl.Should().Be(meetingUrl);
+            booking.MeetingRoomId.Should().NotBeNullOrEmpty();
             booking.ConfirmedAt.Should().NotBeNull();
 
             var payment = db.Payments.FirstOrDefault(p =>

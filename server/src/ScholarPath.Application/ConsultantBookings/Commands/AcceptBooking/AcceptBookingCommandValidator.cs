@@ -8,9 +8,5 @@ public sealed class AcceptBookingCommandValidator : AbstractValidator<AcceptBook
     {
         RuleFor(x => x.BookingId)
             .NotEmpty();
-
-        RuleFor(x => x.MeetingUrl)
-            .NotEmpty()
-            .MaximumLength(2048);
     }
 }

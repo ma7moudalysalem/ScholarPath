@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 import { toast } from "sonner";
@@ -31,9 +30,6 @@ export function ConsultantBookingDetails() {
   const rejectMutation = useRejectBookingMutation();
   const cancelMutation = useMarkNoShowMutation();
   const noShowMutation = useCancelBookingMutation();
-
-  const [meetingUrl, setMeetingUrl] = useState("");
-  const [meetingUrlError, setMeetingUrlError] = useState("");
 
   if (isLoading) {
     return (
@@ -83,20 +79,10 @@ export function ConsultantBookingDetails() {
   const handleAccept = () => {
     if (!isRequested) return;
 
-    const trimmed = meetingUrl.trim();
-    if (!trimmed) {
-      setMeetingUrlError(t("details.actions.meetingUrlRequired"));
-      return;
-    }
-    setMeetingUrlError("");
-
-    acceptMutation.mutate(
-      { id: booking.id, meetingUrl: trimmed },
-      {
-        onSuccess: () => toast.success(t("details.banner.accepted")),
-        onError: () => toast.error(t("states.error")),
-      },
-    );
+    acceptMutation.mutate(booking.id, {
+      onSuccess: () => toast.success(t("details.banner.accepted")),
+      onError: () => toast.error(t("states.error")),
+    });
   };
 
   const handleReject = () => {
@@ -263,31 +249,6 @@ export function ConsultantBookingDetails() {
               </h2>
 
               <div className="mt-5 flex flex-col gap-3">
-                {isRequested ? (
-                  <div>
-                    <label className="block text-sm font-medium text-text-primary">
-                      {t("details.actions.meetingUrlLabel")}
-                    </label>
-                    <input
-                      type="url"
-                      value={meetingUrl}
-                      onChange={(event) => {
-                        setMeetingUrl(event.target.value);
-                        setMeetingUrlError("");
-                      }}
-                      placeholder={t("details.actions.meetingUrlPlaceholder")}
-                      className={`mt-2 h-11 w-full rounded-lg border bg-bg-elevated px-3 text-sm text-text-primary outline-none ${
-                        meetingUrlError
-                          ? "border-danger-400 focus:border-danger-400"
-                          : "border-border-default focus:border-brand-500"
-                      }`}
-                    />
-                    {meetingUrlError ? (
-                      <p className="mt-2 text-sm text-danger-500">{meetingUrlError}</p>
-                    ) : null}
-                  </div>
-                ) : null}
-
                 <button
                   type="button"
                   onClick={handleAccept}

@@ -65,13 +65,12 @@ export function useRequestBookingMutation() {
   });
 }
 
-/** Consultant accepts a requested booking with a meeting URL. */
+/** Consultant accepts a requested booking — the video room is auto-provisioned. */
 export function useAcceptBookingMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, meetingUrl }: { id: string; meetingUrl: string }) =>
-      bookingsApi.accept(id, meetingUrl),
+    mutationFn: (id: string) => bookingsApi.accept(id),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.bookings.all });
     },

@@ -307,17 +307,6 @@ public sealed class DataDeleteJob(
             s.Note = null;
         }
 
-        // ── Bookings — meeting URLs are personal links ──────────────────────
-        var bookings = await db.Bookings
-            .IgnoreQueryFilters()
-            .Where(b => b.StudentId == userId || b.ConsultantId == userId)
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
-        foreach (var b in bookings)
-        {
-            b.MeetingUrl = null;
-        }
-
         // ── Success stories — author display name / image ──────────────────
         var stories = await db.SuccessStories
             .IgnoreQueryFilters()

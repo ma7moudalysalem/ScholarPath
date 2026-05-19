@@ -47,7 +47,6 @@ export interface BookingListItem {
   scheduledEndAt: string;
   durationMinutes: number;
   priceUsd: number;
-  meetingUrl?: string | null;
   requestedAt?: string | null;
   confirmedAt?: string | null;
   createdAt: string;
@@ -172,9 +171,9 @@ export const bookingsApi = {
     return data;
   },
 
-  /** Consultant accepts a requested booking, supplying the meeting URL. */
-  async accept(id: string, meetingUrl: string): Promise<void> {
-    await apiClient.post(`/api/bookings/${id}/accept`, { bookingId: id, meetingUrl });
+  /** Consultant accepts a requested booking — the video room is auto-provisioned. */
+  async accept(id: string): Promise<void> {
+    await apiClient.post(`/api/bookings/${id}/accept`, { bookingId: id });
   },
 
   /** Consultant rejects a requested booking. */

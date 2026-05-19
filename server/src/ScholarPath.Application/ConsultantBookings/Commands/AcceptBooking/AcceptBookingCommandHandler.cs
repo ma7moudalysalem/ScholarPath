@@ -117,7 +117,6 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
 
         booking.Status = BookingStatus.Confirmed;
         booking.ConfirmedAt = nowUtc;
-        booking.MeetingUrl = request.MeetingUrl;
 
         // PB-006 — provision the video-meeting room for the confirmed session.
         // Each participant gets a join token from the booking's meeting room.

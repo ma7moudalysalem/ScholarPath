@@ -161,7 +161,7 @@ public sealed class DataExportJob(
         var bookings = await db.Bookings.AsNoTracking()
             .IgnoreQueryFilters()
             .Where(b => b.StudentId == userId || b.ConsultantId == userId)
-            .Select(b => new { b.Id, b.StudentId, b.ConsultantId, b.Status, b.ScheduledStartAt, b.ScheduledEndAt, b.PriceUsd, b.MeetingUrl })
+            .Select(b => new { b.Id, b.StudentId, b.ConsultantId, b.Status, b.ScheduledStartAt, b.ScheduledEndAt, b.PriceUsd })
             .ToListAsync(ct)
             .ConfigureAwait(false);
 

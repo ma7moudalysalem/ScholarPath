@@ -48,7 +48,6 @@ public sealed class GetMyBookingsQueryHandler(
                 ScheduledEndAt = b.ScheduledEndAt,
                 DurationMinutes = b.DurationMinutes,
                 PriceUsd = b.PriceUsd,
-                MeetingUrl = b.MeetingUrl,
                 RequestedAt = b.RequestedAt,
                 ConfirmedAt = b.ConfirmedAt,
                 CreatedAt = b.CreatedAt,
