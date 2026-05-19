@@ -8,6 +8,8 @@ export interface ChatConversation {
   lastMessageBody?: string;
   lastMessageAt?: string;
   isOnline: boolean;
+  /** True when the current user has blocked the other participant. */
+  isBlocked: boolean;
 }
 
 export interface ChatMessage {

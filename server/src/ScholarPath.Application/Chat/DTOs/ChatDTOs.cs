@@ -7,7 +7,8 @@ public record ChatConversationDto(
     string? OtherParticipantAvatarUrl,
     string? LastMessageBody,
     DateTimeOffset? LastMessageAt,
-    bool IsOnline);
+    bool IsOnline,
+    bool IsBlocked);
 
 /// <summary>
 /// A user the current user is allowed to start a direct-message conversation

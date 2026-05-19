@@ -39,6 +39,16 @@ public sealed class GetConversationsQueryHandler(
             .Where(u => otherUserIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
 
+        // Which of these participants the current user has blocked — drives the
+        // Block / Unblock toggle in the chat UI (UAT TC-006).
+        var blockedUserIds = (await db.UserBlocks
+                .AsNoTracking()
+                .Where(b => b.BlockerId == currentUserId && otherUserIds.Contains(b.BlockedUserId))
+                .Select(b => b.BlockedUserId)
+                .ToListAsync(ct)
+                .ConfigureAwait(false))
+            .ToHashSet();
+
         return conversations.Select(c => new ChatConversationDto(
             c.Id,
             c.OtherParticipantId,
@@ -46,7 +56,8 @@ public sealed class GetConversationsQueryHandler(
             null, // AvatarUrl if available
             c.LastMessageBody,
             c.LastMessageAt,
-            false // Presence dot placeholder
+            false, // Presence dot placeholder
+            blockedUserIds.Contains(c.OtherParticipantId)
         )).ToList();
     }
 }

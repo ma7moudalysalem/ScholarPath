@@ -236,24 +236,46 @@ export function Chat() {
       otherParticipantName: contact.name,
       otherParticipantAvatarUrl: contact.photoUrl,
       isOnline: false,
+      isBlocked: false,
     });
   };
 
-  const handleBlockUser = async () => {
+  const handleToggleBlock = async () => {
     if (!selectedConv) return;
+    const isBlocked = selectedConv.isBlocked;
     const confirmed = window.confirm(
-      t("chat.block_confirm", "Block this person? You will no longer be able to message each other."),
+      isBlocked
+        ? t("chat.unblock_confirm", "Unblock this person? You will be able to message each other again.")
+        : t("chat.block_confirm", "Block this person? You will no longer be able to message each other."),
     );
     if (!confirmed) return;
 
     try {
-      await chatApi.blockUser({ userId: selectedConv.otherParticipantId });
-      toast.success(t("chat.block_success", "User blocked."));
-      setSelectedConv(null);
-      void qc.invalidateQueries({ queryKey: ["chat", "conversations"] });
+      if (isBlocked) {
+        await chatApi.unblockUser(selectedConv.otherParticipantId);
+        toast.success(t("chat.unblock_success", "User unblocked."));
+      } else {
+        await chatApi.blockUser({ userId: selectedConv.otherParticipantId });
+        toast.success(t("chat.block_success", "User blocked."));
+      }
+
+      // Keep the thread open and refresh so the button reflects the new block
+      // state and the toggle stays reachable (UAT TC-006).
+      const fresh = await qc.fetchQuery({
+        queryKey: ["chat", "conversations"],
+        queryFn: () => chatApi.getConversations(),
+      });
+      const updated = fresh.find(
+        (c) => c.otherParticipantId === selectedConv.otherParticipantId,
+      );
+      setSelectedConv(updated ?? { ...selectedConv, isBlocked: !isBlocked });
     } catch (error) {
-      console.error("Failed to block user", error);
-      toast.error(t("chat.block_error", "Could not block this user."));
+      console.error("Failed to toggle block", error);
+      toast.error(
+        isBlocked
+          ? t("chat.unblock_error", "Could not unblock this user.")
+          : t("chat.block_error", "Could not block this user."),
+      );
     }
   };
 
@@ -339,7 +361,7 @@ export function Chat() {
         {selectedConv ? (
           <>
             {/* Header */}
-            <div className="p-4 border-b border-border-subtle flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-10">
+            <div className="p-4 border-b border-border-subtle flex items-center justify-between bg-bg-elevated/80 backdrop-blur-md sticky top-0 z-10">
               <div className="flex items-center gap-3">
                 <UserAvatar
                   userId={selectedConv.otherParticipantId}
@@ -363,13 +385,29 @@ export function Chat() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleBlockUser}
-                  title={t("chat.block_user", "Block user")}
-                  aria-label={t("chat.block_user", "Block user")}
-                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-danger-500 hover:bg-danger-50 rounded-full transition-colors"
+                  onClick={handleToggleBlock}
+                  title={
+                    selectedConv.isBlocked
+                      ? t("chat.unblock_user", "Unblock user")
+                      : t("chat.block_user", "Block user")
+                  }
+                  aria-label={
+                    selectedConv.isBlocked
+                      ? t("chat.unblock_user", "Unblock user")
+                      : t("chat.block_user", "Block user")
+                  }
+                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-full transition-colors ${
+                    selectedConv.isBlocked
+                      ? "text-brand-500 hover:bg-brand-50"
+                      : "text-danger-500 hover:bg-danger-50"
+                  }`}
                 >
                   <Slash size={16} />
-                  <span className="hidden sm:inline">{t("chat.block_user", "Block user")}</span>
+                  <span className="hidden sm:inline">
+                    {selectedConv.isBlocked
+                      ? t("chat.unblock_user", "Unblock user")
+                      : t("chat.block_user", "Block user")}
+                  </span>
                 </button>
               </div>
             </div>
@@ -415,7 +453,7 @@ export function Chat() {
                   value={messageBody}
                   onChange={handleTyping}
                   placeholder={t("chat.type_placeholder", "Type a message...")}
-                  className="flex-1 bg-white border border-border-subtle rounded-2xl p-3 px-4 outline-none focus:ring-2 focus:ring-brand-400 transition-all text-sm resize-none h-12"
+                  className="flex-1 bg-bg-elevated text-text-primary border border-border-subtle rounded-2xl p-3 px-4 outline-none focus:ring-2 focus:ring-brand-400 transition-all text-sm resize-none h-12"
                   rows={1}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {

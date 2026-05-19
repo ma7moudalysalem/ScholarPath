@@ -59,6 +59,10 @@
     "block_confirm": "Block this person? You will no longer be able to message each other.",
     "block_success": "User blocked.",
     "block_error": "Could not block this user.",
+    "unblock_user": "Unblock user",
+    "unblock_confirm": "Unblock this person? You will be able to message each other again.",
+    "unblock_success": "User unblocked.",
+    "unblock_error": "Could not unblock this user.",
     "send_error": "Could not send your message.",
     "empty_title": "Your Conversations",
     "empty_desc": "Pick a conversation from the sidebar, or start a new message."
