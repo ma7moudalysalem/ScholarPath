@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Admin.Commands.ApproveOnboarding;
@@ -10,6 +11,7 @@ namespace ScholarPath.Application.Admin.Commands.ApproveOnboarding;
 public sealed class ReviewOnboardingCommandHandler(
     IApplicationDbContext db,
     IUserAdministration admin,
+    INotificationDispatcher notifications,
     ILogger<ReviewOnboardingCommandHandler> logger)
     : IRequestHandler<ReviewOnboardingCommand, bool>
 {
@@ -46,6 +48,17 @@ public sealed class ReviewOnboardingCommandHandler(
             user.IsOnboardingComplete = true;
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
         }
+
+        // Tell the applicant their onboarding was decided (in-app + email).
+        await notifications.DispatchAsync(
+            request.UserId,
+            request.Decision == OnboardingDecision.Approve
+                ? NotificationType.OnboardingApproved
+                : NotificationType.OnboardingRejected,
+            new NotificationParams { Reason = request.ReviewerNotes },
+            deepLink: null,
+            idempotencyKey: $"onboarding-review:{request.UserId:N}",
+            ct).ConfigureAwait(false);
 
         logger.LogInformation("Onboarding {Decision} for {UserId} → {Status}. Notes: {Notes}",
             request.Decision, request.UserId, newStatus, request.ReviewerNotes ?? "<none>");

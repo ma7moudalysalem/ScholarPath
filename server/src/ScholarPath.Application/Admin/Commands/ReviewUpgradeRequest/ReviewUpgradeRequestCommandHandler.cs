@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
@@ -13,6 +14,7 @@ public sealed class ReviewUpgradeRequestCommandHandler(
     IUserAdministration admin,
     ICurrentUserService currentUser,
     IDateTimeService clock,
+    INotificationDispatcher notifications,
     ILogger<ReviewUpgradeRequestCommandHandler> logger)
     : IRequestHandler<ReviewUpgradeRequestCommand, bool>
 {
@@ -61,6 +63,22 @@ public sealed class ReviewUpgradeRequestCommandHandler(
         }
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        // Tell the requester their upgrade was decided (in-app + email).
+        await notifications.DispatchAsync(
+            req.UserId,
+            request.Decision == UpgradeDecision.Approve
+                ? NotificationType.UpgradeRequestApproved
+                : NotificationType.UpgradeRequestRejected,
+            new NotificationParams
+            {
+                StatusText = req.Target.ToString(),
+                Reason = request.ReviewerNotes,
+            },
+            deepLink: null,
+            idempotencyKey: $"upgrade-review:{req.Id:N}",
+            ct).ConfigureAwait(false);
+
         return true;
     }
 }

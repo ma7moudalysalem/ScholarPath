@@ -75,6 +75,26 @@ public sealed class NotificationCatalog : INotificationCatalog
             "We couldn't complete your payout. Our team is looking into it.",
             "تعذّر إتمام دفعتك، وفريقنا يتابع المشكلة."),
 
+        NotificationType.OnboardingApproved => new(
+            "Account approved", "تم اعتماد حسابك",
+            "Your onboarding request was approved — your account is now active.",
+            "تمت الموافقة على طلب انضمامك — حسابك الآن مُفعَّل."),
+
+        NotificationType.OnboardingRejected => new(
+            "Onboarding not approved", "لم يُعتمد طلب الانضمام",
+            $"Your onboarding request was not approved: {p.Reason ?? "please contact support for details"}.",
+            $"لم تتم الموافقة على طلب انضمامك: {p.Reason ?? "يرجى التواصل مع الدعم لمعرفة التفاصيل"}."),
+
+        NotificationType.UpgradeRequestApproved => new(
+            "Upgrade approved", "تمت الموافقة على الترقية",
+            $"Your request to become a {p.StatusText ?? "new role"} was approved.",
+            $"تمت الموافقة على طلب ترقيتك إلى {p.StatusText ?? "الدور الجديد"}."),
+
+        NotificationType.UpgradeRequestRejected => new(
+            "Upgrade not approved", "لم تتم الموافقة على الترقية",
+            $"Your upgrade request was not approved: {p.Reason ?? "see the reviewer notes"}.",
+            $"لم تتم الموافقة على طلب ترقيتك: {p.Reason ?? "راجِع ملاحظات المراجِع"}."),
+
         // Admin-authored announcement — text comes through verbatim, not templated.
         NotificationType.Broadcast => p.RawContent ?? new(
             "Announcement", "إعلان", string.Empty, string.Empty),

@@ -36,7 +36,8 @@ public class ReviewOnboardingRoleGrantTests
 
     private static ReviewOnboardingCommandHandler Sut(
         ApplicationDbContext db, IUserAdministration admin) =>
-        new(db, admin, NullLogger<ReviewOnboardingCommandHandler>.Instance);
+        new(db, admin, Substitute.For<INotificationDispatcher>(),
+            NullLogger<ReviewOnboardingCommandHandler>.Instance);
 
     [Fact]
     public async Task Approval_grants_the_requested_role_and_completes_onboarding()
