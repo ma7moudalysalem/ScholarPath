@@ -23,7 +23,7 @@ public sealed class RefundCalculatorServiceTests
             studentId: StudentId,
             consultantId: ConsultantId,
             scheduledStartAt: nowUtc.AddDays(2),
-            priceUsd: 100m,
+            amountCents: 10_000,
             nowUtc: nowUtc);
 
         Assert.Equal(100, result.RefundPercentage);
@@ -42,7 +42,7 @@ public sealed class RefundCalculatorServiceTests
             studentId: StudentId,
             consultantId: ConsultantId,
             scheduledStartAt: nowUtc.AddHours(48),
-            priceUsd: 100m,
+            amountCents: 10_000,
             nowUtc: nowUtc);
 
         Assert.Equal(100, result.RefundPercentage);
@@ -61,7 +61,7 @@ public sealed class RefundCalculatorServiceTests
             studentId: StudentId,
             consultantId: ConsultantId,
             scheduledStartAt: nowUtc.AddHours(24),
-            priceUsd: 100m,
+            amountCents: 10_000,
             nowUtc: nowUtc);
 
         Assert.Equal(50, result.RefundPercentage);
@@ -80,7 +80,7 @@ public sealed class RefundCalculatorServiceTests
             studentId: StudentId,
             consultantId: ConsultantId,
             scheduledStartAt: nowUtc.AddHours(12),
-            priceUsd: 100m,
+            amountCents: 10_000,
             nowUtc: nowUtc);
 
         Assert.Equal(50, result.RefundPercentage);
@@ -99,7 +99,7 @@ public sealed class RefundCalculatorServiceTests
             studentId: StudentId,
             consultantId: ConsultantId,
             scheduledStartAt: nowUtc.AddHours(12),
-            priceUsd: 100m,
+            amountCents: 10_000,
             nowUtc: nowUtc);
 
         Assert.Equal(100, result.RefundPercentage);
@@ -108,26 +108,27 @@ public sealed class RefundCalculatorServiceTests
     }
 
     [Fact]
-    public void Calculate_WhenPriceHasCents_RoundsToExpectedCents()
+    public void Calculate_WhenAmountHasOddCents_HalfRefundFloorsToWholeCent()
     {
         var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
 
+        // 9_999 / 2 = 4_999.5 -> integer division floors to 4_999.
         var result = _sut.Calculate(
             bookingStatus: BookingStatus.Confirmed,
-            cancelledByUserId: ConsultantId,
+            cancelledByUserId: StudentId,
             studentId: StudentId,
             consultantId: ConsultantId,
             scheduledStartAt: nowUtc.AddHours(12),
-            priceUsd: 99.99m,
+            amountCents: 9_999,
             nowUtc: nowUtc);
 
-        Assert.Equal(100, result.RefundPercentage);
-        Assert.Equal(9_999, result.RefundAmountCents);
-        Assert.Equal(CancellationReason.ConsultantCancelledAfterAcceptance, result.CancellationReason);
+        Assert.Equal(50, result.RefundPercentage);
+        Assert.Equal(4_999, result.RefundAmountCents);
+        Assert.Equal(CancellationReason.StudentCancelledLessThan24HoursBefore, result.CancellationReason);
     }
 
     [Fact]
-    public void Calculate_WhenPriceIsZero_ReturnsZeroRefundWithoutThrowing()
+    public void Calculate_WhenAmountIsZero_ReturnsZeroRefundWithoutThrowing()
     {
         var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
 
@@ -137,7 +138,7 @@ public sealed class RefundCalculatorServiceTests
             studentId: StudentId,
             consultantId: ConsultantId,
             scheduledStartAt: nowUtc.AddDays(2),
-            priceUsd: 0m,
+            amountCents: 0,
             nowUtc: nowUtc);
 
         Assert.Equal(100, result.RefundPercentage);
@@ -156,7 +157,7 @@ public sealed class RefundCalculatorServiceTests
             studentId: StudentId,
             consultantId: ConsultantId,
             scheduledStartAt: nowUtc.AddHours(12),
-            priceUsd: 100m,
+            amountCents: 10_000,
             nowUtc: nowUtc));
 
         Assert.Equal("Cancelling user is not related to this booking.", ex.Message);
@@ -173,7 +174,7 @@ public sealed class RefundCalculatorServiceTests
             studentId: StudentId,
             consultantId: ConsultantId,
             scheduledStartAt: nowUtc.AddDays(2),
-            priceUsd: 100m,
+            amountCents: 10_000,
             nowUtc: nowUtc));
 
         Assert.Equal("Requested bookings can only be cancelled by the student. Consultants should reject them.", ex.Message);
@@ -190,14 +191,14 @@ public sealed class RefundCalculatorServiceTests
             studentId: StudentId,
             consultantId: ConsultantId,
             scheduledStartAt: nowUtc.AddHours(-2),
-            priceUsd: 100m,
+            amountCents: 10_000,
             nowUtc: nowUtc));
 
         Assert.Equal("Only requested or confirmed bookings can be cancelled.", ex.Message);
     }
 
     [Fact]
-    public void Calculate_WhenPriceIsNegative_Throws()
+    public void Calculate_WhenAmountIsNegative_Throws()
     {
         var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
 
@@ -207,9 +208,9 @@ public sealed class RefundCalculatorServiceTests
             studentId: StudentId,
             consultantId: ConsultantId,
             scheduledStartAt: nowUtc.AddHours(12),
-            priceUsd: -100m,
+            amountCents: -100,
             nowUtc: nowUtc));
 
-        Assert.Equal("Booking price cannot be negative.", ex.Message);
+        Assert.Equal("Booking amount cannot be negative.", ex.Message);
     }
 }

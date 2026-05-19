@@ -42,6 +42,7 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
             ?? throw new UnauthorizedAccessException("Authenticated user id is missing.");
 
         var booking = await _context.Bookings
+            .Include(b => b.Payment)
             .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken);
 
         if (booking is null)
@@ -67,15 +68,20 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
             throw new BookingDomainException("Booking has no Stripe payment intent.");
         }
 
+        var payment = booking.Payment
+            ?? throw new BookingDomainException("Booking has no linked payment record.");
+
         var nowUtc = DateTimeOffset.UtcNow;
 
+        // FR-198/199: refund amounts are derived from the Payment's stored
+        // financial snapshot, not the (possibly stale) booking price.
         var refund = _refundCalculator.Calculate(
             bookingStatus: booking.Status,
             cancelledByUserId: currentUserId,
             studentId: booking.StudentId,
             consultantId: booking.ConsultantId,
             scheduledStartAt: booking.ScheduledStartAt,
-            priceUsd: booking.PriceUsd,
+            amountCents: payment.AmountCents,
             nowUtc: nowUtc);
 
         if (booking.Status == BookingStatus.Requested)
@@ -91,6 +97,13 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
             if (string.IsNullOrWhiteSpace(cancelResult.Id))
             {
                 throw new BookingDomainException("Stripe payment intent cancellation failed.");
+            }
+
+            // FR-085/188: release the hold on the internal Payment row.
+            if (payment.Status is PaymentStatus.Held or PaymentStatus.Pending)
+            {
+                payment.Status = PaymentStatus.Cancelled;
+                payment.FailureReason = "student_cancelled_before_acceptance";
             }
         }
         else
@@ -108,6 +121,15 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
             {
                 throw new BookingDomainException("Stripe refund failed.");
             }
+
+            // FR-087-089/193: record the refund on the internal Payment row so
+            // refund status, settlement impact and payout eligibility are accurate.
+            payment.RefundedAmountCents = refund.RefundAmountCents;
+            payment.RefundedAt = nowUtc;
+            payment.RefundReason = refund.CancellationReason.ToString();
+            payment.Status = refund.RefundAmountCents >= payment.AmountCents
+                ? PaymentStatus.Refunded
+                : PaymentStatus.PartiallyRefunded;
         }
 
         booking.Status = BookingStatus.Cancelled;

@@ -34,6 +34,7 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
             ?? throw new UnauthorizedAccessException("Authenticated user id is missing.");
 
         var booking = await _context.Bookings
+            .Include(b => b.Payment)
             .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken);
 
         if (booking is null)
@@ -105,6 +106,16 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
             if (string.IsNullOrWhiteSpace(refundResult.Id))
             {
                 throw new BookingDomainException("Stripe refund failed.");
+            }
+
+            // FR-090/193: a consultant no-show fully refunds the student, so the
+            // internal Payment row is marked Refunded for the gross amount.
+            if (booking.Payment is { } payment)
+            {
+                payment.Status = PaymentStatus.Refunded;
+                payment.RefundedAmountCents = payment.AmountCents;
+                payment.RefundedAt = nowUtc;
+                payment.RefundReason = CancellationReason.ConsultantNoShow.ToString();
             }
 
             booking.IsNoShowConsultant = true;

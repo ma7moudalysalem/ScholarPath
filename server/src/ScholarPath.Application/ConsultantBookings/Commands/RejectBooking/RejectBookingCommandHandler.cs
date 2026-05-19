@@ -39,6 +39,7 @@ public sealed class RejectBookingCommandHandler : IRequestHandler<RejectBookingC
             ?? throw new UnauthorizedAccessException("Authenticated user id is missing.");
 
         var booking = await _context.Bookings
+            .Include(b => b.Payment)
             .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken);
 
         if (booking is null)
@@ -72,6 +73,14 @@ public sealed class RejectBookingCommandHandler : IRequestHandler<RejectBookingC
         if (string.IsNullOrWhiteSpace(cancelResult.Id))
         {
             throw new BookingDomainException("Stripe payment intent cancellation failed.");
+        }
+
+        // FR-082/188: release the internal Payment hold — the consultant
+        // rejected, so the row moves to Cancelled rather than staying Held.
+        if (booking.Payment is { Status: PaymentStatus.Held or PaymentStatus.Pending } payment)
+        {
+            payment.Status = PaymentStatus.Cancelled;
+            payment.FailureReason = "rejected_by_consultant";
         }
 
         booking.Status = BookingStatus.Rejected;

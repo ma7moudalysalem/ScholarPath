@@ -26,6 +26,7 @@ public sealed class SessionExpiryJob : ISessionExpiryJob
         var expiryThreshold = DateTimeOffset.UtcNow.AddHours(-24);
 
         var bookings = await _context.Bookings
+            .Include(b => b.Payment)
             .Where(b =>
                 b.Status == BookingStatus.Requested &&
                 b.RequestedAt.HasValue &&
@@ -51,6 +52,14 @@ public sealed class SessionExpiryJob : ISessionExpiryJob
                         cancellationReason: "abandoned",
                         idempotencyKey: idempotencyKey,
                         ct: cancellationToken);
+                }
+
+                // FR-082/086/188: release the internal Payment hold so an expired
+                // request is not left financially Held in reports.
+                if (booking.Payment is { Status: PaymentStatus.Held or PaymentStatus.Pending } payment)
+                {
+                    payment.Status = PaymentStatus.Cancelled;
+                    payment.FailureReason = "booking_request_expired";
                 }
 
                 booking.Status = BookingStatus.Expired;

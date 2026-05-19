@@ -17,14 +17,15 @@ public sealed class RefundCalculatorService
         Guid studentId,
         Guid consultantId,
         DateTimeOffset scheduledStartAt,
-        decimal priceUsd,
+        long amountCents,
         DateTimeOffset nowUtc)
     {
-        var amountCents = (long)decimal.Round(priceUsd * 100m, 0, MidpointRounding.AwayFromZero);
-
+        // FR-198/199: the refund basis is the original payment amount stored on
+        // the Payment row, not the booking price — the two can diverge later
+        // (discounts, currency, re-pricing), so the stored snapshot is authoritative.
         if (amountCents < 0)
         {
-            throw new InvalidOperationException("Booking price cannot be negative.");
+            throw new InvalidOperationException("Booking amount cannot be negative.");
         }
 
         var cancelledByStudent = cancelledByUserId == studentId;

@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.FinancialConfig;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Events;
 using ScholarPath.Domain.Exceptions;
@@ -43,6 +44,7 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
             ?? throw new UnauthorizedAccessException("Authenticated user id is missing.");
 
         var booking = await _context.Bookings
+            .Include(b => b.Payment)
             .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken);
 
         if (booking is null)
@@ -88,8 +90,28 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
             throw new BookingDomainException("Stripe payment capture failed.");
         }
 
+        var nowUtc = DateTimeOffset.UtcNow;
+
+        // FR-081/187/190: sync the internal Payment row with the Stripe capture —
+        // mark it Captured and lock in the platform/payee split from the financial
+        // rule in force, so payment history, payouts and reporting stay accurate.
+        if (booking.Payment is { Status: PaymentStatus.Held } payment)
+        {
+            payment.Status = PaymentStatus.Captured;
+            payment.CapturedAt = nowUtc;
+            if (!string.IsNullOrWhiteSpace(captureResult.LatestChargeId))
+            {
+                payment.StripeChargeId = captureResult.LatestChargeId;
+            }
+
+            var split = await FinancialRuleResolver.ResolvePaymentSplitAsync(
+                _context, payment.Type, payment.AmountCents, cancellationToken);
+            payment.ProfitShareAmountCents = split.PlatformTakeCents;
+            payment.PayeeAmountCents = split.PayeeNetCents;
+        }
+
         booking.Status = BookingStatus.Confirmed;
-        booking.ConfirmedAt = DateTimeOffset.UtcNow;
+        booking.ConfirmedAt = nowUtc;
         booking.MeetingUrl = request.MeetingUrl;
 
         await _context.SaveChangesAsync(cancellationToken);
