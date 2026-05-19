@@ -10,7 +10,8 @@
     "knowledgeBase": "قاعدة معرفة الذكاء الاصطناعي",
     "redactionAudit": "تدقيق إخفاء البيانات",
     "broadcast": "رسالة عامة",
-    "auditLog": "سجل التدقيق"
+    "auditLog": "سجل التدقيق",
+    "financialConfig": "الإعدادات المالية"
   },
   "dashboard": {
     "totalUsers": "إجمالي المستخدمين",

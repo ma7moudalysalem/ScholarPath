@@ -179,6 +179,11 @@ const AdminPayments = lazy(() =>
 const AdminProfitShare = lazy(() =>
   import("@/pages/admin/AdminProfitShare").then((m) => ({ default: m.AdminProfitShare })),
 );
+const AdminFinancialConfig = lazy(() =>
+  import("@/pages/admin/AdminFinancialConfig").then((m) => ({
+    default: m.AdminFinancialConfig,
+  })),
+);
 const AdminAuditLog = lazy(() =>
   import("@/pages/admin/AuditLogViewer").then((m) => ({ default: m.AuditLogViewer })),
 );
@@ -430,6 +435,7 @@ export function AppRouter() {
           <Route path="/admin/community"        element={<AdminCommunity />} />
           <Route path="/admin/payments"         element={<AdminPayments />} />
           <Route path="/admin/profit-share"     element={<AdminProfitShare />} />
+          <Route path="/admin/financial-config" element={<AdminFinancialConfig />} />
           <Route path="/admin/audit-log"        element={<AdminAuditLog />} />
           <Route path="/admin/settings"         element={<AdminSettings />} />
         </Route>

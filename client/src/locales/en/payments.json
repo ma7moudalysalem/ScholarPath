@@ -81,6 +81,91 @@
     "hNotes": "Notes",
     "active": "Active"
   },
+  "financialConfig": {
+    "title": "Financial configuration",
+    "subtitle": "Platform fee and profit-share rules per payment type. Only one rule is active per type at a time.",
+    "newRule": "New rule",
+    "feeKind": {
+      "Percentage": "Percentage of gross",
+      "FixedAmount": "Fixed amount"
+    },
+    "status": {
+      "Draft": "Draft",
+      "Active": "Active",
+      "Archived": "Archived"
+    },
+    "filterType": "All payment types",
+    "filterStatus": "All statuses",
+    "empty": "No rules yet. Create one to get started.",
+    "loadError": "Could not load financial rules.",
+    "table": {
+      "type": "Payment type",
+      "fee": "Platform fee",
+      "profitShare": "Profit share",
+      "status": "Status",
+      "from": "Effective from",
+      "to": "Effective to",
+      "notes": "Notes",
+      "actions": "Actions"
+    },
+    "actions": {
+      "edit": "Edit",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "archive": "Archive"
+    },
+    "confirm": {
+      "activate": "Activate this rule? Any rule currently active for the same payment type will be archived.",
+      "deactivate": "Deactivate this rule? The payment type will have no active rule until you activate another.",
+      "archive": "Archive this rule? Archived rules cannot be edited or reactivated."
+    },
+    "form": {
+      "createTitle": "New financial rule",
+      "editTitle": "Edit draft rule",
+      "paymentType": "Payment type",
+      "feeKind": "Fee type",
+      "feePercentage": "Fee percentage (%)",
+      "feeAmount": "Fixed fee amount ($)",
+      "profitShare": "Profit share (%)",
+      "effectiveFrom": "Effective from",
+      "effectiveTo": "Effective to (optional)",
+      "notes": "Notes (optional)",
+      "notesPlaceholder": "Why this rule? Recorded in the audit trail.",
+      "save": "Save rule",
+      "saving": "Saving…",
+      "cancel": "Cancel"
+    },
+    "simulator": {
+      "title": "Calculation preview",
+      "subtitle": "Simulate how a gross amount is split before activating a rule.",
+      "grossAmount": "Gross amount ($)",
+      "target": "Apply rule",
+      "activeFor": "Active rule — {{type}}",
+      "run": "Simulate",
+      "fee": "Platform fee",
+      "profitShare": "Profit share",
+      "platformTotal": "Platform total",
+      "payeeNet": "Payee receives",
+      "effectiveRate": "Effective fee rate",
+      "fallbackNote": "No rule is configured for this payment type — the default rate was used.",
+      "notViableNote": "The platform take exceeds the gross amount — the payee balance would be negative."
+    },
+    "toast": {
+      "created": "Rule created.",
+      "updated": "Rule updated.",
+      "activated": "Rule activated.",
+      "deactivated": "Rule deactivated.",
+      "archived": "Rule archived.",
+      "error": "Something went wrong. Please try again."
+    },
+    "validation": {
+      "feePercentage": "Enter a fee percentage between 0 and 100.",
+      "feeAmount": "Enter a fixed fee greater than zero.",
+      "profitShare": "Enter a profit share between 0 and 100.",
+      "effectiveFrom": "Choose an effective-from date.",
+      "grossAmount": "Enter a gross amount greater than zero."
+    }
+  },
   "billing": {
     "title": "Billing",
     "subtitle": "Your review payments and the payouts you have received.",

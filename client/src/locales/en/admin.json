@@ -10,7 +10,8 @@
     "knowledgeBase": "AI knowledge base",
     "redactionAudit": "Redaction audit",
     "broadcast": "Broadcast",
-    "auditLog": "Audit log"
+    "auditLog": "Audit log",
+    "financialConfig": "Financial config"
   },
   "dashboard": {
     "totalUsers": "Total users",

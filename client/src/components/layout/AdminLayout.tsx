@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   Megaphone,
   FileText,
+  Coins,
   LogOut,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -39,6 +40,7 @@ const NAV: NavItem[] = [
   { to: "/admin/redaction-audit", key: "nav.redactionAudit", icon: ShieldAlert },
   { to: "/admin/broadcast", key: "nav.broadcast", icon: Megaphone },
   { to: "/admin/audit-log", key: "nav.auditLog", icon: FileText },
+  { to: "/admin/financial-config", key: "nav.financialConfig", icon: Coins },
 ];
 
 export function AdminLayout() {
