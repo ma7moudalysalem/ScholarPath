@@ -49,6 +49,12 @@ public sealed class UpdateFinancialRuleCommandValidator : AbstractValidator<Upda
             .InclusiveBetween(0m, 1m)
             .WithMessage("Profit-share must be a fraction between 0 and 1.");
 
+        // A percentage-fee rule must still leave something for the payee.
+        RuleFor(x => x)
+            .Must(x => (x.FeePercentage ?? 0m) + x.ProfitSharePercentage <= 1m)
+            .When(x => x.FeeKind == FeeKind.Percentage)
+            .WithMessage("Fee percentage and profit-share together cannot exceed 100%.");
+
         RuleFor(x => x.EffectiveTo)
             .GreaterThan(x => x.EffectiveFrom)
             .When(x => x.EffectiveTo.HasValue)
