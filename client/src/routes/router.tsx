@@ -201,6 +201,9 @@ const Notifications = lazy(() =>
 const DataPrivacy = lazy(() =>
   import("@/pages/profile/DataPrivacy").then((m) => ({ default: m.DataPrivacy })),
 );
+const Meeting = lazy(() =>
+  import("@/pages/meeting/Meeting").then((m) => ({ default: m.Meeting })),
+);
 
 function SuspenseOutlet({ children }: { children: ReactNode }) {
   return (
@@ -285,6 +288,16 @@ export function AppRouter() {
               <PublicLayout>
                 <OnboardingWizard />
               </PublicLayout>
+            </RequireAuth>
+          }
+        />
+
+        {/* PB-006 video session — full-screen, no portal chrome */}
+        <Route
+          path="/meeting/:bookingId"
+          element={
+            <RequireAuth>
+              <Meeting />
             </RequireAuth>
           }
         />

@@ -222,7 +222,7 @@ export function ConsultantBookingDetails() {
               </div>
             </div>
 
-            {booking.meetingUrl ? (
+            {isConfirmed ? (
               <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
                 <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                   {t("details.meeting.title")}
@@ -230,14 +230,12 @@ export function ConsultantBookingDetails() {
 
                 <div className="mt-5 rounded-xl border border-border-subtle bg-bg-muted p-5">
                   <p className="text-sm leading-7 text-text-secondary">{t("details.meeting.note")}</p>
-                  <a
-                    href={booking.meetingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    to={`/meeting/${booking.id}`}
                     className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
                   >
                     {t("details.meeting.join")}
-                  </a>
+                  </Link>
                 </div>
               </div>
             ) : null}

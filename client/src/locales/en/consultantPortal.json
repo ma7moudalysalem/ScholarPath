@@ -87,9 +87,9 @@
       "fee": "Fee"
     },
     "meeting": {
-      "title": "Meeting link",
-      "note": "This is the meeting link shared with the student for the confirmed session.",
-      "join": "Open the meeting"
+      "title": "Video session",
+      "note": "The session is held in a built-in video room. Join from here at the scheduled time — the room opens 15 minutes before the start.",
+      "join": "Join the video session"
     },
     "guidance": {
       "title": "Consultant guidance",
