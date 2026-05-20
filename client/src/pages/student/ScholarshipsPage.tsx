@@ -376,6 +376,25 @@ export function ScholarshipsPage() {
 
                   <div className="mt-auto space-y-2">
                     <FundingBadge type={s.fundingType} />
+
+                    {s.fieldsOfStudy.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {s.fieldsOfStudy.slice(0, 2).map((f) => (
+                          <span
+                            key={f}
+                            className="inline-flex rounded-full border border-border-subtle bg-bg-subtle px-2 py-0.5 text-[10px] font-medium text-text-tertiary"
+                          >
+                            {f}
+                          </span>
+                        ))}
+                        {s.fieldsOfStudy.length > 2 && (
+                          <span className="inline-flex rounded-full border border-border-subtle bg-bg-subtle px-2 py-0.5 text-[10px] font-medium text-text-tertiary">
+                            +{s.fieldsOfStudy.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between text-xs text-text-tertiary">
                       <span>{t(`scholarships:level.${s.targetLevel}`)}</span>
                       <span
@@ -461,6 +480,26 @@ export function ScholarshipsPage() {
 
                 <div className="mt-auto space-y-2">
                   <FundingBadge type={s.fundingType} />
+
+                  {/* Fields of study — show first 2, then "+N more" */}
+                  {s.fieldsOfStudy.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {s.fieldsOfStudy.slice(0, 2).map((f) => (
+                        <span
+                          key={f}
+                          className="inline-flex rounded-full border border-border-subtle bg-bg-subtle px-2 py-0.5 text-[10px] font-medium text-text-tertiary"
+                        >
+                          {f}
+                        </span>
+                      ))}
+                      {s.fieldsOfStudy.length > 2 && (
+                        <span className="inline-flex rounded-full border border-border-subtle bg-bg-subtle px-2 py-0.5 text-[10px] font-medium text-text-tertiary">
+                          +{s.fieldsOfStudy.length - 2}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between text-xs text-text-tertiary">
                     <span>{t(`scholarships:level.${s.targetLevel}`)}</span>
                     <span

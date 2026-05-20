@@ -289,6 +289,21 @@ export function ScholarshipDetail() {
               </span>
             </DetailRow>
           )}
+
+          {data.fieldsOfStudy && data.fieldsOfStudy.length > 0 && (
+            <DetailRow label={t("scholarships:detail.fieldsOfStudy")}>
+              <div className="flex flex-wrap gap-1.5">
+                {data.fieldsOfStudy.map((f) => (
+                  <span
+                    key={f}
+                    className="inline-flex items-center rounded-full border border-border-subtle bg-bg-subtle px-2.5 py-0.5 text-xs font-medium text-text-secondary"
+                  >
+                    {f}
+                  </span>
+                ))}
+              </div>
+            </DetailRow>
+          )}
         </dl>
       </div>
 
