@@ -77,5 +77,17 @@
   "save": "Save changes",
   "saving": "Saving…",
   "saved": "Profile updated.",
-  "error": "Could not save your profile."
+  "error": "Could not save your profile.",
+  "password": {
+    "title": "Change Password",
+    "current": "Current password",
+    "new": "New password",
+    "confirm": "Confirm new password",
+    "change": "Change password",
+    "changing": "Changing…",
+    "mismatch": "New passwords do not match.",
+    "tooShort": "New password must be at least 8 characters.",
+    "success": "Password changed. Other sessions have been signed out.",
+    "error": "Could not change password."
+  }
 }

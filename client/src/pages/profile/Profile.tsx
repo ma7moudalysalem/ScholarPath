@@ -171,6 +171,111 @@ function Field({
   );
 }
 
+// ── Change-password card (rendered below the main profile form) ───────────────
+
+function ChangePasswordCard() {
+  const { t } = useTranslation(["profile", "common"]);
+  const [currentPw,  setCurrentPw]  = useState("");
+  const [newPw,      setNewPw]      = useState("");
+  const [confirmPw,  setConfirmPw]  = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const changeMut = useMutation({
+    mutationFn: () => profileApi.changePassword(currentPw, newPw),
+    onSuccess: () => {
+      toast.success(t("profile:password.success"));
+      setCurrentPw("");
+      setNewPw("");
+      setConfirmPw("");
+      setLocalError(null);
+    },
+    onError: (err) =>
+      toast.error(apiErrorMessage(err, t("profile:password.error"))),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPw !== confirmPw) {
+      setLocalError(t("profile:password.mismatch"));
+      return;
+    }
+    if (newPw.length < 8) {
+      setLocalError(t("profile:password.tooShort"));
+      return;
+    }
+    setLocalError(null);
+    changeMut.mutate();
+  };
+
+  return (
+    <section className="mt-6 rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-xs">
+      <h2 className="mb-4 text-base font-semibold text-text-primary">
+        {t("profile:password.title")}
+      </h2>
+      <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm sm:col-span-2">
+          <span className="mb-1 block font-medium text-text-secondary">
+            {t("profile:password.current")}
+          </span>
+          <input
+            type="password"
+            required
+            autoComplete="current-password"
+            className={inputClass}
+            value={currentPw}
+            onChange={(e) => setCurrentPw(e.target.value)}
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium text-text-secondary">
+            {t("profile:password.new")}
+          </span>
+          <input
+            type="password"
+            required
+            autoComplete="new-password"
+            className={inputClass}
+            value={newPw}
+            onChange={(e) => setNewPw(e.target.value)}
+          />
+        </label>
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium text-text-secondary">
+            {t("profile:password.confirm")}
+          </span>
+          <input
+            type="password"
+            required
+            autoComplete="new-password"
+            className={inputClass}
+            value={confirmPw}
+            onChange={(e) => setConfirmPw(e.target.value)}
+          />
+        </label>
+
+        {localError && (
+          <p className="text-xs text-danger-500 sm:col-span-2">{localError}</p>
+        )}
+
+        <div className="sm:col-span-2">
+          <button
+            type="submit"
+            disabled={changeMut.isPending}
+            className="cta-pill inline-flex items-center gap-2 bg-brand-500 px-5 py-2 text-sm text-white hover:bg-brand-600 disabled:opacity-50"
+          >
+            {changeMut.isPending ? (
+              <Loader2 aria-hidden className="size-4 animate-spin" />
+            ) : null}
+            {changeMut.isPending
+              ? t("profile:password.changing")
+              : t("profile:password.change")}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
 export function Profile() {
   const { t } = useTranslation(["profile", "common"]);
   const qc = useQueryClient();
@@ -580,6 +685,9 @@ export function Profile() {
           {updateMut.isPending ? t("profile:saving") : t("profile:save")}
         </button>
       </form>
+
+      {/* Change password — only visible for password-based accounts (not SSO-only) */}
+      <ChangePasswordCard />
     </div>
   );
 }

@@ -66,4 +66,15 @@ export const profileApi = {
     const { data } = await apiClient.post<{ url: string }>("/api/profiles/me/photo", form);
     return data.url;
   },
+
+  /** Change the signed-in user's password. Revokes all refresh tokens on success. */
+  async changePassword(
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    await apiClient.post("/api/profiles/me/change-password", {
+      currentPassword,
+      newPassword,
+    });
+  },
 };

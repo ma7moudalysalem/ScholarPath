@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ScholarPath.Application.Profile.Commands.ChangePassword;
 using ScholarPath.Application.Profile.Commands.UpdateProfile;
 using ScholarPath.Application.Profile.Commands.UploadProfilePhoto;
 using ScholarPath.Application.Profile.DTOs;
@@ -43,6 +44,23 @@ public sealed class ProfileController(IMediator mediator) : ControllerBase
     }
 
     /// <summary>
+    /// Changes the signed-in user's password.
+    /// Revokes all existing refresh tokens on success so other sessions must
+    /// re-authenticate (PB-002 T-005).
+    /// </summary>
+    [HttpPost("me/change-password")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> ChangePassword(
+        [FromBody] ChangePasswordRequest body, CancellationToken ct)
+    {
+        await mediator.Send(
+            new ChangePasswordCommand(body.CurrentPassword, body.NewPassword), ct);
+        return NoContent();
+    }
+
+    /// <summary>
     /// Streams a user's profile photo. Anonymous-accessible — profile photos are
     /// shown on the public consultant-browse pages. Returns 404 when the user has
     /// no photo.
@@ -68,3 +86,5 @@ public sealed class ProfileController(IMediator mediator) : ControllerBase
         return File(photo.Content!, photo.ContentType ?? "application/octet-stream");
     }
 }
+
+public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
