@@ -83,6 +83,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/company/scholarships", key: "company.scholarships", icon: Search },
     { to: "/company/applications-review", key: "company.applicationsReview", icon: ListChecks },
     { to: "/company/billing", key: "company.billing", icon: Calendar },
+    { to: "/author/resources", key: "company.resources", icon: FileEdit },
   ],
   Consultant: [
     { to: "/consultant", key: "consultant.dashboard", icon: LayoutDashboard },

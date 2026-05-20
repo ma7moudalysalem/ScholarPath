@@ -304,21 +304,15 @@ public sealed class ApplicationTrackerConfiguration : IEntityTypeConfiguration<A
         // three chained <> conjunctions. Same meaning, accepted syntax.
         b.HasIndex(a => new { a.StudentId, a.ScholarshipId })
             .IsUnique()
+            // SQL Server filtered-index predicates don't support NOT IN — expand
+            // into three chained <> conjunctions (same semantics, accepted syntax).
             .HasFilter(
                 $"[Status] <> '{nameof(ApplicationStatus.Withdrawn)}' " +
                 $"AND [Status] <> '{nameof(ApplicationStatus.Rejected)}' " +
                 $"AND [Status] <> '{nameof(ApplicationStatus.Accepted)}'")
-        // إضافة Unique Filtered Index لمنع التقديم المتكرر (السباق اللحظي)
-        // الشرط: الطالب لا يمكنه التقديم على نفس المنحة إذا كان لديه طلب (Draft أو Pending أو UnderReview)
-        
             .HasDatabaseName("UX_Applications_Student_Scholarship_Active");
 
-        b.Property(a => a.Status)
-            .HasConversion<string>();
-    
-
-
-b.HasIndex(a => a.Status);
+        b.HasIndex(a => a.Status);
         b.HasQueryFilter(a => !a.IsDeleted);
 
         b.HasOne(a => a.Student).WithMany().HasForeignKey(a => a.StudentId).OnDelete(DeleteBehavior.Restrict);
