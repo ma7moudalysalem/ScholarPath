@@ -16,6 +16,8 @@ import { UserAvatar } from "@/components/common/UserAvatar";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuthStore } from "@/stores/authStore";
+import { apiErrorMessage } from "@/services/api/client";
 
 export function CommunityThread() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +25,9 @@ export function CommunityThread() {
   const isRtl = i18n.dir() === "rtl";
   const dateLocale = isRtl ? ar : undefined;
   const qc = useQueryClient();
+  // The server returns 409 on self-vote; we pre-empt by disabling the buttons
+  // when the author is the current user.
+  const currentUserId = useAuthStore((state) => state.user?.id);
 
   const [replyBody, setReplyBody] = useState("");
 
@@ -38,8 +43,10 @@ export function CommunityThread() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
     },
-    onError: () => {
-      toast.error(t("actions.voteError"));
+    // Surface the server's own message (e.g. "You cannot vote on your own
+    // post.") instead of a generic fallback.
+    onError: (err) => {
+      toast.error(apiErrorMessage(err, t("actions.voteError")));
     },
   });
 
@@ -111,22 +118,37 @@ export function CommunityThread() {
       <div className="bg-bg-elevated rounded-3xl border border-border-subtle shadow-sm overflow-hidden mb-8">
         <div className="p-8">
           <div className="flex gap-6">
-            {/* Vote Side */}
-            <div className="flex flex-col items-center gap-2 bg-bg-subtle rounded-2xl p-2 h-fit">
-              <button
-                onClick={() => handleVote(thread.post.id, "Up")}
-                className="p-1 hover:text-brand-500 transition-colors"
-              >
-                <ArrowUp size={24} />
-              </button>
-              <span className="font-bold text-lg">{thread.post.upvoteCount - thread.post.downvoteCount}</span>
-              <button
-                onClick={() => handleVote(thread.post.id, "Down")}
-                className="p-1 hover:text-danger-500 transition-colors"
-              >
-                <ArrowDown size={24} />
-              </button>
-            </div>
+            {/* Vote Side — disabled on your own post (matches the server-side
+                "cannot vote on your own post" rule). */}
+            {(() => {
+              const isOwnPost = thread.post.authorId === currentUserId;
+              const title = isOwnPost ? t("actions.voteOwnPost") : undefined;
+              return (
+                <div className="flex flex-col items-center gap-2 bg-bg-subtle rounded-2xl p-2 h-fit">
+                  <button
+                    type="button"
+                    onClick={() => handleVote(thread.post.id, "Up")}
+                    disabled={isOwnPost}
+                    title={title}
+                    aria-label="Upvote"
+                    className="p-1 hover:text-brand-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-current"
+                  >
+                    <ArrowUp size={24} />
+                  </button>
+                  <span className="font-bold text-lg">{thread.post.upvoteCount - thread.post.downvoteCount}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleVote(thread.post.id, "Down")}
+                    disabled={isOwnPost}
+                    title={title}
+                    aria-label="Downvote"
+                    className="p-1 hover:text-danger-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-current"
+                  >
+                    <ArrowDown size={24} />
+                  </button>
+                </div>
+              );
+            })()}
 
             <div className="flex-1">
               <div className="flex items-center justify-between mb-4">
@@ -197,7 +219,10 @@ export function CommunityThread() {
 
       {/* Replies List */}
       <div className="space-y-6 relative before:absolute before:start-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-border-subtle">
-        {thread.replies.map((reply) => (
+        {thread.replies.map((reply) => {
+          const isOwnReply = reply.authorId === currentUserId;
+          const replyVoteTitle = isOwnReply ? t("actions.voteOwnPost") : undefined;
+          return (
           <div key={reply.id} className="relative ps-12">
             <div className="bg-bg-elevated p-6 rounded-2xl border border-border-subtle shadow-sm">
               <div className="flex items-center justify-between mb-3">
@@ -215,13 +240,18 @@ export function CommunityThread() {
                 </div>
                 <div className="flex items-center gap-1">
                   <button
+                    type="button"
                     onClick={() => handleVote(reply.id, "Up")}
-                    className="p-1 text-text-tertiary hover:text-brand-500 transition-colors"
+                    disabled={isOwnReply}
+                    title={replyVoteTitle}
+                    aria-label="Upvote reply"
+                    className="p-1 text-text-tertiary hover:text-brand-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-text-tertiary"
                   >
                     <ArrowUp size={16} />
                   </button>
                   <span className="text-xs font-bold w-4 text-center">{reply.upvoteCount - reply.downvoteCount}</span>
-                  <button 
+                  <button
+                    type="button"
                     onClick={() => handleFlag(reply.id)}
                     className="p-1 text-text-tertiary hover:text-danger-500 transition-colors"
                   >
@@ -236,7 +266,8 @@ export function CommunityThread() {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -19,6 +19,8 @@ import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAuthStore } from "@/stores/authStore";
+import { apiErrorMessage } from "@/services/api/client";
 
 export function Community() {
   const { t, i18n } = useTranslation("community");
@@ -29,6 +31,11 @@ export function Community() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("Newest");
   const [askOpen, setAskOpen] = useState(false);
+
+  // The server returns 409 if someone tries to vote on a post they authored.
+  // We pre-empt that here by disabling the buttons for posts authored by the
+  // current user — single source of truth is the auth store.
+  const currentUserId = useAuthStore((state) => state.user?.id);
 
   const { data: categories = [] } = useQuery<ForumCategory[]>({
     queryKey: ["community", "categories"],
@@ -54,7 +61,10 @@ export function Community() {
     mutationFn: ({ postId, type }: { postId: string; type: VoteType }) =>
       communityApi.toggleVote(postId, type),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["community", "posts"] }),
-    onError: () => toast.error(t("actions.voteError")),
+    // Surface the server's own message ("You cannot vote on your own post.",
+    // "Voting on hidden posts is not allowed.", etc.) instead of a generic
+    // fallback — the user has no way to act on a vague "could not vote".
+    onError: (err) => toast.error(apiErrorMessage(err, t("actions.voteError"))),
   });
 
   // The vote buttons sit inside the post Link — block navigation when voting.
@@ -161,20 +171,27 @@ export function Community() {
               <div key={i} className="h-32 bg-bg-elevated rounded-2xl border border-border-subtle animate-pulse" />
             ))
           ) : posts.length > 0 ? (
-            posts.map((post) => (
+            posts.map((post) => {
+              const isOwnPost = post.authorId === currentUserId;
+              const voteDisabledTitle = isOwnPost ? t("actions.voteOwnPost") : undefined;
+              return (
               <Link
                 key={post.id}
                 to={`/student/community/${post.id}`}
                 className="block group bg-bg-elevated p-6 rounded-2xl border border-border-subtle shadow-sm hover:shadow-md transition-all hover:border-brand-200"
               >
                 <div className="flex gap-4">
-                  {/* Vote Side */}
+                  {/* Vote Side — disabled (visually + behaviourally) on the user's
+                      own post, matching the server-side "cannot vote on your own"
+                      rule so they never see a 409 toast. */}
                   <div className="hidden sm:flex flex-col items-center gap-1 bg-bg-subtle rounded-xl p-2 h-fit">
                     <button
                       type="button"
                       aria-label="Upvote"
+                      disabled={isOwnPost}
+                      title={voteDisabledTitle}
                       onClick={(e) => handleVote(e, post.id, "Up")}
-                      className="text-text-tertiary hover:text-brand-500 transition-colors"
+                      className="text-text-tertiary hover:text-brand-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-text-tertiary"
                     >
                       <ArrowUp size={20} aria-hidden />
                     </button>
@@ -184,8 +201,10 @@ export function Community() {
                     <button
                       type="button"
                       aria-label="Downvote"
+                      disabled={isOwnPost}
+                      title={voteDisabledTitle}
                       onClick={(e) => handleVote(e, post.id, "Down")}
-                      className="text-text-tertiary hover:text-danger-500 transition-colors"
+                      className="text-text-tertiary hover:text-danger-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-text-tertiary"
                     >
                       <ArrowDown size={20} aria-hidden />
                     </button>
@@ -225,7 +244,8 @@ export function Community() {
                   </div>
                 </div>
               </Link>
-            ))
+              );
+            })
           ) : (
             <div className="text-center py-20 bg-bg-elevated rounded-3xl border border-dashed border-border-default">
               <div className="bg-bg-subtle w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
