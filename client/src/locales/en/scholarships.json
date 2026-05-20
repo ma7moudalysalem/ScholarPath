@@ -84,6 +84,9 @@
     "applying": "Applying…",
     "applyStarted": "Application started — review and submit it.",
     "applyResumed": "Opening your existing application — review and submit it.",
-    "alreadyApplied": "You already have an application for this scholarship."
+    "alreadyApplied": "You already have an application for this scholarship.",
+    "applyGoToProfile": "Go to profile",
+    "profileIncompleteTitle": "Complete your profile to apply",
+    "profileIncompleteBody": "Add your academic level and field of study — they're used to evaluate the application and to personalise AI recommendations."
   }
 }

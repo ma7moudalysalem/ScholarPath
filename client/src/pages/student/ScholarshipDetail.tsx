@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   ArrowLeft,
@@ -20,6 +20,8 @@ import {
 } from "@/hooks/useScholarshipsQuery";
 import { applicationsApi } from "@/services/api/applications";
 import { ApiError, apiErrorMessage } from "@/services/api/client";
+import { profileApi, type UserProfile } from "@/services/api/profile";
+import { AlertCircle } from "lucide-react";
 import type { FundingType } from "@/types/domain";
 import { SkeletonDetailCard } from "@/components/common/Skeleton";
 
@@ -77,6 +79,21 @@ export function ScholarshipDetail() {
   const { data, isLoading, isError } = useScholarshipDetailQuery(id);
   const bookmarkMut = useToggleBookmarkMutation();
 
+  // Pre-flight check for the apply button — the server rejects with 409 if
+  // the student's profile is missing AcademicLevel / FieldOfStudy. We mirror
+  // that rule here so the user sees an in-page banner + a disabled button
+  // BEFORE they tap "Apply", instead of only learning after a network round-trip.
+  const profileQuery = useQuery<UserProfile>({
+    queryKey: ["profile", "me"],
+    queryFn: () => profileApi.getMine(),
+    staleTime: 60_000,
+  });
+  const profileIncomplete = profileQuery.data
+    ? !profileQuery.data.academicLevel ||
+      !profileQuery.data.fieldOfStudy ||
+      profileQuery.data.fieldOfStudy.trim().length === 0
+    : false;
+
   // In-app apply — creates a Draft application, then opens it so the student
   // can review and submit it. External listings use the external-URL button.
   const applyMut = useMutation({
@@ -91,12 +108,24 @@ export function ScholarshipDetail() {
     },
     onError: (err: unknown) => {
       // Surface the server's actual reason (profile incomplete, scholarship
-      // closed, …) instead of a one-size-fits-all message (UAT TC-003).
-      toast.error(
-        err instanceof ApiError
-          ? (err.payload.detail ?? err.payload.title)
-          : t("common:status.error"),
-      );
+      // closed, …) — and when it's specifically the "complete your profile"
+      // 409, route the user there via an action button on the toast so a
+      // dismissed in-page banner still has a path forward (UAT TC-003).
+      const status = err instanceof ApiError ? err.status : undefined;
+      const detail = err instanceof ApiError
+        ? (err.payload.detail ?? err.payload.title)
+        : null;
+
+      if (status === 409 && detail && detail.toLowerCase().includes("complete your profile")) {
+        toast.error(detail, {
+          action: {
+            label: t("scholarships:detail.applyGoToProfile"),
+            onClick: () => navigate("/profile"),
+          },
+        });
+      } else {
+        toast.error(apiErrorMessage(err, t("common:status.error")));
+      }
     },
   });
 
@@ -297,6 +326,30 @@ export function ScholarshipDetail() {
         </div>
       )}
 
+      {/* Profile-incomplete banner — only shows for IN-APP listings (external
+          listings don't run the server-side profile check). A direct Link to
+          /profile gives the user a one-tap path to unblock themselves. */}
+      {!isExternal && profileIncomplete && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700">
+          <AlertCircle aria-hidden className="size-5 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-2">
+            <p className="font-medium">
+              {t("scholarships:detail.profileIncompleteTitle")}
+            </p>
+            <p className="text-warning-700/90">
+              {t("scholarships:detail.profileIncompleteBody")}
+            </p>
+            <Link
+              to="/profile"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-warning-800 underline hover:text-warning-900"
+            >
+              {t("scholarships:detail.applyGoToProfile")}
+              <ArrowRight aria-hidden className="size-3.5 rtl:rotate-180" />
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* ── CTA buttons ── */}
       <div className="flex flex-wrap gap-3">
         {isExternal ? (
@@ -313,10 +366,13 @@ export function ScholarshipDetail() {
           <button
             type="button"
             onClick={() => applyMut.mutate(data.id)}
-            disabled={isClosed || applyMut.isPending}
+            disabled={isClosed || applyMut.isPending || profileIncomplete}
+            title={profileIncomplete
+              ? t("scholarships:detail.profileIncompleteTitle")
+              : undefined}
             className={cn(
               "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition",
-              isClosed || applyMut.isPending
+              isClosed || applyMut.isPending || profileIncomplete
                 ? "cursor-not-allowed bg-bg-subtle text-text-tertiary opacity-60"
                 : "bg-brand-500 text-text-on-brand hover:bg-brand-600",
             )}
