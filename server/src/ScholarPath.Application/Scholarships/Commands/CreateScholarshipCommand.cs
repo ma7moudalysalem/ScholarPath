@@ -25,7 +25,11 @@ public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholar
     {
         RuleFor(v => v.TitleEn).MaximumLength(300).NotEmpty();
         RuleFor(v => v.TitleAr).MaximumLength(300).NotEmpty();
-        RuleFor(v => v.DescriptionEn).NotEmpty();
+        RuleFor(v => v.DescriptionEn).NotEmpty().MaximumLength(4000);
+        // DescriptionAr was previously unvalidated, but the schema marks the
+        // column as NOT NULL — an empty Arabic description used to slip through
+        // and fail at SaveChanges with a generic 500 instead of a clean 400.
+        RuleFor(v => v.DescriptionAr).NotEmpty().MaximumLength(4000);
         RuleFor(v => v.CategoryId).NotEmpty();
 
         // Spec: deadline must be at least 7 days out. Evaluated per-request

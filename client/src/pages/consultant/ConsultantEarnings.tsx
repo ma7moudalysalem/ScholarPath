@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
@@ -6,6 +7,7 @@ import {
   paymentsApi,
   formatMoneyCents,
   type PagedPayments,
+  type PaymentDto,
   type PayoutDto,
   type PaymentStatus,
   type PayoutStatus,
@@ -43,6 +45,18 @@ function payoutBadge(s: PayoutStatus): string {
   }
 }
 
+/**
+ * Per-payment percentage of the gross that was kept by the platform — the
+ * consultant cares about this far more than the absolute amount. Falls back to
+ * a dash when the payment is zero-gross (a guard rail; should never happen
+ * for a real booking).
+ */
+function feePercent(p: PaymentDto): string {
+  if (p.amountCents <= 0) return "—";
+  const pct = (p.profitShareAmountCents / p.amountCents) * 100;
+  return `${pct.toFixed(0)}%`;
+}
+
 export function ConsultantEarnings() {
   const { t, i18n } = useTranslation(["payments", "common"]);
   const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
@@ -58,12 +72,25 @@ export function ConsultantEarnings() {
     queryFn: () => paymentsApi.listMyPayouts(),
   });
 
-  const payments = paymentsQuery.data?.items ?? [];
-  const payouts = payoutsQuery.data ?? [];
+  // Memoise the unwrapped arrays — the literal `?? []` returns a fresh array
+  // every render, which would invalidate every downstream useMemo's dep array
+  // (react-hooks/exhaustive-deps flags this).
+  const payments = useMemo(
+    () => paymentsQuery.data?.items ?? [],
+    [paymentsQuery.data],
+  );
+  const payouts = useMemo(() => payoutsQuery.data ?? [], [payoutsQuery.data]);
 
-  const totalEarned = payments
-    .filter((p) => p.status === "Captured")
-    .reduce((sum, p) => sum + p.payeeAmountCents, 0);
+  // Roll up the gross / fee / net across every CAPTURED payment so the
+  // consultant can see the platform's share at a glance.
+  const totals = useMemo(() => {
+    const captured = payments.filter((p) => p.status === "Captured");
+    const gross = captured.reduce((sum, p) => sum + p.amountCents, 0);
+    const fees = captured.reduce((sum, p) => sum + p.profitShareAmountCents, 0);
+    const net = captured.reduce((sum, p) => sum + p.payeeAmountCents, 0);
+    return { gross, fees, net };
+  }, [payments]);
+
   const totalPaidOut = payouts
     .filter((p) => p.status === "Paid")
     .reduce((sum, p) => sum + p.amountCents, 0);
@@ -71,10 +98,40 @@ export function ConsultantEarnings() {
     .filter((p) => p.status === "Pending" || p.status === "InTransit")
     .reduce((sum, p) => sum + p.amountCents, 0);
 
-  const stats: { label: string; value: number }[] = [
-    { label: t("payments:earnings.totalEarned"), value: totalEarned },
-    { label: t("payments:earnings.totalPaidOut"), value: totalPaidOut },
-    { label: t("payments:earnings.awaitingPayout"), value: awaitingPayout },
+  // Stat tiles — ordered by how relevant each number is to the consultant:
+  // their net first, then the gross + fee context, then payout state.
+  const stats: { key: string; label: string; hint: string; value: number; emphasised?: boolean }[] = [
+    {
+      key: "net",
+      label: t("payments:earnings.totalEarned"),
+      hint: t("payments:earnings.totalEarnedHint"),
+      value: totals.net,
+      emphasised: true,
+    },
+    {
+      key: "gross",
+      label: t("payments:earnings.totalGross"),
+      hint: t("payments:earnings.totalGrossHint"),
+      value: totals.gross,
+    },
+    {
+      key: "fees",
+      label: t("payments:earnings.totalFees"),
+      hint: t("payments:earnings.totalFeesHint"),
+      value: totals.fees,
+    },
+    {
+      key: "paid",
+      label: t("payments:earnings.totalPaidOut"),
+      hint: t("payments:earnings.totalPaidOutHint"),
+      value: totalPaidOut,
+    },
+    {
+      key: "awaiting",
+      label: t("payments:earnings.awaitingPayout"),
+      hint: t("payments:earnings.awaitingPayoutHint"),
+      value: awaitingPayout,
+    },
   ];
 
   const loading = paymentsQuery.isLoading || payoutsQuery.isLoading;
@@ -86,44 +143,62 @@ export function ConsultantEarnings() {
         <p className="mt-1 text-sm text-text-secondary">{t("payments:earnings.subtitle")}</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
+          <div
+            key={s.key}
+            className={`rounded-lg border p-5 ${
+              s.emphasised
+                ? "border-brand-200 bg-brand-50/30"
+                : "border-border-subtle bg-bg-elevated"
+            }`}
+          >
             <p className="text-sm text-text-secondary">{s.label}</p>
             {loading ? (
               <div className="mt-2 h-7 w-24 animate-pulse rounded bg-bg-subtle" />
             ) : (
-              <p className="mt-1 text-2xl font-semibold text-brand-500">
+              <p
+                className={`mt-1 text-2xl font-semibold ${
+                  s.emphasised ? "text-brand-600" : "text-text-primary"
+                }`}
+              >
                 {formatMoneyCents(s.value, "USD")}
               </p>
             )}
+            <p className="mt-1 text-xs text-text-tertiary">{s.hint}</p>
           </div>
         ))}
       </div>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t("payments:earnings.paymentsTitle")}</h2>
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">{t("payments:earnings.paymentsTitle")}</h2>
+          <p className="text-sm text-text-secondary">
+            {t("payments:earnings.paymentsSubtitle")}
+          </p>
+        </div>
         <div className="overflow-x-auto rounded-lg border border-border-subtle bg-bg-elevated">
           <table className="w-full text-sm">
             <thead className="bg-bg-subtle text-xs uppercase tracking-wide text-text-tertiary">
               <tr>
-                <th className="px-4 py-3 text-start">{t("payments:paymentHeaders.amount")}</th>
-                <th className="px-4 py-3 text-start">{t("payments:paymentHeaders.status")}</th>
-                <th className="px-4 py-3 text-start">{t("payments:paymentHeaders.payee")}</th>
-                <th className="px-4 py-3 text-start">{t("payments:paymentHeaders.created")}</th>
+                <th className="px-4 py-3 text-start">{t("payments:earnings.columns.gross")}</th>
+                <th className="px-4 py-3 text-start">{t("payments:earnings.columns.fee")}</th>
+                <th className="px-4 py-3 text-start">{t("payments:earnings.columns.net")}</th>
+                <th className="px-4 py-3 text-start">{t("payments:earnings.columns.status")}</th>
+                <th className="px-4 py-3 text-start">{t("payments:earnings.columns.date")}</th>
               </tr>
             </thead>
             <tbody>
               {paymentsQuery.isLoading && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-text-tertiary">
+                  <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
                     {t("payments:common.loading")}
                   </td>
                 </tr>
               )}
               {!paymentsQuery.isLoading && payments.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-text-tertiary">
+                  <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
                     {t("payments:earnings.noPayments")}
                   </td>
                 </tr>
@@ -133,15 +208,19 @@ export function ConsultantEarnings() {
                   <td className="px-4 py-3 font-medium">
                     {formatMoneyCents(p.amountCents, p.currency)}
                   </td>
+                  <td className="px-4 py-3 text-text-secondary">
+                    <span>−{formatMoneyCents(p.profitShareAmountCents, p.currency)}</span>
+                    <span className="ms-1 text-xs text-text-tertiary">({feePercent(p)})</span>
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-brand-600">
+                    {formatMoneyCents(p.payeeAmountCents, p.currency)}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${paymentBadge(p.status)}`}
                     >
                       {t(`payments:paymentStatus.${p.status}`)}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    {formatMoneyCents(p.payeeAmountCents, p.currency)}
                   </td>
                   <td className="px-4 py-3 text-xs text-text-tertiary">{dash(p.createdAt)}</td>
                 </tr>
@@ -152,7 +231,12 @@ export function ConsultantEarnings() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t("payments:earnings.payoutsTitle")}</h2>
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">{t("payments:earnings.payoutsTitle")}</h2>
+          <p className="text-sm text-text-secondary">
+            {t("payments:earnings.payoutsSubtitle")}
+          </p>
+        </div>
         <div className="overflow-x-auto rounded-lg border border-border-subtle bg-bg-elevated">
           <table className="w-full text-sm">
             <thead className="bg-bg-subtle text-xs uppercase tracking-wide text-text-tertiary">

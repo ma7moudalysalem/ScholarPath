@@ -176,13 +176,29 @@
   },
   "earnings": {
     "title": "Earnings",
-    "subtitle": "Your booking income and the payouts you have received.",
-    "totalEarned": "Total earned",
+    "subtitle": "Your booking income, the platform's share, and the payouts that have reached your account.",
+    "totalEarned": "Net earned",
+    "totalEarnedHint": "What you keep after the platform fee.",
+    "totalGross": "Gross collected",
+    "totalGrossHint": "What students paid in total — before fees.",
+    "totalFees": "Platform fees",
+    "totalFeesHint": "Total deducted by the platform across captured payments.",
     "totalPaidOut": "Total paid out",
+    "totalPaidOutHint": "Already deposited to your account.",
     "awaitingPayout": "Awaiting payout",
+    "awaitingPayoutHint": "Captured earnings that haven't been deposited yet.",
     "paymentsTitle": "Booking payments",
+    "paymentsSubtitle": "Each booking shows the gross amount, the platform fee, and your net share.",
     "payoutsTitle": "Payouts",
-    "noPayments": "No payments yet.",
-    "noPayouts": "No payouts yet."
+    "payoutsSubtitle": "Bank deposits that bundle multiple paid bookings.",
+    "noPayments": "No payments yet — they appear once a student authorises a booking with you.",
+    "noPayouts": "No payouts yet — once captured earnings clear the holding period, they're deposited here.",
+    "columns": {
+      "gross": "Gross",
+      "fee": "Platform fee",
+      "net": "Your share",
+      "status": "Status",
+      "date": "Date"
+    }
   }
 }
