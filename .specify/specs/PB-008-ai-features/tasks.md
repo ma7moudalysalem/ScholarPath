@@ -17,7 +17,7 @@
 
 ## Frontend
 - [x] T-011 — `AiRecommendations.tsx` widget on Student dashboard  *(`8a95758` — GET-first cached, auto-regen on miss, explicit refresh button POSTs)*
-- [x] T-012 — `EligibilityChecker.tsx` modal on scholarship detail  *(`8a95758` — per-criterion icons, summary, disclaimer)*
+- [x] T-012 — `EligibilityChecker.tsx` modal on scholarship detail  *(`8a95758` — per-criterion icons, summary, disclaimer; enhanced: `ScholarshipDetail` now has a "Check Eligibility" deep-link → `/student/ai?tab=eligibility&sid=…` that pre-selects the scholarship and skips the manual search step — `161bbac`)*
 - [x] T-013 — `Chatbot.tsx` slide-over  *(`8a95758` — turn-based UI, sessionId preserved across turns, cost/token hint per assistant reply)*
 - [x] T-014 — `AiDisclaimer` reusable component on every AI output  *(`8a95758`)*
 - [x] T-015 — `MatchScoreBadge` + eligibility breakdown  *(`8a95758` — tiered colors 0-100; breakdown embedded in eligibility modal)*
