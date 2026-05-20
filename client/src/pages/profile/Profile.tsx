@@ -11,6 +11,7 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import { userPhotoUrl } from "@/lib/userPhoto";
 import { apiErrorMessage } from "@/services/api/client";
+import { DatePicker } from "@/components/ui/DatePicker";
 
 const PROFILE_KEY = ["profile", "me"] as const;
 
@@ -325,12 +326,12 @@ export function Profile() {
             <input className={`${inputClass} opacity-60`} value={profile.email} disabled />
           </Field>
           <Field label={t("profile:fields.dateOfBirth")}>
-            <input
-              type="date"
-              dir="ltr"
-              className={inputClass}
+            <DatePicker
               value={form.dateOfBirth}
-              onChange={(e) => set("dateOfBirth", e.target.value)}
+              onChange={(v) => set("dateOfBirth", v)}
+              // No reasonable lower bound for date-of-birth, but cap at today
+              // so a user can't accidentally pick a future date.
+              max={new Date().toISOString().slice(0, 10)}
             />
           </Field>
           <Field label={t("profile:fields.nationality")}>

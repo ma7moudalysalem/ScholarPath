@@ -14,6 +14,7 @@ import {
 import type { FundingType, AcademicLevel } from "@/types/domain";
 import type { SearchScholarshipsRequest } from "@/services/api/scholarships";
 import { SkeletonCardGrid } from "@/components/common/Skeleton";
+import { DatePicker } from "@/components/ui/DatePicker";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -284,28 +285,23 @@ export function ScholarshipsPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <div>
+            <div className="w-full sm:w-56">
               <label className="mb-1 block text-xs font-medium text-text-secondary">
                 {t("scholarships:filters.deadlineFrom")}
               </label>
-              <input
-                type="date"
-                dir="ltr"
+              <DatePicker
                 value={deadlineFrom}
-                onChange={(e) => { setDeadlineFrom(e.target.value); setPage(1); }}
-                className="h-9 rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm"
+                onChange={(v) => { setDeadlineFrom(v); setPage(1); }}
               />
             </div>
-            <div>
+            <div className="w-full sm:w-56">
               <label className="mb-1 block text-xs font-medium text-text-secondary">
                 {t("scholarships:filters.deadlineTo")}
               </label>
-              <input
-                type="date"
-                dir="ltr"
+              <DatePicker
                 value={deadlineTo}
-                onChange={(e) => { setDeadlineTo(e.target.value); setPage(1); }}
-                className="h-9 rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm"
+                onChange={(v) => { setDeadlineTo(v); setPage(1); }}
+                min={deadlineFrom || undefined}
               />
             </div>
           </div>

@@ -39,6 +39,9 @@
     "cancel": "إلغاء",
     "processing": "جارٍ التنفيذ…"
   },
+  "nav": {
+    "profile": "فتح الملف الشخصي"
+  },
   "role": {
     "switcher": "الدور",
     "student": "طالب",

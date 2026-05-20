@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { apiErrorMessage } from "@/services/api/client";
+import { DatePicker } from "@/components/ui/DatePicker";
 import {
   financialConfigApi,
   type CreateFinancialRuleBody,
@@ -492,21 +493,18 @@ function RuleForm({ rule, onClose }: { rule?: FinancialConfigRuleDto; onClose: (
         </Field>
 
         <Field label={t("payments:financialConfig.form.effectiveFrom")}>
-          <input
-            type="date"
-            dir="ltr"
+          <DatePicker
             value={effectiveFrom}
-            onChange={(e) => setEffectiveFrom(e.target.value)}
+            onChange={setEffectiveFrom}
             className={INPUT_CLS}
           />
         </Field>
 
         <Field label={t("payments:financialConfig.form.effectiveTo")}>
-          <input
-            type="date"
-            dir="ltr"
+          <DatePicker
             value={effectiveTo}
-            onChange={(e) => setEffectiveTo(e.target.value)}
+            onChange={setEffectiveTo}
+            min={effectiveFrom || undefined}
             className={INPUT_CLS}
           />
         </Field>

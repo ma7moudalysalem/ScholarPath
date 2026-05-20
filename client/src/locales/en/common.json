@@ -39,6 +39,9 @@
     "cancel": "Cancel",
     "processing": "Processing…"
   },
+  "nav": {
+    "profile": "Open profile"
+  },
   "role": {
     "switcher": "Role",
     "student": "Student",

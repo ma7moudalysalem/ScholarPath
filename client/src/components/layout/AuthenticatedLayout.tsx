@@ -292,10 +292,17 @@ export function AuthenticatedLayout() {
               )}
             </NavLink>
             {user && (
-              <div className="ms-1 flex items-center gap-2 rounded-md bg-bg-elevated px-3 py-1.5 text-sm">
+              // Clickable user chip → /profile. Users naturally try to click
+              // their avatar to manage their account, and the chip was a
+              // dead-end div before.
+              <Link
+                to="/profile"
+                aria-label={t("common:nav.profile", "Open profile")}
+                className="ms-1 flex items-center gap-2 rounded-md bg-bg-elevated px-3 py-1.5 text-sm transition-colors hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+              >
                 <HeaderAvatar userId={user.id} firstName={user.firstName} />
                 <span className="hidden font-medium sm:inline">{user.fullName}</span>
-              </div>
+              </Link>
             )}
           </div>
         </header>

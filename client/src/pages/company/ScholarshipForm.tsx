@@ -2,7 +2,8 @@ import { useEffect, useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -322,13 +323,20 @@ export function ScholarshipForm() {
             hint={t("moderation:companyScholarships.form.deadlineHint")}
             error={errors.deadline?.message}
           >
-            <input
-              id="deadline"
-              type="date"
-              dir="ltr"
-              min={minDeadline}
-              className={fieldClass}
-              {...form.register("deadline")}
+            {/* Controller wraps the custom DatePicker so react-hook-form can
+                still track validation + dirty state. The picker emits YYYY-MM-DD
+                strings, which is exactly what the existing zod schema expects. */}
+            <Controller
+              control={form.control}
+              name="deadline"
+              render={({ field }) => (
+                <DatePicker
+                  id="deadline"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  min={minDeadline}
+                />
+              )}
             />
           </Field>
 
