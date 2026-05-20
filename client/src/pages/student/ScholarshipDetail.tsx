@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Bookmark,
   Calendar,
+  ClipboardCheck,
   Globe,
   GraduationCap,
   ExternalLink,
@@ -382,6 +383,16 @@ export function ScholarshipDetail() {
               : t("scholarships:detail.apply")}
           </button>
         )}
+
+        {/* Check eligibility — deep-links to the AI hub with this scholarship
+            pre-selected, so the student skips the manual search step. */}
+        <Link
+          to={`/student/ai?tab=eligibility&sid=${data.id}&stitle=${encodeURIComponent(title ?? data.titleEn)}`}
+          className="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-elevated px-5 py-2.5 text-sm font-medium text-text-secondary transition hover:border-brand-500 hover:text-brand-500"
+        >
+          <ClipboardCheck aria-hidden className="size-4" />
+          {t("scholarships:detail.checkEligibility")}
+        </Link>
 
         <Link
           to="/student/scholarships"

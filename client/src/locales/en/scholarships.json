@@ -87,6 +87,7 @@
     "alreadyApplied": "You already have an application for this scholarship.",
     "applyGoToProfile": "Go to profile",
     "profileIncompleteTitle": "Complete your profile to apply",
-    "profileIncompleteBody": "Add your academic level and field of study — they're used to evaluate the application and to personalise AI recommendations."
+    "profileIncompleteBody": "Add your academic level and field of study — they're used to evaluate the application and to personalise AI recommendations.",
+    "checkEligibility": "Check Eligibility"
   }
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { Sparkles, ClipboardCheck, MessageSquare, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -7,6 +8,8 @@ import { EligibilityCheckerSection } from "@/components/ai/EligibilityCheckerSec
 import { Chatbot } from "@/components/ai/Chatbot";
 
 type AiTab = "recommendations" | "eligibility" | "chat";
+
+const VALID_TABS = new Set<AiTab>(["recommendations", "eligibility", "chat"]);
 
 const TABS: { id: AiTab; icon: LucideIcon }[] = [
   { id: "recommendations", icon: Sparkles },
@@ -20,10 +23,28 @@ const TABS: { id: AiTab; icon: LucideIcon }[] = [
  * (FR-116/117/118), and the help chatbot (FR-119/120/121). All three panels
  * stay mounted and are toggled with `hidden` so a tab switch never loses the
  * chat thread or a computed eligibility verdict.
+ *
+ * Supports deep-linking via query params:
+ *   ?tab=eligibility&sid=<scholarshipId>&stitle=<encodedTitle>
+ * Used by ScholarshipDetail's "Check Eligibility" shortcut button.
  */
 export function AiFeatures() {
   const { t } = useTranslation(["ai"]);
-  const [tab, setTab] = useState<AiTab>("recommendations");
+  const [searchParams] = useSearchParams();
+
+  // Deep-link: ?tab=eligibility opens that tab directly; unknown values fall
+  // back to the default so stale/bookmarked URLs don't break the page.
+  const paramTab = searchParams.get("tab") as AiTab | null;
+  const [tab, setTab] = useState<AiTab>(
+    paramTab && VALID_TABS.has(paramTab) ? paramTab : "recommendations",
+  );
+
+  // Deep-link: ?sid=<id>&stitle=<title> pre-selects a scholarship in the
+  // eligibility checker so the student skips the search step.
+  const paramSid   = searchParams.get("sid") ?? "";
+  const paramTitle = searchParams.get("stitle") ?? "";
+  const initialScholarship =
+    paramSid && paramTitle ? { id: paramSid, title: paramTitle } : undefined;
 
   return (
     <div className="space-y-6">
@@ -59,7 +80,7 @@ export function AiFeatures() {
         <AiRecommendations />
       </div>
       <div className={cn(tab !== "eligibility" && "hidden")}>
-        <EligibilityCheckerSection />
+        <EligibilityCheckerSection initialScholarship={initialScholarship} />
       </div>
       <div className={cn(tab !== "chat" && "hidden")}>
         <Chatbot />

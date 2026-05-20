@@ -62,18 +62,29 @@ interface SelectedScholarship {
   title: string;
 }
 
+interface EligibilityCheckerSectionProps {
+  /**
+   * When supplied (e.g. via deep-link from ScholarshipDetail) the picker is
+   * bypassed and the check starts immediately for this scholarship.
+   */
+  initialScholarship?: SelectedScholarship;
+}
+
 /**
  * SRS FR-116/117/118 — the standalone eligibility checker. The student searches
  * for any open scholarship, picks one, and the section runs the AI eligibility
  * check: an overall verdict, a per-criterion comparison (their profile vs. the
  * listing), and a "what to improve" digest of the criteria that don't yet match.
+ *
+ * When `initialScholarship` is supplied (deep-link from ScholarshipDetail) the
+ * search picker is skipped and the check begins immediately.
  */
-export function EligibilityCheckerSection() {
+export function EligibilityCheckerSection({ initialScholarship }: EligibilityCheckerSectionProps = {}) {
   const { t, i18n } = useTranslation(["ai", "common"]);
   const isAr = i18n.language.startsWith("ar");
 
   const [term, setTerm] = useState("");
-  const [selected, setSelected] = useState<SelectedScholarship | null>(null);
+  const [selected, setSelected] = useState<SelectedScholarship | null>(initialScholarship ?? null);
   const debounced = useDebounced(term.trim());
   const canSearch = debounced.length >= 2;
 
