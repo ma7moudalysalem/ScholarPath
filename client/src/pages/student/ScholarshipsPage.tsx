@@ -15,6 +15,7 @@ import type { FundingType, AcademicLevel } from "@/types/domain";
 import type { SearchScholarshipsRequest } from "@/services/api/scholarships";
 import { SkeletonCardGrid } from "@/components/common/Skeleton";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { apiErrorMessage } from "@/services/api/client";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -133,7 +134,7 @@ export function ScholarshipsPage() {
             ? t("scholarships:bookmark.saved")
             : t("scholarships:bookmark.removed"),
         ),
-      onError: () => toast.error(t("common:status.error")),
+      onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
     });
   };
 

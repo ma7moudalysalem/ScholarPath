@@ -19,7 +19,7 @@ import {
   useToggleBookmarkMutation,
 } from "@/hooks/useScholarshipsQuery";
 import { applicationsApi } from "@/services/api/applications";
-import { ApiError } from "@/services/api/client";
+import { ApiError, apiErrorMessage } from "@/services/api/client";
 import type { FundingType } from "@/types/domain";
 import { SkeletonDetailCard } from "@/components/common/Skeleton";
 
@@ -109,7 +109,7 @@ export function ScholarshipDetail() {
             ? t("scholarships:bookmark.saved")
             : t("scholarships:bookmark.removed"),
         ),
-      onError: () => toast.error(t("common:status.error")),
+      onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
     });
   };
 

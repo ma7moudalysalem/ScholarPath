@@ -11,6 +11,7 @@ import {
 } from "@/hooks/useScholarshipsQuery";
 import type { FundingType } from "@/types/domain";
 import { SkeletonCardGrid } from "@/components/common/Skeleton";
+import { apiErrorMessage } from "@/services/api/client";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -50,7 +51,7 @@ export function BookmarksPage() {
     e.stopPropagation();
     bookmarkMut.mutate(scholarshipId, {
       onSuccess: () => toast.success(t("scholarships:bookmark.removed")),
-      onError:   () => toast.error(t("common:status.error")),
+      onError:   (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
     });
   };
 

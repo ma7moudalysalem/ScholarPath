@@ -8,6 +8,7 @@ import {
   useMarkNoShowMutation,
   useRejectBookingMutation,
 } from "@/hooks/useBookingsQuery";
+import { apiErrorMessage } from "@/services/api/client";
 import { BookingRecordings } from "@/components/booking/BookingRecordings";
 import {
   durationLabel,
@@ -76,12 +77,17 @@ export function ConsultantBookingDetails() {
     cancelMutation.isPending ||
     noShowMutation.isPending;
 
+  // Mutation onError handlers all route through apiErrorMessage so the
+  // consultant sees the actual server reason — "Only requested bookings can
+  // be rejected", "Booking has no Stripe payment intent to cancel", etc. —
+  // instead of a generic "We couldn't load your bookings" fallback that's
+  // misleading here because the load already succeeded.
   const handleAccept = () => {
     if (!isRequested) return;
 
     acceptMutation.mutate(booking.id, {
       onSuccess: () => toast.success(t("details.banner.accepted")),
-      onError: () => toast.error(t("states.error")),
+      onError: (err) => toast.error(apiErrorMessage(err, t("states.error"))),
     });
   };
 
@@ -89,7 +95,7 @@ export function ConsultantBookingDetails() {
     if (!isRequested) return;
     rejectMutation.mutate(booking.id, {
       onSuccess: () => toast.success(t("details.banner.rejected")),
-      onError: () => toast.error(t("states.error")),
+      onError: (err) => toast.error(apiErrorMessage(err, t("states.error"))),
     });
   };
 
@@ -97,7 +103,7 @@ export function ConsultantBookingDetails() {
     if (!isRequested && !isConfirmed) return;
     noShowMutation.mutate(booking.id, {
       onSuccess: () => toast.success(t("details.banner.cancelled")),
-      onError: () => toast.error(t("states.error")),
+      onError: (err) => toast.error(apiErrorMessage(err, t("states.error"))),
     });
   };
 
@@ -105,7 +111,7 @@ export function ConsultantBookingDetails() {
     if (!isConfirmed) return;
     cancelMutation.mutate(booking.id, {
       onSuccess: () => toast.success(t("details.banner.noShow")),
-      onError: () => toast.error(t("states.error")),
+      onError: (err) => toast.error(apiErrorMessage(err, t("states.error"))),
     });
   };
 

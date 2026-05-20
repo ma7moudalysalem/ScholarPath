@@ -12,6 +12,7 @@ import type {
   DayOfWeek,
 } from "@/services/api/bookings";
 import { formatDate, formatTime } from "@/lib/bookingFormat";
+import { apiErrorMessage } from "@/services/api/client";
 
 // ── Weekly schedule editor state ──────────────────────────────────────────────
 //
@@ -150,7 +151,7 @@ export function ConsultantAvailability() {
       { slots, replaceExisting: true },
       {
         onSuccess: () => toast.success(t("availability.banner.saved")),
-        onError: () => toast.error(t("states.error")),
+        onError: (err) => toast.error(apiErrorMessage(err, t("states.error"))),
       },
     );
   };

@@ -11,7 +11,7 @@ import {
   type DocumentCategory,
   type DocumentItem,
 } from "@/services/api/documents";
-import { ApiError } from "@/services/api/client";
+import { ApiError, apiErrorMessage } from "@/services/api/client";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
 const MAX_BYTES = 25 * 1024 * 1024;
@@ -63,8 +63,11 @@ export function Documents() {
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
       setDeleteTargetId(null);
     },
-    onError: () => {
-      toast.error(t("documents:actions.deleteError"));
+    // Surface the server's actual reason ("Document is attached to a
+    // submitted application — withdraw the application first", etc.) — the
+    // generic "deleteError" used to leave the user with no actionable hint.
+    onError: (err) => {
+      toast.error(apiErrorMessage(err, t("documents:actions.deleteError")));
       setDeleteTargetId(null);
     },
   });
@@ -95,8 +98,8 @@ export function Documents() {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-    } catch {
-      toast.error(t("documents:actions.downloadError"));
+    } catch (err) {
+      toast.error(apiErrorMessage(err, t("documents:actions.downloadError")));
     }
   };
 

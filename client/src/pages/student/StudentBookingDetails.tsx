@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useBookingDetailQuery, useCancelBookingMutation } from "@/hooks/useBookingsQuery";
 import { BookingRecordings } from "@/components/booking/BookingRecordings";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { apiErrorMessage } from "@/services/api/client";
 import type { BookingDetail } from "@/services/api/bookings";
 import {
   durationLabel,
@@ -79,8 +80,11 @@ export function StudentBookingDetails() {
         toast.success(t("details.cancelSuccess"));
         setCancelOpen(false);
       },
-      onError: () => {
-        toast.error(t("details.cancelError"));
+      // Show the actual server reason ("Booking has already been confirmed",
+      // "Free-cancel window closed", etc.) instead of a generic fallback so
+      // the student knows what to do next.
+      onError: (err) => {
+        toast.error(apiErrorMessage(err, t("details.cancelError")));
         setCancelOpen(false);
       },
     });

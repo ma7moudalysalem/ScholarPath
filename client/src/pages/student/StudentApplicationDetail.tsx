@@ -405,7 +405,8 @@ function DraftApplicationForm({
       toast.success(t("moderation:appDetail.form.saved"));
       invalidate();
     },
-    onError: () => toast.error(t("moderation:appDetail.form.saveError")),
+    onError: (err) =>
+      toast.error(apiErrorMessage(err, t("moderation:appDetail.form.saveError"))),
   });
 
   const submitMut = useMutation({

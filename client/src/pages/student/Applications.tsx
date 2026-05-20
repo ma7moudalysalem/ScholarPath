@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { LayoutGrid, ListFilter, Plus } from "lucide-react";
 import { applicationsApi } from "@/services/api/applications";
+import { apiErrorMessage } from "@/services/api/client";
 import type { ApplicationStatus } from "@/services/api/applications";
 import { queryKeys } from "@/lib/queryClient";
 import { KanbanBoard } from "@/components/application/KanbanBoard";
@@ -44,8 +45,12 @@ export function Applications() {
         }
       }
     },
-    onError: () => {
-      toast.error(t("kanban.moveError"));
+    // Server-side moves can fail for reasons specific to the target status —
+    // surface that reason ("Application is locked", "Status transition not
+    // allowed from Submitted to Draft", etc.) so the user can correct it
+    // rather than seeing a vague "couldn't move" toast.
+    onError: (err) => {
+      toast.error(apiErrorMessage(err, t("kanban.moveError")));
     },
   });
 
