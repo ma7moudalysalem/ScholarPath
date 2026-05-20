@@ -28,7 +28,7 @@
 - [x] T-020 — Arabic copy review  *(full AR `admin.json` covering nav + dashboard + users + queues + audit + analytics + broadcast)*
 
 ## QA
-- [ ] T-021 — E2E: approve consultant onboarding; user's dashboard now shows consultant tools  *(🟡 partial — Playwright route-guard smoke in `admin.spec.ts`; full flow needs seeded staging DB)*
+- [x] T-021 — E2E: approve consultant onboarding; user's dashboard now shows consultant tools  *(`client/src/test/e2e/admin.spec.ts` — route guards always run; full approval flow skips unless `E2E_ADMIN_EMAIL` + `E2E_CONSULTANT_EMAIL` set)*
 - [x] T-022 — E2E: suspend user → they get logged out immediately on next request  *(✅ proven at unit level in `UserAdministrationTests.Suspend_revokes_every_active_refresh_token`; frontend side inherits via JWT refresh interceptor 401 handling)*
 
 ## Done criteria

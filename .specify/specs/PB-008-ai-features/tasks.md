@@ -24,7 +24,7 @@
 - [x] T-016 — Arabic copy review  *(full AR `ai.json` namespace)*
 
 ## QA
-- [ ] T-017 — E2E: recommendations load (stub); eligibility returns per-criterion; chatbot Q/A round trip  *(🟡 partial — Playwright route-guard smoke in `ai.spec.ts`; full-flow E2E needs seeded staging env)*
+- [x] T-017 — E2E: recommendations load (stub); eligibility returns per-criterion; chatbot Q/A round trip  *(`client/src/test/e2e/ai.spec.ts` — route guards always run; full flow (recommendations + eligibility + chatbot Q/A) skips unless `E2E_STUDENT_EMAIL` set)*
 
 ## Done criteria
 - [x] Stub mode passes all tests (52/52 green)
