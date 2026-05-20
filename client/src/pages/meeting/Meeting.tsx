@@ -163,7 +163,18 @@ export function Meeting() {
         if (!disposed) setPhase("connected");
       } catch (err) {
         if (!disposed) {
-          setErrorMsg(apiErrorMessage(err, ""));
+          const msg = apiErrorMessage(err, "");
+          // Translate the backend's domain message into a friendlier hint so
+          // the student knows what to do rather than seeing a raw error string.
+          const isCancelledBooking =
+            msg.toLowerCase().includes("confirmed booking") ||
+            msg.toLowerCase().includes("not open yet") ||
+            msg.toLowerCase().includes("room has closed");
+          setErrorMsg(
+            isCancelledBooking
+              ? t("bookings:meeting.errorNotConfirmed")
+              : msg || t("bookings:meeting.errorGeneric"),
+          );
           setPhase("error");
         }
       }
@@ -184,7 +195,9 @@ export function Meeting() {
       void callRef.current?.hangUp().catch(() => undefined);
       void agentRef.current?.dispose().catch(() => undefined);
     };
-  }, [bookingId, displayName]);
+  // `t` from useTranslation is referentially stable (never changes across
+  // renders), so adding it to deps does not cause extra effect runs.
+  }, [bookingId, displayName, t]);
 
   const toggleMic = useCallback(async () => {
     const call = callRef.current;

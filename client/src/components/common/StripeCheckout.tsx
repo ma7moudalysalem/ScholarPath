@@ -93,12 +93,18 @@ export function StripeCheckout({
 
   return (
     <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
-      <CheckoutInner onSuccess={onSuccess} />
+      <CheckoutInner bookingId={bookingId} onSuccess={onSuccess} />
     </Elements>
   );
 }
 
-function CheckoutInner({ onSuccess }: { onSuccess?: () => void }) {
+function CheckoutInner({
+  bookingId,
+  onSuccess,
+}: {
+  bookingId: string;
+  onSuccess?: () => void;
+}) {
   const { t } = useTranslation("bookings");
   const stripe = useStripe();
   const elements = useElements();
@@ -109,7 +115,16 @@ function CheckoutInner({ onSuccess }: { onSuccess?: () => void }) {
     if (!stripe || !elements) return;
     setSubmitting(true);
 
-    const { error } = await stripe.confirmPayment({ elements, redirect: "if_required" });
+    // `return_url` is required for redirect-based payment methods (Cash App Pay,
+    // Amazon Pay, etc.).  Without it Stripe returns a 400 for those methods even
+    // when `redirect: "if_required"` is set — Stripe still needs a fallback URL
+    // in case the payment method forces a redirect.
+    const returnUrl = `${window.location.origin}/student/bookings/${bookingId}`;
+    const { error } = await stripe.confirmPayment({
+      elements,
+      redirect: "if_required",
+      confirmParams: { return_url: returnUrl },
+    });
 
     setSubmitting(false);
 

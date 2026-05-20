@@ -107,7 +107,8 @@
     "recordingNotice": "This session is being recorded. The recording is available afterwards to you, the consultant, and ScholarPath admins.",
     "recordingsTitle": "Session recordings",
     "download": "Download",
-    "downloadError": "Could not download the recording. Please try again."
+    "downloadError": "Could not download the recording. Please try again.",
+    "errorNotConfirmed": "This session is no longer available — the booking may have been cancelled or has not yet been confirmed. Go back and check your bookings."
   },
   "notFound": {
     "title": "Booking not found",

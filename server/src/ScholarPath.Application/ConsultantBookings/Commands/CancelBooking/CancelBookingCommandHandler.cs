@@ -110,26 +110,53 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
         {
             var refundIdempotencyKey = $"booking-refund:{booking.Id:N}:{refund.RefundPercentage}";
 
-            var refundResult = await _stripeService.RefundPaymentAsync(
-                paymentIntentId: booking.StripePaymentIntentId,
-                amountCents: refund.RefundAmountCents,
-                reason: "requested_by_customer",
-                idempotencyKey: refundIdempotencyKey,
-                ct: cancellationToken);
-
-            if (string.IsNullOrWhiteSpace(refundResult.Id))
+            // FR-087-089/193: distinguish captured vs. authorized-only payments.
+            // A manual-capture PaymentIntent that is confirmed but not yet captured
+            // sits in `requires_capture` state on Stripe — creating a Refund object
+            // against it would fail with a Stripe 400 ("charge has not been captured").
+            // In that case the correct Stripe action is to cancel the intent (which
+            // releases the hold on the student's card), not to refund it.
+            if (payment.Status == PaymentStatus.Captured)
             {
-                throw new BookingDomainException("Stripe refund failed.");
-            }
+                var refundResult = await _stripeService.RefundPaymentAsync(
+                    paymentIntentId: booking.StripePaymentIntentId,
+                    amountCents: refund.RefundAmountCents,
+                    reason: "requested_by_customer",
+                    idempotencyKey: refundIdempotencyKey,
+                    ct: cancellationToken);
 
-            // FR-087-089/193: record the refund on the internal Payment row so
-            // refund status, settlement impact and payout eligibility are accurate.
-            payment.RefundedAmountCents = refund.RefundAmountCents;
-            payment.RefundedAt = nowUtc;
-            payment.RefundReason = refund.CancellationReason.ToString();
-            payment.Status = refund.RefundAmountCents >= payment.AmountCents
-                ? PaymentStatus.Refunded
-                : PaymentStatus.PartiallyRefunded;
+                if (string.IsNullOrWhiteSpace(refundResult.Id))
+                {
+                    throw new BookingDomainException("Stripe refund failed.");
+                }
+
+                payment.RefundedAmountCents = refund.RefundAmountCents;
+                payment.RefundedAt = nowUtc;
+                payment.RefundReason = refund.CancellationReason.ToString();
+                payment.Status = refund.RefundAmountCents >= payment.AmountCents
+                    ? PaymentStatus.Refunded
+                    : PaymentStatus.PartiallyRefunded;
+            }
+            else
+            {
+                // Payment is authorized but not yet captured (Held / Pending).
+                // Cancel the intent so Stripe releases the authorization immediately.
+                var cancelIdempotencyKey = $"booking-cancel-confirmed:{booking.Id:N}";
+
+                var cancelResult = await _stripeService.CancelPaymentIntentAsync(
+                    paymentIntentId: booking.StripePaymentIntentId,
+                    cancellationReason: "requested_by_customer",
+                    idempotencyKey: cancelIdempotencyKey,
+                    ct: cancellationToken);
+
+                if (string.IsNullOrWhiteSpace(cancelResult.Id))
+                {
+                    throw new BookingDomainException("Stripe payment intent cancellation failed.");
+                }
+
+                payment.Status = PaymentStatus.Cancelled;
+                payment.FailureReason = "cancelled_before_capture";
+            }
         }
 
         booking.Status = BookingStatus.Cancelled;
