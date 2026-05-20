@@ -28,7 +28,8 @@
     "dashboard": "Dashboard",
     "availability": "Availability",
     "bookings": "Bookings",
-    "earnings": "Earnings"
+    "earnings": "Earnings",
+    "resources": "My resources"
   },
   "admin": {
     "dashboard": "Dashboard",

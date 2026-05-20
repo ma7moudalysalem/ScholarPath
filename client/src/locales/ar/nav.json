@@ -28,7 +28,8 @@
     "dashboard": "لوحة التحكم",
     "availability": "الأوقات المتاحة",
     "bookings": "الحجوزات",
-    "earnings": "الأرباح"
+    "earnings": "الأرباح",
+    "resources": "مواردي"
   },
   "admin": {
     "dashboard": "لوحة التحكم",

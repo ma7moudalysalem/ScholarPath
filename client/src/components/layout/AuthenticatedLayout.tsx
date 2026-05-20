@@ -19,6 +19,7 @@ import {
   LogOut,
   Menu,
   X,
+  FileEdit,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -88,6 +89,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/consultant/availability", key: "consultant.availability", icon: Calendar },
     { to: "/consultant/bookings", key: "consultant.bookings", icon: ListChecks },
     { to: "/consultant/earnings", key: "consultant.earnings", icon: Calendar },
+    { to: "/author/resources", key: "consultant.resources", icon: FileEdit },
   ],
 };
 

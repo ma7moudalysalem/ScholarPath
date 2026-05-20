@@ -32,7 +32,71 @@
     "readTime": "{{minutes}} min read",
     "loadError": "Could not load this resource.",
     "notFound": "This resource could not be found.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "bookmark": "Save",
+    "bookmarkToggle": "Toggle bookmark",
+    "markComplete": "Done",
+    "chapterMarked": "Chapter marked as complete.",
+    "resourceComplete": "Resource complete! Well done."
+  },
+  "author": {
+    "title": "My Resources",
+    "subtitle": "Create and manage your articles, guides, and checklists.",
+    "create": "New resource",
+    "createFirst": "Create your first resource",
+    "empty": "You haven't created any resources yet.",
+    "loadError": "Could not load your resources.",
+    "backToMine": "My resources",
+    "newTitle": "New resource",
+    "editTitle": "Edit resource",
+    "readOnlyWarning": "This resource is no longer a draft and cannot be edited. Create a new version if changes are needed.",
+    "edit": "Edit",
+    "submit": "Submit",
+    "view": "View",
+    "createSuccess": "Resource draft saved.",
+    "updateSuccess": "Resource updated.",
+    "submittedForReview": "Resource submitted for review.",
+    "publishedDirectly": "Resource published.",
+    "saveChanges": "Save changes",
+    "saveDraft": "Save draft",
+    "addChapter": "Add chapter",
+    "noChapters": "No chapters yet. Add one using the button above.",
+    "chapterN": "Chapter {{n}}",
+    "removeChapter": "Remove chapter",
+    "markdownHint": "Markdown supported",
+    "tagsPlaceholder": "scholarship, guide, tips…",
+    "tagsHint": "Comma-separated tags (max 10).",
+    "col": {
+      "title": "Title",
+      "type": "Type",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "Draft": "Draft",
+      "PendingReview": "Pending review",
+      "Published": "Published",
+      "Hidden": "Hidden",
+      "Removed": "Removed"
+    },
+    "section": {
+      "titles": "Titles",
+      "descriptions": "Descriptions",
+      "content": "Content",
+      "chapters": "Chapters"
+    },
+    "fields": {
+      "type": "Type",
+      "titleEn": "Title (English)",
+      "titleAr": "Title (Arabic)",
+      "descriptionEn": "Description (English)",
+      "descriptionAr": "Description (Arabic)",
+      "contentEn": "Content (English)",
+      "contentAr": "Content (Arabic)",
+      "externalLinkUrl": "External link URL",
+      "tags": "Tags",
+      "readMinutes": "Read time (min)"
+    }
   },
   "moderation": {
     "title": "Resource moderation",

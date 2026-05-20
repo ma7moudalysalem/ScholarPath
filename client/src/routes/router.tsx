@@ -25,6 +25,14 @@ const SsoCallback = lazy(() =>
 );
 const NotFound = lazy(() => import("@/pages/NotFound").then((m) => ({ default: m.NotFound })));
 
+// ── PB-009: Resource author management ────────────────────────────────────────
+const AuthorMyResources = lazy(() =>
+  import("@/pages/author/MyResources").then((m) => ({ default: m.MyResources })),
+);
+const AuthorResourceEditor = lazy(() =>
+  import("@/pages/author/ResourceEditor").then((m) => ({ default: m.ResourceEditor })),
+);
+
 // ── PB-003: Scholarship Discovery ─────────────────────────────────────────────
 const StudentScholarships = lazy(() =>
   import("@/pages/student/ScholarshipsPage").then((m) => ({ default: m.ScholarshipsPage })),
@@ -353,6 +361,32 @@ export function AppRouter() {
           <Route path="/student/resources/:idOrSlug" element={<StudentResourceDetail />} />
           <Route path="/student/documents"         element={<StudentDocuments />} />
           <Route path="/student/ai"                element={<StudentAi />} />
+
+          {/* PB-009: Author resource management (Consultant, Company, Admin) */}
+          <Route
+            path="/author/resources"
+            element={
+              <RequireRole roles={["Consultant", "Company", "Admin", "SuperAdmin"]}>
+                <AuthorMyResources />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/author/resources/new"
+            element={
+              <RequireRole roles={["Consultant", "Company", "Admin", "SuperAdmin"]}>
+                <AuthorResourceEditor />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/author/resources/:id/edit"
+            element={
+              <RequireRole roles={["Consultant", "Company", "Admin", "SuperAdmin"]}>
+                <AuthorResourceEditor />
+              </RequireRole>
+            }
+          />
 
           <Route
             path="/company"

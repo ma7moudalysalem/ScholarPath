@@ -32,7 +32,71 @@
     "readTime": "{{minutes}} دقيقة قراءة",
     "loadError": "تعذّر تحميل هذا المورد.",
     "notFound": "تعذّر العثور على هذا المورد.",
-    "retry": "إعادة المحاولة"
+    "retry": "إعادة المحاولة",
+    "bookmark": "حفظ",
+    "bookmarkToggle": "تبديل الحفظ",
+    "markComplete": "تم",
+    "chapterMarked": "تم تمييز الفصل كمكتمل.",
+    "resourceComplete": "اكتمل المورد! أحسنت."
+  },
+  "author": {
+    "title": "مواردي",
+    "subtitle": "أنشئ وأدِر مقالاتك وأدلّتك وقوائم التحقّق.",
+    "create": "مورد جديد",
+    "createFirst": "أنشئ مواردك الأولى",
+    "empty": "لم تُنشئ أي موارد بعد.",
+    "loadError": "تعذّر تحميل مواردك.",
+    "backToMine": "مواردي",
+    "newTitle": "مورد جديد",
+    "editTitle": "تعديل المورد",
+    "readOnlyWarning": "هذا المورد لم يعد مسودة ولا يمكن تعديله. أنشئ نسخة جديدة إذا كنت بحاجة إلى تغييرات.",
+    "edit": "تعديل",
+    "submit": "إرسال",
+    "view": "عرض",
+    "createSuccess": "تم حفظ المسودة.",
+    "updateSuccess": "تم تحديث المورد.",
+    "submittedForReview": "تم إرسال المورد للمراجعة.",
+    "publishedDirectly": "تم نشر المورد.",
+    "saveChanges": "حفظ التغييرات",
+    "saveDraft": "حفظ كمسودة",
+    "addChapter": "إضافة فصل",
+    "noChapters": "لا توجد فصول بعد. أضف فصلاً بالزر أعلاه.",
+    "chapterN": "الفصل {{n}}",
+    "removeChapter": "إزالة الفصل",
+    "markdownHint": "يدعم Markdown",
+    "tagsPlaceholder": "منح، دليل، نصائح…",
+    "tagsHint": "وسوم مفصولة بفواصل (بحد أقصى 10).",
+    "col": {
+      "title": "العنوان",
+      "type": "النوع",
+      "status": "الحالة",
+      "actions": "الإجراءات"
+    },
+    "status": {
+      "Draft": "مسودة",
+      "PendingReview": "قيد المراجعة",
+      "Published": "منشور",
+      "Hidden": "مخفي",
+      "Removed": "محذوف"
+    },
+    "section": {
+      "titles": "العناوين",
+      "descriptions": "الأوصاف",
+      "content": "المحتوى",
+      "chapters": "الفصول"
+    },
+    "fields": {
+      "type": "النوع",
+      "titleEn": "العنوان (إنجليزي)",
+      "titleAr": "العنوان (عربي)",
+      "descriptionEn": "الوصف (إنجليزي)",
+      "descriptionAr": "الوصف (عربي)",
+      "contentEn": "المحتوى (إنجليزي)",
+      "contentAr": "المحتوى (عربي)",
+      "externalLinkUrl": "رابط المصدر الخارجي",
+      "tags": "الوسوم",
+      "readMinutes": "وقت القراءة (دقيقة)"
+    }
   },
   "moderation": {
     "title": "مراجعة الموارد",

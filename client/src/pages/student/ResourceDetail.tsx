@@ -1,14 +1,18 @@
 import type { ReactNode } from "react";
 import { useParams, Link } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { ArrowLeft, ArrowRight, Calendar, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowLeft, ArrowRight, Calendar, ExternalLink, Bookmark, CheckCircle } from "lucide-react";
 import {
   resourcesApi,
   type ResourceDetail as ResourceDetailDto,
+  type ChapterProgressResult,
 } from "@/services/api/resources";
+import { useAuthStore } from "@/stores/authStore";
+import { apiErrorMessage } from "@/services/api/client";
 import { SkeletonDetailCard } from "@/components/common/Skeleton";
 
 // ── Minimal Markdown renderer ───────────────────────────────────────────────
@@ -140,11 +144,37 @@ export function ResourceDetail() {
   const isRtl = i18n.dir() === "rtl";
   const dateLocale = isAr ? ar : undefined;
   const BackIcon = isRtl ? ArrowRight : ArrowLeft;
+  const { user } = useAuthStore();
+  const qc = useQueryClient();
 
   const { data, isLoading, isError, error, refetch } = useQuery<ResourceDetailDto>({
     queryKey: ["resources", "detail", idOrSlug],
     queryFn: () => resourcesApi.getDetail(idOrSlug!),
     enabled: !!idOrSlug,
+  });
+
+  // ── Bookmark toggle ──────────────────────────────────────────────────────
+  const bookmarkMut = useMutation({
+    mutationFn: (id: string) => resourcesApi.toggleBookmark(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["resources", "bookmarks"] });
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
+  });
+
+  // ── Chapter completion ───────────────────────────────────────────────────
+  const chapterMut = useMutation<ChapterProgressResult, Error, { resourceId: string; chapterId: string }>({
+    mutationFn: ({ resourceId, chapterId }) =>
+      resourcesApi.completeChapter(resourceId, chapterId),
+    onSuccess: (res) => {
+      if (res.isResourceComplete) {
+        toast.success(t("resources:detail.resourceComplete"));
+      } else {
+        toast.success(t("resources:detail.chapterMarked"));
+      }
+      void qc.invalidateQueries({ queryKey: ["resources", "progress"] });
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
   });
 
   const backLink = (
@@ -256,17 +286,31 @@ export function ResourceDetail() {
             </div>
           )}
 
-          {data.externalLinkUrl && (
-            <a
-              href={data.externalLinkUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-5 inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-text-on-brand transition hover:bg-brand-600"
-            >
-              {t("resources:detail.openExternal")}
-              <ExternalLink aria-hidden className="size-4" />
-            </a>
-          )}
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            {data.externalLinkUrl && (
+              <a
+                href={data.externalLinkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-text-on-brand transition hover:bg-brand-600"
+              >
+                {t("resources:detail.openExternal")}
+                <ExternalLink aria-hidden className="size-4" />
+              </a>
+            )}
+            {user && (
+              <button
+                type="button"
+                disabled={bookmarkMut.isPending}
+                onClick={() => bookmarkMut.mutate(data.id)}
+                className="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-canvas px-4 py-2.5 text-sm font-medium text-text-secondary transition hover:border-brand-500 hover:text-brand-500 disabled:opacity-60"
+                aria-label={t("resources:detail.bookmarkToggle")}
+              >
+                <Bookmark aria-hidden className="size-4" />
+                {t("resources:detail.bookmark")}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -300,13 +344,29 @@ export function ResourceDetail() {
                     </span>
                     {chTitle}
                   </h3>
-                  {ch.estimatedReadMinutes > 0 && (
-                    <span className="shrink-0 text-xs text-text-tertiary">
-                      {t("resources:detail.readTime", {
-                        minutes: ch.estimatedReadMinutes,
-                      })}
-                    </span>
-                  )}
+                  <div className="flex shrink-0 items-center gap-2">
+                    {ch.estimatedReadMinutes > 0 && (
+                      <span className="text-xs text-text-tertiary">
+                        {t("resources:detail.readTime", {
+                          minutes: ch.estimatedReadMinutes,
+                        })}
+                      </span>
+                    )}
+                    {user && (
+                      <button
+                        type="button"
+                        disabled={chapterMut.isPending}
+                        onClick={() =>
+                          chapterMut.mutate({ resourceId: data.id, chapterId: ch.id })
+                        }
+                        className="inline-flex items-center gap-1 rounded-full border border-success-200 bg-success-50 px-2 py-0.5 text-xs font-medium text-success-700 transition hover:bg-success-100 disabled:opacity-60"
+                        aria-label={t("resources:detail.markComplete")}
+                      >
+                        <CheckCircle aria-hidden className="size-3.5" />
+                        {t("resources:detail.markComplete")}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 {chContent && chContent.trim() && (
                   <div className="mt-3">
