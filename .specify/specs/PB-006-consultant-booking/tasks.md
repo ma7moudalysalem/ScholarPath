@@ -35,4 +35,4 @@
 
 ## Done criteria
 - [x] Refund matrix test-verified; webhook replay tests pass; CI green.
-- [ ] E2E green in staging. *(spec written — `booking.spec.ts`; needs staging credentials to run)*
+- [ ] E2E green in staging. *(spec written — `booking.spec.ts`; needs staging credentials to run)*  *(spec: `client/src/test/e2e/booking.spec.ts`; run `npm run test:e2e:local` or `.github/workflows/e2e.yml`; see `docs/E2E-TESTING.md`)*

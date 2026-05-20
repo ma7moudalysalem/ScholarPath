@@ -26,4 +26,4 @@
 ## Done criteria
 - [x] Publishing workflow green; bookmark + progress persisted; EN+AR content both required on publish.
 - [x] Author can create, edit, and submit resources from the consultant portal.
-- [ ] E2E green in staging. *(spec written — `resources.spec.ts`; needs staging credentials to run)*
+- [ ] E2E green in staging. *(spec written — `resources.spec.ts`; needs staging credentials to run)*  *(spec: `client/src/test/e2e/resources.spec.ts`; run `npm run test:e2e:local` or `.github/workflows/e2e.yml`; see `docs/E2E-TESTING.md`)*

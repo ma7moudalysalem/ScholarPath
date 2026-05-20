@@ -33,4 +33,4 @@
 
 ## Done criteria
 - [x] All backend commands, state machine, and tests shipped; CI green.
-- [ ] E2E green in staging. *(spec written — `applications.spec.ts`; needs staging credentials to run)*
+- [ ] E2E green in staging. *(spec written — `applications.spec.ts`; needs staging credentials to run)*  *(spec: `client/src/test/e2e/applications.spec.ts`; run `npm run test:e2e:local` or `.github/workflows/e2e.yml`; see `docs/E2E-TESTING.md`)*

@@ -1,0 +1,95 @@
+name: E2E Tests
+
+# Run manually via "Run workflow" in the Actions tab, or automatically
+# after a successful deploy to staging.
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Target URL (blank = staging default)"
+        required: false
+        default: ""
+  # Uncomment to trigger automatically after the deploy workflow succeeds:
+  # workflow_run:
+  #   workflows: ["Deploy"]
+  #   types: [completed]
+
+permissions:
+  contents: read
+  checks: write        # allow publishing test results
+  pull-requests: write # allow commenting test summary on PRs (optional)
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  e2e:
+    name: Playwright E2E (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, mobile]   # Firefox adds ~3 min; include when needed
+    defaults:
+      run:
+        working-directory: client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps ${{ matrix.project }}
+
+      # Resolve the target URL: prefer the workflow input, then the secret.
+      - name: Resolve base URL
+        id: url
+        run: |
+          BASE="${{ github.event.inputs.base_url }}"
+          if [ -z "$BASE" ]; then
+            BASE="${{ secrets.E2E_BASE_URL }}"
+          fi
+          echo "base_url=$BASE" >> "$GITHUB_OUTPUT"
+
+      - name: Run Playwright tests
+        run: npx playwright test --project=${{ matrix.project }}
+        env:
+          E2E_BASE_URL:         ${{ steps.url.outputs.base_url }}
+          E2E_ADMIN_EMAIL:      ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD:   ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_STUDENT_EMAIL:    ${{ secrets.E2E_STUDENT_EMAIL }}
+          E2E_STUDENT_PASSWORD: ${{ secrets.E2E_STUDENT_PASSWORD }}
+          E2E_CONSULTANT_EMAIL:    ${{ secrets.E2E_CONSULTANT_EMAIL }}
+          E2E_CONSULTANT_PASSWORD: ${{ secrets.E2E_CONSULTANT_PASSWORD }}
+          E2E_COMPANY_EMAIL:    ${{ secrets.E2E_COMPANY_EMAIL }}
+          E2E_COMPANY_PASSWORD: ${{ secrets.E2E_COMPANY_PASSWORD }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: client/playwright-report/
+          retention-days: 14
+
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: E2E (${{ matrix.project }})
+          path: client/playwright-report/junit.xml
+          reporter: java-junit
+          fail-on-error: false

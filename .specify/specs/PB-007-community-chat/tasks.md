@@ -35,4 +35,4 @@
 ## Done criteria
 - [x] Auto-hide rule implemented and tested at unit level.
 - [x] Block enforcement integration test (T-010) done.
-- [ ] E2E green in staging. *(spec written — `community.spec.ts`; needs staging credentials to run)*
+- [ ] E2E green in staging. *(spec written — `community.spec.ts`; needs staging credentials to run)*  *(spec: `client/src/test/e2e/community.spec.ts`; run `npm run test:e2e:local` or `.github/workflows/e2e.yml`; see `docs/E2E-TESTING.md`)*

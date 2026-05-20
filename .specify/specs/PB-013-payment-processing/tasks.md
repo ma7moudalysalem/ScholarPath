@@ -28,4 +28,4 @@
 ## Done criteria
 - [x] Stripe Elements checkout implemented; hold → capture → refund commands exist.
 - [x] Webhook idempotency handled in `ProcessStripeWebhookCommand`.
-- [ ] E2E green in staging. *(spec written — `payments.spec.ts`; needs staging credentials to run)*
+- [ ] E2E green in staging. *(spec written — `payments.spec.ts`; needs staging credentials to run)*  *(spec: `client/src/test/e2e/payments.spec.ts`; run `npm run test:e2e:local` or `.github/workflows/e2e.yml`; see `docs/E2E-TESTING.md`)*
