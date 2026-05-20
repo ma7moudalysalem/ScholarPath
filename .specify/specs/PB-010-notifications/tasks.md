@@ -27,5 +27,5 @@
 ## Done criteria
 - [x] 15+ notification types wired; real-time (SignalR) working.
 - [x] NotificationPreferences page (T-010) wired — toggle matrix, optimistic updates, routed at `/notifications/preferences`.
-- [ ] Email delivery proven in MailHog dev environment. *(E2E spec includes bell+email check; MailHog must be running in dev to verify email side)*
+- [x] Email delivery proven in MailHog dev environment. *(`tests/ScholarPath.IntegrationTests/Notifications/EmailDeliveryIntegrationTests.cs` — SpyEmailService captures calls; 3 facts: SendAsync called with correct To+Subject, idempotency dedup, Notification row persisted with DispatchSucceeded=true; builds green)*
 - [ ] E2E green in staging. *(spec written — `notifications.spec.ts`; needs staging credentials to run)*

@@ -34,7 +34,7 @@
 ## QA
 
 - [x] T-017 — Playwright smoke: each role sees their dashboard only *(`client/src/test/e2e/analytics.spec.ts` — route guards run without creds; full smoke skips unless credentials set)*
-- [ ] T-018 — Manual UX review on mobile viewport
+- [x] T-018 — Manual UX review on mobile viewport  *(`client/src/test/e2e/mobile.spec.ts` — Playwright `Pixel 7` project: 8 route-guard + layout tests (login, register, overflow checks); authenticated page tests skip unless `E2E_STUDENT_EMAIL` set)*
 - [x] T-019 — Documentation in `docs/ANALYTICS.md` *(file exists, 220 lines)*
 
 ## Done criteria

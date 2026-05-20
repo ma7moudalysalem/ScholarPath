@@ -1,8 +1,11 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Sparkles, DollarSign, MousePointerClick, Timer } from "lucide-react";
+import { Sparkles, DollarSign, MousePointerClick, Timer, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { adminApi, type AiUsageSummaryDto } from "@/services/api/admin";
+
+/** Target click-through rate for AI recommendations (PB-017 FR-173). */
+const CTR_TARGET_PCT = 5;
 
 const WINDOWS = [7, 30, 90] as const;
 type Window = (typeof WINDOWS)[number];
@@ -42,11 +45,13 @@ function StatCard({
   label,
   value,
   hint,
+  badge,
 }: {
   icon: typeof Sparkles;
   label: string;
   value: string;
   hint?: string;
+  badge?: React.ReactNode;
 }) {
   return (
     <div className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
@@ -56,7 +61,25 @@ function StatCard({
       </div>
       <div className="mt-3 text-3xl font-semibold tabular-nums tracking-tight">{value}</div>
       {hint && <div className="mt-1 text-xs text-text-tertiary">{hint}</div>}
+      {badge && <div className="mt-2">{badge}</div>}
     </div>
+  );
+}
+
+function CtrThresholdBadge({ ctrPct }: { ctrPct: number }) {
+  if (ctrPct >= CTR_TARGET_PCT) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 text-xs font-medium text-success-emphasis">
+        <CheckCircle2 aria-hidden className="size-3" />
+        Above target ({CTR_TARGET_PCT}%)
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full bg-warning-subtle px-2 py-0.5 text-xs font-medium text-warning-emphasis">
+      <AlertTriangle aria-hidden className="size-3" />
+      Below target ({CTR_TARGET_PCT}%)
+    </span>
   );
 }
 
@@ -141,7 +164,8 @@ export function AiEconomyPage() {
               icon={MousePointerClick}
               label={t("admin:aiEconomy.ctr", { defaultValue: "Recommendation CTR" })}
               value={`${q.data.recommendations.ctrPercent.toFixed(1)}%`}
-              hint={`${q.data.recommendations.clicks.toLocaleString()} / ${q.data.recommendations.impressions.toLocaleString()}`}
+              hint={`${q.data.recommendations.clicks.toLocaleString()} clicks / ${q.data.recommendations.impressions.toLocaleString()} impressions`}
+              badge={<CtrThresholdBadge ctrPct={q.data.recommendations.ctrPercent} />}
             />
             <StatCard
               icon={Timer}

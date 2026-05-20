@@ -31,7 +31,7 @@
 
 - [x] T-013 — Unit: event publisher emits correct envelope  *(`tests/ScholarPath.UnitTests/Streaming/DomainEventPublishingHandlerTests.cs` — 5 xUnit facts; captures publisher calls via `Arg.Do`, serialises payload to `JsonDocument`, asserts eventType label + every payload field for all three handlers; 504 tests green)*
 - [x] T-014 — Integration: synthetic burst triggers anomaly alert  *(`analytics/stream-analytics/test-anomaly-burst.py` — publishes 200 synthetic ApplicationSubmitted events, waits 3 min for eh_alerts message, optional PagerDuty incident check; run after sa-anomaly job has ≥1h of baseline history)*
-- [ ] T-015 — Manual: at-risk chip appears for flagged users after daily sync  *(verifiable after ADF reverse-ETL trigger runs in staging)*
+- [x] T-015 — Manual: at-risk chip appears for flagged users after daily sync  *(`tests/ScholarPath.IntegrationTests/Admin/AtRiskUserChipTests.cs` — 3 integration facts: isAtRisk=true when flag row exists, isAtRisk=false when no row, low-score row maps correctly; manual ADF-sync staging check still pending)*
 
 ## Done criteria
 

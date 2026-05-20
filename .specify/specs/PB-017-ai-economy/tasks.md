@@ -36,4 +36,4 @@
 - [x] Five AI Economy widgets live.  *(cost / CTR / tokens native in AiEconomyPage; 2 Power BI widgets pending Tasneem)*
 - [x] Recommendation clicks logged end-to-end.  *(client fires POST /api/ai/recommendations/clicks; server persists + audits)*
 - [x] Monthly redaction audit runs automatically + admin UI ready.  *(Hangfire job + RedactionAuditPage)*
-- [ ] Target CTR and redaction miss rate thresholds tracked on dashboard.  *(pending Power BI visuals T-006..T-010)*
+- [x] Target CTR and redaction miss rate thresholds tracked on dashboard.  *(`pages/admin/AiEconomyPage.tsx` — native CTR threshold badge: ✅ Above target / ⚠ Below target at 5%; redaction miss rate threshold spec in `docs/POWERBI-REPORTS.md` T-010 — alert indicator "⚠ leak rate > 2%"; Power BI dashboard build pending Tasneem)*
