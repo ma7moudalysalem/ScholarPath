@@ -71,6 +71,9 @@ param sqlDatabaseSku string = 'Basic'
 @description('Deploy Azure Cache for Redis. OFF by default — Redis has no free tier (~16 USD/mo) and the app runs fine without it. Turn on only for production load.')
 param deployRedis bool = false
 
+@description('Deploy Azure Event Hub for domain-event streaming (PB-018). OFF by default — the app falls back to StubEventPublisher when EventHub:ConnectionString is blank. Turn on to enable real-time streaming.')
+param deployEventHub bool = false
+
 @description('SKU for Azure Cache for Redis (used only when deployRedis is true). family C / capacity 0 == Basic 250 MB.')
 @allowed([
   'Basic'
@@ -110,6 +113,9 @@ param tags object = {
 var nameSuffix = '${baseName}-${environmentName}'
 // uniqueString keeps globally-scoped names (SQL server, Key Vault, App Service) collision-free per RG.
 var uniqueSuffix = take(uniqueString(resourceGroup().id, environmentName), 6)
+
+var eventHubNamespaceName = 'evhns-${nameSuffix}'
+var eventHubName            = 'domain-events'
 
 var appServicePlanName = 'plan-${nameSuffix}'
 var apiAppName = 'app-${nameSuffix}-api'
@@ -417,6 +423,55 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
   }
 }
 
+// ─── Azure Event Hub (optional — PB-018 real-time streaming) ────────────────
+// When deployEventHub is false the API uses StubEventPublisher (debug-logs only).
+// Set deployEventHub=true on a staging/prod deploy, then store the connection
+// string output in Key Vault under key EventHub--ConnectionString.
+
+resource eventHubNamespace 'Microsoft.EventHub/namespaces@2024-01-01' = if (deployEventHub) {
+  name: eventHubNamespaceName
+  location: location
+  tags: tags
+  sku: {
+    name: 'Basic'     // Basic: 256 KB msg, 1 consumer group — sufficient for demo traffic.
+    tier: 'Basic'     // Upgrade to Standard for multiple consumer groups (e.g. Stream Analytics + dbt).
+    capacity: 1
+  }
+  properties: {
+    minimumTlsVersion: '1.2'
+    disableLocalAuth: false   // AMQP connection strings enabled; switch to MI-only for prod hardening.
+    isAutoInflateEnabled: false
+    publicNetworkAccess: 'Enabled'
+  }
+}
+
+resource domainEventsHub 'Microsoft.EventHub/namespaces/eventhubs@2024-01-01' = if (deployEventHub) {
+  parent: eventHubNamespace
+  name: eventHubName
+  properties: {
+    partitionCount: 4         // 4 partitions ≈ max 4 parallel consumers; raise for higher throughput.
+    messageRetentionInDays: 1 // Basic tier maximum. Use Standard + 7 days for audit trail.
+  }
+}
+
+// Send-only policy: the API only publishes; it never reads from the hub.
+resource eventHubSendPolicy 'Microsoft.EventHub/namespaces/eventhubs/authorizationRules@2024-01-01' = if (deployEventHub) {
+  parent: domainEventsHub
+  name: 'api-send'
+  properties: {
+    rights: ['Send']
+  }
+}
+
+// Listen policy: used by Stream Analytics / dbt streaming ingestion.
+resource eventHubListenPolicy 'Microsoft.EventHub/namespaces/eventhubs/authorizationRules@2024-01-01' = if (deployEventHub) {
+  parent: domainEventsHub
+  name: 'analytics-listen'
+  properties: {
+    rights: ['Listen']
+  }
+}
+
 // ─── Outputs ────────────────────────────────────────────────────────────────
 
 @description('Default hostname of the API App Service.')
@@ -448,3 +503,19 @@ output appInsightsConnectionString string = appInsights.properties.ConnectionStr
 
 @description('Principal (object) ID of the API App Service managed identity.')
 output apiAppPrincipalId string = apiApp.identity.principalId
+
+@description('Azure Event Hub namespace name (empty when deployEventHub is false).')
+output eventHubNamespaceName string = deployEventHub ? eventHubNamespace.name : ''
+
+@description('Event Hub name (always "domain-events"; empty when deployEventHub is false).')
+output eventHubName string = deployEventHub ? eventHubName : ''
+
+@description('Event Hub send-only connection string for the API. Store in Key Vault as EventHub--ConnectionString.')
+output eventHubSendConnectionString string = deployEventHub
+  ? eventHubSendPolicy.listKeys().primaryConnectionString
+  : ''
+
+@description('Event Hub listen-only connection string for analytics consumers. Store in Key Vault or Stream Analytics input.')
+output eventHubListenConnectionString string = deployEventHub
+  ? eventHubListenPolicy.listKeys().primaryConnectionString
+  : ''

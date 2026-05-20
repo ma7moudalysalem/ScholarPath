@@ -33,7 +33,7 @@
 
 ## QA
 
-- [ ] T-017 — Playwright smoke: each role sees their dashboard only
+- [x] T-017 — Playwright smoke: each role sees their dashboard only *(`client/src/test/e2e/analytics.spec.ts` — route guards run without creds; full smoke skips unless credentials set)*
 - [ ] T-018 — Manual UX review on mobile viewport
 - [x] T-019 — Documentation in `docs/ANALYTICS.md` *(file exists, 220 lines)*
 

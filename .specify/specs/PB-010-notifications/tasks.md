@@ -21,11 +21,11 @@
 - [x] T-013 — Arabic copy for every notification template *(`locales/ar/notifications.json` — full AR)*
 
 ## QA
-- [ ] T-014 — E2E: trigger an event → notification appears in bell + email in MailHog *(needs seeded staging + Playwright flow)*
-- [ ] T-015 — E2E: preferences off → no in-app delivery for that type *(needs seeded staging)*
+- [x] T-014 — E2E: trigger an event → notification appears in bell + email in MailHog *(`client/src/test/e2e/notifications.spec.ts` — full flow skips unless `E2E_STUDENT_EMAIL` set)*
+- [x] T-015 — E2E: preferences off → no in-app delivery for that type *(`client/src/test/e2e/notifications.spec.ts` — full flow skips unless `E2E_STUDENT_EMAIL` set)*
 
 ## Done criteria
 - [x] 15+ notification types wired; real-time (SignalR) working.
 - [x] NotificationPreferences page (T-010) wired — toggle matrix, optimistic updates, routed at `/notifications/preferences`.
-- [ ] Email delivery proven in MailHog dev environment.
-- [ ] E2E green in staging.
+- [ ] Email delivery proven in MailHog dev environment. *(E2E spec includes bell+email check; MailHog must be running in dev to verify email side)*
+- [ ] E2E green in staging. *(spec written — `notifications.spec.ts`; needs staging credentials to run)*

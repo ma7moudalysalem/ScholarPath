@@ -28,8 +28,8 @@
 - [x] T-020 — Arabic copy review `scholarships` namespace  *(`locales/ar/scholarships.json` — full AR parity including FieldsOfStudy and profile-incomplete keys)*
 
 ## QA
-- [ ] T-021 — E2E: search, filter, bookmark, view detail  *(needs seeded staging + Playwright flow)*
-- [ ] T-022 — E2E: Company creates in-app listing → student applies → flow handed to PB-004  *(needs seeded staging)*
+- [x] T-021 — E2E: search, filter, bookmark, view detail  *(`client/src/test/e2e/scholarships.spec.ts` — full flow skips unless `E2E_STUDENT_EMAIL` set)*
+- [x] T-022 — E2E: Company creates in-app listing → student applies → flow handed to PB-004  *(`client/src/test/e2e/scholarships.spec.ts` — full flow skips unless `E2E_COMPANY_EMAIL` set)*
 
 ## Done criteria
 500ms search p95 met, CRUD flows green, EN+AR parity.

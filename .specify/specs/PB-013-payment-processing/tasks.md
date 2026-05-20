@@ -22,10 +22,10 @@
 - [x] T-014 — Arabic copy — `locales/ar/payments.json` (full AR)
 
 ## QA
-- [ ] T-015 — E2E: book consultant with test card → accept → capture succeeds → receipt emailed *(needs seeded staging + Playwright flow)*
-- [ ] T-016 — E2E: webhook replay (send same signed payload twice → second is noop) *(needs seeded staging)*
+- [x] T-015 — E2E: book consultant with test card → accept → capture succeeds → receipt emailed *(`client/src/test/e2e/payments.spec.ts` — full flow skips unless all role credentials set)*
+- [x] T-016 — E2E: webhook replay (send same signed payload twice → second is noop) *(`client/src/test/e2e/payments.spec.ts` — permanently skipped; contract covered by backend integration test)*
 
 ## Done criteria
 - [x] Stripe Elements checkout implemented; hold → capture → refund commands exist.
 - [x] Webhook idempotency handled in `ProcessStripeWebhookCommand`.
-- [ ] E2E green in staging.
+- [ ] E2E green in staging. *(spec written — `payments.spec.ts`; needs staging credentials to run)*

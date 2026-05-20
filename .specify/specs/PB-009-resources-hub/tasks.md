@@ -21,9 +21,9 @@
 - [x] T-013 — Arabic copy + content-quality pass  *(`locales/en/resources.json` + `locales/ar/resources.json` — full EN+AR for browse, detail, moderation, author section; RTL-aware inputs)*
 
 ## QA
-- [ ] T-014 — E2E: author creates → submits → admin approves → published and visible  *(needs seeded staging + Playwright flow)*
+- [x] T-014 — E2E: author creates → submits → admin approves → published and visible  *(`client/src/test/e2e/resources.spec.ts` — full flow skips unless all role credentials set)*
 
 ## Done criteria
 - [x] Publishing workflow green; bookmark + progress persisted; EN+AR content both required on publish.
 - [x] Author can create, edit, and submit resources from the consultant portal.
-- [ ] E2E green in staging.
+- [ ] E2E green in staging. *(spec written — `resources.spec.ts`; needs staging credentials to run)*

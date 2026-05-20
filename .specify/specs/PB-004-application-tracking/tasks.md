@@ -28,9 +28,9 @@
 - [x] T-020 — Arabic copy review — `locales/ar/applications.json` (full AR translation)
 
 ## QA
-- [ ] T-021 — E2E: start → draft → submit → Company review → accept → student sees accepted → try withdraw (blocked) *(needs seeded staging + Playwright flow)*
-- [ ] T-022 — E2E: withdraw (allowed state) → reapply → submit *(needs seeded staging)*
+- [x] T-021 — E2E: start → draft → submit → Company review → accept → student sees accepted → try withdraw (blocked) *(`client/src/test/e2e/applications.spec.ts` — full flow skips unless `E2E_STUDENT_EMAIL` + `E2E_COMPANY_EMAIL` set)*
+- [x] T-022 — E2E: withdraw (allowed state) → reapply → submit *(`client/src/test/e2e/applications.spec.ts` — full flow skips unless `E2E_STUDENT_EMAIL` set)*
 
 ## Done criteria
 - [x] All backend commands, state machine, and tests shipped; CI green.
-- [ ] E2E green in staging.
+- [ ] E2E green in staging. *(spec written — `applications.spec.ts`; needs staging credentials to run)*

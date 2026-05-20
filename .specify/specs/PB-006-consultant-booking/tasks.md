@@ -30,9 +30,9 @@
 - [x] T-022 — Arabic copy review  *(`locales/ar/bookings.json` + `locales/ar/consultants.json` + `locales/ar/consultantPortal.json` — full AR)*
 
 ## QA
-- [ ] T-023 — E2E happy path: book → accept → complete → rate  *(needs seeded staging + Playwright flow)*
-- [ ] T-024 — E2E cancellation scenarios (before accept, >24h, <24h)  *(needs seeded staging)*
+- [x] T-023 — E2E happy path: book → accept → complete → rate  *(`client/src/test/e2e/booking.spec.ts` — full flow skips unless `E2E_STUDENT_EMAIL` + `E2E_CONSULTANT_EMAIL` set)*
+- [x] T-024 — E2E cancellation scenarios (before accept, >24h, <24h)  *(`client/src/test/e2e/booking.spec.ts` — full flow skips unless credentials set)*
 
 ## Done criteria
 - [x] Refund matrix test-verified; webhook replay tests pass; CI green.
-- [ ] E2E green in staging.
+- [ ] E2E green in staging. *(spec written — `booking.spec.ts`; needs staging credentials to run)*

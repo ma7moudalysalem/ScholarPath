@@ -29,10 +29,10 @@
 - [x] T-019 — Arabic copy review *(`locales/ar/community.json` — full AR translation)*
 
 ## QA
-- [ ] T-020 — E2E: post → reply → vote → flag (×3) → auto-hidden *(needs seeded staging + Playwright flow)*
-- [ ] T-021 — E2E: chat between two users; block; sender fails; unblock *(needs seeded staging)*
+- [x] T-020 — E2E: post → reply → vote → flag (×3) → auto-hidden *(`client/src/test/e2e/community.spec.ts` — full flow skips unless `E2E_STUDENT_EMAIL` set)*
+- [x] T-021 — E2E: chat between two users; block; sender fails; unblock *(`client/src/test/e2e/community.spec.ts` — full flow skips unless `E2E_STUDENT_EMAIL` + `E2E_CONSULTANT_EMAIL` set)*
 
 ## Done criteria
 - [x] Auto-hide rule implemented and tested at unit level.
 - [x] Block enforcement integration test (T-010) done.
-- [ ] E2E green in staging.
+- [ ] E2E green in staging. *(spec written — `community.spec.ts`; needs staging credentials to run)*

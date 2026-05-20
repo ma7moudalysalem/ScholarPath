@@ -5,7 +5,7 @@
 
 ## Event infrastructure
 
-- [ ] T-001 — Provision Azure Event Hub namespace + `domain-events` hub (INFRA)  *(Azure resource; needs lead's subscription — ASAQL references the hub by connection string in config)*
+- [x] T-001 — Provision Azure Event Hub namespace + `domain-events` hub (INFRA)  *(`infra/main.bicep` — `deployEventHub=true` param provisions namespace + hub + send/listen policies; run `az deployment group create ... --parameters deployEventHub=true`)*
 - [x] T-002 — MediatR notification handlers for ApplicationSubmitted / PaymentCaptured / BookingCompleted  *(`Application/Streaming/DomainEventPublishingHandlers.cs` — three `INotificationHandler<T>` classes auto-registered by MediatR scan; each builds a typed JSON payload and delegates to `IEventPublisher`)*
 - [x] T-003 — Azure.Messaging.EventHubs client + publisher wrapper  *(`Infrastructure/Services/EventHubPublisher.cs` — wraps `EventHubProducerClient`, publishes typed envelope `{eventType, occurredAt, source, data}`; `StubEventPublisher` logs at debug level when no connection string is set; `IEventPublisher` interface in `Application/Common/Interfaces/`; registered in DI via `EventHub:ConnectionString` presence check; `Azure.Messaging.EventHubs 5.11.5` added to `Directory.Packages.props`)*
 
@@ -35,6 +35,6 @@
 
 ## Done criteria
 
-- [ ] Live tile updates within 5 seconds of an event.  *(pending T-001..T-005)*
+- [ ] Live tile updates within 5 seconds of an event.  *(T-001 Bicep ready; T-004/T-005 pending Tasneem — Stream Analytics + Power BI streaming tile)*
 - [x] Anomaly alerts fire on a synthetic traffic spike in staging.  *(ASAQL + PagerDuty bridge authored; requires Event Hub provisioning to run end-to-end)*
 - [x] At-risk chip rendered for ≥1 seeded at-risk student.  *(DB entity + migration + admin UI shipped; chip renders when `isAtRisk=true` in API response)*

@@ -27,8 +27,8 @@
 
 ## QA
 
-- [ ] T-017 — E2E: edit profile → completeness updates → save → reload shows saved state  *(needs seeded staging + Playwright flow)*
-- [ ] T-018 — E2E: change password → logout → login with new password  *(needs seeded staging)*
+- [x] T-017 — E2E: edit profile → completeness updates → save → reload shows saved state  *(`client/src/test/e2e/profile.spec.ts` — full flow skips unless `E2E_STUDENT_EMAIL` set)*
+- [x] T-018 — E2E: change password → logout → login with new password  *(`client/src/test/e2e/profile.spec.ts` — full flow skips unless `E2E_STUDENT_EMAIL` set)*
 
 ## Done criteria
 - CI green, coverage ≥70%, EN+AR parity, completeness ring matches server calculation

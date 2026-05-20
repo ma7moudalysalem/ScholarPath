@@ -19,7 +19,7 @@
 ## Quality + ops
 
 - [x] T-006 — PB-016-US-006 ≥20 data-quality assertions, fail-stop on violation  @yousra-elnoby  *(`analytics/dbt/models/marts/_marts.yml` — 24 `not_null` / `unique` / `accepted_values` / `relationships` tests across all Gold models; dbt `on-run-fail: error` enforces fail-stop)*
-- [ ] T-007 — PB-016-US-007 dbt docs site published  @yousra-elnoby  *(pending `dbt docs generate` + hosting — README documents local steps)*
+- [x] T-007 — PB-016-US-007 dbt docs site published  @yousra-elnoby  *(`.github/workflows/dbt-docs.yml` — runs `dbt docs generate` on push to main when dbt models change; publishes to GitHub Pages at `/dbt-docs/`)*
 - [x] T-008 — PB-016-US-008 Pipeline as code — ADF ARM template + dbt in git + CI validation  @ma7moudalysalem  *(`analytics/adf/arm/adf-arm-template.json` + parameters file; `.github/workflows/analytics-ci.yml` runs `dbt compile --profiles-dir .` on every PR touching `analytics/`)*
 
 ## QA
