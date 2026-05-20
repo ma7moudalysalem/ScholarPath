@@ -167,4 +167,9 @@ export const applicationsApi = {
   async submit(id: string): Promise<void> {
     await apiClient.put(`/api/applications/${id}/submit`);
   },
+
+  /** Withdraws an active application — transitions it to Withdrawn. */
+  async withdraw(id: string): Promise<void> {
+    await apiClient.post(`/api/applications/${id}/withdraw`);
+  },
 };

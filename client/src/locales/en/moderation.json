@@ -38,6 +38,12 @@
     "submitConflict": "This application can't be submitted right now.",
     "draftHint": "This application is a draft — submit it when you're ready.",
     "confirmLabel": "I confirm the application data is correct and ready to submit.",
+    "withdraw": "Withdraw",
+    "withdrawing": "Withdrawing…",
+    "withdrawDialogTitle": "Withdraw application?",
+    "withdrawDialogBody": "This will permanently withdraw your application. This action cannot be undone.",
+    "withdrawSuccess": "Application withdrawn.",
+    "withdrawError": "Could not withdraw the application. Please try again.",
     "form": {
       "title": "Application form",
       "intro": "Fill in the answers, attach the required documents, then submit.",

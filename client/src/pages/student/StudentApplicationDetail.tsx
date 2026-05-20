@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { useParams, Link } from "react-router";
+import { useParams, Link, useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
@@ -14,7 +14,9 @@ import {
   Loader2,
   Upload,
   X,
+  Trash2,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import {
   applicationsApi,
   type ApplicationDetail,
@@ -91,11 +93,33 @@ function statusBadgeClass(s: ApplicationStatus): string {
   }
 }
 
+const WITHDRAWABLE_STATUSES: ApplicationStatus[] = [
+  "Draft", "Pending", "UnderReview", "Shortlisted", "Intending", "Applied", "WaitingResult",
+];
+
 export function StudentApplicationDetail() {
   const { t, i18n } = useTranslation(["moderation", "common"]);
   const isRtl = i18n.dir() === "rtl";
   const dateLocale = isRtl ? ar : undefined;
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+
+  const withdrawMut = useMutation({
+    mutationFn: () => applicationsApi.withdraw(id!),
+    onSuccess: () => {
+      toast.success(t("moderation:appDetail.withdrawSuccess"));
+      setWithdrawOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ["application", "detail", id] });
+      void queryClient.invalidateQueries({ queryKey: ["applications"] });
+      void navigate("/student/applications");
+    },
+    onError: () => {
+      toast.error(t("moderation:appDetail.withdrawError"));
+      setWithdrawOpen(false);
+    },
+  });
 
   const { data, isLoading, isError } = useQuery<ApplicationDetail>({
     queryKey: ["application", "detail", id],
@@ -166,11 +190,23 @@ export function StudentApplicationDetail() {
             </p>
           )}
         </div>
-        <span
-          className={`rounded-full px-3 py-1 text-sm font-medium ${statusBadgeClass(data.status)}`}
-        >
-          {t(`moderation:applicationStatus.${data.status}`)}
-        </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span
+            className={`rounded-full px-3 py-1 text-sm font-medium ${statusBadgeClass(data.status)}`}
+          >
+            {t(`moderation:applicationStatus.${data.status}`)}
+          </span>
+          {WITHDRAWABLE_STATUSES.includes(data.status) && (
+            <button
+              type="button"
+              onClick={() => setWithdrawOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-danger-200 px-3 py-1.5 text-sm font-medium text-danger-600 transition hover:border-danger-400 hover:bg-danger-50"
+            >
+              <Trash2 className="size-4" />
+              {t("moderation:appDetail.withdraw")}
+            </button>
+          )}
+        </div>
       </div>
 
       {isDraft && (
@@ -307,6 +343,17 @@ export function StudentApplicationDetail() {
           )}
         </section>
       )}
+
+      <ConfirmDialog
+        open={withdrawOpen}
+        onOpenChange={setWithdrawOpen}
+        title={t("moderation:appDetail.withdrawDialogTitle")}
+        description={t("moderation:appDetail.withdrawDialogBody")}
+        confirmLabel={withdrawMut.isPending ? t("moderation:appDetail.withdrawing") : t("moderation:appDetail.withdraw")}
+        variant="destructive"
+        loading={withdrawMut.isPending}
+        onConfirm={() => withdrawMut.mutate()}
+      />
     </div>
   );
 }
