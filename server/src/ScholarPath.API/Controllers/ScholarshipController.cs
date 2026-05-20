@@ -96,6 +96,7 @@ namespace ScholarPath.API.Controllers
                 DescriptionAr = body.DescriptionAr,
                 Deadline = body.Deadline,
                 CategoryId = body.CategoryId,
+                FieldsOfStudy = body.FieldsOfStudy,
             }, ct);
             return NoContent();
         }
@@ -194,7 +195,8 @@ namespace ScholarPath.API.Controllers
         string DescriptionEn,
         string DescriptionAr,
         DateTimeOffset Deadline,
-        Guid CategoryId);
+        Guid CategoryId,
+        string[]? FieldsOfStudy = null);
 
     public record ScholarshipCategoryDto(Guid Id, string NameEn, string NameAr, string Slug);
 }

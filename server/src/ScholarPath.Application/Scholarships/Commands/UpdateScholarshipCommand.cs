@@ -16,6 +16,8 @@ public record UpdateScholarshipCommand : IRequest<bool>
     public string DescriptionAr { get; init; } = default!;
     public DateTimeOffset Deadline { get; init; }
     public Guid CategoryId { get; init; }
+    /// <summary>Optional updated list of eligible academic fields of study.</summary>
+    public string[]? FieldsOfStudy { get; init; }
 }
 
 public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentUserService user)
@@ -41,7 +43,9 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
         entity.DescriptionAr = request.DescriptionAr;
         entity.Deadline = request.Deadline;
         entity.CategoryId = request.CategoryId;
-
+        entity.FieldsOfStudyJson = request.FieldsOfStudy is { Length: > 0 }
+            ? System.Text.Json.JsonSerializer.Serialize(request.FieldsOfStudy)
+            : null;
 
         await db.SaveChangesAsync(ct);
         return true;
