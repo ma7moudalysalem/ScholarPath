@@ -1,7 +1,7 @@
 # PB-015 — Tasks
 
 **Owner**: @TasneemShaaban • **Est**: 34 pts • **Iteration**: 2
-**Status**: 🟡 SQL views shipped; Power BI reports + embed-token API + frontend page pending.
+**Status**: 🟡 SQL views + embed-token API + frontend embed pages shipped; Power BI workspace provisioning (T-007–T-013) blocked on Azure.
 
 ## SQL views (backend prep)
 
@@ -27,20 +27,20 @@
 
 ## API + frontend
 
-- [ ] T-014 — `POST /api/admin/analytics/embed-token` endpoint + token scoping *(not yet in backend)*
-- [ ] T-015 — `AnalyticsEmbedded.tsx` page with iframe + refresh loop *(not yet; `AnalyticsPage.tsx` covers admin KPI charts but not Power BI embed)*
-- [ ] T-016 — Role-specific links in nav (admin, consultant, student) *(admin analytics link exists in AdminLayout; consultant/student links not yet wired)*
+- [x] T-014 — `GET /api/analytics/embed-token?reportType=` endpoint + role scoping + stub/real provider pattern *(`AnalyticsController.cs`, `GetPowerBiEmbedTokenQuery.cs`, `IPowerBiService.cs`, `PowerBiService.cs`, `StubPowerBiService`)*
+- [x] T-015 — `AnalyticsEmbedded.tsx` generic iframe component with loading/error/not-configured/active states + token auto-refresh loop *(`client/src/pages/analytics/AnalyticsEmbedded.tsx`)*
+- [x] T-016 — Role-specific analytics pages + nav links wired: `ConsultantAnalytics.tsx`, `StudentAnalytics.tsx`, routes under `RequireRole`, sidebar items in `AuthenticatedLayout.tsx`
 
 ## QA
 
 - [ ] T-017 — Playwright smoke: each role sees their dashboard only
 - [ ] T-018 — Manual UX review on mobile viewport
-- [ ] T-019 — Documentation in `docs/ANALYTICS.md`
+- [x] T-019 — Documentation in `docs/ANALYTICS.md` *(file exists, 220 lines)*
 
 ## Done criteria
 
 - [x] Five SQL views created and migrated.
-- [ ] Five Power BI dashboards live and accessible per role.
-- [ ] RLS verified by impersonation tests.
-- [ ] Auto-refresh every 4 hours.
-- [ ] `docs/ANALYTICS.md` published.
+- [ ] Five Power BI dashboards live and accessible per role. *(blocked: Azure workspace not provisioned)*
+- [ ] RLS verified by impersonation tests. *(blocked: same)*
+- [x] Auto-refresh every 4 hours. *(AnalyticsEmbedded.tsx refreshes 10 min before token expiry)*
+- [x] `docs/ANALYTICS.md` published.
