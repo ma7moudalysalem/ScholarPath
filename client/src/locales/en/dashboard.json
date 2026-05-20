@@ -2,6 +2,12 @@
   "student": {
     "title": "Welcome back, {{name}}",
     "subtitle": "Your scholarship journey at a glance.",
+    "stats": {
+      "applications": "Applications",
+      "saved": "Saved",
+      "bookings": "Upcoming bookings",
+      "unread": "Unread"
+    },
     "cards": {
       "scholarships": { "title": "Browse scholarships", "desc": "Discover and filter opportunities." },
       "applications": { "title": "My applications", "desc": "Track every application's status." },
@@ -17,6 +23,11 @@
   "consultant": {
     "title": "Welcome back, {{name}}",
     "subtitle": "Manage your sessions and availability.",
+    "stats": {
+      "pending": "Pending requests",
+      "upcoming": "Upcoming sessions",
+      "thisMonth": "Sessions this month"
+    },
     "cards": {
       "availability": { "title": "Availability", "desc": "Set your weekly schedule." },
       "bookings": { "title": "Bookings", "desc": "Incoming and upcoming sessions." },

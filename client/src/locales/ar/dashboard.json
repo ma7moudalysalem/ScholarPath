@@ -2,6 +2,12 @@
   "student": {
     "title": "أهلاً بعودتك، {{name}}",
     "subtitle": "رحلتك نحو المنح في لمحة.",
+    "stats": {
+      "applications": "الطلبات",
+      "saved": "المحفوظة",
+      "bookings": "الحجوزات القادمة",
+      "unread": "غير مقروء"
+    },
     "cards": {
       "scholarships": { "title": "تصفّح المنح", "desc": "اكتشف الفرص وصفّها." },
       "applications": { "title": "طلباتي", "desc": "تابع حالة كل طلب." },
@@ -17,6 +23,11 @@
   "consultant": {
     "title": "أهلاً بعودتك، {{name}}",
     "subtitle": "أدِر جلساتك وأوقات إتاحتك.",
+    "stats": {
+      "pending": "طلبات في الانتظار",
+      "upcoming": "جلسات قادمة",
+      "thisMonth": "جلسات هذا الشهر"
+    },
     "cards": {
       "availability": { "title": "أوقات الإتاحة", "desc": "حدّد جدولك الأسبوعي." },
       "bookings": { "title": "الحجوزات", "desc": "الجلسات الواردة والقادمة." },
