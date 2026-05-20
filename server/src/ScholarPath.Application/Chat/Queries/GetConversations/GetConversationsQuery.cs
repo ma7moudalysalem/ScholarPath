@@ -38,7 +38,8 @@ public sealed class GetConversationsQueryHandler(
         var otherUsers = await db.Users
             .AsNoTracking()
             .Where(u => otherUserIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
+            .Select(u => new { u.Id, u.FullName, u.ProfileImageUrl })
+            .ToDictionaryAsync(u => u.Id, u => (u.FullName, u.ProfileImageUrl), ct);
 
         // Which of these participants the current user has blocked — drives the
         // Block / Unblock toggle in the chat UI (UAT TC-006).
@@ -50,15 +51,20 @@ public sealed class GetConversationsQueryHandler(
                 .ConfigureAwait(false))
             .ToHashSet();
 
-        return conversations.Select(c => new ChatConversationDto(
-            c.Id,
-            c.OtherParticipantId,
-            otherUsers.GetValueOrDefault(c.OtherParticipantId) ?? "Unknown User",
-            null, // AvatarUrl if available
-            c.LastMessageBody,
-            c.LastMessageAt,
-            presence.IsOnline(c.OtherParticipantId),
-            blockedUserIds.Contains(c.OtherParticipantId)
-        )).ToList();
+        return conversations.Select(c =>
+        {
+            var other = otherUsers.TryGetValue(c.OtherParticipantId, out var u)
+                ? u
+                : (FullName: "Unknown User", ProfileImageUrl: (string?)null);
+            return new ChatConversationDto(
+                c.Id,
+                c.OtherParticipantId,
+                other.FullName ?? "Unknown User",
+                other.ProfileImageUrl,
+                c.LastMessageBody,
+                c.LastMessageAt,
+                presence.IsOnline(c.OtherParticipantId),
+                blockedUserIds.Contains(c.OtherParticipantId));
+        }).ToList();
     }
 }
