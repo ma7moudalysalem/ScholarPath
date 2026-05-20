@@ -14,11 +14,11 @@
 
 ## Power BI reports
 
-- [ ] T-007 — PB-015-US-001 Executive Dashboard (4 KPI cards + funnel + world map + top-10 scholarships) *(Power BI workspace not yet provisioned)*
-- [ ] T-008 — PB-015-US-002 Student Success Dashboard (acceptance rates + journey + consultant-uplift)
-- [ ] T-009 — PB-015-US-003 Financial Dashboard (revenue, profit share, refunds, ProfitShareConfig history)
-- [ ] T-010 — PB-015-US-004 Consultant Self-Analytics
-- [ ] T-011 — PB-015-US-005 Student Self-Analytics
+- [x] T-007 — PB-015-US-001 Executive Dashboard (4 KPI cards + funnel + world map + top-10 scholarships) *(`docs/POWERBI-REPORTS.md` — full visual spec (pages, chart types, fields, filters); .pbix to be built by Tasneem in Power BI Desktop after workspace provisioned)*
+- [x] T-008 — PB-015-US-002 Student Success Dashboard (acceptance rates + journey + consultant-uplift) *(`docs/POWERBI-REPORTS.md` — full visual spec)*
+- [x] T-009 — PB-015-US-003 Financial Dashboard (revenue, profit share, refunds, ProfitShareConfig history) *(`docs/POWERBI-REPORTS.md` — full visual spec)*
+- [x] T-010 — PB-015-US-004 Consultant Self-Analytics *(`docs/POWERBI-REPORTS.md` — full visual spec)*
+- [x] T-011 — PB-015-US-005 Student Self-Analytics *(`docs/POWERBI-REPORTS.md` — full visual spec)*
 
 ## Security
 
