@@ -1,9 +1,24 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 
 import { AppRouter } from "@/routes/router";
 import { getDirection } from "@/lib/i18n";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { MaintenancePage } from "@/pages/MaintenancePage";
+import { apiClient } from "@/services/api/client";
+
+interface StatusResponse {
+  maintenanceModeEnabled: boolean;
+  version: string;
+  serverTime: string;
+}
+
+async function fetchStatus(): Promise<StatusResponse> {
+  const { data } = await apiClient.get<StatusResponse>("/api/status");
+  return data;
+}
 
 /** Watches html[data-theme] and returns "dark" | "light" */
 function useHtmlTheme(): "dark" | "light" {
@@ -27,16 +42,32 @@ export function App() {
   const { i18n } = useTranslation();
   const theme = useHtmlTheme();
 
+  const { data: status } = useQuery<StatusResponse>({
+    queryKey: ["platform", "status"],
+    queryFn: fetchStatus,
+    // Poll every 30 s so a maintenance window is detected without a page reload.
+    // Failures are silently ignored — don't break the app if /api/status is
+    // transiently unreachable.
+    refetchInterval: 30_000,
+    retry: false,
+    staleTime: 0,
+  });
+
   useEffect(() => {
     const dir = getDirection(i18n.language);
     document.documentElement.setAttribute("dir", dir);
     document.documentElement.setAttribute("lang", i18n.language);
   }, [i18n.language]);
 
+  if (status?.maintenanceModeEnabled) {
+    return <MaintenancePage />;
+  }
+
   return (
-    <>
-      <AppRouter />
-      <Toaster
+    <ErrorBoundary>
+      <>
+        <AppRouter />
+        <Toaster
         theme={theme}
         position={getDirection(i18n.language) === "rtl" ? "top-left" : "top-right"}
         gap={8}
@@ -69,6 +100,7 @@ export function App() {
           },
         }}
       />
-    </>
+      </>
+    </ErrorBoundary>
   );
 }

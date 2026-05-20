@@ -160,6 +160,9 @@ builder.Services.AddSwaggerGen(opts =>
     });
 });
 
+// ─── Memory cache (used by MaintenanceMiddleware + StatusController) ─────────
+builder.Services.AddMemoryCache();
+
 // ─── Health checks ───────────────────────────────────────────────────────────
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<ApplicationDbContext>("database");
@@ -264,6 +267,7 @@ var app = builder.Build();
 app.UseSerilogRequestLogging();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<ExceptionHandlerMiddleware>();
+app.UseMiddleware<MaintenanceMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
