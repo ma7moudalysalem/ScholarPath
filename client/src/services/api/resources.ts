@@ -112,9 +112,7 @@ export interface CreateResourceInput {
   chapters?: ResourceChapterInput[];
 }
 
-export interface UpdateResourceInput extends CreateResourceInput {
-  /* same shape — ResourceId is passed as path param */
-}
+export type UpdateResourceInput = CreateResourceInput;
 
 export interface ResourceProgressItem {
   resourceId: string;

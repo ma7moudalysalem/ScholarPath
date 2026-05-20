@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form";
 import type { Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -104,7 +104,6 @@ export function ResourceEditor() {
     control,
     handleSubmit,
     reset,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema) as Resolver<FormValues>,
@@ -123,7 +122,7 @@ export function ResourceEditor() {
   });
 
   const { fields: chapters, append, remove } = useFieldArray({ control, name: "chapters" });
-  const watchedType = watch("type");
+  const watchedType = useWatch({ control, name: "type" });
 
   // ── Load existing resource when editing ──────────────────────────────────
 
