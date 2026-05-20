@@ -5,13 +5,19 @@
     "users": "المستخدمون",
     "onboarding": "قائمة التأهيل",
     "upgrades": "قائمة الترقيات",
+    "scholarships": "المنح الدراسية",
+    "articles": "المقالات",
+    "community": "المجتمع",
+    "payments": "المدفوعات",
+    "profitShare": "حصة الأرباح",
+    "financialConfig": "الإعدادات المالية",
     "analytics": "التحليلات",
     "aiEconomy": "اقتصاد الذكاء الاصطناعي",
     "knowledgeBase": "قاعدة معرفة الذكاء الاصطناعي",
     "redactionAudit": "تدقيق إخفاء البيانات",
     "broadcast": "رسالة عامة",
     "auditLog": "سجل التدقيق",
-    "financialConfig": "الإعدادات المالية"
+    "settings": "الإعدادات"
   },
   "dashboard": {
     "totalUsers": "إجمالي المستخدمين",

@@ -5,13 +5,19 @@
     "users": "Users",
     "onboarding": "Onboarding queue",
     "upgrades": "Upgrade queue",
+    "scholarships": "Scholarships",
+    "articles": "Articles",
+    "community": "Community",
+    "payments": "Payments",
+    "profitShare": "Profit share",
+    "financialConfig": "Financial config",
     "analytics": "Analytics",
     "aiEconomy": "AI economy",
     "knowledgeBase": "AI knowledge base",
     "redactionAudit": "Redaction audit",
     "broadcast": "Broadcast",
     "auditLog": "Audit log",
-    "financialConfig": "Financial config"
+    "settings": "Settings"
   },
   "dashboard": {
     "totalUsers": "Total users",

@@ -15,6 +15,12 @@ import {
   FileText,
   Coins,
   LogOut,
+  GraduationCap,
+  BookOpen,
+  MessageSquare,
+  CreditCard,
+  PieChart,
+  Settings,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
@@ -27,20 +33,33 @@ interface NavItem {
   key: string;
   icon: LucideIcon;
   end?: boolean;
+  /** If true, renders a thin horizontal divider before this item. */
+  divider?: boolean;
 }
 
 const NAV: NavItem[] = [
+  // Core
   { to: "/admin", key: "nav.dashboard", icon: LayoutDashboard, end: true },
   { to: "/admin/users", key: "nav.users", icon: Users },
   { to: "/admin/onboarding", key: "nav.onboarding", icon: UserCheck },
   { to: "/admin/upgrades", key: "nav.upgrades", icon: UserPlus },
-  { to: "/admin/analytics", key: "nav.analytics", icon: BarChart3 },
+  // Content
+  { to: "/admin/scholarships", key: "nav.scholarships", icon: GraduationCap, divider: true },
+  { to: "/admin/articles", key: "nav.articles", icon: BookOpen },
+  { to: "/admin/community", key: "nav.community", icon: MessageSquare },
+  // Finance
+  { to: "/admin/payments", key: "nav.payments", icon: CreditCard, divider: true },
+  { to: "/admin/profit-share", key: "nav.profitShare", icon: PieChart },
+  { to: "/admin/financial-config", key: "nav.financialConfig", icon: Coins },
+  // Intelligence
+  { to: "/admin/analytics", key: "nav.analytics", icon: BarChart3, divider: true },
   { to: "/admin/ai-economy", key: "nav.aiEconomy", icon: Sparkles },
   { to: "/admin/knowledge-base", key: "nav.knowledgeBase", icon: Database },
   { to: "/admin/redaction-audit", key: "nav.redactionAudit", icon: ShieldAlert },
-  { to: "/admin/broadcast", key: "nav.broadcast", icon: Megaphone },
+  // System
+  { to: "/admin/broadcast", key: "nav.broadcast", icon: Megaphone, divider: true },
   { to: "/admin/audit-log", key: "nav.auditLog", icon: FileText },
-  { to: "/admin/financial-config", key: "nav.financialConfig", icon: Coins },
+  { to: "/admin/settings", key: "nav.settings", icon: Settings },
 ];
 
 export function AdminLayout() {
@@ -61,24 +80,28 @@ export function AdminLayout() {
           <span>{t("admin:title")}</span>
         </Link>
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-          {NAV.map(({ to, key, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition",
-                  isActive
-                    ? "bg-brand-500/10 text-brand-500"
-                    : "text-text-secondary hover:bg-bg-subtle hover:text-text-primary",
-                )
-              }
-            >
-              <Icon aria-hidden className="size-4" />
-              {t(`admin:${key}`)}
-            </NavLink>
+        <nav className="flex-1 overflow-y-auto p-3">
+          {NAV.map(({ to, key, icon: Icon, end, divider }) => (
+            <div key={to}>
+              {divider && (
+                <div className="my-1.5 border-t border-border-subtle" />
+              )}
+              <NavLink
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition",
+                    isActive
+                      ? "bg-brand-500/10 text-brand-500"
+                      : "text-text-secondary hover:bg-bg-subtle hover:text-text-primary",
+                  )
+                }
+              >
+                <Icon aria-hidden className="size-4" />
+                {t(`admin:${key}`)}
+              </NavLink>
+            </div>
           ))}
         </nav>
 
