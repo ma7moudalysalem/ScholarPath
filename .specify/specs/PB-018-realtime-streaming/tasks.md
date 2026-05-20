@@ -29,7 +29,7 @@
 
 ## QA
 
-- [ ] T-013 — Unit: event publisher emits correct envelope  *(pending T-002/T-003)*
+- [x] T-013 — Unit: event publisher emits correct envelope  *(`tests/ScholarPath.UnitTests/Streaming/DomainEventPublishingHandlerTests.cs` — 5 xUnit facts; captures publisher calls via `Arg.Do`, serialises payload to `JsonDocument`, asserts eventType label + every payload field for all three handlers; 504 tests green)*
 - [ ] T-014 — Integration: synthetic burst triggers anomaly alert  *(needs Event Hub + Stream Analytics job running)*
 - [ ] T-015 — Manual: at-risk chip appears for flagged users after daily sync  *(verifiable after ADF reverse-ETL trigger runs in staging)*
 
