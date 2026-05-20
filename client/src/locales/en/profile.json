@@ -30,7 +30,9 @@
     "websiteUrl": "Website",
     "academicLevel": "Academic level",
     "fieldOfStudy": "Field of study",
+    "fieldOfStudyPlaceholder": "e.g. Computer Science",
     "currentInstitution": "Current institution",
+    "currentInstitutionPlaceholder": "e.g. Cairo University",
     "gpa": "GPA",
     "gpaScale": "GPA scale",
     "organizationLegalName": "Legal name",
@@ -43,6 +45,34 @@
     "none": "Not set",
     "en": "English",
     "ar": "Arabic"
+  },
+  "academicLevelOption": {
+    "none": "Not set",
+    "HighSchool": "High school",
+    "Undergrad": "Undergraduate (Bachelor's)",
+    "Masters": "Master's degree",
+    "PhD": "PhD / Doctorate",
+    "PostDoc": "Post-doctoral",
+    "Other": "Other"
+  },
+  "gpaScaleOption": {
+    "none": "Select scale",
+    "4.0": "Out of 4.0",
+    "5.0": "Out of 5.0",
+    "10.0": "Out of 10.0",
+    "20.0": "Out of 20.0",
+    "100": "Percentage (0–100%)"
+  },
+  "sessionDurationOption": {
+    "none": "Select duration",
+    "30": "30 minutes",
+    "45": "45 minutes",
+    "60": "1 hour",
+    "90": "1.5 hours",
+    "120": "2 hours"
+  },
+  "countryOption": {
+    "none": "Select country"
   },
   "save": "Save changes",
   "saving": "Saving…",

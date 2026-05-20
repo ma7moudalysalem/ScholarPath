@@ -18,6 +18,48 @@ const PROFILE_KEY = ["profile", "me"] as const;
 const inputClass =
   "w-full rounded-md border border-border-default bg-bg-elevated p-2 text-sm focus:border-brand-500 focus:outline-none";
 
+const ACADEMIC_LEVELS = [
+  "HighSchool",
+  "Undergrad",
+  "Masters",
+  "PhD",
+  "PostDoc",
+  "Other",
+] as const;
+
+const GPA_SCALES = ["4.0", "5.0", "10.0", "20.0", "100"] as const;
+type GpaScale = (typeof GPA_SCALES)[number];
+
+const GPA_MAX: Record<GpaScale, number> = {
+  "4.0": 4,
+  "5.0": 5,
+  "10.0": 10,
+  "20.0": 20,
+  "100": 100,
+};
+
+const SESSION_DURATIONS = [30, 45, 60, 90, 120] as const;
+
+// Most common countries for a scholarship platform — displayed in English across both locales.
+const COUNTRIES = [
+  "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia",
+  "Austria", "Azerbaijan", "Bahrain", "Bangladesh", "Belarus", "Belgium",
+  "Bolivia", "Bosnia and Herzegovina", "Brazil", "Bulgaria", "Cambodia",
+  "Cameroon", "Canada", "Chile", "China", "Colombia", "Croatia", "Cuba",
+  "Czech Republic", "Denmark", "Ecuador", "Egypt", "Ethiopia", "Finland",
+  "France", "Georgia", "Germany", "Ghana", "Greece", "Guatemala", "Hungary",
+  "India", "Indonesia", "Iran", "Iraq", "Ireland", "Italy", "Japan", "Jordan",
+  "Kazakhstan", "Kenya", "Kuwait", "Kyrgyzstan", "Lebanon", "Libya", "Malaysia",
+  "Mexico", "Morocco", "Myanmar", "Nepal", "Netherlands", "New Zealand",
+  "Nigeria", "Norway", "Oman", "Pakistan", "Palestine", "Peru", "Philippines",
+  "Poland", "Portugal", "Qatar", "Romania", "Russia", "Saudi Arabia", "Senegal",
+  "Serbia", "South Africa", "South Korea", "Spain", "Sri Lanka", "Sudan",
+  "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania",
+  "Thailand", "Tunisia", "Turkey", "Turkmenistan", "Uganda", "Ukraine",
+  "United Arab Emirates", "United Kingdom", "United States", "Uzbekistan",
+  "Venezuela", "Vietnam", "Yemen", "Other",
+];
+
 interface FormState {
   firstName: string;
   lastName: string;
@@ -335,18 +377,28 @@ export function Profile() {
             />
           </Field>
           <Field label={t("profile:fields.nationality")}>
-            <input
+            <select
               className={inputClass}
               value={form.nationality}
               onChange={(e) => set("nationality", e.target.value)}
-            />
+            >
+              <option value="">{t("profile:countryOption.none")}</option>
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </Field>
           <Field label={t("profile:fields.countryOfResidence")}>
-            <input
+            <select
               className={inputClass}
               value={form.countryOfResidence}
               onChange={(e) => set("countryOfResidence", e.target.value)}
-            />
+            >
+              <option value="">{t("profile:countryOption.none")}</option>
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </Field>
           <Field label={t("profile:fields.preferredLanguage")}>
             <select
@@ -387,17 +439,25 @@ export function Profile() {
         {activeRole === "Student" && (
           <Section title={t("profile:sections.academic")}>
             <Field label={t("profile:fields.academicLevel")}>
-              <input
+              <select
                 className={inputClass}
                 value={form.academicLevel}
                 onChange={(e) => set("academicLevel", e.target.value)}
-              />
+              >
+                <option value="">{t("profile:academicLevelOption.none")}</option>
+                {ACADEMIC_LEVELS.map((lvl) => (
+                  <option key={lvl} value={lvl}>
+                    {t(`profile:academicLevelOption.${lvl}`)}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label={t("profile:fields.fieldOfStudy")}>
               <input
                 className={inputClass}
                 value={form.fieldOfStudy}
                 onChange={(e) => set("fieldOfStudy", e.target.value)}
+                placeholder={t("profile:fields.fieldOfStudyPlaceholder")}
               />
             </Field>
             <Field label={t("profile:fields.currentInstitution")} full>
@@ -405,22 +465,45 @@ export function Profile() {
                 className={inputClass}
                 value={form.currentInstitution}
                 onChange={(e) => set("currentInstitution", e.target.value)}
+                placeholder={t("profile:fields.currentInstitutionPlaceholder")}
               />
+            </Field>
+            <Field label={t("profile:fields.gpaScale")}>
+              <select
+                className={inputClass}
+                value={form.gpaScale}
+                onChange={(e) => {
+                  set("gpaScale", e.target.value);
+                  // Clear GPA if it now exceeds the new scale's max
+                  const newMax = GPA_MAX[e.target.value as GpaScale];
+                  if (newMax !== undefined && form.gpa !== "") {
+                    const val = Number(form.gpa);
+                    if (val > newMax) set("gpa", "");
+                  }
+                }}
+              >
+                <option value="">{t("profile:gpaScaleOption.none")}</option>
+                {GPA_SCALES.map((scale) => (
+                  <option key={scale} value={scale}>
+                    {t(`profile:gpaScaleOption.${scale}`)}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label={t("profile:fields.gpa")}>
               <input
                 type="number"
                 step="0.01"
+                min={0}
+                max={GPA_MAX[form.gpaScale as GpaScale] ?? undefined}
                 className={inputClass}
                 value={form.gpa}
                 onChange={(e) => set("gpa", e.target.value)}
-              />
-            </Field>
-            <Field label={t("profile:fields.gpaScale")}>
-              <input
-                className={inputClass}
-                value={form.gpaScale}
-                onChange={(e) => set("gpaScale", e.target.value)}
+                placeholder={
+                  form.gpaScale in GPA_MAX
+                    ? `0 – ${GPA_MAX[form.gpaScale as GpaScale]}`
+                    : undefined
+                }
               />
             </Field>
           </Section>
@@ -468,12 +551,18 @@ export function Profile() {
               />
             </Field>
             <Field label={t("profile:fields.sessionDurationMinutes")}>
-              <input
-                type="number"
+              <select
                 className={inputClass}
                 value={form.sessionDurationMinutes}
                 onChange={(e) => set("sessionDurationMinutes", e.target.value)}
-              />
+              >
+                <option value="">{t("profile:sessionDurationOption.none")}</option>
+                {SESSION_DURATIONS.map((d) => (
+                  <option key={d} value={d}>
+                    {t(`profile:sessionDurationOption.${d}`)}
+                  </option>
+                ))}
+              </select>
             </Field>
           </Section>
         )}
