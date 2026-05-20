@@ -132,6 +132,21 @@ public sealed class AdminReadService(
         return new PagedResult<AdminUserRow>(rows, page, pageSize, total);
     }
 
+    public async Task<List<Guid>> GetActiveUserIdsByRoleAsync(string role, CancellationToken ct)
+    {
+        var roleName = role.Trim();
+        return await (
+            from u in db.Users.AsNoTracking()
+            join ur in db.UserRoles on u.Id equals ur.UserId
+            join r in db.Roles on ur.RoleId equals r.Id
+            where r.Name == roleName && u.AccountStatus == AccountStatus.Active
+            select u.Id
+        )
+        .Distinct()
+        .ToListAsync(ct)
+        .ConfigureAwait(false);
+    }
+
     public async Task<AdminUserDetail?> GetUserDetailAsync(Guid userId, CancellationToken ct)
     {
         var user = await db.Users

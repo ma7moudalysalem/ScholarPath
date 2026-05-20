@@ -9,7 +9,8 @@ public sealed record GetConversationsQuery : IRequest<List<ChatConversationDto>>
 
 public sealed class GetConversationsQueryHandler(
     IApplicationDbContext db,
-    ICurrentUserService currentUser)
+    ICurrentUserService currentUser,
+    IChatPresenceQuery presence)
     : IRequestHandler<GetConversationsQuery, List<ChatConversationDto>>
 {
     public async Task<List<ChatConversationDto>> Handle(GetConversationsQuery request, CancellationToken ct)
@@ -56,7 +57,7 @@ public sealed class GetConversationsQueryHandler(
             null, // AvatarUrl if available
             c.LastMessageBody,
             c.LastMessageAt,
-            false, // Presence dot placeholder
+            presence.IsOnline(c.OtherParticipantId),
             blockedUserIds.Contains(c.OtherParticipantId)
         )).ToList();
     }
