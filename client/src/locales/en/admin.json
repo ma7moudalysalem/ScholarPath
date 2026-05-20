@@ -17,7 +17,8 @@
     "redactionAudit": "Redaction audit",
     "broadcast": "Broadcast",
     "auditLog": "Audit log",
-    "settings": "Settings"
+    "settings": "Settings",
+    "featuredScholarships": "Featured Scholarships"
   },
   "dashboard": {
     "totalUsers": "Total users",
@@ -228,6 +229,25 @@
     "count": "{{pending}} pending on this page · {{total}} total",
     "empty": "No samples to review.",
     "reviewedAt": "Reviewed"
+  },
+  "featured": {
+    "title": "Featured Scholarships",
+    "subtitle": "Up to {{max}} Open scholarships can be pinned to the homepage. Drag rows to reorder them.",
+    "currentSection": "Current featured list",
+    "addSection": "Add a scholarship",
+    "addHint": "Only Open scholarships can be featured.",
+    "count": "{{count}} of {{max}} slots used",
+    "empty": "No scholarships are currently featured.",
+    "allFeatured": "All open scholarships are already featured.",
+    "atCapHint": "The homepage is full ({{max}} max). Remove one before adding another.",
+    "feature": "Feature",
+    "unfeature": "Remove",
+    "featureSuccess": "Scholarship added to featured list.",
+    "unfeatureSuccess": "Scholarship removed from featured list.",
+    "saveOrder": "Save order",
+    "saving": "Saving…",
+    "reorderSaved": "Display order saved.",
+    "unsavedHint": "You have unsaved order changes — click "Save order" to apply them."
   },
   "pagination": {
     "previous": "Previous",

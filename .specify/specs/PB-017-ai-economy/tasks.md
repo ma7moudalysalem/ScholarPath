@@ -27,7 +27,7 @@
 
 ## QA
 
-- [ ] T-014 — Unit: click command idempotency  *(debounce tested manually; unit test for duplicate within window pending)*
+- [x] T-014 — Unit: click command idempotency  *(`tests/ScholarPath.UnitTests/Ai/LogRecommendationClickTests.cs` — `Repeat_click_inside_500ms_is_deduplicated` + `Click_after_debounce_window_persists_new_event`)*
 - [ ] T-015 — Integration: sampling job exactness (50 rows, non-overlapping months)  *(pending)*
 - [ ] T-016 — Manual: click CTR widget after demo data seed  *(verifiable in staging with seeded data)*
 

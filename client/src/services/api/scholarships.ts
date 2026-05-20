@@ -135,6 +135,16 @@ export interface MyScholarship {
   createdAt: string;
 }
 
+/** Row returned by `GET /api/scholarships/admin/featured` for the reorder page. */
+export interface AdminFeaturedScholarship {
+  id: string;
+  titleEn: string;
+  titleAr: string;
+  status: ScholarshipStatus;
+  featuredOrder: number;
+  deadline: string;
+}
+
 /** Server PaginatedList<MyScholarshipDto> shape. */
 export interface PaginatedMyScholarships {
   items: MyScholarship[];
@@ -422,5 +432,34 @@ export const scholarshipsApi = {
   /** Company / Admin: soft-delete (archive) a scholarship listing. */
   async archiveScholarship(id: string): Promise<void> {
     await apiClient.delete(`/api/scholarships/${id}`);
+  },
+
+  // ── Admin: featured scholarships management ──────────────────────────────────
+
+  /**
+   * Admin-only: list all currently-featured scholarships ordered by
+   * FeaturedOrder — used by the drag-to-reorder page.
+   */
+  async getAdminFeatured(): Promise<AdminFeaturedScholarship[]> {
+    const { data } = await apiClient.get<AdminFeaturedScholarship[]>(
+      "/api/scholarships/admin/featured",
+    );
+    return data;
+  },
+
+  /**
+   * Admin-only: feature or un-feature a scholarship (max 12 featured, must be
+   * Open to feature). Returns true when the operation succeeds.
+   */
+  async setFeatured(id: string, featured: boolean): Promise<void> {
+    await apiClient.post(`/api/scholarships/${id}/feature`, { featured });
+  },
+
+  /**
+   * Admin-only: overwrite the FeaturedOrder of ALL currently-featured
+   * scholarships. Supply every featured ID in the desired display order.
+   */
+  async reorderFeatured(ids: string[]): Promise<void> {
+    await apiClient.put("/api/scholarships/featured/reorder", { ids });
   },
 };

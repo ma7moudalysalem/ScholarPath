@@ -8,6 +8,8 @@ using ScholarPath.Application.Scholarships.Commands;
 using ScholarPath.Application.Scholarships.Commands.ApproveScholarship;
 using ScholarPath.Application.Scholarships.Commands.ConfigureReviewFee;
 using ScholarPath.Application.Scholarships.Commands.RejectScholarship;
+using ScholarPath.Application.Scholarships.Commands.ReorderFeaturedScholarships;
+using ScholarPath.Application.Scholarships.Commands.ToggleFeatureScholarship;
 using ScholarPath.Application.Scholarships.DTOs;
 using ScholarPath.Application.Scholarships.Queries;
 using ScholarPath.Application.Scholarships.Queries.GetMyScholarships;
@@ -162,6 +164,67 @@ namespace ScholarPath.API.Controllers
             => Ok(await mediator.Send(
                 new GetScholarshipsForModerationQuery(status, page, pageSize), ct));
 
+        // ── Admin: featured scholarships ─────────────────────────────────────
+
+        /// <summary>
+        /// Admin-only list of ALL currently-featured scholarships (any status),
+        /// ordered by FeaturedOrder. Used to populate the drag-to-reorder page.
+        /// </summary>
+        [HttpGet("admin/featured")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
+        [ProducesResponseType(typeof(IReadOnlyList<AdminFeaturedScholarshipDto>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> AdminFeatured(CancellationToken ct)
+        {
+            var rows = await db.Scholarships
+                .AsNoTracking()
+                .Where(s => s.IsFeatured && !s.IsDeleted)
+                .OrderBy(s => s.FeaturedOrder)
+                .ThenBy(s => s.Id)
+                .Select(s => new AdminFeaturedScholarshipDto(
+                    s.Id,
+                    s.TitleEn,
+                    s.TitleAr,
+                    s.Status.ToString(),
+                    s.FeaturedOrder,
+                    s.Deadline))
+                .ToListAsync(ct);
+            return Ok(rows);
+        }
+
+        /// <summary>
+        /// Admin-only: feature or un-feature a scholarship.
+        /// Featuring requires the scholarship to be <c>Open</c> and the featured
+        /// count to be below 12 (FR-030).
+        /// </summary>
+        [HttpPost("{id:guid}/feature")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> ToggleFeature(
+            Guid id, [FromBody] ToggleFeatureBody body, CancellationToken ct)
+        {
+            await mediator.Send(
+                new ToggleFeatureScholarshipCommand(id, body.Featured), ct);
+            return Ok();
+        }
+
+        /// <summary>
+        /// Admin-only: overwrite the display order of ALL currently-featured
+        /// scholarships in a single atomic operation (FR-030).
+        /// </summary>
+        [HttpPut("featured/reorder")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> ReorderFeatured(
+            [FromBody] ReorderFeaturedBody body, CancellationToken ct)
+        {
+            await mediator.Send(
+                new ReorderFeaturedScholarshipsCommand(body.Ids), ct);
+            return NoContent();
+        }
+
         [HttpPost("{id:guid}/approve")]
         [Authorize(Roles = "Admin,SuperAdmin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -188,6 +251,8 @@ namespace ScholarPath.API.Controllers
 
     public record ConfigureReviewFeeRequest(decimal ReviewFeeUsd);
     public record RejectScholarshipBody(string Reason);
+    public record ToggleFeatureBody(bool Featured);
+    public record ReorderFeaturedBody(IReadOnlyList<Guid> Ids);
 
     public record UpdateScholarshipBody(
         string TitleEn,
@@ -199,4 +264,13 @@ namespace ScholarPath.API.Controllers
         string[]? FieldsOfStudy = null);
 
     public record ScholarshipCategoryDto(Guid Id, string NameEn, string NameAr, string Slug);
+
+    /// <summary>Row used by the admin Featured-Scholarships drag-to-reorder page.</summary>
+    public record AdminFeaturedScholarshipDto(
+        Guid Id,
+        string TitleEn,
+        string TitleAr,
+        string Status,
+        int FeaturedOrder,
+        DateTimeOffset Deadline);
 }

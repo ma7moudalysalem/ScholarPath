@@ -16,6 +16,7 @@ import {
   Coins,
   LogOut,
   GraduationCap,
+  Star,
   BookOpen,
   MessageSquare,
   CreditCard,
@@ -44,7 +45,8 @@ const NAV: NavItem[] = [
   { to: "/admin/onboarding", key: "nav.onboarding", icon: UserCheck },
   { to: "/admin/upgrades", key: "nav.upgrades", icon: UserPlus },
   // Content
-  { to: "/admin/scholarships", key: "nav.scholarships", icon: GraduationCap, divider: true },
+  { to: "/admin/scholarships",          key: "nav.scholarships",          icon: GraduationCap, divider: true },
+  { to: "/admin/featured-scholarships", key: "nav.featuredScholarships",  icon: Star },
   { to: "/admin/articles", key: "nav.articles", icon: BookOpen },
   { to: "/admin/community", key: "nav.community", icon: MessageSquare },
   // Finance
