@@ -73,7 +73,20 @@
     "emptyHint": "يمكنني إرشادك إلى المنح والمواعيد والتقديم. عمّ تبحث؟",
     "thinking": "جارٍ التفكير…",
     "costHint": "تكلفة تقديرية ${{cost}} · رموز {{prompt}}↑ / {{completion}}↓",
-    "sources": "المصادر"
+    "sources": "المصادر",
+    "sidebar": {
+      "title": "محادثاتك",
+      "newChat": "محادثة جديدة",
+      "empty": "ستظهر محادثاتك السابقة هنا.",
+      "loadError": "تعذّر تحميل محادثاتك السابقة.",
+      "turnCount_zero": "بدون رسائل",
+      "turnCount_one": "رسالة واحدة",
+      "turnCount_two": "رسالتان",
+      "turnCount_few": "{{count}} رسائل",
+      "turnCount_many": "{{count}} رسالة",
+      "turnCount_other": "{{count}} رسالة",
+      "loadingTurns": "جارٍ التحميل…"
+    }
   },
   "errors": {
     "budgetExceeded": "وصلت إلى حد الاستخدام اليومي. حاول بعد منتصف الليل بتوقيت UTC.",

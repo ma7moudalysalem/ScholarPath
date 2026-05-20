@@ -42,7 +42,11 @@ public sealed class AzureOpenAiService(
         => local.CheckEligibilityAsync(userId, scholarshipId, ct);
 
     public async Task<AiChatResponse> AskAsync(
-        Guid userId, string sessionId, string message, CancellationToken ct)
+        Guid userId,
+        string sessionId,
+        string message,
+        IReadOnlyList<AiChatHistoryTurn> history,
+        CancellationToken ct)
     {
         var msg = (message ?? string.Empty).Trim();
         var arabic = RagSupport.IsArabic(msg);
@@ -60,7 +64,7 @@ public sealed class AzureOpenAiService(
             var user = RagSupport.BuildUserPrompt(context, msg, arabic);
 
             var (text, promptTokens, completionTokens) =
-                await ChatCompletionAsync(system, user, ct).ConfigureAwait(false);
+                await ChatCompletionAsync(system, user, history, ct).ConfigureAwait(false);
 
             var cost = promptTokens * InputCostPerToken + completionTokens * OutputCostPerToken;
             return new AiChatResponse(
@@ -70,19 +74,22 @@ public sealed class AzureOpenAiService(
         catch (HttpRequestException ex)
         {
             logger.LogWarning(ex, "Azure OpenAI chat failed; falling back to the local RAG router.");
-            return await local.AskAsync(userId, sessionId, msg, ct).ConfigureAwait(false);
+            return await local.AskAsync(userId, sessionId, msg, history, ct).ConfigureAwait(false);
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
             logger.LogWarning("Azure OpenAI chat timed out; falling back to the local RAG router.");
-            return await local.AskAsync(userId, sessionId, msg, ct).ConfigureAwait(false);
+            return await local.AskAsync(userId, sessionId, msg, history, ct).ConfigureAwait(false);
         }
     }
 
     // ─── Azure OpenAI HTTP ────────────────────────────────────────────────
 
     private async Task<(string Text, int PromptTokens, int CompletionTokens)> ChatCompletionAsync(
-        string system, string user, CancellationToken ct)
+        string system,
+        string user,
+        IReadOnlyList<AiChatHistoryTurn> history,
+        CancellationToken ct)
     {
         var az = opts.Value.AzureOpenAi;
         if (string.IsNullOrWhiteSpace(az.Endpoint) || string.IsNullOrWhiteSpace(az.ApiKey))
@@ -100,13 +107,22 @@ public sealed class AzureOpenAiService(
         var url = $"{az.Endpoint.TrimEnd('/')}/openai/deployments/{deployment}"
                 + $"/chat/completions?api-version={az.ApiVersion}";
 
+        // Prepend prior conversation turns between the system prompt and the
+        // current user prompt so the LLM has memory of the session — without
+        // this every follow-up reads as a brand-new question.
+        var messages = new List<object>(history.Count + 2)
+        {
+            new { role = "system", content = system },
+        };
+        foreach (var turn in history)
+        {
+            messages.Add(new { role = turn.Role, content = turn.Content });
+        }
+        messages.Add(new { role = "user", content = user });
+
         var body = new
         {
-            messages = new[]
-            {
-                new { role = "system", content = system },
-                new { role = "user",   content = user   },
-            },
+            messages,
             temperature = 0.3,
             max_tokens = 400,
         };

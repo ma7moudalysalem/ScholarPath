@@ -54,7 +54,10 @@ public sealed class OpenAiService(
             foreach (var i in scored.Items)
             {
                 var user = $"Score: {i.MatchScore}/100\nOriginal EN: {i.ExplanationEn}\nOriginal AR: {i.ExplanationAr}";
-                var (text, pTok, cTok) = await ChatCompletionAsync(sys, user, ct).ConfigureAwait(false);
+                // Recommendation rewriting is a one-shot request — no prior
+                // turns to replay, so pass an empty history.
+                var (text, pTok, cTok) = await ChatCompletionAsync(
+                    sys, user, Array.Empty<AiChatHistoryTurn>(), ct).ConfigureAwait(false);
                 totalPromptTok += pTok;
                 totalCompletionTok += cTok;
 
@@ -81,7 +84,11 @@ public sealed class OpenAiService(
         => localAi.CheckEligibilityAsync(userId, scholarshipId, ct);
 
     public async Task<AiChatResponse> AskAsync(
-        Guid userId, string sessionId, string message, CancellationToken ct)
+        Guid userId,
+        string sessionId,
+        string message,
+        IReadOnlyList<AiChatHistoryTurn> history,
+        CancellationToken ct)
     {
         var msg = (message ?? string.Empty).Trim();
         var arabic = RagSupport.IsArabic(msg);
@@ -98,7 +105,7 @@ public sealed class OpenAiService(
             var system = arabic ? RagSupport.ChatSystemAr : RagSupport.ChatSystemEn;
             var user = RagSupport.BuildUserPrompt(context, msg, arabic);
 
-            var (text, pTok, cTok) = await ChatCompletionAsync(system, user, ct).ConfigureAwait(false);
+            var (text, pTok, cTok) = await ChatCompletionAsync(system, user, history, ct).ConfigureAwait(false);
             var cost = pTok * InputCostPerToken + cTok * OutputCostPerToken;
             return new AiChatResponse(
                 text, Disclaimer, pTok, cTok, cost,
@@ -107,19 +114,22 @@ public sealed class OpenAiService(
         catch (HttpRequestException ex)
         {
             logger.LogWarning(ex, "OpenAI chat failed; falling back to the local RAG router.");
-            return await localAi.AskAsync(userId, sessionId, msg, ct).ConfigureAwait(false);
+            return await localAi.AskAsync(userId, sessionId, msg, history, ct).ConfigureAwait(false);
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
             logger.LogWarning("OpenAI chat timed out; falling back to the local RAG router.");
-            return await localAi.AskAsync(userId, sessionId, msg, ct).ConfigureAwait(false);
+            return await localAi.AskAsync(userId, sessionId, msg, history, ct).ConfigureAwait(false);
         }
     }
 
     // ─── HTTP ─────────────────────────────────────────────────────────────
 
     private async Task<(string Text, int PromptTokens, int CompletionTokens)> ChatCompletionAsync(
-        string system, string user, CancellationToken ct)
+        string system,
+        string user,
+        IReadOnlyList<AiChatHistoryTurn> history,
+        CancellationToken ct)
     {
         var o = opts.Value.OpenAi;
         if (string.IsNullOrWhiteSpace(o.ApiKey))
@@ -131,14 +141,23 @@ public sealed class OpenAiService(
         client.DefaultRequestHeaders.Authorization =
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", o.ApiKey);
 
+        // Prepend prior turns so the LLM has conversation memory across the
+        // session (a follow-up like "what about the deadline?" needs the
+        // previous "tell me about X" turn to resolve "the").
+        var messages = new List<object>(history.Count + 2)
+        {
+            new { role = "system", content = system },
+        };
+        foreach (var turn in history)
+        {
+            messages.Add(new { role = turn.Role, content = turn.Content });
+        }
+        messages.Add(new { role = "user", content = user });
+
         var body = new
         {
             model = o.Model,
-            messages = new[]
-            {
-                new { role = "system", content = system },
-                new { role = "user",   content = user   },
-            },
+            messages,
             temperature = 0.3,
             max_tokens = 400,
         };

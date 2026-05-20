@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Ai.Common;
 using ScholarPath.Application.Ai.DTOs;
@@ -22,6 +23,13 @@ public sealed partial class AskChatbotCommandHandler(
 {
     private const decimal EstimatedCost = 0.0003m;
 
+    /// <summary>
+    /// Max prior turns of the SAME session replayed into the LLM. 20 user-msg +
+    /// 20 reply rows cover a long-running session without blowing the prompt
+    /// budget — older turns drop off the head (the LLM never sees them).
+    /// </summary>
+    private const int MaxHistoryTurns = 20;
+
     public async Task<ChatAnswerDto> Handle(AskChatbotCommand request, CancellationToken ct)
     {
         var userId = currentUser.UserId
@@ -35,6 +43,12 @@ public sealed partial class AskChatbotCommandHandler(
         var sessionId = string.IsNullOrWhiteSpace(request.SessionId)
             ? Guid.NewGuid().ToString("N")
             : request.SessionId;
+
+        // Load prior turns of this session — the AI uses them as conversation
+        // memory so a follow-up like "what about Stanford?" resolves against
+        // the previous "tell me about MIT" turn. Filtered to THIS user so a
+        // leaked SessionId can't leak someone else's transcript into the LLM.
+        var history = await LoadHistoryAsync(userId, sessionId, ct).ConfigureAwait(false);
 
         var interaction = new AiInteraction
         {
@@ -52,7 +66,9 @@ public sealed partial class AskChatbotCommandHandler(
 
         try
         {
-            var result = await ai.AskAsync(userId, sessionId, redacted, ct).ConfigureAwait(false);
+            var result = await ai
+                .AskAsync(userId, sessionId, redacted, history, ct)
+                .ConfigureAwait(false);
 
             var sources = result.Sources
                 .Select(s => new ChatSourceDto(s.Title, s.SourceType, s.ScholarshipId, s.Score))
@@ -86,6 +102,40 @@ public sealed partial class AskChatbotCommandHandler(
             catch (Exception saveEx) { logger.LogError(saveEx, "Failed to persist failed chat interaction."); }
             throw;
         }
+    }
+
+    /// <summary>
+    /// Reads the most recent <see cref="MaxHistoryTurns"/> turns of this session
+    /// for this user and flattens them into the canonical user/assistant pairs
+    /// the LLM expects. Skips rows with no response (failed turns) so the LLM
+    /// doesn't see a dangling user message with no answer.
+    /// </summary>
+    private async Task<IReadOnlyList<AiChatHistoryTurn>> LoadHistoryAsync(
+        Guid userId, string sessionId, CancellationToken ct)
+    {
+        var rows = await db.AiInteractions
+            .AsNoTracking()
+            .Where(i => i.SessionId == sessionId
+                        && i.UserId == userId
+                        && i.Feature == AiFeature.Chatbot)
+            .OrderByDescending(i => i.StartedAt)
+            .Take(MaxHistoryTurns)
+            .Select(i => new { i.PromptText, i.ResponseText, i.StartedAt })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        if (rows.Count == 0) return Array.Empty<AiChatHistoryTurn>();
+
+        // Replay in chronological order — the LLM reads top-down, oldest first.
+        var turns = new List<AiChatHistoryTurn>(rows.Count * 2);
+        foreach (var row in rows.OrderBy(r => r.StartedAt))
+        {
+            if (!string.IsNullOrWhiteSpace(row.PromptText))
+                turns.Add(new AiChatHistoryTurn(AiChatHistoryTurn.UserRole, row.PromptText));
+            if (!string.IsNullOrWhiteSpace(row.ResponseText))
+                turns.Add(new AiChatHistoryTurn(AiChatHistoryTurn.AssistantRole, row.ResponseText));
+        }
+        return turns;
     }
 
     internal static string RedactPii(string input)

@@ -84,6 +84,28 @@ export interface LogRecommendationClickResult {
   deduplicated: boolean;
 }
 
+/** One row in the past-chat sidebar — `GET /api/ai/chat/sessions`. */
+export interface AiSessionSummary {
+  sessionId: string;
+  /** Short preview of the first prompt — used as the row title. */
+  title: string;
+  startedAt: string;
+  lastTurnAt: string | null;
+  turnCount: number;
+}
+
+/** One persisted turn of a chat session — `GET /api/ai/chat/sessions/{id}`. */
+export interface AiSessionTurn {
+  id: string;
+  promptText: string;
+  responseText: string;
+  startedAt: string;
+  completedAt: string | null;
+  promptTokens: number | null;
+  completionTokens: number | null;
+  costUsd: number | null;
+}
+
 export const aiApi = {
   /**
    * GET the user's cached recommendations (last 24h). Resolves to null when
@@ -124,6 +146,20 @@ export const aiApi = {
     const { data } = await apiClient.get<AiInteractionRow[]>(
       "/api/ai/interactions",
       { params: { limit } },
+    );
+    return data;
+  },
+
+  /** Lists every chat session the authenticated user has had, newest-first. */
+  async chatSessions(): Promise<AiSessionSummary[]> {
+    const { data } = await apiClient.get<AiSessionSummary[]>("/api/ai/chat/sessions");
+    return data;
+  },
+
+  /** Returns every turn of a chat session, oldest-first. */
+  async chatSessionTurns(sessionId: string): Promise<AiSessionTurn[]> {
+    const { data } = await apiClient.get<AiSessionTurn[]>(
+      `/api/ai/chat/sessions/${sessionId}`,
     );
     return data;
   },

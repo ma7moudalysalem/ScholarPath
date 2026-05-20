@@ -220,8 +220,17 @@ public sealed class LocalAiService(
     /// router. This keeps RAG demonstrable with no API key configured.
     /// </summary>
     public async Task<AiChatResponse> AskAsync(
-        Guid userId, string sessionId, string message, CancellationToken ct)
+        Guid userId,
+        string sessionId,
+        string message,
+        IReadOnlyList<AiChatHistoryTurn> history,
+        CancellationToken ct)
     {
+        // The local router doesn't call an LLM, so it has nothing to do with
+        // the supplied history — silence the unused-param warning explicitly
+        // so the signature stays consistent with the real providers.
+        _ = history;
+
         var msg = (message ?? string.Empty).Trim();
         var arabic = RagSupport.IsArabic(msg);
 

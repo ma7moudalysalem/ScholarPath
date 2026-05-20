@@ -12,11 +12,29 @@ public interface IAiService
         Guid scholarshipId,
         CancellationToken ct);
 
+    /// <summary>
+    /// Generates a chatbot answer. <paramref name="history"/> contains the prior
+    /// turns of the same session (in chronological order, alternating user /
+    /// assistant) so the LLM has memory of the conversation — without it every
+    /// follow-up reads as a fresh prompt and "what about Stanford?" can't be
+    /// resolved against the previous "tell me about MIT" turn.
+    /// </summary>
     Task<AiChatResponse> AskAsync(
         Guid userId,
         string sessionId,
         string message,
+        IReadOnlyList<AiChatHistoryTurn> history,
         CancellationToken ct);
+}
+
+/// <summary>
+/// A single prior turn in an AI chat session, in the canonical OpenAI shape so
+/// every provider implementation can forward it verbatim.
+/// </summary>
+public sealed record AiChatHistoryTurn(string Role, string Content)
+{
+    public const string UserRole = "user";
+    public const string AssistantRole = "assistant";
 }
 
 public sealed record AiRecommendationResult(

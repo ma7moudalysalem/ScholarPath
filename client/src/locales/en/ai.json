@@ -73,7 +73,16 @@
     "emptyHint": "I can point you to scholarships, deadlines, and applications. What are you looking for?",
     "thinking": "Thinking…",
     "costHint": "Est. ${{cost}} used · {{prompt}}↑ / {{completion}}↓ tokens",
-    "sources": "Sources"
+    "sources": "Sources",
+    "sidebar": {
+      "title": "Your chats",
+      "newChat": "New chat",
+      "empty": "Your past chats will appear here.",
+      "loadError": "We couldn't load your past chats.",
+      "turnCount_one": "1 turn",
+      "turnCount_other": "{{count}} turns",
+      "loadingTurns": "Loading…"
+    }
   },
   "errors": {
     "budgetExceeded": "You've hit today's AI budget. Try again after midnight UTC.",

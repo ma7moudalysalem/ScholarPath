@@ -2,6 +2,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Ai.Commands.AskChatbot;
+using ScholarPath.Application.Ai.Queries.GetAiSessionTurns;
+using ScholarPath.Application.Ai.Queries.GetMyAiSessions;
 using ScholarPath.Application.Ai.Commands.CheckEligibility;
 using ScholarPath.Application.Ai.Commands.GenerateRecommendations;
 using ScholarPath.Application.Ai.Commands.LogRecommendationClick;
@@ -71,6 +73,34 @@ public sealed class AiController(IMediator mediator) : ControllerBase
     {
         var rows = await mediator.Send(new GetMyInteractionsQuery(limit), ct).ConfigureAwait(false);
         return Ok(rows);
+    }
+
+    /// <summary>
+    /// Lists the authenticated user's past chatbot sessions, newest-first.
+    /// Backs the sidebar of past chats so the user can resume any of them —
+    /// the assistant uses the session's turns as conversation memory.
+    /// </summary>
+    [HttpGet("chat/sessions")]
+    [ProducesResponseType(typeof(IReadOnlyList<AiSessionSummaryDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Sessions(CancellationToken ct = default)
+    {
+        var sessions = await mediator.Send(new GetMyAiSessionsQuery(), ct).ConfigureAwait(false);
+        return Ok(sessions);
+    }
+
+    /// <summary>
+    /// Returns every persisted turn (prompt + response) of one chat session,
+    /// scoped to the authenticated user, oldest-first. 404 is never returned —
+    /// an unknown / cross-user session simply yields an empty list.
+    /// </summary>
+    [HttpGet("chat/sessions/{sessionId}")]
+    [ProducesResponseType(typeof(IReadOnlyList<AiSessionTurnDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SessionTurns(string sessionId, CancellationToken ct = default)
+    {
+        var turns = await mediator
+            .Send(new GetAiSessionTurnsQuery(sessionId), ct)
+            .ConfigureAwait(false);
+        return Ok(turns);
     }
 
     /// <summary>
