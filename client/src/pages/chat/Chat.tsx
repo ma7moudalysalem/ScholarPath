@@ -418,92 +418,98 @@ export function Chat() {
   // The right-pane header — extracted because the same block renders on mobile
   // when a conversation is open and on desktop when one is selected.
   const renderHeader = () => (
-    <div className="p-4 border-b border-border-subtle flex items-center justify-between bg-bg-elevated/80 backdrop-blur-md sticky top-0 z-10">
+    <div className="px-5 py-3.5 border-b border-border-subtle flex items-center justify-between bg-bg-elevated/95 backdrop-blur-md sticky top-0 z-10">
       <div className="flex items-center gap-3 min-w-0">
         <button
           type="button"
           onClick={() => selectConversation(null)}
           aria-label={t("chat.back_to_list", "Back to conversations")}
-          className="md:hidden -ms-1 me-1 p-1.5 rounded-full text-text-secondary hover:bg-bg-subtle transition-colors"
+          className="md:hidden -ms-1 me-0.5 p-1.5 rounded-full text-text-secondary hover:bg-bg-subtle transition-colors"
         >
           <ArrowLeft size={18} className={isRtl ? "rotate-180" : ""} />
         </button>
-        <UserAvatar
-          userId={selectedConv!.otherParticipantId}
-          name={selectedConv!.otherParticipantName}
-          className="w-10 h-10 border border-border-subtle flex-shrink-0"
-        />
+        <div className="relative flex-shrink-0">
+          <UserAvatar
+            userId={selectedConv!.otherParticipantId}
+            name={selectedConv!.otherParticipantName}
+            className="w-10 h-10 ring-2 ring-bg-elevated"
+          />
+          {selectedParticipantOnline && (
+            <div className="absolute -bottom-0.5 -end-0.5 w-3 h-3 bg-success-500 border-2 border-bg-elevated rounded-full" />
+          )}
+        </div>
         <div className="min-w-0">
-          <h3 className="text-sm font-bold truncate">{selectedConv!.otherParticipantName}</h3>
+          <h3 className="text-sm font-bold truncate leading-tight">
+            {selectedConv!.otherParticipantName}
+          </h3>
           <span
-            className={`text-[10px] flex items-center gap-1 font-medium ${
-              selectedParticipantOnline ? "text-success-500" : "text-text-tertiary"
+            className={`text-[11px] flex items-center gap-1 font-medium leading-tight ${
+              selectedParticipantOnline ? "text-success-600" : "text-text-tertiary"
             }`}
           >
-            <Circle size={8} fill="currentColor" />
+            <Circle size={6} fill="currentColor" />
             {selectedParticipantOnline
               ? t("chat.online", "Online")
               : t("chat.offline", "Offline")}
           </span>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setBlockConfirmOpen(true)}
-          title={
-            selectedConv!.isBlocked
-              ? t("chat.unblock_user", "Unblock user")
-              : t("chat.block_user", "Block user")
-          }
-          aria-label={
-            selectedConv!.isBlocked
-              ? t("chat.unblock_user", "Unblock user")
-              : t("chat.block_user", "Block user")
-          }
-          className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-full transition-colors ${
-            selectedConv!.isBlocked
-              ? "text-brand-500 hover:bg-brand-50"
-              : "text-danger-500 hover:bg-danger-50"
-          }`}
-        >
-          <Slash size={16} />
-          <span className="hidden sm:inline">
-            {selectedConv!.isBlocked
-              ? t("chat.unblock_user", "Unblock user")
-              : t("chat.block_user", "Block user")}
-          </span>
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => setBlockConfirmOpen(true)}
+        title={
+          selectedConv!.isBlocked
+            ? t("chat.unblock_user", "Unblock user")
+            : t("chat.block_user", "Block user")
+        }
+        aria-label={
+          selectedConv!.isBlocked
+            ? t("chat.unblock_user", "Unblock user")
+            : t("chat.block_user", "Block user")
+        }
+        className={`flex items-center gap-1.5 ps-2 pe-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+          selectedConv!.isBlocked
+            ? "text-brand-600 border-brand-200 bg-brand-50/50 hover:bg-brand-50"
+            : "text-text-tertiary border-border-subtle hover:text-danger-500 hover:border-danger-200 hover:bg-danger-50/50"
+        }`}
+      >
+        <Slash size={14} />
+        <span className="hidden sm:inline">
+          {selectedConv!.isBlocked
+            ? t("chat.unblock_user", "Unblock user")
+            : t("chat.block_user", "Block user")}
+        </span>
+      </button>
     </div>
   );
 
   return (
-    <div className="flex h-[calc(100vh-120px)] max-w-6xl mx-auto bg-bg-elevated rounded-3xl border border-border-subtle shadow-lg overflow-hidden my-4">
+    <div className="flex h-[calc(100vh-120px)] max-w-6xl mx-auto bg-bg-elevated rounded-3xl border border-border-subtle shadow-sm overflow-hidden my-4">
       {/* Conversation List — full-width on mobile when no thread is open. */}
       <aside
         className={`${
           selectedConv ? "hidden md:flex" : "flex"
-        } w-full md:w-80 border-e border-border-subtle flex-col bg-bg-muted/50 flex-shrink-0`}
+        } w-full md:w-80 border-e border-border-subtle flex-col bg-bg-elevated flex-shrink-0`}
       >
-        <div className="p-4 border-b border-border-subtle">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-bold text-text-tertiary uppercase tracking-wider px-1">
+        <div className="px-4 pt-4 pb-3 border-b border-border-subtle">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-text-primary px-1">
               {t("chat.messages", "Direct Messages")}
             </h2>
             <button
               type="button"
               onClick={() => setIsComposeOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 text-white text-xs font-bold rounded-xl shadow-sm hover:bg-brand-600 transition-all"
+              aria-label={t("chat.new_message", "New Message")}
+              title={t("chat.new_message", "New Message")}
+              className="flex items-center justify-center w-8 h-8 bg-brand-50 text-brand-600 rounded-lg hover:bg-brand-100 transition-colors"
             >
-              <PenSquare size={14} />
-              {t("chat.new_message", "New Message")}
+              <PenSquare size={16} />
             </button>
           </div>
           <div className="relative">
             <Search
               className="absolute start-3 top-1/2 -translate-y-1/2 text-text-tertiary"
-              size={16}
+              size={14}
               aria-hidden
             />
             <input
@@ -512,7 +518,7 @@ export function Chat() {
               onChange={(e) => setConversationSearch(e.target.value)}
               placeholder={t("chat.search_placeholder", "Search conversations...")}
               aria-label={t("chat.header_search_aria", "Search conversations")}
-              className="w-full ps-9 pe-4 py-2 bg-bg-elevated border border-border-subtle rounded-xl text-sm outline-none focus:ring-2 focus:ring-brand-400 transition-all"
+              className="w-full ps-9 pe-3 py-2 bg-bg-subtle border border-transparent rounded-xl text-sm outline-none focus:bg-bg-elevated focus:border-brand-300 focus:ring-2 focus:ring-brand-400/30 transition-all"
             />
           </div>
         </div>
@@ -534,33 +540,43 @@ export function Chat() {
                   key={conv.id}
                   onClick={() => selectConversation(conv)}
                   aria-current={isActive ? "true" : undefined}
-                  className={`group w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${
+                  // Softer selected state — a left/right accent bar + light tint
+                  // (instead of a saturated full-fill brand pill) reads as
+                  // "highlighted" without overpowering the sidebar. The accent
+                  // is anchored to the start edge so it flips with RTL.
+                  className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-start transition-colors ${
                     isActive
-                      ? "bg-brand-500 text-white shadow-md shadow-brand-500/20"
-                      : "hover:bg-bg-subtle"
+                      ? "bg-brand-50/70 text-text-primary"
+                      : "hover:bg-bg-subtle text-text-primary"
                   }`}
                 >
+                  {isActive && (
+                    <span
+                      aria-hidden
+                      className="absolute start-0 top-2 bottom-2 w-1 rounded-full bg-brand-500"
+                    />
+                  )}
                   <div className="relative flex-shrink-0">
                     <UserAvatar
                       userId={conv.otherParticipantId}
                       name={conv.otherParticipantName}
-                      className="w-12 h-12 border-2 border-white"
+                      className="w-11 h-11 ring-2 ring-bg-elevated"
                     />
                     {isOnlineDot && (
-                      <div className="absolute bottom-0 end-0 w-3 h-3 bg-success-500 border-2 border-bg-elevated rounded-full" />
+                      <div className="absolute -bottom-0.5 -end-0.5 w-3 h-3 bg-success-500 border-2 border-bg-elevated rounded-full" />
                     )}
                   </div>
-                  <div className="flex-1 text-start overflow-hidden min-w-0">
-                    <div className="flex justify-between items-baseline mb-1 gap-2">
-                      <h4 className="text-sm font-bold truncate">
+                  <div className="flex-1 overflow-hidden min-w-0">
+                    <div className="flex justify-between items-baseline mb-0.5 gap-2">
+                      <h4
+                        className={`text-sm truncate ${
+                          isActive ? "font-bold" : "font-semibold"
+                        }`}
+                      >
                         {conv.otherParticipantName}
                       </h4>
                       {conv.lastMessageAt && (
-                        <span
-                          className={`text-[10px] flex-shrink-0 ${
-                            isActive ? "text-white/70" : "text-text-tertiary"
-                          }`}
-                        >
+                        <span className="text-[10px] flex-shrink-0 text-text-tertiary">
                           {formatDistanceToNow(new Date(conv.lastMessageAt), {
                             addSuffix: false,
                             locale: dateLocale,
@@ -570,7 +586,7 @@ export function Chat() {
                     </div>
                     <p
                       className={`text-xs truncate ${
-                        isActive ? "text-white/80" : "text-text-secondary"
+                        isActive ? "text-text-secondary" : "text-text-tertiary"
                       }`}
                     >
                       {conv.lastMessageBody ||
@@ -629,38 +645,72 @@ export function Chat() {
                 </div>
               ) : (
                 groupedMessages.map((group) => (
-                  <div key={group.key} className="space-y-3">
-                    <div className="flex items-center gap-3 py-1">
-                      <div className="flex-1 h-px bg-border-subtle" />
-                      <span className="text-[10px] uppercase tracking-wider text-text-tertiary font-bold px-2">
+                  <div key={group.key} className="space-y-1.5">
+                    {/* Day separator — pill instead of line+text so it reads as
+                        a soft chip and doesn't compete with messages. */}
+                    <div className="flex justify-center py-2">
+                      <span className="text-[10px] uppercase tracking-wider text-text-tertiary font-semibold px-3 py-1 bg-bg-subtle rounded-full">
                         {group.label}
                       </span>
-                      <div className="flex-1 h-px bg-border-subtle" />
                     </div>
-                    {group.items.map((msg) => {
+                    {group.items.map((msg, idx) => {
                       const isMe = msg.senderId === currentUser?.id;
+                      // Group consecutive messages from the same sender into a
+                      // tight stack — only show the avatar on the *last* message
+                      // of an incoming run, so the thread feels less cluttered.
+                      const next = group.items[idx + 1];
+                      const isLastFromSender = !next || next.senderId !== msg.senderId;
+                      const prev = group.items[idx - 1];
+                      const isFirstFromSender = !prev || prev.senderId !== msg.senderId;
                       return (
                         <div
                           key={msg.id}
-                          className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                          className={`flex items-end gap-2 ${
+                            isMe ? "justify-end" : "justify-start"
+                          } ${isLastFromSender ? "pb-1.5" : ""}`}
                         >
+                          {/* Incoming-only avatar gutter — keeps the bubble
+                              aligned even when the avatar is hidden (mid-run). */}
+                          {!isMe && (
+                            <div className="w-7 flex-shrink-0">
+                              {isLastFromSender && (
+                                <UserAvatar
+                                  userId={msg.senderId}
+                                  name={selectedConv!.otherParticipantName}
+                                  className="w-7 h-7"
+                                  initialsClassName="text-[10px]"
+                                />
+                              )}
+                            </div>
+                          )}
                           <div
-                            className={`max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm ${
+                            className={`max-w-[75%] px-3.5 py-2 ${
                               isMe
                                 ? "bg-brand-500 text-white"
                                 : "bg-bg-subtle text-text-primary border border-border-subtle"
+                            } ${
+                              // Bubble-tail corners: rounded on the OUTside,
+                              // squared on the side that meets the previous /
+                              // next message in the same sender's run.
+                              isMe
+                                ? `rounded-2xl ${isFirstFromSender ? "" : "rounded-tr-md"} ${isLastFromSender ? "" : "rounded-br-md"}`
+                                : `rounded-2xl ${isFirstFromSender ? "" : "rounded-tl-md"} ${isLastFromSender ? "" : "rounded-bl-md"}`
                             }`}
                           >
                             <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                               {msg.body}
                             </p>
-                            <div
-                              className={`text-[10px] mt-1 ${
-                                isMe ? "text-white/70 text-end" : "text-text-tertiary"
-                              }`}
-                            >
-                              {formatTime(msg.sentAt)}
-                            </div>
+                            {/* Only show timestamp on the LAST message of a run
+                                so a back-and-forth doesn't get noisy. */}
+                            {isLastFromSender && (
+                              <div
+                                className={`text-[10px] mt-0.5 ${
+                                  isMe ? "text-white/70 text-end" : "text-text-tertiary"
+                                }`}
+                              >
+                                {formatTime(msg.sentAt)}
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -670,12 +720,13 @@ export function Chat() {
               )}
 
               {typingUser && (
-                <div className="flex justify-start">
-                  <div className="bg-bg-subtle border border-border-subtle rounded-2xl p-3 px-4">
-                    <div className="flex gap-1">
+                <div className="flex items-end gap-2 justify-start">
+                  <div className="w-7 flex-shrink-0" />
+                  <div className="bg-bg-subtle border border-border-subtle rounded-2xl px-4 py-2.5">
+                    <div className="flex gap-1 items-center">
                       <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce" />
-                      <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce [animation-delay:0.2s]" />
-                      <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce [animation-delay:0.4s]" />
+                      <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce [animation-delay:0.15s]" />
+                      <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce [animation-delay:0.3s]" />
                     </div>
                   </div>
                 </div>
@@ -684,8 +735,13 @@ export function Chat() {
             </div>
 
             {/* Input */}
-            <div className="p-4 bg-bg-muted/30 border-t border-border-subtle">
-              <form onSubmit={handleSendMessage} className="flex gap-2 items-end">
+            <div className="px-4 py-3 bg-bg-elevated border-t border-border-subtle">
+              <form
+                onSubmit={handleSendMessage}
+                className={`flex gap-2 items-end rounded-2xl border bg-bg-subtle/60 px-3 py-2 transition-colors focus-within:border-brand-300 focus-within:bg-bg-elevated focus-within:ring-2 focus-within:ring-brand-400/30 ${
+                  isBlocked ? "border-danger-200" : "border-border-subtle"
+                }`}
+              >
                 <textarea
                   value={messageBody}
                   onChange={handleTyping}
@@ -695,7 +751,7 @@ export function Chat() {
                       ? t("chat.input_disabled_blocked", "Conversation is blocked.")
                       : t("chat.type_placeholder", "Type a message...")
                   }
-                  className="flex-1 bg-bg-elevated text-text-primary border border-border-subtle rounded-2xl p-3 px-4 outline-none focus:ring-2 focus:ring-brand-400 transition-all text-sm resize-none disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="flex-1 bg-transparent text-text-primary outline-none text-sm resize-none disabled:opacity-60 disabled:cursor-not-allowed py-1.5 max-h-32"
                   rows={1}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -708,34 +764,34 @@ export function Chat() {
                   type="submit"
                   disabled={!messageBody.trim() || isBlocked || isSending}
                   aria-label={t("chat.new_message", "New Message")}
-                  className="p-3 bg-brand-500 text-white rounded-2xl shadow-lg hover:bg-brand-600 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed transition-all flex-shrink-0"
+                  className="flex h-9 w-9 items-center justify-center bg-brand-500 text-white rounded-xl hover:bg-brand-600 disabled:bg-bg-subtle disabled:text-text-tertiary disabled:cursor-not-allowed transition-all flex-shrink-0"
                 >
                   {isSending ? (
-                    <Loader2 size={20} className="animate-spin" />
+                    <Loader2 size={16} className="animate-spin" />
                   ) : (
-                    <Send size={20} className={isRtl ? "rotate-180" : ""} />
+                    <Send size={16} className={isRtl ? "rotate-180" : ""} />
                   )}
                 </button>
               </form>
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-bg-muted/10">
-            <div className="w-20 h-20 bg-brand-50 rounded-3xl flex items-center justify-center mb-6 text-brand-500 shadow-sm border border-brand-100">
-              <MessageCircle size={40} />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-bg-subtle/30">
+            <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mb-5 text-brand-500">
+              <MessageCircle size={28} />
             </div>
-            <h3 className="text-xl font-bold mb-2">
+            <h3 className="text-lg font-bold mb-1.5 text-text-primary">
               {t("chat.empty_title", "Your Conversations")}
             </h3>
-            <p className="text-text-secondary max-w-xs mx-auto mb-6">
+            <p className="text-sm text-text-secondary max-w-xs mx-auto mb-5">
               {t("chat.empty_desc", "Pick a conversation from the sidebar, or start a new message.")}
             </p>
             <button
               type="button"
               onClick={() => setIsComposeOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-brand-500 text-white text-sm font-bold rounded-2xl shadow-lg hover:bg-brand-600 transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white text-sm font-medium rounded-xl hover:bg-brand-600 transition-colors"
             >
-              <PenSquare size={16} />
+              <PenSquare size={14} />
               {t("chat.new_message", "New Message")}
             </button>
           </div>
