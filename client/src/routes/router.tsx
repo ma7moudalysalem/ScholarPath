@@ -146,6 +146,18 @@ const ConsultantEarnings = lazy(() =>
     default: m.ConsultantEarnings,
   })),
 );
+const ConsultantAnalytics = lazy(() =>
+  import("@/pages/consultant/ConsultantAnalytics").then((m) => ({
+    default: m.ConsultantAnalytics,
+  })),
+);
+
+// ── PB-015: Student self-analytics ────────────────────────────────────────────
+const StudentAnalytics = lazy(() =>
+  import("@/pages/student/StudentAnalytics").then((m) => ({
+    default: m.StudentAnalytics,
+  })),
+);
 
 // Admin
 const AdminDashboard = lazy(() =>
@@ -370,6 +382,7 @@ export function AppRouter() {
           <Route path="/student/resources/:idOrSlug" element={<StudentResourceDetail />} />
           <Route path="/student/documents"         element={<StudentDocuments />} />
           <Route path="/student/ai"                element={<StudentAi />} />
+          <Route path="/student/analytics"         element={<StudentAnalytics />} />
 
           {/* PB-009: Author resource management (Consultant, Company, Admin) */}
           <Route
@@ -483,6 +496,14 @@ export function AppRouter() {
             element={
               <RequireRole roles={["Consultant"]}>
                 <ConsultantEarnings />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/consultant/analytics"
+            element={
+              <RequireRole roles={["Consultant"]}>
+                <ConsultantAnalytics />
               </RequireRole>
             }
           />

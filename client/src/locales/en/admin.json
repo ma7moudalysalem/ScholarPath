@@ -247,7 +247,7 @@
     "saveOrder": "Save order",
     "saving": "Saving…",
     "reorderSaved": "Display order saved.",
-    "unsavedHint": "You have unsaved order changes — click "Save order" to apply them."
+    "unsavedHint": "You have unsaved order changes — click “Save order” to apply them."
   },
   "pagination": {
     "previous": "Previous",

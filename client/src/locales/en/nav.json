@@ -16,7 +16,8 @@
     "resources": "Resources",
     "documents": "Documents",
     "ai": "AI",
-    "messages": "Messages"
+    "messages": "Messages",
+    "analytics": "My Journey"
   },
   "company": {
     "dashboard": "Dashboard",
@@ -30,7 +31,8 @@
     "availability": "Availability",
     "bookings": "Bookings",
     "earnings": "Earnings",
-    "resources": "My resources"
+    "resources": "My resources",
+    "analytics": "My Analytics"
   },
   "admin": {
     "dashboard": "Dashboard",

@@ -16,7 +16,8 @@
     "resources": "الموارد",
     "documents": "المستندات",
     "ai": "الذكاء الاصطناعي",
-    "messages": "الرسائل"
+    "messages": "الرسائل",
+    "analytics": "مسيرتي"
   },
   "company": {
     "dashboard": "لوحة التحكم",
@@ -30,7 +31,8 @@
     "availability": "الأوقات المتاحة",
     "bookings": "الحجوزات",
     "earnings": "الأرباح",
-    "resources": "مواردي"
+    "resources": "مواردي",
+    "analytics": "تحليلاتي"
   },
   "admin": {
     "dashboard": "لوحة التحكم",

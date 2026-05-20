@@ -189,6 +189,22 @@ public static class DependencyInjection
             services.AddSingleton<IMeetingService, StubMeetingService>();
         }
 
+        // ── Power BI embedded analytics ──
+        // Real PowerBiService when workspace + service principal are configured;
+        // otherwise the no-op stub returns IsConfigured=false so the frontend
+        // shows a "not yet configured" placeholder without throwing.
+        var pbiWorkspace = config.GetValue<string>($"{PowerBiOptions.SectionName}:WorkspaceId");
+        if (!string.IsNullOrWhiteSpace(pbiWorkspace))
+        {
+            services.Configure<PowerBiOptions>(config.GetSection(PowerBiOptions.SectionName));
+            services.AddHttpClient("PowerBi");
+            services.AddSingleton<IPowerBiService, PowerBiService>();
+        }
+        else
+        {
+            services.AddSingleton<IPowerBiService, StubPowerBiService>();
+        }
+
         // ── AI provider + RAG pipeline ──
         // Provider is config-driven (no code change):
         //   Stub / Local → deterministic offline scoring + local-hash embeddings

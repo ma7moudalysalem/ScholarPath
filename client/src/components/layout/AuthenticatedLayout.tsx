@@ -20,6 +20,7 @@ import {
   Menu,
   X,
   FileEdit,
+  BarChart2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -77,6 +78,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/student/documents", key: "student.documents", icon: FolderOpen },
     { to: "/student/ai", key: "student.ai", icon: Sparkles },
     { to: "/student/messages", key: "student.messages", icon: MessageSquare },
+    { to: "/student/analytics", key: "student.analytics", icon: BarChart2 },
   ],
   Company: [
     { to: "/company", key: "company.dashboard", icon: LayoutDashboard },
@@ -91,6 +93,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/consultant/bookings", key: "consultant.bookings", icon: ListChecks },
     { to: "/consultant/earnings", key: "consultant.earnings", icon: Calendar },
     { to: "/author/resources", key: "consultant.resources", icon: FileEdit },
+    { to: "/consultant/analytics", key: "consultant.analytics", icon: BarChart2 },
   ],
 };
 

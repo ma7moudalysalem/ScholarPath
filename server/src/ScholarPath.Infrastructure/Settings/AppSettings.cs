@@ -233,6 +233,36 @@ public sealed class EventHubOptions
 }
 
 /// <summary>
+/// Power BI embedded analytics configuration (PB-015 T-014).
+/// When <see cref="WorkspaceId"/> is blank the API returns a
+/// "not configured" response and the frontend shows a placeholder.
+/// Production sets all values via Azure App Service settings or Key Vault —
+/// never commit a real service-principal secret here.
+/// </summary>
+public sealed class PowerBiOptions
+{
+    public const string SectionName = "PowerBi";
+
+    /// <summary>Power BI workspace (group) GUID. Leave blank to use stub.</summary>
+    public string WorkspaceId { get; set; } = string.Empty;
+
+    /// <summary>Azure AD tenant that owns the service principal.</summary>
+    public string TenantId { get; set; } = string.Empty;
+
+    /// <summary>Service-principal application (client) ID.</summary>
+    public string ServicePrincipalClientId { get; set; } = string.Empty;
+
+    /// <summary>Service-principal client secret.</summary>
+    public string ServicePrincipalClientSecret { get; set; } = string.Empty;
+
+    /// <summary>Report GUID → reportType map. Keys must match <c>PowerBiReportType</c> enum names.</summary>
+    public Dictionary<string, string> ReportIds { get; set; } = [];
+
+    /// <summary>Dataset GUID used for RLS token generation (same dataset backs all reports).</summary>
+    public string DatasetId { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// Antivirus scanning of uploaded files (SRS security NFR). When
 /// <see cref="Enabled"/> is true the real <c>ClamAvFileScanService</c> is
 /// registered and every upload is scanned against a <c>clamd</c> daemon before

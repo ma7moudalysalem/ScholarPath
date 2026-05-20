@@ -98,6 +98,18 @@ public sealed class NoOpFileScanService(ILogger<NoOpFileScanService> logger) : I
 }
 
 /// <summary>
+/// No-op <see cref="IPowerBiService"/> used when <c>PowerBi:WorkspaceId</c>
+/// is absent (local dev and CI). Always returns <c>IsConfigured = false</c>
+/// so the frontend gracefully shows the "not yet configured" placeholder.
+/// </summary>
+public sealed class StubPowerBiService : IPowerBiService
+{
+    public Task<EmbedTokenDto> GetEmbedTokenAsync(
+        string reportType, Guid userId, string userEmail, string activeRole, CancellationToken ct)
+        => Task.FromResult(new EmbedTokenDto(IsConfigured: false, null, null, null, null));
+}
+
+/// <summary>
 /// No-op <see cref="IEventPublisher"/> used when <c>EventHub:ConnectionString</c>
 /// is absent (local dev and CI). Events are logged at debug level so developers
 /// can verify the correct events are raised without needing an Azure Event Hub.

@@ -1,0 +1,10 @@
+{
+  "consultantTitle": "My Analytics",
+  "consultantSubtitle": "Track your booking performance, earnings, and student satisfaction.",
+  "studentTitle": "My Journey",
+  "studentSubtitle": "Visualize your scholarship applications, acceptance rates, and AI-assisted progress.",
+  "notConfiguredTitle": "Analytics Dashboard Coming Soon",
+  "notConfiguredBody": "The Power BI workspace is being set up. Check back once provisioning is complete — your personalised dashboard will appear here.",
+  "loadError": "Could not load the analytics dashboard.",
+  "retry": "Try again"
+}
