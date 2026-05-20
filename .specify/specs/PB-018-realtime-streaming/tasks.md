@@ -6,8 +6,8 @@
 ## Event infrastructure
 
 - [ ] T-001 — Provision Azure Event Hub namespace + `domain-events` hub (INFRA)  *(Azure resource; needs lead's subscription — ASAQL references the hub by connection string in config)*
-- [ ] T-002 — MediatR notification handlers for ApplicationSubmitted / PaymentCaptured / BookingCompleted  *(domain events defined in `Domain/Events/BusinessEvents.cs`; EventHub publish handlers not yet wired in Infrastructure)*
-- [ ] T-003 — Azure.Messaging.EventHubs client + publisher wrapper  *(not yet in server code; ASAQL assumes events arrive from Event Hub — can demo with manual injection)*
+- [x] T-002 — MediatR notification handlers for ApplicationSubmitted / PaymentCaptured / BookingCompleted  *(`Application/Streaming/DomainEventPublishingHandlers.cs` — three `INotificationHandler<T>` classes auto-registered by MediatR scan; each builds a typed JSON payload and delegates to `IEventPublisher`)*
+- [x] T-003 — Azure.Messaging.EventHubs client + publisher wrapper  *(`Infrastructure/Services/EventHubPublisher.cs` — wraps `EventHubProducerClient`, publishes typed envelope `{eventType, occurredAt, source, data}`; `StubEventPublisher` logs at debug level when no connection string is set; `IEventPublisher` interface in `Application/Common/Interfaces/`; registered in DI via `EventHub:ConnectionString` presence check; `Azure.Messaging.EventHubs 5.11.5` added to `Directory.Packages.props`)*
 
 ## Live tile (PB-018-US-001)
 
