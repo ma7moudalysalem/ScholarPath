@@ -1,13 +1,12 @@
+using MediatR;
 using NSubstitute;
 using Xunit;
 using FluentAssertions;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
-using ScholarPath.Infrastructure.Hubs;
 using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Application.Chat.Commands.SendMessage;
 
@@ -18,6 +17,7 @@ public class SendMessageCommandHandlerTests
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
     private readonly IChatRealtimeNotifier _chatNotifier = Substitute.For<IChatRealtimeNotifier>();
+    private readonly IPublisher _publisher = Substitute.For<IPublisher>();
     private readonly SendMessageCommandHandler _handler;
 
     public SendMessageCommandHandlerTests()
@@ -27,7 +27,7 @@ public class SendMessageCommandHandlerTests
             .Options;
         _db = new ApplicationDbContext(options);
 
-        _handler = new SendMessageCommandHandler(_db, _currentUser, _chatNotifier);
+        _handler = new SendMessageCommandHandler(_db, _currentUser, _chatNotifier, _publisher);
     }
 
     [Fact]

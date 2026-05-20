@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
 
@@ -6,7 +7,7 @@ namespace ScholarPath.Infrastructure.Services;
 /// <summary>
 /// Default fallback implementations, registered by <c>AddInfrastructureServices</c>
 /// only when the corresponding real provider is not configured: no SMTP host,
-/// no OAuth credentials, no Stripe key, or no ClamAV daemon.
+/// no OAuth credentials, no Stripe key, no ClamAV daemon, no Event Hubs connection.
 /// </summary>
 
 public sealed class StubEmailService(ILogger<StubEmailService> logger) : IEmailService
@@ -93,5 +94,22 @@ public sealed class NoOpFileScanService(ILogger<NoOpFileScanService> logger) : I
     {
         logger.LogDebug("[noop-scan] {FileName} not scanned (file scanning disabled).", fileName);
         return Task.FromResult(new FileScanResult(FileScanVerdict.Clean, null));
+    }
+}
+
+/// <summary>
+/// No-op <see cref="IEventPublisher"/> used when <c>EventHub:ConnectionString</c>
+/// is absent (local dev and CI). Events are logged at debug level so developers
+/// can verify the correct events are raised without needing an Azure Event Hub.
+/// </summary>
+public sealed class StubEventPublisher(ILogger<StubEventPublisher> logger) : IEventPublisher
+{
+    public Task PublishAsync(string eventType, object payload, CancellationToken ct = default)
+    {
+        logger.LogDebug(
+            "[stub-eventhub] {EventType} {Payload}",
+            eventType,
+            JsonSerializer.Serialize(payload));
+        return Task.CompletedTask;
     }
 }

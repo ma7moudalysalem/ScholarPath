@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.Configure<FileScanningOptions>(config.GetSection(FileScanningOptions.SectionName));
         services.Configure<FieldEncryptionOptions>(config.GetSection(FieldEncryptionOptions.SectionName));
         services.Configure<BookingOptions>(config.GetSection(BookingOptions.SectionName));
+        services.Configure<EventHubOptions>(config.GetSection(EventHubOptions.SectionName));
 
         // Project AiOptions into the Application-side snapshot so the cost gate
         // doesn't have to know about Infrastructure's full options type.
@@ -154,6 +155,14 @@ public static class DependencyInjection
             services.AddSingleton<IFileScanService, ClamAvFileScanService>();
         else
             services.AddSingleton<IFileScanService, NoOpFileScanService>();
+
+        // Azure Event Hubs: real publisher when a connection string is provided;
+        // otherwise the stub just logs events and continues without throwing.
+        var ehConnString = config.GetValue<string>($"{EventHubOptions.SectionName}:ConnectionString");
+        if (!string.IsNullOrWhiteSpace(ehConnString))
+            services.AddSingleton<IEventPublisher, EventHubPublisher>();
+        else
+            services.AddSingleton<IEventPublisher, StubEventPublisher>();
 
         // Stripe: the real client only when a genuine secret key (sk_...) is
         // configured; placeholder values fall through to the dev stub.

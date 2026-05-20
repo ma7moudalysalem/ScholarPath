@@ -213,6 +213,26 @@ public sealed class AzureOpenAiOptions
 }
 
 /// <summary>
+/// Azure Event Hubs configuration for real-time domain-event streaming (PB-018).
+/// When <see cref="ConnectionString"/> is provided, the real
+/// <c>EventHubPublisher</c> is registered; otherwise a no-op stub is used so
+/// dev/test environments never fail due to missing Event Hub credentials.
+/// </summary>
+public sealed class EventHubOptions
+{
+    public const string SectionName = "EventHub";
+
+    /// <summary>
+    /// Event Hubs namespace connection string. When absent the stub publisher
+    /// is used and domain events are only logged — no Event Hub calls are made.
+    /// </summary>
+    public string? ConnectionString { get; set; }
+
+    /// <summary>Name of the event hub within the namespace. Defaults to "domain-events".</summary>
+    public string HubName { get; set; } = "domain-events";
+}
+
+/// <summary>
 /// Antivirus scanning of uploaded files (SRS security NFR). When
 /// <see cref="Enabled"/> is true the real <c>ClamAvFileScanService</c> is
 /// registered and every upload is scanned against a <c>clamd</c> daemon before
