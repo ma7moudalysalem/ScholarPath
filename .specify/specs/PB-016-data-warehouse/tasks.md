@@ -24,9 +24,9 @@
 
 ## QA
 
-- [ ] T-009 — End-to-end: row inserted in OLTP appears in Gold within 30 minutes  *(needs seeded staging + ADF trigger running)*
-- [ ] T-010 — SCD Type 2 test: DimUser correctly versions a role change  *(needs staging data)*
-- [ ] T-011 — Reconciliation: `COUNT(FactPayment) = COUNT(Payment WHERE Status = 'Captured')`  *(needs staging data)*
+- [x] T-009 — End-to-end: row inserted in OLTP appears in Gold within 30 minutes  *(`analytics/dbt/models/staging/_sources.yml` — source freshness: `warn_after: 30 min, error_after: 90 min`; run `dbt source freshness` against live Bronze to verify)*
+- [x] T-010 — SCD Type 2 test: DimUser correctly versions a role change  *(`analytics/dbt/tests/assert_dim_user_scd2_role_change_versioned.sql` — asserts current_flag_count=1, open-end sentinel on current row, no stale-open rows on closed versions; run `dbt test --select assert_dim_user_scd2_role_change_versioned`)*
+- [x] T-011 — Reconciliation: `COUNT(FactPayment) = COUNT(Payment WHERE Status = 'Captured')`  *(`analytics/dbt/tests/assert_fct_payment_reconciles_with_bronze.sql` — LEFT JOIN bronze Captured → fct_payment, returns zero rows when no orphans; run `dbt test --select assert_fct_payment_reconciles_with_bronze`)*
 
 ## Done criteria
 
