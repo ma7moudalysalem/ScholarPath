@@ -13,11 +13,11 @@
 
 ## Dashboards (Power BI)
 
-- [ ] T-006 — PB-017-US-001 AI cost dashboard (stacked bar feature × provider × day)  *(pending Tasneem — data available via `/api/admin/analytics/ai-usage`)*
-- [ ] T-007 — PB-017-US-002 Budget alert automation (80% three-day rule)  *(pending Tasneem)*
-- [ ] T-008 — PB-017-US-003 Recommendation CTR widget + event logging  @ma7moudalysalem  *(server + client logging done; Power BI visual pending Tasneem)*
-- [ ] T-009 — PB-017-US-004 Token efficiency box plots + top-10 table  *(pending Tasneem)*
-- [ ] T-010 — PB-017-US-005 Redaction audit trend + investigation table  *(pending Tasneem)*
+- [x] T-006 — PB-017-US-001 AI cost dashboard (stacked bar feature × provider × day)  *(`docs/POWERBI-REPORTS.md` — full visual spec: stacked bar daily cost + cost-by-feature table + donut + trend; data from `fct_ai_interaction` Gold table)*
+- [x] T-007 — PB-017-US-002 Budget alert automation (80% three-day rule)  *(`docs/POWERBI-REPORTS.md` — spec: budget gauge + 3-day rolling line + alert status card + `BudgetConfig` parameter table)*
+- [x] T-008 — PB-017-US-003 Recommendation CTR widget + event logging  *(`docs/POWERBI-REPORTS.md` — spec: CTR gauge + over-time line + by-source bar + top-clicked table; server + client logging already shipped)*
+- [x] T-009 — PB-017-US-004 Token efficiency box plots + top-10 table  *(`docs/POWERBI-REPORTS.md` — spec: box-whisker per feature + top-10 expensive calls + avg-tokens bar + trend)*
+- [x] T-010 — PB-017-US-005 Redaction audit trend + investigation table  *(`docs/POWERBI-REPORTS.md` — spec: monthly leak rate line + verdict donut + samples table + threshold indicator)*
 
 ## Frontend
 

@@ -147,6 +147,61 @@ RLS is documented in `docs/ANALYTICS-RLS.md`.
 
 ---
 
+## PB-017 — AI Economy Dashboards
+
+These reports are part of the **AI Economy** module (admin-only, no RLS filter).
+Data comes from `GET /api/admin/analytics/ai-usage` — or the Gold schema
+`fct_ai_interaction` for Power BI DirectQuery.
+
+### T-006 — AI Cost Dashboard (`AiCostDashboard`)
+| Visual | Type | Fields |
+|--------|------|--------|
+| Total cost (window) | KPI card | `SUM(fct_ai_interaction.cost_usd)` with date slicer |
+| Stacked bar: daily cost | Stacked bar | X=date, Y=cost_usd, Legend=feature × provider |
+| Cost by feature | Table | ai_feature, provider, total_cost_usd, avg_cost_per_call |
+| Cost by provider | Donut | Segments: OpenAI / Azure OpenAI / Stub |
+| Trend (30d) | Line chart | X=date, Y=cost_usd |
+
+### T-007 — Budget Alert Automation
+| Visual | Type | Fields |
+|--------|------|--------|
+| Budget threshold | KPI card + gauge | Configured limit vs actual (last 3 days) |
+| Alert status | Card | "⚠ 80% threshold reached" / "✅ Under budget" |
+| 3-day rolling cost | Line chart | Alert threshold line overlay |
+| Alert history | Table | alert_fired_at, pct_used, three_day_total |
+
+> **Note**: The alert threshold is a configurable measure. Add a parameter table
+> `BudgetConfig` (single row: `daily_budget_usd`, `alert_pct`) to the dataset.
+
+### T-008 — Recommendation CTR Widget
+| Visual | Type | Fields |
+|--------|------|--------|
+| CTR gauge | Gauge | clicks / impressions (from `fct_recommendation_click`) |
+| CTR over time | Line chart | X=week, Y=ctr_pct |
+| Clicks by source | Bar chart | X=source (card / email / push), Y=click_count |
+| Top-clicked scholarships | Table | scholarship_title, clicks, impressions, ctr |
+
+### T-009 — Token Efficiency (`TokenEfficiency`)
+| Visual | Type | Fields |
+|--------|------|--------|
+| Box plots: tokens/call | Box-whisker | Y=total_tokens, X=ai_feature | Requires Power BI Premium or Python visual |
+| Top-10 expensive calls | Table | call_id, feature, model, prompt_tokens, completion_tokens, cost_usd |
+| Avg tokens per feature | Bar chart | X=ai_feature, Y=avg_total_tokens |
+| Token trend | Line chart | X=date, Y=avg_tokens |
+
+### T-010 — Redaction Audit Trend
+| Visual | Type | Fields |
+|--------|------|--------|
+| Monthly leak rate | Line chart | X=month, Y=leaked_pct = leaked/(clean+leaked) |
+| Verdict distribution | Donut | Pending / Clean / Leaked |
+| Samples table | Table | created_at, redacted_excerpt (first 100 chars), verdict, reviewed_at |
+| Alert indicator | Card | "⚠ leak rate > 2%" / "✅ Within threshold" |
+
+> The underlying data is served by `GET /api/admin/redaction-audit/samples` —
+> use the Power BI REST API connector or import from the API endpoint directly.
+
+---
+
 ## Deployment checklist
 
 After Power BI workspace is provisioned:
