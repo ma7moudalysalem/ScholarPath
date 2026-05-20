@@ -1,7 +1,7 @@
 # PB-010 — Tasks
 
 **Owner**: @Madiha6776  •  **Est**: 41 pts  •  **Iteration**: 3
-**Status**: ✅ backend + core frontend shipped; NotificationPreferences page pending; E2E pending staging.
+**Status**: ✅ backend + full frontend shipped (including NotificationPreferences page); E2E pending staging.
 
 ## Backend
 - [x] T-001 — `Notification` + `NotificationPreference` entities *(`Domain/Entities/Notifications.cs`)*
@@ -26,6 +26,6 @@
 
 ## Done criteria
 - [x] 15+ notification types wired; real-time (SignalR) working.
-- [x] NotificationPreferences page (T-010) wired.
+- [x] NotificationPreferences page (T-010) wired — toggle matrix, optimistic updates, routed at `/notifications/preferences`.
 - [ ] Email delivery proven in MailHog dev environment.
 - [ ] E2E green in staging.

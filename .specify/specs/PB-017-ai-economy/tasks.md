@@ -28,7 +28,7 @@
 ## QA
 
 - [x] T-014 — Unit: click command idempotency  *(`tests/ScholarPath.UnitTests/Ai/LogRecommendationClickTests.cs` — `Repeat_click_inside_500ms_is_deduplicated` + `Click_after_debounce_window_persists_new_event`)*
-- [ ] T-015 — Integration: sampling job exactness (50 rows, non-overlapping months)  *(pending)*
+- [x] T-015 — Integration: sampling job exactness (50 rows, non-overlapping months)  *(`tests/ScholarPath.IntegrationTests/Ai/RedactionAuditSamplingJobTests.cs` — 3 facts: cap@50, idempotent re-run, only previous month sampled; builds green)*
 - [ ] T-016 — Manual: click CTR widget after demo data seed  *(verifiable in staging with seeded data)*
 
 ## Done criteria

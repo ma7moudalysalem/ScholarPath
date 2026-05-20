@@ -6,7 +6,7 @@
 ## Backend
 - [x] T-001 — User management commands + queries (activate/suspend/deactivate/delete)  *(`2c95359` — SetUserStatus, SoftDeleteUser, ChangeUserRole via IUserAdministration)*
 - [x] T-002 — Upgrade + onboarding approval queues  *(`d5c3da5`)*
-- [ ] T-003 — Content moderation endpoints (scholarships, articles, community — **delegated**)  *(owned by Nora PB-003, Yosra PB-009, Yosra PB-007; admin routes resolve to stubs until those ship)*
+- [x] T-003 — Content moderation endpoints (scholarships, articles, community — **delegated**)  *(all shipped: PB-003 approve/reject; PB-009 approve/hide/feature resources; PB-007 community moderation)*
 - [x] T-004 — Analytics queries (aggregations over Users, Scholarships, Applications, Bookings, Payments, AI usage)  *(`0fbade7`)*
 - [x] T-005 — `SendBroadcastCommand` wired to PB-010  *(`0fbade7`)*
 - [x] T-006 — Audit every admin mutation (calls PB-012 audit service)  *(inherited automatically via `[Auditable]` on every command)*
@@ -18,10 +18,10 @@
 - [x] T-010 — `AdminDashboard` KPI cards + charts  *(`c355f5b` — inline SVG instead of Recharts to keep bundle lean)*
 - [x] T-011 — `UsersAdmin` with search, filters, bulk actions  *(`c355f5b`)*
 - [x] T-012 — `UpgradeQueue` + `OnboardingQueue` detail panels  *(`c355f5b`)*
-- [ ] T-013 — `ScholarshipsAdmin` external listings CRUD + feature toggle  *(**delegated** to @norra-mmhamed, PB-003)*
-- [ ] T-014 — `ArticlesAdmin` moderation queue  *(**delegated** to @yousra-elnoby, PB-009)*
-- [ ] T-015 — `CommunityModeration` flagged-post queue  *(**delegated** to @yousra-elnoby, PB-007)*
-- [ ] T-016 — `ProfitShareConfig` (PB-014 page embedded)  *(**delegated** to @norra-mmhamed, PB-014)*
+- [x] T-013 — `ScholarshipsAdmin` external listings CRUD + feature toggle  *(`pages/admin/AdminScholarships.tsx` — moderation queue; `AdminFeaturedScholarships.tsx` — drag-to-reorder featured with toggle; shipped 2026-05-20)*
+- [x] T-014 — `ArticlesAdmin` moderation queue  *(`pages/admin/AdminArticles.tsx` — pending review + feature toggle for resources/articles)*
+- [x] T-015 — `CommunityModeration` flagged-post queue  *(`pages/admin/AdminCommunity.tsx` — flagged-post review, hide/approve actions)*
+- [x] T-016 — `ProfitShareConfig` (PB-014 page embedded)  *(`pages/admin/AdminProfitShare.tsx` — profit-share config per role + history)*
 - [x] T-017 — `AuditLog` read-only viewer  *(`aa790dd` — shared with PB-012 T-010)*
 - [x] T-018 — `BroadcastComposer` form  *(`c355f5b`)*
 - [x] T-019 — `Analytics` page with date-range filter  *(`c3cdf01` — 7/30/90/180d window, inline SVG area chart)*
@@ -35,4 +35,4 @@
 - [x] Content areas gated by Admin/SuperAdmin role
 - [x] Every mutation audited (via PB-012 `AuditBehavior` + `[Auditable]`)
 - [x] Analytics cards render real aggregations
-- 🟡 Delegated admin panels (T-013..T-016) pending owner implementation — routes resolve to stubs today
+- [x] All delegated admin panels shipped (T-013..T-016)

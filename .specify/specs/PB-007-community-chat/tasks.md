@@ -1,7 +1,7 @@
 # PB-007 — Tasks
 
 **Owner**: @Madiha6776  •  **Est**: 44 pts  •  **Iteration**: 4
-**Status**: ✅ backend + core frontend shipped; no integration tests for block enforcement; E2E pending.
+**Status**: ✅ backend + frontend + block-enforcement integration tests shipped; E2E pending staging.
 
 ## Backend — Community
 - [x] T-001 — CRUD posts + replies + categories *(`Community/Commands/CreatePost/`, `CreateReply/`, `UpdatePost/`, `DeletePost/`, `CreateCategory/`; `Queries/GetPosts/`, `GetPostDetails/`, `GetCategories/`; `CommunityController.cs`)*
@@ -15,7 +15,7 @@
 - [x] T-007 — `SendMessageCommand` + persistence *(`Chat/Commands/SendMessage/SendMessageCommand.cs`; `ChatMessageNotificationEventHandler`)*
 - [x] T-008 — `BlockUserCommand` / `UnblockUserCommand` + enforcement *(`Chat/Commands/BlockUser/`, `UnblockUser/`; enforcement in `SendMessageCommand` handler)*
 - [x] T-009 — `GetMessagesQuery` + `GetConversationsQuery` + `SearchContactsQuery` *(`Chat/Queries/GetMessages/`, `GetConversations/`, `SearchContacts/`)*
-- [ ] T-010 — Integration tests for block enforcement *(unit coverage exists via `PresenceTrackerTests`; dedicated block-enforcement integration test missing)*
+- [x] T-010 — Integration tests for block enforcement  *(`tests/ScholarPath.IntegrationTests/Chat/BlockEnforcementIntegrationTests.cs` — 4 tests: NoBlock→200; RecipientBlocked→409; SenderBlocked→409; AfterUnblock→200; verified end-to-end through HTTP stack)*
 
 ## Frontend
 - [x] T-011 — `Community.tsx` feed with category sidebar + sort *(`pages/community/Community.tsx`)*
@@ -34,5 +34,5 @@
 
 ## Done criteria
 - [x] Auto-hide rule implemented and tested at unit level.
-- [ ] Block enforcement integration test (T-010) pending.
+- [x] Block enforcement integration test (T-010) done.
 - [ ] E2E green in staging.
