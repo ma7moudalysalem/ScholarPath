@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MediatR;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
@@ -58,6 +59,10 @@ namespace ScholarPath.Application.Scholarships.Queries
                     : (entity.EligibilityRequirementsEn ?? entity.EligibilityRequirementsAr),
                 ApplicationFormSchemaJson = entity.ApplicationFormSchemaJson,
                 RequiredDocumentsJson = entity.RequiredDocumentsJson,
+
+                FieldsOfStudy = entity.FieldsOfStudyJson is not null
+                    ? JsonSerializer.Deserialize<List<string>>(entity.FieldsOfStudyJson) ?? []
+                    : [],
 
                 // Raw bilingual + categoryId for the company edit form (PB-005).
                 TitleEn = entity.TitleEn,

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
@@ -21,6 +22,7 @@ public record GetScholarshipsQuery : IRequest<PaginatedList<ScholarshipDto>>
     public DateTimeOffset? DeadlineFrom { get; init; }
     public DateTimeOffset? DeadlineTo { get; init; }
     public string[]? Tags { get; init; }
+    public string? FieldOfStudy { get; init; }
     public bool? FundedOnly { get; init; }
 }
 
@@ -53,29 +55,60 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserS
         if (!string.IsNullOrEmpty(request.Country))
             query = query.Where(s => s.TargetCountriesJson!.Contains(request.Country));
 
-        //  Sorting with Tie-break for Pagination Stability 
+        if (!string.IsNullOrEmpty(request.FieldOfStudy))
+            query = query.Where(s => s.FieldsOfStudyJson == null ||
+                                     s.FieldsOfStudyJson.Contains(request.FieldOfStudy));
+
+        //  Sorting with Tie-break for Pagination Stability
         query = query.OrderByDescending(s => s.IsFeatured)
                      .ThenByDescending(s => s.CreatedAt)
                      .ThenBy(s => s.Id);
 
-        //  Projection with Language Fallback 
-        var result = query.Select(s => new ScholarshipDto
+        //  Count for pagination
+        var totalCount = await query.CountAsync(ct);
+
+        //  Projection with Language Fallback (raw JSON fetched; deserialized after materialisation)
+        var raw = await query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .Select(s => new
+            {
+                s.Id,
+                Title = lang == "ar" ? (s.TitleAr ?? s.TitleEn) : (s.TitleEn ?? s.TitleAr),
+                Description = lang == "ar" ? s.DescriptionAr : s.DescriptionEn,
+                CategoryName = lang == "ar" ? s.Category!.NameAr : s.Category!.NameEn,
+                OwnerCompanyName = s.OwnerCompany != null ? s.OwnerCompany.FirstName + " " + s.OwnerCompany.LastName : "Global Provider",
+                s.Deadline,
+                Status = s.Status.ToString(),
+                FundingType = s.FundingType.ToString(),
+                TargetLevel = s.TargetLevel.ToString(),
+                s.IsFeatured,
+                s.Slug,
+                s.FieldsOfStudyJson,
+                IsBookmarked = userId != null && db.SavedScholarships.Any(
+                    sv => sv.ScholarshipId == s.Id && sv.UserId == userId),
+            })
+            .ToListAsync(ct);
+
+        var items = raw.Select(s => new ScholarshipDto
         {
             Id = s.Id,
-            Title = lang == "ar" ? (s.TitleAr ?? s.TitleEn) : (s.TitleEn ?? s.TitleAr),
-            Description = lang == "ar" ? s.DescriptionAr : s.DescriptionEn,
-            CategoryName = lang == "ar" ? s.Category!.NameAr : s.Category!.NameEn,
-            OwnerCompanyName = s.OwnerCompany != null ? s.OwnerCompany.FirstName + " " + s.OwnerCompany.LastName : "Global Provider",
+            Title = s.Title,
+            Description = s.Description,
+            CategoryName = s.CategoryName,
+            OwnerCompanyName = s.OwnerCompanyName,
             Deadline = s.Deadline,
-            Status = s.Status.ToString(),
-            FundingType = s.FundingType.ToString(),
-            TargetLevel = s.TargetLevel.ToString(),
+            Status = s.Status,
+            FundingType = s.FundingType,
+            TargetLevel = s.TargetLevel,
             IsFeatured = s.IsFeatured,
             Slug = s.Slug,
-            IsBookmarked = userId != null && db.SavedScholarships.Any(
-                sv => sv.ScholarshipId == s.Id && sv.UserId == userId)
-        });
+            FieldsOfStudy = s.FieldsOfStudyJson is not null
+                ? JsonSerializer.Deserialize<List<string>>(s.FieldsOfStudyJson) ?? []
+                : [],
+            IsBookmarked = s.IsBookmarked,
+        }).ToList();
 
-        return await PaginatedList<ScholarshipDto>.CreateAsync(result, request.PageNumber, request.PageSize);
+        return new PaginatedList<ScholarshipDto>(items, totalCount, request.PageNumber, request.PageSize);
     }
 }

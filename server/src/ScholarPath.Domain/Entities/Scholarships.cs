@@ -43,6 +43,8 @@ public class Scholarship : AuditableEntity, ISoftDeletable
     public string? Currency { get; set; } = "USD";
     public AcademicLevel TargetLevel { get; set; }
     public string? TargetCountriesJson { get; set; }
+    /// <summary>JSON array of eligible academic fields, e.g. ["Computer Science","Engineering"].</summary>
+    public string? FieldsOfStudyJson { get; set; }
     public string? EligibilityRequirementsEn { get; set; }
     public string? EligibilityRequirementsAr { get; set; }
     public string? TagsJson { get; set; }

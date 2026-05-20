@@ -53,7 +53,7 @@ public sealed class LocalAiService(
                 s.TitleAr,
                 s.TargetLevel,
                 s.TargetCountriesJson,
-                s.TagsJson,
+                s.FieldsOfStudyJson,
                 s.FundingAmountUsd,
             })
             .ToListAsync(ct)
@@ -63,13 +63,13 @@ public sealed class LocalAiService(
 
         foreach (var c in candidates)
         {
-            var tags = ParseJsonArray(c.TagsJson);
+            var fosFields = ParseJsonArray(c.FieldsOfStudyJson);
             var countries = ParseJsonArray(c.TargetCountriesJson);
 
             var score = 0;
 
             if (userLevel.HasValue && userLevel.Value == c.TargetLevel) score += 30;
-            score += OverlapScore(preferredFields, tags, maxPoints: 40);
+            score += OverlapScore(preferredFields, fosFields, maxPoints: 40);
             score += OverlapScore(preferredCountries, countries, maxPoints: 25);
 
             // Funding bonus — bigger awards nudge up by a few points
@@ -142,18 +142,18 @@ public sealed class LocalAiService(
                 : string.IsNullOrWhiteSpace(studentCountry) ? "unknown"
                 : listingCountries.Any(c => string.Equals(c, studentCountry, StringComparison.OrdinalIgnoreCase)) ? "yes" : "no"));
 
-        // Field of study (loose match over preferred fields / tags)
-        var tags = ParseJsonArray(scholarship.TagsJson);
+        // Field of study — use dedicated FieldsOfStudyJson; fall back to tags only if not set
+        var fosFields = ParseJsonArray(scholarship.FieldsOfStudyJson);
         var fos = profile?.FieldOfStudy ?? string.Empty;
         criteria.Add(new AiEligibilityCriterion(
             NameEn: "Field of study",
             NameAr: "مجال الدراسة",
             StudentValue: string.IsNullOrWhiteSpace(fos) ? "unknown" : fos,
-            ListingRequirement: tags.Count == 0 ? "any" : string.Join(", ", tags),
-            Match: tags.Count == 0 ? "yes"
+            ListingRequirement: fosFields.Count == 0 ? "any" : string.Join(", ", fosFields),
+            Match: fosFields.Count == 0 ? "yes"
                 : string.IsNullOrWhiteSpace(fos) ? "unknown"
-                : tags.Any(t => t.Contains(fos, StringComparison.OrdinalIgnoreCase)
-                             || fos.Contains(t, StringComparison.OrdinalIgnoreCase)) ? "yes" : "partial"));
+                : fosFields.Any(f => f.Contains(fos, StringComparison.OrdinalIgnoreCase)
+                                  || fos.Contains(f, StringComparison.OrdinalIgnoreCase)) ? "yes" : "partial"));
 
         var matches = criteria.Count(c => c.Match == "yes");
         var verdict = DeriveVerdict(criteria);

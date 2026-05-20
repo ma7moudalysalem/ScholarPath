@@ -20,6 +20,8 @@
     "clear": "مسح الفلاتر",
     "fundingType": "نوع التمويل",
     "academicLevel": "المستوى الأكاديمي",
+    "fieldOfStudy": "مجال الدراسة",
+    "fieldOfStudyAll": "جميع المجالات",
     "deadlineFrom": "الموعد النهائي من",
     "deadlineTo": "الموعد النهائي إلى"
   },

@@ -26,6 +26,8 @@ export interface ScholarshipListItem {
   ownerCompanyName?: string | null;
   isFeatured: boolean;
   status: ScholarshipStatus;
+  /** Eligible academic fields — empty means any field is accepted. */
+  fieldsOfStudy: string[];
   /** True when the signed-in student has this scholarship bookmarked. */
   isBookmarked: boolean;
 }
@@ -66,6 +68,7 @@ export interface SearchScholarshipsRequest {
   academicLevels?: AcademicLevel[];
   /** Maps to the server's `FundedOnly` flag (fully- or partially-funded only). */
   fundedOnly?: boolean;
+  fieldOfStudy?: string;
   page?: number;
   pageSize?: number;
 }
@@ -107,6 +110,7 @@ export interface CreateScholarshipInput {
   deadline: string;
   fundingType: FundingType;
   targetLevel: AcademicLevel;
+  fieldsOfStudy?: string[];
 }
 
 /**
@@ -156,6 +160,7 @@ interface ScholarshipWireDto {
   deadline: string;
   isFeatured: boolean;
   slug: string | null;
+  fieldsOfStudy: string[];
   isBookmarked: boolean;
 }
 
@@ -222,6 +227,7 @@ function toListItem(dto: ScholarshipWireDto): ScholarshipListItem {
     ownerCompanyName: dto.ownerCompanyName,
     isFeatured: dto.isFeatured,
     status: dto.status,
+    fieldsOfStudy: dto.fieldsOfStudy ?? [],
     isBookmarked: dto.isBookmarked ?? false,
   };
 }
@@ -301,6 +307,7 @@ export const scholarshipsApi = {
     if (req.academicLevels && req.academicLevels.length > 0)
       params.academicLevel = req.academicLevels[0];
     if (req.fundedOnly) params.fundedOnly = true;
+    if (req.fieldOfStudy) params.fieldOfStudy = req.fieldOfStudy;
 
     const { data } = await apiClient.get<PaginatedListWireDto<ScholarshipWireDto>>(
       "/api/scholarships",

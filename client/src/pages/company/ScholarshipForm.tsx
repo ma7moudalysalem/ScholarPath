@@ -26,6 +26,8 @@ import type { AcademicLevel, FundingType } from "@/types/domain";
 // network round-trip — and so the date picker `min` lines up with what the
 // validator will accept.
 
+import { SCHOLARSHIP_FIELDS_OF_STUDY } from "@/constants/scholarshipFields";
+
 const FUNDING_TYPES = [
   "FullyFunded",
   "PartiallyFunded",
@@ -77,6 +79,7 @@ function makeSchema(t: TFunction) {
       }, deadlineMsg),
     fundingType: z.enum(FUNDING_TYPES),
     targetLevel: z.enum(ACADEMIC_LEVELS),
+    fieldsOfStudy: z.array(z.string()).optional(),
   });
 }
 
@@ -104,6 +107,7 @@ export function ScholarshipForm() {
       deadline: "",
       fundingType: "FullyFunded",
       targetLevel: "Undergrad",
+      fieldsOfStudy: [],
     },
   });
 
@@ -200,6 +204,9 @@ export function ScholarshipForm() {
       deadline: deadlineIso,
       fundingType: values.fundingType,
       targetLevel: values.targetLevel,
+      fieldsOfStudy: values.fieldsOfStudy && values.fieldsOfStudy.length > 0
+        ? values.fieldsOfStudy
+        : undefined,
     };
     createMut.mutate(input);
   });
@@ -339,6 +346,47 @@ export function ScholarshipForm() {
               )}
             />
           </Field>
+
+          {mode === "create" && (
+            <Field
+              id="fieldsOfStudy"
+              label={t("moderation:companyScholarships.form.fieldsOfStudy")}
+              hint={t("moderation:companyScholarships.form.fieldsOfStudyHint")}
+            >
+              <Controller
+                control={form.control}
+                name="fieldsOfStudy"
+                render={({ field }) => {
+                  const selected = field.value ?? [];
+                  const toggle = (v: string) => {
+                    field.onChange(
+                      selected.includes(v)
+                        ? selected.filter((x) => x !== v)
+                        : [...selected, v],
+                    );
+                  };
+                  return (
+                    <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {SCHOLARSHIP_FIELDS_OF_STUDY.map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          onClick={() => toggle(f)}
+                          className={`rounded-lg border px-3 py-2 text-left text-xs font-medium transition-colors ${
+                            selected.includes(f)
+                              ? "border-brand-500 bg-brand-50 text-brand-700"
+                              : "border-border-subtle bg-bg-canvas text-text-secondary hover:border-border-default hover:bg-bg-subtle"
+                          }`}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                }}
+              />
+            </Field>
+          )}
 
           {mode === "create" && (
             <div className="grid gap-4 sm:grid-cols-2">

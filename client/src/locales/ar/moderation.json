@@ -150,6 +150,8 @@
         "PostDoc": "ما بعد الدكتوراه",
         "Other": "أخرى"
       },
+      "fieldsOfStudy": "مجالات الدراسة المؤهَّلة",
+      "fieldsOfStudyHint": "اتركها فارغة لقبول جميع التخصصات. اختر تخصصاً أو أكثر.",
       "submitCreate": "إنشاء",
       "submitEdit": "حفظ",
       "submitting": "جارٍ الحفظ…",

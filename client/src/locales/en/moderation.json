@@ -150,6 +150,8 @@
         "PostDoc": "Postdoctoral",
         "Other": "Other"
       },
+      "fieldsOfStudy": "Eligible fields of study",
+      "fieldsOfStudyHint": "Leave blank to accept all fields. Select one or more eligible majors.",
       "submitCreate": "Create",
       "submitEdit": "Save",
       "submitting": "Saving…",

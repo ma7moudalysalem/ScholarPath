@@ -20,6 +20,8 @@
     "clear": "Clear filters",
     "fundingType": "Funding Type",
     "academicLevel": "Academic Level",
+    "fieldOfStudy": "Field of Study",
+    "fieldOfStudyAll": "All fields",
     "deadlineFrom": "Deadline from",
     "deadlineTo": "Deadline to"
   },

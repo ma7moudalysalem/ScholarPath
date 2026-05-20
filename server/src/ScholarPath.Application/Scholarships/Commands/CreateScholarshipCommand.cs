@@ -17,6 +17,8 @@ public record CreateScholarshipCommand : IRequest<Guid>
     public DateTimeOffset Deadline { get; init; }
     public FundingType FundingType { get; init; }
     public AcademicLevel TargetLevel { get; init; }
+    /// <summary>Optional list of eligible academic fields of study.</summary>
+    public string[]? FieldsOfStudy { get; init; }
 }
 
 public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholarshipCommand>
@@ -65,6 +67,9 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             Deadline = request.Deadline,
             FundingType = request.FundingType,
             TargetLevel = request.TargetLevel,
+            FieldsOfStudyJson = request.FieldsOfStudy is { Length: > 0 }
+                ? System.Text.Json.JsonSerializer.Serialize(request.FieldsOfStudy)
+                : null,
             Status = ScholarshipStatus.Open,
             OwnerCompanyId = ownerCompanyId,
             // Slug is REQUIRED + UNIQUE on the schema — generate from the
