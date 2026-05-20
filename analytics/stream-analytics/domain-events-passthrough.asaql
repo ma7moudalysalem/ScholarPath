@@ -1,0 +1,56 @@
+-- ============================================================================
+-- PB-018 T-004 — Domain-events pass-through: Event Hub → Power BI streaming.
+-- Azure Stream Analytics job: `sa-pbi-live`  (separate from sa-anomaly).
+--
+-- Purpose:
+--   Forward every raw domain event to the Power BI Push Dataset
+--   `ScholarPath – Live Events` so the live tile on the executive dashboard
+--   shows activity counts refreshed every 30 seconds.
+--
+-- Inputs:
+--   eh_domain_events  — Event Hub input (connection string set in ASA portal)
+--       JSON schema: { eventType, occurredAt, source, data }
+--
+-- Outputs:
+--   pbi_live_tile — Power BI output (dataset + table configured in ASA portal;
+--       see analytics/powerbi/streaming-dataset-schema.json for the schema
+--       to create the Push Dataset via REST before first deploy)
+--
+-- Deploy:
+--   1. Create the Power BI Push Dataset via:
+--        POST https://api.powerbi.com/v1.0/myorg/datasets
+--        body: analytics/powerbi/streaming-dataset-schema.json
+--   2. Create the Stream Analytics job `sa-pbi-live` in the Azure portal.
+--   3. Add Event Hub input `eh_domain_events` (connection string from Key Vault
+--        output eventHubListenConnectionString of infra/main.bicep).
+--   4. Add Power BI output `pbi_live_tile` pointing at the Push Dataset table.
+--   5. Upload this file as the job query and start the job.
+-- ============================================================================
+
+-- 1-minute tumbling window: count events per type so the live tile shows
+-- a rolling sparkline rather than raw event volume (which can be noisy).
+WITH event_counts AS (
+    SELECT
+        event_type                          AS eventType,
+        System.Timestamp()                  AS windowEnd,
+        COUNT(*)                            AS eventCount,
+        SUM(CASE WHEN event_type = 'ApplicationSubmitted'   THEN 1 ELSE 0 END) AS applications,
+        SUM(CASE WHEN event_type = 'PaymentCaptured'        THEN 1 ELSE 0 END) AS payments,
+        SUM(CASE WHEN event_type = 'BookingCompleted'       THEN 1 ELSE 0 END) AS bookings
+    FROM eh_domain_events TIMESTAMP BY occurred_at
+    GROUP BY
+        event_type,
+        TumblingWindow(second, 30)          -- 30-second windows match the sparkline refresh
+)
+
+-- ─── Power BI streaming dataset ─────────────────────────────────────────────
+-- Columns must match the table schema in streaming-dataset-schema.json exactly.
+SELECT
+    windowEnd   AS timestamp,
+    eventType,
+    eventCount,
+    applications,
+    payments,
+    bookings
+INTO pbi_live_tile
+FROM event_counts;

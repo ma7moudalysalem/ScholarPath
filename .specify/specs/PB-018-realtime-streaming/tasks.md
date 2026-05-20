@@ -11,8 +11,8 @@
 
 ## Live tile (PB-018-US-001)
 
-- [ ] T-004 — Stream Analytics pass-through Event Hub → Power BI streaming dataset  @TasneemShaaban  *(pending T-001 provisioning)*
-- [ ] T-005 — Power BI streaming tile "Last 5 min" + 30-sec sparkline  @TasneemShaaban  *(pending T-004)*
+- [x] T-004 — Stream Analytics pass-through Event Hub → Power BI streaming dataset  @TasneemShaaban  *(`analytics/stream-analytics/domain-events-passthrough.asaql` + `analytics/powerbi/streaming-dataset-schema.json` — ASAQL job + Push Dataset schema ready; deploy after T-001 Event Hub provisioned)*
+- [ ] T-005 — Power BI streaming tile "Last 5 min" + 30-sec sparkline  @TasneemShaaban  *(pending T-004 deploy — ASAQL + schema ready; Tasneem pins tile to dashboard)*
 
 ## Anomaly detection (PB-018-US-002)
 

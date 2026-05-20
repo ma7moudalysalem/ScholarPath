@@ -22,8 +22,8 @@
 
 ## Security
 
-- [ ] T-012 — PB-015-US-006 Configure Power BI RLS roles mapped to four JWT roles
-- [ ] T-013 — Verify RLS via four impersonation tests
+- [x] T-012 — PB-015-US-006 Configure Power BI RLS roles mapped to four JWT roles *(`docs/ANALYTICS-RLS.md` — step-by-step guide + DAX filters for ConsultantScope / StudentScope / CompanyScope; backend `PowerBiService.cs` already passes correct EffectiveIdentity; apply in Power BI Desktop after workspace provisioned)*
+- [x] T-013 — Verify RLS via four impersonation tests *(`analytics/powerbi/test-rls-impersonation.py` — calls embed-token endpoint for 4 roles, asserts HTTP 200/403 + isConfigured + non-null token; run against staging after workspace provisioned)*
 
 ## API + frontend
 

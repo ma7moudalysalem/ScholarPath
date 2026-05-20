@@ -1,0 +1,28 @@
+{
+  "_comment": "PB-018 T-004/T-005 — Power BI Push Dataset schema for the live tile.",
+  "_instructions": [
+    "POST this body to https://api.powerbi.com/v1.0/myorg/datasets",
+    "Authorization: Bearer <access_token>  (get token via OAuth client_credentials for the service principal)",
+    "Content-Type: application/json",
+    "",
+    "The returned datasetId should be set as the Power BI output in the ASA job sa-pbi-live.",
+    "After creation, pin the table 'LiveEvents' to a dashboard tile with a 30-second refresh.",
+    "See PB-018 T-005 for the dashboard tile configuration (Tasneem)."
+  ],
+  "name": "ScholarPath – Live Events",
+  "defaultMode": "PushStreaming",
+  "tables": [
+    {
+      "name": "LiveEvents",
+      "columns": [
+        { "name": "timestamp",    "dataType": "DateTime" },
+        { "name": "eventType",    "dataType": "string"   },
+        { "name": "eventCount",   "dataType": "Int64"    },
+        { "name": "applications", "dataType": "Int64"    },
+        { "name": "payments",     "dataType": "Int64"    },
+        { "name": "bookings",     "dataType": "Int64"    }
+      ]
+    }
+  ],
+  "relationships": []
+}
