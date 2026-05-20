@@ -15,7 +15,7 @@
 ## Frontend
 - [x] T-008 — `NotificationBell` in header (unread count badge + link to /notifications) — embedded in `AuthenticatedLayout.tsx` (polled via `notificationsApi.unreadCount()`; badge shows count when > 0)
 - [x] T-009 — `NotificationList` page + load-more *(`pages/notifications/Notifications.tsx` — paginated with `pageSize` expansion, mark-read + mark-all-read)*
-- [ ] T-010 — `NotificationPreferences` page — backend endpoints exist but no frontend page yet *(backend: `GET /api/notifications/preferences` + `PUT /api/notifications/preferences/{type}`)*
+- [x] T-010 — `NotificationPreferences` page *(`pages/notifications/NotificationPreferences.tsx` — toggle matrix grouped by category, optimistic updates; route `/notifications/preferences`; link from Notifications page)*
 - [x] T-011 — Admin `BroadcastComposer` in admin portal *(`pages/admin/BroadcastComposer.tsx`)*
 - [x] T-012 — SignalR client listening on `NotificationHub` *(`hooks/useNotificationHub.ts` — toast on incoming notifications; invalidates unread count)*
 - [x] T-013 — Arabic copy for every notification template *(`locales/ar/notifications.json` — full AR)*
@@ -26,6 +26,6 @@
 
 ## Done criteria
 - [x] 15+ notification types wired; real-time (SignalR) working.
-- [ ] NotificationPreferences page (T-010) wired.
+- [x] NotificationPreferences page (T-010) wired.
 - [ ] Email delivery proven in MailHog dev environment.
 - [ ] E2E green in staging.
