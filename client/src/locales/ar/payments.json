@@ -177,6 +177,11 @@
   "earnings": {
     "title": "الأرباح",
     "subtitle": "دخل حجوزاتك، حصة المنصة، والتحويلات التي وصلت إلى حسابك.",
+    "setupPayoutsTitle": "إعداد التحويلات",
+    "setupPayoutsBody": "اربط حسابك البنكي عبر Stripe لاستلام التحويلات التلقائية من حجوزاتك.",
+    "setupPayoutsCta": "إعداد التحويلات",
+    "setupPayoutsLoading": "جارٍ الربط…",
+    "setupPayoutsError": "تعذّر بدء ربط Stripe. يرجى المحاولة مرة أخرى.",
     "totalEarned": "صافي الأرباح",
     "totalEarnedHint": "ما تحتفظ به بعد خصم رسوم المنصة.",
     "totalGross": "الإجمالي المُحصَّل",

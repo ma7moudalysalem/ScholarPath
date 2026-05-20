@@ -1,8 +1,10 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { toast } from "sonner";
+import { ExternalLink, Loader2 } from "lucide-react";
 import {
   paymentsApi,
   formatMoneyCents,
@@ -136,11 +138,53 @@ export function ConsultantEarnings() {
 
   const loading = paymentsQuery.isLoading || payoutsQuery.isLoading;
 
+  const connectMut = useMutation({
+    mutationFn: () => {
+      const base = window.location.origin;
+      return paymentsApi.connectOnboard(
+        `${base}/consultant/earnings`,
+        `${base}/consultant/earnings`,
+      );
+    },
+    onSuccess: ({ onboardingUrl }) => {
+      window.location.href = onboardingUrl;
+    },
+    onError: () => {
+      toast.error(t("payments:earnings.setupPayoutsError"));
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("payments:earnings.title")}</h1>
         <p className="mt-1 text-sm text-text-secondary">{t("payments:earnings.subtitle")}</p>
+      </div>
+
+      {/* Stripe Connect onboarding banner */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-brand-200 bg-brand-50/40 px-5 py-4">
+        <div>
+          <p className="font-medium text-text-primary">{t("payments:earnings.setupPayoutsTitle")}</p>
+          <p className="mt-0.5 text-sm text-text-secondary">{t("payments:earnings.setupPayoutsBody")}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => connectMut.mutate()}
+          disabled={connectMut.isPending}
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-50"
+        >
+          {connectMut.isPending ? (
+            <>
+              <Loader2 className="size-4 animate-spin" />
+              {t("payments:earnings.setupPayoutsLoading")}
+            </>
+          ) : (
+            <>
+              <ExternalLink className="size-4" />
+              {t("payments:earnings.setupPayoutsCta")}
+            </>
+          )}
+        </button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

@@ -177,6 +177,11 @@
   "earnings": {
     "title": "Earnings",
     "subtitle": "Your booking income, the platform's share, and the payouts that have reached your account.",
+    "setupPayoutsTitle": "Set up payouts",
+    "setupPayoutsBody": "Connect your bank account through Stripe to receive automatic deposits from your bookings.",
+    "setupPayoutsCta": "Set up payouts",
+    "setupPayoutsLoading": "Connecting…",
+    "setupPayoutsError": "Could not initiate Stripe onboarding. Please try again.",
     "totalEarned": "Net earned",
     "totalEarnedHint": "What you keep after the platform fee.",
     "totalGross": "Gross collected",

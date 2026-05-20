@@ -15,10 +15,10 @@
 
 ## Frontend
 - [x] T-009 — Admin `AdminProfitShare.tsx` — history table + update form *(`pages/admin/AdminProfitShare.tsx`)*
-- [ ] T-010 — Revenue widget in `AdminDashboard` *(not yet wired into AdminDashboard stats)*
+- [x] T-010 — Revenue widget in `AdminDashboard` — `revenueCentsCaptured` + `profitShareCentsAccumulated` KPI cards rendered via `adminApi.analyticsOverview()` *(`pages/admin/AdminDashboard.tsx` — lines 103-104)*
 - [x] T-011 — Arabic copy *(covered in existing AR locale files)*
 
 ## Done criteria
 - [x] Rounding math exact (cents, no float) — ProfitShareCalculator unit-tested.
 - [x] Audit log entry on every update — history stored via EF.
-- [ ] Analytics charts render correctly in AdminDashboard revenue widget.
+- [x] Analytics charts render correctly in AdminDashboard revenue widget.

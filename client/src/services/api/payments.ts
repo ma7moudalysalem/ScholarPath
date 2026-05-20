@@ -137,4 +137,21 @@ export const paymentsApi = {
   async refund(id: string, body: RefundPaymentBody): Promise<void> {
     await apiClient.post(`/api/payments/${id}/refund`, body);
   },
+
+  /**
+   * Creates or reuses the caller's Stripe Connect account and returns a fresh
+   * onboarding link. The caller should redirect to `onboardingUrl` to complete
+   * onboarding on Stripe's hosted flow.
+   */
+  async connectOnboard(
+    returnUrl: string,
+    refreshUrl: string,
+  ): Promise<{ connectAccountId: string; status: string; onboardingUrl: string }> {
+    const { data } = await apiClient.post<{
+      connectAccountId: string;
+      status: string;
+      onboardingUrl: string;
+    }>("/api/payments/connect/onboard", { returnUrl, refreshUrl });
+    return data;
+  },
 };
