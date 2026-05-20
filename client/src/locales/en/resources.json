@@ -101,23 +101,38 @@
   "moderation": {
     "title": "Resource moderation",
     "subtitle": "Review and publish resources submitted by authors.",
+    "tabs": {
+      "pending": "Pending review",
+      "published": "Published"
+    },
     "loading": "Loading…",
     "loadError": "Could not load pending resources.",
+    "loadErrorPublished": "Could not load published resources.",
     "retry": "Retry",
     "empty": "No resources are awaiting review.",
+    "emptyPublished": "No published resources yet.",
     "headers": {
       "title": "Title",
       "type": "Type",
       "author": "Author role",
       "tags": "Tags",
+      "featured": "Featured",
       "actions": "Actions"
     },
     "approve": "Approve",
     "reject": "Reject",
+    "feature": "Feature",
+    "unfeature": "Unfeature",
+    "hide": "Hide",
+    "show": "Show",
     "approveSuccess": "Resource published.",
     "approveError": "Could not approve the resource.",
     "rejectPrompt": "Reason for rejecting this resource:",
     "rejectSuccess": "Resource rejected.",
-    "rejectError": "Could not reject the resource."
+    "rejectError": "Could not reject the resource.",
+    "featureSuccess": "Featured status updated.",
+    "featureError": "Could not update featured status (max 6 may be featured).",
+    "hideSuccess": "Visibility updated.",
+    "hideError": "Could not update visibility."
   }
 }

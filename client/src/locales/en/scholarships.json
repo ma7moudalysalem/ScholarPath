@@ -62,9 +62,18 @@
     "count": "{{count}} saved",
     "savedAt": "Saved on {{date}}",
     "browse": "Browse Scholarships",
+    "browseResources": "Browse Resources",
+    "tabs": {
+      "scholarships": "Scholarships",
+      "resources": "Resources"
+    },
     "empty": {
       "title": "No bookmarks yet",
       "body": "Save scholarships you're interested in to find them here."
+    },
+    "emptyResources": {
+      "title": "No saved resources",
+      "body": "Save resources to find them here."
     }
   },
   "detail": {

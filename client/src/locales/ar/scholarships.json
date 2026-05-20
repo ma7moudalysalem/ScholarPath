@@ -58,13 +58,22 @@
     "remove": "إزالة الحفظ"
   },
   "bookmarks": {
-    "title": "منحي المحفوظة",
+    "title": "المحفوظات",
     "count": "{{count}} محفوظة",
     "savedAt": "تم الحفظ في {{date}}",
     "browse": "تصفح المنح",
+    "browseResources": "تصفح الموارد",
+    "tabs": {
+      "scholarships": "المنح",
+      "resources": "الموارد"
+    },
     "empty": {
-      "title": "لا يوجد محفوظات بعد",
+      "title": "لا يوجد منح محفوظة بعد",
       "body": "احفظ المنح التي تهمك لتجدها هنا."
+    },
+    "emptyResources": {
+      "title": "لا يوجد موارد محفوظة",
+      "body": "احفظ الموارد لتجدها هنا."
     }
   },
   "detail": {
