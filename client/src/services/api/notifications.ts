@@ -27,6 +27,18 @@ export interface NotificationsPage {
   unreadCount: number;
 }
 
+/** One notification delivery preference — mirrors NotificationPreferenceDto. */
+export interface NotificationPreference {
+  type: string;
+  channel: string;
+  isEnabled: boolean;
+}
+
+/** Full preference matrix — mirrors NotificationPreferencesDto. */
+export interface NotificationPreferences {
+  preferences: NotificationPreference[];
+}
+
 export const notificationsApi = {
   async list(page = 1, pageSize = 20): Promise<NotificationsPage> {
     const { data } = await apiClient.get<NotificationsPage>("/api/notifications", {
@@ -44,5 +56,16 @@ export const notificationsApi = {
   async markAllRead(): Promise<number> {
     const { data } = await apiClient.post<{ marked: number }>("/api/notifications/read-all");
     return data.marked;
+  },
+
+  /** Returns the current user's full preference matrix (default = enabled). */
+  async getPreferences(): Promise<NotificationPreferences> {
+    const { data } = await apiClient.get<NotificationPreferences>("/api/notifications/preferences");
+    return data;
+  },
+
+  /** Enables or disables one delivery channel for one notification type. */
+  async updatePreference(type: string, channel: string, isEnabled: boolean): Promise<void> {
+    await apiClient.put("/api/notifications/preferences", { type, channel, isEnabled });
   },
 };

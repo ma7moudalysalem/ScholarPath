@@ -211,6 +211,9 @@ const Profile = lazy(() =>
 const Notifications = lazy(() =>
   import("@/pages/notifications/Notifications").then((m) => ({ default: m.Notifications })),
 );
+const NotificationPreferences = lazy(() =>
+  import("@/pages/notifications/NotificationPreferences").then((m) => ({ default: m.NotificationPreferences })),
+);
 const DataPrivacy = lazy(() =>
   import("@/pages/profile/DataPrivacy").then((m) => ({ default: m.DataPrivacy })),
 );
@@ -326,6 +329,7 @@ export function AppRouter() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/profile/privacy" element={<DataPrivacy />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/notifications/preferences" element={<NotificationPreferences />} />
 
           <Route
             path="/student"

@@ -84,6 +84,12 @@ export function Notifications() {
               {t("notifications:unreadCount", { count: data.unreadCount })}
             </p>
           )}
+          <Link
+            to="/notifications/preferences"
+            className="mt-2 inline-block text-sm text-text-secondary underline-offset-2 hover:text-text-primary hover:underline"
+          >
+            {t("notifications:managePreferences")}
+          </Link>
         </div>
         {data.unreadCount > 0 && (
           <button
