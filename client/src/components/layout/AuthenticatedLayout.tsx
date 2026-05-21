@@ -94,7 +94,7 @@ function ProfileMenu() {
         <button
           type="button"
           aria-label={t("common:nav.profile", "Open profile menu")}
-          className="ms-1 flex items-center gap-2 rounded-md bg-bg-elevated px-3 py-1.5 text-sm transition-colors hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+          className="ms-1 flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
         >
           <HeaderAvatar userId={user.id} firstName={user.firstName} />
           <span className="hidden font-medium sm:inline">{user.fullName}</span>
@@ -242,16 +242,19 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
 function SidebarContent({
   navItems,
   homePath,
+  user,
+  role,
   onNavigate,
 }: {
   navItems: NavItem[];
   homePath: string;
+  user: { id: string; firstName: string; fullName: string } | null;
+  role: string;
   onNavigate?: () => void;
 }) {
   const { t } = useTranslation(["common", "nav"]);
-  const { user, clear } = useAuthStore();
+  const { clear } = useAuthStore();
   const navigate = useNavigate();
-  const role = user?.activeRole ?? user?.roles[0] ?? "Student";
 
   const onSignOut = () => {
     clear();
@@ -265,10 +268,15 @@ function SidebarContent({
       <Link
         to={homePath}
         onClick={onNavigate}
-        className="flex h-14 shrink-0 items-center gap-2 border-b border-border-subtle px-4 font-semibold"
+        className="flex h-14 shrink-0 items-center gap-2.5 border-b border-border-subtle px-4"
       >
-        <GraduationCap aria-hidden className="size-5 text-brand-500" />
-        <span>{t("common:appName")}</span>
+        {/* Brand gradient icon box */}
+        <div className="flex size-7 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm">
+          <GraduationCap aria-hidden className="size-4" />
+        </div>
+        <span className="font-display text-[15px] font-bold tracking-tight text-text-primary">
+          {t("common:appName")}
+        </span>
       </Link>
 
       {/* Nav links */}
@@ -281,35 +289,68 @@ function SidebarContent({
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition",
+                "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150",
                 isActive
-                  ? "bg-brand-500/10 text-brand-500"
+                  ? "nav-item-active"
                   : "text-text-secondary hover:bg-bg-subtle hover:text-text-primary",
               )
             }
           >
-            <Icon aria-hidden className="size-4 shrink-0" />
-            {t(`nav:${key}`)}
+            {({ isActive }) => (
+              <>
+                {/* Icon wrapper */}
+                <span
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-md transition-colors duration-150",
+                    isActive
+                      ? "bg-brand-500 text-white"
+                      : "text-current",
+                  )}
+                >
+                  <Icon aria-hidden className="size-4" />
+                </span>
+                {t(`nav:${key}`)}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      {/* Bottom actions */}
-      <div className="space-y-0.5 border-t border-border-subtle p-3">
+      {/* Bottom section — user card + actions */}
+      <div className="border-t border-border-subtle p-3 space-y-1">
+        {/* User info card */}
+        {user && (
+          <div className="mb-2 flex items-center gap-2.5 rounded-xl bg-bg-subtle px-3 py-2.5">
+            <HeaderAvatar userId={user.id} firstName={user.firstName} />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-semibold text-text-primary leading-tight">
+                {user.fullName}
+              </div>
+              <div className="text-xs text-text-tertiary leading-tight mt-0.5">
+                {role}
+              </div>
+            </div>
+          </div>
+        )}
+
         <NavLink
           to="/profile"
           onClick={onNavigate}
-          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-secondary transition hover:bg-bg-subtle hover:text-text-primary"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-subtle hover:text-text-primary"
         >
-          <Settings aria-hidden className="size-4" />
+          <span className="flex size-7 shrink-0 items-center justify-center">
+            <Settings aria-hidden className="size-4" />
+          </span>
           {t("nav:common.settings")}
         </NavLink>
         <button
           type="button"
           onClick={onSignOut}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-text-secondary transition hover:bg-bg-subtle hover:text-text-primary"
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-subtle hover:text-text-primary"
         >
-          <LogOut aria-hidden className="size-4" />
+          <span className="flex size-7 shrink-0 items-center justify-center">
+            <LogOut aria-hidden className="size-4" />
+          </span>
           {t("common:cta.signOut")}
         </button>
       </div>
@@ -356,12 +397,22 @@ export function AuthenticatedLayout() {
     refetchInterval: 60_000,
   });
 
+  // Shared sidebar props
+  const sidebarUser = user
+    ? { id: user.id, firstName: user.firstName, fullName: user.fullName }
+    : null;
+
   return (
     <div className="flex min-h-screen bg-bg-subtle text-text-primary">
 
       {/* ── Desktop sidebar (hidden on mobile) ── */}
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-e border-border-subtle bg-bg-elevated md:flex">
-        <SidebarContent navItems={navItems} homePath={homePath} />
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-e border-border-subtle bg-bg-elevated md:flex">
+        <SidebarContent
+          navItems={navItems}
+          homePath={homePath}
+          user={sidebarUser}
+          role={role}
+        />
       </aside>
 
       {/* ── Mobile drawer overlay ── */}
@@ -398,6 +449,8 @@ export function AuthenticatedLayout() {
               <SidebarContent
                 navItems={navItems}
                 homePath={homePath}
+                user={sidebarUser}
+                role={role}
                 onNavigate={() => setDrawerOpen(false)}
               />
             </motion.aside>
@@ -407,7 +460,10 @@ export function AuthenticatedLayout() {
 
       {/* ── Main content ── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border-subtle bg-bg-canvas/80 px-4 backdrop-blur-xl">
+        <header
+          className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border-subtle bg-bg-elevated/90 px-4 backdrop-blur-xl"
+          style={{ boxShadow: "var(--shadow-xs)" }}
+        >
 
           {/* Hamburger — mobile only */}
           <button
@@ -424,7 +480,7 @@ export function AuthenticatedLayout() {
             <ThemeToggle />
             <NavLink
               to="/notifications"
-              className="relative inline-flex size-9 items-center justify-center rounded-md border border-border-subtle bg-bg-elevated text-text-primary transition hover:border-border-default"
+              className="relative inline-flex size-9 items-center justify-center rounded-lg border border-border-subtle bg-bg-elevated text-text-primary transition hover:bg-bg-subtle"
               aria-label={
                 unreadCount > 0
                   ? `${t("nav:common.notifications")} (${unreadCount})`

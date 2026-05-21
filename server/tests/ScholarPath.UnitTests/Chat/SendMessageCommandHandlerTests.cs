@@ -12,7 +12,7 @@ using ScholarPath.Application.Chat.Commands.SendMessage;
 
 namespace ScholarPath.UnitTests.Chat;
 
-public class SendMessageCommandHandlerTests
+public class SendMessageCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
@@ -29,6 +29,8 @@ public class SendMessageCommandHandlerTests
 
         _handler = new SendMessageCommandHandler(_db, _currentUser, _chatNotifier, _publisher);
     }
+
+    public void Dispose() => _db.Dispose();
 
     [Fact]
     public async Task Handle_BlockedUser_ThrowsConflictException()

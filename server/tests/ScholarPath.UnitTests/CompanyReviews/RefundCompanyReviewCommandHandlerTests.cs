@@ -11,7 +11,7 @@ using ScholarPath.Application.CompanyReviews.Commands.RefundCompanyReview;
 
 namespace ScholarPath.UnitTests.CompanyReviews;
 
-public class RefundCompanyReviewCommandHandlerTests
+public class RefundCompanyReviewCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly IStripeService _stripe = Substitute.For<IStripeService>();
@@ -32,6 +32,8 @@ public class RefundCompanyReviewCommandHandlerTests
             _notifications,
             _logger);
     }
+
+    public void Dispose() => _db.Dispose();
 
     [Fact]
     public async Task Handle_FullRefund_CancelsPaymentIntent()

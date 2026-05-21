@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using ScholarPath.Domain.Entities;
 
 namespace ScholarPath.Application.Common.Interfaces;
@@ -9,6 +10,11 @@ namespace ScholarPath.Application.Common.Interfaces;
 /// </summary>
 public interface IApplicationDbContext
 {
+    /// <summary>
+    /// Provides access to database-level operations such as <c>SqlQuery&lt;T&gt;</c>
+    /// for raw SQL projections against SQL views and stored procedures.
+    /// </summary>
+    DatabaseFacade Database { get; }
     DbSet<ApplicationUser> Users { get; }
     DbSet<UserProfile> UserProfiles { get; }
     DbSet<RefreshToken> RefreshTokens { get; }

@@ -6,5 +6,34 @@
   "notConfiguredTitle": "Analytics Dashboard Coming Soon",
   "notConfiguredBody": "The Power BI workspace is being set up. Check back once provisioning is complete — your personalised dashboard will appear here.",
   "loadError": "Could not load the analytics dashboard.",
-  "retry": "Try again"
+  "retry": "Try again",
+  "consultantKpis": {
+    "title": "Consultant Analytics",
+    "subtitle": "Your booking performance and earnings overview",
+    "totalBookings": "Total Bookings",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "rejected": "Rejected",
+    "noShows": "No-shows",
+    "revenue": "Revenue (USD)",
+    "avgRating": "Avg Rating",
+    "reviews": "reviews",
+    "bookingOutcomes": "Booking Outcomes",
+    "ratingSummary": "Rating Summary"
+  },
+  "studentJourney": {
+    "title": "My Scholarship Journey",
+    "subtitle": "Your applications and consultant booking progress",
+    "totalApplications": "Total Applications",
+    "submitted": "Submitted",
+    "accepted": "Accepted",
+    "bookings": "Consultant Bookings",
+    "completedBookings": "Completed Sessions",
+    "lastApplication": "Last Application",
+    "lastBooking": "Last Booking Session",
+    "onboardingComplete": "Onboarding Complete",
+    "onboardingPending": "Onboarding Pending",
+    "applicationFunnel": "Application Funnel",
+    "never": "Never"
+  }
 }

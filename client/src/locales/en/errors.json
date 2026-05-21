@@ -15,5 +15,15 @@
     "passwordUppercase": "Must contain at least one uppercase letter",
     "passwordDigit": "Must contain at least one digit",
     "passwordSpecial": "Must contain at least one special character"
+  },
+  "boundary": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. Reload the page to continue. If the problem persists, please contact support.",
+    "reload": "Reload page"
+  },
+  "maintenance": {
+    "title": "Down for maintenance",
+    "description": "The platform is temporarily offline while we make improvements. We'll be back shortly.",
+    "polling": "Checking status every 30 seconds…"
   }
 }

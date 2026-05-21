@@ -6,5 +6,34 @@
   "notConfiguredTitle": "لوحة التحليلات قريباً",
   "notConfiguredBody": "جارٍ إعداد مساحة عمل Power BI. ستظهر لوحتك الشخصية هنا فور اكتمال التهيئة.",
   "loadError": "تعذّر تحميل لوحة التحليلات.",
-  "retry": "إعادة المحاولة"
+  "retry": "إعادة المحاولة",
+  "consultantKpis": {
+    "title": "تحليلات المستشار",
+    "subtitle": "نظرة عامة على أداء الحجوزات والأرباح",
+    "totalBookings": "إجمالي الحجوزات",
+    "completed": "مكتملة",
+    "cancelled": "ملغاة",
+    "rejected": "مرفوضة",
+    "noShows": "غياب",
+    "revenue": "الإيرادات (دولار)",
+    "avgRating": "متوسط التقييم",
+    "reviews": "تقييم",
+    "bookingOutcomes": "نتائج الحجوزات",
+    "ratingSummary": "ملخص التقييمات"
+  },
+  "studentJourney": {
+    "title": "رحلتي للمنح",
+    "subtitle": "تقدمك في الطلبات وجلسات المستشارين",
+    "totalApplications": "إجمالي الطلبات",
+    "submitted": "مُقدَّمة",
+    "accepted": "مقبولة",
+    "bookings": "حجوزات المستشارين",
+    "completedBookings": "جلسات مكتملة",
+    "lastApplication": "آخر طلب",
+    "lastBooking": "آخر جلسة استشارية",
+    "onboardingComplete": "اكتمل الإعداد",
+    "onboardingPending": "الإعداد معلق",
+    "applicationFunnel": "مسار الطلبات",
+    "never": "لم يحدث"
+  }
 }

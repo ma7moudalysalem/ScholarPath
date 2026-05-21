@@ -21,4 +21,11 @@ public interface IAdminReadService
         CancellationToken ct);
 
     Task<AdminUserDetail?> GetUserDetailAsync(Guid userId, CancellationToken ct);
+
+    /// <summary>
+    /// Returns the IDs of every Active user who holds the given role.
+    /// Used by <c>SendBroadcastCommand</c> to narrow broadcasts to a single role
+    /// without leaking Identity join tables into the Application layer.
+    /// </summary>
+    Task<List<Guid>> GetActiveUserIdsByRoleAsync(string role, CancellationToken ct);
 }
