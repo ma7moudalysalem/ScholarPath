@@ -49,6 +49,14 @@
     "company": "Company",
     "admin": "Admin"
   },
+  "roles": {
+    "Student": "Student",
+    "Consultant": "Consultant",
+    "Company": "Company",
+    "Admin": "Admin",
+    "SuperAdmin": "Super Admin",
+    "Unassigned": "Unassigned"
+  },
   "chat": {
     "messages": "Direct Messages",
     "search_placeholder": "Search conversations...",

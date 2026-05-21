@@ -99,7 +99,7 @@ function ProfileMenu() {
             <p className="truncate text-xs text-text-secondary">{user.email}</p>
             {activeRole && (
               <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-brand-500/10 px-2 py-0.5 text-[11px] font-medium text-brand-500">
-                {t("common:roleSwitch.activeBadge", "Active: {{role}}", { role: activeRole })}
+                {t("common:roleSwitch.activeBadge", "Active: {{role}}", { role: t(`common:roles.${activeRole}`, activeRole) })}
               </p>
             )}
           </div>
@@ -334,7 +334,7 @@ function SidebarContent({
                 {user.fullName}
               </div>
               <div className="text-xs text-text-tertiary leading-tight mt-0.5">
-                {role}
+                {t(`common:roles.${role}`, role)}
               </div>
             </div>
             <ChevronRight

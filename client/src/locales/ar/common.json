@@ -49,6 +49,14 @@
     "company": "شركة",
     "admin": "مشرف"
   },
+  "roles": {
+    "Student": "طالب",
+    "Consultant": "مستشار",
+    "Company": "شركة",
+    "Admin": "مشرف",
+    "SuperAdmin": "مشرف عام",
+    "Unassigned": "غير مُعيّن"
+  },
   "chat": {
     "messages": "الرسائل المباشرة",
     "search_placeholder": "ابحث في المحادثات...",
