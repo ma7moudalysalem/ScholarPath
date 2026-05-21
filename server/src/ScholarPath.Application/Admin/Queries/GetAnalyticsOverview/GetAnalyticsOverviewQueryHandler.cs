@@ -18,29 +18,36 @@ public sealed class GetAnalyticsOverviewQueryHandler(
 
         // Sequential because IApplicationDbContext → single DbContext instance
         // (EF Core forbids parallel queries on the same context).
-        var totalUsers = await db.Users.CountAsync(ct).ConfigureAwait(false);
-        var activeUsers = await db.Users.CountAsync(u => u.AccountStatus == AccountStatus.Active, ct).ConfigureAwait(false);
-        var pendingApprovals = await db.Users.CountAsync(u => u.AccountStatus == AccountStatus.PendingApproval, ct).ConfigureAwait(false);
+        // All counts exclude soft-deleted rows so the overview mirrors what the
+        // admin sees in user-facing list views (PB-015 analytics-admin fix).
+        var totalUsers = await db.Users.CountAsync(u => !u.IsDeleted, ct).ConfigureAwait(false);
+        var activeUsers = await db.Users.CountAsync(u => !u.IsDeleted && u.AccountStatus == AccountStatus.Active, ct).ConfigureAwait(false);
+        var pendingApprovals = await db.Users.CountAsync(u => !u.IsDeleted && u.AccountStatus == AccountStatus.PendingApproval, ct).ConfigureAwait(false);
 
-        var totalScholarships = await db.Scholarships.CountAsync(ct).ConfigureAwait(false);
+        var totalScholarships = await db.Scholarships.CountAsync(s => !s.IsDeleted, ct).ConfigureAwait(false);
         var openScholarships = await db.Scholarships
-            .CountAsync(s => s.Status == ScholarshipStatus.Open, ct).ConfigureAwait(false);
+            .CountAsync(s => !s.IsDeleted && s.Status == ScholarshipStatus.Open, ct).ConfigureAwait(false);
 
-        var totalApplications = await db.Applications.CountAsync(ct).ConfigureAwait(false);
+        var totalApplications = await db.Applications.CountAsync(a => !a.IsDeleted, ct).ConfigureAwait(false);
         var submittedApplications = await db.Applications
-            .CountAsync(a => a.Status != ApplicationStatus.Draft, ct).ConfigureAwait(false);
+            .CountAsync(a => !a.IsDeleted && a.Status != ApplicationStatus.Draft, ct).ConfigureAwait(false);
 
         var totalBookings = await db.Bookings.CountAsync(ct).ConfigureAwait(false);
         var completedBookings = await db.Bookings
             .CountAsync(b => b.Status == BookingStatus.Completed, ct).ConfigureAwait(false);
 
+        // Revenue captured = sum of (gross - refunded) over every captured payment.
+        // CapturedAt != null catches both Captured and PartiallyRefunded statuses
+        // — the latter still represents real money received, minus the refunded
+        // portion. We subtract RefundedAmountCents so the headline matches what
+        // the admin would compute by hand from the payments grid.
         var captured = await db.Payments
-            .Where(p => p.Status == PaymentStatus.Captured)
-            .Select(p => (long?)p.AmountCents)
+            .Where(p => !p.IsDeleted && p.CapturedAt != null)
+            .Select(p => (long?)(p.AmountCents - p.RefundedAmountCents))
             .SumAsync(ct).ConfigureAwait(false);
 
         var profitShare = await db.Payments
-            .Where(p => p.Status == PaymentStatus.Captured)
+            .Where(p => !p.IsDeleted && p.CapturedAt != null)
             .Select(p => (long?)p.ProfitShareAmountCents)
             .SumAsync(ct).ConfigureAwait(false);
 
