@@ -83,19 +83,28 @@ jobs:
       # Set the Azure OpenAI connection settings on every deploy so the AI
       # chat / embeddings keep working without hand-managing App Service
       # configuration. The two secrets are populated via `gh secret set`
-      # and re-applied here using the same OIDC login. Skipped silently
-      # when the secrets are empty (e.g. a staging environment without an
-      # Azure OpenAI resource).
+      # and re-applied here using the same OIDC login. The step skips
+      # silently when either secret is empty (e.g. a staging environment
+      # without an Azure OpenAI resource) — GitHub Actions disallows
+      # `secrets.*` in `if:` expressions, so we surface them as env vars
+      # and short-circuit in the script.
       - name: Sync Azure OpenAI app settings
-        if: ${{ secrets.AI_AZURE_OPENAI_ENDPOINT != '' && secrets.AI_AZURE_OPENAI_API_KEY != '' }}
+        env:
+          AI_AZURE_OPENAI_ENDPOINT: ${{ secrets.AI_AZURE_OPENAI_ENDPOINT }}
+          AI_AZURE_OPENAI_API_KEY: ${{ secrets.AI_AZURE_OPENAI_API_KEY }}
         run: |
+          if [ -z "$AI_AZURE_OPENAI_ENDPOINT" ] || [ -z "$AI_AZURE_OPENAI_API_KEY" ]; then
+            echo "Skipping Azure OpenAI sync — secrets not configured for this environment."
+            exit 0
+          fi
+          rg=$(az webapp show --name "${{ vars.AZURE_API_APP_NAME }}" --query resourceGroup -o tsv)
           az webapp config appsettings set \
             --name "${{ vars.AZURE_API_APP_NAME }}" \
-            --resource-group "$(az webapp show --name ${{ vars.AZURE_API_APP_NAME }} --query resourceGroup -o tsv)" \
+            --resource-group "$rg" \
             --settings \
               "Ai__Provider=AzureOpenAi" \
-              "Ai__AzureOpenAi__Endpoint=${{ secrets.AI_AZURE_OPENAI_ENDPOINT }}" \
-              "Ai__AzureOpenAi__ApiKey=${{ secrets.AI_AZURE_OPENAI_API_KEY }}" \
+              "Ai__AzureOpenAi__Endpoint=$AI_AZURE_OPENAI_ENDPOINT" \
+              "Ai__AzureOpenAi__ApiKey=$AI_AZURE_OPENAI_API_KEY" \
             --output none
 
       - name: Deploy to Azure App Service
