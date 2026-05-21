@@ -112,6 +112,36 @@ jobs:
               "Ai__AzureOpenAi__ApiKey=$AI_AZURE_OPENAI_API_KEY" \
             --output none
 
+      # The API's CORS policy reads allowed origins from
+      # `Cors:AllowedOrigins`. In production, the SWA URL must be in that
+      # list — otherwise the admin dashboard requests get CORS-blocked.
+      # ASP.NET Core parses Cors__AllowedOrigins__0 as an array element, so
+      # we set indexed keys for every entry. localhost stays in
+      # appsettings.json for dev; this step adds production origins on top.
+      - name: Sync CORS allowed origins
+        env:
+          CLIENT_ORIGIN_URL: ${{ vars.CLIENT_ORIGIN_URL }}
+        run: |
+          if [ -z "$CLIENT_ORIGIN_URL" ]; then
+            echo "Skipping CORS sync — CLIENT_ORIGIN_URL not configured for this environment."
+            exit 0
+          fi
+          rg=$(az webapp list --query "[?name=='${{ vars.AZURE_API_APP_NAME }}'] | [0].resourceGroup" -o tsv)
+          if [ -z "$rg" ]; then
+            echo "Could not resolve resource group for ${{ vars.AZURE_API_APP_NAME }}."
+            exit 1
+          fi
+          # Index 0 = the production SWA URL. Index 1+ can be added later for
+          # custom domains. localhost entries from appsettings.json stay live
+          # for dev/preview because configuration sources are merged, not
+          # replaced.
+          az webapp config appsettings set \
+            --name "${{ vars.AZURE_API_APP_NAME }}" \
+            --resource-group "$rg" \
+            --settings \
+              "Cors__AllowedOrigins__0=$CLIENT_ORIGIN_URL" \
+            --output none
+
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
