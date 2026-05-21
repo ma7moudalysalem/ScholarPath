@@ -60,7 +60,9 @@ export function AdminSettings() {
     queryFn: () => settingsApi.getSettings(),
   });
 
-  const settings = query.data ?? [];
+  // Memoise so the `?? []` fallback doesn't return a fresh array each render
+  // and invalidate every downstream useMemo dependency.
+  const settings = useMemo(() => query.data ?? [], [query.data]);
   const groups = useMemo(() => groupByCategory(settings), [settings]);
 
   // Draft state across all settings, keyed by setting key.

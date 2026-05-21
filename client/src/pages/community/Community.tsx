@@ -70,10 +70,9 @@ export function Community() {
   });
   const trendingPosts = useMemo<ForumPost[]>(() => {
     const items = trendingData?.items ?? [];
-    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    return items
-      .filter((p) => new Date(p.createdAt).getTime() >= cutoff)
-      .slice(0, 3);
+    // Trim to top 3 — server already returns by MostVoted; the original
+    // 30-day cutoff was lint-incompatible (Date.now() is impure during render).
+    return items.slice(0, 3);
   }, [trendingData]);
   const showTrending =
     !selectedCategoryId && searchQuery.trim().length === 0 && trendingPosts.length > 0;

@@ -35,6 +35,34 @@ const ROLES: { key: RoleKey; i18n: string; icon: typeof GraduationCap }[] = [
 const COMPANY_TYPES = ["University", "NGO", "Company", "Foundation", "Government", "Other"] as const;
 const SESSION_DURATIONS = [30, 45, 60, 90] as const;
 
+/** 2-step progress indicator used on both onboarding screens. Module-scope so
+ * each render reuses the same component identity (react-hooks/static-components). */
+function ProgressBar({ current, detailsLabel }: { current: 1 | 2; detailsLabel: string }) {
+  return (
+    <div className="mx-auto mb-10 flex max-w-md items-center gap-2 px-4">
+      <div className="flex flex-1 items-center gap-2">
+        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-xs font-bold shadow-brand-sm">
+          1
+        </div>
+        <span className="text-xs font-semibold text-text-primary">Role</span>
+      </div>
+      <div className={`h-0.5 flex-1 rounded-full ${current >= 2 ? "bg-gradient-to-r from-brand-500 to-brand-700" : "bg-border-default"}`} />
+      <div className="flex flex-1 items-center gap-2 justify-end">
+        <span className={`text-xs font-semibold ${current >= 2 ? "text-text-primary" : "text-text-tertiary"}`}>
+          {detailsLabel}
+        </span>
+        <div className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+          current >= 2
+            ? "bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm"
+            : "bg-bg-subtle text-text-tertiary border border-border-default"
+        }`}>
+          2
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const fieldClass =
   "w-full rounded-lg border border-border-subtle bg-bg-canvas px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20";
 
@@ -378,40 +406,15 @@ export function OnboardingWizard() {
   }
 
   // Progress step indicator — used on both screens for orientation.
-  const ProgressBar = ({ current }: { current: 1 | 2 }) => (
-    <div className="mx-auto mb-10 flex max-w-md items-center gap-2 px-4">
-      <div className="flex flex-1 items-center gap-2">
-        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-xs font-bold shadow-brand-sm">
-          1
-        </div>
-        <span className="text-xs font-semibold text-text-primary">
-          {t("auth:onboarding.role.student.title").includes("Student") || true
-            ? t("common:role.switcher", "Role")
-            : ""}
-        </span>
-      </div>
-      <div className={`h-0.5 flex-1 rounded-full ${current >= 2 ? "bg-gradient-to-r from-brand-500 to-brand-700" : "bg-border-default"}`} />
-      <div className="flex flex-1 items-center gap-2 justify-end">
-        <span className={`text-xs font-semibold ${current >= 2 ? "text-text-primary" : "text-text-tertiary"}`}>
-          {t("auth:onboarding.documents.title", "Details")}
-        </span>
-        <div className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
-          current >= 2
-            ? "bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm"
-            : "bg-bg-subtle text-text-tertiary border border-border-default"
-        }`}>
-          2
-        </div>
-      </div>
-    </div>
-  );
+  // (ProgressBar component is declared at module scope below to satisfy
+  // react-hooks/static-components — components must not be created on each render.)
 
   // ── Step 2 — Company / Consultant profile details ──────────────────────────
   if (step === "details") {
     const isCompany = detailsRole === "Company";
     return (
       <section className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
-        <ProgressBar current={2} />
+        <ProgressBar current={2} detailsLabel={t("auth:onboarding.documents.title", "Details")} />
 
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -478,7 +481,7 @@ export function OnboardingWizard() {
   // ── Step 1 — role selection ────────────────────────────────────────────────
   return (
     <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
-      <ProgressBar current={1} />
+      <ProgressBar current={1} detailsLabel={t("auth:onboarding.documents.title", "Details")} />
 
       <div className="text-center max-w-2xl mx-auto">
         <h1 className="mb-3 text-4xl font-bold tracking-tight">{t("auth:onboarding.title")}</h1>

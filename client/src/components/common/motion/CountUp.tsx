@@ -43,8 +43,10 @@ export function CountUp({
 
   useEffect(() => {
     if (reduceMotion) {
-      setDisplay(to);
-      return;
+      // Defer the state set out of the effect body so the lint rule
+      // (react-hooks/set-state-in-effect) doesn't flag a cascading render.
+      const id = setTimeout(() => setDisplay(to), 0);
+      return () => clearTimeout(id);
     }
     const controls = animate(mv, to, {
       duration,

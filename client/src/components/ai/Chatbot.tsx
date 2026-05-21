@@ -199,7 +199,6 @@ export const Chatbot = forwardRef<ChatbotHandle>(function Chatbot(_, ref) {
   useEffect(() => {
     if (pendingTurns.length === 0) return;
     if (turnsQuery.data && turnsQuery.data.length * 2 >= serverTurns.length + pendingTurns.length) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPendingTurns([]);
     }
   }, [turnsQuery.data, serverTurns.length, pendingTurns.length]);

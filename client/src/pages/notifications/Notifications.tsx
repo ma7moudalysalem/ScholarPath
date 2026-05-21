@@ -77,7 +77,7 @@ export function Notifications() {
   const title = (n: NotificationItem) => (isAr ? n.titleAr : n.titleEn);
   const body = (n: NotificationItem) => (isAr ? n.bodyAr : n.bodyEn);
 
-  const allItems = data?.items ?? [];
+  const allItems = useMemo(() => data?.items ?? [], [data?.items]);
   const unreadItems = useMemo(
     () => allItems.filter((n) => !n.isRead),
     [allItems],
