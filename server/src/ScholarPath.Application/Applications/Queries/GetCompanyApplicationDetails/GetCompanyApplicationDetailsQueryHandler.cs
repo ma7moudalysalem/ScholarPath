@@ -30,7 +30,9 @@ public sealed class GetCompanyApplicationDetailsQueryHandler(
             application.Id,
             application.StudentId,
             application.Student?.FullName ?? "Unknown",
-            application.ScholarshipId,
+            // Company-side queries always operate on platform scholarships; the
+            // guard above guarantees Scholarship is non-null, so ScholarshipId is set.
+            application.ScholarshipId!.Value,
             application.Scholarship.TitleEn,
             application.Status,
             application.SubmittedAt,

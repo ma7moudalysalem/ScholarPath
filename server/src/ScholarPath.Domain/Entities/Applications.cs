@@ -6,7 +6,14 @@ namespace ScholarPath.Domain.Entities;
 public class ApplicationTracker : AuditableEntity, ISoftDeletable
 {
     public Guid StudentId { get; set; }
-    public Guid ScholarshipId { get; set; }
+
+    /// <summary>
+    /// Optional link to a ScholarPath scholarship. Null when the student is tracking a
+    /// purely-external scholarship that does NOT exist in the platform catalogue —
+    /// in that case <see cref="ExternalTitle"/> and <see cref="ExternalProvider"/>
+    /// carry the human-readable identity.
+    /// </summary>
+    public Guid? ScholarshipId { get; set; }
     public ApplicationMode Mode { get; set; }
     public ApplicationStatus Status { get; set; } = ApplicationStatus.Draft;
 
@@ -17,6 +24,23 @@ public class ApplicationTracker : AuditableEntity, ISoftDeletable
     // For external listings
     public string? ExternalTrackingUrl { get; set; }
     public string? ExternalReferenceId { get; set; }
+
+    /// <summary>
+    /// Free-text scholarship title used when the entry is NOT linked to a ScholarPath
+    /// scholarship (purely-external tracking). Ignored otherwise.
+    /// </summary>
+    public string? ExternalTitle { get; set; }
+
+    /// <summary>
+    /// Free-text provider / organization name for purely-external tracking entries.
+    /// </summary>
+    public string? ExternalProvider { get; set; }
+
+    /// <summary>
+    /// Student-supplied deadline for purely-external tracking entries.
+    /// For platform scholarships the canonical deadline lives on the Scholarship entity.
+    /// </summary>
+    public DateTimeOffset? Deadline { get; set; }
 
     public DateTimeOffset? SubmittedAt { get; set; }
     public DateTimeOffset? WithdrawnAt { get; set; }

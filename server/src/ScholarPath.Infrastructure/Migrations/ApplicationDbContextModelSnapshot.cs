@@ -319,9 +319,20 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset?>("Deadline")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ExternalProvider")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("ExternalReferenceId")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ExternalTitle")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<string>("ExternalTrackingUrl")
                         .HasMaxLength(2048)
@@ -352,7 +363,7 @@ namespace ScholarPath.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<Guid>("ScholarshipId")
+                    b.Property<Guid?>("ScholarshipId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Status")
@@ -384,7 +395,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasIndex("StudentId", "ScholarshipId")
                         .IsUnique()
                         .HasDatabaseName("UX_Applications_Student_Scholarship_Active")
-                        .HasFilter("[Status] <> 'Withdrawn' AND [Status] <> 'Rejected' AND [Status] <> 'Accepted'");
+                        .HasFilter("[ScholarshipId] IS NOT NULL AND [Status] <> 'Withdrawn' AND [Status] <> 'Rejected' AND [Status] <> 'Accepted'");
 
                     b.ToTable("Applications");
                 });
@@ -3662,8 +3673,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasOne("ScholarPath.Domain.Entities.Scholarship", "Scholarship")
                         .WithMany("Applications")
                         .HasForeignKey("ScholarshipId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Student")
                         .WithMany()

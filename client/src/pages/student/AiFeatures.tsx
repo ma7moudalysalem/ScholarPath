@@ -60,26 +60,33 @@ export function AiFeatures() {
         </div>
       </div>
 
-      {/* ── Tab bar ── */}
-      <div role="tablist" className="inline-flex items-center gap-1 rounded-xl border border-border-subtle bg-bg-elevated p-1 shadow-elevation-1">
-        {TABS.map(({ id, icon: Icon }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            onClick={() => setTab(id)}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-all",
-              tab === id
-                ? "bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm"
-                : "text-text-secondary hover:text-text-primary hover:bg-bg-subtle",
-            )}
-          >
-            <Icon aria-hidden className="size-4" />
-            {t(`ai:tabs.${id}`)}
-          </button>
-        ))}
+      {/* ── Tab bar ── On narrow viewports the row scrolls horizontally
+          so longer Arabic labels never push the layout sideways. */}
+      <div className="overflow-x-auto scrollbar-premium">
+        <div
+          role="tablist"
+          aria-label={t("ai:title")}
+          className="inline-flex items-center gap-1 rounded-xl border border-border-subtle bg-bg-elevated p-1 shadow-elevation-1"
+        >
+          {TABS.map(({ id, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={tab === id}
+              onClick={() => setTab(id)}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-all",
+                tab === id
+                  ? "bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm"
+                  : "text-text-secondary hover:bg-bg-subtle hover:text-text-primary",
+              )}
+            >
+              <Icon aria-hidden className="size-4" />
+              {t(`ai:tabs.${id}`)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* ── Panels (kept mounted; inactive ones hidden to preserve state) ── */}

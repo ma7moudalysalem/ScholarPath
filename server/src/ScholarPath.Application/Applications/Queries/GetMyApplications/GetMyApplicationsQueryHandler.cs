@@ -23,11 +23,17 @@ public sealed class GetMyApplicationsQueryHandler(
             .Select(a => new StudentApplicationRow(
                 a.Id,
                 a.ScholarshipId,
-                lang == "ar"
-                    ? (a.Scholarship!.TitleAr ?? a.Scholarship!.TitleEn)
-                    : (a.Scholarship!.TitleEn ?? a.Scholarship!.TitleAr),
-                a.Scholarship.OwnerCompanyId,
-                a.Scholarship.OwnerCompany != null ? a.Scholarship.OwnerCompany.FullName : null,
+                // Free-text trackers don't have a linked Scholarship — fall back to
+                // the user-supplied title; failing that, an empty placeholder.
+                a.Scholarship == null
+                    ? (a.ExternalTitle ?? string.Empty)
+                    : (lang == "ar"
+                        ? (a.Scholarship.TitleAr ?? a.Scholarship.TitleEn)
+                        : (a.Scholarship.TitleEn ?? a.Scholarship.TitleAr)),
+                a.Scholarship != null ? a.Scholarship.OwnerCompanyId : (Guid?)null,
+                a.Scholarship != null && a.Scholarship.OwnerCompany != null
+                    ? a.Scholarship.OwnerCompany.FullName
+                    : a.ExternalProvider,
                 a.Status,
                 a.Mode,
                 a.UpdatedAt ?? a.CreatedAt))

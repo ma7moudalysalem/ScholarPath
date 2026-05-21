@@ -21,7 +21,8 @@
     "rating": "التقييم",
     "availability": "الإتاحة",
     "specialization": "التخصص",
-    "sortBy": "ترتيب حسب"
+    "sortBy": "ترتيب حسب",
+    "more": "فلاتر إضافية"
   },
   "specializationOptions": {
     "any": "كل التخصصات"
@@ -30,7 +31,8 @@
     "ratingDesc": "الأعلى تقييماً",
     "feeAsc": "الأقل سعراً",
     "feeDesc": "الأعلى سعراً",
-    "experienceDesc": "الأكثر خبرة"
+    "experienceDesc": "الأكثر خبرة",
+    "reviewsDesc": "الأكثر مراجعات"
   },
   "priceOptions": {
     "any": "الكل",

@@ -320,21 +320,78 @@ public sealed class LocalAiService(
         static bool ContainsCi(string haystack, string needle) =>
             haystack.Contains(needle, StringComparison.OrdinalIgnoreCase);
 
+        var arabic = RagSupport.IsArabic(message);
+
+        // ── Platform-specific intents ────────────────────────────────────
         if (ContainsCi(message, "deadline") || ContainsCi(message, "موعد"))
-            return "Deadlines are shown on each scholarship page. Open the Scholarships tab, then sort by Deadline (nearest first).";
+            return arabic
+                ? "تظهر المواعيد على صفحة كل منحة. افتح تبويب \"المنح\" ثم رتّب حسب \"الموعد النهائي\" (الأقرب أولاً)."
+                : "Deadlines are shown on each scholarship page. Open the Scholarships tab, then sort by Deadline (nearest first).";
 
-        if (ContainsCi(message, "eligib") || ContainsCi(message, "هل انا مؤهل"))
-            return "Open any scholarship detail and tap \"Check eligibility\" — we'll compare your profile against the listed criteria.";
+        if (ContainsCi(message, "eligib") || ContainsCi(message, "هل انا مؤهل") || ContainsCi(message, "أهلية"))
+            return arabic
+                ? "افتح أي منحة واضغط \"افحص الأهلية\" — سنقارن ملفك بالمعايير المُدرجة."
+                : "Open any scholarship detail and tap \"Check eligibility\" — we'll compare your profile against the listed criteria.";
 
-        if (ContainsCi(message, "recommend") || ContainsCi(message, "ترشح"))
-            return "The Recommendations widget on your dashboard ranks open scholarships by fit. Update your profile's preferred fields to sharpen the list.";
+        if (ContainsCi(message, "recommend") || ContainsCi(message, "ترشح") || ContainsCi(message, "اقتراح"))
+            return arabic
+                ? "أداة \"الاقتراحات\" في لوحتك ترتب المنح المفتوحة حسب التوافق. حدّث المجالات المفضلة في ملفك لتحسين الترتيب."
+                : "The Recommendations widget on your dashboard ranks open scholarships by fit. Update your profile's preferred fields to sharpen the list.";
 
         if (ContainsCi(message, "apply") || ContainsCi(message, "تقديم"))
-            return "Applications live under the Applications tab. You can only keep one active application per scholarship at a time.";
+            return arabic
+                ? "الطلبات في تبويب \"طلباتي\". يمكنك الاحتفاظ بطلب واحد نشط لكل منحة في كل وقت."
+                : "Applications live under the Applications tab. You can only keep one active application per scholarship at a time.";
 
         if (ContainsCi(message, "consult") || ContainsCi(message, "مستشار"))
-            return "Consultants are under the Consultants tab. You can book a paid session; funds are held in escrow until the session completes.";
+            return arabic
+                ? "المستشارون في تبويب \"المستشارون\". يمكنك حجز جلسة مدفوعة؛ يبقى المبلغ في الضمان حتى تكتمل الجلسة."
+                : "Consultants are under the Consultants tab. You can book a paid session; funds are held in escrow until the session completes.";
 
-        return "I can help with scholarships, eligibility, deadlines, and applications. Ask me something more specific and I'll point you to the right place.";
+        // ── General educational guidance ────────────────────────────────
+        // These topics are not tied to platform data, so we answer with concise
+        // generic guidance to keep the assistant useful even when RAG misses.
+        if (ContainsCi(message, "recommendation letter") || ContainsCi(message, "letter of recommendation")
+            || ContainsCi(message, "خطاب توصية") || ContainsCi(message, "توصية"))
+            return arabic
+                ? "خطاب التوصية عادةً يحتوي: (1) كيف يعرفك الكاتب ومنذ متى، (2) إنجازاتك الأكاديمية ومهاراتك بأمثلة محددة، (3) صفاتك الشخصية، (4) لماذا أنت مرشح قوي لهذا البرنامج. اطلب الخطاب من أستاذ يعرف عملك جيدًا قبل ٤–٦ أسابيع من الموعد، وزوّده بسيرتك الذاتية وخطاب الغرض."
+                : "A strong recommendation letter usually includes: (1) how the writer knows you and for how long, (2) your academic achievements and skills with specific examples, (3) your character traits, (4) why you're a strong fit for the program. Ask a professor who knows your work well 4–6 weeks before the deadline, and share your CV plus your Statement of Purpose with them.";
+
+        if (ContainsCi(message, "statement of purpose") || ContainsCi(message, "sop") || ContainsCi(message, "personal statement")
+            || ContainsCi(message, "خطاب الغرض") || ContainsCi(message, "بيان شخصي"))
+            return arabic
+                ? "هيكل خطاب الغرض: (1) فقرة افتتاحية تذكر هدفك ولماذا الآن، (2) خلفيتك الأكاديمية وخبراتك ذات الصلة، (3) سبب اختيارك لهذا البرنامج/الجامعة تحديدًا، (4) خططك بعد التخرج وكيف تخدم مجتمعك. اجعله ٥٠٠–٨٠٠ كلمة، صادقًا ومحددًا، وتجنب الكليشيهات."
+                : "Statement of Purpose structure: (1) opening that states your goal and why now, (2) academic background + relevant experience, (3) why this specific program/university, (4) post-graduation plans and how you'll contribute. Keep it 500–800 words, be authentic and specific, and avoid clichés. Tailor every paragraph to the program — generic SoPs are easy to spot.";
+
+        if (ContainsCi(message, "interview") || ContainsCi(message, "مقابلة"))
+            return arabic
+                ? "نصائح لمقابلة المنحة: (1) راجع موقع المنحة وقيمها الأساسية، (2) جهّز إجابات لأسئلة \"لماذا هذا البرنامج\" و\"خططك المستقبلية\" و\"تحدٍ واجهته\"، (3) جهّز سؤالين أو ثلاثة لتسألهم في النهاية، (4) ارتدِ ملابس رسمية حتى لو كانت عبر الإنترنت، (5) تدرّب بصوت عالٍ ولكن لا تحفظ حرفيًا."
+                : "Scholarship interview tips: (1) review the scholarship website and core values, (2) prepare answers for \"why this program\", \"future plans\", and \"a challenge you faced\", (3) have 2–3 questions ready to ask them, (4) dress formally even on video calls, (5) practice out loud but don't memorise — sound conversational.";
+
+        if (ContainsCi(message, "ielts") || ContainsCi(message, "toefl") || ContainsCi(message, "gre") || ContainsCi(message, "gmat")
+            || ContainsCi(message, "آيلتس") || ContainsCi(message, "توفل"))
+            return arabic
+                ? "اختبارات اللغة الشائعة: IELTS (٠–٩) وTOEFL iBT (٠–١٢٠). معظم المنح تطلب IELTS ≥ ٦.٥ أو TOEFL ≥ ٨٠. خصّص ٦–٨ أسابيع للتحضير: تدرّب على الأقسام الأربعة، خذ اختبارًا تجريبيًا أسبوعيًا، وركّز على نقاط ضعفك. تأكد من صلاحية درجتك (سنتان عادةً)."
+                : "Common language tests: IELTS (0–9 scale) and TOEFL iBT (0–120). Most scholarships ask for IELTS ≥ 6.5 or TOEFL ≥ 80. Plan 6–8 weeks of prep: practice all four sections, take one full mock test per week, and focus on your weakest skill. Make sure your score is still valid (usually 2 years) at the application deadline.";
+
+        if (ContainsCi(message, "essay") || ContainsCi(message, "writing") || ContainsCi(message, "مقال") || ContainsCi(message, "كتاب"))
+            return arabic
+                ? "لتحسين مقالك: (1) ابدأ بافتتاحية محددة (مشهد أو لحظة) بدلًا من العبارات العامة، (2) أظهر ولا تقل — استعمل أمثلة ملموسة، (3) اربط كل فقرة بهدفك من المنحة، (4) راجع بصوت عالٍ لاكتشاف الجمل الركيكة، (5) اطلب مراجعة من شخصين على الأقل قبل التسليم."
+                : "To improve your essay: (1) open with a specific scene or moment, not a generic statement, (2) show, don't tell — use concrete examples, (3) connect every paragraph back to your scholarship goal, (4) read it aloud to catch awkward sentences, (5) get feedback from at least two readers before submitting.";
+
+        if (ContainsCi(message, "document") || ContainsCi(message, "أوراق") || ContainsCi(message, "مستندات"))
+            return arabic
+                ? "الأوراق الشائعة لمعظم طلبات المنح: (1) شهادات أكاديمية وكشوف درجات، (2) سيرة ذاتية، (3) خطاب غرض / بيان شخصي، (4) خطابي توصية على الأقل، (5) شهادة لغة (IELTS/TOEFL)، (6) جواز سفر ساري، (7) إثبات هوية. راجع متطلبات المنحة المحددة — تتفاوت."
+                : "Common documents for most scholarship applications: (1) academic certificates + transcripts, (2) CV/résumé, (3) Statement of Purpose / personal statement, (4) at least 2 recommendation letters, (5) language test (IELTS/TOEFL), (6) valid passport, (7) photo ID. Always check the specific scholarship's checklist — requirements vary.";
+
+        if (ContainsCi(message, "fully funded") || ContainsCi(message, "fully-funded") || ContainsCi(message, "partial")
+            || ContainsCi(message, "كاملة") || ContainsCi(message, "جزئية"))
+            return arabic
+                ? "المنح الكاملة (Fully Funded) تغطي عادةً: الرسوم الدراسية، السكن، السفر، التأمين الصحي، ومصروف شهري. المنح الجزئية تغطي جزءًا فقط (الرسوم فقط، أو نسبة منها). الكاملة أكثر تنافسية لكنها تزيل العبء المالي تمامًا — قدّم لكليهما إن كان ملفك يسمح."
+                : "Fully funded scholarships typically cover: tuition, accommodation, travel, health insurance, and a monthly stipend. Partial scholarships only cover part of the cost (tuition only, or a percentage). Fully funded ones are more competitive but remove the financial burden entirely — apply to both tiers if your profile allows.";
+
+        return arabic
+            ? "يمكنني المساعدة في المنح، الأهلية، المواعيد، والطلبات — وأيضًا في كتابة خطابات التوصية، خطاب الغرض، التحضير للمقابلات، واختبارات اللغة. اسأل بشكل محدد وسأرشدك للمكان المناسب."
+            : "I can help with scholarships, eligibility, deadlines, and applications — and also with writing recommendation letters, structuring a Statement of Purpose, interview prep, and language tests. Ask me something specific and I'll point you to the right place.";
     }
 }

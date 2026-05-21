@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { formatDistanceToNow } from "date-fns";
-import { RefreshCw, Sparkles } from "lucide-react";
+import { AlertCircle, RefreshCw, Sparkles } from "lucide-react";
 import { aiApi, type RecommendationsDto } from "@/services/api/ai";
 import { AiDisclaimer } from "./AiDisclaimer";
 import { MatchScoreBadge } from "./MatchScoreBadge";
@@ -56,8 +56,36 @@ export function AiRecommendations() {
         </div>
       )}
 
+      {q.isError && (
+        <div className="flex items-start gap-3 rounded-md border border-danger-200 bg-danger-50 p-3 text-sm text-danger-500">
+          <AlertCircle aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium">{t("ai:recommendations.error")}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => refreshMut.mutate()}
+            disabled={refreshMut.isPending}
+            className="shrink-0 rounded-md border border-danger-200 px-2.5 py-1 text-xs font-medium text-danger-600 transition hover:bg-danger-100 disabled:opacity-50"
+          >
+            {t("ai:recommendations.refresh")}
+          </button>
+        </div>
+      )}
+
       {q.data && q.data.items.length === 0 && (
-        <p className="text-sm text-text-secondary">{t("ai:recommendations.empty")}</p>
+        <div className="flex flex-col items-center rounded-md border border-dashed border-border-subtle bg-bg-subtle/40 p-6 text-center">
+          <div aria-hidden className="mb-3 flex size-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+            <Sparkles className="size-5" />
+          </div>
+          <p className="text-sm text-text-secondary">{t("ai:recommendations.empty")}</p>
+          <Link
+            to="/profile"
+            className="mt-3 text-xs font-medium text-brand-600 hover:underline"
+          >
+            {t("ai:eligibility.goToProfile")}
+          </Link>
+        </div>
       )}
 
       {q.data && q.data.items.length > 0 && (

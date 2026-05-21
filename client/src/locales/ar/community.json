@@ -1,5 +1,7 @@
 {
   "feed": {
+    "title": "المجتمع",
+    "subtitle": "اطرح أسئلتك، وشارك تجاربك، واحصل على مساعدة الطلاب والمستشارين.",
     "askQuestion": "اطرح سؤالًا",
     "categoriesTitle": "الفئات",
     "allCategories": "كل المواضيع",
@@ -8,8 +10,14 @@
     "sortTrending": "الرائج",
     "searchPlaceholder": "ابحث في النقاشات...",
     "repliesCount": "{{count}} ردًّا",
-    "emptyTitle": "لا توجد نقاشات",
-    "emptyBody": "كن أول من يبدأ نقاشًا في هذه الفئة."
+    "trendingTitle": "الأكثر تداولًا الآن",
+    "trendingSubtitle": "أبرز النقاشات خلال آخر 30 يومًا",
+    "emptyTitle": "لا توجد نقاشات بعد",
+    "emptyBody": "كن أول من يبدأ نقاشًا هنا.",
+    "emptyCategoryTitle": "لا يوجد شيء في {{category}} بعد",
+    "emptyCategoryBody": "هذه الفئة هادئة — كن أول من ينشر في {{category}}.",
+    "emptySearchTitle": "لا توجد نتائج مطابقة",
+    "emptySearchBody": "لم نجد أي نقاشات تطابق \"{{query}}\". جرّب كلمة مختلفة."
   },
   "thread": {
     "notFound": "الموضوع غير موجود",

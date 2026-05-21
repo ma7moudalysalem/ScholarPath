@@ -21,7 +21,8 @@
     "rating": "Rating",
     "availability": "Availability",
     "specialization": "Specialization",
-    "sortBy": "Sort by"
+    "sortBy": "Sort by",
+    "more": "More filters"
   },
   "specializationOptions": {
     "any": "All specialisations"
@@ -30,7 +31,8 @@
     "ratingDesc": "Top rated",
     "feeAsc": "Lowest fee",
     "feeDesc": "Highest fee",
-    "experienceDesc": "Most experienced"
+    "experienceDesc": "Most experienced",
+    "reviewsDesc": "Most reviewed"
   },
   "priceOptions": {
     "any": "Any",

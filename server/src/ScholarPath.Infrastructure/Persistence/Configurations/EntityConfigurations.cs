@@ -302,6 +302,9 @@ public sealed class ApplicationTrackerConfiguration : IEntityTypeConfiguration<A
         b.Property(a => a.Status).HasConversion<string>().HasMaxLength(32);
         b.Property(a => a.ExternalTrackingUrl).HasMaxLength(2048);
         b.Property(a => a.ExternalReferenceId).HasMaxLength(256);
+        // Free-text fields used when the tracker is NOT linked to a platform scholarship.
+        b.Property(a => a.ExternalTitle).HasMaxLength(300);
+        b.Property(a => a.ExternalProvider).HasMaxLength(200);
         b.Property(a => a.DecisionReason).HasMaxLength(2000);
         // PersonalNotes is AES-256-GCM encrypted at rest (see FieldEncryptionModelBuilderExtensions).
         // Widened to nvarchar(max): the Base64 ciphertext is longer than the
@@ -317,12 +320,16 @@ public sealed class ApplicationTrackerConfiguration : IEntityTypeConfiguration<A
         // the limited set (=, <>, <, <=, >, >=, IS [NOT] NULL) combined with
         // AND. So the original NOT IN predicate has to be expanded into
         // three chained <> conjunctions. Same meaning, accepted syntax.
+        // The `IS NOT NULL` clause excludes purely-external trackers (no
+        // ScholarshipId link) from the uniqueness rule — a student may track
+        // any number of off-platform scholarships in parallel.
         b.HasIndex(a => new { a.StudentId, a.ScholarshipId })
             .IsUnique()
             // SQL Server filtered-index predicates don't support NOT IN — expand
             // into three chained <> conjunctions (same semantics, accepted syntax).
             .HasFilter(
-                $"[Status] <> '{nameof(ApplicationStatus.Withdrawn)}' " +
+                $"[ScholarshipId] IS NOT NULL " +
+                $"AND [Status] <> '{nameof(ApplicationStatus.Withdrawn)}' " +
                 $"AND [Status] <> '{nameof(ApplicationStatus.Rejected)}' " +
                 $"AND [Status] <> '{nameof(ApplicationStatus.Accepted)}'")
             .HasDatabaseName("UX_Applications_Student_Scholarship_Active");
@@ -331,7 +338,9 @@ public sealed class ApplicationTrackerConfiguration : IEntityTypeConfiguration<A
         b.HasQueryFilter(a => !a.IsDeleted);
 
         b.HasOne(a => a.Student).WithMany().HasForeignKey(a => a.StudentId).OnDelete(DeleteBehavior.Restrict);
+        // ScholarshipId is now optional (purely-external trackers carry no link).
         b.HasOne(a => a.Scholarship).WithMany(s => s.Applications).HasForeignKey(a => a.ScholarshipId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

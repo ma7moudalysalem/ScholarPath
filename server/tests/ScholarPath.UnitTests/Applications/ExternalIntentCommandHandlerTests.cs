@@ -156,11 +156,30 @@ public class ExternalIntentValidatorTests
     private readonly ExternalIntentCommandValidator _validator = new();
 
     [Fact]
-    public void Should_Have_Error_When_ScholarshipId_Is_Empty()
+    public void Should_Have_Error_When_ScholarshipId_And_Title_Both_Missing()
     {
-        var command = new ExternalIntentCommand(Guid.Empty, null, null, null);
+        // No ScholarshipId AND no free-text Title — neither side of the OR is satisfied.
+        var command = new ExternalIntentCommand(
+            ScholarshipId: null,
+            ExternalTrackingUrl: null,
+            ExternalReferenceId: null,
+            PersonalNotes: null,
+            Title: null);
         var result = _validator.TestValidate(command);
-        result.ShouldHaveValidationErrorFor(x => x.ScholarshipId);
+        result.ShouldHaveValidationErrorFor(x => x.Title);
+    }
+
+    [Fact]
+    public void Should_Not_Have_Error_When_Title_Is_Provided_Without_ScholarshipId()
+    {
+        var command = new ExternalIntentCommand(
+            ScholarshipId: null,
+            ExternalTrackingUrl: null,
+            ExternalReferenceId: null,
+            PersonalNotes: null,
+            Title: "Some Off-Platform Scholarship");
+        var result = _validator.TestValidate(command);
+        result.ShouldNotHaveValidationErrorFor(x => x.Title);
     }
 
     [Theory]

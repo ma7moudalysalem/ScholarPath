@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   MessageSquare,
@@ -11,9 +11,10 @@ import {
   Filter,
   ChevronRight,
   Hash,
+  Flame,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { communityApi, type ForumCategory, type VoteType } from "@/services/api/community";
+import { communityApi, type ForumCategory, type ForumPost, type VoteType } from "@/services/api/community";
 import { AskQuestionModal } from "@/components/community/AskQuestionModal";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { Link } from "react-router";
@@ -59,6 +60,24 @@ export function Community() {
 
   const posts = postsData?.items ?? [];
 
+  // Trending: top 3 most-voted posts in the last 30 days, fetched independently
+  // of the filtered/sorted feed below so the strip is stable as the user
+  // changes categories. Hidden on filter / search to avoid duplicating context.
+  const { data: trendingData } = useQuery({
+    queryKey: ["community", "trending"],
+    queryFn: () => communityApi.getPosts({ sortBy: "MostVoted", page: 1, pageSize: 6 }),
+    staleTime: 60_000,
+  });
+  const trendingPosts = useMemo<ForumPost[]>(() => {
+    const items = trendingData?.items ?? [];
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    return items
+      .filter((p) => new Date(p.createdAt).getTime() >= cutoff)
+      .slice(0, 3);
+  }, [trendingData]);
+  const showTrending =
+    !selectedCategoryId && searchQuery.trim().length === 0 && trendingPosts.length > 0;
+
   const qc = useQueryClient();
   const voteMutation = useMutation({
     mutationFn: ({ postId, type }: { postId: string; type: VoteType }) =>
@@ -87,9 +106,9 @@ export function Community() {
       {/* Page header */}
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t("feed.askQuestion")}</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("feed.title")}</h1>
           <p className="mt-2 max-w-xl text-text-secondary">
-            {t("feed.emptyBody")}
+            {t("feed.subtitle")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -202,6 +221,70 @@ export function Community() {
             </form>
           </div>
 
+          {/* Trending strip — top 3 most-voted recent posts. Hidden when the
+              user has narrowed the feed by category or search to avoid
+              duplicating context. */}
+          {showTrending && (
+            <section
+              aria-label={t("feed.trendingTitle")}
+              className="card-premium overflow-hidden"
+            >
+              <div className="flex items-center gap-2 border-b border-border-subtle bg-gradient-to-r from-warning-50/60 to-bg-elevated px-4 py-2.5">
+                <span className="inline-flex size-6 items-center justify-center rounded-md bg-gradient-to-br from-warning-400 to-warning-600 text-white">
+                  <Flame size={12} aria-hidden />
+                </span>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-text-primary">
+                  {t("feed.trendingTitle")}
+                </h3>
+                <span className="text-xs text-text-tertiary">·</span>
+                <span className="text-xs text-text-tertiary">{t("feed.trendingSubtitle")}</span>
+              </div>
+              <ol className="divide-y divide-border-subtle">
+                {trendingPosts.map((post, idx) => {
+                  const score = post.upvoteCount - post.downvoteCount;
+                  const categoryName =
+                    categories.find((c) => c.id === post.categoryId)?.[isRtl ? "nameAr" : "nameEn"] ||
+                    t("feed.generalCategory");
+                  return (
+                    <li key={post.id}>
+                      <Link
+                        to={`/student/community/${post.id}`}
+                        className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-bg-subtle/60"
+                      >
+                        <span
+                          aria-hidden
+                          className="inline-flex size-7 shrink-0 items-center justify-center rounded-lg bg-bg-subtle text-xs font-bold tabular-nums text-text-secondary group-hover:bg-brand-50 group-hover:text-brand-600"
+                        >
+                          {idx + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-text-primary group-hover:text-brand-600">
+                            {post.title}
+                          </p>
+                          <p className="mt-0.5 flex items-center gap-2 text-[11px] text-text-tertiary">
+                            <span className="inline-flex items-center gap-1">
+                              <Hash size={10} aria-hidden />
+                              {categoryName}
+                            </span>
+                            <span aria-hidden>·</span>
+                            <span className="inline-flex items-center gap-1">
+                              <MessageSquare size={10} aria-hidden />
+                              {t("feed.repliesCount", { count: post.replyCount })}
+                            </span>
+                          </p>
+                        </div>
+                        <div className="shrink-0 inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-bold tabular-nums text-brand-700">
+                          <ArrowUp size={11} strokeWidth={2.5} aria-hidden />
+                          {score}
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ol>
+            </section>
+          )}
+
           {/* Post List */}
           <div className="space-y-3">
             {loading ? (
@@ -303,16 +386,37 @@ export function Community() {
                 );
               })
             ) : (
-              <EmptyState
-                icon={MessageSquare}
-                title={t("feed.emptyTitle")}
-                description={t("feed.emptyBody")}
-                action={{
-                  label: t("feed.askQuestion"),
-                  onClick: () => setAskOpen(true),
-                  leadingIcon: <Plus size={14} />,
-                }}
-              />
+              (() => {
+                const activeCategory = selectedCategoryId
+                  ? categories.find((c) => c.id === selectedCategoryId)
+                  : undefined;
+                const categoryName = activeCategory
+                  ? (isRtl ? activeCategory.nameAr : activeCategory.nameEn)
+                  : undefined;
+                const isSearching = searchQuery.trim().length > 0;
+                const title = isSearching
+                  ? t("feed.emptySearchTitle")
+                  : categoryName
+                    ? t("feed.emptyCategoryTitle", { category: categoryName })
+                    : t("feed.emptyTitle");
+                const description = isSearching
+                  ? t("feed.emptySearchBody", { query: searchQuery.trim() })
+                  : categoryName
+                    ? t("feed.emptyCategoryBody", { category: categoryName })
+                    : t("feed.emptyBody");
+                return (
+                  <EmptyState
+                    icon={MessageSquare}
+                    title={title}
+                    description={description}
+                    action={{
+                      label: t("feed.askQuestion"),
+                      onClick: () => setAskOpen(true),
+                      leadingIcon: <Plus size={14} />,
+                    }}
+                  />
+                );
+              })()
             )}
           </div>
         </main>

@@ -7,7 +7,7 @@ public record GetMyApplicationsQuery(string Language = "en") : IRequest<IReadOnl
 
 public record StudentApplicationRow(
     Guid ApplicationId,
-    Guid ScholarshipId,
+    Guid? ScholarshipId,
     string ScholarshipTitle,
     Guid? CompanyId,
     string? CompanyName,

@@ -258,6 +258,9 @@ public enum KnowledgeSourceType
 
     /// <summary>A curated help / frequently-asked-question entry.</summary>
     Faq = 1,
+
+    /// <summary>Indexed from a published Resources Hub article or guide (PB-009).</summary>
+    Resource = 2,
 }
 
 /// <summary>

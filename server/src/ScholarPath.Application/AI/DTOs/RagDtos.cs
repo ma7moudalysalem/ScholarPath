@@ -8,7 +8,10 @@ public sealed record KnowledgeBaseStatusDto(
     int EmbeddedDocuments,
     int PendingDocuments,
     string ActiveEmbeddingModel,
-    DateTimeOffset? LastIndexedAt);
+    DateTimeOffset? LastIndexedAt,
+    // Resource Hub articles/guides that were indexed (PB-009). Defaults to 0
+    // so existing serialisers/tests built against the previous shape keep working.
+    int ResourceDocuments = 0);
 
 /// <summary>Outcome of a knowledge-base rebuild (re-index).</summary>
 public sealed record KnowledgeBaseRebuildResultDto(

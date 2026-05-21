@@ -14,7 +14,37 @@ type BrowseFilter = "all" | "available" | "unavailable";
 type PriceSelectFilter = "any" | "under30" | "30to35" | "above35";
 type RatingSelectFilter = "any" | "4plus" | "4_5plus" | "4_8plus";
 type AvailabilitySelectFilter = "all" | "available" | "unavailable";
-type SortOption = "ratingDesc" | "feeAsc" | "feeDesc" | "experienceDesc";
+type SortOption =
+  | "ratingDesc"
+  | "feeAsc"
+  | "feeDesc"
+  | "experienceDesc"
+  | "reviewsDesc";
+
+/**
+ * Fallback specialization list — the 8 canonical seeded ExpertiseTag rows
+ * (DbSeeder.Scholarships.cs) plus 7 common adjacencies. Used when no
+ * consultant has tagged themselves yet so the dropdown isn't empty on a
+ * cold-start database. Kept in EN here; the labels are user-data so they
+ * aren't translated.
+ */
+const FALLBACK_SPECIALIZATIONS = [
+  "Statement of Purpose",
+  "Interview Preparation",
+  "University Selection",
+  "CV Review",
+  "Research Proposals",
+  "Funding Strategy",
+  "PhD Applications",
+  "Scholarship Search",
+  "Master's Applications",
+  "Undergraduate Applications",
+  "Test Preparation",
+  "Language Proficiency",
+  "Visa Guidance",
+  "Career Counseling",
+  "Letter of Recommendation",
+];
 
 type SearchFormState = {
   query: string;
@@ -132,6 +162,8 @@ function compareBySort(
     }
     case "experienceDesc":
       return b.completedSessionCount - a.completedSessionCount;
+    case "reviewsDesc":
+      return b.reviewCount - a.reviewCount;
     case "ratingDesc":
     default:
       return (b.averageRating ?? 0) - (a.averageRating ?? 0);
@@ -292,6 +324,13 @@ export function ConsultantsBrowse() {
         if (!seen.has(key)) seen.set(key, tag.trim());
       }
     }
+    // Fall back to the canonical seeded list (+ common adjacencies) when no
+    // consultant has tagged themselves yet — keeps the dropdown useful on a
+    // cold-start database. Once consultants exist we use only their tags so
+    // we never offer a filter that returns zero results.
+    if (seen.size === 0) {
+      return [...FALLBACK_SPECIALIZATIONS].sort((a, b) => a.localeCompare(b));
+    }
     return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
   }, [consultants]);
 
@@ -407,6 +446,35 @@ export function ConsultantsBrowse() {
             </button>
           ))}
 
+          {/* Always-visible Sort by dropdown — promoted out of the
+              expandable panel because it's the most-used filter on browse. */}
+          <div className="relative inline-flex h-10 items-center">
+            <label
+              htmlFor="sort-quick"
+              className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary"
+            >
+              {t("filters.sortBy")}
+            </label>
+            <select
+              id="sort-quick"
+              value={searchForm.sort}
+              onChange={(e) =>
+                setSearchForm((cur) => ({
+                  ...cur,
+                  sort: e.target.value as SortOption,
+                }))
+              }
+              className="h-10 appearance-none rounded-full border border-border-default bg-bg-elevated ps-[88px] pe-3.5 text-xs font-medium text-text-secondary transition hover:border-brand-300 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              aria-label={t("filters.sortBy")}
+            >
+              <option value="ratingDesc">{t("sortOptions.ratingDesc")}</option>
+              <option value="feeAsc">{t("sortOptions.feeAsc")}</option>
+              <option value="feeDesc">{t("sortOptions.feeDesc")}</option>
+              <option value="reviewsDesc">{t("sortOptions.reviewsDesc")}</option>
+              <option value="experienceDesc">{t("sortOptions.experienceDesc")}</option>
+            </select>
+          </div>
+
           {/* More filters */}
           <button
             type="button"
@@ -419,7 +487,7 @@ export function ConsultantsBrowse() {
             )}
           >
             <Filter aria-hidden className="size-3.5" />
-            {t("filters.sortBy")}
+            {t("filters.more")}
           </button>
 
           {hasActiveFilters && (
@@ -435,7 +503,7 @@ export function ConsultantsBrowse() {
         </div>
 
         {showFilters && (
-          <div className="mt-3 grid gap-4 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-3 grid gap-4 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <label
                 htmlFor="price-filter"
@@ -499,38 +567,12 @@ export function ConsultantsBrowse() {
                 onChange={(e) =>
                   setSearchForm((cur) => ({ ...cur, specialization: e.target.value }))
                 }
-                disabled={specializationOptions.length === 0}
-                className="h-10 w-full rounded-lg border border-border-default bg-bg-canvas px-3 text-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-10 w-full rounded-lg border border-border-default bg-bg-canvas px-3 text-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
               >
                 <option value="any">{t("specializationOptions.any")}</option>
                 {specializationOptions.map((tag) => (
                   <option key={tag} value={tag}>{tag}</option>
                 ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="sort-filter"
-                className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-tertiary"
-              >
-                {t("filters.sortBy")}
-              </label>
-              <select
-                id="sort-filter"
-                value={searchForm.sort}
-                onChange={(e) =>
-                  setSearchForm((cur) => ({
-                    ...cur,
-                    sort: e.target.value as SortOption,
-                  }))
-                }
-                className="h-10 w-full rounded-lg border border-border-default bg-bg-canvas px-3 text-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              >
-                <option value="ratingDesc">{t("sortOptions.ratingDesc")}</option>
-                <option value="experienceDesc">{t("sortOptions.experienceDesc")}</option>
-                <option value="feeAsc">{t("sortOptions.feeAsc")}</option>
-                <option value="feeDesc">{t("sortOptions.feeDesc")}</option>
               </select>
             </div>
           </div>

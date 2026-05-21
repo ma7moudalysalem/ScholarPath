@@ -138,9 +138,11 @@ export function ConsultantDetail() {
       </Link>
 
       {/* ── Hero ── */}
-      <div className="relative overflow-hidden rounded-2xl border border-border-subtle">
-        <div className="relative h-32 bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700 sm:h-40">
+      <div className="overflow-hidden rounded-2xl border border-border-subtle bg-bg-elevated shadow-elevation-1">
+        {/* Banner gradient */}
+        <div className="relative h-28 bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700 sm:h-36">
           <div
+            aria-hidden
             className="pointer-events-none absolute inset-0 opacity-50"
             style={{
               backgroundImage:
@@ -149,15 +151,15 @@ export function ConsultantDetail() {
           />
           <span
             className={cn(
-              "absolute end-6 top-6 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-md",
+              "absolute end-4 top-4 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-md sm:end-6 sm:top-6",
               consultant.hasAvailability
                 ? "bg-success-500/95 text-white"
-                : "bg-bg-subtle text-text-secondary",
+                : "bg-bg-elevated/95 text-text-secondary",
             )}
           >
             {consultant.hasAvailability ? (
               <span className="inline-flex items-center gap-1.5">
-                <span className="size-1.5 rounded-full bg-white" />
+                <span aria-hidden className="size-1.5 rounded-full bg-white" />
                 {t("badge.available")}
               </span>
             ) : (
@@ -166,33 +168,39 @@ export function ConsultantDetail() {
           </span>
         </div>
 
-        {/* Profile block — overlaps banner */}
-        <div className="bg-bg-elevated px-6 pb-6">
-          <div className="-mt-10 flex flex-col gap-4 sm:flex-row sm:items-end">
+        {/* Profile block — avatar overlaps the banner, name + meta sit BELOW
+            the avatar so the layout stays predictable on every viewport
+            (the previous sm:items-end pinned the name to the avatar's
+            baseline, which left awkward whitespace under longer names). */}
+        <div className="px-5 pb-6 sm:px-6">
+          <div className="relative -mt-12 flex flex-col items-start gap-4 sm:-mt-14 sm:flex-row sm:items-start">
             <div className="relative shrink-0">
               <UserAvatar
                 userId={consultant.id}
                 name={consultant.name}
-                className="size-20 ring-4 ring-bg-canvas"
-                initialsClassName="text-2xl"
+                className="size-24 ring-4 ring-bg-elevated sm:size-28"
+                initialsClassName="text-3xl"
               />
               {consultant.hasAvailability && (
-                <span className="absolute bottom-1 end-1 size-4 rounded-full bg-success-500 ring-2 ring-bg-elevated" />
+                <span
+                  aria-label={t("badge.available")}
+                  className="absolute bottom-1 end-1 size-4 rounded-full bg-success-500 ring-2 ring-bg-elevated"
+                />
               )}
             </div>
 
-            <div className="flex-1 sm:pb-2">
-              <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
+            <div className="min-w-0 flex-1 pt-2 sm:pt-14">
+              <h1 className="break-words text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
                 {consultant.name}
               </h1>
-              <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-text-secondary">
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-text-secondary">
                 {consultant.countryOfResidence && (
                   <span className="inline-flex items-center gap-1.5">
-                    <Globe aria-hidden className="size-3.5" />
+                    <Globe aria-hidden className="size-3.5 text-text-tertiary" />
                     {consultant.countryOfResidence}
                   </span>
                 )}
-                {consultant.averageRating != null && (
+                {consultant.averageRating != null ? (
                   <span className="inline-flex items-center gap-1.5">
                     <StarRating value={consultant.averageRating} size={14} />
                     <span className="font-semibold text-text-primary">
@@ -202,7 +210,16 @@ export function ConsultantDetail() {
                       ({consultant.reviewCount})
                     </span>
                   </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-text-tertiary">
+                    <Star aria-hidden className="size-3.5" />
+                    {t("card.noRating")}
+                  </span>
                 )}
+                <span className="inline-flex items-center gap-1.5">
+                  <Award aria-hidden className="size-3.5 text-text-tertiary" />
+                  {t("card.sessionsShort", { count: consultant.completedSessionCount })}
+                </span>
               </div>
             </div>
           </div>

@@ -1,5 +1,7 @@
 {
   "feed": {
+    "title": "Community",
+    "subtitle": "Ask questions, share experiences, and get help from fellow students and consultants.",
     "askQuestion": "Ask a Question",
     "categoriesTitle": "Categories",
     "allCategories": "All Topics",
@@ -8,8 +10,14 @@
     "sortTrending": "Trending",
     "searchPlaceholder": "Search discussions...",
     "repliesCount": "{{count}} replies",
-    "emptyTitle": "No discussions found",
-    "emptyBody": "Be the first to start a conversation in this category."
+    "trendingTitle": "Trending now",
+    "trendingSubtitle": "Top discussions in the last 30 days",
+    "emptyTitle": "No discussions yet",
+    "emptyBody": "Be the first to start a conversation here.",
+    "emptyCategoryTitle": "Nothing in {{category}} yet",
+    "emptyCategoryBody": "This category is quiet — be the first to post in {{category}}.",
+    "emptySearchTitle": "No matches for your search",
+    "emptySearchBody": "We couldn't find any discussions matching \"{{query}}\". Try a different keyword."
   },
   "thread": {
     "notFound": "Thread not found",

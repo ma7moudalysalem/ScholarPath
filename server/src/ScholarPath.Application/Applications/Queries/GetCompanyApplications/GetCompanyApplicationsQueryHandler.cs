@@ -36,7 +36,8 @@ public sealed class GetCompanyApplicationsQueryHandler(
                 a.Id,
                 a.StudentId,
                 a.Student != null ? a.Student.FullName : "Unknown",
-                a.ScholarshipId,
+                // Guarded by the WHERE above: Scholarship is non-null so ScholarshipId is set.
+                a.ScholarshipId ?? Guid.Empty,
                 a.Scholarship != null ? a.Scholarship.TitleEn : "Unknown",
                 a.Status,
                 a.SubmittedAt))

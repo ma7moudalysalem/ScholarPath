@@ -11,7 +11,7 @@ namespace ScholarPath.Application.Applications.Queries.GetApplicationDetail;
 /// <summary>Full detail of a single application — student/admin read-side (PB-004).</summary>
 public sealed record ApplicationDetailDto(
     Guid Id,
-    Guid ScholarshipId,
+    Guid? ScholarshipId,
     string ScholarshipTitleEn,
     string ScholarshipTitleAr,
     string? CompanyName,
@@ -69,9 +69,9 @@ public sealed class GetApplicationDetailQueryHandler(
         return new ApplicationDetailDto(
             application.Id,
             application.ScholarshipId,
-            scholarship?.TitleEn ?? "N/A",
-            scholarship?.TitleAr ?? "غير محدد",
-            scholarship?.OwnerCompany?.FullName,
+            scholarship?.TitleEn ?? application.ExternalTitle ?? "N/A",
+            scholarship?.TitleAr ?? application.ExternalTitle ?? "غير محدد",
+            scholarship?.OwnerCompany?.FullName ?? application.ExternalProvider,
             application.Status,
             application.Mode,
             application.FormDataJson,
@@ -80,7 +80,7 @@ public sealed class GetApplicationDetailQueryHandler(
             application.ExternalReferenceId,
             application.DecisionReason,
             application.PersonalNotes,
-            scholarship?.Deadline,
+            scholarship?.Deadline ?? application.Deadline,
             application.CreatedAt,
             application.UpdatedAt,
             application.SubmittedAt,

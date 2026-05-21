@@ -8,9 +8,22 @@ public sealed class ExternalIntentCommandValidator : AbstractValidator<ExternalI
 {
     public ExternalIntentCommandValidator()
     {
-        RuleFor(v => v.ScholarshipId)
+        // Either an in-platform ScholarshipId OR a free-text Title is required.
+        // ScholarshipId-less ("purely external") submissions must carry a title.
+        RuleFor(v => v.Title)
             .NotEmpty()
-            .WithMessage("Scholarship identifier is required.");
+            .WithMessage("Scholarship title is required for off-platform external applications.")
+            .MaximumLength(300)
+            .WithMessage("Scholarship title must not exceed 300 characters.")
+            .When(v => !v.ScholarshipId.HasValue || v.ScholarshipId == Guid.Empty);
+
+        RuleFor(v => v.Title)
+            .MaximumLength(300)
+            .When(v => !string.IsNullOrEmpty(v.Title));
+
+        RuleFor(v => v.Provider)
+            .MaximumLength(200)
+            .WithMessage("Provider name must not exceed 200 characters.");
 
         RuleFor(v => v.ExternalTrackingUrl)
             .MaximumLength(2048)

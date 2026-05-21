@@ -7,9 +7,9 @@ public record ScholarshipPublishedEvent(Guid ScholarshipId, Guid? OwnerCompanyId
 public record ScholarshipArchivedEvent(Guid ScholarshipId) : DomainEvent;
 public record ScholarshipFeaturedEvent(Guid ScholarshipId, int FeaturedOrder) : DomainEvent;
 
-public record ApplicationSubmittedEvent(Guid ApplicationId, Guid StudentId, Guid ScholarshipId) : DomainEvent;
-public record ApplicationStatusChangedEvent(Guid ApplicationId, Guid StudentId, Guid ScholarshipId, ApplicationStatus OldStatus, ApplicationStatus NewStatus) : DomainEvent;
-public record ApplicationWithdrawnEvent(Guid ApplicationId, Guid StudentId, Guid ScholarshipId) : DomainEvent;
+public record ApplicationSubmittedEvent(Guid ApplicationId, Guid StudentId, Guid? ScholarshipId) : DomainEvent;
+public record ApplicationStatusChangedEvent(Guid ApplicationId, Guid StudentId, Guid? ScholarshipId, ApplicationStatus OldStatus, ApplicationStatus NewStatus) : DomainEvent;
+public record ApplicationWithdrawnEvent(Guid ApplicationId, Guid StudentId, Guid? ScholarshipId) : DomainEvent;
 
 public record BookingRequestedEvent(Guid BookingId, Guid StudentId, Guid ConsultantId) : DomainEvent;
 public record BookingConfirmedEvent(Guid BookingId, Guid StudentId, Guid ConsultantId) : DomainEvent;
