@@ -9,12 +9,25 @@ interface KanbanBoardProps {
   onStatusChange: (id: string, newStatus: ApplicationStatus) => void;
 }
 
-const COLUMNS: ApplicationStatus[] = [
-  "Intending",
-  "Applied",
-  "UnderReview",
-  "Accepted",
-  "Rejected",
+/**
+ * Logical columns rendered on the board. We surface 5 buckets, but each
+ * bucket aggregates ALL related backend statuses so no application ever
+ * vanishes between the KPI tiles and the kanban (which used to happen
+ * when a row was `Draft`, `Pending`, `Shortlisted`, `Withdrawn`, or
+ * `WaitingResult` — none of those had a column).
+ *
+ * Drop-target status is the one we write back to the server when the
+ * student drags a card into the column.
+ */
+const COLUMNS: {
+  key: ApplicationStatus;
+  members: readonly ApplicationStatus[];
+}[] = [
+  { key: "Intending",   members: ["Intending", "Draft"] },
+  { key: "Applied",     members: ["Applied", "Pending"] },
+  { key: "UnderReview", members: ["UnderReview", "Shortlisted", "WaitingResult"] },
+  { key: "Accepted",    members: ["Accepted"] },
+  { key: "Rejected",    members: ["Rejected", "Withdrawn"] },
 ];
 
 export function KanbanBoard({ applications, onStatusChange }: KanbanBoardProps) {
@@ -22,8 +35,8 @@ export function KanbanBoard({ applications, onStatusChange }: KanbanBoardProps) 
 
   return (
     <div className="flex h-full w-full space-x-6 overflow-x-auto pb-6 scrollbar-hide">
-      {COLUMNS.map((status) => {
-        const columnApps = applications.filter((app) => app.status === status);
+      {COLUMNS.map(({ key: status, members }) => {
+        const columnApps = applications.filter((app) => members.includes(app.status));
 
         return (
           <div
