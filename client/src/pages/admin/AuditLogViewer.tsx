@@ -146,7 +146,6 @@ export function AuditLogViewer() {
           <DatePicker
             value={from}
             onChange={(v) => { setPage(1); setFrom(v); }}
-            placeholder={t("admin:audit.filters.from")}
             ariaLabel={t("admin:audit.filters.from")}
             clearable
             className="h-10 w-44"
@@ -158,7 +157,6 @@ export function AuditLogViewer() {
           <DatePicker
             value={to}
             onChange={(v) => { setPage(1); setTo(v); }}
-            placeholder={t("admin:audit.filters.to")}
             ariaLabel={t("admin:audit.filters.to")}
             min={from || undefined}
             clearable

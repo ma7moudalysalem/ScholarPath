@@ -39,6 +39,9 @@
     "cancel": "إلغاء",
     "processing": "جارٍ التنفيذ…"
   },
+  "datePicker": {
+    "placeholder": "اختر تاريخاً"
+  },
   "nav": {
     "profile": "فتح الملف الشخصي"
   },

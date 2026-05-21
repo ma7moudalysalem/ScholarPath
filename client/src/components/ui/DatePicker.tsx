@@ -81,7 +81,11 @@ export function DatePicker({
   const minDate = useMemo(() => parseIso(min), [min]);
   const maxDate = useMemo(() => parseIso(max), [max]);
 
-  const placeholderText = placeholder ?? (isAr ? "اختر تاريخ" : "Pick a date");
+  // Default placeholder lives in `common:datePicker.placeholder` so every
+  // empty DatePicker across the app reads the same — callers should NOT
+  // pass the field's LABEL as `placeholder`, that just duplicates the
+  // field's title back into the empty input.
+  const placeholderText = placeholder ?? t("common:datePicker.placeholder");
   const display = selected
     ? format(selected, "PP", { locale })
     : placeholderText;

@@ -39,6 +39,9 @@
     "cancel": "Cancel",
     "processing": "Processing…"
   },
+  "datePicker": {
+    "placeholder": "Select a date"
+  },
   "nav": {
     "profile": "Open profile"
   },
