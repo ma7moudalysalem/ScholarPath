@@ -212,7 +212,7 @@ export function ConsultantEarningsTrend() {
   const { t, i18n } = useTranslation(["analytics"]);
   const locale = i18n.language === "ar" ? "ar-EG" : "en-US";
 
-  const initial = useMemo(defaultRange, []);
+  const initial = useMemo(() => defaultRange(), []);
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
 
