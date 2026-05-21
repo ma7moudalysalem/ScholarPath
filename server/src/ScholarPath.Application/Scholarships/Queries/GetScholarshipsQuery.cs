@@ -24,6 +24,20 @@ public record GetScholarshipsQuery : IRequest<PaginatedList<ScholarshipDto>>
     public string[]? Tags { get; init; }
     public string? FieldOfStudy { get; init; }
     public bool? FundedOnly { get; init; }
+
+    /// <summary>
+    /// Status filter — defaults to <see cref="ScholarshipStatus.Open"/> so
+    /// students never see Draft, UnderReview, Closed, or Archived listings
+    /// mixed in. Admins may pass an explicit value to inspect other states.
+    /// </summary>
+    public ScholarshipStatus? Status { get; init; } = ScholarshipStatus.Open;
+
+    /// <summary>
+    /// Optional sort order. <c>deadline</c> sorts ascending by Deadline,
+    /// <c>newest</c> sorts descending by CreatedAt. When omitted, the default
+    /// ordering is featured-first then newest.
+    /// </summary>
+    public string? Sort { get; init; }
 }
 
 public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
@@ -35,14 +49,21 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserS
         var userId = currentUser.UserId;
         var query = db.Scholarships.AsNoTracking();
 
-        //  Full-Text Search 
+        // Status — defaults to Open so students never see Draft / UnderReview
+        // / Closed / Archived rows mixed in (FR-SCH-02). The class-level
+        // [Authorize] on the controller plus role-based UI gating means an
+        // admin can opt out by passing an explicit value.
+        if (request.Status.HasValue)
+            query = query.Where(s => s.Status == request.Status.Value);
+
+        //  Full-Text Search
         if (!string.IsNullOrWhiteSpace(request.Term))
         {
             query = query.Where(s => EF.Functions.Contains(s.TitleEn, request.Term) ||
                                      EF.Functions.Contains(s.TitleAr, request.Term));
         }
 
-        //  Filters 
+        //  Filters
         if (request.CategoryId.HasValue) query = query.Where(s => s.CategoryId == request.CategoryId);
         if (request.FundingType.HasValue) query = query.Where(s => s.FundingType == request.FundingType);
         if (request.AcademicLevel.HasValue) query = query.Where(s => s.TargetLevel == request.AcademicLevel);
@@ -60,9 +81,24 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserS
                                      s.FieldsOfStudyJson.Contains(request.FieldOfStudy));
 
         //  Sorting with Tie-break for Pagination Stability
-        query = query.OrderByDescending(s => s.IsFeatured)
-                     .ThenByDescending(s => s.CreatedAt)
-                     .ThenBy(s => s.Id);
+        // `Sort` is an opt-in override. The default keeps featured-first then
+        // newest, mirroring the SRS-default ordering.
+        // OrdinalIgnoreCase keeps the analyzer happy (CA1308) — we're matching
+        // a small, fixed set of literals, not normalising for de-dup.
+        if (string.Equals(request.Sort, "deadline", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.OrderBy(s => s.Deadline).ThenBy(s => s.Id);
+        }
+        else if (string.Equals(request.Sort, "newest", StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.OrderByDescending(s => s.CreatedAt).ThenBy(s => s.Id);
+        }
+        else
+        {
+            query = query.OrderByDescending(s => s.IsFeatured)
+                         .ThenByDescending(s => s.CreatedAt)
+                         .ThenBy(s => s.Id);
+        }
 
         //  Count for pagination
         var totalCount = await query.CountAsync(ct);

@@ -24,7 +24,9 @@ namespace ScholarPath.API.Controllers
     public class ScholarshipsController(IMediator mediator, IApplicationDbContext db) : ControllerBase //  ControllerBase
     {
         [HttpGet]
-        [AllowAnonymous]
+        // Listing the catalog requires auth — the SRS states only the Home Page
+        // is public. The class-level [Authorize] covers this; we keep the
+        // attribute implicit rather than re-asserting it.
         public async Task<ActionResult<PaginatedList<ScholarshipDto>>> Get([FromQuery] GetScholarshipsQuery query)
         {
             //  Reading language from Accept-Language header
@@ -36,9 +38,11 @@ namespace ScholarPath.API.Controllers
             return await mediator.Send(updatedQuery);
         }
 
-        // ── Public: featured scholarships (home page / dashboards) ───────────
+        // ── Featured scholarships (gated — any authenticated user) ──────────
+        // The home page (the only public surface per the SRS) calls this
+        // endpoint only after the user has signed in; an anonymous landing
+        // page does not need it.
         [HttpGet("featured")]
-        [AllowAnonymous]
         [ProducesResponseType(typeof(IReadOnlyList<ScholarshipDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IReadOnlyList<ScholarshipDto>>> Featured(
             [FromQuery] int? limit, CancellationToken ct)
@@ -65,7 +69,7 @@ namespace ScholarPath.API.Controllers
         }
 
         [HttpGet("{id}")]
-        [AllowAnonymous]
+        // Detail view requires auth — same rationale as the listing endpoint.
         public async Task<ActionResult<ScholarshipDetailDto>> GetById(Guid id, [FromQuery] string? language)
         {
             var headerValue = Request.Headers["Accept-Language"].ToString().Split(',').FirstOrDefault() ?? "en";
@@ -119,9 +123,10 @@ namespace ScholarPath.API.Controllers
             return NoContent();
         }
 
-        // Categories list used to populate the scholarship-form dropdown.
+        // Categories list used to populate the scholarship-form dropdown and
+        // the student listing filter. Requires auth — the dropdown is only
+        // rendered inside gated pages.
         [HttpGet("categories")]
-        [AllowAnonymous]
         [ProducesResponseType(typeof(IReadOnlyList<ScholarshipCategoryDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IReadOnlyList<ScholarshipCategoryDto>>> Categories(CancellationToken ct)
         {

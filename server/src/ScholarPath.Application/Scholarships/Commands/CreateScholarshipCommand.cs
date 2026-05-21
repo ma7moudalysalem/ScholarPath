@@ -19,6 +19,21 @@ public record CreateScholarshipCommand : IRequest<Guid>
     public AcademicLevel TargetLevel { get; init; }
     /// <summary>Optional list of eligible academic fields of study.</summary>
     public string[]? FieldsOfStudy { get; init; }
+
+    /// <summary>
+    /// Listing mode — defaults to <see cref="ListingMode.InApp"/>. Companies
+    /// today only post in-app listings; admin-driven flows may extend this in
+    /// future. Switching to <see cref="ListingMode.ExternalUrl"/> requires a
+    /// well-formed absolute <see cref="ExternalApplicationUrl"/>.
+    /// </summary>
+    public ListingMode Mode { get; init; } = ListingMode.InApp;
+
+    /// <summary>
+    /// Apply-out URL for <see cref="ListingMode.ExternalUrl"/> listings.
+    /// Required (and must be an absolute http/https URL) when Mode is
+    /// ExternalUrl; ignored otherwise.
+    /// </summary>
+    public string? ExternalApplicationUrl { get; init; }
 }
 
 public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholarshipCommand>
@@ -39,6 +54,27 @@ public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholar
         RuleFor(v => v.Deadline)
             .Must(deadline => deadline > DateTimeOffset.UtcNow.AddDays(7))
             .WithMessage("Deadline must be at least 7 days from now.");
+
+        // External-URL listings need a real apply target — the column is
+        // nullable up to 2048 chars on the schema, so without this check a
+        // Mode=ExternalUrl row could end up with no link at all and the apply
+        // button on the detail page would dead-end.
+        When(v => v.Mode == ListingMode.ExternalUrl, () =>
+        {
+            RuleFor(v => v.ExternalApplicationUrl)
+                .NotEmpty()
+                .WithMessage("ExternalApplicationUrl is required when Mode is ExternalUrl.")
+                .MaximumLength(2048)
+                .Must(BeAbsoluteHttpUrl)
+                .WithMessage("ExternalApplicationUrl must be a valid absolute http or https URL.");
+        });
+    }
+
+    private static bool BeAbsoluteHttpUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)) return false;
+        return uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
     }
 }
 
@@ -54,8 +90,6 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
         var ownerCompanyId = user.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
-        var now = DateTimeOffset.UtcNow;
-
         var entity = new Scholarship
         {
             Id = Guid.NewGuid(),
@@ -70,15 +104,21 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             FieldsOfStudyJson = request.FieldsOfStudy is { Length: > 0 }
                 ? System.Text.Json.JsonSerializer.Serialize(request.FieldsOfStudy)
                 : null,
-            Status = ScholarshipStatus.Open,
+            Mode = request.Mode,
+            ExternalApplicationUrl = request.Mode == ListingMode.ExternalUrl
+                ? request.ExternalApplicationUrl
+                : null,
+            // Company-created listings always start in the admin moderation
+            // queue (FR-SCH-10). They become Open only after an admin Approve,
+            // which is the path that stamps OpenedAt. We deliberately leave
+            // OpenedAt null here so "freshness-since-open" sorts and analytics
+            // measure from the approve moment, not from the create moment.
+            Status = ScholarshipStatus.UnderReview,
             OwnerCompanyId = ownerCompanyId,
             // Slug is REQUIRED + UNIQUE on the schema — generate from the
             // English title with a short Guid suffix so two scholarships sharing
             // the same name (very common) never collide on insert.
             Slug = GenerateSlug(request.TitleEn, request.TitleAr),
-            // The scholarship goes live immediately (Status=Open), so stamp the
-            // open timestamp now — listing-sort / freshness-since-open reads this.
-            OpenedAt = now,
         };
 
         db.Scholarships.Add(entity);
