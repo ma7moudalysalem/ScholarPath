@@ -97,7 +97,12 @@ jobs:
             echo "Skipping Azure OpenAI sync — secrets not configured for this environment."
             exit 0
           fi
-          rg=$(az webapp show --name "${{ vars.AZURE_API_APP_NAME }}" --query resourceGroup -o tsv)
+          rg=$(az webapp list --query "[?name=='${{ vars.AZURE_API_APP_NAME }}'] | [0].resourceGroup" -o tsv)
+          if [ -z "$rg" ]; then
+            echo "Could not resolve resource group for ${{ vars.AZURE_API_APP_NAME }}."
+            exit 1
+          fi
+          echo "Resolved resource group: $rg"
           az webapp config appsettings set \
             --name "${{ vars.AZURE_API_APP_NAME }}" \
             --resource-group "$rg" \
