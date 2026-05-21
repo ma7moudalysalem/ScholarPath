@@ -67,12 +67,19 @@ export function Applications() {
     queryFn: applicationsApi.getMyApplications,
   });
 
+  // Counters MUST stay in sync with the Kanban groupings in `KanbanBoard.tsx`:
+  //   • Pending = anything in the {Pending+Applied} OR {UnderReview+Shortlisted+
+  //     WaitingResult} columns — i.e. submitted but no final decision yet.
+  //   • Accepted = the single Accepted column.
+  //   • Active = not in a terminal column (Accepted / Rejected / Withdrawn).
+  //   • Total = every non-deleted tracker (Drafts and Intending included).
   const stats = useMemo(() => {
     const total = applications.length;
     const pending = applications.filter(
       (a) =>
         a.status === "Pending" ||
         a.status === "UnderReview" ||
+        a.status === "Shortlisted" ||
         a.status === "Applied" ||
         a.status === "WaitingResult",
     ).length;

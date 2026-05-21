@@ -41,6 +41,10 @@ interface FunnelStep {
 
 function GradientFunnel({ steps, locale }: { steps: FunnelStep[]; locale: string }) {
   const maxCount = Math.max(...steps.map((s) => s.count), 1);
+  const percentFormatter = new Intl.NumberFormat(locale, {
+    style: "percent",
+    maximumFractionDigits: 0,
+  });
   return (
     <div className="grid grid-cols-3 gap-4 sm:gap-6">
       {steps.map((step, idx) => {
@@ -60,7 +64,9 @@ function GradientFunnel({ steps, locale }: { steps: FunnelStep[]; locale: string
               </p>
               <p className="mt-0.5 text-xs font-medium text-text-secondary">{step.label}</p>
               {!isLast && (
-                <p className="mt-1 text-xs tabular-nums text-text-tertiary">{step.pct.toFixed(0)}%</p>
+                <p className="mt-1 text-xs tabular-nums text-text-tertiary">
+                  {percentFormatter.format(step.pct / 100)}
+                </p>
               )}
             </div>
           </div>
