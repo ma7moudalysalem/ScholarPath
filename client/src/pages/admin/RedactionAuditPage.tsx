@@ -19,7 +19,8 @@ const VERDICT_STYLES: Record<RedactionVerdict, string> = {
 };
 
 export function RedactionAuditPage() {
-  const { t } = useTranslation(["admin"]);
+  const { t, i18n } = useTranslation(["admin"]);
+  const localeTag = i18n.language.startsWith("ar") ? "ar-EG" : "en-US";
   const qc = useQueryClient();
   const [pendingOnly, setPendingOnly] = useState(true);
   const [page, setPage] = useState(1);
@@ -111,14 +112,14 @@ export function RedactionAuditPage() {
                 <div className="text-xs text-text-tertiary">
                   <span className="font-medium text-text-secondary">{s.userEmail ?? s.userId}</span>
                   <span className="mx-2">·</span>
-                  <time dateTime={s.sampledAt}>{new Date(s.sampledAt).toLocaleString()}</time>
+                  <time dateTime={s.sampledAt}>{new Date(s.sampledAt).toLocaleString(localeTag)}</time>
                 </div>
                 {s.verdict && (
                   <span
                     className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${VERDICT_STYLES[s.verdict]}`}
                   >
                     {s.verdict !== "Clean" && <AlertTriangle aria-hidden className="size-3" />}
-                    {s.verdict}
+                    {t(`admin:redactionAudit.verdict.${s.verdict}`, { defaultValue: s.verdict })}
                   </span>
                 )}
               </div>
@@ -141,7 +142,7 @@ export function RedactionAuditPage() {
                           : "border-warning-500/30 text-warning-600 hover:bg-warning-50"
                       }`}
                     >
-                      {v}
+                      {t(`admin:redactionAudit.verdict.${v}`, { defaultValue: v })}
                     </button>
                   ))}
                 </div>
@@ -150,7 +151,7 @@ export function RedactionAuditPage() {
               {s.verdict != null && s.reviewedAt && (
                 <p className="mt-3 text-xs text-text-tertiary">
                   {t("admin:redactionAudit.reviewedAt", { defaultValue: "Reviewed" })}{" "}
-                  <time dateTime={s.reviewedAt}>{new Date(s.reviewedAt).toLocaleString()}</time>
+                  <time dateTime={s.reviewedAt}>{new Date(s.reviewedAt).toLocaleString(localeTag)}</time>
                 </p>
               )}
             </li>

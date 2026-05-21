@@ -67,24 +67,26 @@ function StatCard({
 }
 
 function CtrThresholdBadge({ ctrPct }: { ctrPct: number }) {
+  const { t } = useTranslation(["admin"]);
   if (ctrPct >= CTR_TARGET_PCT) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 text-xs font-medium text-success-emphasis">
         <CheckCircle2 aria-hidden className="size-3" />
-        Above target ({CTR_TARGET_PCT}%)
+        {t("admin:aiEconomy.aboveTarget", { target: CTR_TARGET_PCT })}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-warning-subtle px-2 py-0.5 text-xs font-medium text-warning-emphasis">
       <AlertTriangle aria-hidden className="size-3" />
-      Below target ({CTR_TARGET_PCT}%)
+      {t("admin:aiEconomy.belowTarget", { target: CTR_TARGET_PCT })}
     </span>
   );
 }
 
 export function AiEconomyPage() {
-  const { t } = useTranslation(["admin"]);
+  const { t, i18n } = useTranslation(["admin"]);
+  const localeTag = i18n.language.startsWith("ar") ? "ar-EG" : "en-US";
   const [windowDays, setWindowDays] = useState<Window>(30);
 
   const q = useQuery<AiUsageSummaryDto>({
@@ -155,7 +157,7 @@ export function AiEconomyPage() {
             <StatCard
               icon={Sparkles}
               label={t("admin:aiEconomy.interactions", { defaultValue: "Interactions" })}
-              value={q.data.totalInteractions.toLocaleString()}
+              value={q.data.totalInteractions.toLocaleString(localeTag)}
               hint={t("admin:aiEconomy.interactionsHint", {
                 defaultValue: "all AI features combined",
               })}
@@ -164,7 +166,10 @@ export function AiEconomyPage() {
               icon={MousePointerClick}
               label={t("admin:aiEconomy.ctr", { defaultValue: "Recommendation CTR" })}
               value={`${q.data.recommendations.ctrPercent.toFixed(1)}%`}
-              hint={`${q.data.recommendations.clicks.toLocaleString()} clicks / ${q.data.recommendations.impressions.toLocaleString()} impressions`}
+              hint={t("admin:aiEconomy.ctrHint", {
+                clicks: q.data.recommendations.clicks.toLocaleString(localeTag),
+                impressions: q.data.recommendations.impressions.toLocaleString(localeTag),
+              })}
               badge={<CtrThresholdBadge ctrPct={q.data.recommendations.ctrPercent} />}
             />
             <StatCard
@@ -207,7 +212,7 @@ export function AiEconomyPage() {
                   {q.data.byFeature.map((row) => (
                     <tr key={row.feature} className="border-t border-border-subtle">
                       <td className="py-2 font-medium">{row.feature}</td>
-                      <td className="py-2 text-end tabular-nums">{row.interactions.toLocaleString()}</td>
+                      <td className="py-2 text-end tabular-nums">{row.interactions.toLocaleString(localeTag)}</td>
                       <td className="py-2 text-end tabular-nums">{formatUsd(row.costUsd)}</td>
                       <td className="py-2 text-end tabular-nums text-text-secondary">
                         {row.avgLatencyMs == null ? "—" : `${row.avgLatencyMs} ms`}
