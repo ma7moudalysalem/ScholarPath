@@ -11,8 +11,12 @@ function intlLocale(lang: string): string {
   return lang.startsWith("ar") ? "ar-EG" : "en-GB";
 }
 
-/** Formats an ISO-8601 instant as a day-level label (e.g. "25 Apr 2026"). */
-export function formatDate(iso: string, lang: string): string {
+/** Formats an ISO-8601 instant as a day-level label (e.g. "25 Apr 2026").
+ *  Returns an empty string when the input is missing — callers iterate over
+ *  API rows where optional timestamp fields can be null and crashing the
+ *  whole page over a missing date is hostile. */
+export function formatDate(iso: string | null | undefined, lang: string): string {
+  if (!iso) return "";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
   return date.toLocaleDateString(intlLocale(lang), {
@@ -23,7 +27,8 @@ export function formatDate(iso: string, lang: string): string {
 }
 
 /** Formats an ISO-8601 instant as a time label (e.g. "6:30 PM"). */
-export function formatTime(iso: string, lang: string): string {
+export function formatTime(iso: string | null | undefined, lang: string): string {
+  if (!iso) return "";
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
   return date.toLocaleTimeString(intlLocale(lang), {

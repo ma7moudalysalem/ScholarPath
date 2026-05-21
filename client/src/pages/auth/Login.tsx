@@ -44,6 +44,34 @@ function safeRedirect(raw: string | null): string | null {
   return raw;
 }
 
+/**
+ * Maps each top-level role prefix to the role that's allowed to enter it.
+ * Used to reject a ?redirect=… target the user can't actually open with
+ * their current active role (e.g. admin clicks "Pricing" in the footer,
+ * which points to /student/scholarships — without this guard they'd land
+ * on a 404 / blank page after sign-in).
+ */
+const ROLE_PREFIX_OWNERS: Readonly<Record<string, readonly string[]>> = {
+  "/student":    ["Student"],
+  "/company":    ["Company"],
+  "/consultant": ["Consultant"],
+  "/admin":      ["Admin", "SuperAdmin"],
+};
+
+/**
+ * True when the chosen ?redirect=… is reachable by the user's active role.
+ * Shared / unscoped paths (/profile, /notifications, /legal/*, /help) are
+ * always accepted because every authenticated user can open them.
+ */
+function isRedirectReachable(path: string, activeRole: string | null): boolean {
+  for (const [prefix, owners] of Object.entries(ROLE_PREFIX_OWNERS)) {
+    if (path === prefix || path.startsWith(`${prefix}/`)) {
+      return activeRole !== null && owners.includes(activeRole);
+    }
+  }
+  return true;
+}
+
 export function Login() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
@@ -59,11 +87,15 @@ export function Login() {
     try {
       const user = applyAuthSession(await authApi.login(values));
       // If the caller carried a ?redirect=… and the user has finished
-      // onboarding, honour it. Otherwise fall back to the role-specific home.
-      const destination =
-        redirectParam && user.isOnboardingComplete
-          ? redirectParam
-          : postAuthPath(user);
+      // onboarding AND can actually open the target with their active role,
+      // honour it. Otherwise fall back to the role-specific home — e.g.
+      // an admin who lands on /login?redirect=/student/community would get
+      // a blank screen if we honoured the redirect blindly.
+      const canHonourRedirect =
+        redirectParam !== null
+        && user.isOnboardingComplete
+        && isRedirectReachable(redirectParam, user.activeRole ?? null);
+      const destination = canHonourRedirect ? redirectParam! : postAuthPath(user);
       navigate(destination, { replace: true });
     } catch (err) {
       const status = err instanceof ApiError ? err.status : 0;
