@@ -4,23 +4,55 @@
   "loading": "Loading notifications…",
   "loadError": "Could not load your notifications.",
   "empty": "You're all caught up — no notifications yet.",
+  "emptyTitle": "Inbox zero",
+  "emptyUnread": "No unread notifications. Switch to All to see your history.",
+  "emptyUnreadTitle": "You're all caught up",
   "unreadCount": "{{count}} unread",
   "markAllRead": "Mark all as read",
   "markRead": "Mark as read",
-  "view": "View",
+  "view": "View details",
   "allRead": "All notifications marked as read.",
   "markReadError": "Could not update the notification.",
   "loadMore": "Load more",
-  "managePreferences": "Manage preferences",
+  "managePreferences": "Preferences",
+  "tabs": {
+    "all": "All",
+    "unread": "Unread",
+    "viewAll": "View all notifications"
+  },
   "preferences": {
     "title": "Notification preferences",
     "subtitle": "Choose how you want to be notified for each event type.",
     "back": "Back to notifications",
     "loading": "Loading preferences…",
     "loadError": "Could not load notification preferences.",
+    "saving": "Saving preference…",
     "channelInApp": "In-app",
     "channelEmail": "Email",
+    "channelSms": "SMS",
+    "channelPush": "Push",
+    "eventColumn": "Event",
+    "allColumn": "All",
+    "muteRow": "Mute",
+    "enableRow": "Enable",
     "saveError": "Could not update preference. Please try again.",
+    "footerHint": "Critical security and payment notifications cannot be disabled.",
+    "muteAll": {
+      "title": "Mute all notifications",
+      "desc": "Pause every channel except critical alerts."
+    },
+    "quietHours": {
+      "title": "Quiet hours",
+      "desc": "Pause non-urgent notifications during this window.",
+      "from": "From",
+      "to": "To"
+    },
+    "test": {
+      "title": "Send a test notification",
+      "desc": "Confirms your channels are working end-to-end.",
+      "send": "Send test",
+      "sent": "Test notification sent."
+    },
     "groups": {
       "Applications": "Applications",
       "Bookings": "Consultant bookings",
@@ -31,6 +63,17 @@
       "Admin": "Account & onboarding",
       "Broadcast": "Platform updates",
       "Other": "Other"
+    },
+    "groupDesc": {
+      "Applications": "Status updates on the scholarships you've applied to.",
+      "Bookings": "Reminders and confirmations for consultant sessions.",
+      "Payments": "Receipts, refunds, and payout activity.",
+      "Community": "Replies, mentions, and moderation actions.",
+      "Resources": "Approvals and updates on your shared resources.",
+      "Chat": "Direct messages from students, consultants, or companies.",
+      "Admin": "Onboarding, role upgrades, and approvals.",
+      "Broadcast": "Announcements and product news from ScholarPath.",
+      "Other": "Anything else."
     },
     "types": {
       "ApplicationSubmitted": "Application submitted",

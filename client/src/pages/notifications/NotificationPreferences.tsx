@@ -1,14 +1,109 @@
+import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { motion } from "motion/react";
+import {
+  ArrowLeft,
+  Bell,
+  BookOpen,
+  Briefcase,
+  Calendar,
+  CreditCard,
+  Loader2,
+  Mail,
+  MessageSquare,
+  Moon,
+  Send,
+  Smartphone,
+  Sparkles,
+  TestTube,
+  Users,
+  VolumeX,
+} from "lucide-react";
 import {
   notificationsApi,
   type NotificationPreference,
 } from "@/services/api/notifications";
+import { cn } from "@/lib/utils";
 
-// ── Notification-type → group mapping ────────────────────────────────────────
+// ── Group/category metadata ──────────────────────────────────────────────────
+
+interface GroupMeta {
+  icon: ReactNode;
+  // brand|success|warning|danger|info — drives the tint of the icon background
+  tone: "brand" | "success" | "warning" | "neutral";
+}
+
+const GROUP_META: Record<string, GroupMeta> = {
+  Applications: {
+    icon: <BookOpen aria-hidden className="size-4" />,
+    tone: "brand",
+  },
+  Bookings: {
+    icon: <Calendar aria-hidden className="size-4" />,
+    tone: "brand",
+  },
+  Payments: {
+    icon: <CreditCard aria-hidden className="size-4" />,
+    tone: "success",
+  },
+  Chat: {
+    icon: <MessageSquare aria-hidden className="size-4" />,
+    tone: "brand",
+  },
+  Community: {
+    icon: <Users aria-hidden className="size-4" />,
+    tone: "brand",
+  },
+  Resources: {
+    icon: <BookOpen aria-hidden className="size-4" />,
+    tone: "neutral",
+  },
+  Admin: {
+    icon: <Briefcase aria-hidden className="size-4" />,
+    tone: "warning",
+  },
+  Broadcast: {
+    icon: <Sparkles aria-hidden className="size-4" />,
+    tone: "brand",
+  },
+  Other: {
+    icon: <Bell aria-hidden className="size-4" />,
+    tone: "neutral",
+  },
+};
+
+const TONE_CLASSES: Record<GroupMeta["tone"], string> = {
+  brand: "bg-brand-50 text-brand-600",
+  success: "bg-success-50 text-success-600",
+  warning: "bg-warning-50 text-warning-600",
+  neutral: "bg-bg-subtle text-text-secondary",
+};
+
+const CHANNEL_META: Record<string, { icon: ReactNode; key: string }> = {
+  InApp: { icon: <Bell aria-hidden className="size-3.5" />, key: "channelInApp" },
+  Email: { icon: <Mail aria-hidden className="size-3.5" />, key: "channelEmail" },
+  Sms: { icon: <Smartphone aria-hidden className="size-3.5" />, key: "channelSms" },
+  Push: { icon: <Bell aria-hidden className="size-3.5" />, key: "channelPush" },
+};
+
+const GROUP_ORDER = [
+  "Applications",
+  "Bookings",
+  "Payments",
+  "Chat",
+  "Community",
+  "Resources",
+  "Admin",
+  "Broadcast",
+  "Other",
+] as const;
 
 function groupOf(type: string): string {
   const n = parseInt(type, 10);
@@ -23,7 +118,6 @@ function groupOf(type: string): string {
     if (n >= 900) return "Broadcast";
     return "Other";
   }
-  // Backend sends string names when JSON serialisation is configured that way
   if (/^Application/i.test(type)) return "Applications";
   if (/^Booking|ConsultantRating/i.test(type)) return "Bookings";
   if (/^Payment|Payout/i.test(type)) return "Payments";
@@ -36,23 +130,25 @@ function groupOf(type: string): string {
   return "Other";
 }
 
-const GROUP_ORDER = [
-  "Applications", "Bookings", "Payments", "Chat", "Community", "Resources", "Admin", "Broadcast", "Other",
-];
-
-// ── Toggle switch ─────────────────────────────────────────────────────────────
+// ── Toggle switch (premium variant) ──────────────────────────────────────────
 
 function Toggle({
   checked,
   onChange,
   disabled,
   label,
+  size = "md",
 }: {
   checked: boolean;
   onChange: (next: boolean) => void;
   disabled?: boolean;
   label: string;
+  size?: "sm" | "md";
 }) {
+  const dims =
+    size === "sm"
+      ? { track: "h-5 w-9", knob: "size-4", on: "translate-x-4 rtl:-translate-x-4", off: "translate-x-0.5" }
+      : { track: "h-6 w-11", knob: "size-5", on: "translate-x-5 rtl:-translate-x-5", off: "translate-x-0.5" };
   return (
     <button
       type="button"
@@ -61,14 +157,22 @@ function Toggle({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-50 ${
-        checked ? "bg-brand-500" : "bg-bg-subtle border border-border-default"
-      }`}
+      className={cn(
+        "relative inline-flex shrink-0 cursor-pointer items-center rounded-full transition-colors",
+        dims.track,
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2",
+        "disabled:cursor-not-allowed disabled:opacity-50",
+        checked
+          ? "bg-gradient-to-r from-brand-500 to-brand-600 shadow-[var(--shadow-brand-sm)]"
+          : "bg-border-default",
+      )}
     >
       <span
-        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${
-          checked ? "translate-x-4" : "translate-x-0"
-        }`}
+        className={cn(
+          "pointer-events-none inline-block rounded-full bg-white shadow-sm transition-transform",
+          dims.knob,
+          checked ? dims.on : dims.off,
+        )}
       />
     </button>
   );
@@ -77,7 +181,7 @@ function Toggle({
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export function NotificationPreferences() {
-  const { t } = useTranslation("notifications");
+  const { t } = useTranslation(["notifications", "common"]);
   const qc = useQueryClient();
 
   const { data, isLoading, isError } = useQuery({
@@ -86,149 +190,410 @@ export function NotificationPreferences() {
     staleTime: 30_000,
   });
 
+  // Per-user UI prefs that aren't persisted server-side (yet): muteAll, quietHours
+  const [muteAll, setMuteAll] = useState(false);
+  const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
+  const [quietStart, setQuietStart] = useState("22:00");
+  const [quietEnd, setQuietEnd] = useState("08:00");
+
   const updateMut = useMutation({
-    mutationFn: ({ type, channel, isEnabled }: Pick<NotificationPreference, "type" | "channel" | "isEnabled">) =>
+    mutationFn: ({
+      type,
+      channel,
+      isEnabled,
+    }: Pick<NotificationPreference, "type" | "channel" | "isEnabled">) =>
       notificationsApi.updatePreference(type, channel, isEnabled),
     onMutate: async ({ type, channel, isEnabled }) => {
-      // Optimistic update
       await qc.cancelQueries({ queryKey: ["notifications", "preferences"] });
       const prev = qc.getQueryData<typeof data>(["notifications", "preferences"]);
-      qc.setQueryData<typeof data>(["notifications", "preferences"], (old) => {
-        if (!old) return old;
-        const updated = old.preferences.map((p) =>
-          p.type === type && p.channel === channel ? { ...p, isEnabled } : p,
-        );
-        return { preferences: updated };
-      });
+      qc.setQueryData<typeof data>(
+        ["notifications", "preferences"],
+        (old) => {
+          if (!old) return old;
+          const updated = old.preferences.map((p) =>
+            p.type === type && p.channel === channel ? { ...p, isEnabled } : p,
+          );
+          return { preferences: updated };
+        },
+      );
       return { prev };
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) qc.setQueryData(["notifications", "preferences"], ctx.prev);
-      toast.error(t("preferences.saveError"));
+      toast.error(t("notifications:preferences.saveError"));
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: ["notifications", "preferences"] });
     },
   });
 
+  // Derive groups + channels + prefMap from server data
+  const { groups, channels, prefMap, channelEnabledByType } = useMemo(() => {
+    const prefs = data?.preferences ?? [];
+    const map = new Map<string, Record<string, boolean>>();
+    for (const p of prefs) {
+      if (!map.has(p.type)) map.set(p.type, {});
+      map.get(p.type)![p.channel] = p.isEnabled;
+    }
+    const allChannels = [...new Set(prefs.map((p) => p.channel))].filter(
+      (c) => c === "InApp" || c === "Email",
+    );
+    const types = [...new Set(prefs.map((p) => p.type))];
+    const grouped = new Map<string, string[]>();
+    for (const type of types) {
+      const g = groupOf(type);
+      if (!grouped.has(g)) grouped.set(g, []);
+      grouped.get(g)!.push(type);
+    }
+    const ordered = GROUP_ORDER.filter((g) => grouped.has(g)).map(
+      (g) => [g, grouped.get(g)!] as const,
+    );
+
+    // Per-row "any channel enabled?" helper for the master toggle per type
+    const byType = new Map<string, boolean>();
+    for (const type of types) {
+      const prefsForType = map.get(type) ?? {};
+      byType.set(
+        type,
+        allChannels.some((c) => prefsForType[c] ?? true),
+      );
+    }
+
+    return {
+      groups: ordered,
+      channels: allChannels,
+      prefMap: map,
+      channelEnabledByType: byType,
+    };
+  }, [data]);
+
   if (isLoading) {
     return (
-      <p className="py-12 text-center text-sm text-text-tertiary">
-        {t("preferences.loading")}
-      </p>
+      <div className="mx-auto max-w-4xl px-4 py-10">
+        <div className="skeleton mb-3 h-10 w-64" />
+        <div className="skeleton mb-8 h-5 w-72" />
+        <div className="space-y-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="skeleton h-48 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
     );
   }
 
   if (isError || !data) {
     return (
-      <div className="space-y-3 py-12 text-center">
-        <p className="text-sm text-text-tertiary">{t("preferences.loadError")}</p>
+      <div className="mx-auto max-w-3xl space-y-4 px-4 py-10">
+        <div className="card-premium border-danger-200 bg-danger-50 p-6 text-sm text-danger-500">
+          {t("notifications:preferences.loadError")}
+        </div>
         <Link
           to="/notifications"
-          className="inline-flex items-center gap-1 text-sm text-brand-500 underline"
+          className="inline-flex items-center gap-1 text-sm text-brand-500 underline rtl:[&_svg]:rotate-180"
         >
           <ArrowLeft className="size-4" />
-          {t("preferences.back")}
+          {t("notifications:preferences.back")}
         </Link>
       </div>
     );
   }
 
-  // Build a map: type → { InApp: bool, Email: bool }
-  const prefMap = new Map<string, Record<string, boolean>>();
-  for (const p of data.preferences) {
-    if (!prefMap.has(p.type)) prefMap.set(p.type, {});
-    prefMap.get(p.type)![p.channel] = p.isEnabled;
-  }
-
-  // Collect unique types, group them
-  const types = [...new Set(data.preferences.map((p) => p.type))];
-  const channels = [...new Set(data.preferences.map((p) => p.channel))].filter(
-    (c) => c === "InApp" || c === "Email",
-  );
-
-  const grouped = new Map<string, string[]>();
-  for (const type of types) {
-    const g = groupOf(type);
-    if (!grouped.has(g)) grouped.set(g, []);
-    grouped.get(g)!.push(type);
-  }
-
-  const orderedGroups = GROUP_ORDER.filter((g) => grouped.has(g));
+  const toggleAllForType = (type: string, next: boolean) => {
+    for (const ch of channels) {
+      const current = prefMap.get(type)?.[ch] ?? true;
+      if (current !== next) {
+        updateMut.mutate({ type, channel: ch, isEnabled: next });
+      }
+    }
+  };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-      <div>
+    <div className="mx-auto max-w-4xl px-4 py-10">
+      {/* Back + title */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        className="mb-6"
+      >
         <Link
           to="/notifications"
-          className="mb-4 inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary rtl:[&_svg]:rotate-180"
         >
           <ArrowLeft className="size-4" />
-          {t("preferences.back")}
+          {t("notifications:preferences.back")}
         </Link>
-        <h1 className="text-2xl font-semibold text-text-primary">{t("preferences.title")}</h1>
-        <p className="mt-1 text-sm text-text-secondary">{t("preferences.subtitle")}</p>
-      </div>
+        <div className="flex items-center gap-2">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+            <Bell aria-hidden className="size-5" />
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
+            {t("notifications:preferences.title")}
+          </h1>
+        </div>
+        <p className="mt-2 text-sm text-text-secondary">
+          {t("notifications:preferences.subtitle")}
+        </p>
+      </motion.div>
 
-      <div className="space-y-6">
-        {orderedGroups.map((group) => {
-          const groupTypes = grouped.get(group)!;
-          return (
-            <section key={group} className="rounded-xl border border-border-subtle bg-bg-elevated">
-              <div className="border-b border-border-subtle px-5 py-3">
-                <h2 className="text-sm font-semibold text-text-primary">
-                  {t(`preferences.groups.${group}`, { defaultValue: group })}
-                </h2>
-              </div>
-              <div className="divide-y divide-border-subtle">
-                {/* Header row */}
-                <div className="grid grid-cols-[1fr_repeat(2,5rem)] items-center px-5 py-2">
-                  <span className="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-                    {t("title")}
-                  </span>
-                  {channels.map((ch) => (
-                    <span
-                      key={ch}
-                      className="text-center text-xs font-medium uppercase tracking-wide text-text-tertiary"
-                    >
-                      {t(`preferences.channel${ch}`)}
-                    </span>
-                  ))}
+      {/* Master controls card */}
+      <motion.section
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+        className="card-premium mb-6 p-6"
+      >
+        <div className="grid gap-5 md:grid-cols-2 md:gap-8">
+          {/* Mute all */}
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-bg-subtle text-text-secondary">
+              <VolumeX aria-hidden className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {t("notifications:preferences.muteAll.title")}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-secondary">
+                    {t("notifications:preferences.muteAll.desc")}
+                  </p>
                 </div>
+                <Toggle
+                  checked={muteAll}
+                  onChange={setMuteAll}
+                  label={t("notifications:preferences.muteAll.title")}
+                />
+              </div>
+            </div>
+          </div>
 
-                {groupTypes.map((type) => {
-                  const prefs = prefMap.get(type) ?? {};
+          {/* Quiet hours */}
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-bg-subtle text-text-secondary">
+              <Moon aria-hidden className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {t("notifications:preferences.quietHours.title")}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-secondary">
+                    {t("notifications:preferences.quietHours.desc")}
+                  </p>
+                </div>
+                <Toggle
+                  checked={quietHoursEnabled}
+                  onChange={setQuietHoursEnabled}
+                  label={t("notifications:preferences.quietHours.title")}
+                />
+              </div>
+              {quietHoursEnabled && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  className="mt-3 grid grid-cols-2 gap-2 overflow-hidden"
+                >
+                  <label className="block text-xs text-text-secondary">
+                    {t("notifications:preferences.quietHours.from")}
+                    <input
+                      type="time"
+                      value={quietStart}
+                      onChange={(e) => setQuietStart(e.target.value)}
+                      className="input-premium mt-1 text-sm"
+                    />
+                  </label>
+                  <label className="block text-xs text-text-secondary">
+                    {t("notifications:preferences.quietHours.to")}
+                    <input
+                      type="time"
+                      value={quietEnd}
+                      onChange={(e) => setQuietEnd(e.target.value)}
+                      className="input-premium mt-1 text-sm"
+                    />
+                  </label>
+                </motion.div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Test notification */}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle pt-5">
+          <div>
+            <p className="text-sm font-semibold text-text-primary">
+              {t("notifications:preferences.test.title")}
+            </p>
+            <p className="mt-0.5 text-xs text-text-secondary">
+              {t("notifications:preferences.test.desc")}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => toast.info(t("notifications:preferences.test.sent"))}
+            className="btn btn-secondary btn-sm"
+          >
+            <TestTube aria-hidden className="size-3.5" />
+            {t("notifications:preferences.test.send")}
+          </button>
+        </div>
+      </motion.section>
+
+      {/* Groups */}
+      <div className="space-y-6">
+        {groups.map(([group, groupTypes]) => {
+          const meta = GROUP_META[group] ?? GROUP_META.Other;
+          return (
+            <motion.section
+              key={group}
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+              className="card-premium overflow-hidden"
+            >
+              <div className="flex items-start gap-3 border-b border-border-subtle p-5">
+                <span
+                  className={cn(
+                    "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg",
+                    TONE_CLASSES[meta.tone],
+                  )}
+                >
+                  {meta.icon}
+                </span>
+                <div>
+                  <h2 className="text-base font-semibold text-text-primary">
+                    {t(`notifications:preferences.groups.${group}`, {
+                      defaultValue: group,
+                    })}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-text-secondary">
+                    {t(`notifications:preferences.groupDesc.${group}`, {
+                      defaultValue: "",
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              {/* Header row */}
+              <div
+                className="hidden bg-bg-muted/60 px-5 py-2.5 sm:grid"
+                style={{
+                  gridTemplateColumns: `1fr repeat(${channels.length + 1}, 5.5rem)`,
+                }}
+              >
+                <span className="text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
+                  {t("notifications:preferences.eventColumn")}
+                </span>
+                {channels.map((ch) => {
+                  const m = CHANNEL_META[ch];
                   return (
                     <div
-                      key={type}
-                      className="grid grid-cols-[1fr_repeat(2,5rem)] items-center px-5 py-3"
+                      key={ch}
+                      className="flex items-center justify-center gap-1 text-[11px] font-medium uppercase tracking-wide text-text-tertiary"
                     >
-                      <span className="text-sm text-text-primary">
-                        {t(`preferences.types.${type}`, { defaultValue: type })}
-                      </span>
-                      {channels.map((ch) => {
-                        const enabled = prefs[ch] ?? true;
-                        return (
-                          <div key={ch} className="flex justify-center">
-                            <Toggle
-                              checked={enabled}
-                              disabled={updateMut.isPending}
-                              label={`${type} ${ch}`}
-                              onChange={(next) =>
-                                updateMut.mutate({ type, channel: ch, isEnabled: next })
-                              }
-                            />
-                          </div>
-                        );
+                      {m?.icon}
+                      {t(`notifications:preferences.${m?.key ?? "channel" + ch}`, {
+                        defaultValue: ch,
                       })}
                     </div>
                   );
                 })}
+                <span className="text-center text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
+                  {t("notifications:preferences.allColumn")}
+                </span>
               </div>
-            </section>
+
+              <div className="divide-y divide-border-subtle">
+                {groupTypes.map((type) => {
+                  const prefs = prefMap.get(type) ?? {};
+                  const anyEnabled = channelEnabledByType.get(type) ?? false;
+                  return (
+                    <div
+                      key={type}
+                      className="grid grid-cols-1 gap-2 px-5 py-3.5 sm:items-center sm:gap-3"
+                      style={{
+                        gridTemplateColumns: undefined,
+                      }}
+                    >
+                      <div
+                        className="grid sm:items-center"
+                        style={{
+                          gridTemplateColumns: `1fr repeat(${channels.length + 1}, 5.5rem)`,
+                        }}
+                      >
+                        <span className="pe-2 text-sm font-medium text-text-primary">
+                          {t(`notifications:preferences.types.${type}`, {
+                            defaultValue: type,
+                          })}
+                        </span>
+                        {channels.map((ch) => {
+                          const enabled = prefs[ch] ?? true;
+                          return (
+                            <div
+                              key={ch}
+                              className="flex justify-center"
+                            >
+                              <Toggle
+                                size="sm"
+                                checked={enabled && !muteAll}
+                                disabled={updateMut.isPending || muteAll}
+                                label={`${type} ${ch}`}
+                                onChange={(next) =>
+                                  updateMut.mutate({
+                                    type,
+                                    channel: ch,
+                                    isEnabled: next,
+                                  })
+                                }
+                              />
+                            </div>
+                          );
+                        })}
+                        <div className="flex justify-center">
+                          <button
+                            type="button"
+                            disabled={updateMut.isPending || muteAll}
+                            onClick={() => toggleAllForType(type, !anyEnabled)}
+                            className={cn(
+                              "rounded-full px-2 py-0.5 text-xs font-semibold transition-colors",
+                              anyEnabled && !muteAll
+                                ? "text-text-secondary hover:text-text-primary"
+                                : "text-brand-600 hover:underline",
+                              "disabled:opacity-50",
+                            )}
+                          >
+                            {anyEnabled && !muteAll
+                              ? t("notifications:preferences.muteRow")
+                              : t("notifications:preferences.enableRow")}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.section>
           );
         })}
       </div>
+
+      {/* Footer hint */}
+      <div className="mt-8 rounded-xl border border-border-subtle bg-bg-muted p-4 text-xs text-text-secondary">
+        <div className="flex items-start gap-2">
+          <Send aria-hidden className="mt-0.5 size-3.5 text-text-tertiary" />
+          <p>{t("notifications:preferences.footerHint")}</p>
+        </div>
+      </div>
+
+      {updateMut.isPending && (
+        <div className="fixed bottom-6 end-6 z-30 inline-flex items-center gap-2 rounded-full border border-border-default bg-bg-elevated px-3 py-1.5 text-xs text-text-secondary shadow-elevation-2">
+          <Loader2 aria-hidden className="size-3.5 animate-spin" />
+          {t("notifications:preferences.saving")}
+        </div>
+      )}
     </div>
   );
 }

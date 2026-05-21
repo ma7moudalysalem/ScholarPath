@@ -7,16 +7,40 @@
   "save": "Save",
   "saving": "Saving…",
   "saveSuccess": "Setting updated.",
+  "saveAllSuccess": "{{count}} setting(s) updated.",
+  "savePartial": "{{ok}} saved, {{failed}} failed.",
   "saveError": "Could not update the setting.",
+  "viewHistory": "View change history",
   "noDescription": "No description.",
   "enabled": "Enabled",
   "disabled": "Disabled",
   "lastUpdated": "Last updated {{date}}",
   "neverEdited": "Default value — not yet edited.",
   "categories": {
-    "Access": "Access",
+    "Access": "Access & security",
     "Support": "Support",
     "General": "General",
-    "AI": "AI"
+    "AI": "AI features",
+    "Payments": "Payments",
+    "Email": "Email & delivery",
+    "Maintenance": "Maintenance"
+  },
+  "categoryDesc": {
+    "Access": "Sign-in policies, password requirements, and session limits.",
+    "General": "Platform-wide defaults that affect every page.",
+    "AI": "Model selection, rate limits, and AI behaviour.",
+    "Payments": "Currency, payout schedule, and fees.",
+    "Email": "From-address, SMTP configuration, and delivery tracking.",
+    "Maintenance": "Banner messages and read-only mode.",
+    "Support": "Help-desk contacts and SLAs."
+  },
+  "row": {
+    "unsaved": "Unsaved",
+    "discard": "Discard"
+  },
+  "saveBar": {
+    "pending": "{{count}} setting(s) with unsaved changes",
+    "saveAll": "Save all",
+    "discardAll": "Discard all"
   }
 }
