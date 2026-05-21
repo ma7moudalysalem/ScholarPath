@@ -54,11 +54,19 @@ public sealed class SelectRoleCommandHandler(
             // complete request, not a bare role pick.
             if (request.Details is { } details)
             {
-                user.Profile ??= new UserProfile
+                if (user.Profile is null)
                 {
-                    UserId = userId,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                };
+                    // Explicit Add — relying on navigation fix-up alone is fragile
+                    // (the InMemory provider can mis-track the entity, surfacing as
+                    // DbUpdateConcurrencyException on SaveChanges).
+                    var newProfile = new UserProfile
+                    {
+                        UserId = userId,
+                        CreatedAt = DateTimeOffset.UtcNow,
+                    };
+                    db.UserProfiles.Add(newProfile);
+                    user.Profile = newProfile;
+                }
 
                 if (request.Role == "Company")
                 {
