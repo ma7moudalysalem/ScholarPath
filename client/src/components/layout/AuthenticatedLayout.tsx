@@ -93,16 +93,16 @@ function ProfileMenu() {
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         {/*
-          The trigger lives at the bottom of the right-hand sidebar — anchor
-          the menu ABOVE it (side="top") and align it to the trigger's start
-          edge so it opens flush against the avatar in both LTR and RTL.
-          `dir` on Root takes care of swapping start/end for Arabic.
-          `collisionPadding` keeps the floating panel away from the viewport
-          edge so it never clips the screen edge.
+          The trigger lives in the sticky top header. `side="bottom"` lets
+          the menu open downward (the default) and `align="end"` anchors
+          its end edge to the trigger's end edge so it opens flush against
+          the avatar in both LTR and RTL — Radix swaps start/end correctly
+          thanks to `dir` on the Root. `collisionPadding` keeps the floating
+          panel away from the viewport edge so it never clips off-screen.
         */}
         <DropdownMenu.Content
-          side="top"
-          align="start"
+          side="bottom"
+          align="end"
           sideOffset={8}
           collisionPadding={16}
           className="z-50 min-w-[260px] overflow-hidden rounded-md border border-border-subtle bg-bg-elevated p-1 text-sm text-text-primary shadow-lg text-start"
