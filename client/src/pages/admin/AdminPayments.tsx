@@ -50,6 +50,8 @@ function statusBadgeClass(s: PaymentStatus): string {
 export function AdminPayments() {
   const { t, i18n } = useTranslation(["payments", "common"]);
   const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
+  // Explicit BCP-47 tag so currency formatting renders Arabic-Indic digits in AR.
+  const numberLocale = i18n.language.startsWith("ar") ? "ar-EG" : "en-US";
   const qc = useQueryClient();
 
   const [status, setStatus] = useState<PaymentStatus | "">("");
@@ -190,7 +192,7 @@ export function AdminPayments() {
               <tr key={p.id} className="border-t border-border-subtle hover:bg-bg-subtle/40">
                 <td className="px-4 py-3">{t(`payments:paymentType.${p.type}`)}</td>
                 <td className="px-4 py-3 font-medium">
-                  {formatMoneyCents(p.amountCents, p.currency)}
+                  {formatMoneyCents(p.amountCents, p.currency, numberLocale)}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -200,13 +202,13 @@ export function AdminPayments() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-text-secondary">
-                  {formatMoneyCents(p.profitShareAmountCents, p.currency)}
+                  {formatMoneyCents(p.profitShareAmountCents, p.currency, numberLocale)}
                 </td>
                 <td className="px-4 py-3 text-text-secondary">
-                  {formatMoneyCents(p.payeeAmountCents, p.currency)}
+                  {formatMoneyCents(p.payeeAmountCents, p.currency, numberLocale)}
                 </td>
                 <td className="px-4 py-3 text-text-secondary">
-                  {formatMoneyCents(p.refundedAmountCents, p.currency)}
+                  {formatMoneyCents(p.refundedAmountCents, p.currency, numberLocale)}
                 </td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
                   {format(new Date(p.createdAt), "yyyy-MM-dd", { locale: dateLocale })}
