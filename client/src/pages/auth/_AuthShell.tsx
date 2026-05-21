@@ -1,7 +1,8 @@
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { Check, GraduationCap } from "lucide-react";
 import { authApi } from "@/services/api/auth";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -119,35 +120,99 @@ export function BrandPanel() {
         </ul>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.5 }}
-        className="relative"
-      >
-        <figure className="rounded-2xl bg-white/10 p-6 backdrop-blur-md ring-1 ring-white/15">
-          <blockquote className="text-sm leading-relaxed text-white/95 xl:text-base">
-            &ldquo;{t("auth:brand.testimonialQuote")}&rdquo;
-          </blockquote>
-          <figcaption className="mt-5 flex items-center gap-3">
-            <span
-              aria-hidden
-              className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-white/40 to-white/10 text-sm font-semibold text-white ring-1 ring-white/20"
-            >
-              {t("auth:brand.testimonialName").slice(0, 1)}
-            </span>
-            <div className="text-sm">
-              <div className="font-semibold text-white">
-                {t("auth:brand.testimonialName")}
-              </div>
-              <div className="text-white/70">
-                {t("auth:brand.testimonialRole")}
-              </div>
-            </div>
-          </figcaption>
-        </figure>
-      </motion.div>
+      <TestimonialCarousel />
     </div>
+  );
+}
+
+/**
+ * Auto-rotating testimonial carousel — replaces the previous single static
+ * quote ("Sara A., MIT class of 2027") so the brand panel feels alive and
+ * proves the platform serves more than one student archetype. Quotes come
+ * from i18n so EN + AR both ship believable, locale-natural copy.
+ */
+function TestimonialCarousel() {
+  const { t } = useTranslation(["auth"]);
+  // Keys must match `auth:brand.testimonials.<key>.{quote,name,role}` in the
+  // locale JSON. Adding a key here picks it up automatically.
+  const keys = ["sara", "omar", "layla", "youssef"] as const;
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    // Pause rotation if the user has prefers-reduced-motion turned on —
+    // a constantly-changing card would be hostile to that audience.
+    const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (mql.matches) return;
+
+    const id = window.setInterval(() => {
+      setIndex((i) => (i + 1) % keys.length);
+    }, 6_000);
+    return () => window.clearInterval(id);
+  }, [keys.length]);
+
+  const key = keys[index];
+  const name = t(`auth:brand.testimonials.${key}.name`);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.5 }}
+      className="relative"
+    >
+      <figure
+        className="rounded-2xl bg-white/10 p-6 backdrop-blur-md ring-1 ring-white/15"
+        // A min-height keeps the card from jumping when the longest and
+        // shortest quotes swap.
+        style={{ minHeight: 168 }}
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={key}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <blockquote className="text-sm leading-relaxed text-white/95 xl:text-base">
+              &ldquo;{t(`auth:brand.testimonials.${key}.quote`)}&rdquo;
+            </blockquote>
+            <figcaption className="mt-5 flex items-center gap-3">
+              <span
+                aria-hidden
+                className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-white/40 to-white/10 text-sm font-semibold text-white ring-1 ring-white/20"
+              >
+                {name.slice(0, 1)}
+              </span>
+              <div className="text-sm">
+                <div className="font-semibold text-white">{name}</div>
+                <div className="text-white/70">
+                  {t(`auth:brand.testimonials.${key}.role`)}
+                </div>
+              </div>
+            </figcaption>
+          </motion.div>
+        </AnimatePresence>
+      </figure>
+
+      {/* Progress dots — click jumps; also shows which quote is active. */}
+      <div className="mt-4 flex items-center gap-1.5">
+        {keys.map((k, i) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setIndex(i)}
+            aria-label={t(`auth:brand.testimonials.${k}.name`)}
+            aria-current={i === index}
+            className={
+              i === index
+                ? "h-1.5 w-6 rounded-full bg-white transition-all"
+                : "h-1.5 w-1.5 rounded-full bg-white/40 transition-all hover:bg-white/70"
+            }
+          />
+        ))}
+      </div>
+    </motion.div>
   );
 }
 

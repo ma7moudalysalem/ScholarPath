@@ -8,6 +8,7 @@ import { getDirection } from "@/lib/i18n";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { MaintenancePage } from "@/pages/MaintenancePage";
 import { apiClient } from "@/services/api/client";
+import { useAuthStore } from "@/stores/authStore";
 
 interface StatusResponse {
   maintenanceModeEnabled: boolean;
@@ -38,9 +39,39 @@ function useHtmlTheme(): "dark" | "light" {
   return theme;
 }
 
+/**
+ * Escape-hatches that keep the app reachable while maintenance mode is on.
+ * Without them an admin who flips the toggle ON gets locked out of the very
+ * page they need to flip it OFF again.
+ *
+ * - URL paths the admin needs to disable maintenance from (login + admin
+ *   settings + the in-app admin shell). Any path starting with one of these
+ *   prefixes skips the maintenance gate.
+ * - `?bypass=admin` query flag — for emergency access from any path.
+ * - Already-signed-in Admin / SuperAdmin sessions — they always see the app.
+ */
+const MAINTENANCE_BYPASS_PREFIXES = ["/login", "/admin"];
+
+function shouldBypassMaintenance(roles: readonly string[] | undefined): boolean {
+  // Anyone with the bypass query flag (used for emergency access from
+  // bookmarked URLs that aren't under the prefix list).
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("bypass") === "admin") return true;
+
+  // Admin / SuperAdmin sessions can always reach the app even when
+  // maintenance is on — otherwise they can't turn it off.
+  if (roles?.some((r) => r === "Admin" || r === "SuperAdmin")) return true;
+
+  // The login + admin pages stay live so an admin can sign in and reach the
+  // toggle even before they have a session.
+  const path = window.location.pathname;
+  return MAINTENANCE_BYPASS_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`));
+}
+
 export function App() {
   const { i18n } = useTranslation();
   const theme = useHtmlTheme();
+  const userRoles = useAuthStore((s) => s.user?.roles);
 
   const { data: status } = useQuery<StatusResponse>({
     queryKey: ["platform", "status"],
@@ -59,7 +90,7 @@ export function App() {
     document.documentElement.setAttribute("lang", i18n.language);
   }, [i18n.language]);
 
-  if (status?.maintenanceModeEnabled) {
+  if (status?.maintenanceModeEnabled && !shouldBypassMaintenance(userRoles)) {
     return <MaintenancePage />;
   }
 
