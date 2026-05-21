@@ -22,6 +22,7 @@ import {
   FileEdit,
   BarChart2,
   ChevronDown,
+  ChevronRight,
   Repeat,
   User as UserIcon,
 } from "lucide-react";
@@ -309,19 +310,28 @@ function SidebarContent({
 
       {/* Bottom section — user card + actions */}
       <div className="border-t border-border-subtle p-3 space-y-1">
-        {/* User info card */}
+        {/* User info card — clickable, navigates to profile */}
         {user && (
-          <div className="mb-2 flex items-center gap-2.5 rounded-xl bg-bg-subtle px-3 py-2.5">
+          <Link
+            to="/profile"
+            onClick={onNavigate}
+            aria-label={t("common:nav.profile", "Open profile")}
+            className="group mb-2 flex items-center gap-2.5 rounded-xl bg-bg-subtle px-3 py-2.5 transition-all hover:bg-brand-50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+          >
             <HeaderAvatar userId={user.id} firstName={user.firstName} />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold text-text-primary leading-tight">
+              <div className="truncate text-sm font-semibold text-text-primary leading-tight group-hover:text-brand-600">
                 {user.fullName}
               </div>
               <div className="text-xs text-text-tertiary leading-tight mt-0.5">
                 {role}
               </div>
             </div>
-          </div>
+            <ChevronRight
+              aria-hidden
+              className="size-3.5 shrink-0 text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100 rtl:rotate-180"
+            />
+          </Link>
         )}
 
         <NavLink
