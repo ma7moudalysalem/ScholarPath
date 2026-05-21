@@ -82,7 +82,7 @@ export function CompanyInsights() {
   const isAr = i18n.language === "ar";
   const locale = isAr ? "ar-EG" : "en-US";
 
-  const initial = useMemo(defaultRange, []);
+  const initial = useMemo(() => defaultRange(), []);
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
 

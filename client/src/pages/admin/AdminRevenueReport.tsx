@@ -164,6 +164,10 @@ function exportCsv(filename: string, rows: (string | number)[][]): void {
         .join(","),
     )
     .join("\n");
+  // Excel needs the UTF-8 BOM at the start of CSV files or it mis-decodes
+  // non-ASCII as latin-1. The disable line keeps eslint from flagging the
+  // intentional BOM character below.
+  // eslint-disable-next-line no-irregular-whitespace
   const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -179,7 +183,7 @@ export function AdminRevenueReport() {
   const { t, i18n } = useTranslation(["analytics", "common"]);
   const locale = i18n.language === "ar" ? "ar-EG" : "en-US";
 
-  const initial = useMemo(defaultRange, []);
+  const initial = useMemo(() => defaultRange(), []);
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
 
