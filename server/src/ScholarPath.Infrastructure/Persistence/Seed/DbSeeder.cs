@@ -39,6 +39,13 @@ public static partial class DbSeeder
     {
         await db.Database.MigrateAsync(ct).ConfigureAwait(false);
 
+        // Azure SQL Basic / Standard tiers can take 30+ seconds to handle the
+        // larger bulk inserts the seeder does (users with profiles, 1000
+        // scholarships, etc.). Raise the EF command timeout to 5 minutes for
+        // the lifetime of this seeding context so we don't get spurious
+        // "Execution Timeout Expired" SqlExceptions on first boot.
+        db.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
+
         // 1) Roles
         foreach (var roleName in SeededRoles)
         {
