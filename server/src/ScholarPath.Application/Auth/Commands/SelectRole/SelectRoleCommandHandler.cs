@@ -54,26 +54,55 @@ public sealed class SelectRoleCommandHandler(
             // complete request, not a bare role pick.
             if (request.Details is { } details)
             {
-                user.Profile ??= new UserProfile
+                if (user.Profile is null)
                 {
-                    UserId = userId,
-                    CreatedAt = DateTimeOffset.UtcNow,
-                };
+                    // Explicit Add — relying on navigation fix-up alone is fragile
+                    // (the InMemory provider can mis-track the entity, surfacing as
+                    // DbUpdateConcurrencyException on SaveChanges).
+                    var newProfile = new UserProfile
+                    {
+                        UserId = userId,
+                        CreatedAt = DateTimeOffset.UtcNow,
+                    };
+                    db.UserProfiles.Add(newProfile);
+                    user.Profile = newProfile;
+                }
 
                 if (request.Role == "Company")
                 {
                     user.Profile.OrganizationLegalName = details.OrganizationLegalName;
                     user.Profile.OrganizationWebsite = details.OrganizationWebsite;
+                    user.Profile.OrganizationEmail = details.OrganizationEmail;
+                    user.Profile.OrganizationCountry = details.OrganizationCountry;
+                    user.Profile.CompanyType = details.CompanyType;
+                    user.Profile.CompanyDescription = details.CompanyDescription;
+                    user.Profile.OrganizationRegistrationNumber = details.OrganizationRegistrationNumber;
+                    user.Profile.OrganizationTaxNumber = details.OrganizationTaxNumber;
+                    user.Profile.ContactPersonFullName = details.ContactPersonFullName;
+                    user.Profile.ContactPersonPosition = details.ContactPersonPosition;
+                    user.Profile.ContactPhoneNumber = details.ContactPhoneNumber;
                     user.Profile.OrganizationVerificationStatus = "Pending";
                 }
                 else
                 {
                     user.Profile.Biography = details.Biography;
+                    user.Profile.ProfessionalTitle = details.ProfessionalTitle;
+                    user.Profile.HighestDegree = details.HighestDegree;
+                    user.Profile.FieldOfExpertise = details.FieldOfExpertise;
+                    user.Profile.YearsOfExperience = details.YearsOfExperience;
                     user.Profile.SessionFeeUsd = details.SessionFeeUsd;
-                    user.Profile.SessionDurationMinutes ??= 45;
+                    user.Profile.SessionDurationMinutes = details.SessionDurationMinutes ?? 45;
                     user.Profile.ExpertiseTagsJson = details.ExpertiseTags is { Length: > 0 } tags
                         ? JsonSerializer.Serialize(tags)
                         : null;
+                    user.Profile.LanguagesJson = details.Languages is { Length: > 0 } langs
+                        ? JsonSerializer.Serialize(langs)
+                        : null;
+                    user.Profile.Timezone = details.Timezone;
+                    user.Profile.LinkedInUrl = details.LinkedInUrl;
+                    user.Profile.PortfolioUrl = details.PortfolioUrl;
+                    if (!string.IsNullOrWhiteSpace(details.Country))
+                        user.CountryOfResidence = details.Country;
                 }
             }
         }

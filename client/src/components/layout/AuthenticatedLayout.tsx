@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   GraduationCap,
   LayoutDashboard,
@@ -21,17 +21,149 @@ import {
   X,
   FileEdit,
   BarChart2,
+  ChevronDown,
+  Repeat,
+  User as UserIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useAuthStore } from "@/stores/authStore";
-import { postAuthPath } from "@/services/api/auth";
+import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
+import { apiErrorMessage } from "@/services/api/client";
 import { useNotificationHub } from "@/hooks/useNotificationHub";
 import { notificationsApi, UNREAD_COUNT_QUERY_KEY } from "@/services/api/notifications";
 import { cn } from "@/lib/utils";
 import { userPhotoUrl } from "@/lib/userPhoto";
+
+const SWITCHABLE_ROLES = ["Student", "Consultant", "Company", "Admin"] as const;
+
+function ProfileMenu() {
+  const { t } = useTranslation(["common", "nav"]);
+  const { user, clear } = useAuthStore();
+  const navigate = useNavigate();
+
+  const switchRoleMut = useMutation({
+    mutationFn: (targetRole: string) => authApi.switchRole(targetRole),
+    onSuccess: (res) => {
+      const next = applyAuthSession(res);
+      toast.success(
+        t("common:roleSwitch.success", "Active role updated to {{role}}.", {
+          role: next.activeRole ?? next.roles[0] ?? "",
+        }),
+      );
+      navigate(postAuthPath(next), { replace: true });
+    },
+    onError: (err) =>
+      toast.error(
+        apiErrorMessage(err, t("common:roleSwitch.error", "Could not switch role.")),
+      ),
+  });
+
+  if (!user) return null;
+  const activeRole = user.activeRole ?? user.roles[0] ?? null;
+  const switchTargets = user.roles.filter(
+    (r) => r !== activeRole && (SWITCHABLE_ROLES as readonly string[]).includes(r),
+  );
+
+  const onSignOut = () => {
+    clear();
+    navigate("/");
+  };
+
+  return (
+    <DropdownMenu.Root>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          aria-label={t("common:nav.profile", "Open profile menu")}
+          className="ms-1 flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+        >
+          <HeaderAvatar userId={user.id} firstName={user.firstName} />
+          <span className="hidden font-medium sm:inline">{user.fullName}</span>
+          <ChevronDown aria-hidden className="size-3.5 text-text-tertiary" />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="end"
+          sideOffset={6}
+          className="z-50 min-w-[260px] overflow-hidden rounded-md border border-border-subtle bg-bg-elevated p-1 text-sm text-text-primary shadow-lg"
+        >
+          <div className="px-3 py-2.5">
+            <p className="truncate font-medium">{user.fullName}</p>
+            <p className="truncate text-xs text-text-secondary">{user.email}</p>
+            {activeRole && (
+              <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-brand-500/10 px-2 py-0.5 text-[11px] font-medium text-brand-500">
+                {t("common:roleSwitch.activeBadge", "Active: {{role}}", { role: activeRole })}
+              </p>
+            )}
+          </div>
+
+          {switchTargets.length > 0 && (
+            <>
+              <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />
+              <DropdownMenu.Label className="px-3 pb-1 pt-1 text-[11px] uppercase tracking-wide text-text-tertiary">
+                {t("common:roleSwitch.heading", "Switch role")}
+              </DropdownMenu.Label>
+              {switchTargets.map((role) => (
+                <DropdownMenu.Item
+                  key={role}
+                  disabled={switchRoleMut.isPending}
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    switchRoleMut.mutate(role);
+                  }}
+                  aria-label={t("common:roleSwitch.optionAria", "Switch to {{role}}", { role })}
+                  className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[highlighted]:bg-bg-subtle"
+                >
+                  <Repeat aria-hidden className="size-4 text-text-tertiary" />
+                  {t("common:roleSwitch.option", "Switch to {{role}}", { role })}
+                </DropdownMenu.Item>
+              ))}
+            </>
+          )}
+
+          <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />
+          <DropdownMenu.Item
+            onSelect={(e) => {
+              e.preventDefault();
+              navigate("/profile");
+            }}
+            className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none data-[highlighted]:bg-bg-subtle"
+          >
+            <UserIcon aria-hidden className="size-4 text-text-tertiary" />
+            {t("common:nav.profileLink", "Profile")}
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            onSelect={(e) => {
+              e.preventDefault();
+              navigate("/notifications/preferences");
+            }}
+            className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none data-[highlighted]:bg-bg-subtle"
+          >
+            <Settings aria-hidden className="size-4 text-text-tertiary" />
+            {t("nav:common.settings", "Settings")}
+          </DropdownMenu.Item>
+          <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />
+          <DropdownMenu.Item
+            onSelect={(e) => {
+              e.preventDefault();
+              onSignOut();
+            }}
+            className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm text-danger-500 outline-none data-[highlighted]:bg-danger-500/10"
+          >
+            <LogOut aria-hidden className="size-4" />
+            {t("common:cta.signOut")}
+          </DropdownMenu.Item>
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
 
 interface NavItem {
   to: string;
@@ -353,19 +485,7 @@ export function AuthenticatedLayout() {
                 </span>
               )}
             </NavLink>
-            {user && (
-              // Clickable user chip → /profile. Users naturally try to click
-              // their avatar to manage their account, and the chip was a
-              // dead-end div before.
-              <Link
-                to="/profile"
-                aria-label={t("common:nav.profile", "Open profile")}
-                className="ms-1 flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
-              >
-                <HeaderAvatar userId={user.id} firstName={user.firstName} />
-                <span className="hidden font-medium sm:inline">{user.fullName}</span>
-              </Link>
-            )}
+            <ProfileMenu />
           </div>
         </header>
 

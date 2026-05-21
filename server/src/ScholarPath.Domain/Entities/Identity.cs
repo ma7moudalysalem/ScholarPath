@@ -105,6 +105,16 @@ public class UserProfile : AuditableEntity
     public string? OrganizationWebsite { get; set; }
     public string? OrganizationVerificationStatus { get; set; }
     public DateTimeOffset? OrganizationVerifiedAt { get; set; }
+    // Extended company onboarding fields (FR-ONB-03) — collected during onboarding
+    // so the admin reviewer has enough information to verify the organization.
+    public string? OrganizationEmail { get; set; }
+    public string? OrganizationCountry { get; set; }
+    public string? OrganizationTaxNumber { get; set; }
+    public string? CompanyType { get; set; }
+    public string? CompanyDescription { get; set; }
+    public string? ContactPersonFullName { get; set; }
+    public string? ContactPersonPosition { get; set; }
+    public string? ContactPhoneNumber { get; set; }
 
     // Consultant fields
     public decimal? SessionFeeUsd { get; set; }
@@ -112,6 +122,12 @@ public class UserProfile : AuditableEntity
     public string? ExpertiseTagsJson { get; set; }
     public string? LanguagesJson { get; set; }
     public DateTimeOffset? ConsultantVerifiedAt { get; set; }
+    // Extended consultant onboarding fields (FR-ONB-04)
+    public string? ProfessionalTitle { get; set; }
+    public string? HighestDegree { get; set; }
+    public string? FieldOfExpertise { get; set; }
+    public int? YearsOfExperience { get; set; }
+    public string? PortfolioUrl { get; set; }
 
     /// <summary>
     /// When set, the consultant's booking intake is suspended pending admin

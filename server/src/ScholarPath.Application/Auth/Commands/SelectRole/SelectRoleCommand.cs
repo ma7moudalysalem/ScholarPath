@@ -17,11 +17,33 @@ public sealed record SelectRoleCommand(
 
 /// <summary>
 /// Profile details a Company or Consultant fills in during onboarding, so the
-/// admin reviews a complete request rather than a bare role pick.
+/// admin reviews a complete request rather than a bare role pick. Companies
+/// and Consultants populate disjoint subsets of these fields.
 /// </summary>
 public sealed record OnboardingDetails(
-    string? OrganizationLegalName,
-    string? OrganizationWebsite,
-    string? Biography,
-    decimal? SessionFeeUsd,
-    string[]? ExpertiseTags);
+    // ── Company ─────────────────────────────────────────────────────────────
+    string? OrganizationLegalName = null,
+    string? OrganizationWebsite = null,
+    string? OrganizationEmail = null,
+    string? OrganizationCountry = null,
+    string? CompanyType = null,
+    string? CompanyDescription = null,
+    string? OrganizationRegistrationNumber = null,
+    string? OrganizationTaxNumber = null,
+    string? ContactPersonFullName = null,
+    string? ContactPersonPosition = null,
+    string? ContactPhoneNumber = null,
+    // ── Consultant ──────────────────────────────────────────────────────────
+    string? Biography = null,
+    string? ProfessionalTitle = null,
+    string? HighestDegree = null,
+    string? FieldOfExpertise = null,
+    int? YearsOfExperience = null,
+    decimal? SessionFeeUsd = null,
+    int? SessionDurationMinutes = null,
+    string[]? ExpertiseTags = null,
+    string[]? Languages = null,
+    string? Country = null,
+    string? Timezone = null,
+    string? LinkedInUrl = null,
+    string? PortfolioUrl = null);

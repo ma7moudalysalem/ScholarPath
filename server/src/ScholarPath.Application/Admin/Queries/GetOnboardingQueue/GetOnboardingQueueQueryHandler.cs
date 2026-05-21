@@ -17,6 +17,7 @@ public sealed class GetOnboardingQueueQueryHandler(IApplicationDbContext db)
 
         var q = db.Users
             .AsNoTracking()
+            .Include(u => u.Profile)
             .Where(u => u.AccountStatus == AccountStatus.PendingApproval);
 
         var total = await q.CountAsync(ct).ConfigureAwait(false);
@@ -31,7 +32,31 @@ public sealed class GetOnboardingQueueQueryHandler(IApplicationDbContext db)
                 (u.FirstName + " " + u.LastName).Trim(),
                 u.AccountStatus,
                 u.CreatedAt,
-                u.ActiveRole))
+                u.ActiveRole,
+                u.Profile != null ? u.Profile.OrganizationLegalName : null,
+                u.Profile != null ? u.Profile.OrganizationWebsite : null,
+                u.Profile != null ? u.Profile.OrganizationEmail : null,
+                u.Profile != null ? u.Profile.OrganizationCountry : null,
+                u.Profile != null ? u.Profile.CompanyType : null,
+                u.Profile != null ? u.Profile.CompanyDescription : null,
+                u.Profile != null ? u.Profile.OrganizationRegistrationNumber : null,
+                u.Profile != null ? u.Profile.OrganizationTaxNumber : null,
+                u.Profile != null ? u.Profile.ContactPersonFullName : null,
+                u.Profile != null ? u.Profile.ContactPersonPosition : null,
+                u.Profile != null ? u.Profile.ContactPhoneNumber : null,
+                u.Profile != null ? u.Profile.Biography : null,
+                u.Profile != null ? u.Profile.ProfessionalTitle : null,
+                u.Profile != null ? u.Profile.HighestDegree : null,
+                u.Profile != null ? u.Profile.FieldOfExpertise : null,
+                u.Profile != null ? u.Profile.YearsOfExperience : null,
+                u.Profile != null ? u.Profile.SessionFeeUsd : null,
+                u.Profile != null ? u.Profile.SessionDurationMinutes : null,
+                u.Profile != null ? u.Profile.ExpertiseTagsJson : null,
+                u.Profile != null ? u.Profile.LanguagesJson : null,
+                u.Profile != null ? u.Profile.Timezone : null,
+                u.Profile != null ? u.Profile.LinkedInUrl : null,
+                u.Profile != null ? u.Profile.PortfolioUrl : null,
+                u.CountryOfResidence))
             .ToListAsync(ct)
             .ConfigureAwait(false);
 

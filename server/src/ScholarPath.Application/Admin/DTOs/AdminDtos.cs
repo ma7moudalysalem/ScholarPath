@@ -38,7 +38,33 @@ public sealed record OnboardingRequestRow(
     string FullName,
     AccountStatus AccountStatus,
     DateTimeOffset CreatedAt,
-    string? RequestedRole);
+    string? RequestedRole,
+    // ── Company profile snapshot ────────────────────────────────────────────
+    string? OrganizationLegalName,
+    string? OrganizationWebsite,
+    string? OrganizationEmail,
+    string? OrganizationCountry,
+    string? CompanyType,
+    string? CompanyDescription,
+    string? OrganizationRegistrationNumber,
+    string? OrganizationTaxNumber,
+    string? ContactPersonFullName,
+    string? ContactPersonPosition,
+    string? ContactPhoneNumber,
+    // ── Consultant profile snapshot ─────────────────────────────────────────
+    string? Biography,
+    string? ProfessionalTitle,
+    string? HighestDegree,
+    string? FieldOfExpertise,
+    int? YearsOfExperience,
+    decimal? SessionFeeUsd,
+    int? SessionDurationMinutes,
+    string? ExpertiseTagsJson,
+    string? LanguagesJson,
+    string? Timezone,
+    string? LinkedInUrl,
+    string? PortfolioUrl,
+    string? ConsultantCountry);
 
 public sealed record UpgradeRequestRow(
     Guid Id,

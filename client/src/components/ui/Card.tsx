@@ -51,7 +51,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
   );
 });
 
-export interface CardSlotProps extends HTMLAttributes<HTMLDivElement> {}
+export type CardSlotProps = HTMLAttributes<HTMLDivElement>;
 
 /**
  * Optional header slot — keeps padding + border bottom consistent across

@@ -76,6 +76,34 @@ public class SelectRoleCommandHandlerTests
         await admin.Received().AddRoleAsync(userId, "Student", Arg.Any<CancellationToken>());
     }
 
+    private static OnboardingDetails ValidCompanyDetails() => new(
+        OrganizationLegalName: "Acme University",
+        OrganizationWebsite: "https://acme.edu",
+        OrganizationEmail: "admissions@acme.edu",
+        OrganizationCountry: "Egypt",
+        CompanyType: "University",
+        CompanyDescription: "A research-led university.",
+        OrganizationRegistrationNumber: "ACME-1234",
+        OrganizationTaxNumber: null,
+        ContactPersonFullName: "Hala Mostafa",
+        ContactPersonPosition: "Admissions Director",
+        ContactPhoneNumber: "+201234567890");
+
+    private static OnboardingDetails ValidConsultantDetails() => new(
+        Biography: "10 years guiding scholarship applicants.",
+        ProfessionalTitle: "Senior Admissions Consultant",
+        HighestDegree: "MSc Education",
+        FieldOfExpertise: "Graduate admissions",
+        YearsOfExperience: 10,
+        SessionFeeUsd: 60m,
+        SessionDurationMinutes: 60,
+        ExpertiseTags: new[] { "SoP", "Interview Prep" },
+        Languages: new[] { "English", "Arabic" },
+        Country: "Egypt",
+        Timezone: "Africa/Cairo",
+        LinkedInUrl: "https://linkedin.com/in/example",
+        PortfolioUrl: null);
+
     [Fact]
     public async Task Company_selection_enters_the_onboarding_queue()
     {
@@ -86,14 +114,51 @@ public class SelectRoleCommandHandlerTests
         var admin = Substitute.For<IUserAdministration>();
         admin.GetRolesAsync(userId, Arg.Any<CancellationToken>()).Returns(Array.Empty<string>());
 
-        await Sut(db, userId, admin).Handle(new SelectRoleCommand("Company"), default);
+        await Sut(db, userId, admin).Handle(
+            new SelectRoleCommand("Company", ValidCompanyDetails()), default);
 
-        var user = await db.Users.FirstAsync(u => u.Id == userId);
+        var user = await db.Users.Include(u => u.Profile).FirstAsync(u => u.Id == userId);
         user.AccountStatus.Should().Be(AccountStatus.PendingApproval);
         user.ActiveRole.Should().Be("Company");
         user.IsOnboardingComplete.Should().BeFalse();
+        user.Profile.Should().NotBeNull();
+        user.Profile!.OrganizationLegalName.Should().Be("Acme University");
+        user.Profile.OrganizationEmail.Should().Be("admissions@acme.edu");
+        user.Profile.OrganizationCountry.Should().Be("Egypt");
+        user.Profile.CompanyType.Should().Be("University");
+        user.Profile.ContactPersonFullName.Should().Be("Hala Mostafa");
+        user.Profile.ContactPhoneNumber.Should().Be("+201234567890");
         await admin.DidNotReceive()
             .AddRoleAsync(userId, Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Consultant_selection_persists_the_extended_profile()
+    {
+        using var db = CreateDb();
+        var userId = SeedUnassignedUser(db);
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.GetRolesAsync(userId, Arg.Any<CancellationToken>()).Returns(Array.Empty<string>());
+
+        await Sut(db, userId, admin).Handle(
+            new SelectRoleCommand("Consultant", ValidConsultantDetails()), default);
+
+        var user = await db.Users.Include(u => u.Profile).FirstAsync(u => u.Id == userId);
+        user.AccountStatus.Should().Be(AccountStatus.PendingApproval);
+        user.Profile.Should().NotBeNull();
+        user.Profile!.ProfessionalTitle.Should().Be("Senior Admissions Consultant");
+        user.Profile.HighestDegree.Should().Be("MSc Education");
+        user.Profile.FieldOfExpertise.Should().Be("Graduate admissions");
+        user.Profile.YearsOfExperience.Should().Be(10);
+        user.Profile.SessionFeeUsd.Should().Be(60m);
+        user.Profile.SessionDurationMinutes.Should().Be(60);
+        user.Profile.Timezone.Should().Be("Africa/Cairo");
+        user.Profile.LinkedInUrl.Should().Be("https://linkedin.com/in/example");
+        user.Profile.ExpertiseTagsJson.Should().Contain("SoP");
+        user.Profile.LanguagesJson.Should().Contain("Arabic");
+        user.CountryOfResidence.Should().Be("Egypt");
     }
 
     [Fact]
@@ -119,5 +184,53 @@ public class SelectRoleCommandHandlerTests
         v.Validate(new SelectRoleCommand("Admin")).IsValid.Should().BeFalse();
         v.Validate(new SelectRoleCommand("")).IsValid.Should().BeFalse();
         v.Validate(new SelectRoleCommand("Student")).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validator_requires_all_company_onboarding_fields()
+    {
+        var v = new SelectRoleCommandValidator();
+
+        // Bare Company role with no details — must fail.
+        v.Validate(new SelectRoleCommand("Company")).IsValid.Should().BeFalse();
+
+        // Details with most fields missing — must fail.
+        var partial = new SelectRoleCommand("Company", new OnboardingDetails(
+            OrganizationLegalName: "Acme"));
+        v.Validate(partial).IsValid.Should().BeFalse();
+
+        // Full Company details — must pass.
+        v.Validate(new SelectRoleCommand("Company", ValidCompanyDetails())).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validator_requires_all_consultant_onboarding_fields()
+    {
+        var v = new SelectRoleCommandValidator();
+
+        v.Validate(new SelectRoleCommand("Consultant")).IsValid.Should().BeFalse();
+
+        var partial = new SelectRoleCommand("Consultant", new OnboardingDetails(
+            Biography: "Short bio without all the required extras."));
+        v.Validate(partial).IsValid.Should().BeFalse();
+
+        v.Validate(new SelectRoleCommand("Consultant", ValidConsultantDetails())).IsValid
+            .Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validator_rejects_invalid_company_type()
+    {
+        var v = new SelectRoleCommandValidator();
+        var d = ValidCompanyDetails() with { CompanyType = "Bogus" };
+        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validator_rejects_invalid_session_duration()
+    {
+        var v = new SelectRoleCommandValidator();
+        var d = ValidConsultantDetails() with { SessionDurationMinutes = 25 };
+        v.Validate(new SelectRoleCommand("Consultant", d)).IsValid.Should().BeFalse();
     }
 }
