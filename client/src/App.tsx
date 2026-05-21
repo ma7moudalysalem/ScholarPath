@@ -71,7 +71,12 @@ export function App() {
         theme={theme}
         position={getDirection(i18n.language) === "rtl" ? "top-left" : "top-right"}
         gap={8}
+        richColors
+        expand
+        closeButton
+        duration={4000}
         toastOptions={{
+          style: { fontSize: 14, padding: 14, borderRadius: 12 },
           classNames: {
             toast: [
               "group !rounded-xl !border !shadow-lg !font-sans !text-sm",

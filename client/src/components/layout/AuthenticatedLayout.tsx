@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, Suspense } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
@@ -271,40 +271,50 @@ function SidebarContent({
         </span>
       </Link>
 
-      {/* Nav links */}
+      {/* Nav links — staggered fade-in on first mount */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-        {navItems.map(({ to, key, icon: Icon }) => (
-          <NavLink
+        {navItems.map(({ to, key, icon: Icon }, idx) => (
+          <motion.div
             key={to}
-            to={to}
-            end={to === `/${role.toLowerCase()}`}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              cn(
-                "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150",
-                isActive
-                  ? "nav-item-active"
-                  : "text-text-secondary hover:bg-bg-subtle hover:text-text-primary",
-              )
-            }
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{
+              duration: 0.28,
+              ease: [0.22, 1, 0.36, 1],
+              delay: Math.min(idx, 12) * 0.035,
+            }}
           >
-            {({ isActive }) => (
-              <>
-                {/* Icon wrapper */}
-                <span
-                  className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-md transition-colors duration-150",
-                    isActive
-                      ? "bg-brand-500 text-white"
-                      : "text-current",
-                  )}
-                >
-                  <Icon aria-hidden className="size-4" />
-                </span>
-                {t(`nav:${key}`)}
-              </>
-            )}
-          </NavLink>
+            <NavLink
+              to={to}
+              end={to === `/${role.toLowerCase()}`}
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                cn(
+                  "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150",
+                  isActive
+                    ? "nav-item-active"
+                    : "text-text-secondary hover:bg-bg-subtle hover:text-text-primary",
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {/* Icon wrapper */}
+                  <span
+                    className={cn(
+                      "flex size-7 shrink-0 items-center justify-center rounded-md transition-colors duration-150",
+                      isActive
+                        ? "bg-brand-500 text-white"
+                        : "text-current",
+                    )}
+                  >
+                    <Icon aria-hidden className="size-4" />
+                  </span>
+                  {t(`nav:${key}`)}
+                </>
+              )}
+            </NavLink>
+          </motion.div>
         ))}
       </nav>
 
@@ -365,6 +375,7 @@ export function AuthenticatedLayout() {
   const role = user?.activeRole ?? user?.roles[0] ?? "Student";
   const navItems = useMemo(() => NAV_BY_ROLE[role] ?? NAV_BY_ROLE.Student, [role]);
   const homePath = user ? postAuthPath(user) : "/";
+  const location = useLocation();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -507,7 +518,17 @@ export function AuthenticatedLayout() {
               </div>
             }
           >
-            <Outlet />
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           </Suspense>
         </main>
       </div>

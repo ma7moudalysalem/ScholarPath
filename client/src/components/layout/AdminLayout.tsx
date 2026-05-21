@@ -1,6 +1,7 @@
 import { Suspense } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -68,6 +69,7 @@ export function AdminLayout() {
   const { t } = useTranslation(["admin", "common"]);
   const navigate = useNavigate();
   const { user, clear } = useAuthStore();
+  const location = useLocation();
 
   const onSignOut = () => {
     clear();
@@ -83,8 +85,17 @@ export function AdminLayout() {
         </Link>
 
         <nav className="flex-1 overflow-y-auto p-3">
-          {NAV.map(({ to, key, icon: Icon, end, divider }) => (
-            <div key={to}>
+          {NAV.map(({ to, key, icon: Icon, end, divider }, idx) => (
+            <motion.div
+              key={to}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{
+                duration: 0.28,
+                ease: [0.22, 1, 0.36, 1],
+                delay: Math.min(idx, 12) * 0.03,
+              }}
+            >
               {divider && (
                 <div className="my-1.5 border-t border-border-subtle" />
               )}
@@ -103,7 +114,7 @@ export function AdminLayout() {
                 <Icon aria-hidden className="size-4" />
                 {t(`admin:${key}`)}
               </NavLink>
-            </div>
+            </motion.div>
           ))}
         </nav>
 
@@ -141,7 +152,17 @@ export function AdminLayout() {
               </div>
             }
           >
-            <Outlet />
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           </Suspense>
         </main>
       </div>

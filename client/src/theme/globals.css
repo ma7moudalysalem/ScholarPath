@@ -579,6 +579,167 @@ html[dir="rtl"] h4 {
     background: inherit;
     animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
   }
+
+  /* ─── Premium hover lift ──────────────────────────── */
+  .hover-lift {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-elevation-3);
+  }
+
+  /* ─── Premium press feedback ──────────────────────── */
+  .press-scale {
+    transition: transform 80ms ease-out;
+  }
+  .press-scale:active {
+    transform: scale(0.97);
+  }
+
+  /* ─── Underline grow on hover ─────────────────────── */
+  .link-underline {
+    position: relative;
+  }
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    bottom: -2px;
+    width: 100%;
+    height: 1.5px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .link-underline:hover::after {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+  /* RTL: flip the origin so the underline still grows from the leading edge */
+  html[dir="rtl"] .link-underline::after {
+    transform-origin: left;
+  }
+  html[dir="rtl"] .link-underline:hover::after {
+    transform-origin: right;
+  }
+
+  /* ─── Skeleton wave (richer than the basic shimmer) ─ */
+  @keyframes wave {
+    0%   { background-position: -200px 0; }
+    100% { background-position: 200px 0; }
+  }
+  .skeleton-wave {
+    background: linear-gradient(
+      90deg,
+      var(--color-bg-subtle) 0%,
+      var(--color-bg-muted) 50%,
+      var(--color-bg-subtle) 100%
+    );
+    background-size: 400px 100%;
+    animation: wave 1.4s ease-in-out infinite;
+    border-radius: var(--radius-md);
+  }
+
+  /* ─── Bounce in (toasts, badges, "new" indicators) ── */
+  @keyframes bounce-in {
+    0%   { transform: scale(0.85); opacity: 0; }
+    50%  { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  .bounce-in {
+    animation: bounce-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* ─── Slide-up entrance ───────────────────────────── */
+  @keyframes slide-up-fade {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .slide-up-fade {
+    animation: slide-up-fade 320ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  /* ─── Float (decorative orbs, hero illustrations) ─── */
+  @keyframes float-y {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-12px); }
+  }
+  .float-y {
+    animation: float-y 6s ease-in-out infinite;
+  }
+
+  /* ─── Spin slow (background ornaments) ────────────── */
+  @keyframes spin-slow {
+    to { transform: rotate(360deg); }
+  }
+  .spin-slow {
+    animation: spin-slow 30s linear infinite;
+  }
+
+  /* ─── Gradient text shimmer ───────────────────────── */
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+  }
+  .text-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--color-brand-500) 0%,
+      var(--color-brand-700) 50%,
+      var(--color-brand-500) 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 4s ease-in-out infinite;
+  }
+
+  /* ─── Tilt on hover (cards) ───────────────────────── */
+  .tilt {
+    transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .tilt:hover {
+    transform: perspective(1000px) rotateX(2deg) rotateY(-1deg);
+  }
+  html[dir="rtl"] .tilt:hover {
+    transform: perspective(1000px) rotateX(2deg) rotateY(1deg);
+  }
+
+  /* ─── Glow pulse (CTA buttons) ────────────────────── */
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgb(23 96 240 / 0.4); }
+    50%      { box-shadow: 0 0 0 8px rgb(23 96 240 / 0); }
+  }
+  .glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+}
+
+/* ─── Respect reduced motion — extends the base block below ─── */
+@media (prefers-reduced-motion: reduce) {
+  .float-y,
+  .spin-slow,
+  .text-shimmer,
+  .glow-pulse,
+  .bounce-in,
+  .slide-up-fade,
+  .skeleton-wave,
+  .orb-animated,
+  .pulse-dot::before {
+    animation: none !important;
+  }
+  .hover-lift:hover,
+  .press-scale:active,
+  .tilt:hover {
+    transform: none !important;
+  }
+  .link-underline::after {
+    transition: none !important;
+  }
 }
 
 /* ─── Premium scrollbar (refined, opt-in) ───────────────────── */

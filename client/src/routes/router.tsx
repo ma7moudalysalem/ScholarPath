@@ -1,6 +1,7 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { AnimatedRoute } from "@/components/common/AnimatedRoute";
 import { RequireAuth, RequireRole } from "@/routes/RequireAuth";
 import { lazy, Suspense, type ReactNode } from "react";
 import { Route, Routes } from "react-router";
@@ -260,7 +261,9 @@ export function AppRouter() {
           path="/"
           element={
             <PublicLayout>
-              <Home />
+              <AnimatedRoute>
+                <Home />
+              </AnimatedRoute>
             </PublicLayout>
           }
         />
@@ -343,53 +346,57 @@ export function AppRouter() {
           }
         >
           {/* Profile / Notifications — shared */}
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/privacy" element={<DataPrivacy />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/notifications/preferences" element={<NotificationPreferences />} />
+          <Route path="/profile" element={<AnimatedRoute><Profile /></AnimatedRoute>} />
+          <Route path="/profile/privacy" element={<AnimatedRoute><DataPrivacy /></AnimatedRoute>} />
+          <Route path="/notifications" element={<AnimatedRoute><Notifications /></AnimatedRoute>} />
+          <Route path="/notifications/preferences" element={<AnimatedRoute><NotificationPreferences /></AnimatedRoute>} />
 
           <Route
             path="/student"
             element={
               <RequireRole roles={["Student"]}>
-                <StudentDashboard />
+                <AnimatedRoute>
+                  <StudentDashboard />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
           {/* PB-003: Scholarship Discovery */}
-          <Route path="/student/scholarships"      element={<StudentScholarships />} />
-          <Route path="/student/scholarships/:id"  element={<StudentScholarshipDetail />} />
-          <Route path="/student/bookmarks"         element={<StudentBookmarks />} />
+          <Route path="/student/scholarships"      element={<AnimatedRoute><StudentScholarships /></AnimatedRoute>} />
+          <Route path="/student/scholarships/:id"  element={<AnimatedRoute><StudentScholarshipDetail /></AnimatedRoute>} />
+          <Route path="/student/bookmarks"         element={<AnimatedRoute><StudentBookmarks /></AnimatedRoute>} />
 
           {/* PB-004: Applications */}
-          <Route path="/student/applications"      element={<StudentApplications />} />
-          <Route path="/student/applications/:id"  element={<StudentApplicationDetail />} />
+          <Route path="/student/applications"      element={<AnimatedRoute><StudentApplications /></AnimatedRoute>} />
+          <Route path="/student/applications/:id"  element={<AnimatedRoute><StudentApplicationDetail /></AnimatedRoute>} />
 
           {/* PB-006: Consultant Booking */}
-          <Route path="/student/consultants"       element={<StudentConsultants />} />
-          <Route path="/student/consultants/:id"   element={<StudentConsultantDetail />} />
-          <Route path="/student/checkout"          element={<StudentBookingCheckout />} />
-          <Route path="/student/bookings"          element={<StudentBookings />} />
-          <Route path="/student/bookings/:id"      element={<StudentBookingDetails />} />
+          <Route path="/student/consultants"       element={<AnimatedRoute><StudentConsultants /></AnimatedRoute>} />
+          <Route path="/student/consultants/:id"   element={<AnimatedRoute><StudentConsultantDetail /></AnimatedRoute>} />
+          <Route path="/student/checkout"          element={<AnimatedRoute><StudentBookingCheckout /></AnimatedRoute>} />
+          <Route path="/student/bookings"          element={<AnimatedRoute><StudentBookings /></AnimatedRoute>} />
+          <Route path="/student/bookings/:id"      element={<AnimatedRoute><StudentBookingDetails /></AnimatedRoute>} />
 
           {/* PB-007: Community + Chat */}
-          <Route path="/student/community"         element={<StudentCommunity />} />
-          <Route path="/student/community/:id"     element={<StudentCommunityThread />} />
-          <Route path="/student/messages"          element={<StudentMessages />} />
+          <Route path="/student/community"         element={<AnimatedRoute><StudentCommunity /></AnimatedRoute>} />
+          <Route path="/student/community/:id"     element={<AnimatedRoute><StudentCommunityThread /></AnimatedRoute>} />
+          <Route path="/student/messages"          element={<AnimatedRoute><StudentMessages /></AnimatedRoute>} />
 
           {/* Others */}
-          <Route path="/student/resources"         element={<StudentResources />} />
-          <Route path="/student/resources/:idOrSlug" element={<StudentResourceDetail />} />
-          <Route path="/student/documents"         element={<StudentDocuments />} />
-          <Route path="/student/ai"                element={<StudentAi />} />
-          <Route path="/student/analytics"         element={<StudentAnalytics />} />
+          <Route path="/student/resources"         element={<AnimatedRoute><StudentResources /></AnimatedRoute>} />
+          <Route path="/student/resources/:idOrSlug" element={<AnimatedRoute><StudentResourceDetail /></AnimatedRoute>} />
+          <Route path="/student/documents"         element={<AnimatedRoute><StudentDocuments /></AnimatedRoute>} />
+          <Route path="/student/ai"                element={<AnimatedRoute><StudentAi /></AnimatedRoute>} />
+          <Route path="/student/analytics"         element={<AnimatedRoute><StudentAnalytics /></AnimatedRoute>} />
 
           {/* PB-009: Author resource management (Consultant, Company, Admin) */}
           <Route
             path="/author/resources"
             element={
               <RequireRole roles={["Consultant", "Company", "Admin", "SuperAdmin"]}>
-                <AuthorMyResources />
+                <AnimatedRoute>
+                  <AuthorMyResources />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -397,7 +404,9 @@ export function AppRouter() {
             path="/author/resources/new"
             element={
               <RequireRole roles={["Consultant", "Company", "Admin", "SuperAdmin"]}>
-                <AuthorResourceEditor />
+                <AnimatedRoute>
+                  <AuthorResourceEditor />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -405,7 +414,9 @@ export function AppRouter() {
             path="/author/resources/:id/edit"
             element={
               <RequireRole roles={["Consultant", "Company", "Admin", "SuperAdmin"]}>
-                <AuthorResourceEditor />
+                <AnimatedRoute>
+                  <AuthorResourceEditor />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -414,7 +425,9 @@ export function AppRouter() {
             path="/company"
             element={
               <RequireRole roles={["Company"]}>
-                <CompanyDashboard />
+                <AnimatedRoute>
+                  <CompanyDashboard />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -422,7 +435,9 @@ export function AppRouter() {
             path="/company/scholarships"
             element={
               <RequireRole roles={["Company"]}>
-                <CompanyScholarships />
+                <AnimatedRoute>
+                  <CompanyScholarships />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -430,7 +445,9 @@ export function AppRouter() {
             path="/company/scholarships/new"
             element={
               <RequireRole roles={["Company"]}>
-                <CompanyScholarshipForm />
+                <AnimatedRoute>
+                  <CompanyScholarshipForm />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -438,7 +455,9 @@ export function AppRouter() {
             path="/company/scholarships/:id/edit"
             element={
               <RequireRole roles={["Company"]}>
-                <CompanyScholarshipForm />
+                <AnimatedRoute>
+                  <CompanyScholarshipForm />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -446,7 +465,9 @@ export function AppRouter() {
             path="/company/applications-review"
             element={
               <RequireRole roles={["Company"]}>
-                <CompanyApplicationsReview />
+                <AnimatedRoute>
+                  <CompanyApplicationsReview />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -454,7 +475,9 @@ export function AppRouter() {
             path="/company/billing"
             element={
               <RequireRole roles={["Company"]}>
-                <CompanyBilling />
+                <AnimatedRoute>
+                  <CompanyBilling />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -463,7 +486,9 @@ export function AppRouter() {
             path="/consultant"
             element={
               <RequireRole roles={["Consultant"]}>
-                <ConsultantDashboard />
+                <AnimatedRoute>
+                  <ConsultantDashboard />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -471,7 +496,9 @@ export function AppRouter() {
             path="/consultant/availability"
             element={
               <RequireRole roles={["Consultant"]}>
-                <ConsultantAvailability />
+                <AnimatedRoute>
+                  <ConsultantAvailability />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -479,7 +506,9 @@ export function AppRouter() {
             path="/consultant/bookings"
             element={
               <RequireRole roles={["Consultant"]}>
-                <ConsultantBookings />
+                <AnimatedRoute>
+                  <ConsultantBookings />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -487,7 +516,9 @@ export function AppRouter() {
             path="/consultant/bookings/:id"
             element={
               <RequireRole roles={["Consultant"]}>
-                <ConsultantBookingDetails />
+                <AnimatedRoute>
+                  <ConsultantBookingDetails />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -495,7 +526,9 @@ export function AppRouter() {
             path="/consultant/earnings"
             element={
               <RequireRole roles={["Consultant"]}>
-                <ConsultantEarnings />
+                <AnimatedRoute>
+                  <ConsultantEarnings />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -503,7 +536,9 @@ export function AppRouter() {
             path="/consultant/analytics"
             element={
               <RequireRole roles={["Consultant"]}>
-                <ConsultantAnalytics />
+                <AnimatedRoute>
+                  <ConsultantAnalytics />
+                </AnimatedRoute>
               </RequireRole>
             }
           />
@@ -519,23 +554,23 @@ export function AppRouter() {
             </RequireAuth>
           }
         >
-          <Route path="/admin"                  element={<AdminDashboard />} />
-          <Route path="/admin/users"            element={<AdminUsers />} />
-          <Route path="/admin/onboarding"       element={<AdminOnboarding />} />
-          <Route path="/admin/upgrades"         element={<AdminUpgrades />} />
-          <Route path="/admin/broadcast"        element={<AdminBroadcast />} />
-          <Route path="/admin/analytics"        element={<AdminAnalytics />} />
-          <Route path="/admin/ai-economy"       element={<AdminAiEconomy />} />
-          <Route path="/admin/knowledge-base"   element={<AdminKnowledgeBase />} />
-          <Route path="/admin/redaction-audit"  element={<AdminRedactionAudit />} />
-          <Route path="/admin/scholarships"          element={<AdminScholarships />} />
-          <Route path="/admin/featured-scholarships" element={<AdminFeaturedScholarships />} />
-          <Route path="/admin/articles"         element={<AdminArticles />} />
-          <Route path="/admin/community"        element={<AdminCommunity />} />
-          <Route path="/admin/payments"         element={<AdminPayments />} />
-          <Route path="/admin/profit-share"     element={<AdminProfitShare />} />
-          <Route path="/admin/financial-config" element={<AdminFinancialConfig />} />
-          <Route path="/admin/audit-log"        element={<AdminAuditLog />} />
+          <Route path="/admin"                  element={<AnimatedRoute><AdminDashboard /></AnimatedRoute>} />
+          <Route path="/admin/users"            element={<AnimatedRoute><AdminUsers /></AnimatedRoute>} />
+          <Route path="/admin/onboarding"       element={<AnimatedRoute><AdminOnboarding /></AnimatedRoute>} />
+          <Route path="/admin/upgrades"         element={<AnimatedRoute><AdminUpgrades /></AnimatedRoute>} />
+          <Route path="/admin/broadcast"        element={<AnimatedRoute><AdminBroadcast /></AnimatedRoute>} />
+          <Route path="/admin/analytics"        element={<AnimatedRoute><AdminAnalytics /></AnimatedRoute>} />
+          <Route path="/admin/ai-economy"       element={<AnimatedRoute><AdminAiEconomy /></AnimatedRoute>} />
+          <Route path="/admin/knowledge-base"   element={<AnimatedRoute><AdminKnowledgeBase /></AnimatedRoute>} />
+          <Route path="/admin/redaction-audit"  element={<AnimatedRoute><AdminRedactionAudit /></AnimatedRoute>} />
+          <Route path="/admin/scholarships"          element={<AnimatedRoute><AdminScholarships /></AnimatedRoute>} />
+          <Route path="/admin/featured-scholarships" element={<AnimatedRoute><AdminFeaturedScholarships /></AnimatedRoute>} />
+          <Route path="/admin/articles"         element={<AnimatedRoute><AdminArticles /></AnimatedRoute>} />
+          <Route path="/admin/community"        element={<AnimatedRoute><AdminCommunity /></AnimatedRoute>} />
+          <Route path="/admin/payments"         element={<AnimatedRoute><AdminPayments /></AnimatedRoute>} />
+          <Route path="/admin/profit-share"     element={<AnimatedRoute><AdminProfitShare /></AnimatedRoute>} />
+          <Route path="/admin/financial-config" element={<AnimatedRoute><AdminFinancialConfig /></AnimatedRoute>} />
+          <Route path="/admin/audit-log"        element={<AnimatedRoute><AdminAuditLog /></AnimatedRoute>} />
           <Route path="/admin/settings"         element={<AdminSettings />} />
         </Route>
 
