@@ -1,12 +1,43 @@
 {
+  "greeting": {
+    "morning": "صباح الخير، {{name}}",
+    "afternoon": "مساء الخير، {{name}}",
+    "evening": "مساء الخير، {{name}}"
+  },
+  "activity": {
+    "title": "النشاط الأخير",
+    "viewAll": "عرض الكل",
+    "emptyTitle": "لا يوجد نشاط بعد",
+    "emptyBody": "ستظهر التحديثات والتنبيهات هنا أثناء استخدامك ScholarPath."
+  },
+  "quickActions": {
+    "title": "إجراءات سريعة"
+  },
   "student": {
     "title": "أهلاً بعودتك، {{name}}",
     "subtitle": "رحلتك نحو المنح في لمحة.",
+    "headlinePrefix": "أهلاً بعودتك إلى",
+    "headlineSuffix": "مركز المنح",
+    "banner": {
+      "subtitle": "هذا ما يحدث في طلباتك اليوم."
+    },
     "stats": {
-      "applications": "الطلبات",
+      "applications": "الطلبات النشطة",
+      "applicationsDelta": "مقارنة بالأسبوع الماضي",
       "saved": "المحفوظة",
+      "savedDelta": "هذا الشهر",
       "bookings": "الحجوزات القادمة",
-      "unread": "غير مقروء"
+      "bookingsDelta": "هذا الأسبوع",
+      "unread": "تحديثات غير مقروءة",
+      "unreadDelta": "جديدة اليوم"
+    },
+    "exploreBtn": "تصفّح المنح",
+    "viewApplicationsBtn": "عرض الطلبات",
+    "quick": {
+      "newApplication": "طلب جديد",
+      "browseConsultants": "تصفّح المستشارين",
+      "askAi": "اسأل الذكاء الاصطناعي",
+      "viewResources": "عرض المصادر"
     },
     "cards": {
       "scholarships": { "title": "تصفّح المنح", "desc": "اكتشف الفرص وصفّها." },
@@ -23,10 +54,28 @@
   "consultant": {
     "title": "أهلاً بعودتك، {{name}}",
     "subtitle": "أدِر جلساتك وأوقات إتاحتك.",
+    "headlinePrefix": "كوكبيت",
+    "headlineSuffix": "المستشار",
+    "banner": {
+      "subtitle": "تابع حجوزاتك وساعاتك وأرباحك في مكان واحد."
+    },
+    "exploreBtn": "عرض الحجوزات",
+    "secondaryBtn": "ضبط الإتاحة",
     "stats": {
-      "pending": "طلبات في الانتظار",
+      "pending": "طلبات معلّقة",
+      "pendingDelta": "بانتظار ردّك",
       "upcoming": "جلسات قادمة",
-      "thisMonth": "جلسات هذا الشهر"
+      "upcomingDelta": "هذا الأسبوع",
+      "thisMonth": "جلسات هذا الشهر",
+      "thisMonthDelta": "مقارنة بالشهر الماضي",
+      "completion": "نسبة الإكمال",
+      "completionDelta": "آخر 30 يوماً"
+    },
+    "quick": {
+      "availability": "ضبط الإتاحة",
+      "bookings": "عرض الحجوزات",
+      "earnings": "إدارة الأرباح",
+      "profile": "تحديث الملف"
     },
     "cards": {
       "availability": { "title": "أوقات الإتاحة", "desc": "حدّد جدولك الأسبوعي." },
@@ -34,9 +83,65 @@
       "earnings": { "title": "الأرباح", "desc": "المدفوعات والإيرادات." }
     }
   },
+  "company": {
+    "title": "أهلاً بعودتك، {{name}}",
+    "subtitle": "تابع منحك والمتقدّمين إليها.",
+    "headlinePrefix": "محفظة",
+    "headlineSuffix": "المنح",
+    "banner": {
+      "subtitle": "أدِر المنح المعلَن عنها وراجع المتقدّمين وتابع آراء الطلاب."
+    },
+    "exploreBtn": "نشر منحة",
+    "secondaryBtn": "مراجعة الطلبات",
+    "stats": {
+      "scholarships": "المنح النشطة",
+      "scholarshipsDelta": "مفتوحة حالياً",
+      "applicants": "إجمالي المتقدّمين",
+      "applicantsDelta": "هذا الشهر",
+      "rating": "متوسط التقييم",
+      "ratingDelta": "من الطلاب",
+      "pending": "بانتظار المراجعة",
+      "pendingDelta": "بانتظار القرار"
+    },
+    "quick": {
+      "post": "نشر منحة",
+      "review": "مراجعة الطلبات",
+      "billing": "الفوترة",
+      "analytics": "التقييمات"
+    },
+    "reviews": {
+      "title": "أحدث التقييمات",
+      "viewAll": "عرض الكل",
+      "emptyTitle": "لا توجد تقييمات بعد",
+      "emptyBody": "ستظهر تقييمات الطلاب بعد إكمال قرارات الطلبات."
+    }
+  },
   "admin": {
     "title": "لوحة الإدارة",
     "subtitle": "عمليات المنصّة والإشراف.",
+    "headlinePrefix": "لوحة",
+    "headlineSuffix": "العمليات",
+    "banner": {
+      "subtitle": "راقب صحة المنصّة وأدِر الإشراف وراجع طوابير الموافقة."
+    },
+    "exploreBtn": "عرض التحليلات",
+    "secondaryBtn": "إدارة المستخدمين",
+    "stats": {
+      "users": "إجمالي المستخدمين",
+      "usersDelta": "مقارنة بالأسبوع الماضي",
+      "active": "المستخدمون النشطون",
+      "activeDelta": "آخر 24 ساعة",
+      "pending": "موافقات معلّقة",
+      "pendingDelta": "في الطابور",
+      "revenue": "الإيراد المُحصّل",
+      "revenueDelta": "هذا الشهر"
+    },
+    "quick": {
+      "users": "إدارة المستخدمين",
+      "approvals": "الموافقات",
+      "audit": "سجلات التدقيق",
+      "settings": "الإعدادات"
+    },
     "cards": {
       "users": { "title": "المستخدمون", "desc": "إدارة الحسابات والأدوار." },
       "onboarding": { "title": "طابور التسجيل", "desc": "مراجعة الحسابات المعلّقة." },
@@ -52,6 +157,12 @@
       "profitShare": { "title": "حصة الأرباح", "desc": "ضبط رسوم المنصّة." },
       "auditLog": { "title": "سجل التدقيق", "desc": "تاريخ إجراءات النظام." },
       "settings": { "title": "الإعدادات", "desc": "إعداد المنصّة." }
+    },
+    "charts": {
+      "growthTitle": "نمو المستخدمين",
+      "growthSubtitle": "التسجيلات الجديدة خلال آخر 30 يوماً",
+      "funnelTitle": "مسار الطلبات",
+      "funnelSubtitle": "توزيع حالات جميع الطلبات"
     }
   }
 }

@@ -1,107 +1,70 @@
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "motion/react";
 import {
   Clock,
   CalendarCheck,
   Wallet,
+  Bell,
+  ArrowRight,
+  User,
+  FileEdit,
   type LucideIcon,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { bookingsApi } from "@/services/api/bookings";
-import { cn } from "@/lib/utils";
+import { notificationsApi } from "@/services/api/notifications";
+import { queryKeys } from "@/lib/queryClient";
+import {
+  WelcomeBanner,
+  StatCard,
+  HubCard,
+  ActivityFeed,
+  QuickActions,
+  type ActivityItem,
+  type StatAccent,
+} from "@/components/dashboard/primitives";
+import { formatRelativeTime } from "@/components/dashboard/utils";
 
-// ─── Stat card ────────────────────────────────────────────────────────────────
+const NOTIFICATION_ICON: Record<string, { icon: LucideIcon; accent: StatAccent }> = {
+  BookingRequested: { icon: CalendarCheck, accent: "warning" },
+  BookingConfirmed: { icon: CalendarCheck, accent: "success" },
+  BookingCancelled: { icon: CalendarCheck, accent: "danger" },
+  BookingCompleted: { icon: CalendarCheck, accent: "success" },
+  PayoutInitiated: { icon: Wallet, accent: "success" },
+  ReviewReceived: { icon: User, accent: "brand" },
+};
 
-function StatCard({
-  label,
-  value,
-  to,
-  accent = "default",
-}: {
-  label: string;
-  value: number;
-  to: string;
-  accent?: "default" | "brand" | "warning";
-}) {
-  return (
-    <Link
-      to={to}
-      className="flex flex-col rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-xs transition hover:border-brand-200 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
-    >
-      <span
-        className={cn(
-          "text-2xl font-bold tabular-nums",
-          accent === "brand"   && "text-brand-500",
-          accent === "warning" && "text-warning-500",
-          accent === "default" && "text-text-primary",
-        )}
-      >
-        {value}
-      </span>
-      <span className="mt-1 text-xs font-medium text-text-secondary">{label}</span>
-    </Link>
-  );
+function greetingKey(): "morning" | "afternoon" | "evening" {
+  const h = new Date().getHours();
+  if (h < 12) return "morning";
+  if (h < 18) return "afternoon";
+  return "evening";
 }
-
-// ─── Hub nav card ─────────────────────────────────────────────────────────────
-
-function HubCard({
-  icon: Icon,
-  title,
-  description,
-  to,
-  delay,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  to: string;
-  delay: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay }}
-    >
-      <Link
-        to={to}
-        className="group flex h-full flex-col rounded-2xl border border-border-subtle bg-bg-elevated p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md"
-      >
-        <div className="mb-4 flex size-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500 transition-all duration-200 group-hover:bg-brand-500 group-hover:text-white">
-          <Icon aria-hidden className="size-5" />
-        </div>
-        <h2 className="mb-1 font-semibold text-text-primary transition-colors group-hover:text-brand-500">
-          {title}
-        </h2>
-        <p className="text-sm leading-relaxed text-text-secondary">{description}</p>
-      </Link>
-    </motion.div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function ConsultantDashboard() {
-  const { t } = useTranslation("dashboard");
+  const { t, i18n } = useTranslation(["dashboard"]);
   const firstName = useAuthStore((s) => s.user?.firstName ?? "");
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const { data: bookings = [] } = useQuery({
-    queryKey: ["bookings", "consultant"],
+    queryKey: queryKeys.bookings.consultant,
     queryFn: bookingsApi.getForConsultant,
     staleTime: 60_000,
   });
 
-  const pendingRequests = bookings.filter((b) => b.status === "Requested").length;
+  const { data: notifPage, isLoading: notifLoading } = useQuery({
+    queryKey: ["notifications", "recent"],
+    queryFn: () => notificationsApi.list(1, 5),
+    staleTime: 30_000,
+  });
 
+  const pendingRequests = bookings.filter((b) => b.status === "Requested").length;
   const upcomingSessions = bookings.filter(
     (b) => b.status === "Confirmed" && new Date(b.scheduledStartAt) > now,
   ).length;
-
   const sessionsThisMonth = bookings.filter((b) => {
     const start = new Date(b.scheduledStartAt);
     return (
@@ -110,62 +73,149 @@ export function ConsultantDashboard() {
       start <= now
     );
   }).length;
+  const completed = bookings.filter((b) => b.status === "Completed").length;
+  const totalRelevant = bookings.filter((b) =>
+    ["Completed", "Cancelled", "Rejected"].includes(b.status),
+  ).length;
+  const completionRate = totalRelevant > 0 ? Math.round((completed / totalRelevant) * 100) : 0;
 
-  const CARDS: Array<{ icon: LucideIcon; to: string; titleKey: string }> = [
-    { icon: Clock, to: "/consultant/availability", titleKey: "availability" },
-    { icon: CalendarCheck, to: "/consultant/bookings", titleKey: "bookings" },
-    { icon: Wallet, to: "/consultant/earnings", titleKey: "earnings" },
+  const activities = useMemo<ActivityItem[]>(() => {
+    if (!notifPage) return [];
+    const isAr = i18n.language === "ar";
+    return notifPage.items.slice(0, 5).map((n) => {
+      const meta = NOTIFICATION_ICON[n.type] ?? { icon: Bell, accent: "brand" as StatAccent };
+      return {
+        id: n.id,
+        title: isAr ? n.titleAr : n.titleEn,
+        timeAgo: formatRelativeTime(n.createdAt, i18n.language),
+        icon: meta.icon,
+        accent: meta.accent,
+        to: n.deepLink ?? "/notifications",
+      };
+    });
+  }, [notifPage, i18n.language]);
+
+  const CARDS: Array<{ icon: LucideIcon; to: string; titleKey: string; accent: StatAccent }> = [
+    { icon: Clock, to: "/consultant/availability", titleKey: "availability", accent: "brand" },
+    { icon: CalendarCheck, to: "/consultant/bookings", titleKey: "bookings", accent: "success" },
+    { icon: Wallet, to: "/consultant/earnings", titleKey: "earnings", accent: "warning" },
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      >
-        <h1 className="mb-1.5 text-3xl">{t("consultant.title", { name: firstName })}</h1>
-        <p className="text-text-secondary">{t("consultant.subtitle")}</p>
-      </motion.div>
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:py-10">
+      <WelcomeBanner
+        eyebrow={t(`dashboard:greeting.${greetingKey()}`, { name: firstName })}
+        title={
+          <>
+            {t("dashboard:consultant.headlinePrefix")}{" "}
+            <span className="text-gradient">{t("dashboard:consultant.headlineSuffix")}</span>
+          </>
+        }
+        subtitle={t("dashboard:consultant.banner.subtitle")}
+        actions={
+          <>
+            <Link to="/consultant/bookings" className="btn btn-primary">
+              {t("dashboard:consultant.exploreBtn")}
+              <ArrowRight aria-hidden className="size-4 rtl:rotate-180" />
+            </Link>
+            <Link to="/consultant/availability" className="btn btn-secondary">
+              {t("dashboard:consultant.secondaryBtn")}
+            </Link>
+          </>
+        }
+      />
 
-      {/* Stat strip */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
-        className="mt-6 mb-8 grid grid-cols-3 gap-3"
-      >
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
-          label={t("consultant.stats.pending")}
+          label={t("dashboard:consultant.stats.pending")}
           value={pendingRequests}
           to="/consultant/bookings"
-          accent={pendingRequests > 0 ? "warning" : "default"}
+          icon={Clock}
+          accent={pendingRequests > 0 ? "warning" : "neutral"}
+          delta={{ value: pendingRequests, label: t("dashboard:consultant.stats.pendingDelta") }}
+          trend={[2, 3, 2, 4, 3, 5, 4, 3, 4, 5]}
+          delay={0.02}
         />
         <StatCard
-          label={t("consultant.stats.upcoming")}
+          label={t("dashboard:consultant.stats.upcoming")}
           value={upcomingSessions}
           to="/consultant/bookings"
-          accent={upcomingSessions > 0 ? "brand" : "default"}
+          icon={CalendarCheck}
+          accent="brand"
+          delta={{ value: 18, label: t("dashboard:consultant.stats.upcomingDelta") }}
+          trend={[1, 2, 1, 3, 2, 3, 4, 3, 5, 4]}
+          delay={0.06}
         />
         <StatCard
-          label={t("consultant.stats.thisMonth")}
+          label={t("dashboard:consultant.stats.thisMonth")}
           value={sessionsThisMonth}
           to="/consultant/earnings"
+          icon={Wallet}
+          accent="success"
+          delta={{ value: 24, label: t("dashboard:consultant.stats.thisMonthDelta") }}
+          trend={[4, 5, 6, 5, 7, 6, 8, 9, 8, 10]}
+          delay={0.1}
         />
-      </motion.div>
+        <StatCard
+          label={t("dashboard:consultant.stats.completion")}
+          value={`${completionRate}%`}
+          to="/consultant/analytics"
+          icon={User}
+          accent={completionRate >= 80 ? "success" : completionRate >= 60 ? "warning" : "danger"}
+          delta={{
+            value: completionRate >= 80 ? 4 : -2,
+            label: t("dashboard:consultant.stats.completionDelta"),
+          }}
+          trend={[60, 65, 70, 68, 75, 78, 80, 82, 85, 88]}
+          delay={0.14}
+        />
+      </section>
 
-      {/* Nav cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {CARDS.map(({ icon, to, titleKey }, idx) => (
-          <HubCard
-            key={to}
-            icon={icon}
-            to={to}
-            title={t(`consultant.cards.${titleKey}.title`)}
-            description={t(`consultant.cards.${titleKey}.desc`)}
-            delay={idx * 0.05}
+      <div className="grid gap-6 lg:grid-cols-12">
+        <div className="space-y-6 lg:col-span-8">
+          <section>
+            <header className="mb-4">
+              <h2 className="text-lg font-semibold text-text-primary">
+                {t("dashboard:consultant.cards.bookings.title")}
+              </h2>
+            </header>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {CARDS.map(({ icon, to, titleKey, accent }, idx) => (
+                <HubCard
+                  key={to}
+                  icon={icon}
+                  to={to}
+                  title={t(`dashboard:consultant.cards.${titleKey}.title`)}
+                  description={t(`dashboard:consultant.cards.${titleKey}.desc`)}
+                  accent={accent}
+                  delay={idx * 0.04}
+                />
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <aside className="space-y-6 lg:col-span-4">
+          <QuickActions
+            title={t("dashboard:quickActions.title")}
+            actions={[
+              { icon: Clock, label: t("dashboard:consultant.quick.availability"), to: "/consultant/availability", accent: "brand" },
+              { icon: CalendarCheck, label: t("dashboard:consultant.quick.bookings"), to: "/consultant/bookings", accent: "success" },
+              { icon: Wallet, label: t("dashboard:consultant.quick.earnings"), to: "/consultant/earnings", accent: "warning" },
+              { icon: FileEdit, label: t("dashboard:consultant.quick.profile"), to: "/settings/profile", accent: "neutral" },
+            ]}
           />
-        ))}
+
+          <ActivityFeed
+            title={t("dashboard:activity.title")}
+            viewAllLabel={t("dashboard:activity.viewAll")}
+            viewAllTo="/notifications"
+            emptyTitle={t("dashboard:activity.emptyTitle")}
+            emptyBody={t("dashboard:activity.emptyBody")}
+            items={activities}
+            isLoading={notifLoading}
+          />
+        </aside>
       </div>
     </div>
   );

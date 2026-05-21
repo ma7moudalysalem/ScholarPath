@@ -1,12 +1,43 @@
 {
+  "greeting": {
+    "morning": "Good morning, {{name}}",
+    "afternoon": "Good afternoon, {{name}}",
+    "evening": "Good evening, {{name}}"
+  },
+  "activity": {
+    "title": "Recent activity",
+    "viewAll": "View all",
+    "emptyTitle": "No activity yet",
+    "emptyBody": "Updates and alerts will appear here as you use ScholarPath."
+  },
+  "quickActions": {
+    "title": "Quick actions"
+  },
   "student": {
     "title": "Welcome back, {{name}}",
     "subtitle": "Your scholarship journey at a glance.",
+    "headlineSuffix": "scholarship hub",
+    "headlinePrefix": "Welcome back to your",
+    "banner": {
+      "subtitle": "Here's what's happening with your applications today."
+    },
     "stats": {
-      "applications": "Applications",
-      "saved": "Saved",
+      "applications": "Active applications",
+      "applicationsDelta": "vs last week",
+      "saved": "Bookmarked",
+      "savedDelta": "this month",
       "bookings": "Upcoming bookings",
-      "unread": "Unread"
+      "bookingsDelta": "this week",
+      "unread": "Unread updates",
+      "unreadDelta": "new today"
+    },
+    "exploreBtn": "Browse Scholarships",
+    "viewApplicationsBtn": "View Applications",
+    "quick": {
+      "newApplication": "New Application",
+      "browseConsultants": "Browse Consultants",
+      "askAi": "Ask AI",
+      "viewResources": "View Resources"
     },
     "cards": {
       "scholarships": { "title": "Browse scholarships", "desc": "Discover and filter opportunities." },
@@ -23,10 +54,28 @@
   "consultant": {
     "title": "Welcome back, {{name}}",
     "subtitle": "Manage your sessions and availability.",
+    "headlinePrefix": "Your",
+    "headlineSuffix": "advisor cockpit",
+    "banner": {
+      "subtitle": "Track your bookings, hours, and earnings in one place."
+    },
+    "exploreBtn": "View Bookings",
+    "secondaryBtn": "Set Availability",
     "stats": {
       "pending": "Pending requests",
+      "pendingDelta": "awaiting your reply",
       "upcoming": "Upcoming sessions",
-      "thisMonth": "Sessions this month"
+      "upcomingDelta": "this week",
+      "thisMonth": "Sessions this month",
+      "thisMonthDelta": "vs last month",
+      "completion": "Completion rate",
+      "completionDelta": "last 30 days"
+    },
+    "quick": {
+      "availability": "Set Availability",
+      "bookings": "View Bookings",
+      "earnings": "Manage Earnings",
+      "profile": "Update Profile"
     },
     "cards": {
       "availability": { "title": "Availability", "desc": "Set your weekly schedule." },
@@ -34,9 +83,65 @@
       "earnings": { "title": "Earnings", "desc": "Payouts and revenue." }
     }
   },
+  "company": {
+    "title": "Welcome back, {{name}}",
+    "subtitle": "Track your scholarships and applicant pipeline.",
+    "headlinePrefix": "Your",
+    "headlineSuffix": "scholarship portfolio",
+    "banner": {
+      "subtitle": "Manage listings, review applicants, and watch student feedback in real-time."
+    },
+    "exploreBtn": "Post Scholarship",
+    "secondaryBtn": "Review Applications",
+    "stats": {
+      "scholarships": "Active scholarships",
+      "scholarshipsDelta": "currently open",
+      "applicants": "Total applicants",
+      "applicantsDelta": "this month",
+      "rating": "Average rating",
+      "ratingDelta": "from students",
+      "pending": "Pending review",
+      "pendingDelta": "awaiting decision"
+    },
+    "quick": {
+      "post": "Post Scholarship",
+      "review": "Review Applications",
+      "billing": "Billing",
+      "analytics": "Ratings"
+    },
+    "reviews": {
+      "title": "Recent reviews",
+      "viewAll": "View all",
+      "emptyTitle": "No reviews yet",
+      "emptyBody": "Student reviews appear after you complete application decisions."
+    }
+  },
   "admin": {
     "title": "Admin console",
     "subtitle": "Platform operations and moderation.",
+    "headlinePrefix": "Your",
+    "headlineSuffix": "operations console",
+    "banner": {
+      "subtitle": "Monitor platform health, moderate content, and review queues."
+    },
+    "exploreBtn": "View Analytics",
+    "secondaryBtn": "User Management",
+    "stats": {
+      "users": "Total users",
+      "usersDelta": "vs last week",
+      "active": "Active users",
+      "activeDelta": "last 24h",
+      "pending": "Pending approvals",
+      "pendingDelta": "in queue",
+      "revenue": "Revenue captured",
+      "revenueDelta": "this month"
+    },
+    "quick": {
+      "users": "User Management",
+      "approvals": "Approvals",
+      "audit": "Audit Logs",
+      "settings": "Settings"
+    },
     "cards": {
       "users": { "title": "Users", "desc": "Manage accounts and roles." },
       "onboarding": { "title": "Onboarding queue", "desc": "Review pending accounts." },
@@ -52,6 +157,12 @@
       "profitShare": { "title": "Profit share", "desc": "Configure platform fees." },
       "auditLog": { "title": "Audit log", "desc": "System action history." },
       "settings": { "title": "Settings", "desc": "Platform configuration." }
+    },
+    "charts": {
+      "growthTitle": "User growth",
+      "growthSubtitle": "New signups over the last 30 days",
+      "funnelTitle": "Application funnel",
+      "funnelSubtitle": "Status distribution across all applications"
     }
   }
 }

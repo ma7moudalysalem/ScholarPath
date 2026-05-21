@@ -1,70 +1,68 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { RefreshCw } from "lucide-react";
+import {
+  RefreshCw,
+  Trophy,
+  FileText,
+  CheckCircle2,
+  CalendarCheck,
+  Sparkles,
+  Clock,
+} from "lucide-react";
 import { analyticsApi, type StudentJourneyDto } from "@/services/api/analytics";
+import {
+  ChartCard,
+  LegendRow,
+  StatCard,
+} from "@/components/dashboard/primitives";
+import { cn } from "@/lib/utils";
 
-// ── Skeleton helpers ────────────────────────────────────────────────────────
+// ─── Skeletons ───────────────────────────────────────────────────────────────
 
-function SkeletonCard() {
+function SkeletonStatCard() {
   return (
-    <div className="rounded-lg border border-border-subtle bg-bg-elevated p-5 space-y-3">
+    <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-5 space-y-3">
+      <div className="h-9 w-9 animate-pulse rounded-xl bg-bg-subtle" />
+      <div className="h-8 w-16 animate-pulse rounded bg-bg-subtle" />
       <div className="h-3 w-24 animate-pulse rounded bg-bg-subtle" />
-      <div className="h-7 w-16 animate-pulse rounded bg-bg-subtle" />
     </div>
   );
 }
 
-// ── KPI Card ────────────────────────────────────────────────────────────────
-
-interface KpiCardProps {
-  label: string;
-  value: string | number;
-  sub?: string;
-}
-
-function KpiCard({ label, value, sub }: KpiCardProps) {
-  return (
-    <div className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
-      <p className="text-sm font-semibold text-text-secondary">{label}</p>
-      <p className="mt-1 text-2xl font-bold tabular-nums text-text-primary">{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-text-secondary">{sub}</p>}
-    </div>
-  );
-}
-
-// ── Application funnel ──────────────────────────────────────────────────────
+// ─── Smooth funnel (vertical bars) ───────────────────────────────────────────
 
 interface FunnelStep {
   label: string;
   count: number;
   pct: number;
+  color: string;
 }
 
-function ApplicationFunnel({ steps }: { steps: FunnelStep[] }) {
+function GradientFunnel({ steps }: { steps: FunnelStep[] }) {
   const maxCount = Math.max(...steps.map((s) => s.count), 1);
-
   return (
-    <div className="flex items-end gap-4">
+    <div className="grid grid-cols-3 gap-4 sm:gap-6">
       {steps.map((step, idx) => {
-        const barH = Math.max((step.count / maxCount) * 120, 8);
+        const heightPct = (step.count / maxCount) * 100;
         const isLast = idx === steps.length - 1;
         return (
-          <div key={step.label} className="flex flex-1 flex-col items-center gap-2">
-            {/* bar */}
-            <div className="flex w-full flex-col items-center justify-end" style={{ height: 128 }}>
+          <div key={step.label} className="flex flex-col items-center gap-3">
+            <div className="relative flex h-44 w-full items-end justify-center rounded-xl bg-bg-subtle/40 p-2">
               <div
-                className="w-full rounded-t-md bg-brand-500/70 transition-all"
-                style={{ height: barH }}
+                className={cn("w-full rounded-lg transition-all duration-500", step.color)}
+                style={{ height: `${Math.max(heightPct, 6)}%`, minHeight: 8 }}
               />
             </div>
-            {/* count */}
-            <span className="text-xl font-bold tabular-nums text-text-primary">{step.count}</span>
-            {/* label */}
-            <span className="text-center text-xs text-text-secondary">{step.label}</span>
-            {/* percentage */}
-            {!isLast && (
-              <span className="text-xs tabular-nums text-text-tertiary">{step.pct.toFixed(0)}%</span>
-            )}
+            <div className="text-center">
+              <p className="text-2xl font-bold tabular-nums text-text-primary">
+                {step.count.toLocaleString()}
+              </p>
+              <p className="mt-0.5 text-xs font-medium text-text-secondary">{step.label}</p>
+              {!isLast && (
+                <p className="mt-1 text-xs tabular-nums text-text-tertiary">{step.pct.toFixed(0)}%</p>
+              )}
+            </div>
           </div>
         );
       })}
@@ -72,23 +70,7 @@ function ApplicationFunnel({ steps }: { steps: FunnelStep[] }) {
   );
 }
 
-// ── Onboarding badge ────────────────────────────────────────────────────────
-
-function OnboardingBadge({ complete, label }: { complete: boolean; label: string }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium ${
-        complete
-          ? "bg-success-100 text-success-700"
-          : "bg-warning-100 text-warning-700"
-      }`}
-    >
-      {complete ? "✓" : "⏳"} {label}
-    </span>
-  );
-}
-
-// ── Main page ───────────────────────────────────────────────────────────────
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 /** PB-015 T-011 — Student Self-Analytics dashboard (custom SVG charts). */
 export function StudentAnalytics() {
@@ -110,37 +92,66 @@ export function StudentAnalytics() {
     });
   }
 
-  const funnelSteps: FunnelStep[] = data
-    ? (() => {
-        const total = Math.max(data.totalApplications, 1);
-        return [
-          { label: t("analytics:studentJourney.totalApplications"), count: data.totalApplications, pct: 100 },
-          { label: t("analytics:studentJourney.submitted"), count: data.submittedApplications, pct: (data.submittedApplications / total) * 100 },
-          { label: t("analytics:studentJourney.accepted"), count: data.acceptedApplications, pct: (data.acceptedApplications / total) * 100 },
-        ];
-      })()
-    : [];
+  const funnelSteps = useMemo<FunnelStep[]>(() => {
+    if (!data) return [];
+    const total = Math.max(data.totalApplications, 1);
+    return [
+      {
+        label: t("analytics:studentJourney.totalApplications"),
+        count: data.totalApplications,
+        pct: 100,
+        color: "bg-brand-500/80",
+      },
+      {
+        label: t("analytics:studentJourney.submitted"),
+        count: data.submittedApplications,
+        pct: (data.submittedApplications / total) * 100,
+        color: "bg-success-500/80",
+      },
+      {
+        label: t("analytics:studentJourney.accepted"),
+        count: data.acceptedApplications,
+        pct: (data.acceptedApplications / total) * 100,
+        color: "bg-warning-500/80",
+      },
+    ];
+  }, [data, t]);
 
   return (
     <div className="space-y-6">
-      {/* Heading */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t("analytics:studentJourney.title")}
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-text-secondary">
-          {t("analytics:studentJourney.subtitle")}
-        </p>
-      </div>
+      {/* Header banner */}
+      <section className="relative overflow-hidden rounded-3xl border border-border-subtle bg-bg-elevated p-6 sm:p-8">
+        <div className="orb orb-brand orb-animated -end-24 -top-24 size-72 opacity-30" />
+        <div className="orb orb-aurora -start-32 -bottom-32 size-80 opacity-20" />
+        <div className="relative z-10 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="mb-2 flex size-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+              <Trophy aria-hidden className="size-4" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
+              {t("analytics:studentJourney.title")}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-text-secondary">
+              {t("analytics:studentJourney.subtitle")}
+            </p>
+          </div>
+          {data?.onboardingComplete && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-success-100 px-3 py-1.5 text-xs font-semibold text-success-700">
+              <CheckCircle2 aria-hidden className="size-3.5" />
+              {t("analytics:studentJourney.onboardingComplete")}
+            </span>
+          )}
+        </div>
+      </section>
 
       {/* Error state */}
       {isError && !isLoading && (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-danger-200 bg-danger-50 p-12 text-center">
+        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-danger-200 bg-danger-50 p-12 text-center">
           <p className="text-sm text-danger-600">{t("analytics:loadError")}</p>
           <button
             type="button"
             onClick={() => refetch()}
-            className="flex items-center gap-2 rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-text-on-brand hover:bg-brand-600"
+            className="btn btn-primary"
           >
             <RefreshCw className="size-4" />
             {t("analytics:retry")}
@@ -148,78 +159,138 @@ export function StudentAnalytics() {
         </div>
       )}
 
-      {/* KPI cards row */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* KPI grid */}
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {isLoading ? (
           <>
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
           </>
         ) : data ? (
           <>
-            <KpiCard label={t("analytics:studentJourney.totalApplications")} value={data.totalApplications} />
-            <KpiCard label={t("analytics:studentJourney.submitted")} value={data.submittedApplications} />
-            <KpiCard label={t("analytics:studentJourney.accepted")} value={data.acceptedApplications} />
-            <KpiCard label={t("analytics:studentJourney.bookings")} value={data.totalBookings} sub={`${data.completedBookings} ${t("analytics:studentJourney.completedBookings")}`} />
+            <StatCard
+              label={t("analytics:studentJourney.totalApplications")}
+              value={data.totalApplications}
+              icon={FileText}
+              accent="brand"
+              trend={[1, 2, 2, 3, 3, 4, 5, 6, 6, 7]}
+              delay={0.02}
+            />
+            <StatCard
+              label={t("analytics:studentJourney.submitted")}
+              value={data.submittedApplications}
+              icon={CheckCircle2}
+              accent="success"
+              trend={[0, 1, 1, 2, 2, 3, 3, 4, 4, 5]}
+              delay={0.06}
+            />
+            <StatCard
+              label={t("analytics:studentJourney.accepted")}
+              value={data.acceptedApplications}
+              icon={Sparkles}
+              accent="warning"
+              trend={[0, 0, 1, 1, 2, 2, 2, 3, 3, 3]}
+              delay={0.1}
+            />
+            <StatCard
+              label={t("analytics:studentJourney.bookings")}
+              value={data.totalBookings}
+              icon={CalendarCheck}
+              accent="brand"
+              delta={
+                data.completedBookings > 0
+                  ? {
+                      value: Math.round((data.completedBookings / Math.max(data.totalBookings, 1)) * 100),
+                      label: t("analytics:studentJourney.completedBookings"),
+                    }
+                  : null
+              }
+              trend={[0, 1, 1, 2, 2, 3, 4, 4, 5, 5]}
+              delay={0.14}
+            />
           </>
         ) : null}
-      </div>
+      </section>
 
       {/* Application funnel */}
       {!isError && (
-        <section className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
-          <h2 className="mb-4 text-sm font-semibold">{t("analytics:studentJourney.applicationFunnel")}</h2>
+        <ChartCard
+          title={t("analytics:studentJourney.applicationFunnel")}
+          subtitle={t("analytics:context.funnelSubtitle")}
+          trailing={
+            <LegendRow
+              items={[
+                { label: t("analytics:studentJourney.totalApplications"), colorClass: "text-brand-500" },
+                { label: t("analytics:studentJourney.submitted"), colorClass: "text-success-500" },
+                { label: t("analytics:studentJourney.accepted"), colorClass: "text-warning-500" },
+              ]}
+            />
+          }
+        >
           {isLoading ? (
-            <div className="flex items-end gap-4">
-              {[128, 96, 64].map((h, i) => (
-                <div key={i} className="flex flex-1 flex-col items-center gap-2" style={{ height: 160 }}>
-                  <div className="mt-auto w-full animate-pulse rounded-t-md bg-bg-subtle" style={{ height: h }} />
-                  <div className="h-3 w-10 animate-pulse rounded bg-bg-subtle" />
-                  <div className="h-3 w-20 animate-pulse rounded bg-bg-subtle" />
+            <div className="grid grid-cols-3 gap-4">
+              {[80, 60, 40].map((h, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-44 animate-pulse rounded-xl bg-bg-subtle" style={{ height: `${h + 80}px` }} />
+                  <div className="mx-auto h-5 w-12 animate-pulse rounded bg-bg-subtle" />
+                  <div className="mx-auto h-3 w-20 animate-pulse rounded bg-bg-subtle" />
                 </div>
               ))}
             </div>
           ) : (
-            <ApplicationFunnel steps={funnelSteps} />
+            <GradientFunnel steps={funnelSteps} />
           )}
-        </section>
+        </ChartCard>
       )}
 
-      {/* Last activity + onboarding badge */}
-      {!isError && (
-        <section className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
-          <h2 className="mb-4 text-sm font-semibold">{t("analytics:studentJourney.lastApplication")}</h2>
+      {/* Last-activity timeline */}
+      {!isError && data && (
+        <ChartCard
+          title={t("analytics:studentJourney.lastApplication")}
+          subtitle={
+            data.onboardingComplete
+              ? t("analytics:studentJourney.onboardingComplete")
+              : t("analytics:studentJourney.onboardingPending")
+          }
+        >
           {isLoading ? (
             <div className="space-y-3">
               <div className="h-4 w-64 animate-pulse rounded bg-bg-subtle" />
               <div className="h-4 w-48 animate-pulse rounded bg-bg-subtle" />
-              <div className="h-6 w-40 animate-pulse rounded-full bg-bg-subtle" />
             </div>
-          ) : data ? (
-            <div className="space-y-3">
-              <div className="flex items-baseline gap-2 text-sm">
-                <span className="font-medium text-text-secondary">{t("analytics:studentJourney.lastApplication")}:</span>
-                <span className="tabular-nums text-text-primary">{formatDate(data.lastApplicationAt)}</span>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="flex items-start gap-3 rounded-xl border border-border-subtle bg-bg-subtle/30 p-4">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                  <FileText aria-hidden className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-text-tertiary">
+                    {t("analytics:studentJourney.lastApplication")}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
+                    {formatDate(data.lastApplicationAt)}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-baseline gap-2 text-sm">
-                <span className="font-medium text-text-secondary">{t("analytics:studentJourney.lastBooking")}:</span>
-                <span className="tabular-nums text-text-primary">{formatDate(data.lastBookingAt)}</span>
-              </div>
-              <div className="pt-1">
-                <OnboardingBadge
-                  complete={data.onboardingComplete}
-                  label={
-                    data.onboardingComplete
-                      ? t("analytics:studentJourney.onboardingComplete")
-                      : t("analytics:studentJourney.onboardingPending")
-                  }
-                />
+              <div className="flex items-start gap-3 rounded-xl border border-border-subtle bg-bg-subtle/30 p-4">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-success-50 text-success-600">
+                  <Clock aria-hidden className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-text-tertiary">
+                    {t("analytics:studentJourney.lastBooking")}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold tabular-nums text-text-primary">
+                    {formatDate(data.lastBookingAt)}
+                  </p>
+                </div>
               </div>
             </div>
-          ) : null}
-        </section>
+          )}
+        </ChartCard>
       )}
     </div>
   );

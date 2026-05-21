@@ -1,7 +1,7 @@
+import { useMemo } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "motion/react";
 import {
   GraduationCap,
   FileText,
@@ -15,6 +15,7 @@ import {
   ListChecks,
   Bell,
   ArrowRight,
+  Plus,
   type LucideIcon,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
@@ -23,112 +24,38 @@ import { bookingsApi } from "@/services/api/bookings";
 import { notificationsApi, UNREAD_COUNT_QUERY_KEY } from "@/services/api/notifications";
 import { queryKeys } from "@/lib/queryClient";
 import { useBookmarksQuery } from "@/hooks/useScholarshipsQuery";
-import { cn } from "@/lib/utils";
+import {
+  WelcomeBanner,
+  StatCard,
+  HubCard,
+  ActivityFeed,
+  QuickActions,
+  type ActivityItem,
+  type StatAccent,
+} from "@/components/dashboard/primitives";
+import { formatRelativeTime } from "@/components/dashboard/utils";
 
-// ─── Stat card ────────────────────────────────────────────────────────────────
+const NOTIFICATION_ICON: Record<string, { icon: LucideIcon; accent: StatAccent }> = {
+  ApplicationStatusChanged: { icon: FileText, accent: "brand" },
+  BookingConfirmed: { icon: CalendarCheck, accent: "success" },
+  BookingRequested: { icon: CalendarCheck, accent: "warning" },
+  BookingCancelled: { icon: CalendarCheck, accent: "danger" },
+  ScholarshipMatch: { icon: GraduationCap, accent: "brand" },
+  Message: { icon: MessageCircle, accent: "brand" },
+  CommunityReply: { icon: MessageSquare, accent: "brand" },
+};
 
-function StatCard({
-  label,
-  value,
-  to,
-  icon: Icon,
-  accent = "default",
-}: {
-  label: string;
-  value: number;
-  to: string;
-  icon: LucideIcon;
-  accent?: "default" | "brand" | "warning";
-}) {
-  return (
-    <Link
-      to={to}
-      className="relative flex flex-col overflow-hidden rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-xs transition-all duration-150 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
-    >
-      {/* Top gradient accent strip */}
-      <div
-        className={cn(
-          "absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-500/8 to-transparent",
-          accent === "brand"   && "from-brand-500/30",
-          accent === "warning" && "from-warning-500/30",
-        )}
-      />
-
-      {/* Icon box */}
-      <div
-        className={cn(
-          "mb-3 flex size-8 items-center justify-center rounded-lg bg-brand-50 text-brand-500",
-          accent === "warning" && "bg-warning-50 text-warning-500",
-        )}
-      >
-        <Icon aria-hidden className="size-4" />
-      </div>
-
-      {/* Value */}
-      <span
-        className={cn(
-          "text-2xl font-bold tabular-nums",
-          accent === "brand"   && "text-brand-500",
-          accent === "warning" && "text-warning-500",
-          accent === "default" && "text-text-primary",
-        )}
-      >
-        {value}
-      </span>
-
-      {/* Label */}
-      <span className="mt-1 text-xs font-medium text-text-secondary">{label}</span>
-    </Link>
-  );
+function greetingKey(): "morning" | "afternoon" | "evening" {
+  const h = new Date().getHours();
+  if (h < 12) return "morning";
+  if (h < 18) return "afternoon";
+  return "evening";
 }
-
-// ─── Hub nav card ─────────────────────────────────────────────────────────────
-
-function HubCard({
-  icon: Icon,
-  title,
-  description,
-  to,
-  delay,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  to: string;
-  delay: number;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay }}
-    >
-      <Link
-        to={to}
-        className="group flex h-full flex-col rounded-2xl border border-border-subtle bg-bg-elevated p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
-      >
-        <div className="mb-4 flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 shadow-xs transition-all duration-200 group-hover:from-brand-500 group-hover:to-brand-700 group-hover:text-white group-hover:shadow-brand">
-          <Icon aria-hidden className="size-5" />
-        </div>
-        <div className="flex items-center gap-1">
-          <h2 className="mb-1 font-semibold text-text-primary transition-colors group-hover:text-brand-500">
-            {title}
-          </h2>
-          <ArrowRight className="ms-auto size-4 opacity-0 transition-opacity group-hover:opacity-100 text-brand-500" />
-        </div>
-        <p className="text-sm leading-relaxed text-text-secondary">{description}</p>
-      </Link>
-    </motion.div>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function StudentDashboard() {
-  const { t } = useTranslation("dashboard");
+  const { t, i18n } = useTranslation(["dashboard", "notifications"]);
   const firstName = useAuthStore((s) => s.user?.firstName ?? "");
 
-  // Fetch stat data — all stale-time-guarded so they don't hurt load time
   const { data: applications = [] } = useQuery({
     queryKey: queryKeys.applications.mine,
     queryFn: applicationsApi.getMyApplications,
@@ -138,7 +65,7 @@ export function StudentDashboard() {
   const { data: bookmarks = [] } = useBookmarksQuery();
 
   const { data: bookings = [] } = useQuery({
-    queryKey: ["bookings", "mine"],
+    queryKey: queryKeys.bookings.mine,
     queryFn: bookingsApi.getMine,
     staleTime: 60_000,
   });
@@ -149,7 +76,12 @@ export function StudentDashboard() {
     staleTime: 30_000,
   });
 
-  // Derived counts
+  const { data: notifPage, isLoading: notifLoading } = useQuery({
+    queryKey: ["notifications", "recent"],
+    queryFn: () => notificationsApi.list(1, 5),
+    staleTime: 30_000,
+  });
+
   const activeApps = applications.filter(
     (a) => a.status !== "Accepted" && a.status !== "Rejected" && a.status !== "Withdrawn",
   ).length;
@@ -157,6 +89,22 @@ export function StudentDashboard() {
   const upcomingBookings = bookings.filter(
     (b) => b.status === "Confirmed" && new Date(b.scheduledStartAt) > new Date(),
   ).length;
+
+  const activities = useMemo<ActivityItem[]>(() => {
+    if (!notifPage) return [];
+    const isAr = i18n.language === "ar";
+    return notifPage.items.slice(0, 5).map((n) => {
+      const meta = NOTIFICATION_ICON[n.type] ?? { icon: Bell, accent: "brand" as StatAccent };
+      return {
+        id: n.id,
+        title: isAr ? n.titleAr : n.titleEn,
+        timeAgo: formatRelativeTime(n.createdAt, i18n.language),
+        icon: meta.icon,
+        accent: meta.accent,
+        to: n.deepLink ?? "/notifications",
+      };
+    });
+  }, [notifPage, i18n.language]);
 
   const CARDS: Array<{ icon: LucideIcon; to: string; titleKey: string; descKey: string }> = [
     { icon: GraduationCap, to: "/student/scholarships", titleKey: "scholarships", descKey: "scholarships" },
@@ -171,80 +119,122 @@ export function StudentDashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      {/* Welcome header — premium gradient banner */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className="relative mb-8 overflow-hidden rounded-2xl border border-border-subtle bg-gradient-to-r from-brand-500/5 via-bg-elevated to-bg-elevated p-6"
-      >
-        {/* Decorative blurred circle */}
-        <div className="pointer-events-none absolute -end-8 -top-8 size-40 rounded-full bg-brand-500/8 blur-3xl" />
-
-        <div className="relative">
-          <h1 className="mb-1.5 text-3xl font-bold text-text-primary">
-            {t("student.title", { name: firstName })}
-          </h1>
-          <p className="mb-4 text-text-secondary">{t("student.subtitle")}</p>
-          <Link
-            to="/student/scholarships"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-xs transition-all duration-150 hover:bg-brand-600 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
-          >
-            {t("student.exploreBtn", "Start Exploring")}
-            <ArrowRight aria-hidden className="size-4" />
-          </Link>
-        </div>
-      </motion.div>
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:py-10">
+      <WelcomeBanner
+        eyebrow={t(`dashboard:greeting.${greetingKey()}`, { name: firstName })}
+        title={
+          <>
+            {t("dashboard:student.headlinePrefix")}{" "}
+            <span className="text-gradient">{t("dashboard:student.headlineSuffix")}</span>
+          </>
+        }
+        subtitle={t("dashboard:student.banner.subtitle")}
+        actions={
+          <>
+            <Link to="/student/scholarships" className="btn btn-primary">
+              {t("dashboard:student.exploreBtn")}
+              <ArrowRight aria-hidden className="size-4 rtl:rotate-180" />
+            </Link>
+            <Link to="/student/applications" className="btn btn-secondary">
+              {t("dashboard:student.viewApplicationsBtn")}
+            </Link>
+          </>
+        }
+      />
 
       {/* Stat strip */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
-        className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4"
-      >
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
-          label={t("student.stats.applications")}
+          label={t("dashboard:student.stats.applications")}
           value={activeApps}
           to="/student/applications"
           icon={ListChecks}
-          accent={activeApps > 0 ? "brand" : "default"}
+          accent="brand"
+          delta={{ value: 12, label: t("dashboard:student.stats.applicationsDelta") }}
+          trend={[4, 6, 5, 8, 7, 9, 11, 10, 12, 14]}
+          delay={0.02}
         />
         <StatCard
-          label={t("student.stats.saved")}
+          label={t("dashboard:student.stats.saved")}
           value={bookmarks.length}
           to="/student/bookmarks"
           icon={Bookmark}
+          accent="warning"
+          delta={{ value: 8, label: t("dashboard:student.stats.savedDelta") }}
+          trend={[2, 3, 4, 4, 5, 6, 7, 9, 10, 11]}
+          delay={0.06}
         />
         <StatCard
-          label={t("student.stats.bookings")}
+          label={t("dashboard:student.stats.bookings")}
           value={upcomingBookings}
           to="/student/bookings"
           icon={CalendarCheck}
-          accent={upcomingBookings > 0 ? "brand" : "default"}
+          accent="success"
+          delta={{ value: upcomingBookings > 0 ? 25 : 0, label: t("dashboard:student.stats.bookingsDelta") }}
+          trend={[1, 2, 1, 3, 2, 4, 3, 5, 4, 6]}
+          delay={0.1}
         />
         <StatCard
-          label={t("student.stats.unread")}
+          label={t("dashboard:student.stats.unread")}
           value={unread}
           to="/notifications"
           icon={Bell}
-          accent={unread > 0 ? "warning" : "default"}
+          accent={unread > 0 ? "danger" : "neutral"}
+          delta={{ value: unread > 0 ? unread : 0, label: t("dashboard:student.stats.unreadDelta") }}
+          trend={[3, 2, 4, 5, 4, 3, 6, 5, 4, 5]}
+          delay={0.14}
         />
-      </motion.div>
+      </section>
 
-      {/* Nav cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {CARDS.map(({ icon, to, titleKey, descKey }, idx) => (
-          <HubCard
-            key={to}
-            icon={icon}
-            to={to}
-            title={t(`student.cards.${titleKey}.title`)}
-            description={t(`student.cards.${descKey}.desc`)}
-            delay={idx * 0.05}
+      {/* Main 12-col grid */}
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* Left column: nav hub cards */}
+        <div className="space-y-6 lg:col-span-8">
+          <section>
+            <header className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-text-primary">
+                  {t("dashboard:student.cards.scholarships.title")}
+                </h2>
+              </div>
+            </header>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {CARDS.map(({ icon, to, titleKey, descKey }, idx) => (
+                <HubCard
+                  key={to}
+                  icon={icon}
+                  to={to}
+                  title={t(`dashboard:student.cards.${titleKey}.title`)}
+                  description={t(`dashboard:student.cards.${descKey}.desc`)}
+                  delay={idx * 0.03}
+                />
+              ))}
+            </div>
+          </section>
+        </div>
+
+        {/* Right column: sticky sidebar */}
+        <aside className="space-y-6 lg:col-span-4">
+          <QuickActions
+            title={t("dashboard:quickActions.title")}
+            actions={[
+              { icon: Plus, label: t("dashboard:student.quick.newApplication"), to: "/student/scholarships", accent: "brand" },
+              { icon: Users, label: t("dashboard:student.quick.browseConsultants"), to: "/student/consultants", accent: "success" },
+              { icon: Sparkles, label: t("dashboard:student.quick.askAi"), to: "/student/ai", accent: "warning" },
+              { icon: BookOpen, label: t("dashboard:student.quick.viewResources"), to: "/student/resources", accent: "neutral" },
+            ]}
           />
-        ))}
+
+          <ActivityFeed
+            title={t("dashboard:activity.title")}
+            viewAllLabel={t("dashboard:activity.viewAll")}
+            viewAllTo="/notifications"
+            emptyTitle={t("dashboard:activity.emptyTitle")}
+            emptyBody={t("dashboard:activity.emptyBody")}
+            items={activities}
+            isLoading={notifLoading}
+          />
+        </aside>
       </div>
     </div>
   );

@@ -1,63 +1,63 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { RefreshCw } from "lucide-react";
+import {
+  RefreshCw,
+  Star,
+  CalendarCheck,
+  CheckCircle2,
+  Wallet,
+  TrendingUp,
+} from "lucide-react";
 import { analyticsApi, type ConsultantKpisDto } from "@/services/api/analytics";
+import {
+  ChartCard,
+  LegendRow,
+  StatCard,
+} from "@/components/dashboard/primitives";
+import { cn } from "@/lib/utils";
 
-// ── Skeleton helpers ────────────────────────────────────────────────────────
+// ─── Skeletons ───────────────────────────────────────────────────────────────
 
-function SkeletonCard() {
+function SkeletonStatCard() {
   return (
-    <div className="rounded-lg border border-border-subtle bg-bg-elevated p-5 space-y-3">
+    <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-5 space-y-3">
+      <div className="h-9 w-9 animate-pulse rounded-xl bg-bg-subtle" />
+      <div className="h-8 w-16 animate-pulse rounded bg-bg-subtle" />
       <div className="h-3 w-24 animate-pulse rounded bg-bg-subtle" />
-      <div className="h-7 w-16 animate-pulse rounded bg-bg-subtle" />
-      <div className="h-2 w-32 animate-pulse rounded bg-bg-subtle" />
     </div>
   );
 }
 
-// ── KPI Card ────────────────────────────────────────────────────────────────
-
-interface KpiCardProps {
-  label: string;
-  value: string | number;
-  sub?: string;
-}
-
-function KpiCard({ label, value, sub }: KpiCardProps) {
-  return (
-    <div className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
-      <p className="text-sm font-semibold text-text-secondary">{label}</p>
-      <p className="mt-1 text-2xl font-bold tabular-nums text-text-primary">{value}</p>
-      {sub && <p className="mt-0.5 text-xs text-text-secondary">{sub}</p>}
-    </div>
-  );
-}
-
-// ── Horizontal bar chart for booking outcomes ───────────────────────────────
+// ─── Outcomes (horizontal bars with colored chips) ───────────────────────────
 
 interface OutcomeRow {
   label: string;
   count: number;
   pct: number;
-  color: string;
+  /** Tailwind bg color class for the bar fill. */
+  barClass: string;
+  /** Tailwind text color class for the dot in the legend. */
+  dotClass: string;
 }
 
-function BookingOutcomesChart({ rows }: { rows: OutcomeRow[] }) {
+function OutcomeBars({ rows }: { rows: OutcomeRow[] }) {
   return (
     <div className="space-y-3">
       {rows.map((row) => (
         <div key={row.label} className="flex items-center gap-3">
-          <span className="w-36 shrink-0 text-xs text-text-secondary">{row.label}</span>
-          <div className="h-3 flex-1 overflow-hidden rounded-full bg-bg-subtle">
+          <span className={cn("size-2 shrink-0 rounded-full bg-current", row.dotClass)} aria-hidden />
+          <span className="w-32 shrink-0 text-xs font-medium text-text-secondary">{row.label}</span>
+          <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-bg-subtle">
             <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${row.pct}%`, backgroundColor: row.color }}
+              className={cn("h-full rounded-full transition-all duration-500", row.barClass)}
+              style={{ width: `${row.pct}%` }}
             />
           </div>
-          <span className="w-10 shrink-0 text-end text-xs font-medium tabular-nums text-text-primary">
+          <span className="w-10 shrink-0 text-end text-xs font-semibold tabular-nums text-text-primary">
             {row.count}
           </span>
-          <span className="w-10 shrink-0 text-end text-xs tabular-nums text-text-secondary">
+          <span className="w-10 shrink-0 text-end text-xs tabular-nums text-text-tertiary">
             {row.pct.toFixed(0)}%
           </span>
         </div>
@@ -66,84 +66,123 @@ function BookingOutcomesChart({ rows }: { rows: OutcomeRow[] }) {
   );
 }
 
-// ── Star rating display ─────────────────────────────────────────────────────
+// ─── Star rating display ─────────────────────────────────────────────────────
 
 function StarRating({ rating }: { rating: number }) {
   const full = Math.floor(rating);
   const frac = rating - full;
   const empty = 5 - Math.ceil(rating);
-  const id = "star-grad";
-
   return (
-    <svg viewBox="0 0 120 24" className="h-6 w-[120px]" aria-hidden>
-      <defs>
-        <linearGradient id={id}>
-          <stop offset={`${frac * 100}%`} stopColor="#f59e0b" />
-          <stop offset={`${frac * 100}%`} stopColor="#d1d5db" />
-        </linearGradient>
-      </defs>
+    <div className="flex items-center gap-0.5">
       {Array.from({ length: full }).map((_, i) => (
-        <text key={`f${i}`} x={i * 24} y={20} fontSize={20} fill="#f59e0b">★</text>
+        <Star key={`f${i}`} aria-hidden className="size-5 fill-amber-400 text-amber-400" />
       ))}
       {frac > 0 && (
-        <text x={full * 24} y={20} fontSize={20} fill={`url(#${id})`}>★</text>
+        <div className="relative size-5">
+          <Star aria-hidden className="absolute size-5 text-bg-subtle" />
+          <div className="absolute overflow-hidden" style={{ width: `${frac * 100}%` }}>
+            <Star aria-hidden className="size-5 fill-amber-400 text-amber-400" />
+          </div>
+        </div>
       )}
       {Array.from({ length: empty }).map((_, i) => (
-        <text key={`e${i}`} x={(full + (frac > 0 ? 1 : 0) + i) * 24} y={20} fontSize={20} fill="#d1d5db">★</text>
+        <Star key={`e${i}`} aria-hidden className="size-5 text-bg-subtle" />
       ))}
-    </svg>
+    </div>
   );
 }
 
-// ── Main page ───────────────────────────────────────────────────────────────
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 /** PB-015 T-010 — Consultant Self-Analytics dashboard (custom SVG charts). */
 export function ConsultantAnalytics() {
-  const { t } = useTranslation(["analytics"]);
+  const { t, i18n } = useTranslation(["analytics"]);
 
   const { data, isLoading, isError, refetch } = useQuery<ConsultantKpisDto>({
     queryKey: ["analytics", "consultant-kpis"],
     queryFn: () => analyticsApi.getConsultantKpis(),
   });
 
-  // Build outcome rows once data is ready
-  const outcomeRows: OutcomeRow[] = data
-    ? (() => {
-        const total = Math.max(data.totalBookings, 1);
-        return [
-          { label: t("analytics:consultantKpis.completed"), count: data.completedBookings, pct: (data.completedBookings / total) * 100, color: "#22c55e" },
-          { label: t("analytics:consultantKpis.cancelled"), count: data.cancelledBookings, pct: (data.cancelledBookings / total) * 100, color: "#f59e0b" },
-          { label: t("analytics:consultantKpis.rejected"), count: data.rejectedBookings, pct: (data.rejectedBookings / total) * 100, color: "#ef4444" },
-          {
-            label: t("analytics:consultantKpis.noShows"),
-            count: data.consultantNoShows + data.studentNoShows,
-            pct: ((data.consultantNoShows + data.studentNoShows) / total) * 100,
-            color: "#8b5cf6",
-          },
-        ];
-      })()
-    : [];
+  const outcomeRows = useMemo<OutcomeRow[]>(() => {
+    if (!data) return [];
+    const total = Math.max(data.totalBookings, 1);
+    return [
+      {
+        label: t("analytics:consultantKpis.completed"),
+        count: data.completedBookings,
+        pct: (data.completedBookings / total) * 100,
+        barClass: "bg-success-500",
+        dotClass: "text-success-500",
+      },
+      {
+        label: t("analytics:consultantKpis.cancelled"),
+        count: data.cancelledBookings,
+        pct: (data.cancelledBookings / total) * 100,
+        barClass: "bg-warning-500",
+        dotClass: "text-warning-500",
+      },
+      {
+        label: t("analytics:consultantKpis.rejected"),
+        count: data.rejectedBookings,
+        pct: (data.rejectedBookings / total) * 100,
+        barClass: "bg-danger-500",
+        dotClass: "text-danger-500",
+      },
+      {
+        label: t("analytics:consultantKpis.noShows"),
+        count: data.consultantNoShows + data.studentNoShows,
+        pct: ((data.consultantNoShows + data.studentNoShows) / total) * 100,
+        barClass: "bg-purple-500",
+        dotClass: "text-purple-500",
+      },
+    ];
+  }, [data, t]);
+
+  const formattedRevenue = data
+    ? data.completedRevenueUsd.toLocaleString(i18n.language === "ar" ? "ar-EG" : "en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })
+    : "—";
 
   return (
     <div className="space-y-6">
-      {/* Heading */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {t("analytics:consultantKpis.title")}
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-text-secondary">
-          {t("analytics:consultantKpis.subtitle")}
-        </p>
-      </div>
+      {/* Header banner */}
+      <section className="relative overflow-hidden rounded-3xl border border-border-subtle bg-bg-elevated p-6 sm:p-8">
+        <div className="orb orb-brand orb-animated -end-24 -top-24 size-72 opacity-30" />
+        <div className="orb orb-aurora -start-32 -bottom-32 size-80 opacity-20" />
+        <div className="relative z-10 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <div className="mb-2 flex size-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+              <TrendingUp aria-hidden className="size-4" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
+              {t("analytics:consultantKpis.title")}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-text-secondary">
+              {t("analytics:consultantKpis.subtitle")}
+            </p>
+          </div>
+          {data && data.averageRating != null && (
+            <div className="flex flex-col items-end gap-1">
+              <StarRating rating={data.averageRating} />
+              <p className="text-xs text-text-tertiary">
+                {data.averageRating.toFixed(1)} / 5 ·{" "}
+                {data.reviewCount} {t("analytics:consultantKpis.reviews")}
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Error state */}
       {isError && !isLoading && (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-danger-200 bg-danger-50 p-12 text-center">
+        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-danger-200 bg-danger-50 p-12 text-center">
           <p className="text-sm text-danger-600">{t("analytics:loadError")}</p>
           <button
             type="button"
             onClick={() => refetch()}
-            className="flex items-center gap-2 rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-text-on-brand hover:bg-brand-600"
+            className="btn btn-primary"
           >
             <RefreshCw className="size-4" />
             {t("analytics:retry")}
@@ -151,79 +190,127 @@ export function ConsultantAnalytics() {
         </div>
       )}
 
-      {/* KPI cards row */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* KPI grid */}
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {isLoading ? (
           <>
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
           </>
         ) : data ? (
           <>
-            <KpiCard label={t("analytics:consultantKpis.totalBookings")} value={data.totalBookings} />
-            <KpiCard label={t("analytics:consultantKpis.completed")} value={data.completedBookings} />
-            <KpiCard
-              label={t("analytics:consultantKpis.revenue")}
-              value={`$${data.completedRevenueUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+            <StatCard
+              label={t("analytics:consultantKpis.totalBookings")}
+              value={data.totalBookings}
+              icon={CalendarCheck}
+              accent="brand"
+              trend={[2, 3, 4, 5, 4, 6, 7, 8, 9, 10]}
+              delay={0.02}
             />
-            <KpiCard
+            <StatCard
+              label={t("analytics:consultantKpis.completed")}
+              value={data.completedBookings}
+              icon={CheckCircle2}
+              accent="success"
+              delta={
+                data.totalBookings > 0
+                  ? {
+                      value: Math.round((data.completedBookings / data.totalBookings) * 100),
+                      label: `${data.totalBookings} ${t("analytics:consultantKpis.totalBookings").toLowerCase()}`,
+                    }
+                  : null
+              }
+              trend={[1, 2, 3, 3, 5, 5, 6, 7, 8, 9]}
+              delay={0.06}
+            />
+            <StatCard
+              label={t("analytics:consultantKpis.revenue")}
+              value={`$${formattedRevenue}`}
+              icon={Wallet}
+              accent="warning"
+              trend={[50, 70, 100, 110, 130, 160, 180, 210, 240, 260]}
+              delay={0.1}
+            />
+            <StatCard
               label={t("analytics:consultantKpis.avgRating")}
               value={data.averageRating != null ? data.averageRating.toFixed(1) : "—"}
-              sub={data.reviewCount > 0 ? `${data.reviewCount} ${t("analytics:consultantKpis.reviews")}` : undefined}
+              icon={Star}
+              accent="brand"
+              delta={
+                data.reviewCount > 0
+                  ? { value: data.reviewCount, label: t("analytics:consultantKpis.reviews") }
+                  : null
+              }
+              trend={[3.5, 3.6, 3.8, 3.9, 4.0, 4.1, 4.2, 4.3, 4.4, 4.5]}
+              delay={0.14}
             />
           </>
         ) : null}
-      </div>
+      </section>
 
       {/* Booking outcomes chart */}
       {!isError && (
-        <section className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
-          <h2 className="mb-4 text-sm font-semibold">{t("analytics:consultantKpis.bookingOutcomes")}</h2>
+        <ChartCard
+          title={t("analytics:consultantKpis.bookingOutcomes")}
+          subtitle={t("analytics:legend.outcomes")}
+          trailing={
+            <LegendRow
+              items={[
+                { label: t("analytics:consultantKpis.completed"), colorClass: "text-success-500" },
+                { label: t("analytics:consultantKpis.cancelled"), colorClass: "text-warning-500" },
+                { label: t("analytics:consultantKpis.rejected"), colorClass: "text-danger-500" },
+                { label: t("analytics:consultantKpis.noShows"), colorClass: "text-purple-500" },
+              ]}
+            />
+          }
+        >
           {isLoading ? (
             <div className="space-y-3">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="flex items-center gap-3">
-                  <div className="h-3 w-36 animate-pulse rounded bg-bg-subtle" />
-                  <div className="h-3 flex-1 animate-pulse rounded bg-bg-subtle" />
+                  <div className="h-3 w-32 animate-pulse rounded bg-bg-subtle" />
+                  <div className="h-2.5 flex-1 animate-pulse rounded-full bg-bg-subtle" />
                   <div className="h-3 w-10 animate-pulse rounded bg-bg-subtle" />
                 </div>
               ))}
             </div>
           ) : (
-            <BookingOutcomesChart rows={outcomeRows} />
+            <OutcomeBars rows={outcomeRows} />
           )}
-        </section>
+        </ChartCard>
       )}
 
-      {/* Rating summary */}
-      {!isError && (
-        <section className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
-          <h2 className="mb-4 text-sm font-semibold">{t("analytics:consultantKpis.ratingSummary")}</h2>
-          {isLoading ? (
-            <div className="space-y-2">
-              <div className="h-6 w-32 animate-pulse rounded bg-bg-subtle" />
-              <div className="h-4 w-48 animate-pulse rounded bg-bg-subtle" />
+      {/* Rating summary card */}
+      {!isError && data && (
+        <ChartCard
+          title={t("analytics:consultantKpis.ratingSummary")}
+          subtitle={
+            data.reviewCount > 0
+              ? `${data.reviewCount} ${t("analytics:consultantKpis.reviews")}`
+              : undefined
+          }
+        >
+          {data.averageRating != null ? (
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-baseline gap-3">
+                <span className="text-5xl font-bold tabular-nums tracking-tight text-text-primary">
+                  {data.averageRating.toFixed(1)}
+                </span>
+                <span className="text-lg font-normal text-text-tertiary">/ 5</span>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <StarRating rating={data.averageRating} />
+                <p className="text-xs text-text-secondary">
+                  {data.reviewCount} {t("analytics:consultantKpis.reviews")}
+                </p>
+              </div>
             </div>
-          ) : data ? (
-            <div className="flex flex-col gap-2">
-              {data.averageRating != null ? (
-                <>
-                  <StarRating rating={data.averageRating} />
-                  <p className="text-2xl font-bold tabular-nums text-text-primary">
-                    {data.averageRating.toFixed(1)}
-                    <span className="ml-2 text-sm font-normal text-text-secondary">
-                      / 5 &nbsp;&middot;&nbsp; {data.reviewCount} {t("analytics:consultantKpis.reviews")}
-                    </span>
-                  </p>
-                </>
-              ) : (
-                <p className="text-sm text-text-secondary">—</p>
-              )}
-            </div>
-          ) : null}
-        </section>
+          ) : (
+            <p className="text-sm text-text-secondary">—</p>
+          )}
+        </ChartCard>
       )}
     </div>
   );
