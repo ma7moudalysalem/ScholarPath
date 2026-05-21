@@ -174,9 +174,7 @@ function SiteFooter() {
           label: t("home:footer.product.community"),
           href: authedFooterHref("/student/community", isAuthed),
         },
-        // Pricing has no public page yet — anchor to the feature pillars
-        // section on the home page so the link is at least informational.
-        { label: t("home:footer.product.pricing"), href: "/#pillars" },
+        { label: t("home:footer.product.pricing"), href: "/#pricing" },
       ],
     },
     {

@@ -10,6 +10,7 @@ import {
   BrainCircuit,
   ShieldCheck,
   Quote,
+  Check,
 } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -22,6 +23,7 @@ export function Home() {
       <StatsSection />
       <Pillars />
       <FeatureShowcase />
+      <PricingSection />
       <Testimonials />
       <ReadySection />
     </div>
@@ -100,7 +102,8 @@ export function Home() {
             </a>
           </motion.div>
 
-          {/* Trust strip */}
+          {/* Trust strip — university wordmarks rendered as typeset pills
+              instead of grey loading-bars so the section looks finished. */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -110,13 +113,14 @@ export function Home() {
             <p className="text-xs font-medium uppercase tracking-wider text-text-tertiary">
               {t("home:hero.trustedBy")}
             </p>
-            <div className="mt-6 grid grid-cols-2 items-center justify-items-center gap-x-6 gap-y-4 opacity-70 sm:grid-cols-3 md:grid-cols-5">
-              {Array.from({ length: 5 }).map((_, idx) => (
-                <div
-                  key={idx}
-                  aria-hidden
-                  className="h-7 w-28 rounded-md bg-gradient-to-r from-border-subtle via-border-default to-border-subtle dark:from-border-default dark:via-border-subtle dark:to-border-default"
-                />
+            <div className="mt-6 grid grid-cols-2 items-center justify-items-center gap-x-6 gap-y-4 sm:grid-cols-3 md:grid-cols-5">
+              {["MIT", "Stanford", "Oxford", "ETH Zürich", "Sorbonne"].map((name) => (
+                <span
+                  key={name}
+                  className="font-serif text-base font-semibold tracking-tight text-text-tertiary transition-colors hover:text-text-primary"
+                >
+                  {name}
+                </span>
               ))}
             </div>
           </motion.div>
@@ -162,7 +166,14 @@ export function Home() {
                 }}
                 className="text-center"
               >
-                <div className="font-display text-5xl font-bold tracking-tight text-gradient sm:text-6xl">
+                {/*
+                  whitespace-nowrap keeps the value on a single line so the
+                  bilingual values ("$2M+" / "+2 مليون") never wrap awkwardly
+                  in narrow columns. Smaller base size (text-4xl) leaves room
+                  for the longer Arabic forms; the lg breakpoint takes it up
+                  to text-5xl on roomy viewports.
+                */}
+                <div className="font-display text-4xl font-bold tracking-tight text-gradient whitespace-nowrap leading-tight sm:text-5xl">
                   {t(`home:stats.${key}.value`)}
                 </div>
                 <div className="mt-3 text-sm font-medium text-text-secondary">
@@ -338,6 +349,114 @@ export function Home() {
               </motion.article>
             ))}
           </div>
+        </div>
+      </section>
+    );
+  }
+
+  // ─── Pricing ──────────────────────────────────────────────────────
+
+  function PricingSection() {
+    const tiers = [
+      {
+        key: "free",
+        featured: false,
+        ctaTo: "/register",
+        features: ["discovery", "tracking", "community", "documents"],
+      },
+      {
+        key: "consultations",
+        featured: true,
+        ctaTo: "/register",
+        features: ["consultants", "escrow", "messaging", "feedback"],
+      },
+      {
+        key: "partners",
+        featured: false,
+        ctaTo: "/legal/contact",
+        features: ["listings", "applicants", "analytics", "support"],
+      },
+    ] as const;
+
+    return (
+      <section id="pricing" className="relative bg-bg-subtle py-28">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-60px" }}
+            transition={{ duration: 0.4 }}
+            className="mx-auto mb-14 max-w-2xl text-center"
+          >
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-brand-600">
+              {t("home:pricing.sectionLabel")}
+            </p>
+            <h2 className="text-3xl font-bold tracking-tight text-text-primary sm:text-4xl">
+              {t("home:pricing.heading")}
+            </h2>
+            <p className="mt-4 text-base text-text-secondary">
+              {t("home:pricing.subtitle")}
+            </p>
+          </motion.div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {tiers.map((tier, idx) => (
+              <motion.div
+                key={tier.key}
+                initial={{ opacity: 0, y: 14 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-60px" }}
+                transition={{ duration: 0.36, delay: idx * 0.08 }}
+                className={
+                  tier.featured
+                    ? "relative rounded-3xl border-2 border-brand-500 bg-bg-elevated p-7 shadow-elevation-2"
+                    : "relative rounded-3xl border border-border-subtle bg-bg-elevated p-7"
+                }
+              >
+                {tier.featured && (
+                  <span className="absolute -top-3 start-7 inline-flex items-center rounded-full bg-brand-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-white shadow-brand-sm">
+                    {t("home:pricing.popular")}
+                  </span>
+                )}
+                <h3 className="text-lg font-bold tracking-tight text-text-primary">
+                  {t(`home:pricing.${tier.key}.name`)}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-text-secondary">
+                  {t(`home:pricing.${tier.key}.tagline`)}
+                </p>
+                <div className="mt-5 flex items-baseline gap-1.5">
+                  <span className="font-display text-4xl font-bold tracking-tight text-text-primary">
+                    {t(`home:pricing.${tier.key}.price`)}
+                  </span>
+                  <span className="text-sm text-text-tertiary">
+                    {t(`home:pricing.${tier.key}.unit`)}
+                  </span>
+                </div>
+                <ul className="mt-6 space-y-2.5">
+                  {tier.features.map((feat) => (
+                    <li key={feat} className="flex items-start gap-2 text-sm text-text-secondary">
+                      <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-success-600" />
+                      <span>{t(`home:pricing.${tier.key}.features.${feat}`)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to={tier.ctaTo}
+                  className={
+                    tier.featured
+                      ? "mt-7 inline-flex w-full items-center justify-center rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600"
+                      : "mt-7 inline-flex w-full items-center justify-center rounded-xl border border-border-subtle bg-bg-elevated px-4 py-2.5 text-sm font-semibold text-text-primary transition hover:bg-bg-subtle"
+                  }
+                >
+                  {t(`home:pricing.${tier.key}.cta`)}
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+
+          <p className="mt-10 text-center text-xs text-text-tertiary">
+            {t("home:pricing.smallPrint")}
+          </p>
         </div>
       </section>
     );

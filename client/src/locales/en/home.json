@@ -65,6 +65,52 @@
       "cta": "Browse opportunities"
     }
   },
+  "pricing": {
+    "sectionLabel": "Pricing",
+    "heading": "Honest, transparent pricing.",
+    "subtitle": "Students browse and apply for free. You only pay when you book a consultant — and consultants set their own rates.",
+    "popular": "Most popular",
+    "smallPrint": "Payments are held in Stripe escrow until the session concludes. Full refund up to 24 hours before — partial refund inside 24 hours.",
+    "free": {
+      "name": "For students",
+      "tagline": "Discover, track, and apply — completely free.",
+      "price": "Free",
+      "unit": "forever",
+      "cta": "Create your account",
+      "features": {
+        "discovery": "AI-matched scholarship recommendations",
+        "tracking": "Kanban tracking for in-app and external applications",
+        "community": "Moderated community and 1:1 chat",
+        "documents": "Secure document vault and AI writing tools"
+      }
+    },
+    "consultations": {
+      "name": "Consultant sessions",
+      "tagline": "Book verified advisors when you need expert eyes.",
+      "price": "$35",
+      "unit": "per session, starting from",
+      "cta": "Browse consultants",
+      "features": {
+        "consultants": "Vetted consultants across countries and specialisations",
+        "escrow": "Stripe-held funds — released only after the session",
+        "messaging": "Real-time chat with your consultant before and after",
+        "feedback": "Transparent reviews from every previous student"
+      }
+    },
+    "partners": {
+      "name": "Scholarship partners",
+      "tagline": "Foundations, universities, and corporate sponsors.",
+      "price": "Custom",
+      "unit": "tailored to your scale",
+      "cta": "Talk to us",
+      "features": {
+        "listings": "Unlimited verified scholarship listings",
+        "applicants": "Integrated applicant review and shortlisting",
+        "analytics": "Analytics on reach, applicants, and acceptance",
+        "support": "Dedicated partnerships manager"
+      }
+    }
+  },
   "testimonials": {
     "sectionLabel": "Loved by students",
     "heading": "Stories from students just like you.",
