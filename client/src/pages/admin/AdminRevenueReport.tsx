@@ -20,17 +20,22 @@ import { cn } from "@/lib/utils";
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
+// Format a Date as YYYY-MM-DD in UTC. The backend treats the from/to range in
+// UTC, so emitting local-zone components here would shift the window by a day
+// for callers east/west of UTC.
 function isoDate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
 
 function defaultRange(): { from: string; to: string } {
-  const to = new Date();
-  const from = new Date();
-  from.setDate(from.getDate() - 89); // last 90 days inclusive
+  // Anchor at today UTC so we don't miss / double-count edge days.
+  const now = new Date();
+  const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const from = new Date(to);
+  from.setUTCDate(from.getUTCDate() - 89); // last 90 days inclusive
   return { from: isoDate(from), to: isoDate(to) };
 }
 
@@ -346,15 +351,16 @@ export function AdminRevenueReport() {
               icon={TrendingUp}
               accent="success"
             />
+            {/*
+              StatCard's `delta` field appends a "%" suffix to its `value`, so
+              passing a raw refund count (e.g. 5) rendered as "5%". Drop the
+              delta — the refund-count column already shows the count.
+            */}
             <StatCard
               label={t("analytics:adminRevenue.kpi.refundRate")}
               value={fmtPct(data.refundRate)}
               icon={RotateCcw}
               accent={data.refundRate > 0.05 ? "danger" : "neutral"}
-              delta={{
-                value: data.refundCount,
-                label: t("analytics:adminRevenue.kpi.refundCount"),
-              }}
             />
             <StatCard
               label={t("analytics:adminRevenue.kpi.growth")}
