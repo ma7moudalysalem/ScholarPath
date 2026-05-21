@@ -12,7 +12,7 @@ using ScholarPath.Application.Chat.Commands.SendMessage;
 
 namespace ScholarPath.UnitTests.Chat;
 
-public class SendMessageCommandHandlerTests : IDisposable
+public sealed class SendMessageCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();

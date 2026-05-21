@@ -11,7 +11,7 @@ using ScholarPath.Application.CompanyReviews.Commands.RefundCompanyReview;
 
 namespace ScholarPath.UnitTests.CompanyReviews;
 
-public class RefundCompanyReviewCommandHandlerTests : IDisposable
+public sealed class RefundCompanyReviewCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly IStripeService _stripe = Substitute.For<IStripeService>();
