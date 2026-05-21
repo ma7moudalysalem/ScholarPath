@@ -42,6 +42,10 @@
   "nav": {
     "profile": "Open profile"
   },
+  "password": {
+    "show": "Show password",
+    "hide": "Hide password"
+  },
   "role": {
     "switcher": "Role",
     "student": "Student",

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { motion } from "motion/react";
 import { Check, GraduationCap } from "lucide-react";
 import { authApi } from "@/services/api/auth";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 // Shared chrome for split-screen auth pages (Login + Register).
 // Left brand panel renders only on lg+ screens; right form panel is always
@@ -262,19 +263,34 @@ export function AuthField({
       >
         {label}
       </label>
-      <input
-        id={id}
-        type={type}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        aria-invalid={error ? "true" : "false"}
-        className={[
-          "block w-full rounded-xl border bg-bg-elevated px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary",
-          "transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20",
-          error ? "border-danger-400" : "border-border-default",
-        ].join(" ")}
-        {...inputProps}
-      />
+      {type === "password" ? (
+        <PasswordInput
+          id={id}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          aria-invalid={error ? "true" : "false"}
+          className={[
+            "block w-full rounded-xl border bg-bg-elevated px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary",
+            "transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20",
+            error ? "border-danger-400" : "border-border-default",
+          ].join(" ")}
+          {...inputProps}
+        />
+      ) : (
+        <input
+          id={id}
+          type={type}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          aria-invalid={error ? "true" : "false"}
+          className={[
+            "block w-full rounded-xl border bg-bg-elevated px-4 py-3 text-sm text-text-primary placeholder:text-text-tertiary",
+            "transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20",
+            error ? "border-danger-400" : "border-border-default",
+          ].join(" ")}
+          {...inputProps}
+        />
+      )}
       {hint && !error && (
         <p className="text-xs text-text-tertiary">{hint}</p>
       )}

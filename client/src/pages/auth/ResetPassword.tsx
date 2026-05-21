@@ -8,6 +8,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { authApi } from "@/services/api/auth";
 import { apiErrorMessage } from "@/services/api/client";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 // Mirrors the Register schema so a user does not bump into stricter rules
 // at password reset than they faced at sign-up.
@@ -112,9 +113,8 @@ const Field = ({
     <label htmlFor={id} className="text-sm font-medium text-text-primary">
       {label}
     </label>
-    <input
+    <PasswordInput
       id={id}
-      type="password"
       className={[
         "w-full rounded-md border bg-bg-elevated px-3 py-2 text-sm focus:border-brand-500 focus:outline-none",
         error ? "border-danger-400" : "border-border-default",

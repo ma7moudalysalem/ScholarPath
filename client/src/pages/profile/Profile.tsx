@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { motion } from "motion/react";
@@ -408,9 +409,8 @@ function ChangePasswordSection() {
           description={t("profile:password.currentDesc")}
           htmlFor="pw-current"
         >
-          <input
+          <PasswordInput
             id="pw-current"
-            type="password"
             required
             autoComplete="current-password"
             className="input-premium"
@@ -423,9 +423,8 @@ function ChangePasswordSection() {
           description={t("profile:password.newDesc")}
           htmlFor="pw-new"
         >
-          <input
+          <PasswordInput
             id="pw-new"
-            type="password"
             required
             autoComplete="new-password"
             className="input-premium"
@@ -437,9 +436,8 @@ function ChangePasswordSection() {
           label={t("profile:password.confirm")}
           htmlFor="pw-confirm"
         >
-          <input
+          <PasswordInput
             id="pw-confirm"
-            type="password"
             required
             autoComplete="new-password"
             className="input-premium"
