@@ -100,9 +100,18 @@ export interface CreateIntentResponse {
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-/** Formats an integer-cents amount as a currency string (e.g. 5000 → "$50.00"). */
-export function formatMoneyCents(cents: number, currency = "USD"): string {
-  return new Intl.NumberFormat("en-US", {
+/**
+ * Formats an integer-cents amount as a currency string (e.g. 5000 → "$50.00").
+ * Pass `locale` (e.g. "ar-EG") to control digit script — when omitted, the
+ * browser default is used. Hardcoding "en-US" stripped Arabic-Indic digits for
+ * AR users on the admin payments grid.
+ */
+export function formatMoneyCents(
+  cents: number,
+  currency = "USD",
+  locale?: string,
+): string {
+  return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: currency || "USD",
   }).format((cents ?? 0) / 100);
