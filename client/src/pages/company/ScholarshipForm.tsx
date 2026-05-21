@@ -250,6 +250,16 @@ export function ScholarshipForm() {
           onSubmit={(e) => void onSubmit(e)}
           className="space-y-5 rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm sm:p-8"
         >
+          {mode === "create" && (
+            // Company-created listings now flow into the admin moderation
+            // queue (Status=UnderReview) and become Open only after Approve.
+            // Surface that expectation up-front so the company doesn't wonder
+            // why students can't immediately find the listing.
+            <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
+              {t("moderation:companyScholarships.form.reviewNotice")}
+            </div>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               id="titleEn"

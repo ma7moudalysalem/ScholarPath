@@ -157,9 +157,10 @@
       "submitting": "Saving…",
       "cancel": "Cancel",
       "back": "Back",
-      "createSuccess": "Scholarship created.",
+      "createSuccess": "Scholarship submitted for admin review.",
       "updateSuccess": "Scholarship updated.",
-      "error": "Could not save the scholarship. Please try again."
+      "error": "Could not save the scholarship. Please try again.",
+      "reviewNotice": "New scholarships are reviewed by an admin before they go live. You can track the status from your scholarships dashboard."
     }
   },
   "scholarshipStatus": {
