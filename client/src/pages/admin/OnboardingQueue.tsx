@@ -33,7 +33,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 
 /** Renders the submitted onboarding profile snapshot — Company or Consultant. */
 function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation(["admin"]);
   const isCompany = row.requestedRole === "Company";
   const isConsultant = row.requestedRole === "Consultant";
 
@@ -41,24 +41,24 @@ function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
     <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
       {isCompany && (
         <>
-          <Row label="Legal name" value={row.organizationLegalName} />
-          <Row label="Website" value={
+          <Row label={t("admin:onboarding.profile.legalName")} value={row.organizationLegalName} />
+          <Row label={t("admin:onboarding.profile.website")} value={
             row.organizationWebsite ? (
               <a href={row.organizationWebsite} target="_blank" rel="noreferrer"
                 className="text-brand-500 hover:underline">{row.organizationWebsite}</a>
             ) : null
           } />
-          <Row label="Email" value={row.organizationEmail} />
-          <Row label="Country" value={row.organizationCountry} />
-          <Row label="Type" value={row.companyType} />
-          <Row label="Registration #" value={row.organizationRegistrationNumber} />
-          <Row label="Tax #" value={row.organizationTaxNumber} />
-          <Row label="Contact name" value={row.contactPersonFullName} />
-          <Row label="Position" value={row.contactPersonPosition} />
-          <Row label="Phone" value={row.contactPhoneNumber} />
+          <Row label={t("admin:onboarding.profile.orgEmail")} value={row.organizationEmail} />
+          <Row label={t("admin:onboarding.profile.country")} value={row.organizationCountry} />
+          <Row label={t("admin:onboarding.profile.companyType")} value={row.companyType} />
+          <Row label={t("admin:onboarding.profile.registrationNumber")} value={row.organizationRegistrationNumber} />
+          <Row label={t("admin:onboarding.profile.taxNumber")} value={row.organizationTaxNumber} />
+          <Row label={t("admin:onboarding.profile.contactName")} value={row.contactPersonFullName} />
+          <Row label={t("admin:onboarding.profile.contactPosition")} value={row.contactPersonPosition} />
+          <Row label={t("admin:onboarding.profile.phone")} value={row.contactPhoneNumber} />
           {row.companyDescription && (
             <div className="sm:col-span-2 lg:col-span-3">
-              <Row label="Description" value={
+              <Row label={t("admin:onboarding.profile.description")} value={
                 <p className="whitespace-pre-wrap">{row.companyDescription}</p>
               } />
             </div>
@@ -67,21 +67,21 @@ function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
       )}
       {isConsultant && (
         <>
-          <Row label="Title" value={row.professionalTitle} />
-          <Row label="Highest degree" value={row.highestDegree} />
-          <Row label="Field of expertise" value={row.fieldOfExpertise} />
-          <Row label="Years of experience" value={row.yearsOfExperience} />
-          <Row label="Session fee (USD)" value={row.sessionFeeUsd} />
-          <Row label="Session duration (min)" value={row.sessionDurationMinutes} />
-          <Row label="Country" value={row.consultantCountry} />
-          <Row label="Time zone" value={row.timezone} />
-          <Row label="LinkedIn" value={
+          <Row label={t("admin:onboarding.profile.professionalTitle")} value={row.professionalTitle} />
+          <Row label={t("admin:onboarding.profile.highestDegree")} value={row.highestDegree} />
+          <Row label={t("admin:onboarding.profile.fieldOfExpertise")} value={row.fieldOfExpertise} />
+          <Row label={t("admin:onboarding.profile.yearsExperience")} value={row.yearsOfExperience} />
+          <Row label={t("admin:onboarding.profile.sessionFeeUsd")} value={row.sessionFeeUsd} />
+          <Row label={t("admin:onboarding.profile.sessionDurationMinutes")} value={row.sessionDurationMinutes} />
+          <Row label={t("admin:onboarding.profile.country")} value={row.consultantCountry} />
+          <Row label={t("admin:onboarding.profile.timezone")} value={row.timezone} />
+          <Row label={t("admin:onboarding.profile.linkedIn")} value={
             row.linkedInUrl ? (
               <a href={row.linkedInUrl} target="_blank" rel="noreferrer"
                 className="text-brand-500 hover:underline">{row.linkedInUrl}</a>
             ) : null
           } />
-          <Row label="Portfolio" value={
+          <Row label={t("admin:onboarding.profile.portfolio")} value={
             row.portfolioUrl ? (
               <a href={row.portfolioUrl} target="_blank" rel="noreferrer"
                 className="text-brand-500 hover:underline">{row.portfolioUrl}</a>
@@ -89,12 +89,12 @@ function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
           } />
           {row.biography && (
             <div className="sm:col-span-2 lg:col-span-3">
-              <Row label="Bio" value={<p className="whitespace-pre-wrap">{row.biography}</p>} />
+              <Row label={t("admin:onboarding.profile.bio")} value={<p className="whitespace-pre-wrap">{row.biography}</p>} />
             </div>
           )}
           {parseJsonArray(row.expertiseTagsJson).length > 0 && (
             <div className="sm:col-span-2 lg:col-span-3">
-              <Row label="Expertise tags" value={
+              <Row label={t("admin:onboarding.profile.expertiseTags")} value={
                 <div className="flex flex-wrap gap-1.5">
                   {parseJsonArray(row.expertiseTagsJson).map((tag) => (
                     <span key={tag} className="rounded-full bg-brand-500/10 px-2 py-0.5 text-xs text-brand-500">
@@ -107,7 +107,7 @@ function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
           )}
           {parseJsonArray(row.languagesJson).length > 0 && (
             <div className="sm:col-span-2 lg:col-span-3">
-              <Row label="Languages" value={
+              <Row label={t("admin:onboarding.profile.languages")} value={
                 <div className="flex flex-wrap gap-1.5">
                   {parseJsonArray(row.languagesJson).map((lang) => (
                     <span key={lang} className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs">
@@ -247,7 +247,7 @@ export function OnboardingQueue() {
                   <tr className="border-t border-border-subtle hover:bg-bg-subtle/40">
                     <td className="px-4 py-3 font-medium">{u.fullName}</td>
                     <td className="px-4 py-3">{u.email}</td>
-                    <td className="px-4 py-3 text-text-secondary">{u.requestedRole ?? "—"}</td>
+                    <td className="px-4 py-3 text-text-secondary">{u.requestedRole ? t(`common:roles.${u.requestedRole}`, { defaultValue: u.requestedRole }) : "—"}</td>
                     <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(u.createdAt), "yyyy-MM-dd", { locale: dateLocale })}</td>
                     <td className="px-4 py-3 text-end">
                       <div className="inline-flex gap-1.5">
@@ -289,7 +289,7 @@ export function OnboardingQueue() {
                           <OnboardingProfilePanel row={u} />
                           <div>
                             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
-                              {t("admin:onboarding.documents.heading", "Verification documents")}
+                              {t("admin:onboarding.documents.heading")}
                             </h3>
                             <OnboardingDocuments userId={u.userId} />
                           </div>

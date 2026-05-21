@@ -101,8 +101,8 @@ export function UpgradeQueue() {
             {data?.items.map((r: UpgradeRequestRow) => (
               <tr key={r.id} className="border-t border-border-subtle hover:bg-bg-subtle/40">
                 <td className="px-4 py-3 font-medium">{r.userEmail}</td>
-                <td className="px-4 py-3">{r.target}</td>
-                <td className="px-4 py-3">{r.status}</td>
+                <td className="px-4 py-3">{t(`admin:upgrades.target.${r.target}`, { defaultValue: r.target })}</td>
+                <td className="px-4 py-3">{t(`admin:upgrades.status.${r.status}`, { defaultValue: r.status })}</td>
                 <td className="px-4 py-3 text-text-secondary">{r.reason ?? "—"}</td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(r.createdAt), "yyyy-MM-dd", { locale: dateLocale })}</td>
                 <td className="px-4 py-3 text-end">
