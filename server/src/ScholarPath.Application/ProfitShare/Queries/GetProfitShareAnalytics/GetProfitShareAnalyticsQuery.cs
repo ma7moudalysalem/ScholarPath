@@ -32,9 +32,12 @@ public sealed class GetProfitShareAnalyticsQueryHandler(IApplicationDbContext db
         var to = request.To ?? DateTimeOffset.UtcNow;
         var from = request.From ?? to.AddMonths(-12);
 
+        // Include PartiallyRefunded: those rows are still paid out to the
+        // consultant (after the partial-refund payee recompute), so they belong
+        // in profit-share analytics too.
         var rows = await db.Payments
             .AsNoTracking()
-            .Where(p => p.Status == PaymentStatus.Captured
+            .Where(p => (p.Status == PaymentStatus.Captured || p.Status == PaymentStatus.PartiallyRefunded)
                 && p.CapturedAt != null
                 && p.CapturedAt >= from
                 && p.CapturedAt <= to)

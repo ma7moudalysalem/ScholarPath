@@ -148,6 +148,7 @@
       "action": "Action",
       "allActions": "All actions",
       "targetType": "Target type",
+      "targetTypePlaceholder": "User, Scholarship, …",
       "from": "From",
       "to": "To",
       "clear": "Clear filters"

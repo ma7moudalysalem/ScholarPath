@@ -135,6 +135,19 @@ public sealed class RefundPaymentCommandHandler(
             payment.Status = payment.RefundedAmountCents >= payment.AmountCents
                 ? PaymentStatus.Refunded
                 : PaymentStatus.PartiallyRefunded;
+
+            // Recompute payee net so the consultant earns the kept portion minus
+            // the locked-in profit share. Preserves invariant: refunded + payee <= gross.
+            if (payment.Status == PaymentStatus.PartiallyRefunded)
+            {
+                payment.PayeeAmountCents = Math.Max(
+                    0,
+                    payment.AmountCents - payment.RefundedAmountCents - payment.ProfitShareAmountCents);
+            }
+            else
+            {
+                payment.PayeeAmountCents = 0;
+            }
         }
 
         // 4. Persist

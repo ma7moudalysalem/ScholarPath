@@ -20,7 +20,9 @@
     "empty": "Your vault is empty. Upload your first document above.",
     "filterAll": "All categories",
     "count_one": "{{count}} document",
-    "count_other": "{{count}} documents"
+    "count_other": "{{count}} documents",
+    "gridView": "Grid view",
+    "listView": "List view"
   },
   "headers": {
     "name": "File",

@@ -27,8 +27,11 @@ public sealed class StripePayoutJob(
 {
     public async Task RunAsync(CancellationToken ct)
     {
+        // Include PartiallyRefunded — consultant earns the kept portion after
+        // a partial-refund cancel (FR-090). The CancelBooking handler recomputes
+        // PayeeAmountCents to be (gross - refunded - profitShare).
         var pending = await db.Payments
-            .Where(p => p.Status == PaymentStatus.Captured
+            .Where(p => (p.Status == PaymentStatus.Captured || p.Status == PaymentStatus.PartiallyRefunded)
                 && p.PayoutId == null
                 && p.PayeeUserId != null
                 && p.PayeeAmountCents > 0)

@@ -148,6 +148,7 @@
       "action": "الإجراء",
       "allActions": "كل الإجراءات",
       "targetType": "نوع الهدف",
+      "targetTypePlaceholder": "مستخدم، منحة، …",
       "from": "من",
       "to": "إلى",
       "clear": "مسح الفلاتر"

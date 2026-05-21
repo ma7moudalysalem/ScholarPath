@@ -288,7 +288,7 @@ export function Documents() {
             <button
               type="button"
               onClick={() => setView("grid")}
-              aria-label="Grid view"
+              aria-label={t("list.gridView", "Grid view")}
               className={`p-1.5 rounded-md transition-colors ${
                 view === "grid" ? "bg-brand-50 text-brand-600" : "text-text-tertiary hover:text-text-secondary"
               }`}
@@ -298,7 +298,7 @@ export function Documents() {
             <button
               type="button"
               onClick={() => setView("list")}
-              aria-label="List view"
+              aria-label={t("list.listView", "List view")}
               className={`p-1.5 rounded-md transition-colors ${
                 view === "list" ? "bg-brand-50 text-brand-600" : "text-text-tertiary hover:text-text-secondary"
               }`}

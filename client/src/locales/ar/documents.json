@@ -24,7 +24,9 @@
     "count_two": "مستندان",
     "count_few": "{{count}} مستندات",
     "count_many": "{{count}} مستندًا",
-    "count_other": "{{count}} مستند"
+    "count_other": "{{count}} مستند",
+    "gridView": "عرض شبكي",
+    "listView": "عرض قائمة"
   },
   "headers": {
     "name": "الملف",

@@ -126,7 +126,7 @@ export function AuditLogViewer() {
             type="text"
             value={targetType}
             onChange={(e) => { setPage(1); setTargetType(e.target.value); }}
-            placeholder="User, Scholarship, …"
+            placeholder={t("admin:audit.filters.targetTypePlaceholder", "User, Scholarship, …")}
             className="h-10 w-40 rounded-md border border-border-subtle bg-bg-elevated px-3 text-sm"
           />
         </label>

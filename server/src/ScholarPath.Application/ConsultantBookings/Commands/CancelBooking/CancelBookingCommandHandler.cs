@@ -136,6 +136,22 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
                 payment.Status = refund.RefundAmountCents >= payment.AmountCents
                     ? PaymentStatus.Refunded
                     : PaymentStatus.PartiallyRefunded;
+
+                // Recompute payee net after partial refund so the payout job pays
+                // the consultant the kept portion minus the platform's locked-in
+                // profit share. Preserves invariant: refunded + payee <= gross.
+                // (FR-090: partial refund leaves consultant earning the kept half.)
+                if (payment.Status == PaymentStatus.PartiallyRefunded)
+                {
+                    payment.PayeeAmountCents = Math.Max(
+                        0,
+                        payment.AmountCents - payment.RefundedAmountCents - payment.ProfitShareAmountCents);
+                }
+                else
+                {
+                    // Full refund — consultant earns nothing.
+                    payment.PayeeAmountCents = 0;
+                }
             }
             else
             {
