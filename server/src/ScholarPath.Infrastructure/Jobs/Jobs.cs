@@ -86,7 +86,7 @@ public sealed class DeadlineReminderJob(
                             TitleAr = scholarship.TitleAr,
                             Count = daysLeft,
                         },
-                        deepLink: $"/scholarships/{scholarship.Id}",
+                        deepLink: $"/student/scholarships/{scholarship.Id}",
                         idempotencyKey: $"deadline-reminder:{scholarship.Id:N}:{recipientId:N}:{deadlineStamp}",
                         ct).ConfigureAwait(false);
                     sent++;
@@ -167,7 +167,7 @@ public sealed class NotificationDispatcherJob(
                         TitleEn = draft.ScholarshipTitleEn,
                         TitleAr = draft.ScholarshipTitleAr,
                     },
-                    deepLink: $"/applications/{draft.Id}",
+                    deepLink: $"/student/applications/{draft.Id}",
                     idempotencyKey: $"draft-reminder:{draft.Id:N}:{deadlineStamp}",
                     ct).ConfigureAwait(false);
                 sent++;

@@ -85,7 +85,7 @@ public sealed class ApproveResourceCommandHandler(
                 resource.AuthorUserId,
                 NotificationType.ResourceApproved,
                 new NotificationParams { TitleEn = resource.TitleEn, TitleAr = resource.TitleAr },
-                deepLink: $"/resources/{resource.Slug}",
+                deepLink: $"/student/resources/{resource.Slug}",
                 idempotencyKey: $"resource-approved:{resource.Id:N}",
                 ct).ConfigureAwait(false);
         }
