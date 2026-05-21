@@ -15,6 +15,29 @@ export type PowerBiReportType =
   | "ConsultantSelfAnalytics"
   | "StudentSelfAnalytics";
 
+export interface ConsultantKpisDto {
+  totalBookings: number;
+  completedBookings: number;
+  cancelledBookings: number;
+  rejectedBookings: number;
+  consultantNoShows: number;
+  studentNoShows: number;
+  completedRevenueUsd: number;
+  reviewCount: number;
+  averageRating: number | null;
+}
+
+export interface StudentJourneyDto {
+  totalApplications: number;
+  submittedApplications: number;
+  acceptedApplications: number;
+  totalBookings: number;
+  completedBookings: number;
+  lastApplicationAt: string | null;
+  lastBookingAt: string | null;
+  onboardingComplete: boolean;
+}
+
 export const analyticsApi = {
   /** Fetch a short-lived Power BI embed token for the given report type.
    *  Returns null (503) when the workspace is not yet provisioned. */
@@ -36,5 +59,15 @@ export const analyticsApi = {
       }
       throw err;
     }
+  },
+
+  getConsultantKpis: async (): Promise<ConsultantKpisDto> => {
+    const { data } = await apiClient.get<ConsultantKpisDto>("/api/analytics/consultant-kpis");
+    return data;
+  },
+
+  getStudentJourney: async (): Promise<StudentJourneyDto> => {
+    const { data } = await apiClient.get<StudentJourneyDto>("/api/analytics/student-journey");
+    return data;
   },
 };
