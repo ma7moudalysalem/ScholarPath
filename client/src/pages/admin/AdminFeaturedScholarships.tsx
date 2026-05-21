@@ -19,7 +19,7 @@ const MAX_FEATURED = 12;
 // ── Featured list with drag-to-reorder ───────────────────────────────────────
 
 function FeaturedList() {
-  const { t, i18n } = useTranslation(["admin", "common"]);
+  const { t, i18n } = useTranslation(["admin", "common", "moderation"]);
   const isAr = i18n.language.startsWith("ar");
   const dateLocale = isAr ? ar : undefined;
   const qc = useQueryClient();
@@ -209,7 +209,7 @@ function FeaturedList() {
                     : "bg-warning-50 text-warning-600",
                 )}
               >
-                {s.status}
+                {t(`moderation:scholarshipStatus.${s.status}`, { defaultValue: s.status })}
               </span>
 
               {/* Un-feature button */}
