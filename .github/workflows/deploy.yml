@@ -80,6 +80,24 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      # Set the Azure OpenAI connection settings on every deploy so the AI
+      # chat / embeddings keep working without hand-managing App Service
+      # configuration. The two secrets are populated via `gh secret set`
+      # and re-applied here using the same OIDC login. Skipped silently
+      # when the secrets are empty (e.g. a staging environment without an
+      # Azure OpenAI resource).
+      - name: Sync Azure OpenAI app settings
+        if: ${{ secrets.AI_AZURE_OPENAI_ENDPOINT != '' && secrets.AI_AZURE_OPENAI_API_KEY != '' }}
+        run: |
+          az webapp config appsettings set \
+            --name "${{ vars.AZURE_API_APP_NAME }}" \
+            --resource-group "$(az webapp show --name ${{ vars.AZURE_API_APP_NAME }} --query resourceGroup -o tsv)" \
+            --settings \
+              "Ai__Provider=AzureOpenAi" \
+              "Ai__AzureOpenAi__Endpoint=${{ secrets.AI_AZURE_OPENAI_ENDPOINT }}" \
+              "Ai__AzureOpenAi__ApiKey=${{ secrets.AI_AZURE_OPENAI_API_KEY }}" \
+            --output none
+
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
