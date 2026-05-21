@@ -152,10 +152,10 @@ function SiteFooter() {
 
   // Product links lead to authenticated areas — anonymous users go through
   // /login?redirect=… so Login.tsx restores their intent post-auth.
-  // Placeholder routes (Help / Privacy / Terms / Blog / Careers / Contact /
-  // About / Pricing / Guides) don't have dedicated pages yet, so we route
-  // them to either the support mailto or to the in-page #pillars feature
-  // section instead of a dead URL.
+  // Informational pages (Privacy / Terms / Help / About / Contact) have real
+  // routes under `/legal/*`, `/help`, `/about`, `/contact`. We still send a
+  // handful of secondary links (Blog / Careers / Guides / Pricing) to the
+  // most useful adjacent page until dedicated content lands.
   const supportMailto = `mailto:${SUPPORT_EMAIL}`;
 
   const columns = [
@@ -182,19 +182,19 @@ function SiteFooter() {
     {
       heading: t("home:footer.company.heading"),
       links: [
-        { label: t("home:footer.company.about"), href: "/#pillars" },
-        { label: t("home:footer.company.blog"), href: "/#pillars" },
-        { label: t("home:footer.company.careers"), href: supportMailto },
-        { label: t("home:footer.company.contact"), href: supportMailto },
+        { label: t("home:footer.company.about"), href: "/about" },
+        { label: t("home:footer.company.blog"), href: "/about" },
+        { label: t("home:footer.company.careers"), href: "/contact" },
+        { label: t("home:footer.company.contact"), href: "/contact" },
       ],
     },
     {
       heading: t("home:footer.resources.heading"),
       links: [
-        { label: t("home:footer.resources.help"), href: supportMailto },
-        { label: t("home:footer.resources.guides"), href: "/#pillars" },
-        { label: t("home:footer.resources.privacy"), href: supportMailto },
-        { label: t("home:footer.resources.terms"), href: supportMailto },
+        { label: t("home:footer.resources.help"), href: "/help" },
+        { label: t("home:footer.resources.guides"), href: authedFooterHref("/student/resources", isAuthed) },
+        { label: t("home:footer.resources.privacy"), href: "/legal/privacy" },
+        { label: t("home:footer.resources.terms"), href: "/legal/terms" },
       ],
     },
   ];
@@ -264,18 +264,18 @@ function SiteFooter() {
             © {new Date().getFullYear()} {t("common:appName")}. {t("home:footer.rights")}
           </p>
           <div className="flex items-center gap-4">
-            <a
-              href={supportMailto}
+            <Link
+              to="/legal/privacy"
               className="transition hover:text-text-secondary"
             >
               {t("home:footer.resources.privacy")}
-            </a>
-            <a
-              href={supportMailto}
+            </Link>
+            <Link
+              to="/legal/terms"
               className="transition hover:text-text-secondary"
             >
               {t("home:footer.resources.terms")}
-            </a>
+            </Link>
           </div>
         </div>
       </div>

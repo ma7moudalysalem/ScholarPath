@@ -178,7 +178,13 @@ public static partial class DbSeeder
                 OwnerCompanyId = owner,
                 CreatedByAdminId = adminCurated ? adminId : null,
                 Mode = mode,
-                ExternalApplicationUrl = external ? $"https://apply.example.org/{slug}" : null,
+                // Generated scholarships use a Google search URL so the
+                // "Apply on external site" button on the demo dataset always
+                // takes the user to real, relevant results rather than an
+                // IANA placeholder page.
+                ExternalApplicationUrl = external
+                    ? $"https://www.google.com/search?q={Uri.EscapeDataString(titleEn + " scholarship apply")}"
+                    : null,
                 Status = status,
                 Deadline = deadline,
                 OpenedAt = openedAt,

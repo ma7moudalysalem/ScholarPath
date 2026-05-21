@@ -26,6 +26,13 @@ const SsoCallback = lazy(() =>
 );
 const NotFound = lazy(() => import("@/pages/NotFound").then((m) => ({ default: m.NotFound })));
 
+// ── Public informational pages (footer) ───────────────────────────────────────
+const Privacy = lazy(() => import("@/pages/legal/Privacy").then((m) => ({ default: m.Privacy })));
+const Terms = lazy(() => import("@/pages/legal/Terms").then((m) => ({ default: m.Terms })));
+const Help = lazy(() => import("@/pages/legal/Help").then((m) => ({ default: m.Help })));
+const About = lazy(() => import("@/pages/legal/About").then((m) => ({ default: m.About })));
+const Contact = lazy(() => import("@/pages/legal/Contact").then((m) => ({ default: m.Contact })));
+
 // ── PB-009: Resource author management ────────────────────────────────────────
 const AuthorMyResources = lazy(() =>
   import("@/pages/author/MyResources").then((m) => ({ default: m.MyResources })),
@@ -323,6 +330,56 @@ export function AppRouter() {
           element={
             <PublicLayout>
               <SsoCallback />
+            </PublicLayout>
+          }
+        />
+
+        {/* Public informational pages — Privacy / Terms / Help / About / Contact */}
+        <Route
+          path="/legal/privacy"
+          element={
+            <PublicLayout>
+              <AnimatedRoute><Privacy /></AnimatedRoute>
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/legal/terms"
+          element={
+            <PublicLayout>
+              <AnimatedRoute><Terms /></AnimatedRoute>
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/legal/contact"
+          element={
+            <PublicLayout>
+              <AnimatedRoute><Contact /></AnimatedRoute>
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/help"
+          element={
+            <PublicLayout>
+              <AnimatedRoute><Help /></AnimatedRoute>
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <PublicLayout>
+              <AnimatedRoute><About /></AnimatedRoute>
+            </PublicLayout>
+          }
+        />
+        <Route
+          path="/contact"
+          element={
+            <PublicLayout>
+              <AnimatedRoute><Contact /></AnimatedRoute>
             </PublicLayout>
           }
         />

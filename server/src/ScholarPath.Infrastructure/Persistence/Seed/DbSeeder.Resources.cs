@@ -28,6 +28,12 @@ public static partial class DbSeeder
             // Resources already seeded. Back-fill chapters when an earlier run
             // created the resources before chapter seeding existed.
             await SeedResourceChaptersAsync(db, existing, logger, ct).ConfigureAwait(false);
+
+            // Back-fill external video URLs that used the unresolvable
+            // `videos.scholarpath.local` placeholder host. The placeholder
+            // shipped in the original seed and 404s in browsers — swap each
+            // entry for a YouTube search that always resolves.
+            await BackfillVideoUrlsAsync(db, existing, logger, ct).ConfigureAwait(false);
             return existing;
         }
 
@@ -381,7 +387,7 @@ public static partial class DbSeeder
                 DescriptionAr = "درس متقدم مسجل حول التفوق في مقابلات المنح والقبول.",
                 ContentMarkdownEn = ResourceBodies.WebinarInterviewEn,
                 ContentMarkdownAr = ResourceBodies.WebinarInterviewAr,
-                ExternalLinkUrl = "https://videos.scholarpath.local/interview-masterclass",
+                ExternalLinkUrl = "https://www.youtube.com/results?search_query=scholarship+interview+preparation+masterclass",
                 AuthorUserId = users.Consultants[1].Id,
                 AuthorRole = "Consultant",
                 Type = ResourceType.VideoLink,
@@ -402,7 +408,7 @@ public static partial class DbSeeder
                 DescriptionAr = "جلسة مباشرة لمدة 45 دقيقة تستعرض ثلاث بيانات شخصية حقيقية مع إعادة الكتابة.",
                 ContentMarkdownEn = ResourceBodies.WebinarSopEn,
                 ContentMarkdownAr = ResourceBodies.WebinarSopAr,
-                ExternalLinkUrl = "https://videos.scholarpath.local/sop-masterclass",
+                ExternalLinkUrl = "https://www.youtube.com/results?search_query=how+to+write+statement+of+purpose+masters",
                 AuthorUserId = users.Consultants[0].Id,
                 AuthorRole = "Consultant",
                 Type = ResourceType.VideoLink,
@@ -423,7 +429,7 @@ public static partial class DbSeeder
                 DescriptionAr = "مقابلات تجريبية مباشرة مع ملاحظات بنمط الممتحن. مسجلة ومفهرسة للمراجعة الذاتية.",
                 ContentMarkdownEn = ResourceBodies.WorkshopIeltsEn,
                 ContentMarkdownAr = ResourceBodies.WorkshopIeltsAr,
-                ExternalLinkUrl = "https://videos.scholarpath.local/ielts-speaking-workshop",
+                ExternalLinkUrl = "https://www.youtube.com/results?search_query=IELTS+speaking+practice+with+feedback",
                 AuthorUserId = users.Consultants[1].Id,
                 AuthorRole = "Consultant",
                 Type = ResourceType.VideoLink,
@@ -444,7 +450,7 @@ public static partial class DbSeeder
                 DescriptionAr = "ثلاثة طلاب يتشاركون ملاحظاتهم عن السكن والتمويل والثقافة في سنتهم الأولى بألمانيا.",
                 ContentMarkdownEn = ResourceBodies.PanelGermanyEn,
                 ContentMarkdownAr = ResourceBodies.PanelGermanyAr,
-                ExternalLinkUrl = "https://videos.scholarpath.local/panel-germany",
+                ExternalLinkUrl = "https://www.youtube.com/results?search_query=studying+in+germany+as+international+student",
                 AuthorUserId = users.Companies[0].Id,
                 AuthorRole = "Company",
                 Type = ResourceType.VideoLink,
@@ -465,7 +471,7 @@ public static partial class DbSeeder
                 DescriptionAr = "كيفية الجمع بين المنح الجزئية والمساعدات الداخلية والعمل-الدراسة لتمويل الماجستير.",
                 ContentMarkdownEn = ResourceBodies.WebinarFundingEn,
                 ContentMarkdownAr = ResourceBodies.WebinarFundingAr,
-                ExternalLinkUrl = "https://videos.scholarpath.local/funding-masters",
+                ExternalLinkUrl = "https://www.youtube.com/results?search_query=how+to+fund+masters+degree+scholarships",
                 AuthorUserId = users.Companies[1].Id,
                 AuthorRole = "Company",
                 Type = ResourceType.VideoLink,
@@ -486,7 +492,7 @@ public static partial class DbSeeder
                 DescriptionAr = "تسجيل مشاركة شاشة لكتابة بيان شخصي حقيقي من المخطط إلى الفقرة النهائية.",
                 ContentMarkdownEn = ResourceBodies.WalkthroughPsEn,
                 ContentMarkdownAr = ResourceBodies.WalkthroughPsAr,
-                ExternalLinkUrl = "https://videos.scholarpath.local/personal-statement-walkthrough",
+                ExternalLinkUrl = "https://www.youtube.com/results?search_query=personal+statement+writing+walkthrough",
                 AuthorUserId = users.Consultants[2].Id,
                 AuthorRole = "Consultant",
                 Type = ResourceType.VideoLink,
@@ -722,6 +728,50 @@ public static partial class DbSeeder
         db.ResourceChapters.AddRange(chapters);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         logger.LogInformation("Seeded {C} resource chapters", chapters.Count);
+    }
+
+    /// <summary>
+    /// Rewrites any `https://videos.scholarpath.local/...` placeholder video
+    /// URLs left over from earlier seed runs to a YouTube search URL that
+    /// always resolves. The mapping is keyed by slug so each video keeps a
+    /// topical destination instead of a generic search.
+    /// </summary>
+    private static async Task BackfillVideoUrlsAsync(
+        ApplicationDbContext db, IReadOnlyList<Resource> resources, ILogger logger, CancellationToken ct)
+    {
+        // Slug → replacement URL. Anything not in this map but starting with
+        // the placeholder host falls back to a generic scholarship-help search.
+        var replacements = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["webinar-interview-prep-masterclass"] = "https://www.youtube.com/results?search_query=scholarship+interview+preparation+masterclass",
+            ["webinar-standout-statement-of-purpose"] = "https://www.youtube.com/results?search_query=how+to+write+statement+of+purpose+masters",
+            ["workshop-ielts-speaking-practice"] = "https://www.youtube.com/results?search_query=IELTS+speaking+practice+with+feedback",
+            ["panel-life-in-germany"] = "https://www.youtube.com/results?search_query=studying+in+germany+as+international+student",
+            ["webinar-funding-masters-multiple-sources"] = "https://www.youtube.com/results?search_query=how+to+fund+masters+degree+scholarships",
+            ["walkthrough-personal-statement-live"] = "https://www.youtube.com/results?search_query=personal+statement+writing+walkthrough",
+        };
+
+        var fallback = "https://www.youtube.com/results?search_query=scholarship+application+help";
+        var updated = 0;
+
+        foreach (var resource in resources)
+        {
+            if (string.IsNullOrEmpty(resource.ExternalLinkUrl)) continue;
+            if (!resource.ExternalLinkUrl.Contains("videos.scholarpath.local", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            resource.ExternalLinkUrl = replacements.TryGetValue(resource.Slug, out var mapped)
+                ? mapped
+                : fallback;
+            updated++;
+        }
+
+        if (updated > 0)
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            logger.LogInformation(
+                "Back-filled {N} resource video URLs from videos.scholarpath.local placeholders", updated);
+        }
     }
 
     /// <summary>

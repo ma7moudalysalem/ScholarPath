@@ -4,9 +4,10 @@
  * A user's profile photo is served by the backend at a stable per-user URL —
  * `GET /api/profiles/{userId}/photo` — rather than exposed as a raw storage
  * path. The endpoint is anonymous-accessible (photos appear on the public
- * consultant-browse pages) and returns 404 when the user has no photo, so every
- * `<img>` rendered through this helper should pair it with an `onError`
- * fallback to the initials/placeholder.
+ * consultant-browse pages) and never returns a 404: when the user has no
+ * uploaded photo the server synthesises a deterministic SVG initials avatar.
+ * Components can therefore render the `<img>` directly without an `onError`
+ * fallback (we still keep one as a belt-and-braces safety net for offline).
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";

@@ -136,7 +136,7 @@ public static partial class DbSeeder
             {
                 StudentId = users.Students[1].Id, ScholarshipId = Ext(1).Id,
                 Mode = ApplicationMode.External, Status = ApplicationStatus.Applied,
-                ExternalTrackingUrl = "https://global-postdoc.example.org/status",
+                ExternalTrackingUrl = "https://www.google.com/search?q=international+postdoc+mobility+fellowship+application+status",
                 ExternalReferenceId = "EXT-2026-00913",
                 SubmittedAt = now.AddDays(-9),
                 CreatedAt = now.AddDays(-10),

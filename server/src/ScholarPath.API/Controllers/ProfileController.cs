@@ -62,19 +62,17 @@ public sealed class ProfileController(IMediator mediator) : ControllerBase
 
     /// <summary>
     /// Streams a user's profile photo. Anonymous-accessible — profile photos are
-    /// shown on the public consultant-browse pages. Returns 404 when the user has
-    /// no photo.
+    /// shown on the public consultant-browse pages. Never 404s: when the user
+    /// has no uploaded photo, a deterministic SVG initials avatar is returned
+    /// so client code never has to handle a missing image.
     /// </summary>
     [HttpGet("{userId:guid}/photo")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status302Found)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPhoto(Guid userId, CancellationToken ct)
     {
         var photo = await mediator.Send(new GetProfilePhotoQuery(userId), ct);
-        if (photo is null)
-            return NotFound();
 
         // Profile photos rarely change and are addressed by a stable per-user
         // URL — let browsers cache them (the client cache-busts after an upload).

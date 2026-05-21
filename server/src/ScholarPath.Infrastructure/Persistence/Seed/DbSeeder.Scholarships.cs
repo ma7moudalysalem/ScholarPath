@@ -118,6 +118,10 @@ public static partial class DbSeeder
         var existing = await db.Scholarships.ToListAsync(ct).ConfigureAwait(false);
         if (existing.Count >= CatalogueTarget)
         {
+            // Back-fill placeholder external URLs from earlier seed runs so the
+            // "Apply on external site" button always lands on something useful
+            // (we used to point them at example.org / futurefund.org).
+            await BackfillScholarshipUrlsAsync(db, existing, logger, ct).ConfigureAwait(false);
             return existing;
         }
 
@@ -177,7 +181,10 @@ public static partial class DbSeeder
                 CategoryId = business.Id,
                 OwnerCompanyId = futureFund.Id,
                 Mode = ListingMode.ExternalUrl,
-                ExternalApplicationUrl = "https://apply.futurefund.org/bridge-grant",
+                // futurefund.org isn't a real foundation — route the demo to
+                // a Google search that returns useful first-year scholarship
+                // results instead of a dead DNS.
+                ExternalApplicationUrl = "https://www.google.com/search?q=first+year+undergraduate+bridge+scholarship+grant",
                 Status = ScholarshipStatus.Open,
                 Deadline = now.AddDays(30),
                 OpenedAt = now.AddDays(-10),
@@ -338,7 +345,7 @@ public static partial class DbSeeder
                 OwnerCompanyId = null,
                 CreatedByAdminId = users.PrimaryAdmin.Id,
                 Mode = ListingMode.ExternalUrl,
-                ExternalApplicationUrl = "https://global-postdoc.example.org/apply",
+                ExternalApplicationUrl = "https://www.google.com/search?q=international+postdoc+mobility+fellowship+apply",
                 Status = ScholarshipStatus.Open,
                 Deadline = now.AddDays(80),
                 OpenedAt = now.AddDays(-5),
@@ -459,4 +466,40 @@ public static partial class DbSeeder
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         logger.LogInformation("Seeded {N} saved scholarships", saved.Count);
     }
+
+    /// <summary>
+    /// Rewrites placeholder external-application URLs left over from earlier
+    /// seed runs (apply.example.org / global-postdoc.example.org /
+    /// apply.futurefund.org) to Google searches keyed off the scholarship's
+    /// title. Lets the "Apply on external site" CTA always land on a real
+    /// SERP instead of an IANA placeholder page.
+    /// </summary>
+    private static async Task BackfillScholarshipUrlsAsync(
+        ApplicationDbContext db, IReadOnlyList<Scholarship> scholarships, ILogger logger, CancellationToken ct)
+    {
+        var updated = 0;
+        foreach (var s in scholarships)
+        {
+            if (string.IsNullOrEmpty(s.ExternalApplicationUrl)) continue;
+            if (!IsPlaceholderUrl(s.ExternalApplicationUrl)) continue;
+
+            var query = string.IsNullOrWhiteSpace(s.TitleEn) ? s.Slug : s.TitleEn;
+            s.ExternalApplicationUrl = $"https://www.google.com/search?q={Uri.EscapeDataString(query + " scholarship apply")}";
+            updated++;
+        }
+
+        if (updated > 0)
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            logger.LogInformation(
+                "Back-filled {N} scholarship external URLs from RFC2606 placeholders to Google searches", updated);
+        }
+    }
+
+    /// <summary>Detects placeholder hosts that came from the early demo seed.</summary>
+    private static bool IsPlaceholderUrl(string url)
+        => url.Contains("example.org", StringComparison.OrdinalIgnoreCase)
+        || url.Contains("example.com", StringComparison.OrdinalIgnoreCase)
+        || url.Contains("apply.futurefund.org", StringComparison.OrdinalIgnoreCase)
+        || url.Contains("scholarpath.local", StringComparison.OrdinalIgnoreCase);
 }

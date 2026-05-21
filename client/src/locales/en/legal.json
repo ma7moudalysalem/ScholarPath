@@ -1,0 +1,251 @@
+{
+  "lastUpdated": "Last updated {{date}}",
+  "eyebrow": {
+    "legal": "Legal",
+    "support": "Support",
+    "about": "About us"
+  },
+  "privacy": {
+    "title": "Privacy notice",
+    "subtitle": "How ScholarPath collects, uses, and protects your personal information.",
+    "intro": "We built ScholarPath to be a trusted home for your scholarship journey. This notice explains, in plain language, what personal data we collect, why we collect it, who we share it with, and the rights you have over it. We collect only what we need to give you a useful product — and you stay in control of it.",
+    "collect": {
+      "heading": "Information we collect",
+      "body": "When you create an account and use ScholarPath we collect:",
+      "account": "Account details — your name, email address, password (stored hashed), preferred language, and country of residence.",
+      "profile": "Profile information you choose to share — academic background, test scores, expertise tags, languages, and documents you upload to your vault.",
+      "usage": "Usage data — pages you visit, scholarships you bookmark, applications you create, and the timestamps of these actions. This helps us improve matching and detect abuse.",
+      "payment": "Payment information — for bookings or company subscriptions, our payment processor (Stripe) collects card details on our behalf. We never see or store your full card number.",
+      "communications": "Communications — messages you send through the in-app chat, community posts, support emails, and the optional notes attached to bookings."
+    },
+    "use": {
+      "heading": "How we use your information",
+      "body": "We process your data so we can:",
+      "matching": "Power the AI matching engine that ranks scholarships against your profile and surfaces relevant consultants and resources.",
+      "bookings": "Operate the booking flow — confirm sessions with consultants, hold funds in Stripe escrow, and release them after delivery.",
+      "support": "Provide customer support, respond to requests, and notify you about activity on your account.",
+      "safety": "Detect fraud, abuse, and policy violations, and keep the platform safe for everyone.",
+      "legal": "Comply with our legal obligations, including tax, accounting, and regulatory requirements."
+    },
+    "share": {
+      "heading": "Who we share information with",
+      "body": "We share your data only with the parties that need it to make the service work:",
+      "consultants": "Consultants you book — they see the profile information you've made visible and any notes you attached to the booking.",
+      "companies": "Scholarship providers you apply to — when you submit an application, the provider sees the data you chose to attach to it.",
+      "processors": "Trusted processors — Stripe (payments), our cloud provider (Azure), and email delivery (SendGrid). They handle data on our behalf under written contracts.",
+      "legal": "Authorities — when required by law, court order, or to protect the rights and safety of users and the platform."
+    },
+    "security": {
+      "heading": "How we protect your data",
+      "body": "ScholarPath runs on Microsoft Azure with encryption in transit (TLS 1.2+) and at rest. Passwords are salted and hashed with PBKDF2. Access to production data is restricted to a small set of engineers, audited centrally, and protected by multi-factor authentication. We rotate secrets through Azure Key Vault and follow least-privilege principles."
+    },
+    "rights": {
+      "heading": "Your rights",
+      "body": "You can exercise the following rights at any time from Settings → Privacy or by emailing privacy@scholarpath.local:",
+      "access": "Access — request a copy of the personal data we hold about you.",
+      "correct": "Correct — update inaccurate or outdated information.",
+      "delete": "Delete — close your account and have us erase your data, subject to legal retention requirements.",
+      "export": "Export — download your data in a structured, machine-readable format.",
+      "optOut": "Opt out — turn off marketing communications and adjust notification preferences."
+    },
+    "retention": {
+      "heading": "How long we keep data",
+      "body": "We keep account information for as long as your account is active. After deletion we retain the minimum we need to meet legal obligations (tax records, anti-fraud signals) for up to seven years. Backups roll off the same schedule."
+    },
+    "contact": {
+      "heading": "Contact us",
+      "body": "Questions about this notice? Reach our privacy team at privacy@scholarpath.local — we respond within five business days."
+    }
+  },
+  "terms": {
+    "title": "Terms of service",
+    "subtitle": "The agreement between you and ScholarPath when you use the platform.",
+    "intro": "These terms govern your use of ScholarPath. By creating an account you agree to them. They cover what you can expect from us, what we expect from you, how payments work, and the limits of our responsibilities.",
+    "accounts": {
+      "heading": "Your account",
+      "body": "You must be at least 16 years old to create an account. Keep your credentials secure — you are responsible for activity that happens under your login. Tell us right away if you suspect unauthorised access. We may suspend or terminate accounts that breach these terms, that pose a security risk, or that we are required to disable by law."
+    },
+    "acceptableUse": {
+      "heading": "Acceptable use",
+      "body": "Use ScholarPath honestly and respectfully. You agree not to:",
+      "fraud": "Submit false information in your profile, applications, or scholarship listings.",
+      "harassment": "Harass, threaten, or abuse other users, consultants, or staff — in chat, the community forum, or anywhere else on the platform.",
+      "scraping": "Scrape, copy, or systematically extract platform data without our written permission.",
+      "ip": "Upload material that infringes intellectual property rights or breaks the law."
+    },
+    "payments": {
+      "heading": "Payments and fees",
+      "body": "Bookings and company subscriptions are processed by Stripe. Prices are shown clearly before checkout. Funds for consultant sessions are held in escrow and released to the consultant after the session concludes — or refunded to you according to the refund rules below.",
+      "refunds": {
+        "heading": "Refunds",
+        "body": "You can cancel a consultant booking for a full refund up to 24 hours before the scheduled start. Cancellations inside 24 hours are eligible for a partial refund based on whether the consultant has already prepared materials. Disputes raised within 14 days of a session are reviewed by our support team."
+      }
+    },
+    "scholarships": {
+      "heading": "Scholarship listings",
+      "body": "We verify every scholarship listed on ScholarPath, but eligibility decisions and final awards belong to the scholarship provider, not to us. We make no guarantees about acceptance, funding amounts, or timelines."
+    },
+    "consultants": {
+      "heading": "Consultants",
+      "body": "Consultants are independent professionals, not employees of ScholarPath. They set their own rates, availability, and session content. We review applications carefully but cannot guarantee a specific outcome from any session."
+    },
+    "ip": {
+      "heading": "Intellectual property",
+      "body": "ScholarPath owns the platform, its brand, and its content. You keep ownership of the content you upload — profile materials, documents, posts — and grant us a limited licence to host and display them in connection with operating the service."
+    },
+    "termination": {
+      "heading": "Termination",
+      "body": "You can close your account at any time from Settings → Privacy. We may suspend or terminate access if you breach these terms, if we are required to do so by law, or if your activity puts users at risk. Where reasonable we give you notice and an opportunity to resolve the issue first."
+    },
+    "liability": {
+      "heading": "Limitation of liability",
+      "body": "ScholarPath is provided on an \"as is\" basis. To the maximum extent permitted by law, we are not liable for indirect or consequential losses, lost opportunities, or outcomes of scholarship decisions made by third-party providers."
+    },
+    "changes": {
+      "heading": "Changes to these terms",
+      "body": "We may update these terms when the platform evolves. Material changes are announced in-app and by email at least 14 days before they take effect."
+    },
+    "contact": {
+      "heading": "Contact us",
+      "body": "Questions about these terms? Email legal@scholarpath.local — we respond within five business days."
+    }
+  },
+  "help": {
+    "title": "Help center",
+    "subtitle": "Quick answers to the questions students ask us most. Can't find what you're looking for? Reach out — we read every message.",
+    "faqHeading": "Frequently asked questions",
+    "channels": {
+      "email": {
+        "title": "Email support",
+        "body": "Reach our team at support@scholarpath.local. We typically reply within one business day.",
+        "cta": "Email us"
+      },
+      "chat": {
+        "title": "In-app chat",
+        "body": "Already signed in? Use the built-in messaging to talk to your consultant or community moderators.",
+        "cta": "Open messages"
+      },
+      "community": {
+        "title": "Community forum",
+        "body": "Search past discussions or ask a question — moderators and alumni answer daily.",
+        "cta": "Visit community"
+      }
+    },
+    "faq": {
+      "account": {
+        "q": "How do I create or delete my ScholarPath account?",
+        "a": "Click Get started on the homepage to register in less than a minute. To delete your account, go to Settings → Privacy and use the Erase my data option — we'll wipe your personal data subject to the retention rules in our privacy notice."
+      },
+      "matching": {
+        "q": "How does the AI matching engine work?",
+        "a": "Our engine reads the structured fields on your profile (degree, GPA, target country, test scores, expertise tags) and scores every active scholarship for fit, deadline urgency, and acceptance probability. The more complete your profile, the more accurate the match score."
+      },
+      "applications": {
+        "q": "Can I track scholarships I apply to outside ScholarPath?",
+        "a": "Yes. On the Applications page click Add external application — paste the link and the deadline, and the kanban will track it alongside the ones you applied to through the platform."
+      },
+      "consultants": {
+        "q": "How do I book a consultant?",
+        "a": "Browse consultants by expertise, language, or rating. Pick an available slot, pay through Stripe, and the funds are held in escrow until your session concludes. You'll get reminders by email and in-app notifications."
+      },
+      "refunds": {
+        "q": "What is the refund policy for booking?",
+        "a": "Cancel at least 24 hours before the session for a full refund. Inside 24 hours you may be eligible for a partial refund depending on the consultant's preparation. Disputes within 14 days of the session are reviewed by our team."
+      },
+      "documents": {
+        "q": "Is my document vault secure?",
+        "a": "Yes. Documents are encrypted at rest in Azure Storage, scoped per user, and accessible only to you and the consultants you explicitly share them with. Admins do not access user documents."
+      },
+      "languages": {
+        "q": "Can I use ScholarPath in Arabic?",
+        "a": "ScholarPath is fully bilingual — Arabic and English. The interface, emails, and notifications all flip with one click and the platform supports right-to-left layouts everywhere."
+      },
+      "privacy": {
+        "q": "What does ScholarPath do with my data?",
+        "a": "We use your data to power matching, run bookings, and keep the platform safe — nothing else. See the Privacy notice for the full breakdown, including how to export or delete your data."
+      }
+    },
+    "stillStuck": {
+      "heading": "Still need help?",
+      "body": "Drop us a line at support@scholarpath.local with as much detail as you can and we'll get back to you within one business day."
+    }
+  },
+  "about": {
+    "title": "Built for ambitious students.",
+    "subtitle": "ScholarPath is a bilingual workspace that helps students discover, track, and secure scholarships — without the noise.",
+    "story": {
+      "body1": "ScholarPath started as a graduation project at the Faculty of Computer Science. We had watched friends miss scholarship deadlines because the information was scattered across dozens of sites, applications were tracked in spreadsheets, and trustworthy advisors were hard to find. We built ScholarPath to put all of that in one calm, gated workspace.",
+      "body2": "Today the platform pairs verified scholarship listings with an AI matching engine, a verified consultant marketplace, a moderated community, and AI tools for drafting statements of purpose and prepping interviews — all available in Arabic and English."
+    },
+    "stats": {
+      "heading": "By the numbers"
+    },
+    "values": {
+      "heading": "What we believe",
+      "mission": {
+        "title": "Students come first",
+        "body": "Every feature gets shipped because it helps a student. Listings are verified by humans, refunds are honoured, and we measure ourselves by the funding our community secures."
+      },
+      "trust": {
+        "title": "Security as a feature",
+        "body": "Funds are held in Stripe escrow, secrets live in Azure Key Vault, and access to production data is strictly audited. Trust is the only currency that matters."
+      },
+      "bilingual": {
+        "title": "Arabic-first, English-fluent",
+        "body": "The platform was designed in Arabic and English from day one — including right-to-left layouts, locale-aware dates, and translated emails. Both languages are first-class citizens."
+      },
+      "community": {
+        "title": "Real people, real outcomes",
+        "body": "Verified consultants, alumni mentors, and a moderated community forum surround every student with the people who can answer their questions."
+      },
+      "intelligence": {
+        "title": "AI you can rely on",
+        "body": "Our AI features are grounded in your profile data and the knowledge base — no hallucinated scholarship lists, no random advice. When the assistant is unsure, it says so."
+      },
+      "outcomes": {
+        "title": "Funding, not features",
+        "body": "Our north-star metric is the funding our students secure. Everything else — fancy charts, AI demos, integrations — is a means to that end."
+      }
+    },
+    "team": {
+      "heading": "The team",
+      "body": "ScholarPath is built by a small group of computer-science graduates who shipped the first version as their thesis project. The team is supported by an advisory circle of consultants, alumni, and an academic supervisor."
+    },
+    "cta": {
+      "heading": "Join us",
+      "body": "We're growing the community and looking for feedback, contributors, and scholarship partners. If any of that sounds like you, let's talk.",
+      "contact": "Contact the team"
+    }
+  },
+  "contact": {
+    "title": "Get in touch",
+    "subtitle": "We read every message. Pick the channel that suits your question and we'll be back to you within one business day.",
+    "email": {
+      "title": "General support",
+      "body": "For account issues, billing questions, or anything else not covered elsewhere."
+    },
+    "community": {
+      "title": "Community forum",
+      "body": "Talk to other students and our team in a public, moderated space.",
+      "cta": "Open community"
+    },
+    "phone": {
+      "title": "Partnerships",
+      "body": "Working at a university, foundation, or company? Get in touch about scholarship partnerships or institutional access.",
+      "cta": "partnerships@scholarpath.local"
+    },
+    "office": {
+      "title": "Office",
+      "body": "Faculty of Computer Science, Cairo, Egypt. We work asynchronously across time zones — email is the fastest way to reach us.",
+      "cta": "Mon — Fri"
+    },
+    "hours": {
+      "heading": "Support hours",
+      "body": "Email support is staffed Monday to Friday, 9:00 — 18:00 Cairo time. Urgent issues affecting active bookings are triaged outside those hours."
+    },
+    "press": {
+      "heading": "Press & media",
+      "body": "For interviews, quotes, or coverage of scholarship trends in the region, please email press@scholarpath.local with your outlet, deadline, and topic."
+    }
+  }
+}
