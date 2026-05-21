@@ -16,8 +16,9 @@ public sealed class GetUserGrowthQueryHandler(
         var days = Math.Clamp(request.Days, 7, 180);
         var startUtc = clock.UtcNow.Date.AddDays(-days + 1);
 
+        // Exclude soft-deleted users so the growth chart matches the active count.
         var grouped = await db.Users
-            .Where(u => u.CreatedAt >= startUtc)
+            .Where(u => !u.IsDeleted && u.CreatedAt >= startUtc)
             .GroupBy(u => u.CreatedAt.Date)
             .Select(g => new { Day = g.Key, Count = g.Count() })
             .ToListAsync(ct)

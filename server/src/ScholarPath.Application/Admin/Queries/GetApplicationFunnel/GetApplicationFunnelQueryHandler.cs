@@ -11,7 +11,9 @@ public sealed class GetApplicationFunnelQueryHandler(IApplicationDbContext db)
     public async Task<IReadOnlyList<ApplicationStatusPoint>> Handle(
         GetApplicationFunnelQuery request, CancellationToken ct)
     {
+        // Exclude soft-deleted applications so the funnel mirrors user-visible state.
         var data = await db.Applications
+            .Where(a => !a.IsDeleted)
             .GroupBy(a => a.Status)
             .Select(g => new ApplicationStatusPoint(g.Key, g.Count()))
             .ToListAsync(ct)

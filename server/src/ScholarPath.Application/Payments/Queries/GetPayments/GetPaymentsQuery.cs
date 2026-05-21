@@ -36,7 +36,9 @@ public sealed class GetPaymentsQueryHandler(
         var page = request.Page < 1 ? 1 : request.Page;
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
-        var query = db.Payments.AsNoTracking();
+        // Exclude soft-deleted payments — admins should not see them in the list
+        // (PB-013: a soft-deleted payment is treated as if it never existed).
+        var query = db.Payments.AsNoTracking().Where(p => !p.IsDeleted);
 
         // Non-admins are scoped to payments they are a party to.
         if (!currentUser.IsInRole("Admin"))
