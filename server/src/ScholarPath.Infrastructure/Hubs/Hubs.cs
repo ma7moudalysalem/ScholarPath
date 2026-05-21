@@ -59,13 +59,17 @@ public sealed class ChatHub(IPresenceTracker presence) : AuthenticatedHub
 /// <summary>Personal notifications stream (PB-010).</summary>
 public sealed class NotificationHub : AuthenticatedHub
 {
-    public override Task OnConnectedAsync()
+    public override async Task OnConnectedAsync()
     {
+        // The user-group add MUST be awaited — a fire-and-forget call could let
+        // a notification dispatched immediately after the connect race past the
+        // group join and miss the recipient (so the dispatcher would resend on
+        // the next reconnect, surfacing as a "duplicate" notification later).
         if (Context.UserIdentifier is not null)
         {
-            Groups.AddToGroupAsync(Context.ConnectionId, $"user:{Context.UserIdentifier}");
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{Context.UserIdentifier}").ConfigureAwait(false);
         }
-        return base.OnConnectedAsync();
+        await base.OnConnectedAsync().ConfigureAwait(false);
     }
 }
 
