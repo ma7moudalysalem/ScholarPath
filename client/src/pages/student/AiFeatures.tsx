@@ -48,13 +48,20 @@ export function AiFeatures() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("ai:title")}</h1>
-        <p className="mt-1 max-w-2xl text-sm text-text-secondary">{t("ai:subtitle")}</p>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+            <span className="inline-flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm">
+              <Sparkles aria-hidden className="size-5" />
+            </span>
+            <span className="text-gradient">{t("ai:title")}</span>
+          </h1>
+          <p className="mt-2 max-w-2xl text-text-secondary">{t("ai:subtitle")}</p>
+        </div>
       </div>
 
       {/* ── Tab bar ── */}
-      <div role="tablist" className="flex flex-wrap gap-1 border-b border-border-subtle">
+      <div role="tablist" className="inline-flex items-center gap-1 rounded-xl border border-border-subtle bg-bg-elevated p-1 shadow-elevation-1">
         {TABS.map(({ id, icon: Icon }) => (
           <button
             key={id}
@@ -63,10 +70,10 @@ export function AiFeatures() {
             aria-selected={tab === id}
             onClick={() => setTab(id)}
             className={cn(
-              "-mb-px inline-flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-medium transition",
+              "inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition-all",
               tab === id
-                ? "border-brand-500 text-brand-500"
-                : "border-transparent text-text-secondary hover:text-text-primary",
+                ? "bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm"
+                : "text-text-secondary hover:text-text-primary hover:bg-bg-subtle",
             )}
           >
             <Icon aria-hidden className="size-4" />

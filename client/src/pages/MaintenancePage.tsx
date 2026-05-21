@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Wrench, RefreshCw } from "lucide-react";
+import { Wrench, RefreshCw, Sparkles } from "lucide-react";
+import { motion } from "motion/react";
 import { apiClient } from "@/services/api/client";
 
 interface StatusResponse {
@@ -37,29 +38,53 @@ export function MaintenancePage() {
   });
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-bg-canvas px-4 text-center">
-      {/* Animated wrench */}
-      <div className="relative flex size-20 items-center justify-center rounded-full bg-warning-subtle">
-        <Wrench className="size-10 text-warning-emphasis" aria-hidden />
-        <span
-          className="absolute inset-0 animate-ping rounded-full bg-warning-subtle opacity-75"
-          aria-hidden
-        />
-      </div>
+    <div className="relative flex min-h-dvh flex-col items-center justify-center gap-8 bg-bg-canvas px-4 text-center overflow-hidden">
+      {/* Decorative orbs */}
+      <div aria-hidden className="bg-mesh-hero pointer-events-none absolute inset-0 opacity-60" />
+      <div aria-hidden className="orb orb-brand orb-animated absolute top-1/4 -start-32 size-72" />
+      <div aria-hidden className="orb orb-aurora orb-animated absolute bottom-1/4 -end-32 size-80" style={{ animationDelay: "3s" }} />
 
-      <div className="space-y-3">
-        <h1 className="text-2xl font-bold text-text-primary">
-          {t("maintenance.title")}
-        </h1>
-        <p className="max-w-md text-base text-text-secondary">
-          {t("maintenance.description")}
-        </p>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="relative z-[1] flex flex-col items-center gap-8 max-w-lg"
+      >
+        {/* Illustration placeholder — animated gradient wrench */}
+        <div className="relative">
+          <div className="flex size-24 items-center justify-center rounded-3xl bg-gradient-to-br from-warning-500 to-warning-600 text-white shadow-warning-md">
+            <motion.div
+              animate={{ rotate: [0, -12, 12, 0] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <Wrench className="size-12" aria-hidden />
+            </motion.div>
+          </div>
+          <span
+            className="absolute inset-0 animate-ping rounded-3xl bg-warning-500/30"
+            aria-hidden
+          />
+          <div aria-hidden className="absolute inset-0 rounded-3xl bg-warning-500/30 blur-3xl -z-10" />
+        </div>
 
-      <div className="flex items-center gap-2 text-xs text-text-tertiary">
-        <RefreshCw className="size-3 animate-spin" aria-hidden />
-        <span>{t("maintenance.polling")}</span>
-      </div>
+        <div className="space-y-3">
+          <span className="badge badge-warning">
+            <Sparkles size={11} aria-hidden />
+            {t("maintenance.polling")}
+          </span>
+          <h1 className="text-4xl font-bold text-text-primary tracking-tight">
+            {t("maintenance.title")}
+          </h1>
+          <p className="max-w-md mx-auto text-base text-text-secondary leading-relaxed">
+            {t("maintenance.description")}
+          </p>
+        </div>
+
+        <div className="card-premium px-5 py-3 inline-flex items-center gap-2 text-sm text-text-secondary">
+          <RefreshCw className="size-4 animate-spin text-brand-500" aria-hidden />
+          <span className="font-medium">{t("maintenance.polling")}</span>
+        </div>
+      </motion.div>
     </div>
   );
 }

@@ -86,6 +86,10 @@
     "date_yesterday": "أمس",
     "search_no_match": "لا توجد محادثات مطابقة.",
     "header_search_aria": "ابحث في المحادثات",
-    "back_to_list": "العودة إلى المحادثات"
+    "back_to_list": "العودة إلى المحادثات",
+    "typing_indicator": "{{name}} يكتب الآن…",
+    "empty_search_hint": "جرّب اسمًا مختلفًا أو ابدأ محادثة جديدة.",
+    "empty_list_subtitle": "تواصل مع مستشاريك، زملائك، أو أي شخص في شبكة ScholarPath.",
+    "blocked_chip": "محظور"
   }
 }

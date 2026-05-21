@@ -86,6 +86,10 @@
     "date_yesterday": "Yesterday",
     "search_no_match": "No matching conversations.",
     "header_search_aria": "Search conversations",
-    "back_to_list": "Back to conversations"
+    "back_to_list": "Back to conversations",
+    "typing_indicator": "{{name}} is typing…",
+    "empty_search_hint": "Try a different name or start a new conversation.",
+    "empty_list_subtitle": "Reach out to your consultants, classmates, or anyone in the ScholarPath network.",
+    "blocked_chip": "Blocked"
   }
 }

@@ -71,9 +71,17 @@
     "you": "You",
     "assistant": "Assistant",
     "emptyHint": "I can point you to scholarships, deadlines, and applications. What are you looking for?",
+    "emptyTitle": "How can I help you today?",
     "thinking": "Thinking…",
     "costHint": "Est. ${{cost}} used · {{prompt}}↑ / {{completion}}↓ tokens",
     "sources": "Sources",
+    "suggestionsTitle": "Try asking",
+    "suggestions": {
+      "scholarships": "Show me scholarships in computer science",
+      "deadlines": "What deadlines are coming up?",
+      "eligibility": "Am I eligible for the Chevening scholarship?",
+      "essay": "How do I write a strong personal statement?"
+    },
     "sidebar": {
       "title": "Your chats",
       "newChat": "New chat",

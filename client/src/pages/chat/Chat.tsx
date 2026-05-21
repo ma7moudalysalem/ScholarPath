@@ -438,19 +438,33 @@ export function Chat() {
           )}
         </div>
         <div className="min-w-0">
-          <h3 className="text-sm font-bold truncate leading-tight">
+          <h3 className="text-sm font-bold truncate leading-tight tracking-tight">
             {selectedConv!.otherParticipantName}
           </h3>
-          <span
-            className={`text-[11px] flex items-center gap-1 font-medium leading-tight ${
-              selectedParticipantOnline ? "text-success-600" : "text-text-tertiary"
-            }`}
-          >
-            <Circle size={6} fill="currentColor" />
-            {selectedParticipantOnline
-              ? t("chat.online", "Online")
-              : t("chat.offline", "Offline")}
-          </span>
+          {typingUser ? (
+            <span
+              className="text-[11px] flex items-center gap-1.5 font-medium leading-tight text-brand-600 mt-0.5"
+              aria-live="polite"
+            >
+              <span className="flex gap-0.5">
+                <span className="w-1 h-1 bg-brand-500 rounded-full animate-bounce" />
+                <span className="w-1 h-1 bg-brand-500 rounded-full animate-bounce [animation-delay:0.15s]" />
+                <span className="w-1 h-1 bg-brand-500 rounded-full animate-bounce [animation-delay:0.3s]" />
+              </span>
+              {t("chat.typing_indicator", "{{name}} is typing…", { name: selectedConv!.otherParticipantName.split(" ")[0] })}
+            </span>
+          ) : (
+            <span
+              className={`text-[11px] flex items-center gap-1 font-medium leading-tight mt-0.5 ${
+                selectedParticipantOnline ? "text-success-600" : "text-text-tertiary"
+              }`}
+            >
+              <Circle size={6} fill="currentColor" />
+              {selectedParticipantOnline
+                ? t("chat.online", "Online")
+                : t("chat.offline", "Offline")}
+            </span>
+          )}
         </div>
       </div>
       <button
@@ -483,26 +497,33 @@ export function Chat() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-120px)] max-w-6xl mx-auto bg-bg-elevated rounded-3xl border border-border-subtle shadow-sm overflow-hidden my-4">
+    <div className="flex h-[calc(100vh-120px)] max-w-6xl mx-auto bg-bg-elevated rounded-3xl border border-border-subtle shadow-elevation-2 overflow-hidden my-4">
       {/* Conversation List — full-width on mobile when no thread is open. */}
       <aside
         className={`${
           selectedConv ? "hidden md:flex" : "flex"
-        } w-full md:w-80 border-e border-border-subtle flex-col bg-bg-elevated flex-shrink-0`}
+        } w-full md:w-80 border-e border-border-subtle flex-col bg-bg-subtle/40 flex-shrink-0`}
       >
-        <div className="px-4 pt-4 pb-3 border-b border-border-subtle">
+        <div className="px-4 pt-5 pb-3 border-b border-border-subtle bg-bg-elevated">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-text-primary px-1">
-              {t("chat.messages", "Direct Messages")}
-            </h2>
+            <div className="flex items-baseline gap-2 px-1">
+              <h2 className="text-base font-bold text-text-primary tracking-tight">
+                {t("chat.messages", "Direct Messages")}
+              </h2>
+              {conversations.length > 0 && (
+                <span className="text-xs font-semibold text-text-tertiary tabular-nums">
+                  {conversations.length}
+                </span>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => setIsComposeOpen(true)}
               aria-label={t("chat.new_message", "New Message")}
               title={t("chat.new_message", "New Message")}
-              className="flex items-center justify-center w-8 h-8 bg-brand-50 text-brand-600 rounded-lg hover:bg-brand-100 transition-colors"
+              className="flex items-center justify-center w-9 h-9 bg-gradient-to-br from-brand-500 to-brand-700 text-white rounded-xl shadow-brand-sm hover:shadow-brand-md hover:from-brand-600 hover:to-brand-800 active:scale-95 transition-all"
             >
-              <PenSquare size={16} />
+              <PenSquare size={15} />
             </button>
           </div>
           <div className="relative">
@@ -517,17 +538,27 @@ export function Chat() {
               onChange={(e) => setConversationSearch(e.target.value)}
               placeholder={t("chat.search_placeholder", "Search conversations...")}
               aria-label={t("chat.header_search_aria", "Search conversations")}
-              className="w-full ps-9 pe-3 py-2 bg-bg-subtle border border-transparent rounded-xl text-sm outline-none focus:bg-bg-elevated focus:border-brand-300 focus:ring-2 focus:ring-brand-400/30 transition-all"
+              className="w-full ps-9 pe-3 py-2 bg-bg-subtle border border-transparent rounded-xl text-sm outline-none focus:bg-bg-elevated focus:border-brand-300 focus:ring-2 focus:ring-brand-400/30 transition-all placeholder:text-text-tertiary"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        <div className="flex-1 overflow-y-auto p-2 space-y-0.5 scrollbar-premium">
           {filteredConversations.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-text-tertiary">
-              {conversationSearch.trim()
-                ? t("chat.search_no_match", "No matching conversations.")
-                : t("chat.no_conversations", "No conversations yet. Start a new message.")}
+            <div className="flex flex-col items-center justify-center px-6 py-12 text-center gap-2">
+              <div className="w-12 h-12 rounded-full bg-bg-elevated border border-border-subtle flex items-center justify-center text-text-tertiary">
+                <MessageCircle size={20} aria-hidden />
+              </div>
+              <p className="text-sm font-semibold text-text-secondary">
+                {conversationSearch.trim()
+                  ? t("chat.search_no_match", "No matching conversations.")
+                  : t("chat.no_conversations", "No conversations yet. Start a new message.")}
+              </p>
+              <p className="text-xs text-text-tertiary max-w-[14rem] leading-relaxed">
+                {conversationSearch.trim()
+                  ? t("chat.empty_search_hint", "Try a different name or start a new conversation.")
+                  : t("chat.empty_list_subtitle", "Reach out to your consultants, classmates, or anyone in the ScholarPath network.")}
+              </p>
             </div>
           ) : (
             filteredConversations.map((conv) => {
@@ -543,16 +574,16 @@ export function Chat() {
                   // (instead of a saturated full-fill brand pill) reads as
                   // "highlighted" without overpowering the sidebar. The accent
                   // is anchored to the start edge so it flips with RTL.
-                  className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-start transition-colors ${
+                  className={`group relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-start transition-all ${
                     isActive
-                      ? "bg-brand-50/70 text-text-primary"
-                      : "hover:bg-bg-subtle text-text-primary"
+                      ? "bg-bg-elevated text-text-primary shadow-elevation-1 border border-border-subtle"
+                      : "hover:bg-bg-elevated/60 text-text-primary border border-transparent"
                   }`}
                 >
                   {isActive && (
                     <span
                       aria-hidden
-                      className="absolute start-0 top-2 bottom-2 w-1 rounded-full bg-brand-500"
+                      className="absolute start-0 top-2.5 bottom-2.5 w-[3px] rounded-full bg-gradient-to-b from-brand-500 to-brand-700"
                     />
                   )}
                   <div className="relative flex-shrink-0">
@@ -562,20 +593,32 @@ export function Chat() {
                       className="w-11 h-11 ring-2 ring-bg-elevated"
                     />
                     {isOnlineDot && (
-                      <div className="absolute -bottom-0.5 -end-0.5 w-3 h-3 bg-success-500 border-2 border-bg-elevated rounded-full" />
+                      <div className="absolute -bottom-0.5 -end-0.5 w-3 h-3 bg-success-500 border-2 border-bg-elevated rounded-full">
+                        <span aria-hidden className="pulse-dot absolute inset-0 rounded-full bg-success-500/50" />
+                      </div>
+                    )}
+                    {conv.isBlocked && (
+                      <div
+                        aria-hidden
+                        className="absolute -bottom-0.5 -end-0.5 w-3 h-3 bg-danger-500 border-2 border-bg-elevated rounded-full flex items-center justify-center"
+                      >
+                        <ShieldAlert size={7} className="text-white" />
+                      </div>
                     )}
                   </div>
                   <div className="flex-1 overflow-hidden min-w-0">
                     <div className="flex justify-between items-baseline mb-0.5 gap-2">
                       <h4
                         className={`text-sm truncate ${
-                          isActive ? "font-bold" : "font-semibold"
+                          isActive ? "font-bold text-text-primary" : "font-semibold text-text-primary"
                         }`}
                       >
                         {conv.otherParticipantName}
                       </h4>
                       {conv.lastMessageAt && (
-                        <span className="text-[10px] flex-shrink-0 text-text-tertiary">
+                        <span className={`text-[10px] flex-shrink-0 tabular-nums ${
+                          isActive ? "text-brand-600 font-semibold" : "text-text-tertiary"
+                        }`}>
                           {formatDistanceToNow(new Date(conv.lastMessageAt), {
                             addSuffix: false,
                             locale: dateLocale,
@@ -623,7 +666,7 @@ export function Chat() {
             {/* Messages */}
             <div
               ref={messagesScrollRef}
-              className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth"
+              className="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-4 scroll-smooth scrollbar-premium bg-bg-subtle/30"
             >
               {isLoadingMessages || (isConversationPersisted && isFetchingMessages && messages.length === 0) ? (
                 <div className="flex items-center justify-center h-full text-text-tertiary text-sm gap-2">
@@ -631,26 +674,31 @@ export function Chat() {
                   <span>{t("chat.thread_loading", "Loading messages…")}</span>
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center text-text-tertiary gap-2 px-6">
-                  <div className="w-14 h-14 rounded-full bg-brand-50 text-brand-500 flex items-center justify-center border border-brand-100">
-                    <MessageCircle size={24} />
+                <div className="flex flex-col items-center justify-center h-full text-center gap-3 px-6">
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 flex items-center justify-center border border-brand-200/60 shadow-elevation-1">
+                      <MessageCircle size={26} />
+                    </div>
+                    <div aria-hidden className="absolute inset-0 rounded-2xl bg-brand-500/15 blur-2xl -z-10" />
                   </div>
-                  <h4 className="text-sm font-bold text-text-secondary">
+                  <h4 className="text-base font-bold text-text-primary tracking-tight">
                     {t("chat.thread_empty_title", "No messages yet")}
                   </h4>
-                  <p className="text-xs max-w-xs">
+                  <p className="text-sm text-text-secondary max-w-xs leading-relaxed">
                     {t("chat.thread_empty_desc", "Be the first to say hello.")}
                   </p>
                 </div>
               ) : (
                 groupedMessages.map((group) => (
                   <div key={group.key} className="space-y-1.5">
-                    {/* Day separator — pill instead of line+text so it reads as
-                        a soft chip and doesn't compete with messages. */}
-                    <div className="flex justify-center py-2">
-                      <span className="text-[10px] uppercase tracking-wider text-text-tertiary font-semibold px-3 py-1 bg-bg-subtle rounded-full">
+                    {/* Day separator — pill with a soft gradient outline so it
+                        stands apart from regular bubbles without competing. */}
+                    <div className="flex items-center gap-3 py-2">
+                      <div aria-hidden className="h-px flex-1 bg-gradient-to-r from-transparent to-border-default" />
+                      <span className="text-[10px] uppercase tracking-wider text-text-secondary font-bold px-3 py-1 bg-bg-elevated border border-border-subtle rounded-full shadow-elevation-1">
                         {group.label}
                       </span>
+                      <div aria-hidden className="h-px flex-1 bg-gradient-to-l from-transparent to-border-default" />
                     </div>
                     {group.items.map((msg, idx) => {
                       const isMe = msg.senderId === currentUser?.id;
@@ -676,17 +724,17 @@ export function Chat() {
                                 <UserAvatar
                                   userId={msg.senderId}
                                   name={selectedConv!.otherParticipantName}
-                                  className="w-7 h-7"
+                                  className="w-7 h-7 ring-2 ring-bg-elevated"
                                   initialsClassName="text-[10px]"
                                 />
                               )}
                             </div>
                           )}
                           <div
-                            className={`max-w-[75%] px-3.5 py-2 ${
+                            className={`max-w-[75%] px-3.5 py-2 shadow-elevation-1 ${
                               isMe
-                                ? "bg-brand-500 text-white"
-                                : "bg-bg-subtle text-text-primary border border-border-subtle"
+                                ? "bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm"
+                                : "bg-bg-elevated text-text-primary border border-border-subtle"
                             } ${
                               // Bubble-tail corners: rounded on the OUTside,
                               // squared on the side that meets the previous /
@@ -703,8 +751,8 @@ export function Chat() {
                                 so a back-and-forth doesn't get noisy. */}
                             {isLastFromSender && (
                               <div
-                                className={`text-[10px] mt-0.5 ${
-                                  isMe ? "text-white/70 text-end" : "text-text-tertiary"
+                                className={`text-[10px] mt-0.5 tabular-nums ${
+                                  isMe ? "text-white/75 text-end" : "text-text-tertiary"
                                 }`}
                               >
                                 {formatTime(msg.sentAt)}
@@ -720,12 +768,19 @@ export function Chat() {
 
               {typingUser && (
                 <div className="flex items-end gap-2 justify-start">
-                  <div className="w-7 flex-shrink-0" />
-                  <div className="bg-bg-subtle border border-border-subtle rounded-2xl px-4 py-2.5">
-                    <div className="flex gap-1 items-center">
-                      <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce" />
-                      <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce [animation-delay:0.15s]" />
-                      <span className="w-1.5 h-1.5 bg-text-tertiary rounded-full animate-bounce [animation-delay:0.3s]" />
+                  <div className="w-7 flex-shrink-0">
+                    <UserAvatar
+                      userId={selectedConv!.otherParticipantId}
+                      name={selectedConv!.otherParticipantName}
+                      className="w-7 h-7 ring-2 ring-bg-elevated"
+                      initialsClassName="text-[10px]"
+                    />
+                  </div>
+                  <div className="bg-bg-elevated border border-border-subtle rounded-2xl rounded-bl-md px-4 py-2.5 shadow-elevation-1">
+                    <div className="flex gap-1 items-center" aria-label={t("chat.typing_indicator", "{{name}} is typing…", { name: selectedConv!.otherParticipantName })}>
+                      <span className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-bounce" />
+                      <span className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-bounce [animation-delay:0.15s]" />
+                      <span className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-bounce [animation-delay:0.3s]" />
                     </div>
                   </div>
                 </div>
@@ -775,24 +830,30 @@ export function Chat() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-bg-subtle/30">
-            <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mb-5 text-brand-500">
-              <MessageCircle size={28} />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-bg-subtle/30 relative overflow-hidden">
+            <div aria-hidden className="bg-mesh-hero pointer-events-none absolute inset-0 opacity-50" />
+            <div className="relative z-[1] flex flex-col items-center">
+              <div className="relative">
+                <div className="w-20 h-20 bg-gradient-to-br from-brand-50 to-brand-100 rounded-3xl flex items-center justify-center mb-6 text-brand-600 border border-brand-200/60 shadow-elevation-2">
+                  <MessageCircle size={34} />
+                </div>
+                <div aria-hidden className="absolute inset-0 rounded-3xl bg-brand-500/15 blur-3xl -z-10" />
+              </div>
+              <h3 className="text-xl font-bold mb-2 text-text-primary tracking-tight">
+                {t("chat.empty_title", "Your Conversations")}
+              </h3>
+              <p className="text-sm text-text-secondary max-w-xs mx-auto mb-6 leading-relaxed">
+                {t("chat.empty_desc", "Pick a conversation from the sidebar, or start a new message.")}
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsComposeOpen(true)}
+                className="btn btn-primary"
+              >
+                <PenSquare size={14} />
+                {t("chat.new_message", "New Message")}
+              </button>
             </div>
-            <h3 className="text-lg font-bold mb-1.5 text-text-primary">
-              {t("chat.empty_title", "Your Conversations")}
-            </h3>
-            <p className="text-sm text-text-secondary max-w-xs mx-auto mb-5">
-              {t("chat.empty_desc", "Pick a conversation from the sidebar, or start a new message.")}
-            </p>
-            <button
-              type="button"
-              onClick={() => setIsComposeOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white text-sm font-medium rounded-xl hover:bg-brand-600 transition-colors"
-            >
-              <PenSquare size={14} />
-              {t("chat.new_message", "New Message")}
-            </button>
           </div>
         )}
       </main>

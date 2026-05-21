@@ -5,11 +5,16 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   Send,
-  MessageSquare,
   FileText,
   Plus,
   Loader2,
+  Sparkles,
+  GraduationCap,
+  Calendar,
+  ClipboardCheck,
+  PenSquare,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 import {
@@ -203,99 +208,119 @@ export function Chatbot() {
   const sessions = sessionsQuery.data ?? [];
   const isFreshChat = !sessionId;
 
+  // ── Suggested prompt chips ────────────────────────────────────────────────
+  const SUGGESTIONS: { key: string; icon: typeof Sparkles }[] = [
+    { key: "scholarships", icon: GraduationCap },
+    { key: "deadlines",    icon: Calendar },
+    { key: "eligibility",  icon: ClipboardCheck },
+    { key: "essay",        icon: PenSquare },
+  ];
+
+  const handlePickSuggestion = (text: string) => {
+    if (mut.isPending) return;
+    setPendingTurns((prev) => [...prev, { role: "user", text }]);
+    setDraft("");
+    mut.mutate(text);
+  };
+
   // ── Sidebar render helper ─────────────────────────────────────────────────
   // Plain function (not memoised) — the JSX is cheap to recompute and the
   // handlers it closes over are stable enough that memoisation wouldn't help.
 
   const sidebar = (
-      <aside className="w-full md:w-64 md:flex-shrink-0 border-b md:border-b-0 md:border-e border-border-subtle bg-bg-subtle/40 flex flex-col">
-        <div className="p-3 border-b border-border-subtle">
-          <button
-            type="button"
-            onClick={handleNewChat}
-            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
-          >
-            <Plus size={14} />
-            {t("ai:chat.sidebar.newChat")}
-          </button>
-        </div>
-        <div className="px-3 pt-3 pb-2">
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
-            {t("ai:chat.sidebar.title")}
-          </h3>
-        </div>
-        <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-1 max-h-[260px] md:max-h-none">
-          {sessionsQuery.isError ? (
-            <p className="px-2 py-3 text-xs text-danger-500">
-              {t("ai:chat.sidebar.loadError")}
-            </p>
-          ) : sessions.length === 0 ? (
-            <p className="px-2 py-6 text-xs text-text-tertiary text-center">
-              {t("ai:chat.sidebar.empty")}
-            </p>
-          ) : (
-            sessions.map((s) => {
-              const isActive = s.sessionId === sessionId;
-              const lastAt = s.lastTurnAt ?? s.startedAt;
-              return (
-                <button
-                  key={s.sessionId}
-                  type="button"
-                  onClick={() => handleSelectSession(s.sessionId)}
-                  aria-current={isActive ? "true" : undefined}
-                  className={`group relative w-full text-start px-3 py-2 rounded-lg transition-colors ${
-                    isActive
-                      ? "bg-brand-50/70"
-                      : "hover:bg-bg-elevated"
+    <aside className="w-full md:w-64 md:flex-shrink-0 border-b md:border-b-0 md:border-e border-border-subtle bg-bg-subtle/40 flex flex-col">
+      <div className="p-3 border-b border-border-subtle">
+        <button
+          type="button"
+          onClick={handleNewChat}
+          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white text-sm font-semibold shadow-brand-sm hover:shadow-brand-md hover:from-brand-600 hover:to-brand-800 active:scale-[0.98] transition-all"
+        >
+          <Plus size={14} />
+          {t("ai:chat.sidebar.newChat")}
+        </button>
+      </div>
+      <div className="px-4 pt-3 pb-2">
+        <h3 className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary">
+          {t("ai:chat.sidebar.title")}
+        </h3>
+      </div>
+      <div className="flex-1 overflow-y-auto px-2 pb-3 space-y-0.5 max-h-[260px] md:max-h-none scrollbar-premium">
+        {sessionsQuery.isError ? (
+          <p className="px-2 py-3 text-xs text-danger-500">
+            {t("ai:chat.sidebar.loadError")}
+          </p>
+        ) : sessions.length === 0 ? (
+          <p className="px-3 py-6 text-xs text-text-tertiary text-center leading-relaxed">
+            {t("ai:chat.sidebar.empty")}
+          </p>
+        ) : (
+          sessions.map((s) => {
+            const isActive = s.sessionId === sessionId;
+            const lastAt = s.lastTurnAt ?? s.startedAt;
+            return (
+              <button
+                key={s.sessionId}
+                type="button"
+                onClick={() => handleSelectSession(s.sessionId)}
+                aria-current={isActive ? "true" : undefined}
+                className={`group relative w-full text-start px-3 py-2 rounded-lg transition-all border ${
+                  isActive
+                    ? "bg-bg-elevated border-border-subtle shadow-elevation-1"
+                    : "border-transparent hover:bg-bg-elevated/60"
+                }`}
+              >
+                {isActive && (
+                  <span
+                    aria-hidden
+                    className="absolute start-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-gradient-to-b from-brand-500 to-brand-700"
+                  />
+                )}
+                <p
+                  className={`text-xs leading-snug line-clamp-2 ${
+                    isActive ? "font-semibold text-text-primary" : "text-text-secondary"
                   }`}
                 >
-                  {isActive && (
-                    <span
-                      aria-hidden
-                      className="absolute start-0 top-1.5 bottom-1.5 w-1 rounded-full bg-brand-500"
-                    />
-                  )}
-                  <p
-                    className={`text-xs leading-snug line-clamp-2 ${
-                      isActive ? "font-semibold text-text-primary" : "text-text-secondary"
-                    }`}
-                  >
-                    {s.title}
-                  </p>
-                  <p className="text-[10px] text-text-tertiary mt-1 flex items-center gap-1.5">
-                    <span>
-                      {formatDistanceToNow(new Date(lastAt), {
-                        addSuffix: true,
-                        locale: dateLocale,
-                      })}
-                    </span>
-                    <span aria-hidden>·</span>
-                    <span>
-                      {t("ai:chat.sidebar.turnCount", { count: s.turnCount })}
-                    </span>
-                  </p>
-                </button>
-              );
-            })
-          )}
-        </div>
-      </aside>
+                  {s.title}
+                </p>
+                <p className="text-[10px] text-text-tertiary mt-1 flex items-center gap-1.5">
+                  <span>
+                    {formatDistanceToNow(new Date(lastAt), {
+                      addSuffix: true,
+                      locale: dateLocale,
+                    })}
+                  </span>
+                  <span aria-hidden>·</span>
+                  <span>
+                    {t("ai:chat.sidebar.turnCount", { count: s.turnCount })}
+                  </span>
+                </p>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </aside>
   );
 
   return (
-    <section className="flex flex-col md:flex-row overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated">
+    <section className="flex flex-col md:flex-row overflow-hidden rounded-2xl border border-border-subtle bg-bg-elevated shadow-elevation-2">
       {sidebar}
 
       <div className="flex flex-1 flex-col min-w-0">
-        <header className="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
-          <MessageSquare aria-hidden className="size-5 text-brand-500" />
-          <h2 className="font-semibold">{t("ai:chat.heading")}</h2>
+        <header className="flex items-center gap-2.5 border-b border-border-subtle px-5 py-3.5 bg-bg-elevated/95 backdrop-blur">
+          <span className="inline-flex size-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm">
+            <Sparkles aria-hidden className="size-4" />
+          </span>
+          <div>
+            <h2 className="font-bold text-text-primary tracking-tight leading-none">{t("ai:chat.heading")}</h2>
+            <p className="text-[10px] text-text-tertiary uppercase tracking-wider font-semibold mt-0.5">{t("ai:disclaimer")}</p>
+          </div>
         </header>
 
         <div
           ref={scrollRef}
-          className="flex-1 space-y-3 overflow-y-auto p-4"
-          style={{ minHeight: 320, maxHeight: 480 }}
+          className="flex-1 space-y-4 overflow-y-auto px-4 sm:px-5 py-5 bg-bg-subtle/30 scrollbar-premium"
+          style={{ minHeight: 360, maxHeight: 540 }}
         >
           {turnsQuery.isLoading && sessionId ? (
             <div className="flex items-center justify-center h-full text-text-tertiary text-sm gap-2">
@@ -303,46 +328,87 @@ export function Chatbot() {
               <span>{t("ai:chat.sidebar.loadingTurns")}</span>
             </div>
           ) : turns.length === 0 ? (
-            <p className="text-sm text-text-tertiary">
-              {isFreshChat
-                ? t("ai:chat.emptyHint")
-                : t("ai:chat.emptyHint")}
-            </p>
+            <div className="flex flex-col items-center justify-center h-full text-center px-4">
+              <div className="relative mb-5">
+                <div className="size-16 rounded-3xl bg-gradient-to-br from-brand-50 to-brand-100 text-brand-600 flex items-center justify-center border border-brand-200/60 shadow-elevation-1">
+                  <Sparkles size={28} />
+                </div>
+                <div aria-hidden className="absolute inset-0 rounded-3xl bg-brand-500/15 blur-2xl -z-10" />
+              </div>
+              <h3 className="text-lg font-bold text-text-primary tracking-tight mb-1.5">
+                {t("ai:chat.emptyTitle", "How can I help you today?")}
+              </h3>
+              <p className="text-sm text-text-secondary max-w-sm leading-relaxed mb-6">
+                {t("ai:chat.emptyHint")}
+              </p>
+              {isFreshChat && (
+                <div className="w-full max-w-md">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-2.5">
+                    {t("ai:chat.suggestionsTitle", "Try asking")}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {SUGGESTIONS.map(({ key, icon: Icon }) => {
+                      const text = t(`ai:chat.suggestions.${key}`);
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => handlePickSuggestion(text)}
+                          className="group flex items-start gap-2.5 text-start px-3.5 py-3 rounded-xl border border-border-subtle bg-bg-elevated hover:border-brand-300 hover:bg-brand-50/40 transition-all shadow-elevation-1 hover:shadow-elevation-2"
+                        >
+                          <span className="inline-flex size-7 items-center justify-center rounded-lg bg-brand-50 text-brand-600 shrink-0 group-hover:bg-brand-100">
+                            <Icon size={14} aria-hidden />
+                          </span>
+                          <span className="text-xs text-text-primary font-medium leading-snug">
+                            {text}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : null}
           {turns.map((turn, i) => (
-            <div
+            <motion.div
               key={i}
-              className={`flex ${turn.role === "user" ? "justify-end" : "justify-start"}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className={`flex items-end gap-2 ${turn.role === "user" ? "justify-end" : "justify-start"}`}
             >
+              {turn.role === "assistant" && (
+                <span className="inline-flex size-7 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm shrink-0 ring-2 ring-bg-elevated">
+                  <Sparkles size={12} aria-hidden />
+                </span>
+              )}
               <div
-                className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm shadow-elevation-1 ${
                   turn.role === "user"
-                    ? "bg-brand-500 text-text-on-brand"
-                    : "border border-border-subtle bg-bg-canvas text-text-primary"
+                    ? "bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm rounded-br-md"
+                    : "bg-bg-elevated text-text-primary border border-border-subtle rounded-bl-md"
                 }`}
               >
-                <div className="text-[10px] font-semibold uppercase tracking-wide opacity-75">
-                  {t(turn.role === "user" ? "ai:chat.you" : "ai:chat.assistant")}
-                </div>
-                <p className="mt-0.5 whitespace-pre-wrap">{turn.text}</p>
+                <p className="whitespace-pre-wrap break-words leading-relaxed">{turn.text}</p>
                 {turn.role === "assistant" && turn.sources && turn.sources.length > 0 && (
-                  <div className="mt-2 border-t border-border-subtle pt-1.5">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide opacity-60">
+                  <div className="mt-3 border-t border-border-subtle pt-2">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-text-tertiary mb-1.5">
                       {t("ai:chat.sources")}
                     </div>
-                    <ul className="mt-1 space-y-0.5">
+                    <ul className="space-y-1">
                       {turn.sources.map((src, si) => (
-                        <li key={si} className="text-[11px]">
+                        <li key={si} className="text-xs">
                           {src.sourceType === "Scholarship" && src.scholarshipId ? (
                             <Link
                               to={`/student/scholarships/${src.scholarshipId}`}
-                              className="inline-flex items-center gap-1 text-brand-500 hover:underline"
+                              className="inline-flex items-center gap-1.5 text-brand-600 hover:text-brand-700 hover:underline font-medium"
                             >
                               <FileText aria-hidden className="size-3 shrink-0" />
                               {src.title}
                             </Link>
                           ) : (
-                            <span className="inline-flex items-center gap-1 opacity-70">
+                            <span className="inline-flex items-center gap-1.5 text-text-tertiary">
                               <FileText aria-hidden className="size-3 shrink-0" />
                               {src.title}
                             </span>
@@ -354,7 +420,7 @@ export function Chatbot() {
                 )}
 
                 {turn.role === "assistant" && turn.cost != null && (
-                  <div className="mt-1 text-[10px] tabular-nums opacity-60">
+                  <div className="mt-1.5 text-[10px] tabular-nums text-text-tertiary">
                     {t("ai:chat.costHint", {
                       cost: turn.cost.toFixed(4),
                       prompt: turn.prompt ?? 0,
@@ -363,37 +429,57 @@ export function Chatbot() {
                   </div>
                 )}
               </div>
-            </div>
+            </motion.div>
           ))}
-          {mut.isPending && (
-            <div className="flex justify-start">
-              <div className="rounded-lg border border-border-subtle bg-bg-canvas px-3 py-2 text-sm text-text-tertiary">
-                {t("ai:chat.thinking")}
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {mut.isPending && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="flex items-end gap-2 justify-start"
+              >
+                <span className="inline-flex size-7 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm shrink-0 ring-2 ring-bg-elevated">
+                  <Sparkles size={12} aria-hidden />
+                </span>
+                <div className="rounded-2xl rounded-bl-md border border-border-subtle bg-bg-elevated px-4 py-2.5 text-sm text-text-tertiary shadow-elevation-1">
+                  <div className="flex gap-1 items-center">
+                    <span className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-bounce" />
+                    <span className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-bounce [animation-delay:0.15s]" />
+                    <span className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-bounce [animation-delay:0.3s]" />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <form
           onSubmit={onSubmit}
-          className="flex items-center gap-2 border-t border-border-subtle p-3"
+          className="border-t border-border-subtle p-3 bg-bg-elevated"
         >
-          <input
-            type="text"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={t("ai:chat.placeholder")}
-            maxLength={2000}
-            className="h-10 flex-1 rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-          />
-          <button
-            type="submit"
-            disabled={!draft.trim() || mut.isPending}
-            className="inline-flex items-center gap-1.5 rounded-md bg-brand-500 px-3 py-2 text-sm font-medium text-text-on-brand transition hover:bg-brand-600 disabled:opacity-50"
-          >
-            <Send aria-hidden className="size-4" />
-            {t("ai:chat.send")}
-          </button>
+          <div className="flex items-center gap-2 rounded-2xl border bg-bg-subtle/60 px-3 py-2 transition-colors focus-within:border-brand-300 focus-within:bg-bg-elevated focus-within:ring-2 focus-within:ring-brand-400/30 border-border-subtle">
+            <input
+              type="text"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder={t("ai:chat.placeholder")}
+              maxLength={2000}
+              className="flex-1 bg-transparent text-text-primary outline-none text-sm placeholder:text-text-tertiary py-1.5"
+            />
+            <button
+              type="submit"
+              disabled={!draft.trim() || mut.isPending}
+              aria-label={t("ai:chat.send")}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm transition-all hover:shadow-brand-md hover:from-brand-600 hover:to-brand-800 active:scale-95 disabled:bg-none disabled:bg-bg-subtle disabled:text-text-tertiary disabled:shadow-none disabled:cursor-not-allowed shrink-0"
+            >
+              {mut.isPending ? (
+                <Loader2 size={16} className="animate-spin" aria-hidden />
+              ) : (
+                <Send size={14} className="rtl:rotate-180" aria-hidden />
+              )}
+            </button>
+          </div>
         </form>
 
         <div className="border-t border-border-subtle bg-bg-subtle/40 px-4 py-2">

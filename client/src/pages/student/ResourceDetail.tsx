@@ -5,15 +5,43 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight, Calendar, ExternalLink, Bookmark, CheckCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Calendar,
+  ExternalLink,
+  Bookmark,
+  CheckCircle,
+  ListChecks,
+  BookOpen,
+  FileText,
+  Video,
+  Star,
+  Clock,
+} from "lucide-react";
 import {
   resourcesApi,
   type ResourceDetail as ResourceDetailDto,
   type ChapterProgressResult,
+  type ResourceType,
 } from "@/services/api/resources";
 import { useAuthStore } from "@/stores/authStore";
 import { apiErrorMessage } from "@/services/api/client";
 import { SkeletonDetailCard } from "@/components/common/Skeleton";
+
+const TYPE_ICON: Record<ResourceType, typeof BookOpen> = {
+  Article: FileText,
+  Guide: BookOpen,
+  Checklist: ListChecks,
+  VideoLink: Video,
+};
+
+const TYPE_THEME: Record<ResourceType, string> = {
+  Article:   "badge-brand",
+  Guide:     "badge-success",
+  Checklist: "badge-warning",
+  VideoLink: "badge-danger",
+};
 
 // ── Minimal Markdown renderer ───────────────────────────────────────────────
 // Resource content is light Markdown — headings, bullet / ordered / task lists,
@@ -229,155 +257,213 @@ export function ResourceDetail() {
     ? data.contentMarkdownAr ?? data.contentMarkdownEn
     : data.contentMarkdownEn ?? data.contentMarkdownAr;
   const chapters = [...data.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
+  const Icon = TYPE_ICON[data.type];
+  const typeBadge = TYPE_THEME[data.type];
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      {backLink}
+    <div className="mx-auto max-w-6xl">
+      <div className="mb-6">{backLink}</div>
 
-      {/* ── Hero ── */}
-      <div className="overflow-hidden rounded-xl border border-border-subtle bg-bg-elevated shadow-xs">
-        {data.coverImageUrl && (
-          <img src={data.coverImageUrl} alt="" className="h-48 w-full object-cover" />
-        )}
-        <div className="p-6">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-brand-500/10 px-2.5 py-0.5 text-xs font-medium text-brand-500">
-              {t(`resources:resourceType.${data.type}`)}
-            </span>
-            {data.isFeatured && (
-              <span className="rounded-full bg-warning-50 px-2.5 py-0.5 text-xs font-medium text-warning-600">
-                {t("resources:browse.featured")}
-              </span>
-            )}
-          </div>
-
-          <h1 className="text-xl font-bold text-text-primary">{title}</h1>
-
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
-            {data.authorName && (
-              <span>{t("resources:detail.by", { author: data.authorName })}</span>
-            )}
-            {data.publishedAt && (
-              <span className="inline-flex items-center gap-1.5">
-                <Calendar aria-hidden className="size-4 text-text-tertiary" />
-                {t("resources:detail.publishedOn", {
-                  date: format(new Date(data.publishedAt), "dd MMMM yyyy", { locale: dateLocale }),
-                })}
-              </span>
-            )}
-          </div>
-
-          {description && (
-            <p className="mt-4 text-sm leading-relaxed text-text-secondary">
-              {description}
-            </p>
-          )}
-
-          {data.tags.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {data.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded bg-bg-subtle px-2 py-0.5 text-xs text-text-tertiary"
-                >
-                  {tag}
+      <div className="grid lg:grid-cols-[1fr_280px] gap-8">
+        <div className="space-y-6 min-w-0">
+          {/* ── Hero ── */}
+          <div className="card-premium overflow-hidden">
+            {data.coverImageUrl ? (
+              <div className="relative">
+                <img src={data.coverImageUrl} alt="" className="h-56 w-full object-cover" />
+                <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+                <div className="absolute top-4 start-4 flex flex-wrap gap-1.5">
+                  <span className={`badge ${typeBadge} backdrop-blur-md bg-opacity-90`}>
+                    <Icon size={10} aria-hidden />
+                    {t(`resources:resourceType.${data.type}`)}
+                  </span>
+                  {data.isFeatured && (
+                    <span className="badge badge-warning backdrop-blur-md bg-opacity-90">
+                      <Star size={10} aria-hidden fill="currentColor" />
+                      {t("resources:browse.featured")}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="px-6 pt-6 flex flex-wrap gap-1.5">
+                <span className={`badge ${typeBadge}`}>
+                  <Icon size={10} aria-hidden />
+                  {t(`resources:resourceType.${data.type}`)}
                 </span>
-              ))}
+                {data.isFeatured && (
+                  <span className="badge badge-warning">
+                    <Star size={10} aria-hidden fill="currentColor" />
+                    {t("resources:browse.featured")}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="p-6 sm:p-8">
+              <h1 className="text-3xl font-bold tracking-tight text-text-primary leading-tight">{title}</h1>
+
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
+                {data.authorName && (
+                  <span className="font-medium">{t("resources:detail.by", { author: data.authorName })}</span>
+                )}
+                {data.publishedAt && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Calendar aria-hidden className="size-4 text-text-tertiary" />
+                    {t("resources:detail.publishedOn", {
+                      date: format(new Date(data.publishedAt), "dd MMMM yyyy", { locale: dateLocale }),
+                    })}
+                  </span>
+                )}
+              </div>
+
+              {description && (
+                <p className="mt-5 text-base leading-relaxed text-text-secondary">
+                  {description}
+                </p>
+              )}
+
+              {data.tags.length > 0 && (
+                <div className="mt-5 flex flex-wrap gap-1.5">
+                  {data.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-md bg-bg-subtle border border-border-subtle px-2 py-0.5 text-xs font-medium text-text-secondary"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                {data.externalLinkUrl && (
+                  <a
+                    href={data.externalLinkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary"
+                  >
+                    {t("resources:detail.openExternal")}
+                    <ExternalLink aria-hidden className="size-4" />
+                  </a>
+                )}
+                {user && (
+                  <button
+                    type="button"
+                    disabled={bookmarkMut.isPending}
+                    onClick={() => bookmarkMut.mutate(data.id)}
+                    className="btn btn-secondary"
+                    aria-label={t("resources:detail.bookmarkToggle")}
+                  >
+                    <Bookmark aria-hidden className="size-4" />
+                    {t("resources:detail.bookmark")}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Content ── */}
+          {content && content.trim() && (
+            <div className="card-premium p-6 sm:p-8">
+              <Markdown source={content} />
             </div>
           )}
 
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            {data.externalLinkUrl && (
-              <a
-                href={data.externalLinkUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-text-on-brand transition hover:bg-brand-600"
-              >
-                {t("resources:detail.openExternal")}
-                <ExternalLink aria-hidden className="size-4" />
-              </a>
-            )}
-            {user && (
-              <button
-                type="button"
-                disabled={bookmarkMut.isPending}
-                onClick={() => bookmarkMut.mutate(data.id)}
-                className="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-canvas px-4 py-2.5 text-sm font-medium text-text-secondary transition hover:border-brand-500 hover:text-brand-500 disabled:opacity-60"
-                aria-label={t("resources:detail.bookmarkToggle")}
-              >
-                <Bookmark aria-hidden className="size-4" />
-                {t("resources:detail.bookmark")}
-              </button>
-            )}
-          </div>
+          {/* ── Chapters ── */}
+          {chapters.length > 0 && (
+            <div className="space-y-4">
+              <h2 id="chapters" className="text-xl font-bold text-text-primary tracking-tight scroll-mt-24">
+                {t("resources:detail.chapters")}
+              </h2>
+              {chapters.map((ch, idx) => {
+                const chTitle = isAr ? ch.titleAr || ch.titleEn : ch.titleEn || ch.titleAr;
+                const chContent = isAr
+                  ? ch.contentMarkdownAr ?? ch.contentMarkdownEn
+                  : ch.contentMarkdownEn ?? ch.contentMarkdownAr;
+                return (
+                  <div
+                    key={ch.id}
+                    id={`chapter-${ch.id}`}
+                    className="card-premium p-5 sm:p-6 scroll-mt-24"
+                  >
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <h3 className="flex items-center gap-3 font-bold text-text-primary tracking-tight text-lg leading-snug">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white shadow-brand-sm">
+                          {idx + 1}
+                        </span>
+                        {chTitle}
+                      </h3>
+                      <div className="flex shrink-0 items-center gap-2">
+                        {ch.estimatedReadMinutes > 0 && (
+                          <span className="inline-flex items-center gap-1 text-xs text-text-tertiary font-medium">
+                            <Clock size={11} aria-hidden />
+                            {t("resources:detail.readTime", {
+                              minutes: ch.estimatedReadMinutes,
+                            })}
+                          </span>
+                        )}
+                        {user && (
+                          <button
+                            type="button"
+                            disabled={chapterMut.isPending}
+                            onClick={() =>
+                              chapterMut.mutate({ resourceId: data.id, chapterId: ch.id })
+                            }
+                            className="inline-flex items-center gap-1 rounded-full border border-success-200 bg-success-50 px-2.5 py-1 text-xs font-semibold text-success-700 transition hover:bg-success-100 disabled:opacity-60"
+                            aria-label={t("resources:detail.markComplete")}
+                          >
+                            <CheckCircle aria-hidden className="size-3.5" />
+                            {t("resources:detail.markComplete")}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    {chContent && chContent.trim() && (
+                      <div className="mt-4 ps-11">
+                        <Markdown source={chContent} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* ── Content ── */}
-      {content && content.trim() && (
-        <div className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-xs">
-          <Markdown source={content} />
-        </div>
-      )}
-
-      {/* ── Chapters ── */}
-      {chapters.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-text-primary">
-            {t("resources:detail.chapters")}
-          </h2>
-          {chapters.map((ch, idx) => {
-            const chTitle = isAr ? ch.titleAr || ch.titleEn : ch.titleEn || ch.titleAr;
-            const chContent = isAr
-              ? ch.contentMarkdownAr ?? ch.contentMarkdownEn
-              : ch.contentMarkdownEn ?? ch.contentMarkdownAr;
-            return (
-              <div
-                key={ch.id}
-                className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-xs"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <h3 className="flex items-center gap-2 font-semibold text-text-primary">
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-500/10 text-xs font-semibold text-brand-500">
-                      {idx + 1}
-                    </span>
-                    {chTitle}
+        {/* ── Sticky TOC sidebar (desktop only) ── */}
+        {chapters.length > 0 && (
+          <aside className="hidden lg:block">
+            <div className="sticky top-24">
+              <div className="card-premium p-4">
+                <div className="flex items-center gap-2 mb-3 px-1">
+                  <ListChecks size={14} className="text-brand-500" aria-hidden />
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-text-tertiary">
+                    {t("resources:detail.chapters")}
                   </h3>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {ch.estimatedReadMinutes > 0 && (
-                      <span className="text-xs text-text-tertiary">
-                        {t("resources:detail.readTime", {
-                          minutes: ch.estimatedReadMinutes,
-                        })}
-                      </span>
-                    )}
-                    {user && (
-                      <button
-                        type="button"
-                        disabled={chapterMut.isPending}
-                        onClick={() =>
-                          chapterMut.mutate({ resourceId: data.id, chapterId: ch.id })
-                        }
-                        className="inline-flex items-center gap-1 rounded-full border border-success-200 bg-success-50 px-2 py-0.5 text-xs font-medium text-success-700 transition hover:bg-success-100 disabled:opacity-60"
-                        aria-label={t("resources:detail.markComplete")}
-                      >
-                        <CheckCircle aria-hidden className="size-3.5" />
-                        {t("resources:detail.markComplete")}
-                      </button>
-                    )}
-                  </div>
                 </div>
-                {chContent && chContent.trim() && (
-                  <div className="mt-3">
-                    <Markdown source={chContent} />
-                  </div>
-                )}
+                <nav className="space-y-0.5">
+                  {chapters.map((ch, idx) => {
+                    const chTitle = isAr ? ch.titleAr || ch.titleEn : ch.titleEn || ch.titleAr;
+                    return (
+                      <a
+                        key={ch.id}
+                        href={`#chapter-${ch.id}`}
+                        className="group flex items-start gap-2.5 px-2 py-2 rounded-lg text-start text-sm text-text-secondary hover:text-text-primary hover:bg-bg-subtle transition-colors"
+                      >
+                        <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-brand-50 text-[10px] font-bold text-brand-600 group-hover:bg-brand-100 mt-0.5">
+                          {idx + 1}
+                        </span>
+                        <span className="line-clamp-2 leading-snug font-medium flex-1">{chTitle}</span>
+                      </a>
+                    );
+                  })}
+                </nav>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          </aside>
+        )}
+      </div>
     </div>
   );
 }

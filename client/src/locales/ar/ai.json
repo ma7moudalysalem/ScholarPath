@@ -71,9 +71,17 @@
     "you": "أنت",
     "assistant": "المساعد",
     "emptyHint": "يمكنني إرشادك إلى المنح والمواعيد والتقديم. عمّ تبحث؟",
+    "emptyTitle": "كيف يمكنني مساعدتك اليوم؟",
     "thinking": "جارٍ التفكير…",
     "costHint": "تكلفة تقديرية ${{cost}} · رموز {{prompt}}↑ / {{completion}}↓",
     "sources": "المصادر",
+    "suggestionsTitle": "جرّب أن تسأل",
+    "suggestions": {
+      "scholarships": "أرني منحًا في علوم الحاسب",
+      "deadlines": "ما المواعيد النهائية القادمة؟",
+      "eligibility": "هل أنا مؤهل لمنحة Chevening؟",
+      "essay": "كيف أكتب بيانًا شخصيًا مميزًا؟"
+    },
     "sidebar": {
       "title": "محادثاتك",
       "newChat": "محادثة جديدة",

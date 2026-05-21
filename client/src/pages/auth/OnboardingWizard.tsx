@@ -377,96 +377,138 @@ export function OnboardingWizard() {
     }
   }
 
+  // Progress step indicator — used on both screens for orientation.
+  const ProgressBar = ({ current }: { current: 1 | 2 }) => (
+    <div className="mx-auto mb-10 flex max-w-md items-center gap-2 px-4">
+      <div className="flex flex-1 items-center gap-2">
+        <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white text-xs font-bold shadow-brand-sm">
+          1
+        </div>
+        <span className="text-xs font-semibold text-text-primary">
+          {t("auth:onboarding.role.student.title").includes("Student") || true
+            ? t("common:role.switcher", "Role")
+            : ""}
+        </span>
+      </div>
+      <div className={`h-0.5 flex-1 rounded-full ${current >= 2 ? "bg-gradient-to-r from-brand-500 to-brand-700" : "bg-border-default"}`} />
+      <div className="flex flex-1 items-center gap-2 justify-end">
+        <span className={`text-xs font-semibold ${current >= 2 ? "text-text-primary" : "text-text-tertiary"}`}>
+          {t("auth:onboarding.documents.title", "Details")}
+        </span>
+        <div className={`flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+          current >= 2
+            ? "bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm"
+            : "bg-bg-subtle text-text-tertiary border border-border-default"
+        }`}>
+          2
+        </div>
+      </div>
+    </div>
+  );
+
   // ── Step 2 — Company / Consultant profile details ──────────────────────────
   if (step === "details") {
     const isCompany = detailsRole === "Company";
     return (
-      <section className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
-        <button
-          type="button"
-          onClick={() => setStep("role")}
-          className="mb-6 inline-flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary"
+      <section className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
+        <ProgressBar current={2} />
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
         >
-          <ArrowLeft aria-hidden className="size-4 rtl:rotate-180" />
-          {t("auth:onboarding.details.back")}
-        </button>
-
-        <h1 className="mb-1 text-3xl">
-          {t(
-            isCompany
-              ? "auth:onboarding.details.companyHeading"
-              : "auth:onboarding.details.consultantHeading",
-          )}
-        </h1>
-        <p className="mb-8 text-text-secondary">
-          {t(
-            isCompany
-              ? "auth:onboarding.details.companySubtitle"
-              : "auth:onboarding.details.consultantSubtitle",
-          )}
-        </p>
-
-        <form onSubmit={submitDetails} className="space-y-5" noValidate>
-          {isCompany ? (
-            <CompanyForm value={company} onChange={setCompany} errors={companyErrors} />
-          ) : (
-            <ConsultantForm value={consultant} onChange={setConsultant} errors={consultantErrors} />
-          )}
-
-          <p className="text-xs text-text-tertiary">
-            {t(
-              "auth:onboarding.details.docsNotice",
-              "After submitting, you'll be asked to upload supporting verification documents on the next screen.",
-            )}
-          </p>
-
           <button
-            type="submit"
-            disabled={submitting}
-            className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-50"
+            type="button"
+            onClick={() => setStep("role")}
+            className="mb-6 inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-text-primary transition-colors group"
           >
-            {submitting
-              ? t("auth:onboarding.details.submitting")
-              : t("auth:onboarding.details.submit")}
+            <ArrowLeft aria-hidden className="size-4 rtl:rotate-180 group-hover:-translate-x-0.5 rtl:group-hover:translate-x-0.5 transition-transform" />
+            {t("auth:onboarding.details.back")}
           </button>
-        </form>
+
+          <div className="card-premium p-6 sm:p-8">
+            <h1 className="mb-2 text-3xl font-bold tracking-tight">
+              {t(
+                isCompany
+                  ? "auth:onboarding.details.companyHeading"
+                  : "auth:onboarding.details.consultantHeading",
+              )}
+            </h1>
+            <p className="mb-8 text-text-secondary">
+              {t(
+                isCompany
+                  ? "auth:onboarding.details.companySubtitle"
+                  : "auth:onboarding.details.consultantSubtitle",
+              )}
+            </p>
+
+            <form onSubmit={submitDetails} className="space-y-6" noValidate>
+              {isCompany ? (
+                <CompanyForm value={company} onChange={setCompany} errors={companyErrors} />
+              ) : (
+                <ConsultantForm value={consultant} onChange={setConsultant} errors={consultantErrors} />
+              )}
+
+              <div className="rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-3">
+                <p className="text-xs text-brand-700 leading-relaxed">
+                  {t(
+                    "auth:onboarding.details.docsNotice",
+                    "After submitting, you'll be asked to upload supporting verification documents on the next screen.",
+                  )}
+                </p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn btn-primary btn-lg w-full"
+              >
+                {submitting
+                  ? t("auth:onboarding.details.submitting")
+                  : t("auth:onboarding.details.submit")}
+              </button>
+            </form>
+          </div>
+        </motion.div>
       </section>
     );
   }
 
   // ── Step 1 — role selection ────────────────────────────────────────────────
   return (
-    <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6">
-      <div className="text-center">
-        <h1 className="mb-3 text-4xl">{t("auth:onboarding.title")}</h1>
-        <p className="text-text-secondary">{t("auth:onboarding.subtitle")}</p>
+    <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+      <ProgressBar current={1} />
+
+      <div className="text-center max-w-2xl mx-auto">
+        <h1 className="mb-3 text-4xl font-bold tracking-tight">{t("auth:onboarding.title")}</h1>
+        <p className="text-text-secondary text-lg">{t("auth:onboarding.subtitle")}</p>
       </div>
 
-      <div className="mt-12 grid gap-4 sm:grid-cols-3">
+      <div className="mt-12 grid gap-5 sm:grid-cols-3">
         {ROLES.map(({ key, i18n, icon: Icon }, idx) => (
-          <motion.div
+          <motion.button
+            type="button"
             key={key}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.32, delay: idx * 0.06 }}
-            className="group relative rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-xs transition hover:border-brand-500 hover:shadow-md"
+            onClick={() => pickRole(key)}
+            disabled={submitting}
+            className="group relative text-start card-premium p-6 hover:border-brand-300 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
           >
-            <div className="mb-4 flex size-10 items-center justify-center rounded-md bg-brand-50 text-brand-500">
-              <Icon aria-hidden className="size-5" />
+            <div className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm group-hover:shadow-brand-md transition-shadow">
+              <Icon aria-hidden className="size-6" />
             </div>
-            <h3 className="mb-1 text-xl font-semibold">{t(`auth:onboarding.role.${i18n}.title`)}</h3>
-            <p className="mb-6 text-sm text-text-secondary">
+            <h3 className="mb-2 text-xl font-bold tracking-tight">{t(`auth:onboarding.role.${i18n}.title`)}</h3>
+            <p className="mb-5 text-sm text-text-secondary leading-relaxed">
               {t(`auth:onboarding.role.${i18n}.body`)}
             </p>
-            <button
-              type="button"
-              onClick={() => pickRole(key)}
-              disabled={submitting}
-              className="inline-flex items-center text-sm font-medium text-brand-500 transition group-hover:translate-x-0.5 disabled:opacity-50"
-            >
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 group-hover:text-brand-700 transition-colors">
               {t(`auth:onboarding.role.${i18n}.cta`)}
-            </button>
-          </motion.div>
+              <ArrowLeft aria-hidden className="size-4 rotate-180 rtl:rotate-0 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform" />
+            </span>
+          </motion.button>
         ))}
       </div>
     </section>

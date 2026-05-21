@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router";
 import { useTranslation } from "react-i18next";
-import { 
-  ArrowLeft, 
-  ArrowUp, 
-  ArrowDown, 
-  MessageSquare, 
-  Flag, 
+import {
+  ArrowLeft,
+  ArrowUp,
+  ArrowDown,
+  MessageSquare,
+  Flag,
   Send,
-  Shield
+  Shield,
+  Loader2,
 } from "lucide-react";
+import { motion } from "motion/react";
 import { communityApi, type VoteType } from "@/services/api/community";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/common/UserAvatar";
@@ -103,100 +105,112 @@ export function CommunityThread() {
     );
   }
 
+  const postScore = thread.post.upvoteCount - thread.post.downvoteCount;
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Back button */}
-      <Link 
-        to="/student/community" 
-        className="inline-flex items-center gap-2 text-text-secondary hover:text-brand-500 transition-colors mb-6 group"
+      <Link
+        to="/student/community"
+        className="inline-flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors mb-6 group"
       >
-        <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform rtl:group-hover:translate-x-1" />
-        <span className="font-medium text-sm">{t("thread.backToFeed")}</span>
+        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform rtl:rotate-180 rtl:group-hover:translate-x-1" aria-hidden />
+        <span className="font-semibold text-sm">{t("thread.backToFeed")}</span>
       </Link>
 
       {/* Main Post */}
-      <div className="bg-bg-elevated rounded-3xl border border-border-subtle shadow-sm overflow-hidden mb-8">
-        <div className="p-8">
-          <div className="flex gap-6">
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28 }}
+        className="card-premium overflow-hidden mb-6"
+      >
+        <div className="p-6 sm:p-8">
+          <div className="flex gap-5 sm:gap-6">
             {/* Vote Side — disabled on your own post (matches the server-side
                 "cannot vote on your own post" rule). */}
             {(() => {
               const isOwnPost = thread.post.authorId === currentUserId;
               const title = isOwnPost ? t("actions.voteOwnPost") : undefined;
               return (
-                <div className="flex flex-col items-center gap-2 bg-bg-subtle rounded-2xl p-2 h-fit">
+                <div className="flex flex-col items-center gap-0.5 bg-bg-subtle/70 rounded-xl px-1.5 py-2 h-fit border border-border-subtle">
                   <button
                     type="button"
                     onClick={() => handleVote(thread.post.id, "Up")}
                     disabled={isOwnPost}
                     title={title}
                     aria-label="Upvote"
-                    className="p-1 hover:text-brand-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-current"
+                    className="p-1.5 rounded-md text-text-tertiary hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                   >
-                    <ArrowUp size={24} />
+                    <ArrowUp size={20} strokeWidth={2.5} aria-hidden />
                   </button>
-                  <span className="font-bold text-lg">{thread.post.upvoteCount - thread.post.downvoteCount}</span>
+                  <span className={`font-bold text-base tabular-nums ${
+                    postScore > 0 ? "text-brand-600" : postScore < 0 ? "text-danger-500" : "text-text-secondary"
+                  }`}>
+                    {postScore}
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleVote(thread.post.id, "Down")}
                     disabled={isOwnPost}
                     title={title}
                     aria-label="Downvote"
-                    className="p-1 hover:text-danger-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-current"
+                    className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                   >
-                    <ArrowDown size={24} />
+                    <ArrowDown size={20} strokeWidth={2.5} aria-hidden />
                   </button>
                 </div>
               );
             })()}
 
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between mb-5 gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <UserAvatar
                     userId={thread.post.authorId}
                     name={thread.post.authorName}
-                    className="w-10 h-10"
+                    className="w-10 h-10 ring-2 ring-bg-elevated"
                   />
-                  <div>
-                    <h4 className="text-sm font-bold">{thread.post.authorName}</h4>
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-bold tracking-tight truncate">{thread.post.authorName}</h4>
                     <span className="text-xs text-text-tertiary">
                       {formatDistanceToNow(new Date(thread.post.createdAt), { addSuffix: true, locale: dateLocale })}
                     </span>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => handleFlag(thread.post.id)}
-                  className="text-text-tertiary hover:text-danger-500 p-2 transition-colors"
+                  aria-label={t("actions.flagReasonPrompt")}
+                  className="p-2 text-text-tertiary hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors shrink-0"
                 >
-                  <Flag size={18} />
+                  <Flag size={16} aria-hidden />
                 </button>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl font-bold mb-6 leading-tight">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-5 leading-tight tracking-tight">
                 {thread.post.title}
               </h1>
-              
-              <div className="prose prose-slate max-w-none text-text-secondary leading-relaxed mb-8">
-                {thread.post.bodyMarkdown.split('\n').map((line, idx) => (
+
+              <div className="max-w-none text-text-secondary leading-relaxed mb-6 space-y-2 text-[15px]">
+                {thread.post.bodyMarkdown.split('\n').filter((l) => l.trim()).map((line, idx) => (
                   <p key={idx}>{line}</p>
                 ))}
               </div>
 
-              <div className="flex items-center gap-6 border-t border-border-subtle pt-6">
-                <div className="flex items-center gap-2 text-text-tertiary text-sm">
-                  <MessageSquare size={18} />
-                  <span className="font-medium">{t("thread.commentsCount", { count: thread.post.replyCount })}</span>
+              <div className="flex items-center gap-5 border-t border-border-subtle pt-5 flex-wrap">
+                <div className="flex items-center gap-1.5 text-text-secondary text-sm font-medium">
+                  <MessageSquare size={16} aria-hidden />
+                  <span>{t("thread.commentsCount", { count: thread.post.replyCount })}</span>
                 </div>
-                <div className="flex items-center gap-2 text-text-tertiary text-sm">
-                  <Shield size={18} />
-                  <span>{t("thread.verifiedSafe")}</span>
+                <div className="flex items-center gap-1.5 text-success-600 text-sm">
+                  <Shield size={16} aria-hidden />
+                  <span className="font-medium">{t("thread.verifiedSafe")}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Reply Form */}
       <div className="mb-10">
@@ -205,67 +219,95 @@ export function CommunityThread() {
             value={replyBody}
             onChange={(e) => setReplyBody(e.target.value)}
             placeholder={t("thread.replyPlaceholder")}
-            className="w-full bg-bg-elevated border border-border-subtle rounded-2xl p-6 pe-16 outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent transition-all shadow-sm min-h-[120px] resize-none"
+            className="w-full bg-bg-elevated border border-border-default rounded-2xl px-5 py-4 pe-16 outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-400 transition-all shadow-elevation-1 min-h-[120px] resize-none text-sm leading-relaxed placeholder:text-text-tertiary"
           />
           <button
             type="submit"
             disabled={replyMutation.isPending || !replyBody.trim()}
-            className="absolute end-4 bottom-4 p-3 bg-brand-500 text-white rounded-xl shadow-lg hover:bg-brand-600 disabled:opacity-50 disabled:shadow-none transition-all"
+            aria-label={t("ask.submit")}
+            className="absolute end-3 bottom-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm transition-all hover:shadow-brand-md hover:from-brand-600 hover:to-brand-800 active:scale-95 disabled:bg-none disabled:bg-bg-subtle disabled:text-text-tertiary disabled:shadow-none disabled:cursor-not-allowed"
           >
-            <Send size={20} />
+            {replyMutation.isPending ? (
+              <Loader2 size={18} className="animate-spin" aria-hidden />
+            ) : (
+              <Send size={16} className="rtl:rotate-180" aria-hidden />
+            )}
           </button>
         </form>
       </div>
 
       {/* Replies List */}
-      <div className="space-y-6 relative before:absolute before:start-5 before:top-4 before:bottom-4 before:w-0.5 before:bg-border-subtle">
-        {thread.replies.map((reply) => {
+      <div className="space-y-3 relative">
+        {thread.replies.length > 0 && (
+          <h2 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-2">
+            {t("thread.commentsCount", { count: thread.post.replyCount })}
+          </h2>
+        )}
+        {thread.replies.map((reply, idx) => {
           const isOwnReply = reply.authorId === currentUserId;
           const replyVoteTitle = isOwnReply ? t("actions.voteOwnPost") : undefined;
+          const replyScore = reply.upvoteCount - reply.downvoteCount;
           return (
-          <div key={reply.id} className="relative ps-12">
-            <div className="bg-bg-elevated p-6 rounded-2xl border border-border-subtle shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <UserAvatar
-                    userId={reply.authorId}
-                    name={reply.authorName}
-                    className="w-7 h-7 border border-white shadow-sm"
-                    initialsClassName="text-[10px]"
-                  />
-                  <span className="text-sm font-bold">{reply.authorName}</span>
-                  <span className="text-xs text-text-tertiary">
-                    {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true, locale: dateLocale })}
-                  </span>
+            <motion.div
+              key={reply.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.24, delay: Math.min(idx * 0.04, 0.2) }}
+              className="relative ps-6 sm:ps-8"
+            >
+              {/* Thread connector */}
+              <span aria-hidden className="absolute start-2 sm:start-3 top-0 bottom-0 w-px bg-border-subtle" />
+              <span aria-hidden className="absolute start-2 sm:start-3 top-6 w-3 sm:w-5 h-px bg-border-subtle" />
+
+              <div className="card-premium p-5">
+                <div className="flex items-start justify-between mb-3 gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <UserAvatar
+                      userId={reply.authorId}
+                      name={reply.authorName}
+                      className="w-8 h-8 ring-2 ring-bg-elevated"
+                      initialsClassName="text-[10px]"
+                    />
+                    <div className="min-w-0">
+                      <span className="text-sm font-bold tracking-tight block truncate">{reply.authorName}</span>
+                      <span className="text-xs text-text-tertiary">
+                        {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true, locale: dateLocale })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleVote(reply.id, "Up")}
+                      disabled={isOwnReply}
+                      title={replyVoteTitle}
+                      aria-label="Upvote reply"
+                      className="p-1.5 rounded-md text-text-tertiary hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
+                    >
+                      <ArrowUp size={14} strokeWidth={2.5} aria-hidden />
+                    </button>
+                    <span className={`text-xs font-bold w-5 text-center tabular-nums ${
+                      replyScore > 0 ? "text-brand-600" : replyScore < 0 ? "text-danger-500" : "text-text-secondary"
+                    }`}>
+                      {replyScore}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleFlag(reply.id)}
+                      aria-label={t("actions.flagReasonPrompt")}
+                      className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors"
+                    >
+                      <Flag size={12} aria-hidden />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => handleVote(reply.id, "Up")}
-                    disabled={isOwnReply}
-                    title={replyVoteTitle}
-                    aria-label="Upvote reply"
-                    className="p-1 text-text-tertiary hover:text-brand-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-text-tertiary"
-                  >
-                    <ArrowUp size={16} />
-                  </button>
-                  <span className="text-xs font-bold w-4 text-center">{reply.upvoteCount - reply.downvoteCount}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleFlag(reply.id)}
-                    className="p-1 text-text-tertiary hover:text-danger-500 transition-colors"
-                  >
-                    <Flag size={14} />
-                  </button>
+                <div className="text-text-secondary text-sm leading-relaxed space-y-1.5">
+                  {reply.bodyMarkdown.split('\n').filter((l) => l.trim()).map((line, idx) => (
+                    <p key={idx}>{line}</p>
+                  ))}
                 </div>
               </div>
-              <div className="text-text-secondary text-sm leading-relaxed">
-                {reply.bodyMarkdown.split('\n').map((line, idx) => (
-                  <p key={idx}>{line}</p>
-                ))}
-              </div>
-            </div>
-          </div>
+            </motion.div>
           );
         })}
       </div>
