@@ -110,15 +110,22 @@ public sealed class NotificationDispatcher(
                     break;
 
                 case NotificationChannel.Email:
-                    var email = await db.Users
+                    var recipient = await db.Users
                         .Where(u => u.Id == row.RecipientUserId)
-                        .Select(u => u.Email)
+                        .Select(u => new { u.Email, u.PreferredLanguage })
                         .FirstOrDefaultAsync(ct);
-                    if (!string.IsNullOrEmpty(email))
+                    if (recipient is not null && !string.IsNullOrEmpty(recipient.Email))
                     {
+                        // Render in the recipient's preferred language so AR users get
+                        // AR copy and EN users get EN copy. Defaults to EN when the
+                        // preference is unset or unrecognised.
+                        var prefersArabic = !string.IsNullOrEmpty(recipient.PreferredLanguage)
+                            && recipient.PreferredLanguage.StartsWith("ar", StringComparison.OrdinalIgnoreCase);
+                        var subject = prefersArabic ? content.TitleAr : content.TitleEn;
+                        var body = prefersArabic ? content.BodyAr : content.BodyEn;
                         await emailService.SendAsync(
-                            new EmailMessage(email, content.TitleEn,
-                                $"<p>{content.BodyEn}</p>", content.BodyEn), ct);
+                            new EmailMessage(recipient.Email, subject,
+                                $"<p>{body}</p>", body), ct);
                     }
                     break;
 
