@@ -174,7 +174,7 @@
     "title": "Built for ambitious students.",
     "subtitle": "ScholarPath is a bilingual workspace that helps students discover, track, and secure scholarships — without the noise.",
     "story": {
-      "body1": "ScholarPath started as a graduation project at the Faculty of Computer Science. We had watched friends miss scholarship deadlines because the information was scattered across dozens of sites, applications were tracked in spreadsheets, and trustworthy advisors were hard to find. We built ScholarPath to put all of that in one calm, gated workspace.",
+      "body1": "ScholarPath started as a graduation project at the Faculty of Graduate Studies for Statistical Research, Cairo University. We had watched friends miss scholarship deadlines because the information was scattered across dozens of sites, applications were tracked in spreadsheets, and trustworthy advisors were hard to find. We built ScholarPath to put all of that in one calm, gated workspace.",
       "body2": "Today the platform pairs verified scholarship listings with an AI matching engine, a verified consultant marketplace, a moderated community, and AI tools for drafting statements of purpose and prepping interviews — all available in Arabic and English."
     },
     "stats": {
@@ -236,7 +236,7 @@
     },
     "office": {
       "title": "Office",
-      "body": "Faculty of Computer Science, Cairo, Egypt. We work asynchronously across time zones — email is the fastest way to reach us.",
+      "body": "Faculty of Graduate Studies for Statistical Research, Cairo University · Cairo, Egypt. We work asynchronously across time zones — email is the fastest way to reach us.",
       "cta": "Mon — Fri"
     },
     "hours": {

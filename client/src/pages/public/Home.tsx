@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Quote,
   Check,
+  GraduationCap,
 } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -102,27 +103,29 @@ export function Home() {
             </a>
           </motion.div>
 
-          {/* Trust strip — university wordmarks rendered as typeset pills
-              instead of grey loading-bars so the section looks finished. */}
+          {/* "Built at" credit — replaces the previous placeholder list of
+              international universities with an honest, prominent credit for
+              the team's home institution. This is a graduation project and
+              the trust signal that earns reads "built by people from a
+              specific, real place" — not "endorsed by MIT". */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1], delay: 0.34 }}
             className="mt-20"
           >
-            <p className="text-xs font-medium uppercase tracking-wider text-text-tertiary">
-              {t("home:hero.trustedBy")}
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-text-tertiary">
+              {t("home:hero.builtAt")}
             </p>
-            <div className="mt-6 grid grid-cols-2 items-center justify-items-center gap-x-6 gap-y-4 sm:grid-cols-3 md:grid-cols-5">
-              {["MIT", "Stanford", "Oxford", "ETH Zürich", "Sorbonne"].map((name) => (
-                <span
-                  key={name}
-                  className="font-serif text-base font-semibold tracking-tight text-text-tertiary transition-colors hover:text-text-primary"
-                >
-                  {name}
-                </span>
-              ))}
+            <div className="mt-5 flex flex-col items-center gap-2 text-center sm:flex-row sm:justify-center sm:gap-3">
+              <GraduationCap aria-hidden className="size-5 text-brand-500" />
+              <p className="font-serif text-base font-semibold tracking-tight text-text-primary sm:text-lg">
+                {t("home:hero.builtAtName")}
+              </p>
             </div>
+            <p className="mt-2 text-center text-xs text-text-tertiary">
+              {t("home:hero.builtAtTagline")}
+            </p>
           </motion.div>
         </div>
       </section>

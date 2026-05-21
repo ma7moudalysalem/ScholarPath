@@ -40,6 +40,12 @@ public sealed class KnowledgeBaseIndexer(
         var desired = new List<DesiredDoc>();
         desired.AddRange(await BuildScholarshipDocsAsync(ct).ConfigureAwait(false));
         desired.AddRange(BuildFaqDocs());
+        // Three additional projections so the RAG retriever can match people
+        // and library content the way it already matches scholarships and
+        // help articles.
+        desired.AddRange(await BuildConsultantDocsAsync(ct).ConfigureAwait(false));
+        desired.AddRange(await BuildResourceDocsAsync(ct).ConfigureAwait(false));
+        desired.AddRange(await BuildTopCommunityPostDocsAsync(ct).ConfigureAwait(false));
 
         var existing = await db.KnowledgeDocuments.ToListAsync(ct).ConfigureAwait(false);
         var byKey = existing.ToDictionary(d => (d.SourceType, d.SourceKey));
@@ -240,6 +246,239 @@ public sealed class KnowledgeBaseIndexer(
         }
 
         return docs;
+    }
+
+    /// <summary>
+    /// Projects every verified, non-suspended consultant profile into a
+    /// KnowledgeDocument. The chatbot can then answer queries like
+    /// "who's good at SoP review in French?" by retrieving these docs and
+    /// citing the consultants by name. Unverified or suspended consultants
+    /// are excluded so the AI doesn't surface accounts the student couldn't
+    /// actually book.
+    /// </summary>
+    private async Task<List<DesiredDoc>> BuildConsultantDocsAsync(CancellationToken ct)
+    {
+        var consultants = await (
+            from u in db.Users.AsNoTracking()
+            join p in db.UserProfiles.AsNoTracking() on u.Id equals p.UserId
+            where u.ActiveRole == "Consultant"
+                && !u.IsDeleted
+                && p.ConsultantVerifiedAt != null
+                && p.BookingIntakeSuspendedAt == null
+            select new
+            {
+                u.Id,
+                u.FirstName,
+                u.LastName,
+                u.CountryOfResidence,
+                p.Biography,
+                p.BiographyAr,
+                p.ProfessionalTitle,
+                p.HighestDegree,
+                p.FieldOfExpertise,
+                p.YearsOfExperience,
+                p.SessionFeeUsd,
+                p.SessionDurationMinutes,
+                p.ExpertiseTagsJson,
+                p.LanguagesJson,
+            }).ToListAsync(ct).ConfigureAwait(false);
+
+        var docs = new List<DesiredDoc>(consultants.Count);
+        foreach (var c in consultants)
+        {
+            var name = $"{c.FirstName} {c.LastName}".Trim();
+            if (string.IsNullOrWhiteSpace(name)) continue;
+
+            var tags = ParseJsonArray(c.ExpertiseTagsJson);
+            var languages = ParseJsonArray(c.LanguagesJson);
+            var tagsText = tags.Count > 0 ? string.Join(", ", tags) : "general guidance";
+            var langsText = languages.Count > 0 ? string.Join(", ", languages) : "en";
+            var bioEn = string.IsNullOrWhiteSpace(c.Biography) ? "" : c.Biography.Trim();
+            var bioAr = string.IsNullOrWhiteSpace(c.BiographyAr) ? "" : c.BiographyAr.Trim();
+            var feeText = c.SessionFeeUsd is > 0 ? $"{c.SessionFeeUsd:N0} USD" : "varies";
+            var country = c.CountryOfResidence ?? "international";
+
+            var contentEn =
+                $"Consultant: {name}\n" +
+                $"Title: {c.ProfessionalTitle ?? "Consultant"}. Country: {country}.\n" +
+                $"Highest degree: {c.HighestDegree ?? "not specified"}. " +
+                $"Field of expertise: {c.FieldOfExpertise ?? "general"}.\n" +
+                $"Years of experience: {c.YearsOfExperience?.ToString() ?? "n/a"}.\n" +
+                $"Session fee: {feeText} for {c.SessionDurationMinutes ?? 45} minutes.\n" +
+                $"Specializations: {tagsText}.\n" +
+                $"Speaks: {langsText}.\n" +
+                $"{bioEn}";
+
+            var contentAr =
+                $"مستشار: {name}\n" +
+                $"المسمى: {c.ProfessionalTitle ?? "مستشار"}. الدولة: {country}.\n" +
+                $"أعلى مؤهل: {c.HighestDegree ?? "غير محدد"}. " +
+                $"مجال الخبرة: {c.FieldOfExpertise ?? "عام"}.\n" +
+                $"سنوات الخبرة: {c.YearsOfExperience?.ToString() ?? "غير محددة"}.\n" +
+                $"سعر الجلسة: {feeText} لمدة {c.SessionDurationMinutes ?? 45} دقيقة.\n" +
+                $"التخصصات: {tagsText}.\n" +
+                $"اللغات: {langsText}.\n" +
+                $"{bioAr}";
+
+            var metadata = JsonSerializer.Serialize(new
+            {
+                consultantId = c.Id,
+                sessionFeeUsd = c.SessionFeeUsd,
+                sessionDurationMinutes = c.SessionDurationMinutes,
+                expertiseTags = tags,
+                languages,
+            });
+
+            docs.Add(new DesiredDoc(
+                KnowledgeSourceType.Consultant,
+                c.Id.ToString("N"),
+                c.Id,
+                name,
+                name,
+                contentEn,
+                contentAr,
+                metadata));
+        }
+
+        return docs;
+    }
+
+    /// <summary>
+    /// Projects every Published, non-deleted resource (article, guide,
+    /// checklist, video link) into a KnowledgeDocument so the chatbot can
+    /// point students at relevant in-house content.
+    /// </summary>
+    private async Task<List<DesiredDoc>> BuildResourceDocsAsync(CancellationToken ct)
+    {
+        var resources = await db.Resources
+            .AsNoTracking()
+            .Where(r => r.Status == ResourceStatus.Published && !r.IsDeleted)
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        var docs = new List<DesiredDoc>(resources.Count);
+        foreach (var r in resources)
+        {
+            var tags = ParseJsonArray(r.TagsJson);
+            var tagsText = tags.Count > 0 ? string.Join(", ", tags) : "general";
+
+            // Trim long markdown bodies so a 50-chapter guide doesn't blow
+            // out the embedding token budget. 1500 chars is enough for the
+            // retriever to score the doc; the chatbot doesn't replay the
+            // whole body anyway.
+            var bodyEn = Truncate(r.ContentMarkdownEn, 1500);
+            var bodyAr = Truncate(r.ContentMarkdownAr, 1500);
+
+            var contentEn =
+                $"Resource ({r.Type}): {r.TitleEn}\n" +
+                $"{r.DescriptionEn ?? string.Empty}\n" +
+                $"Tags: {tagsText}.\n" +
+                (string.IsNullOrEmpty(bodyEn) ? string.Empty : $"\n{bodyEn}");
+
+            var contentAr =
+                $"مورد ({r.Type}): {r.TitleAr}\n" +
+                $"{r.DescriptionAr ?? string.Empty}\n" +
+                $"الوسوم: {tagsText}.\n" +
+                (string.IsNullOrEmpty(bodyAr) ? string.Empty : $"\n{bodyAr}");
+
+            var metadata = JsonSerializer.Serialize(new
+            {
+                slug = r.Slug,
+                type = r.Type.ToString(),
+                authorRole = r.AuthorRole,
+                isFeatured = r.IsFeatured,
+                externalLinkUrl = r.ExternalLinkUrl,
+            });
+
+            docs.Add(new DesiredDoc(
+                KnowledgeSourceType.Resource,
+                r.Id.ToString("N"),
+                r.Id,
+                r.TitleEn,
+                r.TitleAr,
+                contentEn,
+                contentAr,
+                metadata));
+        }
+
+        return docs;
+    }
+
+    /// <summary>
+    /// Projects the highest-quality community threads (positive net score,
+    /// not hidden / locked) into KnowledgeDocuments so the chatbot can
+    /// surface peer wisdom alongside the official help content. Only root
+    /// threads are indexed; replies are deliberately excluded to keep the
+    /// index focused.
+    /// </summary>
+    private async Task<List<DesiredDoc>> BuildTopCommunityPostDocsAsync(CancellationToken ct)
+    {
+        var posts = await db.ForumPosts
+            .AsNoTracking()
+            .Where(p => p.ParentPostId == null
+                        && !p.IsDeleted
+                        && !p.IsAutoHidden
+                        && p.ModerationStatus == PostModerationStatus.Visible
+                        && (p.UpvoteCount - p.DownvoteCount) >= 3)
+            .OrderByDescending(p => p.UpvoteCount - p.DownvoteCount)
+            .Take(200)
+            .Select(p => new
+            {
+                p.Id,
+                p.Title,
+                p.BodyMarkdown,
+                p.UpvoteCount,
+                p.DownvoteCount,
+                p.ReplyCount,
+            })
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        var docs = new List<DesiredDoc>(posts.Count);
+        foreach (var p in posts)
+        {
+            var title = string.IsNullOrWhiteSpace(p.Title) ? "Community thread" : p.Title;
+            var body = Truncate(p.BodyMarkdown, 1500);
+            var score = p.UpvoteCount - p.DownvoteCount;
+
+            // The body is user-generated text in whatever language the
+            // author wrote — we don't try to translate it. Embed the same
+            // body under both EN and AR fields so the retriever finds the
+            // doc regardless of the query's language.
+            var contentEn =
+                $"Community discussion: {title}\n" +
+                $"Score: +{score} from the community ({p.ReplyCount} replies).\n\n" +
+                body;
+            var contentAr = contentEn;
+
+            var metadata = JsonSerializer.Serialize(new
+            {
+                postId = p.Id,
+                score,
+                replyCount = p.ReplyCount,
+            });
+
+            docs.Add(new DesiredDoc(
+                KnowledgeSourceType.CommunityPost,
+                p.Id.ToString("N"),
+                p.Id,
+                title,
+                title,
+                contentEn,
+                contentAr,
+                metadata));
+        }
+
+        return docs;
+    }
+
+    /// <summary>Trims a string to <paramref name="max"/> characters, preserving word boundaries.</summary>
+    private static string Truncate(string? text, int max)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var trimmed = text.Trim();
+        if (trimmed.Length <= max) return trimmed;
+        var cut = trimmed.LastIndexOf(' ', max);
+        if (cut < max / 2) cut = max;
+        return trimmed[..cut] + "…";
     }
 
     private List<DesiredDoc> BuildFaqDocs()

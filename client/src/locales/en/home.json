@@ -5,7 +5,10 @@
     "subtitle": "Discover, track, and secure scholarships with AI-matched recommendations and verified consultants — all in one gated workspace.",
     "primaryCta": "Create your account",
     "secondaryCta": "See how it works",
-    "trustedBy": "Trusted by students from leading universities worldwide"
+    "trustedBy": "Trusted by students from leading universities worldwide",
+    "builtAt": "Graduation project · Built at",
+    "builtAtName": "Faculty of Graduate Studies for Statistical Research, Cairo University",
+    "builtAtTagline": "Built by students, for students."
   },
   "stats": {
     "sectionLabel": "Impact at a glance",

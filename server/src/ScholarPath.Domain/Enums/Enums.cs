@@ -261,6 +261,14 @@ public enum KnowledgeSourceType
 
     /// <summary>Indexed from a published Resources Hub article or guide (PB-009).</summary>
     Resource = 2,
+
+    /// <summary>Indexed from a verified consultant's profile so the AI can answer
+    /// questions like "who's good at SoP review for German universities?".</summary>
+    Consultant = 3,
+
+    /// <summary>Indexed from a high-quality community post (top voted, not hidden)
+    /// so the AI can surface peer wisdom on application questions.</summary>
+    CommunityPost = 4,
 }
 
 /// <summary>
