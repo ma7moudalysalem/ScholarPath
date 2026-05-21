@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import * as Dialog from "@radix-ui/react-dialog";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { X, Search, Check, AlertTriangle, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { applicationsApi } from "@/services/api/applications";
-import { scholarshipsApi } from "@/services/api/scholarships";
 import { queryKeys } from "@/lib/queryClient";
 import { ApiError } from "@/services/api/client";
 
@@ -15,10 +14,11 @@ interface AddExternalApplicationModalProps {
 }
 
 /**
- * "Add External Application" — registers an application the student is
- * pursuing on an external scholarship listing's own website (a ScholarPath
- * scholarship whose listing mode is `ExternalUrl`). On success the
- * `applications` query key is invalidated so the Kanban board refreshes.
+ * "Add External Application" — lets the student log a scholarship they're
+ * pursuing OFF the ScholarPath platform. The form takes free-text fields
+ * directly (title, provider, optional URL/deadline/notes) — no catalogue
+ * search step, because the whole point is the scholarship is NOT in the
+ * platform's catalogue.
  *
  * The form lives in a child component mounted only while the dialog is open,
  * so every open starts from fresh `useState` defaults — no effect-based reset.
@@ -66,43 +66,22 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
   const { t } = useTranslation("applications");
   const queryClient = useQueryClient();
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedTerm, setDebouncedTerm] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [selectedTitle, setSelectedTitle] = useState("");
+  // Free-text fields — no catalogue search step.
+  const [title, setTitle] = useState("");
+  const [provider, setProvider] = useState("");
   const [trackingUrl, setTrackingUrl] = useState("");
-  const [referenceId, setReferenceId] = useState("");
+  const [deadline, setDeadline] = useState(""); // YYYY-MM-DD from <input type="date">
   const [notes, setNotes] = useState("");
-
-  // Debounce the search box so we don't fire a request on every keystroke.
-  useEffect(() => {
-    const handle = window.setTimeout(() => setDebouncedTerm(searchTerm.trim()), 300);
-    return () => window.clearTimeout(handle);
-  }, [searchTerm]);
-
-  const { data: results, isFetching: isSearching } = useQuery({
-    queryKey: queryKeys.scholarships.list({ externalPicker: debouncedTerm }),
-    queryFn: () => scholarshipsApi.search({ query: debouncedTerm, pageSize: 8 }),
-    enabled: debouncedTerm.length > 0,
-    staleTime: 30_000,
-  });
-
-  // Once a scholarship is picked, fetch its detail to confirm it is an
-  // external listing — the search DTO does not carry the listing mode.
-  const { data: selectedDetail, isFetching: isLoadingDetail } = useQuery({
-    queryKey: queryKeys.scholarships.detail(selectedId ?? ""),
-    queryFn: () => scholarshipsApi.getById(selectedId ?? ""),
-    enabled: !!selectedId,
-  });
-
-  const isInAppListing = !!selectedDetail && selectedDetail.mode !== "ExternalUrl";
 
   const createMutation = useMutation({
     mutationFn: () =>
       applicationsApi.createExternal({
-        scholarshipId: selectedId!,
+        scholarshipId: null,
+        title: title.trim(),
+        provider: provider.trim() || null,
         externalTrackingUrl: trackingUrl.trim() || null,
-        externalReferenceId: referenceId.trim() || null,
+        // Send a full ISO timestamp so the server's DateTimeOffset binder parses cleanly.
+        deadline: deadline ? `${deadline}T00:00:00Z` : null,
         personalNotes: notes.trim() || null,
       }),
     onSuccess: () => {
@@ -121,12 +100,12 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedId) {
-      toast.error(t("addExternalModal.pleaseSelectScholarship"));
+    if (!title.trim()) {
+      toast.error(t("addExternalModal.pleaseEnterTitle"));
       return;
     }
-    if (isInAppListing) {
-      toast.error(t("addExternalModal.notExternalListing"));
+    if (!provider.trim()) {
+      toast.error(t("addExternalModal.pleaseEnterProvider"));
       return;
     }
     createMutation.mutate();
@@ -140,105 +119,49 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
       className="flex flex-1 flex-col overflow-y-auto p-6 pt-4"
     >
       <div className="space-y-5">
-        {/* ── Scholarship picker ── */}
+        {/* ── Scholarship name (required) ── */}
         <div className="space-y-2">
           <label
-            htmlFor="external-scholarship-search"
+            htmlFor="external-title"
             className="block text-sm font-medium text-text-secondary"
           >
-            {t("addExternalModal.scholarshipLabel")}
+            {t("addExternalModal.titleLabel")}{" "}
+            <span aria-hidden className="text-error-600">*</span>
           </label>
-
-          {selectedId ? (
-            <div className="flex items-start justify-between gap-3 rounded-md border border-brand-500/40 bg-brand-500/5 p-3">
-              <div className="flex items-start gap-2">
-                <Check
-                  size={16}
-                  aria-hidden
-                  className="mt-0.5 shrink-0 text-brand-600"
-                />
-                <span className="text-sm font-medium text-text-primary">
-                  {selectedTitle}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedId(null);
-                  setSelectedTitle("");
-                }}
-                className="shrink-0 text-xs font-medium text-brand-600 hover:underline"
-              >
-                {t("addExternalModal.changeScholarship")}
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="relative">
-                <Search
-                  aria-hidden
-                  className="pointer-events-none absolute inset-s-3 top-1/2 size-4 -translate-y-1/2 text-text-tertiary"
-                />
-                <input
-                  id="external-scholarship-search"
-                  type="search"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={t("addExternalModal.scholarshipPlaceholder")}
-                  className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas ps-10 pe-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                />
-              </div>
-
-              {debouncedTerm.length > 0 && (
-                <div className="max-h-48 overflow-y-auto rounded-md border border-border-subtle">
-                  {isSearching ? (
-                    <div className="flex items-center justify-center gap-2 p-4 text-sm text-text-tertiary">
-                      <Loader2 size={16} className="animate-spin" aria-hidden />
-                      {t("addExternalModal.searching")}
-                    </div>
-                  ) : results && results.items.length > 0 ? (
-                    <ul className="divide-y divide-border-subtle">
-                      {results.items.map((s) => (
-                        <li key={s.id}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedId(s.id);
-                              setSelectedTitle(s.titleEn);
-                            }}
-                            className="block w-full px-3 py-2 text-start text-sm text-text-primary transition-colors hover:bg-bg-subtle"
-                          >
-                            {s.titleEn}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="p-4 text-sm text-text-tertiary">
-                      {t("addExternalModal.noResults")}
-                    </p>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* In-app listing warning */}
-          {selectedId && isLoadingDetail && (
-            <p className="flex items-center gap-1.5 text-xs text-text-tertiary">
-              <Loader2 size={12} className="animate-spin" aria-hidden />
-              {t("addExternalModal.checkingListing")}
-            </p>
-          )}
-          {isInAppListing && (
-            <p className="flex items-start gap-1.5 rounded-md bg-warning-50 p-2 text-xs text-warning-600">
-              <AlertTriangle size={14} aria-hidden className="mt-0.5 shrink-0" />
-              {t("addExternalModal.notExternalListing")}
-            </p>
-          )}
+          <input
+            id="external-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t("addExternalModal.titlePlaceholder")}
+            required
+            maxLength={300}
+            className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+          />
         </div>
 
-        {/* ── Tracking URL ── */}
+        {/* ── Provider / organization (required) ── */}
+        <div className="space-y-2">
+          <label
+            htmlFor="external-provider"
+            className="block text-sm font-medium text-text-secondary"
+          >
+            {t("addExternalModal.providerLabel")}{" "}
+            <span aria-hidden className="text-error-600">*</span>
+          </label>
+          <input
+            id="external-provider"
+            type="text"
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+            placeholder={t("addExternalModal.providerPlaceholder")}
+            required
+            maxLength={200}
+            className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+          />
+        </div>
+
+        {/* ── External URL (optional) ── */}
         <div className="space-y-2">
           <label
             htmlFor="external-tracking-url"
@@ -259,29 +182,27 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
           />
         </div>
 
-        {/* ── Reference id ── */}
+        {/* ── Deadline (optional date picker) ── */}
         <div className="space-y-2">
           <label
-            htmlFor="external-reference-id"
+            htmlFor="external-deadline"
             className="block text-sm font-medium text-text-secondary"
           >
-            {t("addExternalModal.referenceIdLabel")}{" "}
+            {t("addExternalModal.deadlineLabel")}{" "}
             <span className="text-xs font-normal text-text-tertiary">
               ({t("addExternalModal.optional")})
             </span>
           </label>
           <input
-            id="external-reference-id"
-            type="text"
-            value={referenceId}
-            onChange={(e) => setReferenceId(e.target.value)}
-            placeholder={t("addExternalModal.referenceIdPlaceholder")}
-            maxLength={200}
+            id="external-deadline"
+            type="date"
+            value={deadline}
+            onChange={(e) => setDeadline(e.target.value)}
             className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           />
         </div>
 
-        {/* ── Personal notes ── */}
+        {/* ── Personal notes (optional) ── */}
         <div className="space-y-2">
           <label
             htmlFor="external-notes"
@@ -316,7 +237,7 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
         </Dialog.Close>
         <button
           type="submit"
-          disabled={isSubmitting || !selectedId || isInAppListing}
+          disabled={isSubmitting || !title.trim() || !provider.trim()}
           className="inline-flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting && <Loader2 size={16} className="animate-spin" aria-hidden />}

@@ -15,7 +15,8 @@ export type ApplicationStatus =
 
 export interface StudentApplicationRow {
   applicationId: string;
-  scholarshipId: string;
+  /** Null when the tracker is a purely off-platform scholarship (no catalogue link). */
+  scholarshipId: string | null;
   scholarshipTitle: string;
   companyId: string | null;
   companyName: string | null;
@@ -32,12 +33,21 @@ export interface UpdateStatusRequest {
  * Body for `POST /api/applications/external` — registers an application the
  * student is pursuing on an external scholarship listing's own website.
  * Mirrors the server's `ExternalIntentCommand`.
+ *
+ * Two modes:
+ *   1) `scholarshipId` set — the listing exists in the ScholarPath catalogue
+ *      (legacy "external-mode platform listing" flow).
+ *   2) `scholarshipId` null — a purely off-platform scholarship; `title` is
+ *      required, `provider` and `deadline` are optional free-text.
  */
 export interface CreateExternalApplicationRequest {
-  scholarshipId: string;
+  scholarshipId?: string | null;
   externalTrackingUrl?: string | null;
   externalReferenceId?: string | null;
   personalNotes?: string | null;
+  title?: string | null;
+  provider?: string | null;
+  deadline?: string | null;
 }
 
 export interface CompanyApplicationRow {
@@ -53,7 +63,7 @@ export interface CompanyApplicationRow {
 
 export interface ApplicationDetail {
   id: string;
-  scholarshipId: string;
+  scholarshipId: string | null;
   scholarshipTitleEn: string;
   scholarshipTitleAr: string;
   companyName: string | null;

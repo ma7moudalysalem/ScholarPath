@@ -130,7 +130,7 @@ export function StudentApplicationDetail() {
   // The scholarship carries the application-form schema + required documents.
   const { data: scholarship } = useQuery({
     queryKey: ["scholarship", "detail", data?.scholarshipId],
-    queryFn: () => scholarshipsApi.getById(data!.scholarshipId),
+    queryFn: () => scholarshipsApi.getById(data!.scholarshipId!),
     enabled: !!data?.scholarshipId,
   });
 
