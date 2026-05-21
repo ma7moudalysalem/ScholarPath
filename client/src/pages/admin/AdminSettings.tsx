@@ -290,7 +290,7 @@ export function AdminSettings() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 24, opacity: 0 }}
           transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-          className="sticky bottom-4 z-30 mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-2xl border border-border-default bg-bg-elevated/95 p-3 pl-5 shadow-elevation-3 backdrop-blur-md"
+          className="sticky bottom-4 z-30 mx-auto flex max-w-3xl items-center justify-between gap-3 rounded-2xl border border-border-default bg-bg-elevated/95 p-3 ps-5 shadow-elevation-3 backdrop-blur-md"
         >
           <div className="flex items-center gap-2 text-sm">
             <span className="flex size-6 items-center justify-center rounded-full bg-warning-500/10 text-warning-600">
