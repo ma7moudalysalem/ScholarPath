@@ -217,7 +217,10 @@ public static class DependencyInjection
         var useOpenAi = string.Equals(aiProvider, "OpenAi", StringComparison.OrdinalIgnoreCase);
 
         // Embeddings: Azure when selected, otherwise the deterministic offline
-        // local-hash embedder (no API key, no cost).
+        // local-hash embedder (no API key, no cost). LocalEmbeddingService is
+        // always registered as a concrete service so the Azure provider can
+        // delegate to it when the Azure embedding deployment isn't reachable.
+        services.AddScoped<LocalEmbeddingService>();
         if (useAzureAi)
         {
             services.AddHttpClient("azure-openai");
@@ -225,7 +228,7 @@ public static class DependencyInjection
         }
         else
         {
-            services.AddScoped<IEmbeddingService, LocalEmbeddingService>();
+            services.AddScoped<IEmbeddingService>(sp => sp.GetRequiredService<LocalEmbeddingService>());
         }
 
         // RAG knowledge base — bundled datasets, retriever, and indexer.

@@ -11,6 +11,7 @@ import {
   type AuditLogParams,
   type PagedResult,
 } from "@/services/api/admin";
+import { DatePicker } from "@/components/ui/DatePicker";
 
 const ACTIONS: AuditAction[] = [
   "Create",
@@ -70,8 +71,10 @@ export function AuditLogViewer() {
     search: search || undefined,
     action: action || undefined,
     targetType: targetType || undefined,
-    from: from ? new Date(from).toISOString() : undefined,
-    to: to ? new Date(to).toISOString() : undefined,
+    // `from` is the start of the chosen day; `to` is end-of-day (inclusive).
+    // The DatePicker hands us YYYY-MM-DD; the API wants ISO datetime.
+    from: from ? `${from}T00:00:00.000Z` : undefined,
+    to: to ? `${to}T23:59:59.999Z` : undefined,
   };
 
   const { data, isLoading } = useQuery<PagedResult<AuditLogDto>>({
@@ -131,25 +134,35 @@ export function AuditLogViewer() {
           />
         </label>
 
-        <label className="space-y-1 text-xs">
+        <div className="space-y-1 text-xs">
           <span className="block text-text-secondary">{t("admin:audit.filters.from")}</span>
-          <input
-            type="datetime-local"
+          {/*
+            Native <input type="datetime-local"> renders as mm/dd/yyyy --:-- --
+            inside RTL layouts and ignores i18n. The DatePicker is locale-aware
+            and width-aligned with the rest of the filter row.
+          */}
+          <DatePicker
             value={from}
-            onChange={(e) => { setPage(1); setFrom(e.target.value); }}
-            className="h-10 rounded-md border border-border-subtle bg-bg-elevated px-3 text-sm"
+            onChange={(v) => { setPage(1); setFrom(v); }}
+            placeholder={t("admin:audit.filters.from")}
+            ariaLabel={t("admin:audit.filters.from")}
+            clearable
+            className="h-10 w-44"
           />
-        </label>
+        </div>
 
-        <label className="space-y-1 text-xs">
+        <div className="space-y-1 text-xs">
           <span className="block text-text-secondary">{t("admin:audit.filters.to")}</span>
-          <input
-            type="datetime-local"
+          <DatePicker
             value={to}
-            onChange={(e) => { setPage(1); setTo(e.target.value); }}
-            className="h-10 rounded-md border border-border-subtle bg-bg-elevated px-3 text-sm"
+            onChange={(v) => { setPage(1); setTo(v); }}
+            placeholder={t("admin:audit.filters.to")}
+            ariaLabel={t("admin:audit.filters.to")}
+            min={from || undefined}
+            clearable
+            className="h-10 w-44"
           />
-        </label>
+        </div>
 
         {hasFilters && (
           <button
