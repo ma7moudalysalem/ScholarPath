@@ -249,7 +249,10 @@ export function CompanyInsights() {
               delta={
                 data.totalApplications > 0
                   ? {
-                      value: Math.round(Math.abs(data.comparisonToPlatformAvg) * 10) / 10,
+                      // Keep the sign so the arrow icon flips for "below
+                      // platform average" — Math.abs would have wrongly shown
+                      // an upward green arrow for negative deltas.
+                      value: Math.round(data.comparisonToPlatformAvg * 10) / 10,
                       label: `${deltaLabel} ${t("analytics:reports.vsPlatformAvg")}`,
                     }
                   : null

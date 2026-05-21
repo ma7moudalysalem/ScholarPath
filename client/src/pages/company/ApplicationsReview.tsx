@@ -67,11 +67,13 @@ export function ApplicationsReview() {
     });
   };
 
+  // `studentEmail` is not on the CompanyApplicationRow wire shape — searching
+  // it crashed at runtime with "Cannot read property of undefined".
+  const needle = searchTerm.toLowerCase();
   const filteredApps = applications.filter(
     (app: CompanyApplicationRow) =>
-      app.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.studentEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.scholarshipTitle.toLowerCase().includes(searchTerm.toLowerCase()),
+      app.studentName.toLowerCase().includes(needle) ||
+      app.scholarshipTitle.toLowerCase().includes(needle),
   );
 
   return (

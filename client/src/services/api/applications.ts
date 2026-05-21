@@ -50,15 +50,21 @@ export interface CreateExternalApplicationRequest {
   deadline?: string | null;
 }
 
+/**
+ * Mirrors the server's `CompanyApplicationRow` record (camelCase on the wire).
+ * The server returns `applicationId` + `submittedAt`; the latter is nullable
+ * because drafts have no submission date yet. There is no `studentEmail` /
+ * `createdAt` on this DTO — earlier shapes referenced them but they never
+ * existed in the wire payload.
+ */
 export interface CompanyApplicationRow {
-  id: string;
+  applicationId: string;
   studentId: string;
   studentName: string;
-  studentEmail: string;
   scholarshipId: string;
   scholarshipTitle: string;
   status: ApplicationStatus;
-  createdAt: string;
+  submittedAt: string | null;
 }
 
 export interface ApplicationDetail {

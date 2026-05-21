@@ -79,7 +79,9 @@ export function CompanyDashboard() {
   );
 
   const apps = applicationsPage?.items ?? [];
-  const totalApplicants = apps.length;
+  // totalCount is the full server-side total from the paged result. `apps.length`
+  // would only reflect the 50-row page and understate companies with > 50 apps.
+  const totalApplicants = applicationsPage?.totalCount ?? 0;
   const pendingReview = apps.filter(
     (a) => a.status === 'Pending' || a.status === 'UnderReview' || a.status === 'Applied',
   ).length;
@@ -124,6 +126,8 @@ export function CompanyDashboard() {
         }
       />
 
+      {/* KPI tiles — no fabricated delta/trend props (those were hard-coded
+          mock numbers that misled the user about real growth). */}
       <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           label={t('dashboard:company.stats.scholarships')}
@@ -131,8 +135,6 @@ export function CompanyDashboard() {
           to="/company/scholarships"
           icon={Briefcase}
           accent="brand"
-          delta={{ value: activeScholarships > 0 ? 6 : 0, label: t('dashboard:company.stats.scholarshipsDelta') }}
-          trend={[1, 2, 2, 3, 3, 4, 4, 5, 6, 6]}
           delay={0.02}
         />
         <StatCard
@@ -141,8 +143,6 @@ export function CompanyDashboard() {
           to="/company/applications-review"
           icon={Users}
           accent="success"
-          delta={{ value: 14, label: t('dashboard:company.stats.applicantsDelta') }}
-          trend={[2, 4, 5, 7, 6, 8, 10, 11, 13, 14]}
           delay={0.06}
         />
         <StatCard
@@ -150,12 +150,6 @@ export function CompanyDashboard() {
           value={ratings && ratings.totalRatings > 0 ? ratings.averageRating.toFixed(1) : '—'}
           icon={Star}
           accent="warning"
-          delta={
-            ratings && ratings.totalRatings > 0
-              ? { value: 3, label: t('dashboard:company.stats.ratingDelta') }
-              : null
-          }
-          trend={[3.6, 3.7, 3.8, 4.0, 4.1, 4.2, 4.2, 4.3, 4.4, 4.5]}
           delay={0.1}
         />
         <StatCard
@@ -164,8 +158,6 @@ export function CompanyDashboard() {
           to="/company/applications-review"
           icon={Clock}
           accent={pendingReview > 0 ? 'danger' : 'neutral'}
-          delta={{ value: pendingReview, label: t('dashboard:company.stats.pendingDelta') }}
-          trend={[2, 3, 4, 4, 5, 6, 5, 7, 6, 8]}
           delay={0.14}
         />
       </section>
@@ -270,7 +262,7 @@ export function CompanyDashboard() {
             ) : (
               <ul className="space-y-3">
                 {apps.slice(0, 5).map((app) => (
-                  <li key={app.id}>
+                  <li key={app.applicationId}>
                     <Link
                       to="/company/applications-review"
                       className="flex gap-3 rounded-lg p-1 -m-1 transition-colors hover:bg-bg-subtle/60"
@@ -283,9 +275,11 @@ export function CompanyDashboard() {
                           {app.studentName} <span className="text-text-tertiary">·</span>{' '}
                           <span className="text-text-secondary">{app.scholarshipTitle}</span>
                         </p>
-                        <p className="mt-0.5 text-xs text-text-tertiary">
-                          {formatRelativeTime(app.createdAt, i18n.language)}
-                        </p>
+                        {app.submittedAt && (
+                          <p className="mt-0.5 text-xs text-text-tertiary">
+                            {formatRelativeTime(app.submittedAt, i18n.language)}
+                          </p>
+                        )}
                       </div>
                     </Link>
                   </li>
