@@ -1,6 +1,7 @@
 {
   "page": {
     "title": "Scholarships",
+    "subtitle": "Discover opportunities curated for your level, field, and timeline.",
     "total": "{{count}} scholarships found",
     "pagination": "Page {{page}} of {{total}}",
     "prev": "Previous",
@@ -28,7 +29,9 @@
   "card": {
     "featured": "Featured",
     "closed": "Closed",
-    "daysLeft": "{{count}} days left"
+    "daysLeft": "{{count}} days left",
+    "viewDetails": "View",
+    "deadline": "Deadline"
   },
   "fundingType": {
     "FullyFunded": "Fully Funded",
@@ -51,7 +54,8 @@
   },
   "empty": {
     "title": "No scholarships found",
-    "body": "Try adjusting your filters or search terms."
+    "body": "Try adjusting your filters or search terms.",
+    "clearFilters": "Clear filters"
   },
   "bookmark": {
     "toggle": "Toggle bookmark",
@@ -82,6 +86,7 @@
     "back": "Back to Scholarships",
     "open": "Open",
     "details": "Details",
+    "overview": "Overview",
     "funding": "Funding",
     "level": "Level",
     "deadline": "Deadline",
@@ -100,6 +105,12 @@
     "applyGoToProfile": "Go to profile",
     "profileIncompleteTitle": "Complete your profile to apply",
     "profileIncompleteBody": "Add your academic level and field of study — they're used to evaluate the application and to personalise AI recommendations.",
-    "checkEligibility": "Check Eligibility"
+    "checkEligibility": "Check Eligibility",
+    "share": "Share",
+    "shareCopied": "Link copied to clipboard",
+    "providerLabel": "Provider",
+    "summaryLabel": "At a glance",
+    "actionsLabel": "Get started",
+    "daysLeftLong": "{{count}} days left until deadline"
   }
 }

@@ -1,6 +1,7 @@
 {
   "page": {
     "title": "المنح الدراسية",
+    "subtitle": "اكتشف الفرص المختارة بعناية لمستواك ومجالك وتوقيتك.",
     "total": "تم العثور على {{count}} منحة",
     "pagination": "صفحة {{page}} من {{total}}",
     "prev": "السابق",
@@ -28,7 +29,9 @@
   "card": {
     "featured": "مميزة",
     "closed": "مغلقة",
-    "daysLeft": "{{count}} أيام متبقية"
+    "daysLeft": "{{count}} أيام متبقية",
+    "viewDetails": "عرض",
+    "deadline": "الموعد النهائي"
   },
   "fundingType": {
     "FullyFunded": "ممولة بالكامل",
@@ -51,7 +54,8 @@
   },
   "empty": {
     "title": "لا توجد منح دراسية",
-    "body": "جرب تعديل الفلاتر أو كلمات البحث."
+    "body": "جرب تعديل الفلاتر أو كلمات البحث.",
+    "clearFilters": "مسح الفلاتر"
   },
   "bookmark": {
     "toggle": "تبديل الحفظ",
@@ -82,6 +86,7 @@
     "back": "العودة إلى المنح",
     "open": "مفتوحة",
     "details": "التفاصيل",
+    "overview": "نظرة عامة",
     "funding": "التمويل",
     "level": "المستوى",
     "deadline": "الموعد النهائي",
@@ -100,6 +105,12 @@
     "applyGoToProfile": "الذهاب إلى الملف الشخصي",
     "profileIncompleteTitle": "أكمل ملفك الشخصي قبل التقديم",
     "profileIncompleteBody": "أضف المستوى الأكاديمي والتخصص الدراسي — يُستخدمان لتقييم طلبك ولتخصيص توصيات الذكاء الاصطناعي.",
-    "checkEligibility": "فحص الأهلية"
+    "checkEligibility": "فحص الأهلية",
+    "share": "مشاركة",
+    "shareCopied": "تم نسخ الرابط",
+    "providerLabel": "الجهة",
+    "summaryLabel": "نظرة سريعة",
+    "actionsLabel": "ابدأ الآن",
+    "daysLeftLong": "{{count}} أيام متبقية حتى الموعد النهائي"
   }
 }

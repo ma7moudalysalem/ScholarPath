@@ -10,6 +10,11 @@ import {
   Globe,
   GraduationCap,
   ExternalLink,
+  Share2,
+  Sparkles,
+  AlertCircle,
+  Award,
+  CheckCircle2,
 } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -22,49 +27,51 @@ import {
 import { applicationsApi } from "@/services/api/applications";
 import { ApiError, apiErrorMessage } from "@/services/api/client";
 import { profileApi, type UserProfile } from "@/services/api/profile";
-import { AlertCircle } from "lucide-react";
 import type { FundingType } from "@/types/domain";
 import { SkeletonDetailCard } from "@/components/common/Skeleton";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function DetailRow({
+/** Premium chip for a quick metadata stat (icon + label + value). */
+function StatChip({
+  icon: Icon,
   label,
-  children,
+  value,
+  tone = "neutral",
 }: {
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   label: string;
-  children: React.ReactNode;
+  value: React.ReactNode;
+  tone?: "neutral" | "brand" | "success" | "warning" | "danger";
 }) {
+  const tones: Record<string, string> = {
+    neutral: "border-border-subtle bg-bg-muted text-text-primary",
+    brand:   "border-brand-200 bg-brand-50 text-brand-700",
+    success: "border-success-200 bg-success-50 text-success-700",
+    warning: "border-warning-50 bg-warning-50 text-warning-600",
+    danger:  "border-danger-200 bg-danger-50 text-danger-500",
+  };
   return (
-    <div className="flex flex-col gap-0.5 py-3 sm:flex-row sm:items-center sm:gap-4">
-      <dt className="w-40 shrink-0 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
-        {label}
-      </dt>
-      <dd className="text-sm text-text-primary">{children}</dd>
+    <div className={cn("flex items-center gap-2.5 rounded-xl border px-3 py-2.5", tones[tone])}>
+      <Icon aria-hidden className="size-4 shrink-0 opacity-70" />
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">
+          {label}
+        </p>
+        <p className="truncate text-sm font-semibold">{value}</p>
+      </div>
     </div>
   );
 }
 
-function FundingBadge({ type }: { type?: FundingType }) {
-  const { t } = useTranslation("scholarships");
-  if (!type) return null;
-  const colors: Record<FundingType, string> = {
-    FullyFunded:     "bg-success-100 text-success-600",
-    PartiallyFunded: "bg-brand-100 text-brand-600",
-    TuitionOnly:     "bg-info-50 text-brand-700",
-    StipendOnly:     "bg-warning-50 text-warning-600",
-    Other:           "bg-bg-subtle text-text-tertiary",
-  };
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
-        colors[type],
-      )}
-    >
-      {t(`fundingType.${type}`)}
-    </span>
-  );
+function fundingBadgeClass(type: FundingType): string {
+  switch (type) {
+    case "FullyFunded":     return "badge-success";
+    case "PartiallyFunded": return "badge-brand";
+    case "TuitionOnly":     return "badge-brand";
+    case "StipendOnly":     return "badge-warning";
+    default:                return "badge-neutral";
+  }
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -80,10 +87,7 @@ export function ScholarshipDetail() {
   const { data, isLoading, isError } = useScholarshipDetailQuery(id);
   const bookmarkMut = useToggleBookmarkMutation();
 
-  // Pre-flight check for the apply button — the server rejects with 409 if
-  // the student's profile is missing AcademicLevel / FieldOfStudy. We mirror
-  // that rule here so the user sees an in-page banner + a disabled button
-  // BEFORE they tap "Apply", instead of only learning after a network round-trip.
+  // Profile pre-flight (same logic, unchanged) ───────────────────────────────
   const profileQuery = useQuery<UserProfile>({
     queryKey: ["profile", "me"],
     queryFn: () => profileApi.getMine(),
@@ -95,8 +99,6 @@ export function ScholarshipDetail() {
       profileQuery.data.fieldOfStudy.trim().length === 0
     : false;
 
-  // In-app apply — creates a Draft application, then opens it so the student
-  // can review and submit it. External listings use the external-URL button.
   const applyMut = useMutation({
     mutationFn: (scholarshipId: string) => applicationsApi.start(scholarshipId),
     onSuccess: (result) => {
@@ -108,10 +110,6 @@ export function ScholarshipDetail() {
       navigate(`/student/applications/${result.applicationId}`);
     },
     onError: (err: unknown) => {
-      // Surface the server's actual reason (profile incomplete, scholarship
-      // closed, …) — and when it's specifically the "complete your profile"
-      // 409, route the user there via an action button on the toast so a
-      // dismissed in-page banner still has a path forward (UAT TC-003).
       const status = err instanceof ApiError ? err.status : undefined;
       const detail = err instanceof ApiError
         ? (err.payload.detail ?? err.payload.title)
@@ -143,10 +141,19 @@ export function ScholarshipDetail() {
     });
   };
 
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success(t("scholarships:detail.shareCopied"));
+    } catch {
+      // Clipboard unavailable — silently no-op; user can copy from URL bar.
+    }
+  };
+
   // ── Loading skeleton ───────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-5xl">
         <SkeletonDetailCard />
       </div>
     );
@@ -156,7 +163,7 @@ export function ScholarshipDetail() {
   if (isError || !data) {
     return (
       <div className="mx-auto max-w-3xl">
-        <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-500">
+        <div className="rounded-2xl border border-danger-200 bg-danger-50 p-6 text-sm text-danger-500">
           {t("common:status.error")}
         </div>
       </div>
@@ -175,248 +182,322 @@ export function ScholarshipDetail() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
 
       {/* ── Back link ── */}
       <Link
         to="/student/scholarships"
-        className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary"
+        className="inline-flex items-center gap-1.5 text-sm font-medium text-text-secondary transition hover:text-brand-600"
       >
         <BackIcon aria-hidden className="size-4" />
         {t("scholarships:detail.back")}
       </Link>
 
-      {/* ── Hero card ── */}
-      <div className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-xs">
-        <div className="flex items-start justify-between gap-4">
+      {/* ── Hero banner ── */}
+      <div className="relative overflow-hidden rounded-2xl border border-border-subtle">
+        <div className="relative h-44 bg-gradient-to-br from-brand-600 via-brand-500 to-brand-700 sm:h-52">
+          {/* Decorative mesh */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(at 25% 20%, rgba(255,255,255,0.18) 0px, transparent 50%), radial-gradient(at 75% 80%, rgba(255,255,255,0.10) 0px, transparent 55%), radial-gradient(at 50% 50%, rgba(255,255,255,0.06) 0px, transparent 70%)",
+            }}
+          />
 
-          {/* Title block */}
-          <div className="flex-1">
-            {data.isFeatured && (
-              <span className="mb-2 inline-flex items-center rounded-full bg-brand-500/10 px-2.5 py-0.5 text-xs font-medium text-brand-500">
-                {"★ "}{t("scholarships:card.featured")}
-              </span>
-            )}
-            <h1 className="text-xl font-bold text-text-primary">{title}</h1>
-            {data.ownerCompanyName && (
-              <p className="mt-1 text-sm text-text-secondary">
-                {data.ownerCompanyName}
-              </p>
-            )}
-          </div>
-
-          {/* Bookmark + status badge */}
-          <div className="flex shrink-0 flex-col items-end gap-2">
-            <button
-              type="button"
-              onClick={handleBookmark}
-              aria-label={t("scholarships:bookmark.toggle")}
-              aria-pressed={data.isBookmarked}
-              disabled={bookmarkMut.isPending}
-              className={cn(
-                "rounded-lg border p-2 transition disabled:opacity-50",
-                data.isBookmarked
-                  ? "border-brand-500 bg-brand-500/10 text-brand-500"
-                  : "border-border-subtle bg-bg-canvas text-text-tertiary hover:border-brand-500 hover:text-brand-500",
-              )}
-            >
-              <Bookmark
-                aria-hidden
-                className="size-5"
-                fill={data.isBookmarked ? "currentColor" : "none"}
-              />
-            </button>
-
-            <span
-              className={cn(
-                "rounded-full px-2.5 py-0.5 text-xs font-medium",
-                isClosed
-                  ? "bg-danger-50 text-danger-500"
-                  : isUrgent
-                    ? "bg-warning-50 text-warning-600"
-                    : "bg-success-100 text-success-600",
-              )}
-            >
-              {isClosed
-                ? t("scholarships:card.closed")
-                : isUrgent
-                  ? t("scholarships:card.daysLeft", { count: daysLeft })
-                  : t("scholarships:detail.open")}
+          {/* Featured chip */}
+          {data.isFeatured && (
+            <span className="absolute start-6 top-6 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-brand-700 shadow-md backdrop-blur-md">
+              <Sparkles aria-hidden className="size-3.5" />
+              {t("scholarships:card.featured")}
             </span>
-          </div>
-        </div>
-
-        {/* Description */}
-        <p className="mt-4 text-sm leading-relaxed text-text-secondary">
-          {description}
-        </p>
-      </div>
-
-      {/* ── Details card ── */}
-      <div className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-xs">
-        <h2 className="mb-2 text-sm font-semibold text-text-primary">
-          {t("scholarships:detail.details")}
-        </h2>
-        <dl className="divide-y divide-border-subtle">
-          <DetailRow label={t("scholarships:detail.funding")}>
-            <FundingBadge type={data.fundingType} />
-          </DetailRow>
-
-          <DetailRow label={t("scholarships:detail.level")}>
-            <span className="inline-flex items-center gap-1.5">
-              <GraduationCap aria-hidden className="size-4 text-text-tertiary" />
-              {t(`scholarships:level.${data.targetLevel}`)}
-            </span>
-          </DetailRow>
-
-          <DetailRow label={t("scholarships:detail.deadline")}>
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5",
-                isUrgent ? "font-medium text-danger-500" : "text-text-primary",
-              )}
-            >
-              <Calendar aria-hidden className="size-4 text-text-tertiary" />
-              {format(deadlineDate, "dd MMMM yyyy", { locale: dateLocale })}
-            </span>
-          </DetailRow>
-
-          {data.categoryName && (
-            <DetailRow label={t("scholarships:detail.category")}>
-              <span className="inline-flex items-center gap-1.5">
-                <Globe aria-hidden className="size-4 text-text-tertiary" />
-                {data.categoryName}
-              </span>
-            </DetailRow>
           )}
 
-          {data.fieldsOfStudy && data.fieldsOfStudy.length > 0 && (
-            <DetailRow label={t("scholarships:detail.fieldsOfStudy")}>
-              <div className="flex flex-wrap gap-1.5">
-                {data.fieldsOfStudy.map((f) => (
-                  <span
-                    key={f}
-                    className="inline-flex items-center rounded-full border border-border-subtle bg-bg-subtle px-2.5 py-0.5 text-xs font-medium text-text-secondary"
-                  >
-                    {f}
-                  </span>
-                ))}
-              </div>
-            </DetailRow>
-          )}
-        </dl>
-      </div>
-
-      {/* ── Eligibility ── */}
-      {data.eligibilityCriteria && (
-        <div className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-xs">
-          <h2 className="mb-3 text-sm font-semibold text-text-primary">
-            {t("scholarships:detail.eligibility")}
-          </h2>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-text-secondary">
-            {data.eligibilityCriteria}
-          </p>
-        </div>
-      )}
-
-      {/* ── Required documents ── */}
-      {data.requiredDocuments && data.requiredDocuments.length > 0 && (
-        <div className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-xs">
-          <h2 className="mb-3 text-sm font-semibold text-text-primary">
-            {t("scholarships:detail.documents")}
-          </h2>
-          <ul className="space-y-2">
-            {data.requiredDocuments.map((doc) => (
-              <li
-                key={doc}
-                className="flex items-center gap-2 text-sm text-text-secondary"
-              >
-                <span
-                  aria-hidden
-                  className="size-1.5 shrink-0 rounded-full bg-brand-500"
-                />
-                {doc}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Profile-incomplete banner — only shows for IN-APP listings (external
-          listings don't run the server-side profile check). A direct Link to
-          /profile gives the user a one-tap path to unblock themselves. */}
-      {!isExternal && profileIncomplete && (
-        <div className="mb-4 flex items-start gap-3 rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-warning-700">
-          <AlertCircle aria-hidden className="size-5 flex-shrink-0 mt-0.5" />
-          <div className="flex-1 space-y-2">
-            <p className="font-medium">
-              {t("scholarships:detail.profileIncompleteTitle")}
-            </p>
-            <p className="text-warning-700/90">
-              {t("scholarships:detail.profileIncompleteBody")}
-            </p>
-            <Link
-              to="/profile"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-warning-800 underline hover:text-warning-900"
-            >
-              {t("scholarships:detail.applyGoToProfile")}
-              <ArrowRight aria-hidden className="size-3.5 rtl:rotate-180" />
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* ── CTA buttons ── */}
-      <div className="flex flex-wrap gap-3">
-        {isExternal ? (
-          <a
-            href={data.externalUrl ?? "#"}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-text-on-brand transition hover:bg-brand-600"
-          >
-            {t("scholarships:detail.applyExternal")}
-            <ExternalLink aria-hidden className="size-4" />
-          </a>
-        ) : (
-          <button
-            type="button"
-            onClick={() => applyMut.mutate(data.id)}
-            disabled={isClosed || applyMut.isPending || profileIncomplete}
-            title={profileIncomplete
-              ? t("scholarships:detail.profileIncompleteTitle")
-              : undefined}
+          {/* Status pill */}
+          <span
             className={cn(
-              "inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-medium transition",
-              isClosed || applyMut.isPending || profileIncomplete
-                ? "cursor-not-allowed bg-bg-subtle text-text-tertiary opacity-60"
-                : "bg-brand-500 text-text-on-brand hover:bg-brand-600",
+              "absolute end-6 top-6 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-md",
+              isClosed
+                ? "bg-danger-500/95 text-white"
+                : isUrgent
+                  ? "bg-warning-500/95 text-white"
+                  : "bg-success-500/95 text-white",
             )}
           >
-            {applyMut.isPending
-              ? t("scholarships:detail.applying")
-              : t("scholarships:detail.apply")}
-          </button>
-        )}
+            {isClosed
+              ? t("scholarships:card.closed")
+              : isUrgent
+                ? t("scholarships:card.daysLeft", { count: daysLeft })
+                : t("scholarships:detail.open")}
+          </span>
 
-        {/* Check eligibility — deep-links to the AI hub with this scholarship
-            pre-selected, so the student skips the manual search step. */}
-        <Link
-          to={`/student/ai?tab=eligibility&sid=${data.id}&stitle=${encodeURIComponent(title ?? data.titleEn)}`}
-          className="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-elevated px-5 py-2.5 text-sm font-medium text-text-secondary transition hover:border-brand-500 hover:text-brand-500"
-        >
-          <ClipboardCheck aria-hidden className="size-4" />
-          {t("scholarships:detail.checkEligibility")}
-        </Link>
+          {/* Award icon — bottom-left */}
+          <div className="absolute -bottom-6 start-6 flex size-16 items-center justify-center rounded-2xl border-4 border-bg-canvas bg-bg-elevated text-brand-600 shadow-lg">
+            <Award aria-hidden className="size-7" />
+          </div>
+        </div>
 
-        <Link
-          to="/student/scholarships"
-          className="inline-flex items-center gap-2 rounded-lg border border-border-subtle bg-bg-elevated px-5 py-2.5 text-sm font-medium text-text-secondary transition hover:border-border-default"
-        >
-          {t("scholarships:detail.back")}
-        </Link>
+        {/* Hero body — sits below the banner */}
+        <div className="bg-bg-elevated px-6 pb-6 pt-10">
+          {data.ownerCompanyName && (
+            <p className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
+              {data.ownerCompanyName}
+            </p>
+          )}
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">
+            {title}
+          </h1>
+
+          {/* Quick stats row */}
+          <div className="mt-5 grid gap-2 sm:grid-cols-3">
+            <StatChip
+              icon={Award}
+              label={t("scholarships:detail.funding")}
+              value={t(`scholarships:fundingType.${data.fundingType}`)}
+              tone="brand"
+            />
+            <StatChip
+              icon={GraduationCap}
+              label={t("scholarships:detail.level")}
+              value={t(`scholarships:level.${data.targetLevel}`)}
+            />
+            <StatChip
+              icon={Calendar}
+              label={t("scholarships:detail.deadline")}
+              value={format(deadlineDate, "dd MMM yyyy", { locale: dateLocale })}
+              tone={isClosed ? "danger" : isUrgent ? "warning" : "neutral"}
+            />
+          </div>
+        </div>
       </div>
 
+      {/* ── Two-column body ── */}
+      <div className="grid gap-6 lg:grid-cols-3">
+
+        {/* ── Main content (left) ── */}
+        <div className="space-y-6 lg:col-span-2">
+
+          {/* Overview */}
+          <section className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-xs">
+            <h2 className="mb-3 text-base font-semibold text-text-primary">
+              {t("scholarships:detail.overview")}
+            </h2>
+            <p className="whitespace-pre-line text-sm leading-relaxed text-text-secondary">
+              {description}
+            </p>
+
+            {/* Fields of study */}
+            {data.fieldsOfStudy && data.fieldsOfStudy.length > 0 && (
+              <div className="mt-5 border-t border-border-subtle pt-5">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                  {t("scholarships:detail.fieldsOfStudy")}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {data.fieldsOfStudy.map((f) => (
+                    <span key={f} className="badge badge-neutral">{f}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {data.categoryName && (
+              <div className="mt-5 flex items-center gap-2 border-t border-border-subtle pt-5 text-sm">
+                <Globe aria-hidden className="size-4 text-text-tertiary" />
+                <span className="font-medium text-text-secondary">
+                  {t("scholarships:detail.category")}:
+                </span>
+                <span className="text-text-primary">{data.categoryName}</span>
+              </div>
+            )}
+          </section>
+
+          {/* Eligibility */}
+          {data.eligibilityCriteria && (
+            <section className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-xs">
+              <h2 className="mb-3 text-base font-semibold text-text-primary">
+                {t("scholarships:detail.eligibility")}
+              </h2>
+              <p className="whitespace-pre-line text-sm leading-relaxed text-text-secondary">
+                {data.eligibilityCriteria}
+              </p>
+            </section>
+          )}
+
+          {/* Required documents */}
+          {data.requiredDocuments && data.requiredDocuments.length > 0 && (
+            <section className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-xs">
+              <h2 className="mb-3 text-base font-semibold text-text-primary">
+                {t("scholarships:detail.documents")}
+              </h2>
+              <ul className="space-y-2.5">
+                {data.requiredDocuments.map((doc) => (
+                  <li key={doc} className="flex items-start gap-3 text-sm">
+                    <CheckCircle2
+                      aria-hidden
+                      className="mt-0.5 size-4 shrink-0 text-brand-500"
+                    />
+                    <span className="text-text-secondary">{doc}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        {/* ── Sticky CTA sidebar (right) ── */}
+        <aside className="lg:col-span-1">
+          <div className="sticky top-20 space-y-4">
+
+            {/* Profile-incomplete warning */}
+            {!isExternal && profileIncomplete && (
+              <div className="flex items-start gap-3 rounded-2xl border border-warning-50 bg-warning-50 p-4 text-sm text-warning-600">
+                <AlertCircle aria-hidden className="mt-0.5 size-5 shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <p className="font-semibold">
+                    {t("scholarships:detail.profileIncompleteTitle")}
+                  </p>
+                  <p>{t("scholarships:detail.profileIncompleteBody")}</p>
+                  <Link
+                    to="/profile"
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold underline"
+                  >
+                    {t("scholarships:detail.applyGoToProfile")}
+                    <ArrowRight aria-hidden className="size-3.5 rtl:rotate-180" />
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Primary action card */}
+            <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                {t("scholarships:detail.actionsLabel")}
+              </p>
+
+              <div className="mt-3 flex flex-col gap-2.5">
+                {isExternal ? (
+                  <a
+                    href={data.externalUrl ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary w-full"
+                  >
+                    <ExternalLink aria-hidden className="size-4" />
+                    {t("scholarships:detail.applyExternal")}
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => applyMut.mutate(data.id)}
+                    disabled={isClosed || applyMut.isPending || profileIncomplete}
+                    title={profileIncomplete
+                      ? t("scholarships:detail.profileIncompleteTitle")
+                      : undefined}
+                    className="btn btn-primary w-full"
+                  >
+                    {applyMut.isPending
+                      ? t("scholarships:detail.applying")
+                      : t("scholarships:detail.apply")}
+                  </button>
+                )}
+
+                <Link
+                  to={`/student/ai?tab=eligibility&sid=${data.id}&stitle=${encodeURIComponent(title ?? data.titleEn)}`}
+                  className="btn btn-secondary w-full"
+                >
+                  <ClipboardCheck aria-hidden className="size-4" />
+                  {t("scholarships:detail.checkEligibility")}
+                </Link>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleBookmark}
+                    aria-pressed={data.isBookmarked}
+                    disabled={bookmarkMut.isPending}
+                    className={cn(
+                      "btn btn-secondary flex-1",
+                      data.isBookmarked && "border-brand-500 text-brand-600",
+                    )}
+                  >
+                    <Bookmark
+                      aria-hidden
+                      className="size-4"
+                      fill={data.isBookmarked ? "currentColor" : "none"}
+                    />
+                    {data.isBookmarked
+                      ? t("scholarships:bookmark.remove")
+                      : t("scholarships:bookmark.toggle")}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="btn btn-secondary"
+                    aria-label={t("scholarships:detail.share")}
+                  >
+                    <Share2 aria-hidden className="size-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* At-a-glance summary */}
+            <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-5 shadow-xs">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                {t("scholarships:detail.summaryLabel")}
+              </p>
+              <dl className="mt-4 space-y-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-text-tertiary">
+                    {t("scholarships:detail.funding")}
+                  </dt>
+                  <dd>
+                    <span className={cn("badge", fundingBadgeClass(data.fundingType))}>
+                      {t(`scholarships:fundingType.${data.fundingType}`)}
+                    </span>
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-text-tertiary">
+                    {t("scholarships:detail.level")}
+                  </dt>
+                  <dd className="font-medium text-text-primary">
+                    {t(`scholarships:level.${data.targetLevel}`)}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-text-tertiary">
+                    {t("scholarships:detail.deadline")}
+                  </dt>
+                  <dd
+                    className={cn(
+                      "font-medium",
+                      isClosed
+                        ? "text-danger-500"
+                        : isUrgent
+                          ? "text-warning-600"
+                          : "text-text-primary",
+                    )}
+                  >
+                    {format(deadlineDate, "dd MMM yyyy", { locale: dateLocale })}
+                  </dd>
+                </div>
+                {data.categoryName && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-text-tertiary">
+                      {t("scholarships:detail.category")}
+                    </dt>
+                    <dd className="truncate font-medium text-text-primary">
+                      {data.categoryName}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
