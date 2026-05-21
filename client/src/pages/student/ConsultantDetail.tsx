@@ -18,6 +18,7 @@ import {
 } from "@/hooks/useConsultantsQuery";
 import type { BookableSlot } from "@/services/api/consultants";
 import { durationLabel, formatDate, formatTime, formatUsd } from "@/lib/bookingFormat";
+import { expertiseTagLabelByLang } from "@/lib/expertiseTagLabel";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { cn } from "@/lib/utils";
 
@@ -228,7 +229,7 @@ export function ConsultantDetail() {
           <div className="mt-5 flex flex-wrap gap-1.5">
             {consultant.expertiseTags.length > 0 ? (
               consultant.expertiseTags.map((tag) => (
-                <span key={tag} className="badge badge-brand">{tag}</span>
+                <span key={tag} className="badge badge-brand">{expertiseTagLabelByLang(tag, i18n.language)}</span>
               ))
             ) : (
               <span className="text-xs text-text-tertiary">{t("card.noExpertiseTags")}</span>

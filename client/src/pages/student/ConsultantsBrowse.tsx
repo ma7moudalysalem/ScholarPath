@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useConsultantsQuery } from "@/hooks/useConsultantsQuery";
 import type { ConsultantSummary } from "@/services/api/consultants";
 import { durationLabel, formatUsd } from "@/lib/bookingFormat";
+import { expertiseTagLabelByLang } from "@/lib/expertiseTagLabel";
 import { UserAvatar } from "@/components/common/UserAvatar";
 
 type BrowseFilter = "all" | "available" | "unavailable";
@@ -179,7 +180,7 @@ function ConsultantCard({
   consultant: ConsultantSummary;
   index: number;
 }) {
-  const { t } = useTranslation("consultants");
+  const { t, i18n } = useTranslation("consultants");
 
   return (
     <motion.article
@@ -241,7 +242,7 @@ function ConsultantCard({
             <>
               {consultant.expertiseTags.slice(0, 3).map((tag) => (
                 <span key={tag} className="badge badge-brand text-[10.5px]">
-                  {tag}
+                  {expertiseTagLabelByLang(tag, i18n.language)}
                 </span>
               ))}
               {consultant.expertiseTags.length > 3 && (

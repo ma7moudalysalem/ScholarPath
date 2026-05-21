@@ -1,5 +1,6 @@
 import { useParams, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
+import { expertiseTagLabelByLang } from "@/lib/expertiseTagLabel";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -336,7 +337,7 @@ export function ScholarshipDetail() {
                       aria-hidden
                       className="mt-0.5 size-4 shrink-0 text-brand-500"
                     />
-                    <span className="text-text-secondary">{doc}</span>
+                    <span className="text-text-secondary">{expertiseTagLabelByLang(doc, i18n.language)}</span>
                   </li>
                 ))}
               </ul>
