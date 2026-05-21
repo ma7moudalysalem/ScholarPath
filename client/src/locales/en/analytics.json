@@ -54,5 +54,129 @@
     "onboardingPending": "Onboarding Pending",
     "applicationFunnel": "Application Funnel",
     "never": "Never"
+  },
+  "reports": {
+    "dateRange": {
+      "label": "Date range",
+      "from": "From",
+      "to": "To",
+      "last30": "Last 30 days",
+      "last90": "Last 90 days",
+      "last180": "Last 180 days",
+      "lastYear": "Last year",
+      "apply": "Apply",
+      "reset": "Reset"
+    },
+    "exportCsv": "Export CSV",
+    "noData": "No data in this range",
+    "loading": "Loading report…",
+    "loadError": "Could not load the report.",
+    "retry": "Try again",
+    "vsPlatformAvg": "vs platform avg",
+    "vsPriorPeriod": "vs prior period"
+  },
+  "adminRevenue": {
+    "title": "Revenue Report",
+    "subtitle": "Platform-wide gross, net, and refund performance across bookings and reviews.",
+    "kpi": {
+      "gross": "Gross revenue",
+      "net": "Payee net",
+      "profitShare": "Platform profit share",
+      "refunded": "Refunded",
+      "refundRate": "Refund rate",
+      "growth": "Growth",
+      "successfulPayments": "Successful payments",
+      "refundCount": "Refunds"
+    },
+    "monthlyChart": {
+      "title": "Monthly revenue",
+      "subtitle": "Gross billed and refunded by month",
+      "gross": "Gross",
+      "refunded": "Refunded"
+    },
+    "breakdownChart": {
+      "title": "Revenue mix",
+      "subtitle": "Share of gross revenue by stream",
+      "bookings": "Consultant bookings",
+      "reviews": "Application reviews"
+    },
+    "topConsultants": {
+      "title": "Top consultants",
+      "subtitle": "By gross revenue in the selected window",
+      "name": "Consultant",
+      "revenue": "Revenue",
+      "rank": "#"
+    }
+  },
+  "companyInsights": {
+    "title": "Application Insights",
+    "subtitle": "How your scholarships are performing — applicants, acceptance rate, funnel.",
+    "kpi": {
+      "totalApplications": "Total applications",
+      "submitted": "Submitted",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "acceptanceRate": "Acceptance rate",
+      "avgDaysToDecision": "Avg days to decision"
+    },
+    "byCountry": {
+      "title": "Applications by country",
+      "subtitle": "Top 10 source countries",
+      "country": "Country",
+      "count": "Apps",
+      "rate": "Accept %",
+      "unknown": "Unknown"
+    },
+    "byField": {
+      "title": "Applications by field",
+      "subtitle": "Top 10 academic fields",
+      "field": "Field",
+      "count": "Apps",
+      "rate": "Accept %"
+    },
+    "topScholarships": {
+      "title": "Top scholarships",
+      "subtitle": "Most-applied-to listings",
+      "name": "Scholarship",
+      "applications": "Applications"
+    },
+    "funnel": {
+      "title": "Monthly funnel",
+      "subtitle": "Views → applied → accepted by month",
+      "views": "Views",
+      "applied": "Applied",
+      "accepted": "Accepted"
+    },
+    "deltaUp": "+{{value}}pp",
+    "deltaDown": "{{value}}pp",
+    "ppShort": "pp"
+  },
+  "consultantEarnings": {
+    "title": "Earnings Trend",
+    "subtitle": "Monthly net earnings, projection, and how you compare against your peers.",
+    "kpi": {
+      "totalNet": "Total net (USD)",
+      "totalGross": "Total gross (USD)",
+      "projected": "Projected next month",
+      "percentile": "Your percentile",
+      "upcoming": "Upcoming revenue",
+      "peerAvg": "Peer avg net"
+    },
+    "monthlyChart": {
+      "title": "Monthly net earnings",
+      "subtitle": "Captured net of platform fees, with next-month projection",
+      "net": "Net (USD)",
+      "projection": "Projection"
+    },
+    "ranking": {
+      "topX": "You're in the top {{percentile}}% of consultants",
+      "average": "You're at the platform average",
+      "below": "You're tracking below the average — let's grow!",
+      "noPeers": "Not enough peer data yet"
+    },
+    "upcoming": {
+      "title": "Upcoming revenue",
+      "subtitle": "Sum of confirmed but not-yet-captured booking fees"
+    }
   }
 }

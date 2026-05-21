@@ -18,7 +18,9 @@
     "broadcast": "Broadcast",
     "auditLog": "Audit log",
     "settings": "Settings",
-    "featuredScholarships": "Featured Scholarships"
+    "featuredScholarships": "Featured Scholarships",
+    "reports": "Reports",
+    "revenueReport": "Revenue report"
   },
   "dashboard": {
     "totalUsers": "Total users",

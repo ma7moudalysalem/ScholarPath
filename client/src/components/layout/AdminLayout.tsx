@@ -23,6 +23,7 @@ import {
   CreditCard,
   PieChart,
   Settings,
+  Wallet,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
@@ -56,6 +57,7 @@ const NAV: NavItem[] = [
   { to: "/admin/financial-config", key: "nav.financialConfig", icon: Coins },
   // Intelligence
   { to: "/admin/analytics", key: "nav.analytics", icon: BarChart3, divider: true },
+  { to: "/admin/reports/revenue", key: "nav.revenueReport", icon: Wallet },
   { to: "/admin/ai-economy", key: "nav.aiEconomy", icon: Sparkles },
   { to: "/admin/knowledge-base", key: "nav.knowledgeBase", icon: Database },
   { to: "/admin/redaction-audit", key: "nav.redactionAudit", icon: ShieldAlert },

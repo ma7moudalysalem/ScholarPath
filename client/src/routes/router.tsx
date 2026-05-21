@@ -120,6 +120,9 @@ const CompanyApplicationsReview = lazy(() =>
 const CompanyBilling = lazy(() =>
   import("@/pages/company/CompanyBilling").then((m) => ({ default: m.CompanyBilling })),
 );
+const CompanyInsights = lazy(() =>
+  import("@/pages/company/CompanyInsights").then((m) => ({ default: m.CompanyInsights })),
+);
 
 // Consultant
 const ConsultantDashboard = lazy(() =>
@@ -150,6 +153,11 @@ const ConsultantEarnings = lazy(() =>
 const ConsultantAnalytics = lazy(() =>
   import("@/pages/consultant/ConsultantAnalytics").then((m) => ({
     default: m.ConsultantAnalytics,
+  })),
+);
+const ConsultantEarningsTrend = lazy(() =>
+  import("@/pages/consultant/ConsultantEarningsTrend").then((m) => ({
+    default: m.ConsultantEarningsTrend,
   })),
 );
 
@@ -220,6 +228,9 @@ const AdminAuditLog = lazy(() =>
 );
 const AdminSettings = lazy(() =>
   import("@/pages/admin/AdminSettings").then((m) => ({ default: m.AdminSettings })),
+);
+const AdminRevenueReport = lazy(() =>
+  import("@/pages/admin/AdminRevenueReport").then((m) => ({ default: m.AdminRevenueReport })),
 );
 
 // Shared
@@ -481,6 +492,16 @@ export function AppRouter() {
               </RequireRole>
             }
           />
+          <Route
+            path="/company/insights"
+            element={
+              <RequireRole roles={["Company"]}>
+                <AnimatedRoute>
+                  <CompanyInsights />
+                </AnimatedRoute>
+              </RequireRole>
+            }
+          />
 
           <Route
             path="/consultant"
@@ -542,6 +563,16 @@ export function AppRouter() {
               </RequireRole>
             }
           />
+          <Route
+            path="/consultant/earnings-trend"
+            element={
+              <RequireRole roles={["Consultant"]}>
+                <AnimatedRoute>
+                  <ConsultantEarningsTrend />
+                </AnimatedRoute>
+              </RequireRole>
+            }
+          />
         </Route>
 
         {/* Admin */}
@@ -560,6 +591,7 @@ export function AppRouter() {
           <Route path="/admin/upgrades"         element={<AnimatedRoute><AdminUpgrades /></AnimatedRoute>} />
           <Route path="/admin/broadcast"        element={<AnimatedRoute><AdminBroadcast /></AnimatedRoute>} />
           <Route path="/admin/analytics"        element={<AnimatedRoute><AdminAnalytics /></AnimatedRoute>} />
+          <Route path="/admin/reports/revenue"  element={<AnimatedRoute><AdminRevenueReport /></AnimatedRoute>} />
           <Route path="/admin/ai-economy"       element={<AnimatedRoute><AdminAiEconomy /></AnimatedRoute>} />
           <Route path="/admin/knowledge-base"   element={<AnimatedRoute><AdminKnowledgeBase /></AnimatedRoute>} />
           <Route path="/admin/redaction-audit"  element={<AnimatedRoute><AdminRedactionAudit /></AnimatedRoute>} />

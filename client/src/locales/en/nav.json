@@ -24,7 +24,8 @@
     "scholarships": "My scholarships",
     "applicationsReview": "Applications",
     "billing": "Billing",
-    "resources": "My resources"
+    "resources": "My resources",
+    "insights": "Insights"
   },
   "consultant": {
     "dashboard": "Dashboard",
@@ -32,7 +33,8 @@
     "bookings": "Bookings",
     "earnings": "Earnings",
     "resources": "My resources",
-    "analytics": "My Analytics"
+    "analytics": "My Analytics",
+    "earningsTrend": "Earnings trend"
   },
   "admin": {
     "dashboard": "Dashboard",

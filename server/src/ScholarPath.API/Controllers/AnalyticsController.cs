@@ -2,6 +2,9 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Analytics.Queries.GetAdminAnalytics;
+using ScholarPath.Application.Analytics.Queries.GetAdminRevenue;
+using ScholarPath.Application.Analytics.Queries.GetCompanyInsights;
+using ScholarPath.Application.Analytics.Queries.GetConsultantEarningsTrend;
 using ScholarPath.Application.Analytics.Queries.GetConsultantKpis;
 using ScholarPath.Application.Analytics.Queries.GetPowerBiEmbedToken;
 using ScholarPath.Application.Analytics.Queries.GetStudentJourney;
@@ -99,6 +102,67 @@ public sealed class AnalyticsController(IMediator mediator) : ControllerBase
         CancellationToken ct = default)
     {
         var result = await mediator.Send(new GetAdminAnalyticsQuery(days), ct)
+            .ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Admin revenue report — gross / profit-share / payee-net / refunded
+    /// totals aggregated from Payments and CompanyReviewPayments in the
+    /// supplied window, with monthly breakdown, top consultants, and a
+    /// month-over-month growth percentage vs the equivalent prior period.
+    /// </summary>
+    [HttpGet("admin/revenue")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [ProducesResponseType(typeof(AdminRevenueDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetAdminRevenue(
+        [FromQuery] DateOnly? from = null,
+        [FromQuery] DateOnly? to = null,
+        CancellationToken ct = default)
+    {
+        var result = await mediator.Send(new GetAdminRevenueQuery(from, to), ct)
+            .ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Provider application insights — pipeline, country/field breakdown,
+    /// top scholarships, and a monthly view→apply→accept funnel for the
+    /// supplied company. The caller must own the company (Company role) or
+    /// be an admin. Omit <paramref name="companyId"/> to default to the
+    /// caller's own user-id.
+    /// </summary>
+    [HttpGet("company/insights")]
+    [Authorize(Roles = "Company,Admin,SuperAdmin")]
+    [ProducesResponseType(typeof(CompanyInsightsDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetCompanyInsights(
+        [FromQuery] Guid? companyId = null,
+        [FromQuery] DateOnly? from = null,
+        [FromQuery] DateOnly? to = null,
+        CancellationToken ct = default)
+    {
+        var result = await mediator.Send(new GetCompanyInsightsQuery(companyId, from, to), ct)
+            .ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Consultant earnings trend — monthly gross/net for the caller, a
+    /// 3-month linear projection of next month's net, and an anonymised
+    /// percentile vs all consultants on the platform.
+    /// </summary>
+    [HttpGet("consultant/earnings-trend")]
+    [Authorize(Roles = "Consultant,Admin,SuperAdmin")]
+    [ProducesResponseType(typeof(ConsultantEarningsTrendDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetConsultantEarningsTrend(
+        [FromQuery] DateOnly? from = null,
+        [FromQuery] DateOnly? to = null,
+        CancellationToken ct = default)
+    {
+        var result = await mediator.Send(new GetConsultantEarningsTrendQuery(from, to), ct)
             .ConfigureAwait(false);
         return Ok(result);
     }

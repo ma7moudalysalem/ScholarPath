@@ -24,7 +24,8 @@
     "scholarships": "منحي",
     "applicationsReview": "الطلبات",
     "billing": "الفواتير",
-    "resources": "مواردي"
+    "resources": "مواردي",
+    "insights": "التحليلات"
   },
   "consultant": {
     "dashboard": "لوحة التحكم",
@@ -32,7 +33,8 @@
     "bookings": "الحجوزات",
     "earnings": "الأرباح",
     "resources": "مواردي",
-    "analytics": "تحليلاتي"
+    "analytics": "تحليلاتي",
+    "earningsTrend": "اتجاه الأرباح"
   },
   "admin": {
     "dashboard": "لوحة التحكم",

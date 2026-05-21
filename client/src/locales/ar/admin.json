@@ -18,7 +18,9 @@
     "broadcast": "رسالة عامة",
     "auditLog": "سجل التدقيق",
     "settings": "الإعدادات",
-    "featuredScholarships": "المنح المميزة"
+    "featuredScholarships": "المنح المميزة",
+    "reports": "التقارير",
+    "revenueReport": "تقرير الإيرادات"
   },
   "dashboard": {
     "totalUsers": "إجمالي المستخدمين",

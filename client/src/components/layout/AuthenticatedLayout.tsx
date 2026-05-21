@@ -25,6 +25,8 @@ import {
   ChevronRight,
   Repeat,
   User as UserIcon,
+  TrendingUp,
+  PieChart,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
@@ -219,6 +221,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/company/applications-review", key: "company.applicationsReview", icon: ListChecks },
     { to: "/company/billing", key: "company.billing", icon: Calendar },
     { to: "/author/resources", key: "company.resources", icon: FileEdit },
+    { to: "/company/insights", key: "company.insights", icon: PieChart },
   ],
   Consultant: [
     { to: "/consultant", key: "consultant.dashboard", icon: LayoutDashboard },
@@ -227,6 +230,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/consultant/earnings", key: "consultant.earnings", icon: Calendar },
     { to: "/author/resources", key: "consultant.resources", icon: FileEdit },
     { to: "/consultant/analytics", key: "consultant.analytics", icon: BarChart2 },
+    { to: "/consultant/earnings-trend", key: "consultant.earningsTrend", icon: TrendingUp },
   ],
 };
 
