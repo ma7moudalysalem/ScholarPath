@@ -27,11 +27,13 @@
     "replyPlaceholder": "Share your thoughts...",
     "upvote": "Upvote",
     "downvote": "Downvote",
-    "upvoteReply": "Upvote reply"
+    "upvoteReply": "Upvote reply",
+    "downvoteReply": "Downvote reply"
   },
   "actions": {
     "flagReasonPrompt": "Reason for flagging:",
     "flagSuccess": "Thank you. The content has been reported.",
+    "flagError": "Could not report this content. Please try again.",
     "voteError": "Could not register your vote. Please try again.",
     "voteOwnPost": "You can't vote on your own post.",
     "replyError": "Could not post your reply. Please try again."

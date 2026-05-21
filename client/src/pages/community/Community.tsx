@@ -81,7 +81,13 @@ export function Community() {
   const voteMutation = useMutation({
     mutationFn: ({ postId, type }: { postId: string; type: VoteType }) =>
       communityApi.toggleVote(postId, type),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["community", "posts"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["community", "posts"] });
+      // The trending strip uses its own query key (different sortBy + staleTime)
+      // so it doesn't get refreshed by the posts invalidation above. Invalidate
+      // it explicitly so the score on the strip moves with the feed.
+      void qc.invalidateQueries({ queryKey: ["community", "trending"] });
+    },
     // Surface the server's own message ("You cannot vote on your own post.",
     // "Voting on hidden posts is not allowed.", etc.) instead of a generic
     // fallback — the user has no way to act on a vague "could not vote".

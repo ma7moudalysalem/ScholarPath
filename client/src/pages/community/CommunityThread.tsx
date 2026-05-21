@@ -43,7 +43,11 @@ export function CommunityThread() {
     mutationFn: ({ postId, type }: { postId: string; type: VoteType }) =>
       communityApi.toggleVote(postId, type),
     onSuccess: () => {
+      // Refresh both the thread and the list cards — the score on the list
+      // is stale until the user navigates back otherwise.
       void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
+      void qc.invalidateQueries({ queryKey: ["community", "posts"] });
+      void qc.invalidateQueries({ queryKey: ["community", "trending"] });
     },
     // Surface the server's own message (e.g. "You cannot vote on your own
     // post.") instead of a generic fallback.
@@ -57,9 +61,14 @@ export function CommunityThread() {
     onSuccess: () => {
       setReplyBody("");
       void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
+      // The list page caches replyCount on each post card — refresh it too so
+      // the count badge updates without a manual page refresh.
+      void qc.invalidateQueries({ queryKey: ["community", "posts"] });
     },
-    onError: () => {
-      toast.error(t("actions.replyError"));
+    // Surface the server's validation error (e.g. "Body cannot be empty") so
+    // the user knows what to fix instead of a generic fallback.
+    onError: (err) => {
+      toast.error(apiErrorMessage(err, t("actions.replyError")));
     },
   });
 
@@ -74,14 +83,20 @@ export function CommunityThread() {
   };
 
   const handleFlag = async (postId: string) => {
+    // TODO: replace the native prompt + toast with a Radix dialog
+    // (community-flag-dialog) for a polished UX. Native prompt is the minimum
+    // viable input; the success/error path is wired through sonner so it
+    // matches the rest of the app and isn't a blocking alert().
     const reason = prompt(t("actions.flagReasonPrompt"));
     if (!reason) return;
 
     try {
       await communityApi.flagPost(postId, { reason });
-      alert(t("actions.flagSuccess"));
-    } catch (error) {
-      console.error("Failed to flag", error);
+      toast.success(t("actions.flagSuccess"));
+    } catch (err) {
+      // Surface "You have already flagged this post." etc. straight from the
+      // server — silent console.error left users guessing what happened.
+      toast.error(apiErrorMessage(err, t("actions.flagError")));
     }
   };
 
@@ -291,6 +306,19 @@ export function CommunityThread() {
                     }`}>
                       {replyScore}
                     </span>
+                    {/* Downvote was missing for replies — users could upvote but
+                        not downvote a comment, which is broken-by-default for
+                        a Q&A community. */}
+                    <button
+                      type="button"
+                      onClick={() => handleVote(reply.id, "Down")}
+                      disabled={isOwnReply}
+                      title={replyVoteTitle}
+                      aria-label={t("thread.downvoteReply")}
+                      className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
+                    >
+                      <ArrowDown size={14} strokeWidth={2.5} aria-hidden />
+                    </button>
                     <button
                       type="button"
                       onClick={() => handleFlag(reply.id)}
