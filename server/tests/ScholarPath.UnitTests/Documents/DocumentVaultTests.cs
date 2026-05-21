@@ -266,7 +266,7 @@ public sealed class DocumentVaultTests
         storage.DownloadAsync(doc.StoragePath, Arg.Any<CancellationToken>())
             .Returns(Bytes("the-bytes"));
 
-        var sut = new DownloadDocumentQueryHandler(db, User(me), storage);
+        var sut = new DownloadDocumentQueryHandler(db, User(me), storage, NullLogger<DownloadDocumentQueryHandler>.Instance);
         var result = await sut.Handle(new DownloadDocumentQuery(doc.Id), default);
 
         result.FileName.Should().Be(doc.FileName);
@@ -282,7 +282,8 @@ public sealed class DocumentVaultTests
         await db.SaveChangesAsync();
 
         var sut = new DownloadDocumentQueryHandler(
-            db, User(Guid.NewGuid()), Substitute.For<IBlobStorageService>());
+            db, User(Guid.NewGuid()), Substitute.For<IBlobStorageService>(),
+            NullLogger<DownloadDocumentQueryHandler>.Instance);
         var act = () => sut.Handle(new DownloadDocumentQuery(doc.Id), default);
 
         await act.Should().ThrowAsync<ForbiddenAccessException>();
@@ -301,7 +302,8 @@ public sealed class DocumentVaultTests
             .Returns(Bytes());
 
         var sut = new DownloadDocumentQueryHandler(
-            db, User(Guid.NewGuid(), "Admin"), storage);
+            db, User(Guid.NewGuid(), "Admin"), storage,
+            NullLogger<DownloadDocumentQueryHandler>.Instance);
         var result = await sut.Handle(new DownloadDocumentQuery(doc.Id), default);
 
         result.FileName.Should().Be(doc.FileName);
@@ -312,7 +314,8 @@ public sealed class DocumentVaultTests
     {
         using var db = CreateDb();
         var sut = new DownloadDocumentQueryHandler(
-            db, User(Guid.NewGuid()), Substitute.For<IBlobStorageService>());
+            db, User(Guid.NewGuid()), Substitute.For<IBlobStorageService>(),
+            NullLogger<DownloadDocumentQueryHandler>.Instance);
 
         var act = () => sut.Handle(new DownloadDocumentQuery(Guid.NewGuid()), default);
 

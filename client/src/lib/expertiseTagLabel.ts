@@ -52,6 +52,49 @@ const TAG_TRANSLATIONS_AR: Record<string, string> = {
   "Reference": "مرجع",
   "MotivationLetter": "خطاب الدافع",
   "Motivation Letter": "خطاب الدافع",
+
+  // Resource tags (slug-style — match seed data in DbSeeder.Resources.cs)
+  "pre-departure": "ما قبل السفر",
+  "guide": "دليل",
+  "checklist": "قائمة تحقق",
+  "visa": "التأشيرة",
+  "ielts": "الآيلتس",
+  "toefl": "التوفل",
+  "gre": "GRE",
+  "sop": "خطاب الغرض",
+  "statement-of-purpose": "خطاب الغرض",
+  "recommendation": "خطاب التوصية",
+  "recommendation-letter": "خطاب التوصية",
+  "interview": "المقابلة",
+  "interview-prep": "تحضير المقابلة",
+  "scholarship": "المنح",
+  "scholarships": "المنح",
+  "funding": "التمويل",
+  "application": "التقديم",
+  "applications": "التقديمات",
+  "essay": "المقال",
+  "essay-writing": "كتابة المقال",
+  "english": "اللغة الإنجليزية",
+  "language": "اللغة",
+  "language-test": "اختبار اللغة",
+  "cultural-adaptation": "التأقلم الثقافي",
+  "country-guide": "دليل الدول",
+  "germany": "ألمانيا",
+  "canada": "كندا",
+  "uk": "المملكة المتحدة",
+  "usa": "الولايات المتحدة",
+  "europe": "أوروبا",
+  "research": "البحث",
+  "phd": "الدكتوراه",
+  "masters": "الماجستير",
+  "undergrad": "البكالوريوس",
+  "tips": "نصائح",
+  "video": "فيديو",
+  "webinar": "ندوة",
+  "workshop": "ورشة عمل",
+  "panel": "حلقة نقاش",
+  "financial-aid": "المساعدات المالية",
+  "budgeting": "الميزانية",
 };
 
 /**
@@ -76,4 +119,51 @@ export function expertiseTagLabelByLang(tag: string, lang: string | undefined): 
     return TAG_TRANSLATIONS_AR[tag] ?? tag;
   }
   return tag;
+}
+
+/** ISO 639-1 → display name in EN / AR. */
+const LANGUAGE_NAMES_AR: Record<string, string> = {
+  ar: "العربية",
+  en: "الإنجليزية",
+  fr: "الفرنسية",
+  de: "الألمانية",
+  es: "الإسبانية",
+  it: "الإيطالية",
+  tr: "التركية",
+  ur: "الأردية",
+  hi: "الهندية",
+  zh: "الصينية",
+  ja: "اليابانية",
+  ko: "الكورية",
+  ru: "الروسية",
+  pt: "البرتغالية",
+  nl: "الهولندية",
+  fa: "الفارسية",
+};
+const LANGUAGE_NAMES_EN: Record<string, string> = {
+  ar: "Arabic",
+  en: "English",
+  fr: "French",
+  de: "German",
+  es: "Spanish",
+  it: "Italian",
+  tr: "Turkish",
+  ur: "Urdu",
+  hi: "Hindi",
+  zh: "Chinese",
+  ja: "Japanese",
+  ko: "Korean",
+  ru: "Russian",
+  pt: "Portuguese",
+  nl: "Dutch",
+  fa: "Persian",
+};
+
+/** Render an ISO language code (ar / en / etc) as a localized full name. */
+export function languageNameByLang(code: string, lang: string | undefined): string {
+  const lower = code.toLowerCase();
+  if (lang?.startsWith("ar")) {
+    return LANGUAGE_NAMES_AR[lower] ?? code.toUpperCase();
+  }
+  return LANGUAGE_NAMES_EN[lower] ?? code.toUpperCase();
 }

@@ -18,7 +18,7 @@ import {
 } from "@/hooks/useConsultantsQuery";
 import type { BookableSlot } from "@/services/api/consultants";
 import { durationLabel, formatDate, formatTime, formatUsd } from "@/lib/bookingFormat";
-import { expertiseTagLabelByLang } from "@/lib/expertiseTagLabel";
+import { expertiseTagLabelByLang, languageNameByLang } from "@/lib/expertiseTagLabel";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { cn } from "@/lib/utils";
 
@@ -259,7 +259,7 @@ export function ConsultantDetail() {
               label={t("detail.languages")}
               value={
                 consultant.languages.length > 0
-                  ? consultant.languages.join(" · ")
+                  ? consultant.languages.map(c => languageNameByLang(c, i18n.language)).join(" · ")
                   : "—"
               }
             />

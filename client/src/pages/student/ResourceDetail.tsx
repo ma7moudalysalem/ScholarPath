@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useParams, Link } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { expertiseTagLabelByLang } from "@/lib/expertiseTagLabel";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
@@ -329,7 +330,7 @@ export function ResourceDetail() {
                       key={tag}
                       className="rounded-md bg-bg-subtle border border-border-subtle px-2 py-0.5 text-xs font-medium text-text-secondary"
                     >
-                      #{tag}
+                      #{expertiseTagLabelByLang(tag, i18n.language)}
                     </span>
                   ))}
                 </div>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { expertiseTagLabelByLang } from "@/lib/expertiseTagLabel";
 import {
   BookOpen,
   ExternalLink,
@@ -286,7 +287,7 @@ function ResourceCard({
                   key={tag}
                   className="rounded-md bg-bg-subtle border border-border-subtle px-1.5 py-0.5 text-[10px] font-medium text-text-secondary"
                 >
-                  #{tag}
+                  #{expertiseTagLabelByLang(tag, isAr ? "ar" : "en")}
                 </span>
               ))}
             </div>
