@@ -27,7 +27,8 @@
     },
     "emptyColumn": "No applications here",
     "moveSuccess": "Status updated successfully",
-    "moveError": "Failed to update status"
+    "moveError": "Failed to update status",
+    "inAppNotDraggable": "In-app applications follow the platform workflow — they can't be moved manually. Drag external trackers only."
   },
   "card": {
     "viewDetails": "View Details",

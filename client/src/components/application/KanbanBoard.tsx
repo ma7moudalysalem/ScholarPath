@@ -65,21 +65,36 @@ export function KanbanBoard({ applications, onStatusChange }: KanbanBoardProps) 
               }}
             >
               <AnimatePresence mode="popLayout">
-                {columnApps.map((app) => (
-                  <motion.div
-                    key={app.applicationId}
-                    layout
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    draggable
-                    onDragStartCapture={(e: React.DragEvent) => {
-                      e.dataTransfer.setData("applicationId", app.applicationId);
-                    }}
-                  >
-                    <ApplicationCard application={app} />
-                  </motion.div>
-                ))}
+                {columnApps.map((app) => {
+                  // Only external trackers (self-managed) can move across
+                  // columns. In-app applications follow the platform's own
+                  // submit / withdraw workflow — the server rejects a manual
+                  // PATCH with 409 ("Only external applications can be
+                  // manually updated"). Making the in-app cards undraggable
+                  // is the honest UI signal.
+                  const isExternal = app.mode === "External";
+                  return (
+                    <motion.div
+                      key={app.applicationId}
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      draggable={isExternal}
+                      onDragStartCapture={(e: React.DragEvent) => {
+                        if (!isExternal) {
+                          e.preventDefault();
+                          return;
+                        }
+                        e.dataTransfer.setData("applicationId", app.applicationId);
+                      }}
+                      title={isExternal ? undefined : t("kanban.inAppNotDraggable")}
+                      className={isExternal ? "cursor-grab active:cursor-grabbing" : "cursor-default"}
+                    >
+                      <ApplicationCard application={app} />
+                    </motion.div>
+                  );
+                })}
               </AnimatePresence>
 
               {columnApps.length === 0 && (
