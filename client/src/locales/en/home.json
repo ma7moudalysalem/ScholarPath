@@ -1,10 +1,30 @@
 {
   "hero": {
-    "eyebrow": "Gated. Personalized. Bilingual.",
+    "eyebrow": "Now live · Gated, personalized, bilingual",
     "title": "The scholarship platform built around you.",
     "subtitle": "Discover, track, and secure scholarships with AI-matched recommendations and verified consultants — all in one gated workspace.",
     "primaryCta": "Create your account",
-    "secondaryCta": "See how it works"
+    "secondaryCta": "See how it works",
+    "trustedBy": "Trusted by students from leading universities worldwide"
+  },
+  "stats": {
+    "sectionLabel": "Impact at a glance",
+    "students": {
+      "value": "10K+",
+      "label": "Active students"
+    },
+    "scholarships": {
+      "value": "500+",
+      "label": "Verified scholarships"
+    },
+    "universities": {
+      "value": "150+",
+      "label": "Partner universities"
+    },
+    "funding": {
+      "value": "$2M+",
+      "label": "Funding secured"
+    }
   },
   "pillars": {
     "sectionLabel": "Everything you need",
@@ -25,9 +45,84 @@
       "body": "Real-time 1:1 chat, a moderated forum, and curated resources from alumni and experts."
     }
   },
+  "showcase": {
+    "sectionLabel": "Built for serious applicants",
+    "heading": "A workspace that does the hard work for you.",
+    "subtitle": "From discovery to acceptance, every step is connected and tracked in one place.",
+    "ai": {
+      "title": "AI-Powered Matching",
+      "body": "Our engine reads your profile and ranks scholarships by fit, deadline urgency, and acceptance probability.",
+      "cta": "How matching works"
+    },
+    "consultants": {
+      "title": "Expert Consultants",
+      "body": "Vetted advisors from top programs. Pay securely, message in real-time, refund anytime before the session.",
+      "cta": "Meet the consultants"
+    },
+    "verified": {
+      "title": "Verified Scholarships",
+      "body": "Every listing is manually reviewed. No scams, no broken links — only opportunities worth your time.",
+      "cta": "Browse opportunities"
+    }
+  },
+  "testimonials": {
+    "sectionLabel": "Loved by students",
+    "heading": "Stories from students just like you.",
+    "subtitle": "Real outcomes from the ScholarPath community.",
+    "items": {
+      "first": {
+        "quote": "ScholarPath matched me with a fully funded master's program I had never heard of. The consultant prep made the application feel effortless.",
+        "name": "Layla H.",
+        "role": "Fulbright Scholar, Cairo"
+      },
+      "second": {
+        "quote": "The kanban for tracking applications saved my sanity. I could finally see every deadline and document in one place.",
+        "name": "Omar K.",
+        "role": "Erasmus Mundus, Berlin"
+      },
+      "third": {
+        "quote": "I booked three consultant sessions before my interview. The Stripe-held payment made me trust the process completely.",
+        "name": "Maya R.",
+        "role": "Chevening Scholar, London"
+      }
+    }
+  },
   "ready": {
     "title": "Ready to start?",
     "body": "Register in less than a minute. No credit card required.",
-    "primaryCta": "Get started free"
+    "primaryCta": "Get started free",
+    "secondaryCta": "Sign in"
+  },
+  "footer": {
+    "tagline": "The bilingual scholarship workspace for ambitious students.",
+    "product": {
+      "heading": "Product",
+      "scholarships": "Scholarships",
+      "consultants": "Consultants",
+      "community": "Community",
+      "pricing": "Pricing"
+    },
+    "company": {
+      "heading": "Company",
+      "about": "About",
+      "blog": "Blog",
+      "careers": "Careers",
+      "contact": "Contact"
+    },
+    "resources": {
+      "heading": "Resources",
+      "help": "Help center",
+      "guides": "Guides",
+      "privacy": "Privacy",
+      "terms": "Terms"
+    },
+    "connect": {
+      "heading": "Connect",
+      "twitter": "Twitter",
+      "linkedin": "LinkedIn",
+      "github": "GitHub",
+      "email": "Email us"
+    },
+    "rights": "All rights reserved."
   }
 }
