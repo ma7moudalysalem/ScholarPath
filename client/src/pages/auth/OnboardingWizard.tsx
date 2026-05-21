@@ -222,7 +222,7 @@ function validateCompany(c: CompanyFormState): Record<string, string> {
   if (!c.contactName.trim()) errs.contactName = "Required";
   if (!c.contactPosition.trim()) errs.contactPosition = "Required";
   if (!c.contactPhone.trim()) errs.contactPhone = "Required";
-  else if (!/^[+0-9 ()\-]{6,40}$/.test(c.contactPhone)) errs.contactPhone = "Invalid phone format";
+  else if (!/^[+0-9 ()-]{6,40}$/.test(c.contactPhone)) errs.contactPhone = "Invalid phone format";
   return errs;
 }
 

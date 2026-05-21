@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@/lib/i18n";
+import type * as AuthApiModule from "@/services/api/auth";
 
 // Stub the notifications API the layout calls when mounting.
 vi.mock("@/services/api/notifications", () => ({
@@ -36,9 +37,7 @@ const switchRoleSpy = vi.fn(async () => ({
 }));
 
 vi.mock("@/services/api/auth", async () => {
-  const actual = await vi.importActual<typeof import("@/services/api/auth")>(
-    "@/services/api/auth",
-  );
+  const actual = await vi.importActual<typeof AuthApiModule>("@/services/api/auth");
   return {
     ...actual,
     authApi: {
