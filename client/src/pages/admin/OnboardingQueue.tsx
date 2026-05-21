@@ -10,30 +10,30 @@ import { apiErrorMessage } from "@/services/api/client";
 import { documentsApi } from "@/services/api/documents";
 import { PromptDialog } from "@/components/ui/PromptDialog";
 
+function parseJsonArray(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as string[]).filter((s) => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  if (value === null || value === undefined || value === "") return null;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-xs uppercase tracking-wide text-text-tertiary">{label}</dt>
+      <dd className="text-sm text-text-primary">{value}</dd>
+    </div>
+  );
+}
+
 /** Renders the submitted onboarding profile snapshot — Company or Consultant. */
 function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
   const isCompany = row.requestedRole === "Company";
   const isConsultant = row.requestedRole === "Consultant";
-
-  const parseJsonArray = (raw: string | null): string[] => {
-    if (!raw) return [];
-    try {
-      const parsed = JSON.parse(raw) as unknown;
-      return Array.isArray(parsed) ? (parsed as string[]).filter((s) => typeof s === "string") : [];
-    } catch {
-      return [];
-    }
-  };
-
-  const Row = ({ label, value }: { label: string; value: React.ReactNode }) => {
-    if (value === null || value === undefined || value === "") return null;
-    return (
-      <div className="flex flex-col gap-0.5">
-        <dt className="text-xs uppercase tracking-wide text-text-tertiary">{label}</dt>
-        <dd className="text-sm text-text-primary">{value}</dd>
-      </div>
-    );
-  };
 
   return (
     <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">

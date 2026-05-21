@@ -1,10 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import "@/lib/i18n";
+import i18n from "@/lib/i18n";
 import type * as AuthApiModule from "@/services/api/auth";
+
+beforeAll(async () => {
+  // Default fallback language is Arabic — force English so label regexes match.
+  await i18n.changeLanguage("en");
+});
 
 // Stub the notifications API the layout calls when mounting.
 vi.mock("@/services/api/notifications", () => ({
@@ -16,24 +21,28 @@ vi.mock("@/hooks/useNotificationHub", () => ({
   useNotificationHub: () => undefined,
 }));
 
-const switchRoleSpy = vi.fn(async () => ({
-  accessToken: "new-access",
-  refreshToken: "new-refresh",
-  accessTokenExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
-  refreshTokenExpiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
-  user: {
-    id: "user-1",
-    email: "u@example.com",
-    firstName: "Test",
-    lastName: "User",
-    fullName: "Test User",
-    profileImageUrl: null,
-    accountStatus: "Active" as const,
-    isOnboardingComplete: true,
-    roles: ["Student", "Consultant"],
-    activeRole: "Consultant",
-    preferredLanguage: "en",
-  },
+// vi.mock factories are hoisted, so the spy must live inside vi.hoisted() to
+// exist by the time the mock factory runs.
+const { switchRoleSpy } = vi.hoisted(() => ({
+  switchRoleSpy: vi.fn(async () => ({
+    accessToken: "new-access",
+    refreshToken: "new-refresh",
+    accessTokenExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+    refreshTokenExpiresAt: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+    user: {
+      id: "user-1",
+      email: "u@example.com",
+      firstName: "Test",
+      lastName: "User",
+      fullName: "Test User",
+      profileImageUrl: null,
+      accountStatus: "Active" as const,
+      isOnboardingComplete: true,
+      roles: ["Student", "Consultant"],
+      activeRole: "Consultant",
+      preferredLanguage: "en",
+    },
+  })),
 }));
 
 vi.mock("@/services/api/auth", async () => {

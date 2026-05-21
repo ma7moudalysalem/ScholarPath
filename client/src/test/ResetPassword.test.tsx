@@ -1,8 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
-import "@/lib/i18n";
+import i18n from "@/lib/i18n";
+
+beforeAll(async () => {
+  // The fallback language is Arabic — force English so label regexes match.
+  await i18n.changeLanguage("en");
+});
 
 // `authApi` is mocked at the module level so submit doesn't actually call the API.
 vi.mock("@/services/api/auth", () => ({
@@ -43,7 +48,7 @@ describe("ResetPassword — password rules mirror Register", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/new password/i), "Aa1!");
     await user.type(screen.getByLabelText(/confirm/i), "Aa1!");
-    fireEvent.submit(screen.getByRole("button", { name: /reset/i }).closest("form")!);
+    fireEvent.submit(screen.getByRole("button", { name: /update password/i }).closest("form")!);
     await waitFor(() => {
       expect(authApi.resetPassword).not.toHaveBeenCalled();
     });
@@ -55,7 +60,7 @@ describe("ResetPassword — password rules mirror Register", () => {
     // Long enough but all lowercase letters — should fail upper + digit + special checks.
     await user.type(screen.getByLabelText(/new password/i), "abcdefghij");
     await user.type(screen.getByLabelText(/confirm/i), "abcdefghij");
-    fireEvent.submit(screen.getByRole("button", { name: /reset/i }).closest("form")!);
+    fireEvent.submit(screen.getByRole("button", { name: /update password/i }).closest("form")!);
     await waitFor(() => {
       expect(authApi.resetPassword).not.toHaveBeenCalled();
     });
@@ -66,7 +71,7 @@ describe("ResetPassword — password rules mirror Register", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/new password/i), "Abcdef1!");
     await user.type(screen.getByLabelText(/confirm/i), "Different1!");
-    fireEvent.submit(screen.getByRole("button", { name: /reset/i }).closest("form")!);
+    fireEvent.submit(screen.getByRole("button", { name: /update password/i }).closest("form")!);
     await waitFor(() => {
       expect(authApi.resetPassword).not.toHaveBeenCalled();
     });
@@ -77,7 +82,7 @@ describe("ResetPassword — password rules mirror Register", () => {
     const user = userEvent.setup();
     await user.type(screen.getByLabelText(/new password/i), "Abcdef1!");
     await user.type(screen.getByLabelText(/confirm/i), "Abcdef1!");
-    fireEvent.submit(screen.getByRole("button", { name: /reset/i }).closest("form")!);
+    fireEvent.submit(screen.getByRole("button", { name: /update password/i }).closest("form")!);
     await waitFor(() => {
       expect(authApi.resetPassword).toHaveBeenCalledWith("abc", "Abcdef1!");
     });
