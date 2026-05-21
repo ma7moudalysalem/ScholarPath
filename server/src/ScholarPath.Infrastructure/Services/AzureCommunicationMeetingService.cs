@@ -23,6 +23,13 @@ public sealed class AzureCommunicationMeetingService : IMeetingService
     public AzureCommunicationMeetingService(IOptions<AcsOptions> options)
     {
         var connectionString = options.Value.ConnectionString;
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                "Acs:ConnectionString is required to use AzureCommunicationMeetingService. "
+                + "Configure it via the Acs__ConnectionString App Service setting, or omit it to "
+                + "fall back to StubMeetingService.");
+        }
         _identityClient = new CommunicationIdentityClient(connectionString);
         _callAutomationClient = new CallAutomationClient(connectionString);
     }
