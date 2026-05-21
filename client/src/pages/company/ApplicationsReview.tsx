@@ -139,11 +139,27 @@ export function ApplicationsReview() {
                   </td>
                 </tr>
               ) : (
-                filteredApps.map((app: CompanyApplicationRow) => (
-                  <tr key={app.id} className="transition-colors hover:bg-bg-muted/50">
+                filteredApps.map((app: CompanyApplicationRow) => {
+                  // The CompanyApplicationRow DTO uses `applicationId` and
+                  // `submittedAt` (nullable when the row is still a draft) —
+                  // earlier callers referenced `app.id` / `app.createdAt`
+                  // which don't exist on the shape, so `new Date(undefined)`
+                  // rendered "Invalid Date" for every row.
+                  const submittedLabel = app.submittedAt
+                    ? new Date(app.submittedAt).toLocaleDateString(lang)
+                    : "—";
+                  // Pending + Applied / UnderReview / WaitingResult are all
+                  // "actionable" for the company reviewer — show the Clock
+                  // icon and the accept/reject buttons for any of them.
+                  const isActionable =
+                    app.status === "Pending"
+                    || app.status === "Applied"
+                    || app.status === "UnderReview"
+                    || app.status === "WaitingResult";
+                  return (
+                  <tr key={app.applicationId} className="transition-colors hover:bg-bg-muted/50">
                     <td className="px-6 py-4">
                       <div className="font-medium text-text-primary">{app.studentName}</div>
-                      <div className="text-xs text-text-tertiary">{app.studentEmail}</div>
                     </td>
                     <td className="px-6 py-4 text-text-secondary">
                       {app.scholarshipTitle}
@@ -158,14 +174,14 @@ export function ApplicationsReview() {
                               : "bg-warning-50 text-warning-600"
                         }`}
                       >
-                        {app.status === "Pending" ? (
+                        {isActionable ? (
                           <Clock size={12} className="me-1" />
                         ) : null}
-                        {t(`companyReview.status.${app.status}`)}
+                        {t(`companyReview.status.${app.status}`, { defaultValue: app.status })}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-text-tertiary">
-                      {new Date(app.createdAt).toLocaleDateString(lang)}
+                      {submittedLabel}
                     </td>
                     <td className="px-6 py-4 text-end">
                       <div className="flex justify-end space-x-2">
@@ -177,11 +193,11 @@ export function ApplicationsReview() {
                         >
                           <Eye size={18} />
                         </button>
-                        {app.status === "Pending" && (
+                        {isActionable && (
                           <>
                             <button
                               type="button"
-                              onClick={() => handleDecisionClick(app.id, "Accepted")}
+                              onClick={() => handleDecisionClick(app.applicationId, "Accepted")}
                               className="p-1.5 text-text-tertiary transition-colors hover:text-success-600"
                               title={t("companyReview.actions.accept")}
                             >
@@ -189,7 +205,7 @@ export function ApplicationsReview() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDecisionClick(app.id, "Rejected")}
+                              onClick={() => handleDecisionClick(app.applicationId, "Rejected")}
                               className="p-1.5 text-text-tertiary transition-colors hover:text-danger-500"
                               title={t("companyReview.actions.reject")}
                             >
@@ -200,7 +216,8 @@ export function ApplicationsReview() {
                       </div>
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

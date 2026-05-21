@@ -78,9 +78,16 @@
     },
     "empty": "No applications found.",
     "status": {
+      "Draft": "Draft",
       "Pending": "Pending",
+      "Applied": "Applied",
+      "UnderReview": "Under Review",
+      "Shortlisted": "Shortlisted",
+      "WaitingResult": "Waiting Result",
       "Accepted": "Accepted",
-      "Rejected": "Rejected"
+      "Rejected": "Rejected",
+      "Withdrawn": "Withdrawn",
+      "Intending": "Intending"
     },
     "actions": {
       "view": "View details",

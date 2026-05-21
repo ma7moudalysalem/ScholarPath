@@ -78,9 +78,16 @@
     },
     "empty": "لا توجد طلبات.",
     "status": {
+      "Draft": "مسودة",
       "Pending": "قيد المراجعة",
+      "Applied": "تم التقديم",
+      "UnderReview": "تحت المراجعة",
+      "Shortlisted": "في القائمة المختصرة",
+      "WaitingResult": "في انتظار النتيجة",
       "Accepted": "مقبول",
-      "Rejected": "مرفوض"
+      "Rejected": "مرفوض",
+      "Withdrawn": "مسحوب",
+      "Intending": "أنوي التقديم"
     },
     "actions": {
       "view": "عرض التفاصيل",
