@@ -1,10 +1,9 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Analytics.Queries.GetAdminAnalytics;
-
-// ─── DTOs ─────────────────────────────────────────────────────────────────────
 
 public record FunnelDayDto(
     DateOnly ActivityDate,
@@ -34,125 +33,134 @@ public record AdminAnalyticsDto(
     IReadOnlyList<FinanceDayDto> Finance,
     IReadOnlyList<AcceptanceFieldDto> AcceptanceByField);
 
-// ─── Query ────────────────────────────────────────────────────────────────────
-
-/// <summary>
-/// Returns admin-level platform analytics from three SQL views:
-/// <c>vw_funnel_daily</c>, <c>vw_finance_daily</c>, and <c>vw_acceptance_rates</c>.
-/// </summary>
-/// <param name="Days">
-/// Number of trailing calendar days to include for funnel and finance data.
-/// Defaults to 30.
-/// </param>
 public record GetAdminAnalyticsQuery(int Days = 30) : IRequest<AdminAnalyticsDto>;
-
-// ─── Handler ──────────────────────────────────────────────────────────────────
 
 public sealed class GetAdminAnalyticsQueryHandler(IApplicationDbContext db)
     : IRequestHandler<GetAdminAnalyticsQuery, AdminAnalyticsDto>
 {
-    // Private projection records — property names must match SELECT column aliases.
-
-    private sealed record FunnelRow(
-        DateOnly ActivityDate,
-        int Registrations,
-        int OnboardingCompleted,
-        int ApplicationsSubmitted,
-        int ApplicationsAccepted);
-
-    private sealed record FinanceRow(
-        DateOnly ActivityDate,
-        string RevenueStream,
-        decimal GrossUsd,
-        decimal ProfitShareUsd,
-        decimal PayeeNetUsd,
-        decimal RefundedUsd,
-        int RefundCount);
-
-    private sealed record AcceptanceRow(
-        string FieldEn,
-        string FieldAr,
-        int TotalApplications,
-        int AcceptedApplications,
-        decimal? AcceptanceRatePercent);
-
     public async Task<AdminAnalyticsDto> Handle(
         GetAdminAnalyticsQuery request, CancellationToken ct)
     {
         var days = request.Days > 0 ? request.Days : 30;
+        var since = DateTimeOffset.UtcNow.Date.AddDays(-days);
+        var sinceOffset = new DateTimeOffset(since, TimeSpan.Zero);
 
-        // Run all three view queries concurrently.
-        var funnelTask = db.Database
-            .SqlQuery<FunnelRow>(
-                $"""
-                SELECT
-                    ActivityDate,
-                    Registrations,
-                    OnboardingCompleted,
-                    ApplicationsSubmitted,
-                    ApplicationsAccepted
-                FROM dbo.vw_funnel_daily
-                WHERE ActivityDate >= DATEADD(day, -{days}, CAST(GETUTCDATE() AS date))
-                ORDER BY ActivityDate
-                """)
+        // Funnel — group by day from Users + Applications
+        var regsByDay = await db.Users
+            .AsNoTracking()
+            .Where(u => !u.IsDeleted && u.CreatedAt >= sinceOffset)
+            .GroupBy(u => u.CreatedAt.UtcDateTime.Date)
+            .Select(g => new
+            {
+                Day = g.Key,
+                Registrations = g.Count(),
+                OnboardingCompleted = g.Count(u => u.IsOnboardingComplete),
+            })
             .ToListAsync(ct);
 
-        var financeTask = db.Database
-            .SqlQuery<FinanceRow>(
-                $"""
-                SELECT
-                    ActivityDate,
-                    RevenueStream,
-                    GrossUsd,
-                    ProfitShareUsd,
-                    PayeeNetUsd,
-                    RefundedUsd,
-                    RefundCount
-                FROM dbo.vw_finance_daily
-                WHERE ActivityDate >= DATEADD(day, -{days}, CAST(GETUTCDATE() AS date))
-                ORDER BY ActivityDate, RevenueStream
-                """)
+        var submittedByDay = await db.Applications
+            .AsNoTracking()
+            .Where(a => !a.IsDeleted && a.SubmittedAt != null && a.SubmittedAt >= sinceOffset)
+            .GroupBy(a => a.SubmittedAt!.Value.UtcDateTime.Date)
+            .Select(g => new { Day = g.Key, Count = g.Count() })
             .ToListAsync(ct);
 
-        var acceptanceTask = db.Database
-            .SqlQuery<AcceptanceRow>(
-                $"""
-                SELECT TOP 10
-                    FieldEn,
-                    FieldAr,
-                    SUM(TotalApplications)    AS TotalApplications,
-                    SUM(AcceptedApplications) AS AcceptedApplications,
-                    CASE
-                        WHEN SUM(TotalApplications) = 0 THEN NULL
-                        ELSE CAST(SUM(AcceptedApplications) * 100.0
-                             / SUM(TotalApplications) AS decimal(5,2))
-                    END AS AcceptanceRatePercent
-                FROM dbo.vw_acceptance_rates
-                GROUP BY FieldEn, FieldAr
-                ORDER BY SUM(TotalApplications) DESC
-                """)
+        var acceptedByDay = await db.Applications
+            .AsNoTracking()
+            .Where(a => !a.IsDeleted && a.Status == ApplicationStatus.Accepted && a.DecisionAt != null && a.DecisionAt >= sinceOffset)
+            .GroupBy(a => a.DecisionAt!.Value.UtcDateTime.Date)
+            .Select(g => new { Day = g.Key, Count = g.Count() })
             .ToListAsync(ct);
 
-        await Task.WhenAll(funnelTask, financeTask, acceptanceTask);
-
-        var funnel = funnelTask.Result
-            .Select(r => new FunnelDayDto(
-                r.ActivityDate, r.Registrations, r.OnboardingCompleted,
-                r.ApplicationsSubmitted, r.ApplicationsAccepted))
+        var allDays = regsByDay.Select(r => r.Day)
+            .Union(submittedByDay.Select(s => s.Day))
+            .Union(acceptedByDay.Select(a => a.Day))
+            .OrderBy(d => d)
             .ToList();
 
-        var finance = financeTask.Result
-            .Select(r => new FinanceDayDto(
-                r.ActivityDate, r.RevenueStream, r.GrossUsd,
-                r.ProfitShareUsd, r.PayeeNetUsd, r.RefundedUsd, r.RefundCount))
+        var funnel = allDays.Select(d =>
+        {
+            var reg = regsByDay.FirstOrDefault(x => x.Day == d);
+            var sub = submittedByDay.FirstOrDefault(x => x.Day == d);
+            var acc = acceptedByDay.FirstOrDefault(x => x.Day == d);
+            return new FunnelDayDto(
+                DateOnly.FromDateTime(d),
+                reg?.Registrations ?? 0,
+                reg?.OnboardingCompleted ?? 0,
+                sub?.Count ?? 0,
+                acc?.Count ?? 0);
+        }).ToList();
+
+        // Finance — Booking payments
+        var bookingFin = await db.Payments
+            .AsNoTracking()
+            .Where(p => !p.IsDeleted && p.CapturedAt != null && p.CapturedAt >= sinceOffset)
+            .GroupBy(p => p.CapturedAt!.Value.UtcDateTime.Date)
+            .Select(g => new FinanceDayDto(
+                DateOnly.FromDateTime(g.Key),
+                "ConsultantBooking",
+                g.Sum(p => (decimal)p.AmountCents) / 100m,
+                g.Sum(p => (decimal)p.ProfitShareAmountCents) / 100m,
+                g.Sum(p => (decimal)p.PayeeAmountCents) / 100m,
+                g.Sum(p => (decimal)p.RefundedAmountCents) / 100m,
+                g.Count(p => p.RefundedAmountCents > 0)))
+            .ToListAsync(ct);
+
+        // Finance — Company review payments
+        var reviewFin = await db.CompanyReviewPayments
+            .AsNoTracking()
+            .Where(p => p.CapturedAt != null && p.CapturedAt >= sinceOffset)
+            .GroupBy(p => p.CapturedAt!.Value.UtcDateTime.Date)
+            .Select(g => new FinanceDayDto(
+                DateOnly.FromDateTime(g.Key),
+                "CompanyReview",
+                g.Sum(p => p.AmountUsd),
+                g.Sum(p => p.ProfitShareAmountUsd),
+                g.Sum(p => p.PayeeAmountUsd),
+                g.Sum(p => p.RefundedAmountUsd ?? 0m),
+                g.Count(p => (p.RefundedAmountUsd ?? 0m) > 0)))
+            .ToListAsync(ct);
+
+        var finance = bookingFin.Concat(reviewFin)
+            .OrderBy(f => f.ActivityDate)
+            .ThenBy(f => f.RevenueStream)
             .ToList();
 
-        var acceptance = acceptanceTask.Result
-            .Select(r => new AcceptanceFieldDto(
-                r.FieldEn, r.FieldAr, r.TotalApplications,
-                r.AcceptedApplications, r.AcceptanceRatePercent))
+        // Acceptance rates by field (top 10 by total apps)
+        var acceptance = await db.Applications
+            .AsNoTracking()
+            .Where(a => !a.IsDeleted)
+            .Join(db.Scholarships.AsNoTracking(), a => a.ScholarshipId, s => s.Id, (a, s) => new { a, s })
+            .GroupJoin(db.Categories.AsNoTracking(),
+                joined => joined.s.CategoryId, c => c.Id,
+                (joined, cats) => new { joined.a, joined.s, cats })
+            .SelectMany(x => x.cats.DefaultIfEmpty(),
+                (x, c) => new
+                {
+                    FieldEn = c != null ? c.NameEn : "Uncategorized",
+                    FieldAr = c != null ? c.NameAr : "غير مصنفة",
+                    x.a.Status,
+                })
+            .GroupBy(x => new { x.FieldEn, x.FieldAr })
+            .Select(g => new
+            {
+                g.Key.FieldEn,
+                g.Key.FieldAr,
+                Total = g.Count(),
+                Accepted = g.Count(x => x.Status == ApplicationStatus.Accepted),
+            })
+            .OrderByDescending(g => g.Total)
+            .Take(10)
+            .ToListAsync(ct);
+
+        var acceptanceDtos = acceptance.Select(a => new AcceptanceFieldDto(
+            a.FieldEn,
+            a.FieldAr,
+            a.Total,
+            a.Accepted,
+            a.Total == 0 ? (decimal?)null : Math.Round((decimal)a.Accepted * 100m / a.Total, 2)))
             .ToList();
 
-        return new AdminAnalyticsDto(funnel, finance, acceptance);
+        return new AdminAnalyticsDto(funnel, finance, acceptanceDtos);
     }
 }

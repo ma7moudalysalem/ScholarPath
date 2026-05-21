@@ -75,13 +75,17 @@
   "card": {
     "rating": "Rating",
     "ratingValue": "{{rating}} / 5 ({{count}})",
+    "ratingCompact": "{{rating}} ({{count}})",
     "noRating": "Not yet rated",
     "sessions": "Completed sessions",
+    "sessionsShort": "{{count}} sessions",
     "fee": "Fee",
     "feeUnset": "Not set",
+    "perSession": "per session",
     "baseDuration": "Session length",
     "durationUnset": "Not set",
     "viewConsultant": "View consultant",
+    "bookSession": "Book Session",
     "noExpertiseTags": "No expertise tags added yet."
   },
   "empty": {

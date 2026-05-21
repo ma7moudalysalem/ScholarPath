@@ -3,6 +3,16 @@
   "subtitle": "Track and manage your scholarship applications in one place.",
   "addExternal": "Add External",
   "companyFallback": "Company",
+  "stats": {
+    "total": "Total",
+    "active": "Active",
+    "accepted": "Accepted",
+    "pending": "Pending"
+  },
+  "viewToggle": {
+    "kanban": "Kanban",
+    "list": "List"
+  },
   "kanban": {
     "columns": {
       "Draft": "Drafts",

@@ -3,6 +3,16 @@
   "subtitle": "تتبع وإدارة طلبات المنح الدراسية الخاصة بك في مكان واحد.",
   "addExternal": "إضافة طلب خارجي",
   "companyFallback": "شركة",
+  "stats": {
+    "total": "الإجمالي",
+    "active": "نشطة",
+    "accepted": "مقبولة",
+    "pending": "قيد المراجعة"
+  },
+  "viewToggle": {
+    "kanban": "كانبان",
+    "list": "قائمة"
+  },
   "kanban": {
     "columns": {
       "Draft": "مسودات",

@@ -79,13 +79,17 @@
   "card": {
     "rating": "التقييم",
     "ratingValue": "{{rating}} / 5 ({{count}})",
+    "ratingCompact": "{{rating}} ({{count}})",
     "noRating": "لم يُقيَّم بعد",
     "sessions": "الجلسات المكتملة",
+    "sessionsShort": "{{count}} جلسة",
     "fee": "الرسوم",
     "feeUnset": "غير محدد",
+    "perSession": "للجلسة",
     "baseDuration": "مدة الجلسة",
     "durationUnset": "غير محددة",
     "viewConsultant": "عرض المستشار",
+    "bookSession": "احجز جلسة",
     "noExpertiseTags": "لم تُضَف وسوم خبرة بعد."
   },
   "empty": {

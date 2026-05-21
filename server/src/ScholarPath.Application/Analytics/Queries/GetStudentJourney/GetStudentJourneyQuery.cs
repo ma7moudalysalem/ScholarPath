@@ -2,11 +2,10 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Analytics.Queries.GetStudentJourney;
-
-// ─── DTOs ─────────────────────────────────────────────────────────────────────
 
 public record StudentJourneyDto(
     int TotalApplications,
@@ -18,66 +17,58 @@ public record StudentJourneyDto(
     DateTime? LastBookingAt,
     bool OnboardingComplete);
 
-// ─── Query ────────────────────────────────────────────────────────────────────
-
-/// <summary>
-/// Returns the calling student's journey aggregates from <c>dbo.vw_student_journey</c>.
-/// Returns an all-zeros DTO when the student has no activity yet.
-/// </summary>
 public record GetStudentJourneyQuery : IRequest<StudentJourneyDto>;
-
-// ─── Handler ──────────────────────────────────────────────────────────────────
 
 public sealed class GetStudentJourneyQueryHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser)
     : IRequestHandler<GetStudentJourneyQuery, StudentJourneyDto>
 {
-    private sealed record StudentJourneyRow(
-        int TotalApplications,
-        int SubmittedApplications,
-        int AcceptedApplications,
-        int TotalBookings,
-        int CompletedBookings,
-        DateTime? LastApplicationAt,
-        DateTime? LastBookingAt,
-        bool OnboardingComplete);
-
     public async Task<StudentJourneyDto> Handle(
         GetStudentJourneyQuery request, CancellationToken ct)
     {
         var userId = currentUser.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
-        var rows = await db.Database
-            .SqlQuery<StudentJourneyRow>(
-                $"""
-                SELECT
-                    TotalApplications,
-                    SubmittedApplications,
-                    AcceptedApplications,
-                    TotalBookings,
-                    CompletedBookings,
-                    LastApplicationAt,
-                    LastBookingAt,
-                    OnboardingComplete
-                FROM dbo.vw_student_journey
-                WHERE StudentId = {userId}
-                """)
-            .ToListAsync(ct);
+        var apps = await db.Applications
+            .AsNoTracking()
+            .Where(a => a.StudentId == userId && !a.IsDeleted)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Total = g.Count(),
+                Submitted = g.Count(a => a.SubmittedAt != null),
+                Accepted = g.Count(a => a.Status == ApplicationStatus.Accepted),
+                LastAt = (DateTimeOffset?)g.Max(a => a.CreatedAt),
+            })
+            .FirstOrDefaultAsync(ct);
 
-        if (rows.Count == 0)
-            return new StudentJourneyDto(0, 0, 0, 0, 0, null, null, false);
+        var bookings = await db.Bookings
+            .AsNoTracking()
+            .Where(b => b.StudentId == userId && !b.IsDeleted)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Total = g.Count(),
+                Completed = g.Count(b => b.Status == BookingStatus.Completed),
+                LastAt = (DateTimeOffset?)g.Max(b => b.CreatedAt),
+            })
+            .FirstOrDefaultAsync(ct);
 
-        var r = rows[0];
+        var onboardingComplete = await db.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId)
+            .Select(u => u.IsOnboardingComplete)
+            .FirstOrDefaultAsync(ct);
+
         return new StudentJourneyDto(
-            r.TotalApplications,
-            r.SubmittedApplications,
-            r.AcceptedApplications,
-            r.TotalBookings,
-            r.CompletedBookings,
-            r.LastApplicationAt,
-            r.LastBookingAt,
-            r.OnboardingComplete);
+            TotalApplications:     apps?.Total ?? 0,
+            SubmittedApplications: apps?.Submitted ?? 0,
+            AcceptedApplications:  apps?.Accepted ?? 0,
+            TotalBookings:         bookings?.Total ?? 0,
+            CompletedBookings:     bookings?.Completed ?? 0,
+            LastApplicationAt:     apps?.LastAt?.UtcDateTime,
+            LastBookingAt:         bookings?.LastAt?.UtcDateTime,
+            OnboardingComplete:    onboardingComplete);
     }
 }
