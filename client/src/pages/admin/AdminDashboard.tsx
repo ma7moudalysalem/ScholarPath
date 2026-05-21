@@ -161,7 +161,8 @@ export function AdminDashboard() {
         </div>
       ) : (
         <>
-          {/* Top-line stats (4 hero cards) */}
+          {/* Top-line stats (4 hero cards). Hardcoded mock deltas and trends
+              are removed so the admin never sees fabricated growth numbers. */}
           <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <StatCard
               label={t("dashboard:admin.stats.users")}
@@ -169,8 +170,6 @@ export function AdminDashboard() {
               to="/admin/users"
               icon={Users}
               accent="brand"
-              delta={{ value: 8, label: t("dashboard:admin.stats.usersDelta") }}
-              trend={[20, 25, 22, 30, 28, 35, 32, 40, 42, 45]}
               delay={0.02}
             />
             <StatCard
@@ -178,8 +177,6 @@ export function AdminDashboard() {
               value={o.activeUsers}
               icon={Activity}
               accent="success"
-              delta={{ value: 12, label: t("dashboard:admin.stats.activeDelta") }}
-              trend={[10, 11, 14, 13, 16, 18, 17, 19, 21, 23]}
               delay={0.06}
             />
             <StatCard
@@ -188,8 +185,6 @@ export function AdminDashboard() {
               to="/admin/onboarding"
               icon={Clock}
               accent={o.pendingApprovals > 0 ? "warning" : "neutral"}
-              delta={{ value: o.pendingApprovals, label: t("dashboard:admin.stats.pendingDelta") }}
-              trend={[3, 5, 4, 6, 5, 7, 6, 8, 7, 6]}
               delay={0.1}
             />
             <StatCard
@@ -198,8 +193,6 @@ export function AdminDashboard() {
               to="/admin/payments"
               icon={CircleDollarSign}
               accent="success"
-              delta={{ value: 18, label: t("dashboard:admin.stats.revenueDelta") }}
-              trend={[100, 110, 120, 125, 135, 140, 150, 160, 170, 180]}
               delay={0.14}
             />
           </section>
