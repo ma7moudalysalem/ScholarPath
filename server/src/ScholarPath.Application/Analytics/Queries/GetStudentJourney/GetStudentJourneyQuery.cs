@@ -30,6 +30,13 @@ public sealed class GetStudentJourneyQueryHandler(
         var userId = currentUser.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
+        // "Submitted" must include BOTH:
+        //   - in-app applications the student has clicked Submit on (SubmittedAt set), AND
+        //   - external trackers the student has self-marked as past Intending/Draft
+        //     (Applied / UnderReview / Shortlisted / WaitingResult / Accepted / Rejected).
+        // Counting only `SubmittedAt != null` would hide every external Kanban move
+        // — external `UpdateExternalStatus` never sets SubmittedAt — and the funnel
+        // would show Total=N, Submitted=0 for any student tracking off-platform apps.
         var apps = await db.Applications
             .AsNoTracking()
             .Where(a => a.StudentId == userId && !a.IsDeleted)
@@ -37,7 +44,15 @@ public sealed class GetStudentJourneyQueryHandler(
             .Select(g => new
             {
                 Total = g.Count(),
-                Submitted = g.Count(a => a.SubmittedAt != null),
+                Submitted = g.Count(a =>
+                    a.SubmittedAt != null ||
+                    a.Status == ApplicationStatus.Applied ||
+                    a.Status == ApplicationStatus.UnderReview ||
+                    a.Status == ApplicationStatus.Shortlisted ||
+                    a.Status == ApplicationStatus.WaitingResult ||
+                    a.Status == ApplicationStatus.Pending ||
+                    a.Status == ApplicationStatus.Accepted ||
+                    a.Status == ApplicationStatus.Rejected),
                 Accepted = g.Count(a => a.Status == ApplicationStatus.Accepted),
                 LastAt = (DateTimeOffset?)g.Max(a => a.CreatedAt),
             })
