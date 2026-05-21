@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import {
   profileApi,
+  validatePhotoFile,
+  PHOTO_ALLOWED_MIME_TYPES,
   type UserProfile,
   type UpdateProfileRequest,
 } from "@/services/api/profile";
@@ -97,6 +99,12 @@ interface FormState {
   organizationWebsite: string;
   sessionFeeUsd: string;
   sessionDurationMinutes: string;
+  // Consultant professional fields (CR-PROF-08)
+  professionalTitle: string;
+  yearsOfExperience: string;
+  expertiseTags: string[];
+  languages: string[];
+  timezone: string;
 }
 
 function toForm(p: UserProfile): FormState {
@@ -120,7 +128,25 @@ function toForm(p: UserProfile): FormState {
     sessionFeeUsd: p.sessionFeeUsd != null ? String(p.sessionFeeUsd) : "",
     sessionDurationMinutes:
       p.sessionDurationMinutes != null ? String(p.sessionDurationMinutes) : "",
+    professionalTitle: p.professionalTitle ?? "",
+    yearsOfExperience:
+      p.yearsOfExperience != null ? String(p.yearsOfExperience) : "",
+    expertiseTags: p.expertiseTags ?? [],
+    languages: p.languages ?? [],
+    timezone: p.timezone ?? "",
   };
+}
+
+/** Permissive http(s)-URL check; mirrors the backend BeValidAbsoluteHttpUrl rule. */
+function isValidHttpUrl(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) return true;
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 const trimOrNull = (v: string): string | null => {
@@ -155,12 +181,31 @@ function toRequest(f: FormState): UpdateProfileRequest {
     organizationWebsite: trimOrNull(f.organizationWebsite),
     sessionFeeUsd: numOrNull(f.sessionFeeUsd),
     sessionDurationMinutes: numOrNull(f.sessionDurationMinutes),
+    professionalTitle: trimOrNull(f.professionalTitle),
+    yearsOfExperience: numOrNull(f.yearsOfExperience),
+    expertiseTags: f.expertiseTags.length > 0 ? f.expertiseTags : null,
+    languages: f.languages.length > 0 ? f.languages : null,
+    timezone: trimOrNull(f.timezone),
   };
+}
+
+function arrayEqual(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
 }
 
 function shallowEqual(a: FormState, b: FormState): boolean {
   const keys = Object.keys(a) as (keyof FormState)[];
-  for (const k of keys) if (a[k] !== b[k]) return false;
+  for (const k of keys) {
+    const av = a[k];
+    const bv = b[k];
+    if (Array.isArray(av) && Array.isArray(bv)) {
+      if (!arrayEqual(av, bv)) return false;
+    } else if (av !== bv) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -271,9 +316,18 @@ function AvatarUploader({
       ? `${userPhotoUrl(profile.userId)}?v=${photoVersion}`
       : userPhotoUrl(profile.userId);
 
+  // CR-PROF-10: validate type/size/extension before the upload leaves the
+  // browser. The backend re-validates (magic bytes + AV scan); this is just
+  // immediate UX so the user does not wait for a roundtrip to learn it failed.
   const handleFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    onSelectFile(files[0]);
+    const file = files[0];
+    const error = validatePhotoFile(file);
+    if (error) {
+      toast.error(t(`profile:photo.validation.${error}`));
+      return;
+    }
+    onSelectFile(file);
   };
 
   return (
@@ -348,7 +402,7 @@ function AvatarUploader({
         <input
           ref={inputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp"
+          accept={PHOTO_ALLOWED_MIME_TYPES.join(",")}
           onChange={(e) => {
             handleFiles(e.target.files);
             e.target.value = "";
@@ -360,9 +414,107 @@ function AvatarUploader({
   );
 }
 
+// ── Tag input ────────────────────────────────────────────────────────────────
+
+/**
+ * Lightweight tag editor for the consultant Expertise / Languages fields
+ * (CR-PROF-08). Press Enter or comma to commit a chip; backspace on an empty
+ * input removes the last chip. Duplicates are ignored; the chip count is
+ * capped at `max` to mirror the backend.
+ */
+function TagInput({
+  value,
+  onChange,
+  placeholder,
+  max,
+}: {
+  value: string[];
+  onChange: (tags: string[]) => void;
+  placeholder?: string;
+  max: number;
+}) {
+  const [draft, setDraft] = useState("");
+
+  const commit = (raw: string) => {
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) return;
+    if (value.length >= max) return;
+    if (value.includes(trimmed)) {
+      setDraft("");
+      return;
+    }
+    onChange([...value, trimmed]);
+    setDraft("");
+  };
+
+  const removeAt = (index: number) =>
+    onChange(value.filter((_, i) => i !== index));
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border-default bg-bg-elevated px-2 py-1.5 focus-within:border-brand-500">
+      {value.map((tag, i) => (
+        <span
+          key={`${tag}-${i}`}
+          className="inline-flex items-center gap-1 rounded-md bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700"
+        >
+          {tag}
+          <button
+            type="button"
+            onClick={() => removeAt(i)}
+            className="rounded-sm text-brand-700/70 hover:text-brand-700"
+            aria-label={`Remove ${tag}`}
+          >
+            <X aria-hidden className="size-3" />
+          </button>
+        </span>
+      ))}
+      <input
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === ",") {
+            e.preventDefault();
+            commit(draft);
+          } else if (
+            e.key === "Backspace" &&
+            draft.length === 0 &&
+            value.length > 0
+          ) {
+            removeAt(value.length - 1);
+          }
+        }}
+        onBlur={() => {
+          if (draft.trim().length > 0) commit(draft);
+        }}
+        placeholder={value.length === 0 ? placeholder : undefined}
+        className="min-w-[8rem] flex-1 bg-transparent px-1 py-0.5 text-sm outline-none"
+      />
+    </div>
+  );
+}
+
 // ── Change-password card ─────────────────────────────────────────────────────
 
-function ChangePasswordSection() {
+// CR-PROF-05: the same policy enforced server-side. Returning the first
+// failing rule's i18n key keeps the inline error message stable across runs.
+function validateNewPassword(
+  newPw: string,
+  confirmPw: string,
+  currentPw: string,
+): string | null {
+  if (newPw !== confirmPw) return "profile:password.mismatch";
+  if (newPw.length < 8) return "profile:password.tooShort";
+  if (newPw.length > 128) return "profile:password.tooLong";
+  if (!/[A-Z]/.test(newPw)) return "profile:password.missingUpper";
+  if (!/[a-z]/.test(newPw)) return "profile:password.missingLower";
+  if (!/[0-9]/.test(newPw)) return "profile:password.missingDigit";
+  if (!/[^A-Za-z0-9]/.test(newPw)) return "profile:password.missingSpecial";
+  if (newPw === currentPw) return "profile:password.sameAsCurrent";
+  return null;
+}
+
+function ChangePasswordSection({ hasPassword }: { hasPassword: boolean }) {
   const { t } = useTranslation(["profile", "common"]);
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
@@ -384,17 +536,37 @@ function ChangePasswordSection() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPw !== confirmPw) {
-      setLocalError(t("profile:password.mismatch"));
-      return;
-    }
-    if (newPw.length < 8) {
-      setLocalError(t("profile:password.tooShort"));
+    const errorKey = validateNewPassword(newPw, confirmPw, currentPw);
+    if (errorKey) {
+      setLocalError(t(errorKey));
       return;
     }
     setLocalError(null);
     changeMut.mutate();
   };
+
+  // CR-PROF-06: an SSO-only account has no PasswordHash on the server, so the
+  // backend will reject any change attempt. We render a clear unavailable
+  // message instead of a form that is guaranteed to fail.
+  if (!hasPassword) {
+    return (
+      <SectionCard
+        id="security"
+        icon={<ShieldCheck aria-hidden className="size-5" />}
+        title={t("profile:sections.security")}
+        description={t("profile:sections.securityDesc")}
+      >
+        <div className="rounded-lg border border-border-default bg-bg-muted p-4 text-sm">
+          <p className="font-medium text-text-primary">
+            {t("profile:sso.passwordUnavailable")}
+          </p>
+          <p className="mt-1 text-text-secondary">
+            {t("profile:sso.passwordUnavailableDesc")}
+          </p>
+        </div>
+      </SectionCard>
+    );
+  }
 
   return (
     <SectionCard
@@ -746,9 +918,58 @@ export function Profile() {
   const set = <K extends keyof FormState>(key: K, value: string) =>
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
 
+  const setTags = (key: "expertiseTags" | "languages", tags: string[]) =>
+    setForm((prev) => (prev ? { ...prev, [key]: tags } : prev));
+
   const dirty = !shallowEqual(form, original);
 
+  // Inline validation hints — match the backend rules so a Save attempt that
+  // would have failed server-side fails immediately in the UI instead.
+  const linkedInError =
+    form.linkedInUrl && !isValidHttpUrl(form.linkedInUrl)
+      ? t("profile:validation.url")
+      : null;
+  const websiteError =
+    form.websiteUrl && !isValidHttpUrl(form.websiteUrl)
+      ? t("profile:validation.url")
+      : null;
+  const orgWebsiteError =
+    form.organizationWebsite && !isValidHttpUrl(form.organizationWebsite)
+      ? t("profile:validation.url")
+      : null;
+
+  const gpaNumber = form.gpa.trim().length > 0 ? Number(form.gpa) : null;
+  const gpaMax =
+    form.gpaScale in GPA_MAX ? GPA_MAX[form.gpaScale as GpaScale] : null;
+  const gpaError =
+    gpaNumber == null
+      ? null
+      : !form.gpaScale
+        ? t("profile:validation.gpaScaleRequired")
+        : gpaMax != null && (gpaNumber < 0 || gpaNumber > gpaMax)
+          ? t("profile:validation.gpaRange", { max: gpaMax })
+          : null;
+
+  const feeNumber =
+    form.sessionFeeUsd.trim().length > 0 ? Number(form.sessionFeeUsd) : null;
+  const feeError =
+    feeNumber == null
+      ? null
+      : !Number.isFinite(feeNumber) || feeNumber <= 0
+        ? t("profile:validation.sessionFeePositive")
+        : Math.round(feeNumber * 100) !== feeNumber * 100
+          ? t("profile:validation.sessionFeeDecimals")
+          : null;
+
+  const hasClientErrors = Boolean(
+    linkedInError || websiteError || orgWebsiteError || gpaError || feeError,
+  );
+
   const onSave = () => {
+    if (hasClientErrors) {
+      toast.error(t("profile:error"));
+      return;
+    }
     updateMut.mutate(toRequest(form), {
       onSuccess: () => setOriginal(form),
     });
@@ -938,27 +1159,39 @@ export function Profile() {
                 disabled
               />
             </FieldRow>
-            <FieldRow label={t("profile:fields.dateOfBirth")}>
-              <DatePicker
-                value={form.dateOfBirth}
-                onChange={(v) => set("dateOfBirth", v)}
-                max={new Date().toISOString().slice(0, 10)}
-              />
-            </FieldRow>
-            <FieldRow label={t("profile:fields.nationality")}>
-              <select
-                className="input-premium"
-                value={form.nationality}
-                onChange={(e) => set("nationality", e.target.value)}
-              >
-                <option value="">{t("profile:countryOption.none")}</option>
-                {COUNTRIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </FieldRow>
+            {/*
+              Date of Birth and Nationality are individual-only fields. A
+              Company account has no DOB and no nationality (it has an
+              organization country, a tax number, etc — already covered by
+              the role-specific Company section). Admins don't either. Hide
+              both rows for those roles so the form stops asking a business
+              for a date of birth.
+            */}
+            {(activeRole === "Student" || activeRole === "Consultant") && (
+              <>
+                <FieldRow label={t("profile:fields.dateOfBirth")}>
+                  <DatePicker
+                    value={form.dateOfBirth}
+                    onChange={(v) => set("dateOfBirth", v)}
+                    max={new Date().toISOString().slice(0, 10)}
+                  />
+                </FieldRow>
+                <FieldRow label={t("profile:fields.nationality")}>
+                  <select
+                    className="input-premium"
+                    value={form.nationality}
+                    onChange={(e) => set("nationality", e.target.value)}
+                  >
+                    <option value="">{t("profile:countryOption.none")}</option>
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </FieldRow>
+              </>
+            )}
             <FieldRow label={t("profile:fields.countryOfResidence")}>
               <select
                 className="input-premium"
@@ -1033,22 +1266,38 @@ export function Profile() {
             description={t("profile:sections.linksDesc")}
           >
             <FieldRow label={t("profile:fields.linkedInUrl")}>
-              <input
-                type="url"
-                className="input-premium"
-                placeholder="https://linkedin.com/in/your-handle"
-                value={form.linkedInUrl}
-                onChange={(e) => set("linkedInUrl", e.target.value)}
-              />
+              <div>
+                <input
+                  type="url"
+                  className="input-premium"
+                  placeholder="https://linkedin.com/in/your-handle"
+                  value={form.linkedInUrl}
+                  onChange={(e) => set("linkedInUrl", e.target.value)}
+                  aria-invalid={linkedInError ? true : undefined}
+                />
+                {linkedInError && (
+                  <p className="mt-1.5 text-xs font-medium text-danger-500">
+                    {linkedInError}
+                  </p>
+                )}
+              </div>
             </FieldRow>
             <FieldRow label={t("profile:fields.websiteUrl")}>
-              <input
-                type="url"
-                className="input-premium"
-                placeholder="https://example.com"
-                value={form.websiteUrl}
-                onChange={(e) => set("websiteUrl", e.target.value)}
-              />
+              <div>
+                <input
+                  type="url"
+                  className="input-premium"
+                  placeholder="https://example.com"
+                  value={form.websiteUrl}
+                  onChange={(e) => set("websiteUrl", e.target.value)}
+                  aria-invalid={websiteError ? true : undefined}
+                />
+                {websiteError && (
+                  <p className="mt-1.5 text-xs font-medium text-danger-500">
+                    {websiteError}
+                  </p>
+                )}
+              </div>
             </FieldRow>
           </SectionCard>
 
@@ -1100,43 +1349,51 @@ export function Profile() {
                 label={t("profile:fields.gpa")}
                 description={t("profile:fields.gpaDesc")}
               >
-                <FieldGrid>
-                  <select
-                    className="input-premium"
-                    value={form.gpaScale}
-                    onChange={(e) => {
-                      set("gpaScale", e.target.value);
-                      const newMax = GPA_MAX[e.target.value as GpaScale];
-                      if (newMax !== undefined && form.gpa !== "") {
-                        const val = Number(form.gpa);
-                        if (val > newMax) set("gpa", "");
-                      }
-                    }}
-                  >
-                    <option value="">
-                      {t("profile:gpaScaleOption.none")}
-                    </option>
-                    {GPA_SCALES.map((scale) => (
-                      <option key={scale} value={scale}>
-                        {t(`profile:gpaScaleOption.${scale}`)}
+                <div>
+                  <FieldGrid>
+                    <select
+                      className="input-premium"
+                      value={form.gpaScale}
+                      onChange={(e) => {
+                        set("gpaScale", e.target.value);
+                        const newMax = GPA_MAX[e.target.value as GpaScale];
+                        if (newMax !== undefined && form.gpa !== "") {
+                          const val = Number(form.gpa);
+                          if (val > newMax) set("gpa", "");
+                        }
+                      }}
+                    >
+                      <option value="">
+                        {t("profile:gpaScaleOption.none")}
                       </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    max={GPA_MAX[form.gpaScale as GpaScale] ?? undefined}
-                    className="input-premium"
-                    value={form.gpa}
-                    onChange={(e) => set("gpa", e.target.value)}
-                    placeholder={
-                      form.gpaScale in GPA_MAX
-                        ? `0 – ${GPA_MAX[form.gpaScale as GpaScale]}`
-                        : undefined
-                    }
-                  />
-                </FieldGrid>
+                      {GPA_SCALES.map((scale) => (
+                        <option key={scale} value={scale}>
+                          {t(`profile:gpaScaleOption.${scale}`)}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      max={GPA_MAX[form.gpaScale as GpaScale] ?? undefined}
+                      className="input-premium"
+                      value={form.gpa}
+                      onChange={(e) => set("gpa", e.target.value)}
+                      placeholder={
+                        form.gpaScale in GPA_MAX
+                          ? `0 – ${GPA_MAX[form.gpaScale as GpaScale]}`
+                          : undefined
+                      }
+                      aria-invalid={gpaError ? true : undefined}
+                    />
+                  </FieldGrid>
+                  {gpaError && (
+                    <p className="mt-1.5 text-xs font-medium text-danger-500">
+                      {gpaError}
+                    </p>
+                  )}
+                </div>
               </FieldRow>
             </SectionCard>
           )}
@@ -1159,14 +1416,22 @@ export function Profile() {
                 />
               </FieldRow>
               <FieldRow label={t("profile:fields.organizationWebsite")}>
-                <input
-                  type="url"
-                  className="input-premium"
-                  value={form.organizationWebsite}
-                  onChange={(e) =>
-                    set("organizationWebsite", e.target.value)
-                  }
-                />
+                <div>
+                  <input
+                    type="url"
+                    className="input-premium"
+                    value={form.organizationWebsite}
+                    onChange={(e) =>
+                      set("organizationWebsite", e.target.value)
+                    }
+                    aria-invalid={orgWebsiteError ? true : undefined}
+                  />
+                  {orgWebsiteError && (
+                    <p className="mt-1.5 text-xs font-medium text-danger-500">
+                      {orgWebsiteError}
+                    </p>
+                  )}
+                </div>
               </FieldRow>
               {profile.organizationVerificationStatus && (
                 <FieldRow label={t("profile:fields.verificationStatus")}>
@@ -1198,21 +1463,81 @@ export function Profile() {
               title={t("profile:sections.consultant")}
               description={t("profile:sections.consultantDesc")}
             >
+              <FieldRow label={t("profile:fields.professionalTitle")}>
+                <input
+                  className="input-premium"
+                  value={form.professionalTitle}
+                  onChange={(e) => set("professionalTitle", e.target.value)}
+                  placeholder={t("profile:fields.professionalTitlePlaceholder")}
+                  maxLength={150}
+                />
+              </FieldRow>
+              <FieldRow label={t("profile:fields.yearsOfExperience")}>
+                <input
+                  type="number"
+                  min={0}
+                  max={70}
+                  step={1}
+                  className="input-premium"
+                  value={form.yearsOfExperience}
+                  onChange={(e) => set("yearsOfExperience", e.target.value)}
+                />
+              </FieldRow>
+              <FieldRow
+                label={t("profile:fields.expertiseTags")}
+                description={t("profile:fields.expertiseTagsDesc")}
+              >
+                <TagInput
+                  value={form.expertiseTags}
+                  onChange={(tags) => setTags("expertiseTags", tags)}
+                  placeholder={t("profile:fields.expertiseTagsPlaceholder")}
+                  max={20}
+                />
+              </FieldRow>
+              <FieldRow
+                label={t("profile:fields.languages")}
+                description={t("profile:fields.languagesDesc")}
+              >
+                <TagInput
+                  value={form.languages}
+                  onChange={(tags) => setTags("languages", tags)}
+                  placeholder={t("profile:fields.languagesPlaceholder")}
+                  max={20}
+                />
+              </FieldRow>
+              <FieldRow label={t("profile:fields.timezone")}>
+                <input
+                  className="input-premium"
+                  value={form.timezone}
+                  onChange={(e) => set("timezone", e.target.value)}
+                  placeholder={t("profile:fields.timezonePlaceholder")}
+                  maxLength={100}
+                />
+              </FieldRow>
               <FieldRow
                 label={t("profile:fields.sessionFeeUsd")}
                 description={t("profile:fields.sessionFeeUsdDesc")}
               >
-                <div className="relative">
-                  <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-sm text-text-tertiary">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="input-premium ps-7"
-                    value={form.sessionFeeUsd}
-                    onChange={(e) => set("sessionFeeUsd", e.target.value)}
-                  />
+                <div>
+                  <div className="relative">
+                    <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-sm text-text-tertiary">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      className="input-premium ps-7"
+                      value={form.sessionFeeUsd}
+                      onChange={(e) => set("sessionFeeUsd", e.target.value)}
+                      aria-invalid={feeError ? true : undefined}
+                    />
+                  </div>
+                  {feeError && (
+                    <p className="mt-1.5 text-xs font-medium text-danger-500">
+                      {feeError}
+                    </p>
+                  )}
                 </div>
               </FieldRow>
               <FieldRow label={t("profile:fields.sessionDurationMinutes")}>
@@ -1236,8 +1561,8 @@ export function Profile() {
             </SectionCard>
           )}
 
-          {/* Security — change password */}
-          <ChangePasswordSection />
+          {/* Security — change password (hidden for SSO-only accounts; CR-PROF-06) */}
+          <ChangePasswordSection hasPassword={profile.hasPasswordCredential} />
 
           {/* Danger zone link to data privacy */}
           <motion.section
