@@ -61,6 +61,14 @@
     "SuperAdmin": "Super Admin",
     "Unassigned": "Unassigned"
   },
+  "roleSwitch": {
+    "activeBadge": "Active: {{role}}",
+    "heading": "Switch role",
+    "option": "Switch to {{role}}",
+    "optionAria": "Switch to {{role}}",
+    "success": "Active role updated to {{role}}.",
+    "error": "Could not switch role."
+  },
   "chat": {
     "messages": "Direct Messages",
     "search_placeholder": "Search conversations...",

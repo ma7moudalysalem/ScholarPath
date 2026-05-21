@@ -61,6 +61,14 @@
     "SuperAdmin": "مشرف عام",
     "Unassigned": "غير مُعيّن"
   },
+  "roleSwitch": {
+    "activeBadge": "نشط: {{role}}",
+    "heading": "تبديل الدور",
+    "option": "التبديل إلى {{role}}",
+    "optionAria": "التبديل إلى {{role}}",
+    "success": "تم تحديث الدور النشط إلى {{role}}.",
+    "error": "تعذّر تبديل الدور."
+  },
   "chat": {
     "messages": "الرسائل المباشرة",
     "search_placeholder": "ابحث في المحادثات...",

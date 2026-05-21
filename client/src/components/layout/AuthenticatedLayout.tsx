@@ -45,9 +45,10 @@ import { userPhotoUrl } from "@/lib/userPhoto";
 const SWITCHABLE_ROLES = ["Student", "Consultant", "Company", "Admin"] as const;
 
 function ProfileMenu() {
-  const { t } = useTranslation(["common", "nav"]);
+  const { t, i18n } = useTranslation(["common", "nav"]);
   const { user, clear } = useAuthStore();
   const navigate = useNavigate();
+  const isRtl = i18n.language.startsWith("ar");
 
   const switchRoleMut = useMutation({
     mutationFn: (targetRole: string) => authApi.switchRole(targetRole),
@@ -78,7 +79,7 @@ function ProfileMenu() {
   };
 
   return (
-    <DropdownMenu.Root>
+    <DropdownMenu.Root dir={isRtl ? "rtl" : "ltr"}>
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
@@ -91,10 +92,20 @@ function ProfileMenu() {
         </button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
+        {/*
+          The trigger lives at the bottom of the right-hand sidebar — anchor
+          the menu ABOVE it (side="top") and align it to the trigger's start
+          edge so it opens flush against the avatar in both LTR and RTL.
+          `dir` on Root takes care of swapping start/end for Arabic.
+          `collisionPadding` keeps the floating panel away from the viewport
+          edge so it never clips the screen edge.
+        */}
         <DropdownMenu.Content
-          align="end"
-          sideOffset={6}
-          className="z-50 min-w-[260px] overflow-hidden rounded-md border border-border-subtle bg-bg-elevated p-1 text-sm text-text-primary shadow-lg"
+          side="top"
+          align="start"
+          sideOffset={8}
+          collisionPadding={16}
+          className="z-50 min-w-[260px] overflow-hidden rounded-md border border-border-subtle bg-bg-elevated p-1 text-sm text-text-primary shadow-lg text-start"
         >
           <div className="px-3 py-2.5">
             <p className="truncate font-medium">{user.fullName}</p>
@@ -121,7 +132,7 @@ function ProfileMenu() {
                     switchRoleMut.mutate(role);
                   }}
                   aria-label={t("common:roleSwitch.optionAria", "Switch to {{role}}", { role })}
-                  className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[highlighted]:bg-bg-subtle"
+                  className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm text-start outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[highlighted]:bg-bg-subtle"
                 >
                   <Repeat aria-hidden className="size-4 text-text-tertiary" />
                   {t("common:roleSwitch.option", "Switch to {{role}}", { role })}
@@ -136,17 +147,17 @@ function ProfileMenu() {
               e.preventDefault();
               navigate("/profile");
             }}
-            className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none data-[highlighted]:bg-bg-subtle"
+            className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm text-start outline-none data-[highlighted]:bg-bg-subtle"
           >
             <UserIcon aria-hidden className="size-4 text-text-tertiary" />
-            {t("common:nav.profileLink", "Profile")}
+            {t("nav:common.profile", "Profile")}
           </DropdownMenu.Item>
           <DropdownMenu.Item
             onSelect={(e) => {
               e.preventDefault();
               navigate("/notifications/preferences");
             }}
-            className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm outline-none data-[highlighted]:bg-bg-subtle"
+            className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm text-start outline-none data-[highlighted]:bg-bg-subtle"
           >
             <Settings aria-hidden className="size-4 text-text-tertiary" />
             {t("nav:common.settings", "Settings")}
@@ -157,7 +168,7 @@ function ProfileMenu() {
               e.preventDefault();
               onSignOut();
             }}
-            className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm text-danger-500 outline-none data-[highlighted]:bg-danger-500/10"
+            className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm text-start text-danger-500 outline-none data-[highlighted]:bg-danger-500/10"
           >
             <LogOut aria-hidden className="size-4" />
             {t("common:cta.signOut")}

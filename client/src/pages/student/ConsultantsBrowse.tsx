@@ -300,7 +300,7 @@ function ConsultantCard({
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export function ConsultantsBrowse() {
-  const { t } = useTranslation("consultants");
+  const { t, i18n } = useTranslation("consultants");
   const { data, isLoading, isError } = useConsultantsQuery();
 
   const [quickFilter, setQuickFilter] = useState<BrowseFilter>("all");
@@ -572,7 +572,9 @@ export function ConsultantsBrowse() {
               >
                 <option value="any">{t("specializationOptions.any")}</option>
                 {specializationOptions.map((tag) => (
-                  <option key={tag} value={tag}>{tag}</option>
+                  <option key={tag} value={tag}>
+                    {expertiseTagLabelByLang(tag, i18n.language)}
+                  </option>
                 ))}
               </select>
             </div>

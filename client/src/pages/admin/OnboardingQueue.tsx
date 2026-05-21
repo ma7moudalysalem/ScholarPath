@@ -9,6 +9,7 @@ import { adminApi, type OnboardingRequestRow, type PagedResult } from "@/service
 import { apiErrorMessage } from "@/services/api/client";
 import { documentsApi } from "@/services/api/documents";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { expertiseTagLabelByLang, languageNameByLang } from "@/lib/expertiseTagLabel";
 
 function parseJsonArray(raw: string | null): string[] {
   if (!raw) return [];
@@ -32,6 +33,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 
 /** Renders the submitted onboarding profile snapshot — Company or Consultant. */
 function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
+  const { i18n } = useTranslation();
   const isCompany = row.requestedRole === "Company";
   const isConsultant = row.requestedRole === "Consultant";
 
@@ -95,7 +97,9 @@ function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
               <Row label="Expertise tags" value={
                 <div className="flex flex-wrap gap-1.5">
                   {parseJsonArray(row.expertiseTagsJson).map((tag) => (
-                    <span key={tag} className="rounded-full bg-brand-500/10 px-2 py-0.5 text-xs text-brand-500">{tag}</span>
+                    <span key={tag} className="rounded-full bg-brand-500/10 px-2 py-0.5 text-xs text-brand-500">
+                      {expertiseTagLabelByLang(tag, i18n.language)}
+                    </span>
                   ))}
                 </div>
               } />
@@ -106,7 +110,9 @@ function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
               <Row label="Languages" value={
                 <div className="flex flex-wrap gap-1.5">
                   {parseJsonArray(row.languagesJson).map((lang) => (
-                    <span key={lang} className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs">{lang}</span>
+                    <span key={lang} className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs">
+                      {languageNameByLang(lang, i18n.language)}
+                    </span>
                   ))}
                 </div>
               } />

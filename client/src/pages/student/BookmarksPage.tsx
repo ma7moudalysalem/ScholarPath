@@ -25,6 +25,7 @@ import type { FundingType } from "@/types/domain";
 import { SkeletonCardGrid } from "@/components/common/Skeleton";
 import { apiErrorMessage } from "@/services/api/client";
 import { resourcesApi, type ResourceListItem } from "@/services/api/resources";
+import { expertiseTagLabelByLang } from "@/lib/expertiseTagLabel";
 
 type Tab = "scholarships" | "resources";
 
@@ -336,7 +337,7 @@ function ResourcesTab() {
                 <div className="mt-4 flex flex-wrap gap-1.5 border-t border-border-subtle pt-4">
                   {r.tags.slice(0, 3).map((tag) => (
                     <span key={tag} className="badge badge-neutral text-[10.5px]">
-                      {tag}
+                      {expertiseTagLabelByLang(tag, i18n.language)}
                     </span>
                   ))}
                 </div>
