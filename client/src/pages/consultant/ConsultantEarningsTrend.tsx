@@ -227,8 +227,13 @@ export function ConsultantEarningsTrend() {
     setTo(d.to);
   };
 
+  // Currency-style format so the locale (en-US / ar-EG) drives both digit
+  // script and the placement of the $ glyph (AR readers expect ٢٥٠ ر.س. style
+  // placement). Whole-dollar precision keeps the KPI cards dense.
   const fmtUsd = (n: number) =>
     n.toLocaleString(locale, {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
@@ -248,9 +253,7 @@ export function ConsultantEarningsTrend() {
     return next.toLocaleDateString(locale, { month: "short", year: "2-digit" });
   }, [data, locale]);
 
-  const projectionLabel = data
-    ? `$${fmtUsd(data.projectedNextMonth)}`
-    : "";
+  const projectionLabel = data ? fmtUsd(data.projectedNextMonth) : "";
 
   // Choose ranking message
   const rankingText = useMemo(() => {
@@ -352,13 +355,13 @@ export function ConsultantEarningsTrend() {
           <>
             <StatCard
               label={t("analytics:consultantEarnings.kpi.totalNet")}
-              value={`$${fmtUsd(data.totalNetUsd)}`}
+              value={fmtUsd(data.totalNetUsd)}
               icon={Wallet}
               accent="success"
             />
             <StatCard
               label={t("analytics:consultantEarnings.kpi.projected")}
-              value={`$${fmtUsd(data.projectedNextMonth)}`}
+              value={fmtUsd(data.projectedNextMonth)}
               icon={Sparkles}
               accent="brand"
             />
@@ -370,7 +373,7 @@ export function ConsultantEarningsTrend() {
             />
             <StatCard
               label={t("analytics:consultantEarnings.kpi.upcoming")}
-              value={`$${fmtUsd(data.upcomingBookingRevenue)}`}
+              value={fmtUsd(data.upcomingBookingRevenue)}
               icon={Calendar}
               accent="warning"
             />
@@ -390,7 +393,7 @@ export function ConsultantEarningsTrend() {
               <div>
                 <p className="text-base font-semibold text-text-primary">{rankingText}</p>
                 <p className="mt-0.5 text-xs text-text-secondary">
-                  {t("analytics:consultantEarnings.kpi.peerAvg")}: $
+                  {t("analytics:consultantEarnings.kpi.peerAvg")}:{" "}
                   {fmtUsd(data.peerAvgNetUsd)}
                 </p>
               </div>
@@ -451,7 +454,7 @@ export function ConsultantEarningsTrend() {
         >
           <div className="flex flex-wrap items-baseline gap-3">
             <span className="text-4xl font-bold tabular-nums tracking-tight text-text-primary">
-              ${fmtUsd(data.upcomingBookingRevenue)}
+              {fmtUsd(data.upcomingBookingRevenue)}
             </span>
             <span className="text-sm text-text-tertiary">
               {t("analytics:consultantEarnings.kpi.upcoming")}

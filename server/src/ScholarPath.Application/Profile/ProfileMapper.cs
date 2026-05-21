@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ScholarPath.Application.Profile.DTOs;
 using ScholarPath.Domain.Entities;
 
@@ -31,5 +32,27 @@ internal static class ProfileMapper
             profile?.OrganizationVerificationStatus,
             profile?.SessionFeeUsd,
             profile?.SessionDurationMinutes,
-            profile?.ProfileCompletenessPercent ?? ProfileCompletenessCalculator.Calculate(user, profile));
+            // Consultant professional fields (CR-PROF-08)
+            profile?.ProfessionalTitle,
+            profile?.YearsOfExperience,
+            ParseStringList(profile?.ExpertiseTagsJson),
+            ParseStringList(profile?.LanguagesJson),
+            profile?.Timezone,
+            profile?.ProfileCompletenessPercent ?? ProfileCompletenessCalculator.Calculate(user, profile),
+            // CR-PROF-06: empty password hash means the user signs in via SSO only.
+            !string.IsNullOrEmpty(user.PasswordHash));
+
+    private static IReadOnlyCollection<string>? ParseStringList(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try
+        {
+            var values = JsonSerializer.Deserialize<List<string>>(json);
+            return values is { Count: > 0 } ? values : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
 }

@@ -65,17 +65,31 @@ export function ConsultantDashboard() {
   const upcomingSessions = bookings.filter(
     (b) => b.status === "Confirmed" && new Date(b.scheduledStartAt) > now,
   ).length;
+  // "Sessions this month" = bookings whose scheduled start fell within this
+  // calendar month and which actually resolved into a session (completed or
+  // no-show). A Confirmed booking whose start is in the past is a data-
+  // inconsistency state we don't want to credit as a session.
   const sessionsThisMonth = bookings.filter((b) => {
     const start = new Date(b.scheduledStartAt);
     return (
-      (b.status === "Confirmed" || b.status === "Completed") &&
+      (b.status === "Completed" ||
+        b.status === "NoShowStudent" ||
+        b.status === "NoShowConsultant") &&
       start >= startOfMonth &&
       start <= now
     );
   }).length;
   const completed = bookings.filter((b) => b.status === "Completed").length;
+  // Completion rate = sessions that happened / sessions that should have
+  // happened. Rejected = consultant declined upfront (never scheduled), so it
+  // is excluded; the no-show statuses still count because they consumed a slot.
   const totalRelevant = bookings.filter((b) =>
-    ["Completed", "Cancelled", "Rejected"].includes(b.status),
+    [
+      "Completed",
+      "Cancelled",
+      "NoShowStudent",
+      "NoShowConsultant",
+    ].includes(b.status),
   ).length;
   const completionRate = totalRelevant > 0 ? Math.round((completed / totalRelevant) * 100) : 0;
 
@@ -125,6 +139,8 @@ export function ConsultantDashboard() {
         }
       />
 
+      {/* KPI tiles — no fabricated delta/trend props (those were hard-coded
+          mock numbers that misled the consultant about real growth). */}
       <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           label={t("dashboard:consultant.stats.pending")}
@@ -132,8 +148,6 @@ export function ConsultantDashboard() {
           to="/consultant/bookings"
           icon={Clock}
           accent={pendingRequests > 0 ? "warning" : "neutral"}
-          delta={{ value: pendingRequests, label: t("dashboard:consultant.stats.pendingDelta") }}
-          trend={[2, 3, 2, 4, 3, 5, 4, 3, 4, 5]}
           delay={0.02}
         />
         <StatCard
@@ -142,8 +156,6 @@ export function ConsultantDashboard() {
           to="/consultant/bookings"
           icon={CalendarCheck}
           accent="brand"
-          delta={{ value: 18, label: t("dashboard:consultant.stats.upcomingDelta") }}
-          trend={[1, 2, 1, 3, 2, 3, 4, 3, 5, 4]}
           delay={0.06}
         />
         <StatCard
@@ -152,8 +164,6 @@ export function ConsultantDashboard() {
           to="/consultant/earnings"
           icon={Wallet}
           accent="success"
-          delta={{ value: 24, label: t("dashboard:consultant.stats.thisMonthDelta") }}
-          trend={[4, 5, 6, 5, 7, 6, 8, 9, 8, 10]}
           delay={0.1}
         />
         <StatCard
@@ -162,11 +172,6 @@ export function ConsultantDashboard() {
           to="/consultant/analytics"
           icon={User}
           accent={completionRate >= 80 ? "success" : completionRate >= 60 ? "warning" : "danger"}
-          delta={{
-            value: completionRate >= 80 ? 4 : -2,
-            label: t("dashboard:consultant.stats.completionDelta"),
-          }}
-          trend={[60, 65, 70, 68, 75, 78, 80, 82, 85, 88]}
           delay={0.14}
         />
       </section>

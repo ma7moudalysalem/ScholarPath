@@ -138,8 +138,13 @@ export function ConsultantAnalytics() {
     ];
   }, [data, t]);
 
+  // Currency-style format so the locale (en-US / ar-EG) drives the digit
+  // script + currency-glyph placement; the `$` prefix on the StatCard is
+  // removed because Intl already includes the symbol.
   const formattedRevenue = data
     ? data.completedRevenueUsd.toLocaleString(i18n.language === "ar" ? "ar-EG" : "en-US", {
+        style: "currency",
+        currency: "USD",
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })
@@ -206,7 +211,6 @@ export function ConsultantAnalytics() {
               value={data.totalBookings}
               icon={CalendarCheck}
               accent="brand"
-              trend={[2, 3, 4, 5, 4, 6, 7, 8, 9, 10]}
               delay={0.02}
             />
             <StatCard
@@ -222,28 +226,24 @@ export function ConsultantAnalytics() {
                     }
                   : null
               }
-              trend={[1, 2, 3, 3, 5, 5, 6, 7, 8, 9]}
               delay={0.06}
             />
             <StatCard
               label={t("analytics:consultantKpis.revenue")}
-              value={`$${formattedRevenue}`}
+              value={formattedRevenue}
               icon={Wallet}
               accent="warning"
-              trend={[50, 70, 100, 110, 130, 160, 180, 210, 240, 260]}
               delay={0.1}
             />
+            {/* AvgRating: don't pass reviewCount through `delta.value` — StatCard
+                renders that field with a trailing %, which would mis-label "5"
+                reviews as "5%". The count is shown inline in the rating summary
+                card below the grid. */}
             <StatCard
               label={t("analytics:consultantKpis.avgRating")}
               value={data.averageRating != null ? data.averageRating.toFixed(1) : "—"}
               icon={Star}
               accent="brand"
-              delta={
-                data.reviewCount > 0
-                  ? { value: data.reviewCount, label: t("analytics:consultantKpis.reviews") }
-                  : null
-              }
-              trend={[3.5, 3.6, 3.8, 3.9, 4.0, 4.1, 4.2, 4.3, 4.4, 4.5]}
               delay={0.14}
             />
           </>

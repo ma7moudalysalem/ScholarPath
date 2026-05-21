@@ -26,9 +26,20 @@ public sealed record UserProfileDto(
     string? OrganizationVerificationStatus,
     decimal? SessionFeeUsd,
     int? SessionDurationMinutes,
-    int CompletenessPercent);
+    // Consultant professional profile (CR-PROF-08)
+    string? ProfessionalTitle,
+    int? YearsOfExperience,
+    IReadOnlyCollection<string>? ExpertiseTags,
+    IReadOnlyCollection<string>? Languages,
+    string? Timezone,
+    int CompletenessPercent,
+    // CR-PROF-06: lets the UI hide the change-password card for SSO-only users.
+    bool HasPasswordCredential);
 
-/// <summary>Partial-update payload — every field is optional (PATCH semantics).</summary>
+/// <summary>Partial-update payload — every field is optional (PATCH semantics).
+/// Role, ActiveRole, AccountStatus, VerificationStatus and approval fields are
+/// deliberately absent here so that a profile update can never escalate or
+/// change a user's standing (CR-PROF-11 — defence against mass-assignment).</summary>
 public sealed record UpdateProfileRequestDto(
     string? FirstName,
     string? LastName,
@@ -47,4 +58,10 @@ public sealed record UpdateProfileRequestDto(
     string? OrganizationLegalName,
     string? OrganizationWebsite,
     decimal? SessionFeeUsd,
-    int? SessionDurationMinutes);
+    int? SessionDurationMinutes,
+    // Consultant professional fields (CR-PROF-08)
+    string? ProfessionalTitle,
+    int? YearsOfExperience,
+    IReadOnlyCollection<string>? ExpertiseTags,
+    IReadOnlyCollection<string>? Languages,
+    string? Timezone);

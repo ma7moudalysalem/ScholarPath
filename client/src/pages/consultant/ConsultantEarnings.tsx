@@ -61,7 +61,10 @@ function feePercent(p: PaymentDto): string {
 
 export function ConsultantEarnings() {
   const { t, i18n } = useTranslation(["payments", "common"]);
-  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
+  const isAr = i18n.language.startsWith("ar");
+  const dateLocale = isAr ? ar : undefined;
+  // Explicit BCP-47 tag so currency formatting renders Arabic-Indic digits in AR.
+  const numberLocale = isAr ? "ar-EG" : "en-US";
   const dash = (iso: string | null) =>
     iso ? format(new Date(iso), "yyyy-MM-dd", { locale: dateLocale }) : "—";
 
@@ -83,15 +86,25 @@ export function ConsultantEarnings() {
   );
   const payouts = useMemo(() => payoutsQuery.data ?? [], [payoutsQuery.data]);
 
-  // Roll up the gross / fee / net across every CAPTURED payment so the
-  // consultant can see the platform's share at a glance.
+  // Roll up the gross / fee / net across every payment whose money actually
+  // settled. Captured covers the simple flow; PartiallyRefunded means the
+  // consultant still kept the un-refunded share (the server recomputes
+  // PayeeAmountCents at refund time per FR-090, so payeeAmount is the kept
+  // net even after a partial refund).
   const totals = useMemo(() => {
-    const captured = payments.filter((p) => p.status === "Captured");
-    const gross = captured.reduce((sum, p) => sum + p.amountCents, 0);
-    const fees = captured.reduce((sum, p) => sum + p.profitShareAmountCents, 0);
-    const net = captured.reduce((sum, p) => sum + p.payeeAmountCents, 0);
+    const settled = payments.filter(
+      (p) => p.status === "Captured" || p.status === "PartiallyRefunded",
+    );
+    const gross = settled.reduce((sum, p) => sum + p.amountCents, 0);
+    const fees = settled.reduce((sum, p) => sum + p.profitShareAmountCents, 0);
+    const net = settled.reduce((sum, p) => sum + p.payeeAmountCents, 0);
     return { gross, fees, net };
   }, [payments]);
+
+  // Settled amounts share a single currency (USD on this platform); pick the
+  // first available currency so future multi-currency support degrades safely
+  // instead of mis-formatting EGP as USD.
+  const displayCurrency = payments[0]?.currency ?? "USD";
 
   const totalPaidOut = payouts
     .filter((p) => p.status === "Paid")
@@ -202,11 +215,11 @@ export function ConsultantEarnings() {
               <div className="mt-2 h-7 w-24 animate-pulse rounded bg-bg-subtle" />
             ) : (
               <p
-                className={`mt-1 text-2xl font-semibold ${
+                className={`mt-1 text-2xl font-semibold tabular-nums ${
                   s.emphasised ? "text-brand-600" : "text-text-primary"
                 }`}
               >
-                {formatMoneyCents(s.value, "USD")}
+                {formatMoneyCents(s.value, displayCurrency, numberLocale)}
               </p>
             )}
             <p className="mt-1 text-xs text-text-tertiary">{s.hint}</p>
@@ -249,15 +262,15 @@ export function ConsultantEarnings() {
               )}
               {payments.map((p) => (
                 <tr key={p.id} className="border-t border-border-subtle hover:bg-bg-subtle/40">
-                  <td className="px-4 py-3 font-medium">
-                    {formatMoneyCents(p.amountCents, p.currency)}
+                  <td className="px-4 py-3 font-medium tabular-nums">
+                    {formatMoneyCents(p.amountCents, p.currency, numberLocale)}
                   </td>
-                  <td className="px-4 py-3 text-text-secondary">
-                    <span>−{formatMoneyCents(p.profitShareAmountCents, p.currency)}</span>
+                  <td className="px-4 py-3 text-text-secondary tabular-nums">
+                    <span>−{formatMoneyCents(p.profitShareAmountCents, p.currency, numberLocale)}</span>
                     <span className="ms-1 text-xs text-text-tertiary">({feePercent(p)})</span>
                   </td>
-                  <td className="px-4 py-3 font-semibold text-brand-600">
-                    {formatMoneyCents(p.payeeAmountCents, p.currency)}
+                  <td className="px-4 py-3 font-semibold text-brand-600 tabular-nums">
+                    {formatMoneyCents(p.payeeAmountCents, p.currency, numberLocale)}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -309,8 +322,8 @@ export function ConsultantEarnings() {
               )}
               {payouts.map((p) => (
                 <tr key={p.id} className="border-t border-border-subtle hover:bg-bg-subtle/40">
-                  <td className="px-4 py-3 font-medium">
-                    {formatMoneyCents(p.amountCents, p.currency)}
+                  <td className="px-4 py-3 font-medium tabular-nums">
+                    {formatMoneyCents(p.amountCents, p.currency, numberLocale)}
                   </td>
                   <td className="px-4 py-3">
                     <span
