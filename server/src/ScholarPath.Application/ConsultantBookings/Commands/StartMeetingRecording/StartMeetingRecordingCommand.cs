@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Exceptions;
@@ -17,7 +18,8 @@ public sealed record StartMeetingRecordingCommand(Guid BookingId, string ServerC
 public sealed class StartMeetingRecordingCommandHandler(
     IApplicationDbContext context,
     ICurrentUserService currentUser,
-    IMeetingService meetingService)
+    IMeetingService meetingService,
+    ILogger<StartMeetingRecordingCommandHandler> logger)
     : IRequestHandler<StartMeetingRecordingCommand>
 {
     public async Task Handle(StartMeetingRecordingCommand request, CancellationToken ct)
@@ -56,9 +58,30 @@ public sealed class StartMeetingRecordingCommandHandler(
             throw new BookingDomainException("A server call id is required to start recording.");
         }
 
-        var recordingId = await meetingService
-            .StartRecordingAsync(request.ServerCallId, ct)
-            .ConfigureAwait(false);
+        string recordingId;
+        try
+        {
+            recordingId = await meetingService
+                .StartRecordingAsync(request.ServerCallId, ct)
+                .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // The provider rejected the recording start — most commonly because
+            // ACS Call Recording is not enabled on the resource, or because the
+            // server call id has not yet been registered server-side. Recording
+            // is best-effort: never let it 500 the meeting or interrupt the
+            // call. Log and exit; the client treats this as a soft no-op.
+            logger.LogWarning(
+                ex,
+                "Recording could not be started for booking {BookingId}; session continues without a recording.",
+                booking.Id);
+            return;
+        }
 
         booking.RecordingStartedAt = DateTimeOffset.UtcNow;
         booking.RecordingId = recordingId;

@@ -69,7 +69,8 @@ public sealed class SessionRecordingTests
         await db.SaveChangesAsync();
 
         var sut = new StartMeetingRecordingCommandHandler(
-            db, User(booking.ConsultantId), new StubMeetingService());
+            db, User(booking.ConsultantId), new StubMeetingService(),
+            NullLogger<StartMeetingRecordingCommandHandler>.Instance);
 
         await sut.Handle(new StartMeetingRecordingCommand(booking.Id, "server-call-1"), default);
         var afterFirst = await db.Bookings.SingleAsync();
@@ -90,10 +91,37 @@ public sealed class SessionRecordingTests
         await db.SaveChangesAsync();
 
         var sut = new StartMeetingRecordingCommandHandler(
-            db, User(Guid.NewGuid()), new StubMeetingService());
+            db, User(Guid.NewGuid()), new StubMeetingService(),
+            NullLogger<StartMeetingRecordingCommandHandler>.Instance);
         var act = () => sut.Handle(new StartMeetingRecordingCommand(booking.Id, "x"), default);
 
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
+    }
+
+    [Fact]
+    public async Task Start_soft_fails_when_the_provider_rejects_so_the_meeting_keeps_going()
+    {
+        // ACS Call Recording may be unavailable (resource misconfigured, region
+        // restriction, transient outage). Recording is best-effort: a failure
+        // must NOT propagate to the client as an error and break the live call.
+        using var db = CreateDb();
+        var booking = Booking(Guid.NewGuid(), Guid.NewGuid());
+        db.Bookings.Add(booking);
+        await db.SaveChangesAsync();
+
+        var meeting = Substitute.For<IMeetingService>();
+        meeting.StartRecordingAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns<Task<string>>(_ => throw new InvalidOperationException("ACS recording not enabled."));
+
+        var sut = new StartMeetingRecordingCommandHandler(
+            db, User(booking.ConsultantId), meeting,
+            NullLogger<StartMeetingRecordingCommandHandler>.Instance);
+
+        await sut.Handle(new StartMeetingRecordingCommand(booking.Id, "server-call-1"), default);
+
+        var saved = await db.Bookings.SingleAsync();
+        saved.RecordingStartedAt.Should().BeNull();
+        saved.RecordingId.Should().BeNull();
     }
 
     // ─── Store recording (recording-ready webhook path) ─────────────────────
