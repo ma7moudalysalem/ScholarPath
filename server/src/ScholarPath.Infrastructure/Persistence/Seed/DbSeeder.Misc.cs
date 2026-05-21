@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Domain.Entities;
@@ -313,14 +315,17 @@ public static partial class DbSeeder
     /// <see cref="AiFeature"/> (Recommendation / Eligibility / Chatbot), plus
     /// <see cref="AiRedactionAuditSample"/> rows — one reviewed (with a verdict)
     /// and one still pending — and a couple of <see cref="EducationEntry"/> rows
-    /// on the student profiles. Idempotent on <see cref="AiInteraction"/> /
-    /// <see cref="EducationEntry"/> being empty respectively.
+    /// on the student profiles. Also seeds curated <see cref="KnowledgeDocument"/>
+    /// FAQ entries so the RAG chatbot has grounding content out of the box.
+    /// Idempotent on <see cref="AiInteraction"/> / <see cref="EducationEntry"/> /
+    /// <see cref="KnowledgeDocument"/> being empty respectively.
     /// </summary>
     private static async Task SeedAiAsync(
         ApplicationDbContext db, DemoUsers users, IReadOnlyList<Scholarship> scholarships,
         ILogger logger, CancellationToken ct)
     {
         await SeedEducationEntriesAsync(db, users, logger, ct).ConfigureAwait(false);
+        await SeedKnowledgeDocumentsAsync(db, logger, ct).ConfigureAwait(false);
 
         if (await db.AiInteractions.AnyAsync(ct).ConfigureAwait(false))
         {
@@ -467,4 +472,192 @@ public static partial class DbSeeder
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         logger.LogInformation("Seeded {N} education entries", entries.Count);
     }
+
+    /// <summary>
+    /// Seeds curated FAQ-style <see cref="KnowledgeDocument"/>s that ground
+    /// the RAG chatbot on the platform's most common questions — terminology,
+    /// the application process, recommendation letters, language tests,
+    /// visas, and country-specific guidance. Idempotent per
+    /// (<see cref="KnowledgeSourceType"/>, <c>SourceKey</c>): rows already
+    /// present are left untouched so the documents are safe to extend on
+    /// later seed runs.
+    ///
+    /// Embeddings are NOT computed here. The rows are inserted with empty
+    /// <c>Embedding</c> and the next call to the knowledge-base indexer
+    /// (manual rebuild or scheduled job) will fill them in. This keeps the
+    /// seeder fast and free of any dependency on the embedding provider.
+    /// </summary>
+    private static async Task SeedKnowledgeDocumentsAsync(
+        ApplicationDbContext db, ILogger logger, CancellationToken ct)
+    {
+        var now = DateTimeOffset.UtcNow;
+
+        // Each entry is a (SourceKey, TitleEn, TitleAr, ContentEn, ContentAr)
+        // tuple. SourceKey is the stable upsert key — the indexer reuses it
+        // when re-running.
+        var faqs = new (string Key, string TitleEn, string TitleAr, string TagsCsv, string ContentEn, string ContentAr)[]
+        {
+            (
+                "platform-faq",
+                "ScholarPath Platform FAQ",
+                "الأسئلة الشائعة عن منصة سكولرباث",
+                "platform,faq,onboarding",
+                KnowledgeBodies.PlatformFaqEn,
+                KnowledgeBodies.PlatformFaqAr
+            ),
+            (
+                "scholarship-terminology",
+                "Scholarship Terminology — Fully Funded vs Partial",
+                "مصطلحات المنح — التمويل الكامل والجزئي",
+                "terminology,funding",
+                KnowledgeBodies.TerminologyEn,
+                KnowledgeBodies.TerminologyAr
+            ),
+            (
+                "sop-writing-guide",
+                "Writing a Strong Statement of Purpose",
+                "كتابة خطاب غرض قوي",
+                "essays,sop,writing",
+                KnowledgeBodies.SopWritingEn,
+                KnowledgeBodies.SopWritingAr
+            ),
+            (
+                "recommendation-letters",
+                "Recommendation Letter Best Practices",
+                "أفضل ممارسات خطابات التوصية",
+                "recommendations,applications",
+                KnowledgeBodies.RecommendationFaqEn,
+                KnowledgeBodies.RecommendationFaqAr
+            ),
+            (
+                "visa-uk",
+                "UK Student Visa — Requirements Summary",
+                "تأشيرة الطالب البريطانية — ملخص المتطلبات",
+                "visa,uk",
+                KnowledgeBodies.VisaUkEn,
+                KnowledgeBodies.VisaUkAr
+            ),
+            (
+                "visa-us",
+                "US Student Visa — F-1 Requirements Summary",
+                "تأشيرة الطالب الأمريكية — ملخص متطلبات F-1",
+                "visa,us",
+                KnowledgeBodies.VisaUsEn,
+                KnowledgeBodies.VisaUsAr
+            ),
+            (
+                "visa-schengen",
+                "Schengen Student Visa — Requirements Summary",
+                "تأشيرة الطالب في منطقة شنغن — ملخص المتطلبات",
+                "visa,schengen,europe",
+                KnowledgeBodies.VisaSchengenEn,
+                KnowledgeBodies.VisaSchengenAr
+            ),
+            (
+                "ielts-prep",
+                "IELTS Preparation — What Score You Need and How To Get It",
+                "التحضير للآيلتس — الدرجة المطلوبة وكيفية الحصول عليها",
+                "language,ielts",
+                KnowledgeBodies.IeltsPrepEn,
+                KnowledgeBodies.IeltsPrepAr
+            ),
+            (
+                "toefl-prep",
+                "TOEFL Preparation — Format, Scores and a Study Plan",
+                "التحضير للتوفل — الصيغة والدرجات وخطة الدراسة",
+                "language,toefl",
+                KnowledgeBodies.ToeflPrepEn,
+                KnowledgeBodies.ToeflPrepAr
+            ),
+            (
+                "country-guide-germany",
+                "Country Guide — Studying in Germany",
+                "دليل الدولة — الدراسة في ألمانيا",
+                "country,germany,europe",
+                KnowledgeBodies.CountryGermanyEn,
+                KnowledgeBodies.CountryGermanyAr
+            ),
+            (
+                "country-guide-canada",
+                "Country Guide — Studying in Canada",
+                "دليل الدولة — الدراسة في كندا",
+                "country,canada,north-america",
+                KnowledgeBodies.CountryCanadaEn,
+                KnowledgeBodies.CountryCanadaAr
+            ),
+            (
+                "country-guide-uk",
+                "Country Guide — Studying in the United Kingdom",
+                "دليل الدولة — الدراسة في المملكة المتحدة",
+                "country,uk,europe",
+                KnowledgeBodies.CountryUkEn,
+                KnowledgeBodies.CountryUkAr
+            ),
+            (
+                "country-guide-usa",
+                "Country Guide — Studying in the United States",
+                "دليل الدولة — الدراسة في الولايات المتحدة",
+                "country,usa,north-america",
+                KnowledgeBodies.CountryUsaEn,
+                KnowledgeBodies.CountryUsaAr
+            ),
+        };
+
+        // Idempotent per (SourceType, SourceKey): only add missing rows.
+        var existingKeys = await db.KnowledgeDocuments
+            .Where(d => d.SourceType == KnowledgeSourceType.Faq)
+            .Select(d => d.SourceKey)
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        var existingSet = new HashSet<string>(existingKeys, StringComparer.Ordinal);
+        var toAdd = new List<KnowledgeDocument>();
+
+        foreach (var f in faqs)
+        {
+            if (existingSet.Contains(f.Key)) continue;
+
+            // The indexer's content shape: a "Question/Answer" prefix per
+            // language. We keep the same shape so an indexer rebuild can
+            // pick these up and re-key cleanly.
+            var contentEn = $"Question: {f.TitleEn}\nAnswer: {f.ContentEn}";
+            var contentAr = $"سؤال: {f.TitleAr}\nالإجابة: {f.ContentAr}";
+            var hash = ComputeContentHash(contentEn + "\n\n" + contentAr);
+
+            toAdd.Add(new KnowledgeDocument
+            {
+                SourceType = KnowledgeSourceType.Faq,
+                SourceKey = f.Key,
+                SourceId = null,
+                TitleEn = f.TitleEn,
+                TitleAr = f.TitleAr,
+                ContentEn = contentEn,
+                ContentAr = contentAr,
+                ContentHash = hash,
+                MetadataJson = $$"""{"tags":["{{string.Join("\",\"", f.TagsCsv.Split(','))}}"]}""",
+                Embedding = [],
+                EmbeddingDimensions = 0,
+                EmbeddingModel = null,
+                CreatedAt = now,
+            });
+        }
+
+        if (toAdd.Count == 0)
+        {
+            return;
+        }
+
+        db.KnowledgeDocuments.AddRange(toAdd);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        logger.LogInformation(
+            "Seeded {N} curated FAQ knowledge documents (pending embedding)",
+            toAdd.Count);
+    }
+
+    /// <summary>
+    /// SHA-256 of the text the embedder consumes — matches the hash the
+    /// knowledge-base indexer computes so a later rebuild correctly detects
+    /// unchanged content and skips re-embedding it.
+    /// </summary>
+    private static string ComputeContentHash(string text)
+        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
 }
