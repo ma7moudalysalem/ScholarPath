@@ -6,6 +6,22 @@ import { GraduationCap, Menu, X, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { useAuthStore } from "@/stores/authStore";
+
+/** Email address used for placeholder footer links until proper static pages ship. */
+const SUPPORT_EMAIL = "support@scholarpath.local";
+
+/**
+ * Builds a footer link that respects the visitor's auth state:
+ *   - Logged-in users go straight to the authenticated destination.
+ *   - Anonymous users go through `/login?redirect=...` so they land on the same
+ *     page after signing in.
+ */
+function authedFooterHref(authedPath: string, isAuthed: boolean): string {
+  return isAuthed
+    ? authedPath
+    : `/login?redirect=${encodeURIComponent(authedPath)}`;
+}
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   const { t } = useTranslation(["common", "home"]);
@@ -132,33 +148,53 @@ export function PublicLayout({ children }: { children: ReactNode }) {
 
 function SiteFooter() {
   const { t } = useTranslation(["home", "common"]);
+  const isAuthed = useAuthStore((s) => s.user !== null);
+
+  // Product links lead to authenticated areas — anonymous users go through
+  // /login?redirect=… so Login.tsx restores their intent post-auth.
+  // Placeholder routes (Help / Privacy / Terms / Blog / Careers / Contact /
+  // About / Pricing / Guides) don't have dedicated pages yet, so we route
+  // them to either the support mailto or to the in-page #pillars feature
+  // section instead of a dead URL.
+  const supportMailto = `mailto:${SUPPORT_EMAIL}`;
 
   const columns = [
     {
       heading: t("home:footer.product.heading"),
       links: [
-        { label: t("home:footer.product.scholarships"), href: "/scholarships" },
-        { label: t("home:footer.product.consultants"), href: "/consultants" },
-        { label: t("home:footer.product.community"), href: "/community" },
-        { label: t("home:footer.product.pricing"), href: "/pricing" },
+        {
+          label: t("home:footer.product.scholarships"),
+          href: authedFooterHref("/student/scholarships", isAuthed),
+        },
+        {
+          label: t("home:footer.product.consultants"),
+          href: authedFooterHref("/student/consultants", isAuthed),
+        },
+        {
+          label: t("home:footer.product.community"),
+          href: authedFooterHref("/student/community", isAuthed),
+        },
+        // Pricing has no public page yet — anchor to the feature pillars
+        // section on the home page so the link is at least informational.
+        { label: t("home:footer.product.pricing"), href: "/#pillars" },
       ],
     },
     {
       heading: t("home:footer.company.heading"),
       links: [
-        { label: t("home:footer.company.about"), href: "/about" },
-        { label: t("home:footer.company.blog"), href: "/blog" },
-        { label: t("home:footer.company.careers"), href: "/careers" },
-        { label: t("home:footer.company.contact"), href: "/contact" },
+        { label: t("home:footer.company.about"), href: "/#pillars" },
+        { label: t("home:footer.company.blog"), href: "/#pillars" },
+        { label: t("home:footer.company.careers"), href: supportMailto },
+        { label: t("home:footer.company.contact"), href: supportMailto },
       ],
     },
     {
       heading: t("home:footer.resources.heading"),
       links: [
-        { label: t("home:footer.resources.help"), href: "/help" },
-        { label: t("home:footer.resources.guides"), href: "/guides" },
-        { label: t("home:footer.resources.privacy"), href: "/privacy" },
-        { label: t("home:footer.resources.terms"), href: "/terms" },
+        { label: t("home:footer.resources.help"), href: supportMailto },
+        { label: t("home:footer.resources.guides"), href: "/#pillars" },
+        { label: t("home:footer.resources.privacy"), href: supportMailto },
+        { label: t("home:footer.resources.terms"), href: supportMailto },
       ],
     },
   ];
@@ -167,7 +203,7 @@ function SiteFooter() {
     { label: t("home:footer.connect.twitter"), href: "#", icon: TwitterIcon },
     { label: t("home:footer.connect.linkedin"), href: "#", icon: LinkedinIcon },
     { label: t("home:footer.connect.github"), href: "#", icon: GithubIcon },
-    { label: t("home:footer.connect.email"), href: "mailto:hello@scholarpath.app", icon: Mail },
+    { label: t("home:footer.connect.email"), href: supportMailto, icon: Mail },
   ];
 
   return (
@@ -194,12 +230,7 @@ function SiteFooter() {
               <ul className="mt-4 space-y-2.5">
                 {col.links.map((link) => (
                   <li key={link.label}>
-                    <Link
-                      to={link.href}
-                      className="text-sm text-text-secondary transition hover:text-brand-600 dark:hover:text-brand-400"
-                    >
-                      {link.label}
-                    </Link>
+                    <FooterLink href={link.href}>{link.label}</FooterLink>
                   </li>
                 ))}
               </ul>
@@ -233,22 +264,49 @@ function SiteFooter() {
             © {new Date().getFullYear()} {t("common:appName")}. {t("home:footer.rights")}
           </p>
           <div className="flex items-center gap-4">
-            <Link
-              to="/privacy"
+            <a
+              href={supportMailto}
               className="transition hover:text-text-secondary"
             >
               {t("home:footer.resources.privacy")}
-            </Link>
-            <Link
-              to="/terms"
+            </a>
+            <a
+              href={supportMailto}
               className="transition hover:text-text-secondary"
             >
               {t("home:footer.resources.terms")}
-            </Link>
+            </a>
           </div>
         </div>
       </div>
     </footer>
+  );
+}
+
+/**
+ * A footer link that picks `<a>` vs react-router `<Link>` based on the href:
+ *   - `mailto:`/`tel:`/`http(s)://` → native `<a>` (Link only handles internal paths)
+ *   - `/foo#bar` or `#bar` → native `<a>` so the browser scrolls to the anchor
+ *   - `/foo` → react-router `<Link>` for client-side navigation
+ */
+function FooterLink({ href, children }: { href: string; children: ReactNode }) {
+  const isExternalProtocol = /^(mailto:|tel:|https?:\/\/)/.test(href);
+  const isAnchor = href.startsWith("#") || href.includes("#");
+
+  const className =
+    "text-sm text-text-secondary transition hover:text-brand-600 dark:hover:text-brand-400";
+
+  if (isExternalProtocol || isAnchor) {
+    return (
+      <a href={href} className={className}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link to={href} className={className}>
+      {children}
+    </Link>
   );
 }
 

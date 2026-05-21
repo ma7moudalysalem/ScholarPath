@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useForm } from "react-hook-form";
@@ -28,9 +28,27 @@ function makeLoginSchema(t: TFunction) {
 
 type LoginInput = z.infer<ReturnType<typeof makeLoginSchema>>;
 
+/**
+ * Whitelists ?redirect=… values to in-app paths only, defeating open-redirect
+ * abuse via crafted login URLs.
+ * Accepts: "/", "/student/scholarships", "/student/scholarships?tab=open"
+ * Rejects: "https://evil.com", "//evil.com", "javascript:…", ".."
+ */
+function safeRedirect(raw: string | null): string | null {
+  if (!raw) return null;
+  // Must start with a single forward slash and not be protocol-relative.
+  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+  // Block any embedded scheme just in case (e.g. "/foo?next=javascript:…" — fine,
+  // but a bare "javascript:" prefix isn't possible after the above guards).
+  if (/^\/[\s]/.test(raw)) return null;
+  return raw;
+}
+
 export function Login() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectParam = safeRedirect(searchParams.get("redirect"));
   const loginSchema = useMemo(() => makeLoginSchema(t), [t]);
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -40,7 +58,13 @@ export function Login() {
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const user = applyAuthSession(await authApi.login(values));
-      navigate(postAuthPath(user), { replace: true });
+      // If the caller carried a ?redirect=… and the user has finished
+      // onboarding, honour it. Otherwise fall back to the role-specific home.
+      const destination =
+        redirectParam && user.isOnboardingComplete
+          ? redirectParam
+          : postAuthPath(user);
+      navigate(destination, { replace: true });
     } catch (err) {
       const status = err instanceof ApiError ? err.status : 0;
       toast.error(
