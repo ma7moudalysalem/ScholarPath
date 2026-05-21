@@ -135,8 +135,8 @@ public sealed class GetAdminRevenueQueryHandler(IApplicationDbContext db)
                 && p.CapturedAt <= toOffset)
             .GroupBy(p => new
             {
-                p.CapturedAt!.Value.UtcDateTime.Year,
-                p.CapturedAt!.Value.UtcDateTime.Month,
+                Year = p.CapturedAt!.Value.Year,
+                Month = p.CapturedAt!.Value.Month,
             })
             .Select(g => new
             {
@@ -155,8 +155,8 @@ public sealed class GetAdminRevenueQueryHandler(IApplicationDbContext db)
                 && p.CapturedAt <= toOffset)
             .GroupBy(p => new
             {
-                p.CapturedAt!.Value.UtcDateTime.Year,
-                p.CapturedAt!.Value.UtcDateTime.Month,
+                Year = p.CapturedAt!.Value.Year,
+                Month = p.CapturedAt!.Value.Month,
             })
             .Select(g => new
             {

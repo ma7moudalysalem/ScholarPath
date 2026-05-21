@@ -229,8 +229,8 @@ public sealed class GetCompanyInsightsQueryHandler(
                 && r.ClickedAt <= toOffset)
             .GroupBy(r => new
             {
-                r.ClickedAt.UtcDateTime.Year,
-                r.ClickedAt.UtcDateTime.Month,
+                Year = r.ClickedAt.Year,
+                Month = r.ClickedAt.Month,
             })
             .Select(g => new
             {
