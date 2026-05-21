@@ -47,6 +47,24 @@ export default defineConfig(({ command, mode }) => {
       // Minification is left at Vite's default minifier so no extra
       // dependency is required; `vite build` minifies for production.
       minify: true,
+      // The Azure Communication Calling SDK is ~5 MB on its own. The Meeting
+      // route is already lazy-loaded by the router, so users never download
+      // this chunk unless they actually open a booking video session — but
+      // Vite's default 500 kB warning still fires because the SDK is large
+      // for a single chunk. Bump the limit to silence the misleading hint;
+      // the chunk itself is already isolated by the lazy import.
+      chunkSizeWarningLimit: 6000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            // Hoist the Azure Communication SDK into a stable, named chunk
+            // so subsequent rebuilds don't invalidate the same cached asset
+            // whenever Meeting.tsx changes a label or button.
+            if (id.includes("@azure/communication-")) return "azure-communication";
+            return undefined;
+          },
+        },
+      },
     },
     test: {
       environment: "happy-dom",

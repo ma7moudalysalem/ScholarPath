@@ -449,6 +449,12 @@ export function AppRouter() {
           <Route path="/student/community"         element={<AnimatedRoute><StudentCommunity /></AnimatedRoute>} />
           <Route path="/student/community/:id"     element={<AnimatedRoute><StudentCommunityThread /></AnimatedRoute>} />
           <Route path="/student/messages"          element={<AnimatedRoute><StudentMessages /></AnimatedRoute>} />
+          {/* Same Chat component is mounted under each role prefix so deep
+              links from the notification dispatcher and from cross-role chat
+              partners resolve correctly. Without these, an email link sent
+              to a consultant would 404 on /consultant/messages. */}
+          <Route path="/consultant/messages"       element={<AnimatedRoute><StudentMessages /></AnimatedRoute>} />
+          <Route path="/company/messages"          element={<AnimatedRoute><StudentMessages /></AnimatedRoute>} />
 
           {/* Others */}
           <Route path="/student/resources"         element={<AnimatedRoute><StudentResources /></AnimatedRoute>} />

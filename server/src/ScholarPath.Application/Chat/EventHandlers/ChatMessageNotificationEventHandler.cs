@@ -44,6 +44,20 @@ public sealed class ChatMessageNotificationEventHandler(
             .Select(u => (u.FirstName + " " + u.LastName).Trim())
             .FirstOrDefaultAsync(ct);
 
+        // Recipient's active role decides which messages page to deep-link to
+        // — student-only routes 404 for consultants and companies. The
+        // recipient picks the conversation from the sidebar once they land.
+        var recipientRole = await db.Users
+            .Where(u => u.Id == notification.RecipientId)
+            .Select(u => u.ActiveRole)
+            .FirstOrDefaultAsync(ct);
+        var deepLink = recipientRole switch
+        {
+            "Consultant" => "/consultant/messages",
+            "Company"    => "/company/messages",
+            _            => "/student/messages",
+        };
+
         var preview = TrimPreview(notification.BodyPreview);
 
         try
@@ -56,9 +70,7 @@ public sealed class ChatMessageNotificationEventHandler(
                     CounterpartyName = string.IsNullOrWhiteSpace(senderName) ? null : senderName,
                     Preview = preview,
                 },
-                // Deep-link into the messages page; the recipient picks the
-                // conversation from the sidebar once they land.
-                deepLink: "/student/messages",
+                deepLink: deepLink,
                 idempotencyKey: $"chat-message:{notification.MessageId:N}",
                 ct).ConfigureAwait(false);
         }

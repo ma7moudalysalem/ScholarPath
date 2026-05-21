@@ -39,7 +39,7 @@ interface FunnelStep {
   color: string;
 }
 
-function GradientFunnel({ steps }: { steps: FunnelStep[] }) {
+function GradientFunnel({ steps, locale }: { steps: FunnelStep[]; locale: string }) {
   const maxCount = Math.max(...steps.map((s) => s.count), 1);
   return (
     <div className="grid grid-cols-3 gap-4 sm:gap-6">
@@ -56,7 +56,7 @@ function GradientFunnel({ steps }: { steps: FunnelStep[] }) {
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold tabular-nums text-text-primary">
-                {step.count.toLocaleString()}
+                {step.count.toLocaleString(locale)}
               </p>
               <p className="mt-0.5 text-xs font-medium text-text-secondary">{step.label}</p>
               {!isLast && (
@@ -240,7 +240,7 @@ export function StudentAnalytics() {
               ))}
             </div>
           ) : (
-            <GradientFunnel steps={funnelSteps} />
+            <GradientFunnel steps={funnelSteps} locale={dateLocale} />
           )}
         </ChartCard>
       )}

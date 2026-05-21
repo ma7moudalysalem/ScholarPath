@@ -98,9 +98,11 @@ interface PieProps {
   reviews: number;
   bookingLabel: string;
   reviewLabel: string;
+  /** BCP-47 locale used to format the monetary values (e.g. ar-EG / en-US). */
+  locale: string;
 }
 
-function RevenuePie({ bookings, reviews, bookingLabel, reviewLabel }: PieProps) {
+function RevenuePie({ bookings, reviews, bookingLabel, reviewLabel, locale }: PieProps) {
   const total = bookings + reviews;
   if (total <= 0) {
     return <div className="h-48 rounded-lg bg-bg-subtle/40" />;
@@ -133,14 +135,14 @@ function RevenuePie({ bookings, reviews, bookingLabel, reviewLabel }: PieProps) 
           <span className="inline-block size-3 rounded-sm bg-indigo-500" aria-hidden />
           <span className="font-medium">{bookingLabel}</span>
           <span className="ms-2 tabular-nums text-text-secondary">
-            ${bookings.toLocaleString()}
+            ${bookings.toLocaleString(locale)}
           </span>
         </li>
         <li className="flex items-center gap-2">
           <span className="inline-block size-3 rounded-sm bg-amber-500" aria-hidden />
           <span className="font-medium">{reviewLabel}</span>
           <span className="ms-2 tabular-nums text-text-secondary">
-            ${reviews.toLocaleString()}
+            ${reviews.toLocaleString(locale)}
           </span>
         </li>
       </ul>
@@ -414,6 +416,7 @@ export function AdminRevenueReport() {
               reviews={data.reviewRevenueUsd}
               bookingLabel={t("analytics:adminRevenue.breakdownChart.bookings")}
               reviewLabel={t("analytics:adminRevenue.breakdownChart.reviews")}
+              locale={locale}
             />
           )}
         </ChartCard>
