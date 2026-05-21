@@ -58,6 +58,7 @@ interface FunnelBarProps {
 }
 
 function FunnelBars({ points }: FunnelBarProps) {
+  const { t } = useTranslation(["admin"]);
   if (points.length === 0) return null;
   const max = Math.max(...points.map((p) => p.count), 1);
   const colors = ["bg-brand-500", "bg-success-500", "bg-warning-500", "bg-danger-500", "bg-text-tertiary"];
@@ -65,7 +66,9 @@ function FunnelBars({ points }: FunnelBarProps) {
     <div className="space-y-3">
       {points.map((p, idx) => (
         <div key={p.status} className="flex items-center gap-3">
-          <span className="w-28 shrink-0 truncate text-xs font-medium text-text-secondary">{p.status}</span>
+          <span className="w-28 shrink-0 truncate text-xs font-medium text-text-secondary">
+            {t(`admin:applicationStatus.${p.status}`, { defaultValue: p.status })}
+          </span>
           <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-bg-subtle">
             <div
               className={cn("h-full rounded-full transition-all", colors[idx % colors.length])}
@@ -323,7 +326,9 @@ export function AdminDashboard() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="line-clamp-2 text-sm text-text-primary">
-                              <span className="font-medium">{row.action}</span>
+                              <span className="font-medium">
+                                {t(`admin:audit.actions.${row.action}`, { defaultValue: row.action })}
+                              </span>
                               {row.summary && <span className="text-text-secondary"> · {row.summary}</span>}
                             </p>
                             <p className="mt-0.5 text-xs text-text-tertiary">

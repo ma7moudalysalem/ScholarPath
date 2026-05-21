@@ -19,6 +19,7 @@ const WINDOWS = [7, 30, 90, 180] as const;
 type Window = (typeof WINDOWS)[number];
 
 function FunnelBars({ points }: { points: ApplicationStatusPoint[] }) {
+  const { t } = useTranslation(["admin"]);
   if (points.length === 0) {
     return <div className="h-48 rounded-lg bg-bg-subtle/40" />;
   }
@@ -28,7 +29,9 @@ function FunnelBars({ points }: { points: ApplicationStatusPoint[] }) {
     <div className="space-y-3">
       {points.map((p, idx) => (
         <div key={p.status} className="flex items-center gap-3">
-          <span className="w-28 shrink-0 truncate text-xs font-medium text-text-secondary">{p.status}</span>
+          <span className="w-28 shrink-0 truncate text-xs font-medium text-text-secondary">
+            {t(`admin:applicationStatus.${p.status}`, { defaultValue: p.status })}
+          </span>
           <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-bg-subtle">
             <div
               className={cn("h-full rounded-full transition-all", colors[idx % colors.length])}

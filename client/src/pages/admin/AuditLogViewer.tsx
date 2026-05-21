@@ -119,7 +119,9 @@ export function AuditLogViewer() {
             className="h-10 rounded-md border border-border-subtle bg-bg-elevated px-3 text-sm"
           >
             <option value="">{t("admin:audit.filters.allActions")}</option>
-            {ACTIONS.map((a) => <option key={a} value={a}>{a}</option>)}
+            {ACTIONS.map((a) => (
+              <option key={a} value={a}>{t(`admin:audit.actions.${a}`, { defaultValue: a })}</option>
+            ))}
           </select>
         </label>
 
@@ -209,7 +211,7 @@ export function AuditLogViewer() {
                 </td>
                 <td className="px-4 py-3">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${actionBadgeClass(row.action)}`}>
-                    {row.action}
+                    {t(`admin:audit.actions.${row.action}`, { defaultValue: row.action })}
                   </span>
                 </td>
                 <td className="px-4 py-3">
