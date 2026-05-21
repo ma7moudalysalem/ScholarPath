@@ -25,6 +25,7 @@ namespace ScholarPath.API.Controllers;
 
 /// <summary>Resources Hub (PB-009) — public browse, author CRUD, student progress, admin moderation.</summary>
 [ApiController]
+[Authorize]
 [Route("api/resources")]
 [Produces("application/json")]
 public sealed class ResourcesController(IMediator mediator) : ControllerBase
@@ -59,7 +60,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
     // ── Author CRUD ───────────────────────────────────────────────────────────
 
     [HttpPost]
-    [Authorize(Roles = "Consultant,Company,Admin")]
+    [Authorize(Roles = "Consultant,Company,Admin,SuperAdmin")]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Create([FromBody] CreateResourceCommand command, CancellationToken ct)
@@ -69,7 +70,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Consultant,Company,Admin")]
+    [Authorize(Roles = "Consultant,Company,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(
@@ -81,7 +82,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
 
     /// <summary>Submits a draft for review (or publishes directly if the caller is an admin).</summary>
     [HttpPost("{id:guid}/submit")]
-    [Authorize(Roles = "Consultant,Company,Admin")]
+    [Authorize(Roles = "Consultant,Company,Admin,SuperAdmin")]
     [ProducesResponseType(typeof(ResourceStatus), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Submit(Guid id, CancellationToken ct)
@@ -89,7 +90,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
 
     /// <summary>The caller's own resources, any status.</summary>
     [HttpGet("mine")]
-    [Authorize(Roles = "Consultant,Company,Admin")]
+    [Authorize(Roles = "Consultant,Company,Admin,SuperAdmin")]
     [ProducesResponseType(typeof(IReadOnlyList<ResourceListItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Mine(CancellationToken ct)
         => Ok(await mediator.Send(new GetMyResourcesQuery(), ct));
@@ -125,13 +126,13 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
     // ── Admin moderation ──────────────────────────────────────────────────────
 
     [HttpGet("pending-review")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(typeof(IReadOnlyList<ResourceListItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> PendingReview(CancellationToken ct)
         => Ok(await mediator.Send(new GetPendingReviewResourcesQuery(), ct));
 
     [HttpPost("{id:guid}/approve")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -142,7 +143,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/reject")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Reject(
@@ -153,7 +154,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/feature")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Feature(
@@ -164,7 +165,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/visibility")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> SetVisibility(
         Guid id, [FromBody] SetVisibilityBody body, CancellationToken ct)

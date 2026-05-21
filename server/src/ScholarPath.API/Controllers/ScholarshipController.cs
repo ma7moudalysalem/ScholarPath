@@ -19,10 +19,12 @@ using ScholarPath.Domain.Enums;
 namespace ScholarPath.API.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/scholarships")] //  Convention route
     public class ScholarshipsController(IMediator mediator, IApplicationDbContext db) : ControllerBase //  ControllerBase
     {
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<PaginatedList<ScholarshipDto>>> Get([FromQuery] GetScholarshipsQuery query)
         {
             //  Reading language from Accept-Language header
@@ -36,6 +38,7 @@ namespace ScholarPath.API.Controllers
 
         // ── Public: featured scholarships (home page / dashboards) ───────────
         [HttpGet("featured")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(IReadOnlyList<ScholarshipDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<IReadOnlyList<ScholarshipDto>>> Featured(
             [FromQuery] int? limit, CancellationToken ct)
@@ -62,6 +65,7 @@ namespace ScholarPath.API.Controllers
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<ScholarshipDetailDto>> GetById(Guid id, [FromQuery] string? language)
         {
             var headerValue = Request.Headers["Accept-Language"].ToString().Split(',').FirstOrDefault() ?? "en";
@@ -105,7 +109,7 @@ namespace ScholarPath.API.Controllers
 
         // Soft-delete (archive) — owning company or any Admin.
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Company,Admin")]
+        [Authorize(Roles = "Company,Admin,SuperAdmin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -137,12 +141,15 @@ namespace ScholarPath.API.Controllers
 
         // PB-005: company configures the per-scholarship review fee.
         [HttpPost("{id:guid}/review-fee")]
-        [Authorize(Roles = "Company,Admin")]
+        [Authorize(Roles = "Company,Admin,SuperAdmin")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> ConfigureReviewFee(
             Guid id, [FromBody] ConfigureReviewFeeRequest request, CancellationToken ct)
         {
-            var result = await mediator.Send(new ConfigureReviewFeeCommand(id, request.ReviewFeeUsd), ct);
-            return result ? Ok() : BadRequest();
+            await mediator.Send(new ConfigureReviewFeeCommand(id, request.ReviewFeeUsd), ct);
+            return NoContent();
         }
 
         // ── Company: my own scholarships ─────────────────────────────────────

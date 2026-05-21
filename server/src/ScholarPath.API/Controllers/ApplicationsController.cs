@@ -21,6 +21,7 @@ namespace ScholarPath.API.Controllers;
 /// controller mixes Student and Company actions.
 /// </summary>
 [ApiController]
+[Authorize]
 [Route("api/applications")]
 public sealed class ApplicationsController(IMediator mediator) : ControllerBase
 {
@@ -137,11 +138,15 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
 
     [HttpPatch("{id:guid}/external-status")]
     [Authorize(Roles = "Student")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UpdateExternalStatus(
         Guid id, [FromBody] UpdateExternalStatusRequest request, CancellationToken ct)
     {
-        var ok = await mediator.Send(new UpdateExternalStatusCommand(id, request.Status), ct);
-        return ok ? Ok() : BadRequest();
+        await mediator.Send(new UpdateExternalStatusCommand(id, request.Status), ct);
+        return NoContent();
     }
 
     // ─── Company review-side (PB-005) ────────────────────────────────────────
@@ -169,12 +174,16 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
 
     [HttpPost("{id:guid}/review")]
     [Authorize(Roles = "Company")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ReviewApplication(
         Guid id, [FromBody] ReviewApplicationRequest request, CancellationToken ct)
     {
-        var ok = await mediator.Send(
+        await mediator.Send(
             new ReviewApplicationCommand(id, request.Status, request.DecisionReason), ct);
-        return ok ? Ok() : BadRequest();
+        return NoContent();
     }
 }
 

@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ScholarPath.Application.Ai.Commands.AskChatbot;
 using ScholarPath.Application.Ai.Queries.GetAiSessionTurns;
 using ScholarPath.Application.Ai.Queries.GetMyAiSessions;
@@ -39,8 +40,10 @@ public sealed class AiController(IMediator mediator) : ControllerBase
     /// against the daily cost budget.
     /// </summary>
     [HttpPost("recommendations")]
+    [EnableRateLimiting("ai")]
     [ProducesResponseType(typeof(RecommendationsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Recommendations(
         [FromQuery] int? topN,
         CancellationToken ct)
@@ -50,8 +53,10 @@ public sealed class AiController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("eligibility/{scholarshipId:guid}")]
+    [EnableRateLimiting("ai")]
     [ProducesResponseType(typeof(EligibilityDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Eligibility(Guid scholarshipId, CancellationToken ct)
     {
         var result = await mediator.Send(new CheckEligibilityCommand(scholarshipId), ct).ConfigureAwait(false);
@@ -59,8 +64,10 @@ public sealed class AiController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("chat")]
+    [EnableRateLimiting("ai")]
     [ProducesResponseType(typeof(ChatAnswerDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Chat([FromBody] AskChatbotCommand command, CancellationToken ct)
     {
         var result = await mediator.Send(command, ct).ConfigureAwait(false);

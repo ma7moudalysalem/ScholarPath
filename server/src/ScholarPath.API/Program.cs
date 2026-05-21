@@ -115,6 +115,12 @@ builder.Services.AddCors(opts =>
 });
 
 // ─── Rate limiting ───────────────────────────────────────────────────────────
+// Two policies:
+//   "auth" — IP-partitioned, protects login / register / forgot-password from
+//            password-spraying.
+//   "ai"   — per-user (falls back to IP for unauthenticated callers), throttles
+//            AI chat + recommendation generation to bound the platform's daily
+//            AI cost budget against a single account.
 builder.Services.AddRateLimiter(opts =>
 {
     opts.AddPolicy("auth", httpContext =>
@@ -126,6 +132,25 @@ builder.Services.AddRateLimiter(opts =>
                 PermitLimit = 10,
                 QueueLimit = 0,
             }));
+
+    opts.AddPolicy("ai", httpContext =>
+    {
+        // Prefer the authenticated user id so concurrent users behind a shared
+        // egress IP do not starve each other; fall back to IP for anonymous.
+        var userId = httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var partition = !string.IsNullOrEmpty(userId)
+            ? $"user:{userId}"
+            : $"ip:{httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
+
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: partition,
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 20,
+                QueueLimit = 0,
+            });
+    });
 
     opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });

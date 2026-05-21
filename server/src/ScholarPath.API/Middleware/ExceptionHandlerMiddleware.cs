@@ -57,6 +57,19 @@ public sealed class ExceptionHandlerMiddleware(
                 "Forbidden",
                 fex.Message).ConfigureAwait(false);
         }
+        catch (UnauthorizedAccessException uaex)
+        {
+            // Several CQRS handlers throw the BCL UnauthorizedAccessException for
+            // role / ownership checks. Without this branch it falls through to the
+            // catch-all and surfaces as a 500 instead of a 403. Treat it as the
+            // domain-level Forbidden case — the user IS authenticated, the action
+            // is just not permitted for them.
+            await WriteProblemAsync(
+                context,
+                HttpStatusCode.Forbidden,
+                "Forbidden",
+                uaex.Message).ConfigureAwait(false);
+        }
         catch (ServiceUnavailableException suex)
         {
             // A dependency (e.g. the AI embedding provider) was down or

@@ -8,6 +8,7 @@ using ScholarPath.Application.CompanyReviews.Queries.GetCompanyRatings;
 namespace ScholarPath.API.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/company-reviews")]
 public class CompanyReviewsController(IMediator mediator) : ControllerBase
 {
