@@ -90,7 +90,8 @@
       "documents": "Documents"
     },
     "documents": {
-      "empty": "This applicant hasn't uploaded any documents."
+      "empty": "This applicant hasn't uploaded any documents.",
+      "heading": "Verification documents"
     },
     "reviewDialog": {
       "title": "Review onboarding request",
@@ -98,6 +99,31 @@
       "approve": "Approve",
       "reject": "Reject",
       "cancel": "Cancel"
+    },
+    "profile": {
+      "legalName": "Legal name",
+      "website": "Website",
+      "orgEmail": "Email",
+      "country": "Country",
+      "companyType": "Type",
+      "registrationNumber": "Registration #",
+      "taxNumber": "Tax #",
+      "contactName": "Contact name",
+      "contactPosition": "Position",
+      "phone": "Phone",
+      "description": "Description",
+      "professionalTitle": "Title",
+      "highestDegree": "Highest degree",
+      "fieldOfExpertise": "Field of expertise",
+      "yearsExperience": "Years of experience",
+      "sessionFeeUsd": "Session fee (USD)",
+      "sessionDurationMinutes": "Session duration (min)",
+      "timezone": "Time zone",
+      "linkedIn": "LinkedIn",
+      "portfolio": "Portfolio",
+      "bio": "Bio",
+      "expertiseTags": "Expertise tags",
+      "languages": "Languages"
     }
   },
   "upgrades": {
@@ -115,6 +141,16 @@
       "approved": "Approved",
       "rejected": "Rejected",
       "all": "All"
+    },
+    "target": {
+      "Company": "Company",
+      "Consultant": "Consultant"
+    },
+    "status": {
+      "Pending": "Pending",
+      "Approved": "Approved",
+      "Rejected": "Rejected",
+      "Cancelled": "Cancelled"
     }
   },
   "broadcast": {
@@ -163,7 +199,35 @@
       "summary": "Summary",
       "ip": "IP"
     },
-    "system": "System"
+    "system": "System",
+    "actions": {
+      "Create": "Create",
+      "Update": "Update",
+      "Delete": "Delete",
+      "Login": "Login",
+      "Logout": "Logout",
+      "LoginFailed": "Login failed",
+      "PasswordReset": "Password reset",
+      "RoleChanged": "Role changed",
+      "Approved": "Approved",
+      "Rejected": "Rejected",
+      "Moderated": "Moderated",
+      "PaymentCaptured": "Payment captured",
+      "PaymentRefunded": "Payment refunded",
+      "ConfigChanged": "Config changed",
+      "BroadcastSent": "Broadcast sent"
+    }
+  },
+  "applicationStatus": {
+    "Draft": "Draft",
+    "Pending": "Pending",
+    "UnderReview": "Under review",
+    "Shortlisted": "Shortlisted",
+    "Accepted": "Accepted",
+    "Rejected": "Rejected",
+    "Withdrawn": "Withdrawn",
+    "Intending": "Intending",
+    "Applied": "Applied"
   },
   "analytics": {
     "title": "Analytics",
@@ -223,7 +287,10 @@
     "feature": "Feature",
     "cost": "Cost",
     "latency": "Avg latency",
-    "noData": "No AI usage in this window."
+    "noData": "No AI usage in this window.",
+    "aboveTarget": "Above target ({{target}}%)",
+    "belowTarget": "Below target ({{target}}%)",
+    "ctrHint": "{{clicks}} clicks / {{impressions}} impressions"
   },
   "redactionAudit": {
     "title": "PII redaction audit",
@@ -231,7 +298,13 @@
     "pendingOnly": "Pending only",
     "count": "{{pending}} pending on this page · {{total}} total",
     "empty": "No samples to review.",
-    "reviewedAt": "Reviewed"
+    "reviewedAt": "Reviewed",
+    "verdict": {
+      "Clean": "Clean",
+      "MissedEmail": "Missed email",
+      "MissedPhone": "Missed phone",
+      "MissedCard": "Missed card"
+    }
   },
   "featured": {
     "title": "Featured Scholarships",

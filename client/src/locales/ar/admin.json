@@ -90,7 +90,8 @@
       "documents": "المستندات"
     },
     "documents": {
-      "empty": "لم يرفع مقدّم الطلب أي مستندات."
+      "empty": "لم يرفع مقدّم الطلب أي مستندات.",
+      "heading": "مستندات التحقق"
     },
     "reviewDialog": {
       "title": "مراجعة طلب التأهيل",
@@ -98,6 +99,31 @@
       "approve": "موافقة",
       "reject": "رفض",
       "cancel": "إلغاء"
+    },
+    "profile": {
+      "legalName": "الاسم القانوني",
+      "website": "الموقع الإلكتروني",
+      "orgEmail": "البريد الإلكتروني",
+      "country": "الدولة",
+      "companyType": "نوع الشركة",
+      "registrationNumber": "رقم السجل",
+      "taxNumber": "الرقم الضريبي",
+      "contactName": "اسم جهة الاتصال",
+      "contactPosition": "المنصب",
+      "phone": "الهاتف",
+      "description": "الوصف",
+      "professionalTitle": "المسمى الوظيفي",
+      "highestDegree": "أعلى مؤهل",
+      "fieldOfExpertise": "مجال التخصص",
+      "yearsExperience": "سنوات الخبرة",
+      "sessionFeeUsd": "سعر الجلسة (دولار)",
+      "sessionDurationMinutes": "مدة الجلسة (دقيقة)",
+      "timezone": "المنطقة الزمنية",
+      "linkedIn": "لينكدإن",
+      "portfolio": "ملف الأعمال",
+      "bio": "نبذة",
+      "expertiseTags": "وسوم التخصص",
+      "languages": "اللغات"
     }
   },
   "upgrades": {
@@ -115,6 +141,16 @@
       "approved": "معتمدة",
       "rejected": "مرفوضة",
       "all": "الكل"
+    },
+    "target": {
+      "Company": "شركة",
+      "Consultant": "مستشار"
+    },
+    "status": {
+      "Pending": "قيد الانتظار",
+      "Approved": "معتمدة",
+      "Rejected": "مرفوضة",
+      "Cancelled": "ملغاة"
     }
   },
   "broadcast": {
@@ -163,7 +199,35 @@
       "summary": "الملخص",
       "ip": "عنوان IP"
     },
-    "system": "النظام"
+    "system": "النظام",
+    "actions": {
+      "Create": "إنشاء",
+      "Update": "تحديث",
+      "Delete": "حذف",
+      "Login": "تسجيل دخول",
+      "Logout": "تسجيل خروج",
+      "LoginFailed": "فشل تسجيل الدخول",
+      "PasswordReset": "إعادة تعيين كلمة المرور",
+      "RoleChanged": "تغيير الدور",
+      "Approved": "موافقة",
+      "Rejected": "رفض",
+      "Moderated": "مراجعة",
+      "PaymentCaptured": "تحصيل دفعة",
+      "PaymentRefunded": "استرداد دفعة",
+      "ConfigChanged": "تغيير الإعدادات",
+      "BroadcastSent": "إرسال إعلان"
+    }
+  },
+  "applicationStatus": {
+    "Draft": "مسودة",
+    "Pending": "قيد الانتظار",
+    "UnderReview": "قيد المراجعة",
+    "Shortlisted": "في القائمة المختصرة",
+    "Accepted": "مقبول",
+    "Rejected": "مرفوض",
+    "Withdrawn": "منسحب",
+    "Intending": "ينوي التقديم",
+    "Applied": "تم التقديم"
   },
   "analytics": {
     "title": "التحليلات",
@@ -223,7 +287,10 @@
     "feature": "الميزة",
     "cost": "التكلفة",
     "latency": "متوسط زمن الاستجابة",
-    "noData": "لا يوجد استخدام للذكاء الاصطناعي في هذه النافذة."
+    "noData": "لا يوجد استخدام للذكاء الاصطناعي في هذه النافذة.",
+    "aboveTarget": "أعلى من المستهدف ({{target}}٪)",
+    "belowTarget": "أقل من المستهدف ({{target}}٪)",
+    "ctrHint": "{{clicks}} نقرة / {{impressions}} ظهور"
   },
   "redactionAudit": {
     "title": "تدقيق إخفاء البيانات الشخصية",
@@ -231,7 +298,13 @@
     "pendingOnly": "قيد الانتظار فقط",
     "count": "{{pending}} قيد الانتظار في هذه الصفحة · {{total}} الإجمالي",
     "empty": "لا توجد عيّنات للمراجعة.",
-    "reviewedAt": "روجِعت"
+    "reviewedAt": "روجِعت",
+    "verdict": {
+      "Clean": "نظيفة",
+      "MissedEmail": "بريد إلكتروني غير مخفي",
+      "MissedPhone": "رقم هاتف غير مخفي",
+      "MissedCard": "رقم بطاقة غير مخفي"
+    }
   },
   "featured": {
     "title": "المنح الدراسية المميزة",
