@@ -49,7 +49,7 @@ public sealed class GetAdminAnalyticsQueryHandler(IApplicationDbContext db)
         var regsByDay = await db.Users
             .AsNoTracking()
             .Where(u => !u.IsDeleted && u.CreatedAt >= sinceOffset)
-            .GroupBy(u => u.CreatedAt.UtcDateTime.Date)
+            .GroupBy(u => u.CreatedAt.Date)
             .Select(g => new
             {
                 Day = g.Key,
@@ -61,14 +61,14 @@ public sealed class GetAdminAnalyticsQueryHandler(IApplicationDbContext db)
         var submittedByDay = await db.Applications
             .AsNoTracking()
             .Where(a => !a.IsDeleted && a.SubmittedAt != null && a.SubmittedAt >= sinceOffset)
-            .GroupBy(a => a.SubmittedAt!.Value.UtcDateTime.Date)
+            .GroupBy(a => a.SubmittedAt!.Value.Date)
             .Select(g => new { Day = g.Key, Count = g.Count() })
             .ToListAsync(ct);
 
         var acceptedByDay = await db.Applications
             .AsNoTracking()
             .Where(a => !a.IsDeleted && a.Status == ApplicationStatus.Accepted && a.DecisionAt != null && a.DecisionAt >= sinceOffset)
-            .GroupBy(a => a.DecisionAt!.Value.UtcDateTime.Date)
+            .GroupBy(a => a.DecisionAt!.Value.Date)
             .Select(g => new { Day = g.Key, Count = g.Count() })
             .ToListAsync(ct);
 
@@ -95,7 +95,7 @@ public sealed class GetAdminAnalyticsQueryHandler(IApplicationDbContext db)
         var bookingFin = await db.Payments
             .AsNoTracking()
             .Where(p => !p.IsDeleted && p.CapturedAt != null && p.CapturedAt >= sinceOffset)
-            .GroupBy(p => p.CapturedAt!.Value.UtcDateTime.Date)
+            .GroupBy(p => p.CapturedAt!.Value.Date)
             .Select(g => new FinanceDayDto(
                 DateOnly.FromDateTime(g.Key),
                 "ConsultantBooking",
@@ -110,7 +110,7 @@ public sealed class GetAdminAnalyticsQueryHandler(IApplicationDbContext db)
         var reviewFin = await db.CompanyReviewPayments
             .AsNoTracking()
             .Where(p => p.CapturedAt != null && p.CapturedAt >= sinceOffset)
-            .GroupBy(p => p.CapturedAt!.Value.UtcDateTime.Date)
+            .GroupBy(p => p.CapturedAt!.Value.Date)
             .Select(g => new FinanceDayDto(
                 DateOnly.FromDateTime(g.Key),
                 "CompanyReview",

@@ -75,7 +75,7 @@ public sealed class GetConsultantEarningsTrendQueryHandler(
 
         // Monthly breakdown — also includes a count of distinct captured bookings
         var monthly = myPayments
-            .GroupBy(p => new { p.CapturedAt.UtcDateTime.Year, p.CapturedAt.UtcDateTime.Month })
+            .GroupBy(p => new { p.CapturedAt.Year, p.CapturedAt.Month })
             .Select(g => new MonthlyEarningDto(
                 $"{g.Key.Year:0000}-{g.Key.Month:00}",
                 Math.Round(g.Sum(x => (decimal)x.AmountCents) / 100m, 2),

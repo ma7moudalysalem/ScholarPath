@@ -244,8 +244,8 @@ public sealed class GetCompanyInsightsQueryHandler(
             .Where(a => a.SubmittedAt != null)
             .GroupBy(a => new
             {
-                a.SubmittedAt!.Value.UtcDateTime.Year,
-                a.SubmittedAt!.Value.UtcDateTime.Month,
+                a.SubmittedAt!.Value.Year,
+                a.SubmittedAt!.Value.Month,
             })
             .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
             .ToList();
@@ -254,8 +254,8 @@ public sealed class GetCompanyInsightsQueryHandler(
             .Where(a => a.Status == ApplicationStatus.Accepted && a.DecisionAt != null)
             .GroupBy(a => new
             {
-                a.DecisionAt!.Value.UtcDateTime.Year,
-                a.DecisionAt!.Value.UtcDateTime.Month,
+                a.DecisionAt!.Value.Year,
+                a.DecisionAt!.Value.Month,
             })
             .Select(g => new { g.Key.Year, g.Key.Month, Count = g.Count() })
             .ToList();
