@@ -5,7 +5,6 @@ import {
   Search,
   Circle,
   MessageCircle,
-  Slash,
   PenSquare,
   ArrowLeft,
   Loader2,
@@ -467,13 +466,13 @@ export function Chat() {
             ? t("chat.unblock_user", "Unblock user")
             : t("chat.block_user", "Block user")
         }
-        className={`flex items-center gap-1.5 ps-2 pe-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
           selectedConv!.isBlocked
-            ? "text-brand-600 border-brand-200 bg-brand-50/50 hover:bg-brand-50"
-            : "text-text-tertiary border-border-subtle hover:text-danger-500 hover:border-danger-200 hover:bg-danger-50/50"
+            ? "text-brand-600 hover:bg-brand-50"
+            : "text-text-tertiary hover:bg-danger-50 hover:text-danger-500"
         }`}
       >
-        <Slash size={14} />
+        <ShieldAlert size={14} aria-hidden />
         <span className="hidden sm:inline">
           {selectedConv!.isBlocked
             ? t("chat.unblock_user", "Unblock user")
@@ -763,13 +762,13 @@ export function Chat() {
                 <button
                   type="submit"
                   disabled={!messageBody.trim() || isBlocked || isSending}
-                  aria-label={t("chat.new_message", "New Message")}
-                  className="flex h-9 w-9 items-center justify-center bg-brand-500 text-white rounded-xl hover:bg-brand-600 disabled:bg-bg-subtle disabled:text-text-tertiary disabled:cursor-not-allowed transition-all flex-shrink-0"
+                  aria-label={t("chat.send", "Send")}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm transition-all hover:shadow-brand-md hover:from-brand-600 hover:to-brand-800 active:scale-95 disabled:bg-none disabled:bg-bg-subtle disabled:text-text-tertiary disabled:shadow-none disabled:cursor-not-allowed flex-shrink-0"
                 >
                   {isSending ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={18} className="animate-spin" />
                   ) : (
-                    <Send size={16} className={isRtl ? "rotate-180" : ""} />
+                    <Send size={18} className={isRtl ? "rotate-180" : ""} />
                   )}
                 </button>
               </form>
