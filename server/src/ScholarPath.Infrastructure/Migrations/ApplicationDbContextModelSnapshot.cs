@@ -3376,8 +3376,28 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("BookingIntakeSuspendedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("CompanyDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("CompanyType")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
                     b.Property<DateTimeOffset?>("ConsultantVerifiedAt")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ContactPersonFullName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ContactPersonPosition")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ContactPhoneNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
@@ -3395,6 +3415,10 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.Property<string>("ExpertiseTagsJson")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("FieldOfExpertise")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<string>("FieldOfStudy")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -3405,6 +3429,10 @@ namespace ScholarPath.Infrastructure.Migrations
 
                     b.Property<string>("GpaScale")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HighestDegree")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("LanguagesJson")
                         .HasColumnType("nvarchar(max)");
@@ -3417,11 +3445,25 @@ namespace ScholarPath.Infrastructure.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<string>("OrganizationCountry")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("OrganizationEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("OrganizationLegalName")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("OrganizationRegistrationNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("OrganizationTaxNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("OrganizationVerificationStatus")
                         .HasColumnType("nvarchar(max)");
@@ -3430,13 +3472,22 @@ namespace ScholarPath.Infrastructure.Migrations
                         .HasColumnType("datetimeoffset");
 
                     b.Property<string>("OrganizationWebsite")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("PortfolioUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
 
                     b.Property<string>("PreferredCountriesJson")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PreferredFieldsJson")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProfessionalTitle")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
 
                     b.Property<int?>("ProfileCompletenessPercent")
                         .HasColumnType("int");
@@ -3481,6 +3532,9 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.Property<string>("WebsiteUrl")
                         .HasMaxLength(2048)
                         .HasColumnType("nvarchar(2048)");
+
+                    b.Property<int?>("YearsOfExperience")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

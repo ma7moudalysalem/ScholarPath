@@ -10,6 +10,114 @@ import { apiErrorMessage } from "@/services/api/client";
 import { documentsApi } from "@/services/api/documents";
 import { PromptDialog } from "@/components/ui/PromptDialog";
 
+/** Renders the submitted onboarding profile snapshot — Company or Consultant. */
+function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
+  const isCompany = row.requestedRole === "Company";
+  const isConsultant = row.requestedRole === "Consultant";
+
+  const parseJsonArray = (raw: string | null): string[] => {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      return Array.isArray(parsed) ? (parsed as string[]).filter((s) => typeof s === "string") : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const Row = ({ label, value }: { label: string; value: React.ReactNode }) => {
+    if (value === null || value === undefined || value === "") return null;
+    return (
+      <div className="flex flex-col gap-0.5">
+        <dt className="text-xs uppercase tracking-wide text-text-tertiary">{label}</dt>
+        <dd className="text-sm text-text-primary">{value}</dd>
+      </div>
+    );
+  };
+
+  return (
+    <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+      {isCompany && (
+        <>
+          <Row label="Legal name" value={row.organizationLegalName} />
+          <Row label="Website" value={
+            row.organizationWebsite ? (
+              <a href={row.organizationWebsite} target="_blank" rel="noreferrer"
+                className="text-brand-500 hover:underline">{row.organizationWebsite}</a>
+            ) : null
+          } />
+          <Row label="Email" value={row.organizationEmail} />
+          <Row label="Country" value={row.organizationCountry} />
+          <Row label="Type" value={row.companyType} />
+          <Row label="Registration #" value={row.organizationRegistrationNumber} />
+          <Row label="Tax #" value={row.organizationTaxNumber} />
+          <Row label="Contact name" value={row.contactPersonFullName} />
+          <Row label="Position" value={row.contactPersonPosition} />
+          <Row label="Phone" value={row.contactPhoneNumber} />
+          {row.companyDescription && (
+            <div className="sm:col-span-2 lg:col-span-3">
+              <Row label="Description" value={
+                <p className="whitespace-pre-wrap">{row.companyDescription}</p>
+              } />
+            </div>
+          )}
+        </>
+      )}
+      {isConsultant && (
+        <>
+          <Row label="Title" value={row.professionalTitle} />
+          <Row label="Highest degree" value={row.highestDegree} />
+          <Row label="Field of expertise" value={row.fieldOfExpertise} />
+          <Row label="Years of experience" value={row.yearsOfExperience} />
+          <Row label="Session fee (USD)" value={row.sessionFeeUsd} />
+          <Row label="Session duration (min)" value={row.sessionDurationMinutes} />
+          <Row label="Country" value={row.consultantCountry} />
+          <Row label="Time zone" value={row.timezone} />
+          <Row label="LinkedIn" value={
+            row.linkedInUrl ? (
+              <a href={row.linkedInUrl} target="_blank" rel="noreferrer"
+                className="text-brand-500 hover:underline">{row.linkedInUrl}</a>
+            ) : null
+          } />
+          <Row label="Portfolio" value={
+            row.portfolioUrl ? (
+              <a href={row.portfolioUrl} target="_blank" rel="noreferrer"
+                className="text-brand-500 hover:underline">{row.portfolioUrl}</a>
+            ) : null
+          } />
+          {row.biography && (
+            <div className="sm:col-span-2 lg:col-span-3">
+              <Row label="Bio" value={<p className="whitespace-pre-wrap">{row.biography}</p>} />
+            </div>
+          )}
+          {parseJsonArray(row.expertiseTagsJson).length > 0 && (
+            <div className="sm:col-span-2 lg:col-span-3">
+              <Row label="Expertise tags" value={
+                <div className="flex flex-wrap gap-1.5">
+                  {parseJsonArray(row.expertiseTagsJson).map((tag) => (
+                    <span key={tag} className="rounded-full bg-brand-500/10 px-2 py-0.5 text-xs text-brand-500">{tag}</span>
+                  ))}
+                </div>
+              } />
+            </div>
+          )}
+          {parseJsonArray(row.languagesJson).length > 0 && (
+            <div className="sm:col-span-2 lg:col-span-3">
+              <Row label="Languages" value={
+                <div className="flex flex-wrap gap-1.5">
+                  {parseJsonArray(row.languagesJson).map((lang) => (
+                    <span key={lang} className="rounded-full bg-bg-subtle px-2 py-0.5 text-xs">{lang}</span>
+                  ))}
+                </div>
+              } />
+            </div>
+          )}
+        </>
+      )}
+    </dl>
+  );
+}
+
 /** Lists the verification documents a pending applicant uploaded, with download links. */
 function OnboardingDocuments({ userId }: { userId: string }) {
   const { t } = useTranslation(["admin", "common"]);
@@ -171,7 +279,15 @@ export function OnboardingQueue() {
                   {expanded && (
                     <tr className="border-t border-border-subtle bg-bg-subtle/30">
                       <td colSpan={5} className="px-4 py-3">
-                        <OnboardingDocuments userId={u.userId} />
+                        <div className="space-y-4">
+                          <OnboardingProfilePanel row={u} />
+                          <div>
+                            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                              {t("admin:onboarding.documents.heading", "Verification documents")}
+                            </h3>
+                            <OnboardingDocuments userId={u.userId} />
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   )}

@@ -1,8 +1,17 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { GraduationCap, Building2, Users, Clock, ArrowLeft, Upload, FileText, Trash2 } from "lucide-react";
+import {
+  GraduationCap,
+  Building2,
+  Users,
+  Clock,
+  ArrowLeft,
+  Upload,
+  FileText,
+  Trash2,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import {
@@ -23,25 +32,34 @@ const ROLES: { key: RoleKey; i18n: string; icon: typeof GraduationCap }[] = [
   { key: "Consultant", i18n: "consultant", icon: Users },
 ];
 
+const COMPANY_TYPES = ["University", "NGO", "Company", "Foundation", "Government", "Other"] as const;
+const SESSION_DURATIONS = [30, 45, 60, 90] as const;
+
 const fieldClass =
   "w-full rounded-lg border border-border-subtle bg-bg-canvas px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20";
 
 function Labeled({
   label,
   hint,
+  required,
+  error,
   children,
 }: {
   label: string;
   hint?: string;
+  required?: boolean;
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
     <div>
       <label className="mb-1 flex items-center gap-2 text-sm font-medium text-text-primary">
         {label}
+        {required && <span className="text-danger-500" aria-hidden>*</span>}
         {hint && <span className="text-xs font-normal text-text-tertiary">({hint})</span>}
       </label>
       {children}
+      {error && <p className="mt-1 text-xs text-danger-500">{error}</p>}
     </div>
   );
 }
@@ -158,6 +176,114 @@ function PendingReview() {
   );
 }
 
+// ── Company onboarding form ────────────────────────────────────────────────
+interface CompanyFormState {
+  legalName: string;
+  website: string;
+  email: string;
+  country: string;
+  companyType: string;
+  description: string;
+  registrationNumber: string;
+  taxNumber: string;
+  contactName: string;
+  contactPosition: string;
+  contactPhone: string;
+}
+
+function emptyCompany(): CompanyFormState {
+  return {
+    legalName: "",
+    website: "",
+    email: "",
+    country: "",
+    companyType: "",
+    description: "",
+    registrationNumber: "",
+    taxNumber: "",
+    contactName: "",
+    contactPosition: "",
+    contactPhone: "",
+  };
+}
+
+function validateCompany(c: CompanyFormState): Record<string, string> {
+  const errs: Record<string, string> = {};
+  if (!c.legalName.trim()) errs.legalName = "Required";
+  else if (c.legalName.length > 200) errs.legalName = "Max 200 characters";
+  if (!c.website.trim()) errs.website = "Required";
+  else if (!/^https?:\/\/.+/.test(c.website)) errs.website = "Must be a valid URL";
+  if (!c.email.trim()) errs.email = "Required";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) errs.email = "Must be a valid email";
+  if (!c.country.trim()) errs.country = "Required";
+  if (!c.companyType) errs.companyType = "Required";
+  if (!c.description.trim()) errs.description = "Required";
+  else if (c.description.length > 1000) errs.description = "Max 1000 characters";
+  if (!c.contactName.trim()) errs.contactName = "Required";
+  if (!c.contactPosition.trim()) errs.contactPosition = "Required";
+  if (!c.contactPhone.trim()) errs.contactPhone = "Required";
+  else if (!/^[+0-9 ()\-]{6,40}$/.test(c.contactPhone)) errs.contactPhone = "Invalid phone format";
+  return errs;
+}
+
+// ── Consultant onboarding form ─────────────────────────────────────────────
+interface ConsultantFormState {
+  bio: string;
+  title: string;
+  highestDegree: string;
+  fieldOfExpertise: string;
+  yearsExperience: string;
+  expertiseTags: string;
+  fee: string;
+  durationMinutes: string;
+  languages: string;
+  country: string;
+  timezone: string;
+  linkedIn: string;
+  portfolio: string;
+}
+
+function emptyConsultant(): ConsultantFormState {
+  return {
+    bio: "",
+    title: "",
+    highestDegree: "",
+    fieldOfExpertise: "",
+    yearsExperience: "",
+    expertiseTags: "",
+    fee: "",
+    durationMinutes: "60",
+    languages: "",
+    country: "",
+    timezone: typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone ?? "" : "",
+    linkedIn: "",
+    portfolio: "",
+  };
+}
+
+function validateConsultant(c: ConsultantFormState): Record<string, string> {
+  const errs: Record<string, string> = {};
+  if (!c.bio.trim()) errs.bio = "Required";
+  else if (c.bio.length > 2000) errs.bio = "Max 2000 characters";
+  if (!c.title.trim()) errs.title = "Required";
+  if (!c.highestDegree.trim()) errs.highestDegree = "Required";
+  if (!c.fieldOfExpertise.trim()) errs.fieldOfExpertise = "Required";
+  const years = Number(c.yearsExperience);
+  if (!c.yearsExperience || Number.isNaN(years) || years < 0) errs.yearsExperience = "Must be 0 or greater";
+  const tagCount = c.expertiseTags.split(",").map((s) => s.trim()).filter(Boolean).length;
+  if (tagCount === 0) errs.expertiseTags = "At least one tag required";
+  const fee = Number(c.fee);
+  if (!c.fee || Number.isNaN(fee) || fee <= 0) errs.fee = "Must be greater than zero";
+  if (!c.durationMinutes) errs.durationMinutes = "Required";
+  const langCount = c.languages.split(",").map((s) => s.trim()).filter(Boolean).length;
+  if (langCount === 0) errs.languages = "At least one language required";
+  if (!c.country.trim()) errs.country = "Required";
+  if (!c.timezone.trim()) errs.timezone = "Required";
+  if (c.linkedIn && !/^https?:\/\/.+/.test(c.linkedIn)) errs.linkedIn = "Must be a valid URL";
+  if (c.portfolio && !/^https?:\/\/.+/.test(c.portfolio)) errs.portfolio = "Must be a valid URL";
+  return errs;
+}
+
 export function OnboardingWizard() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
@@ -167,12 +293,10 @@ export function OnboardingWizard() {
   const [detailsRole, setDetailsRole] = useState<"Company" | "Consultant">("Company");
   const [submitting, setSubmitting] = useState(false);
 
-  // Company / Consultant onboarding detail fields.
-  const [legalName, setLegalName] = useState("");
-  const [website, setWebsite] = useState("");
-  const [bio, setBio] = useState("");
-  const [fee, setFee] = useState("");
-  const [expertise, setExpertise] = useState("");
+  const [company, setCompany] = useState<CompanyFormState>(emptyCompany);
+  const [companyErrors, setCompanyErrors] = useState<Record<string, string>>({});
+  const [consultant, setConsultant] = useState<ConsultantFormState>(emptyConsultant);
+  const [consultantErrors, setConsultantErrors] = useState<Record<string, string>>({});
 
   // A Company/Consultant who already chose their role is awaiting admin review.
   if (user?.accountStatus === "PendingApproval") {
@@ -209,27 +333,46 @@ export function OnboardingWizard() {
   function submitDetails(e: React.FormEvent) {
     e.preventDefault();
     if (detailsRole === "Company") {
-      if (!legalName.trim()) {
+      const errs = validateCompany(company);
+      setCompanyErrors(errs);
+      if (Object.keys(errs).length > 0) {
         toast.error(t("auth:onboarding.details.required"));
         return;
       }
       void submitRole("Company", {
-        organizationLegalName: legalName.trim(),
-        organizationWebsite: website.trim() || null,
+        organizationLegalName: company.legalName.trim(),
+        organizationWebsite: company.website.trim(),
+        organizationEmail: company.email.trim(),
+        organizationCountry: company.country.trim(),
+        companyType: company.companyType,
+        companyDescription: company.description.trim(),
+        organizationRegistrationNumber: company.registrationNumber.trim() || null,
+        organizationTaxNumber: company.taxNumber.trim() || null,
+        contactPersonFullName: company.contactName.trim(),
+        contactPersonPosition: company.contactPosition.trim(),
+        contactPhoneNumber: company.contactPhone.trim(),
       });
     } else {
-      const feeValue = Number(fee);
-      if (!bio.trim() || !(feeValue > 0)) {
+      const errs = validateConsultant(consultant);
+      setConsultantErrors(errs);
+      if (Object.keys(errs).length > 0) {
         toast.error(t("auth:onboarding.details.required"));
         return;
       }
       void submitRole("Consultant", {
-        biography: bio.trim(),
-        sessionFeeUsd: feeValue,
-        expertiseTags: expertise
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean),
+        biography: consultant.bio.trim(),
+        professionalTitle: consultant.title.trim(),
+        highestDegree: consultant.highestDegree.trim(),
+        fieldOfExpertise: consultant.fieldOfExpertise.trim(),
+        yearsOfExperience: Number(consultant.yearsExperience),
+        sessionFeeUsd: Number(consultant.fee),
+        sessionDurationMinutes: Number(consultant.durationMinutes),
+        expertiseTags: consultant.expertiseTags.split(",").map((s) => s.trim()).filter(Boolean),
+        languages: consultant.languages.split(",").map((s) => s.trim()).filter(Boolean),
+        country: consultant.country.trim(),
+        timezone: consultant.timezone.trim(),
+        linkedInUrl: consultant.linkedIn.trim() || null,
+        portfolioUrl: consultant.portfolio.trim() || null,
       });
     }
   }
@@ -238,7 +381,7 @@ export function OnboardingWizard() {
   if (step === "details") {
     const isCompany = detailsRole === "Company";
     return (
-      <section className="mx-auto max-w-xl px-4 py-16 sm:px-6">
+      <section className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
         <button
           type="button"
           onClick={() => setStep("role")}
@@ -263,66 +406,19 @@ export function OnboardingWizard() {
           )}
         </p>
 
-        <form onSubmit={submitDetails} className="space-y-5">
+        <form onSubmit={submitDetails} className="space-y-5" noValidate>
           {isCompany ? (
-            <>
-              <Labeled label={t("auth:onboarding.details.legalName")}>
-                <input
-                  type="text"
-                  value={legalName}
-                  onChange={(e) => setLegalName(e.target.value)}
-                  className={`h-11 ${fieldClass}`}
-                />
-              </Labeled>
-              <Labeled
-                label={t("auth:onboarding.details.website")}
-                hint={t("auth:onboarding.details.optional")}
-              >
-                <input
-                  type="url"
-                  value={website}
-                  onChange={(e) => setWebsite(e.target.value)}
-                  placeholder="https://"
-                  className={`h-11 ${fieldClass}`}
-                />
-              </Labeled>
-            </>
+            <CompanyForm value={company} onChange={setCompany} errors={companyErrors} />
           ) : (
-            <>
-              <Labeled label={t("auth:onboarding.details.bio")}>
-                <textarea
-                  rows={4}
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder={t("auth:onboarding.details.bioPlaceholder")}
-                  className={`py-2.5 ${fieldClass}`}
-                />
-              </Labeled>
-              <Labeled label={t("auth:onboarding.details.fee")}>
-                <input
-                  type="number"
-                  min={1}
-                  value={fee}
-                  onChange={(e) => setFee(e.target.value)}
-                  className={`h-11 ${fieldClass}`}
-                />
-              </Labeled>
-              <Labeled
-                label={t("auth:onboarding.details.expertise")}
-                hint={t("auth:onboarding.details.optional")}
-              >
-                <input
-                  type="text"
-                  value={expertise}
-                  onChange={(e) => setExpertise(e.target.value)}
-                  className={`h-11 ${fieldClass}`}
-                />
-                <p className="mt-1 text-xs text-text-tertiary">
-                  {t("auth:onboarding.details.expertiseHint")}
-                </p>
-              </Labeled>
-            </>
+            <ConsultantForm value={consultant} onChange={setConsultant} errors={consultantErrors} />
           )}
+
+          <p className="text-xs text-text-tertiary">
+            {t(
+              "auth:onboarding.details.docsNotice",
+              "After submitting, you'll be asked to upload supporting verification documents on the next screen.",
+            )}
+          </p>
 
           <button
             type="submit"
@@ -374,5 +470,177 @@ export function OnboardingWizard() {
         ))}
       </div>
     </section>
+  );
+}
+
+function CompanyForm({
+  value,
+  onChange,
+  errors,
+}: {
+  value: CompanyFormState;
+  onChange: (v: CompanyFormState) => void;
+  errors: Record<string, string>;
+}) {
+  const set = <K extends keyof CompanyFormState>(k: K, v: CompanyFormState[K]) =>
+    onChange({ ...value, [k]: v });
+  const optional = "optional";
+  return (
+    <div className="grid gap-5 sm:grid-cols-2">
+      <Labeled label="Organization legal name" required error={errors.legalName}>
+        <input className={`h-11 ${fieldClass}`} value={value.legalName}
+          onChange={(e) => set("legalName", e.target.value)} maxLength={200} />
+      </Labeled>
+      <Labeled label="Organization website" required error={errors.website}>
+        <input className={`h-11 ${fieldClass}`} value={value.website} placeholder="https://"
+          onChange={(e) => set("website", e.target.value)} type="url" />
+      </Labeled>
+      <Labeled label="Organization email" required error={errors.email}>
+        <input className={`h-11 ${fieldClass}`} value={value.email} type="email"
+          onChange={(e) => set("email", e.target.value)} />
+      </Labeled>
+      <Labeled label="Country" required error={errors.country}>
+        <input className={`h-11 ${fieldClass}`} value={value.country}
+          onChange={(e) => set("country", e.target.value)} maxLength={80} />
+      </Labeled>
+      <Labeled label="Company type" required error={errors.companyType}>
+        <select className={`h-11 ${fieldClass}`} value={value.companyType}
+          onChange={(e) => set("companyType", e.target.value)}>
+          <option value="">—</option>
+          {COMPANY_TYPES.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </Labeled>
+      <Labeled label="Business registration number" hint={optional} error={errors.registrationNumber}>
+        <input className={`h-11 ${fieldClass}`} value={value.registrationNumber}
+          onChange={(e) => set("registrationNumber", e.target.value)} maxLength={100} />
+      </Labeled>
+      <Labeled label="Tax registration number" hint={optional} error={errors.taxNumber}>
+        <input className={`h-11 ${fieldClass}`} value={value.taxNumber}
+          onChange={(e) => set("taxNumber", e.target.value)} maxLength={100} />
+      </Labeled>
+      <div className="sm:col-span-2">
+        <Labeled label="Company description" required error={errors.description}>
+          <textarea rows={4} className={`py-2.5 ${fieldClass}`} value={value.description}
+            onChange={(e) => set("description", e.target.value)} maxLength={1000} />
+        </Labeled>
+      </div>
+      <Labeled label="Contact person full name" required error={errors.contactName}>
+        <input className={`h-11 ${fieldClass}`} value={value.contactName}
+          onChange={(e) => set("contactName", e.target.value)} maxLength={100} />
+      </Labeled>
+      <Labeled label="Contact person position" required error={errors.contactPosition}>
+        <input className={`h-11 ${fieldClass}`} value={value.contactPosition}
+          onChange={(e) => set("contactPosition", e.target.value)} maxLength={100} />
+      </Labeled>
+      <Labeled label="Contact phone number" required error={errors.contactPhone}>
+        <input className={`h-11 ${fieldClass}`} value={value.contactPhone} type="tel"
+          onChange={(e) => set("contactPhone", e.target.value)} maxLength={40} />
+      </Labeled>
+    </div>
+  );
+}
+
+function ConsultantForm({
+  value,
+  onChange,
+  errors,
+}: {
+  value: ConsultantFormState;
+  onChange: (v: ConsultantFormState) => void;
+  errors: Record<string, string>;
+}) {
+  const set = <K extends keyof ConsultantFormState>(k: K, v: ConsultantFormState[K]) =>
+    onChange({ ...value, [k]: v });
+  // Common IANA time zones — kept short; the input is still free-text so the
+  // user can type anything not listed.
+  const tzOptions = useMemo(
+    () => [
+      "UTC", "Africa/Cairo", "Africa/Nairobi", "Asia/Riyadh", "Asia/Dubai", "Asia/Karachi",
+      "Asia/Kolkata", "Asia/Singapore", "Asia/Tokyo", "Europe/London", "Europe/Paris",
+      "Europe/Berlin", "Europe/Istanbul", "America/New_York", "America/Chicago",
+      "America/Los_Angeles", "America/Sao_Paulo", "Australia/Sydney",
+    ],
+    [],
+  );
+  const optional = "optional";
+  return (
+    <div className="grid gap-5 sm:grid-cols-2">
+      <div className="sm:col-span-2">
+        <Labeled label="Short bio" required error={errors.bio}>
+          <textarea rows={4} className={`py-2.5 ${fieldClass}`} value={value.bio}
+            onChange={(e) => set("bio", e.target.value)} maxLength={2000} />
+        </Labeled>
+      </div>
+      <Labeled label="Professional title" required error={errors.title}>
+        <input className={`h-11 ${fieldClass}`} value={value.title}
+          onChange={(e) => set("title", e.target.value)} maxLength={150}
+          placeholder="e.g. Senior Admissions Consultant" />
+      </Labeled>
+      <Labeled label="Highest degree" required error={errors.highestDegree}>
+        <input className={`h-11 ${fieldClass}`} value={value.highestDegree}
+          onChange={(e) => set("highestDegree", e.target.value)} maxLength={150}
+          placeholder="e.g. PhD, MSc, MBA" />
+      </Labeled>
+      <Labeled label="Field of expertise" required error={errors.fieldOfExpertise}>
+        <input className={`h-11 ${fieldClass}`} value={value.fieldOfExpertise}
+          onChange={(e) => set("fieldOfExpertise", e.target.value)} maxLength={200} />
+      </Labeled>
+      <Labeled label="Years of experience" required error={errors.yearsExperience}>
+        <input type="number" min={0} max={80} className={`h-11 ${fieldClass}`}
+          value={value.yearsExperience}
+          onChange={(e) => set("yearsExperience", e.target.value)} />
+      </Labeled>
+      <Labeled label="Session fee (USD)" required error={errors.fee}>
+        <input type="number" min={1} className={`h-11 ${fieldClass}`} value={value.fee}
+          onChange={(e) => set("fee", e.target.value)} />
+      </Labeled>
+      <Labeled label="Session duration (minutes)" required error={errors.durationMinutes}>
+        <select className={`h-11 ${fieldClass}`} value={value.durationMinutes}
+          onChange={(e) => set("durationMinutes", e.target.value)}>
+          {SESSION_DURATIONS.map((d) => (
+            <option key={d} value={String(d)}>{d}</option>
+          ))}
+        </select>
+      </Labeled>
+      <div className="sm:col-span-2">
+        <Labeled label="Expertise tags" required error={errors.expertiseTags}>
+          <input className={`h-11 ${fieldClass}`} value={value.expertiseTags}
+            onChange={(e) => set("expertiseTags", e.target.value)}
+            placeholder="Statement of Purpose, Interview Prep, …" />
+          <p className="mt-1 text-xs text-text-tertiary">Separate with commas.</p>
+        </Labeled>
+      </div>
+      <div className="sm:col-span-2">
+        <Labeled label="Languages" required error={errors.languages}>
+          <input className={`h-11 ${fieldClass}`} value={value.languages}
+            onChange={(e) => set("languages", e.target.value)}
+            placeholder="English, Arabic, …" />
+          <p className="mt-1 text-xs text-text-tertiary">Separate with commas.</p>
+        </Labeled>
+      </div>
+      <Labeled label="Country" required error={errors.country}>
+        <input className={`h-11 ${fieldClass}`} value={value.country}
+          onChange={(e) => set("country", e.target.value)} maxLength={80} />
+      </Labeled>
+      <Labeled label="Time zone" required error={errors.timezone}>
+        <input list="tz-list" className={`h-11 ${fieldClass}`} value={value.timezone}
+          onChange={(e) => set("timezone", e.target.value)} />
+        <datalist id="tz-list">
+          {tzOptions.map((tz) => (
+            <option key={tz} value={tz} />
+          ))}
+        </datalist>
+      </Labeled>
+      <Labeled label="LinkedIn URL" hint={optional} error={errors.linkedIn}>
+        <input type="url" className={`h-11 ${fieldClass}`} value={value.linkedIn} placeholder="https://linkedin.com/in/…"
+          onChange={(e) => set("linkedIn", e.target.value)} />
+      </Labeled>
+      <Labeled label="Portfolio URL" hint={optional} error={errors.portfolio}>
+        <input type="url" className={`h-11 ${fieldClass}`} value={value.portfolio} placeholder="https://"
+          onChange={(e) => set("portfolio", e.target.value)} />
+      </Labeled>
+    </div>
   );
 }

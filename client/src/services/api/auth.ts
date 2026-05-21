@@ -25,11 +25,32 @@ export interface LoginRequest {
 
 /** Onboarding profile details for a Company / Consultant — mirrors OnboardingDetails. */
 export interface OnboardingDetails {
+  // ── Company ─────────────────────────────────────────────────────────────
   organizationLegalName?: string | null;
   organizationWebsite?: string | null;
+  organizationEmail?: string | null;
+  organizationCountry?: string | null;
+  companyType?: string | null;
+  companyDescription?: string | null;
+  organizationRegistrationNumber?: string | null;
+  organizationTaxNumber?: string | null;
+  contactPersonFullName?: string | null;
+  contactPersonPosition?: string | null;
+  contactPhoneNumber?: string | null;
+  // ── Consultant ──────────────────────────────────────────────────────────
   biography?: string | null;
+  professionalTitle?: string | null;
+  highestDegree?: string | null;
+  fieldOfExpertise?: string | null;
+  yearsOfExperience?: number | null;
   sessionFeeUsd?: number | null;
+  sessionDurationMinutes?: number | null;
   expertiseTags?: string[] | null;
+  languages?: string[] | null;
+  country?: string | null;
+  timezone?: string | null;
+  linkedInUrl?: string | null;
+  portfolioUrl?: string | null;
 }
 
 export type SsoProvider = "google" | "microsoft";
@@ -56,6 +77,17 @@ export const authApi = {
   /** Confirms an email address with the userId + token from the verification link. */
   async verifyEmail(userId: string, token: string): Promise<void> {
     await apiClient.post("/api/auth/verify-email", { userId, token });
+  },
+  /** Re-issues the verification email. Backend silently no-ops for already-verified accounts. */
+  async resendVerification(email: string): Promise<void> {
+    await apiClient.post("/api/auth/resend-verification", { email });
+  },
+  /** Switches the active role for a dual-role account (FR-ONB-10). */
+  async switchRole(targetRole: string): Promise<AuthTokensResponse> {
+    const { data } = await apiClient.post<AuthTokensResponse>("/api/auth/switch-role", {
+      targetRole,
+    });
+    return data;
   },
   async logout(refreshToken: string): Promise<void> {
     await apiClient.post("/api/auth/logout", { refreshToken });

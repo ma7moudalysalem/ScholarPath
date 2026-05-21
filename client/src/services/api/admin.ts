@@ -99,6 +99,32 @@ export interface OnboardingRequestRow {
   accountStatus: AccountStatus;
   createdAt: string;
   requestedRole: string | null;
+  // Company snapshot
+  organizationLegalName: string | null;
+  organizationWebsite: string | null;
+  organizationEmail: string | null;
+  organizationCountry: string | null;
+  companyType: string | null;
+  companyDescription: string | null;
+  organizationRegistrationNumber: string | null;
+  organizationTaxNumber: string | null;
+  contactPersonFullName: string | null;
+  contactPersonPosition: string | null;
+  contactPhoneNumber: string | null;
+  // Consultant snapshot
+  biography: string | null;
+  professionalTitle: string | null;
+  highestDegree: string | null;
+  fieldOfExpertise: string | null;
+  yearsOfExperience: number | null;
+  sessionFeeUsd: number | null;
+  sessionDurationMinutes: number | null;
+  expertiseTagsJson: string | null;
+  languagesJson: string | null;
+  timezone: string | null;
+  linkedInUrl: string | null;
+  portfolioUrl: string | null;
+  consultantCountry: string | null;
 }
 
 export interface UpgradeRequestRow {
