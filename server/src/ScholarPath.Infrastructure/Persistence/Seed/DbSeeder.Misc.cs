@@ -116,19 +116,19 @@ public static partial class DbSeeder
             N(s0, NotificationType.ApplicationSubmitted, NotificationChannel.InApp,
                 "Application submitted", "تم تقديم الطلب",
                 "Your application has been submitted successfully.", "تم تقديم طلبك بنجاح.",
-                isRead: true, priority: 1, ageDays: 7, deepLink: "/applications"),
+                isRead: true, priority: 1, ageDays: 7, deepLink: "/student/applications"),
             N(s2, NotificationType.ApplicationStatusChanged, NotificationChannel.InApp,
                 "Application accepted", "تم قبول الطلب",
                 "Congratulations! Your application has been accepted.", "تهانينا! تم قبول طلبك.",
-                isRead: false, priority: 2, ageDays: 20, deepLink: "/applications"),
+                isRead: false, priority: 2, ageDays: 20, deepLink: "/student/applications"),
             N(s0, NotificationType.ApplicationDeadlineApproaching, NotificationChannel.Email,
                 "Deadline approaching", "اقتراب الموعد النهائي",
                 "A scholarship you saved closes in three days.", "تنتهي منحة قمت بحفظها خلال ثلاثة أيام.",
-                isRead: false, priority: 2, ageDays: 1, deepLink: "/scholarships"),
+                isRead: false, priority: 2, ageDays: 1, deepLink: "/student/scholarships"),
             N(s1, NotificationType.ApplicationDraftReminder, NotificationChannel.InApp,
                 "You have a draft application", "لديك طلب كمسودة",
                 "Finish and submit your draft application before the deadline.", "أكمل وقدّم طلبك المسودة قبل الموعد النهائي.",
-                isRead: false, priority: 1, ageDays: 2, deepLink: "/applications"),
+                isRead: false, priority: 1, ageDays: 2, deepLink: "/student/applications"),
 
             // Booking notifications
             N(consultant, NotificationType.BookingRequested, NotificationChannel.InApp,
@@ -138,15 +138,15 @@ public static partial class DbSeeder
             N(s1, NotificationType.BookingConfirmed, NotificationChannel.InApp,
                 "Booking confirmed", "تم تأكيد الحجز",
                 "Your consultation session has been confirmed.", "تم تأكيد جلستك الاستشارية.",
-                isRead: true, priority: 1, ageDays: 1, deepLink: "/bookings"),
+                isRead: true, priority: 1, ageDays: 1, deepLink: "/student/bookings"),
             N(s1, NotificationType.BookingReminder, NotificationChannel.Push,
                 "Session reminder", "تذكير بالجلسة",
                 "Your consultation session starts in one hour.", "تبدأ جلستك الاستشارية خلال ساعة.",
-                isRead: false, priority: 3, ageDays: 0, deepLink: "/bookings"),
+                isRead: false, priority: 3, ageDays: 0, deepLink: "/student/bookings"),
             N(s2, NotificationType.ConsultantRatingReceived, NotificationChannel.InApp,
                 "Please rate your session", "يرجى تقييم جلستك",
                 "How was your recent consultation? Leave a review.", "كيف كانت استشارتك الأخيرة؟ اترك تقييماً.",
-                isRead: false, priority: 1, ageDays: 14, deepLink: "/bookings"),
+                isRead: false, priority: 1, ageDays: 14, deepLink: "/student/bookings"),
 
             // Payment notifications
             N(s1, NotificationType.PaymentSuccess, NotificationChannel.Email,
@@ -156,13 +156,13 @@ public static partial class DbSeeder
             N(consultant, NotificationType.PayoutCompleted, NotificationChannel.InApp,
                 "Payout completed", "تم تحويل المستحقات",
                 "Your payout has been transferred to your bank account.", "تم تحويل مستحقاتك إلى حسابك البنكي.",
-                isRead: false, priority: 1, ageDays: 7, deepLink: "/payouts"),
+                isRead: false, priority: 1, ageDays: 7, deepLink: "/consultant/earnings"),
 
             // Community notification
             N(s0, NotificationType.ReplyOnYourPost, NotificationChannel.InApp,
                 "New reply on your post", "رد جديد على منشورك",
                 "Someone replied to your forum question.", "قام أحدهم بالرد على سؤالك في المنتدى.",
-                isRead: true, priority: 1, ageDays: 13, deepLink: "/community"),
+                isRead: true, priority: 1, ageDays: 13, deepLink: "/student/community"),
 
             // Onboarding / admin notification
             N(s1, NotificationType.UpgradeRequestApproved, NotificationChannel.InApp,
@@ -174,7 +174,7 @@ public static partial class DbSeeder
             N(users.Consultants[2].Id, NotificationType.ResourceApproved, NotificationChannel.InApp,
                 "Resource approved", "تمت الموافقة على المورد",
                 "Your submitted resource has been published.", "تم نشر المورد الذي قدمته.",
-                isRead: false, priority: 1, ageDays: 9, deepLink: "/resources"),
+                isRead: false, priority: 1, ageDays: 9, deepLink: "/student/resources"),
 
             // Broadcast
             N(company, NotificationType.Broadcast, NotificationChannel.InApp,
