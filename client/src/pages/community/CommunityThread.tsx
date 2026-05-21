@@ -139,7 +139,7 @@ export function CommunityThread() {
                     onClick={() => handleVote(thread.post.id, "Up")}
                     disabled={isOwnPost}
                     title={title}
-                    aria-label="Upvote"
+                    aria-label={t("thread.upvote")}
                     className="p-1.5 rounded-md text-text-tertiary hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                   >
                     <ArrowUp size={20} strokeWidth={2.5} aria-hidden />
@@ -154,7 +154,7 @@ export function CommunityThread() {
                     onClick={() => handleVote(thread.post.id, "Down")}
                     disabled={isOwnPost}
                     title={title}
-                    aria-label="Downvote"
+                    aria-label={t("thread.downvote")}
                     className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                   >
                     <ArrowDown size={20} strokeWidth={2.5} aria-hidden />
@@ -281,7 +281,7 @@ export function CommunityThread() {
                       onClick={() => handleVote(reply.id, "Up")}
                       disabled={isOwnReply}
                       title={replyVoteTitle}
-                      aria-label="Upvote reply"
+                      aria-label={t("thread.upvoteReply")}
                       className="p-1.5 rounded-md text-text-tertiary hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                     >
                       <ArrowUp size={14} strokeWidth={2.5} aria-hidden />

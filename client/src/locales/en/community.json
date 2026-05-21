@@ -16,7 +16,10 @@
     "backToFeed": "Back to discussions",
     "commentsCount": "{{count}} Comments",
     "verifiedSafe": "Verified safe",
-    "replyPlaceholder": "Share your thoughts..."
+    "replyPlaceholder": "Share your thoughts...",
+    "upvote": "Upvote",
+    "downvote": "Downvote",
+    "upvoteReply": "Upvote reply"
   },
   "actions": {
     "flagReasonPrompt": "Reason for flagging:",

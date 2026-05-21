@@ -16,7 +16,10 @@
     "backToFeed": "العودة إلى النقاشات",
     "commentsCount": "{{count}} تعليقًا",
     "verifiedSafe": "مُوثَّق وآمن",
-    "replyPlaceholder": "شارك أفكارك..."
+    "replyPlaceholder": "شارك أفكارك...",
+    "upvote": "تصويت بالموافقة",
+    "downvote": "تصويت بالرفض",
+    "upvoteReply": "تصويت للرد"
   },
   "actions": {
     "flagReasonPrompt": "سبب الإبلاغ:",

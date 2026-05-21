@@ -234,7 +234,7 @@ export function Community() {
                         <div className="hidden sm:flex flex-col items-center gap-0.5 bg-bg-subtle rounded-xl px-1.5 py-2 h-fit border border-border-subtle">
                           <button
                             type="button"
-                            aria-label={t("feed.sortTrending") + " up"}
+                            aria-label={t("thread.upvote")}
                             disabled={isOwnPost}
                             title={voteDisabledTitle}
                             onClick={(e) => handleVote(e, post.id, "Up")}
@@ -249,7 +249,7 @@ export function Community() {
                           </span>
                           <button
                             type="button"
-                            aria-label="Downvote"
+                            aria-label={t("thread.downvote")}
                             disabled={isOwnPost}
                             title={voteDisabledTitle}
                             onClick={(e) => handleVote(e, post.id, "Down")}
