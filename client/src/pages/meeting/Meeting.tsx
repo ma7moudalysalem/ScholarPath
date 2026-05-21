@@ -14,7 +14,7 @@ import {
 } from "@azure/communication-calling";
 import { AzureCommunicationTokenCredential } from "@azure/communication-common";
 import { meetingsApi } from "@/services/api/meetings";
-import { apiErrorMessage } from "@/services/api/client";
+import { ApiError, apiErrorMessage } from "@/services/api/client";
 import { useAuthStore } from "@/stores/authStore";
 
 type Phase = "joining" | "connected" | "ended" | "error";
@@ -28,7 +28,8 @@ export function Meeting() {
   const { bookingId } = useParams<{ bookingId: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation(["bookings", "common"]);
-  const displayName = useAuthStore((s) => s.user?.fullName ?? "Participant");
+  const userFullName = useAuthStore((s) => s.user?.fullName);
+  const displayName = userFullName?.trim() || t("bookings:meeting.you");
 
   const [phase, setPhase] = useState<Phase>("joining");
   const [errorMsg, setErrorMsg] = useState("");
@@ -91,13 +92,25 @@ export function Meeting() {
         const credential = new AzureCommunicationTokenCredential(join.accessToken);
         const agent = await callClient.createCallAgent(credential, { displayName });
         if (disposed) {
-          await agent.dispose();
+          await agent.dispose().catch(() => undefined);
           return;
         }
         agentRef.current = agent;
 
         const deviceManager = await callClient.getDeviceManager();
-        await deviceManager.askDevicePermission({ video: true, audio: true });
+        try {
+          await deviceManager.askDevicePermission({ video: true, audio: true });
+        } catch (permErr) {
+          // User denied camera/mic — surface a specific message rather than the
+          // generic error. The call cannot proceed without at least audio.
+          if (
+            permErr instanceof Error
+            && (permErr.name === "NotAllowedError" || permErr.name === "PermissionDeniedError")
+          ) {
+            throw new Error(t("bookings:meeting.errorPermissionDenied"));
+          }
+          throw permErr;
+        }
         const cameras = await deviceManager.getCameras();
 
         let localStream: LocalVideoStream | null = null;
@@ -118,7 +131,7 @@ export function Meeting() {
           },
         );
         if (disposed) {
-          await call.hangUp();
+          await call.hangUp().catch(() => undefined);
           return;
         }
         callRef.current = call;
@@ -132,6 +145,7 @@ export function Meeting() {
           views.push(view);
           localVideoRef.current.replaceChildren(view.target);
         }
+
 
         call.remoteParticipants.forEach(watchParticipant);
         call.on("remoteParticipantsUpdated", (e) => {
@@ -156,28 +170,55 @@ export function Meeting() {
         call.on("stateChanged", () => {
           if (disposed) return;
           if (call.state === "Connected") void ensureRecording();
-          if (call.state === "Disconnected") setPhase("ended");
+          if (call.state === "Disconnected") {
+            setPhase("ended");
+            // The call ended while the user is still on the page — release the
+            // agent immediately so the SDK does not hold the mic/camera while
+            // the user reads the "session ended" screen. Cleanup will still run
+            // on navigation; nulling refs here prevents a double-dispose throw.
+            const a = agentRef.current;
+            agentRef.current = null;
+            callRef.current = null;
+            void a?.dispose().catch(() => undefined);
+          }
         });
         if (call.state === "Connected") void ensureRecording();
 
         if (!disposed) setPhase("connected");
       } catch (err) {
         if (!disposed) {
-          const msg = apiErrorMessage(err, "");
-          // Translate the backend's domain message into a friendlier hint so
-          // the student knows what to do rather than seeing a raw error string.
-          const isCancelledBooking =
-            msg.toLowerCase().includes("confirmed booking") ||
-            msg.toLowerCase().includes("not open yet") ||
-            msg.toLowerCase().includes("room has closed");
-          setErrorMsg(
-            isCancelledBooking
-              ? t("bookings:meeting.errorNotConfirmed")
-              : msg || t("bookings:meeting.errorGeneric"),
-          );
+          setErrorMsg(resolveErrorMessage(err));
           setPhase("error");
         }
       }
+    }
+
+    function resolveErrorMessage(err: unknown): string {
+      // The browser permission flow throws a localised Error directly — keep
+      // its message rather than re-translating, since `askDevicePermission`'s
+      // failures arrive here pre-translated.
+      if (err instanceof Error && err.message === t("bookings:meeting.errorPermissionDenied")) {
+        return err.message;
+      }
+      if (err instanceof ApiError) {
+        // 403 — the authenticated user is not a participant of this booking.
+        if (err.status === 403) {
+          return t("bookings:meeting.errorNotParticipant");
+        }
+        const detail = err.payload.detail ?? "";
+        const lower = detail.toLowerCase();
+        if (lower.includes("not open yet")) {
+          return t("bookings:meeting.errorNotOpenYet");
+        }
+        if (lower.includes("has closed")) {
+          return t("bookings:meeting.errorRoomClosed");
+        }
+        if (lower.includes("confirmed booking")) {
+          return t("bookings:meeting.errorNotConfirmed");
+        }
+        if (detail) return detail;
+      }
+      return apiErrorMessage(err, "") || t("bookings:meeting.errorGeneric");
     }
 
     void start();
@@ -192,8 +233,17 @@ export function Meeting() {
         }
       });
       viewsRef.current = [];
-      void callRef.current?.hangUp().catch(() => undefined);
-      void agentRef.current?.dispose().catch(() => undefined);
+
+      // Snapshot then null the refs before awaiting disposal — a fast remount
+      // (React strict-mode dev double-mount, rapid route change) must not
+      // re-enter dispose() on an already-disposed handle.
+      const call = callRef.current;
+      const agent = agentRef.current;
+      callRef.current = null;
+      agentRef.current = null;
+      localStreamRef.current = null;
+      void call?.hangUp().catch(() => undefined);
+      void agent?.dispose().catch(() => undefined);
     };
   // `t` from useTranslation is referentially stable (never changes across
   // renders), so adding it to deps does not cause extra effect runs.
@@ -223,7 +273,12 @@ export function Meeting() {
   }, [camOn]);
 
   const leave = useCallback(() => {
-    void callRef.current?.hangUp().catch(() => undefined);
+    // Hang up here too (in addition to effect cleanup) so the SDK starts
+    // tearing the call down before the route transition rather than after —
+    // the user sees the mic light go off the moment they click Leave.
+    const call = callRef.current;
+    callRef.current = null;
+    void call?.hangUp().catch(() => undefined);
     navigate(-1);
   }, [navigate]);
 
