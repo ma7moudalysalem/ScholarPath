@@ -52,8 +52,30 @@ public sealed class AzureOpenAiService(
         var arabic = RagSupport.IsArabic(msg);
         var ai = opts.Value;
 
+        // If the production App Service is set to `Ai:Provider=AzureOpenAi`
+        // but nobody has filled in the endpoint / key, fail fast on the
+        // local router instead of letting the Azure call throw — otherwise
+        // every user-facing chat request returns 500. Same applies if the
+        // retriever's embedding step blows up for the same reason.
+        if (!IsAzureChatConfigured(ai))
+        {
+            logger.LogWarning(
+                "Azure OpenAI is selected but Endpoint / ApiKey are not set — answering with the local RAG router.");
+            return await local.AskAsync(userId, sessionId, msg, history, ct).ConfigureAwait(false);
+        }
+
         // ── Retrieve (the "R" in RAG) ──
-        var docs = await retriever.RetrieveAsync(msg, ai.RagTopK, ct).ConfigureAwait(false);
+        IReadOnlyList<RetrievedDocument> docs;
+        try
+        {
+            docs = await retriever.RetrieveAsync(msg, ai.RagTopK, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException or TaskCanceledException)
+        {
+            logger.LogWarning(ex, "Knowledge retrieval failed; answering with the local RAG router instead.");
+            return await local.AskAsync(userId, sessionId, msg, history, ct).ConfigureAwait(false);
+        }
+
         var relevant = docs.Where(d => d.Score >= ai.RagMinScore).ToList();
         var context = RagSupport.BuildContextBlock(relevant, arabic);
 
@@ -81,7 +103,23 @@ public sealed class AzureOpenAiService(
             logger.LogWarning("Azure OpenAI chat timed out; falling back to the local RAG router.");
             return await local.AskAsync(userId, sessionId, msg, history, ct).ConfigureAwait(false);
         }
+        catch (InvalidOperationException ex)
+        {
+            // Defensive: covers Endpoint/ApiKey races that slip past the
+            // upfront check (Options reload, etc.). Don't let it 500.
+            logger.LogWarning(ex, "Azure OpenAI chat threw InvalidOperationException; falling back to the local RAG router.");
+            return await local.AskAsync(userId, sessionId, msg, history, ct).ConfigureAwait(false);
+        }
     }
+
+    /// <summary>
+    /// True only when both Endpoint and ApiKey are populated. Used to short-
+    /// circuit to the local router instead of letting <see cref="ChatCompletionAsync"/>
+    /// throw an unhandled <see cref="InvalidOperationException"/>.
+    /// </summary>
+    private static bool IsAzureChatConfigured(AiOptions ai)
+        => !string.IsNullOrWhiteSpace(ai.AzureOpenAi.Endpoint)
+        && !string.IsNullOrWhiteSpace(ai.AzureOpenAi.ApiKey);
 
     // ─── Azure OpenAI HTTP ────────────────────────────────────────────────
 
