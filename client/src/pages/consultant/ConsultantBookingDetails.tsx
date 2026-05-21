@@ -29,8 +29,8 @@ export function ConsultantBookingDetails() {
 
   const acceptMutation = useAcceptBookingMutation();
   const rejectMutation = useRejectBookingMutation();
-  const cancelMutation = useMarkNoShowMutation();
-  const noShowMutation = useCancelBookingMutation();
+  const cancelMutation = useCancelBookingMutation();
+  const noShowMutation = useMarkNoShowMutation();
 
   if (isLoading) {
     return (
@@ -101,7 +101,7 @@ export function ConsultantBookingDetails() {
 
   const handleCancel = () => {
     if (!isRequested && !isConfirmed) return;
-    noShowMutation.mutate(booking.id, {
+    cancelMutation.mutate(booking.id, {
       onSuccess: () => toast.success(t("details.banner.cancelled")),
       onError: (err) => toast.error(apiErrorMessage(err, t("states.error"))),
     });
@@ -109,7 +109,7 @@ export function ConsultantBookingDetails() {
 
   const handleNoShow = () => {
     if (!isConfirmed) return;
-    cancelMutation.mutate(booking.id, {
+    noShowMutation.mutate(booking.id, {
       onSuccess: () => toast.success(t("details.banner.noShow")),
       onError: (err) => toast.error(apiErrorMessage(err, t("states.error"))),
     });
@@ -312,7 +312,7 @@ export function ConsultantBookingDetails() {
                       : "cursor-not-allowed border border-border-subtle bg-bg-elevated text-text-tertiary",
                   ].join(" ")}
                 >
-                  {cancelMutation.isPending
+                  {noShowMutation.isPending
                     ? t("states.submitting")
                     : t("details.actions.noShow")}
                 </button>
@@ -328,7 +328,7 @@ export function ConsultantBookingDetails() {
                       : "cursor-not-allowed border border-border-subtle bg-bg-elevated text-text-tertiary",
                   ].join(" ")}
                 >
-                  {noShowMutation.isPending
+                  {cancelMutation.isPending
                     ? t("states.submitting")
                     : t("details.actions.cancel")}
                 </button>
