@@ -82,6 +82,26 @@
       "eligibility": "Am I eligible for the Chevening scholarship?",
       "essay": "How do I write a strong personal statement?"
     },
+    "quickActionsTitle": "Quick actions",
+    "quickActionsHint": "Pick one to prefill the chat — edit the details before sending.",
+    "quickActions": {
+      "recommendationLetter": {
+        "label": "Write a Recommendation Letter",
+        "prompt": "Help me write a strong recommendation letter for a graduate scholarship application. The candidate is [name], who I taught/supervised in [course/role] for [duration]. Their key strengths are [strengths]. Please draft the letter with a clear opening, two paragraphs of concrete evidence, and a confident closing."
+      },
+      "statementOfPurpose": {
+        "label": "Structure my Statement of Purpose",
+        "prompt": "Help me structure a Statement of Purpose for a [Master's / PhD] application in [field] at [target university]. My background is [background], my motivation is [motivation], and my research interests are [interests]. Give me an outline with section-by-section guidance and word counts."
+      },
+      "interviewPrep": {
+        "label": "Prepare for Interview",
+        "prompt": "Help me prepare for a scholarship interview for [scholarship name]. My field is [field] and my background is [background]. List the most likely questions, suggest a STAR-format answer template, and give me 3 thoughtful questions to ask the panel at the end."
+      },
+      "improveEssay": {
+        "label": "Improve my Essay",
+        "prompt": "Please review and improve the following essay for a scholarship application. Focus on clarity, flow, stronger verbs, and removing filler. Keep my voice. Here is the draft:\n\n[paste your essay here]"
+      }
+    },
     "sidebar": {
       "title": "Your chats",
       "newChat": "New chat",

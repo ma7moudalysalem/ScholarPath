@@ -1,11 +1,20 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Sparkles, ClipboardCheck, MessageSquare, type LucideIcon } from "lucide-react";
+import {
+  Sparkles,
+  ClipboardCheck,
+  MessageSquare,
+  FileSignature,
+  ScrollText,
+  Mic,
+  PenLine,
+  type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AiRecommendations } from "@/components/ai/AiRecommendations";
 import { EligibilityCheckerSection } from "@/components/ai/EligibilityCheckerSection";
-import { Chatbot } from "@/components/ai/Chatbot";
+import { Chatbot, type ChatbotHandle } from "@/components/ai/Chatbot";
 
 type AiTab = "recommendations" | "eligibility" | "chat";
 
@@ -15,6 +24,16 @@ const TABS: { id: AiTab; icon: LucideIcon }[] = [
   { id: "recommendations", icon: Sparkles },
   { id: "eligibility",     icon: ClipboardCheck },
   { id: "chat",            icon: MessageSquare },
+];
+
+// Quick Actions — prefill the chatbot input with a starter prompt the
+// student can edit before sending. Each entry maps to an i18n bundle
+// under ai.chat.quickActions.<key>.{label,prompt}.
+const QUICK_ACTIONS: { key: string; icon: LucideIcon }[] = [
+  { key: "recommendationLetter", icon: FileSignature },
+  { key: "statementOfPurpose",   icon: ScrollText },
+  { key: "interviewPrep",        icon: Mic },
+  { key: "improveEssay",         icon: PenLine },
 ];
 
 /**
@@ -45,6 +64,16 @@ export function AiFeatures() {
   const paramTitle = searchParams.get("stitle") ?? "";
   const initialScholarship =
     paramSid && paramTitle ? { id: paramSid, title: paramTitle } : undefined;
+
+  // Imperative handle so Quick Action buttons can prefill the chat input
+  // without auto-sending — the user reviews/edits the prompt first.
+  const chatbotRef = useRef<ChatbotHandle>(null);
+
+  const handleQuickAction = (key: string) => {
+    const prompt = t(`ai:chat.quickActions.${key}.prompt`);
+    if (tab !== "chat") setTab("chat");
+    chatbotRef.current?.prefillDraft(prompt);
+  };
 
   return (
     <div className="space-y-6">
@@ -96,8 +125,37 @@ export function AiFeatures() {
       <div className={cn(tab !== "eligibility" && "hidden")}>
         <EligibilityCheckerSection initialScholarship={initialScholarship} />
       </div>
-      <div className={cn(tab !== "chat" && "hidden")}>
-        <Chatbot />
+      <div className={cn(tab !== "chat" && "hidden", "space-y-4")}>
+        {/* ── Quick actions: prefill the chat with educational starter prompts ── */}
+        <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-4 shadow-elevation-1">
+          <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h3 className="text-sm font-bold text-text-primary tracking-tight">
+                {t("ai:chat.quickActionsTitle")}
+              </h3>
+              <p className="text-xs text-text-secondary mt-0.5">
+                {t("ai:chat.quickActionsHint")}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            {QUICK_ACTIONS.map(({ key, icon: Icon }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleQuickAction(key)}
+                className="group inline-flex items-center gap-2 rounded-xl border border-border-subtle bg-bg-elevated px-3 py-2.5 text-start text-sm font-medium text-text-primary shadow-elevation-1 transition-all hover:border-brand-300 hover:bg-brand-50/40 hover:shadow-elevation-2 active:scale-[0.98]"
+              >
+                <span className="inline-flex size-7 items-center justify-center rounded-lg bg-brand-50 text-brand-600 shrink-0 group-hover:bg-brand-100">
+                  <Icon size={14} aria-hidden />
+                </span>
+                <span className="leading-snug">{t(`ai:chat.quickActions.${key}.label`)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Chatbot ref={chatbotRef} />
       </div>
     </div>
   );

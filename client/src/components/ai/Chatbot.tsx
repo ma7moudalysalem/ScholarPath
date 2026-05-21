@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from "react";
 import { Link } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -54,7 +54,16 @@ function persistSessionId(id: string | undefined) {
   else window.localStorage.removeItem(SESSION_STORAGE_KEY);
 }
 
-export function Chatbot() {
+/**
+ * Imperative handle so the surrounding page (e.g. AiFeatures Quick Actions)
+ * can prefill the chat input with a starter prompt without auto-sending.
+ * The user sees the text in the textbox and can edit before hitting send.
+ */
+export interface ChatbotHandle {
+  prefillDraft: (text: string) => void;
+}
+
+export const Chatbot = forwardRef<ChatbotHandle>(function Chatbot(_, ref) {
   const { t, i18n } = useTranslation(["ai", "common"]);
   const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const qc = useQueryClient();
@@ -68,6 +77,22 @@ export function Chatbot() {
     readPersistedSessionId(),
   );
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Expose a prefill method so external Quick Action buttons can stage a
+  // starter prompt in the input without auto-sending. Focus + caret-to-end
+  // makes the next keypress edit the prompt naturally.
+  useImperativeHandle(ref, () => ({
+    prefillDraft: (text: string) => {
+      setDraft(text);
+      requestAnimationFrame(() => {
+        const el = inputRef.current;
+        if (!el) return;
+        el.focus();
+        el.setSelectionRange(text.length, text.length);
+      });
+    },
+  }), []);
 
   // ── Sessions sidebar ──────────────────────────────────────────────────────
 
@@ -460,6 +485,7 @@ export function Chatbot() {
         >
           <div className="flex items-center gap-2 rounded-2xl border bg-bg-subtle/60 px-3 py-2 transition-colors focus-within:border-brand-300 focus-within:bg-bg-elevated focus-within:ring-2 focus-within:ring-brand-400/30 border-border-subtle">
             <input
+              ref={inputRef}
               type="text"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -488,4 +514,4 @@ export function Chatbot() {
       </div>
     </section>
   );
-}
+});
