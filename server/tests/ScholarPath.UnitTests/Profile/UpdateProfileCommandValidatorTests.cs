@@ -30,7 +30,8 @@ public sealed class UpdateProfileCommandValidatorTests
         AcademicLevel: null, FieldOfStudy: null, CurrentInstitution: null, Gpa: null, GpaScale: null,
         OrganizationLegalName: null, OrganizationWebsite: null, SessionFeeUsd: null,
         SessionDurationMinutes: null, ProfessionalTitle: null, YearsOfExperience: null,
-        ExpertiseTags: null, Languages: null, Timezone: null);
+        ExpertiseTags: null, Languages: null, Timezone: null,
+        PreferredCountries: null, PreferredFields: null);
 
     // ── GPA / GpaScale (CR-PROF-02) ──────────────────────────────────────────
 

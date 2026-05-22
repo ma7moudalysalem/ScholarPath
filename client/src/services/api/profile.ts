@@ -32,6 +32,10 @@ export interface UserProfile {
   expertiseTags: string[] | null;
   languages: string[] | null;
   timezone: string | null;
+  // Student matching inputs — where they WANT to study + preferred fields.
+  // These feed the AI recommender; distinct from nationality / residence.
+  preferredCountries: string[] | null;
+  preferredFields: string[] | null;
   completenessPercent: number;
   // CR-PROF-06: false for users that signed in only via SSO (no PasswordHash).
   hasPasswordCredential: boolean;
@@ -68,6 +72,9 @@ export interface UpdateProfileRequest {
   expertiseTags?: string[] | null;
   languages?: string[] | null;
   timezone?: string | null;
+  // Student matching inputs — preferred study destinations + fields.
+  preferredCountries?: string[] | null;
+  preferredFields?: string[] | null;
 }
 
 // Profile photo upload limits (CR-PROF-10) — mirror the backend constants

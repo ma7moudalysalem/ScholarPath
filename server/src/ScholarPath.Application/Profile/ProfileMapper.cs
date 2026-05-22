@@ -38,6 +38,9 @@ internal static class ProfileMapper
             ParseStringList(profile?.ExpertiseTagsJson),
             ParseStringList(profile?.LanguagesJson),
             profile?.Timezone,
+            // Student matching inputs — preferred study destinations + fields.
+            ParseStringList(profile?.PreferredCountriesJson),
+            ParseStringList(profile?.PreferredFieldsJson),
             profile?.ProfileCompletenessPercent ?? ProfileCompletenessCalculator.Calculate(user, profile),
             // CR-PROF-06: empty password hash means the user signs in via SSO only.
             !string.IsNullOrEmpty(user.PasswordHash));

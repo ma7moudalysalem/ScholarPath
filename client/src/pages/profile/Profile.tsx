@@ -105,6 +105,9 @@ interface FormState {
   expertiseTags: string[];
   languages: string[];
   timezone: string;
+  // Student matching inputs — preferred study destinations + fields.
+  preferredCountries: string[];
+  preferredFields: string[];
 }
 
 function toForm(p: UserProfile): FormState {
@@ -134,6 +137,8 @@ function toForm(p: UserProfile): FormState {
     expertiseTags: p.expertiseTags ?? [],
     languages: p.languages ?? [],
     timezone: p.timezone ?? "",
+    preferredCountries: p.preferredCountries ?? [],
+    preferredFields: p.preferredFields ?? [],
   };
 }
 
@@ -186,6 +191,8 @@ function toRequest(f: FormState): UpdateProfileRequest {
     expertiseTags: f.expertiseTags.length > 0 ? f.expertiseTags : null,
     languages: f.languages.length > 0 ? f.languages : null,
     timezone: trimOrNull(f.timezone),
+    preferredCountries: f.preferredCountries.length > 0 ? f.preferredCountries : null,
+    preferredFields: f.preferredFields.length > 0 ? f.preferredFields : null,
   };
 }
 
@@ -1394,6 +1401,37 @@ export function Profile() {
                     </p>
                   )}
                 </div>
+              </FieldRow>
+
+              {/*
+                Matching inputs — where the student WANTS to study and which
+                fields interest them. These feed the AI recommender (it overlaps
+                them against each scholarship's target countries / fields).
+                Distinct from nationality / country of residence above, which
+                describe where the student is FROM (used for eligibility, not
+                for ranking destinations).
+              */}
+              <FieldRow
+                label={t("profile:fields.preferredCountries")}
+                description={t("profile:fields.preferredCountriesDesc")}
+              >
+                <TagInput
+                  value={form.preferredCountries}
+                  onChange={(tags) => setTags("preferredCountries", tags)}
+                  placeholder={t("profile:fields.preferredCountriesPlaceholder")}
+                  max={15}
+                />
+              </FieldRow>
+              <FieldRow
+                label={t("profile:fields.preferredFields")}
+                description={t("profile:fields.preferredFieldsDesc")}
+              >
+                <TagInput
+                  value={form.preferredFields}
+                  onChange={(tags) => setTags("preferredFields", tags)}
+                  placeholder={t("profile:fields.preferredFieldsPlaceholder")}
+                  max={15}
+                />
               </FieldRow>
             </SectionCard>
           )}

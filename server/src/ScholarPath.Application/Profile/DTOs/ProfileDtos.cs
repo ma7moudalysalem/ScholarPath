@@ -32,6 +32,12 @@ public sealed record UserProfileDto(
     IReadOnlyCollection<string>? ExpertiseTags,
     IReadOnlyCollection<string>? Languages,
     string? Timezone,
+    // Student matching inputs — where they WANT to study + preferred fields.
+    // These feed the AI recommender (LocalAiService overlaps them against the
+    // scholarship's TargetCountries / FieldsOfStudy). Distinct from
+    // Nationality / CountryOfResidence, which describe where the student is FROM.
+    IReadOnlyCollection<string>? PreferredCountries,
+    IReadOnlyCollection<string>? PreferredFields,
     int CompletenessPercent,
     // CR-PROF-06: lets the UI hide the change-password card for SSO-only users.
     bool HasPasswordCredential);
@@ -64,4 +70,7 @@ public sealed record UpdateProfileRequestDto(
     int? YearsOfExperience,
     IReadOnlyCollection<string>? ExpertiseTags,
     IReadOnlyCollection<string>? Languages,
-    string? Timezone);
+    string? Timezone,
+    // Student matching inputs — preferred study destinations + fields.
+    IReadOnlyCollection<string>? PreferredCountries,
+    IReadOnlyCollection<string>? PreferredFields);

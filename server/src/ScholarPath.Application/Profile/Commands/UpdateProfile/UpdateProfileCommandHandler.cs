@@ -86,6 +86,13 @@ public sealed class UpdateProfileCommandHandler(
         if (f.Languages is not null) profile.LanguagesJson = SerializeStringList(f.Languages);
         if (f.Timezone is not null) profile.Timezone = string.IsNullOrWhiteSpace(f.Timezone) ? null : f.Timezone.Trim();
 
+        // Student matching inputs — preferred study destinations + fields.
+        // These are what the AI recommender overlaps against each scholarship's
+        // TargetCountries / FieldsOfStudy, so capturing them here is what makes
+        // matching actually score on country + field relevance.
+        if (f.PreferredCountries is not null) profile.PreferredCountriesJson = SerializeStringList(f.PreferredCountries);
+        if (f.PreferredFields is not null) profile.PreferredFieldsJson = SerializeStringList(f.PreferredFields);
+
         if (f.AcademicLevel is not null
             && Enum.TryParse<AcademicLevel>(f.AcademicLevel, ignoreCase: true, out var level))
         {

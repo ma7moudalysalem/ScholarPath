@@ -24,7 +24,8 @@ public sealed class UpdateProfileCommandHandlerTests
         AcademicLevel: null, FieldOfStudy: null, CurrentInstitution: null, Gpa: null, GpaScale: null,
         OrganizationLegalName: null, OrganizationWebsite: null, SessionFeeUsd: null,
         SessionDurationMinutes: null, ProfessionalTitle: null, YearsOfExperience: null,
-        ExpertiseTags: null, Languages: null, Timezone: null);
+        ExpertiseTags: null, Languages: null, Timezone: null,
+        PreferredCountries: null, PreferredFields: null);
 
     private static ApplicationDbContext CreateDb() =>
         new(new DbContextOptionsBuilder<ApplicationDbContext>()
