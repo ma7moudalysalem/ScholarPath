@@ -37,6 +37,11 @@ export interface OnboardingDetails {
   contactPersonFullName?: string | null;
   contactPersonPosition?: string | null;
   contactPhoneNumber?: string | null;
+  // AUTH-CODE-03 — conditional applicability fields.
+  isTaxRegistered?: boolean | null;
+  taxNotApplicableReason?: string | null;
+  isLegallyRegistered?: boolean | null;
+  legalRegistrationNotApplicableReason?: string | null;
   // ── Consultant ──────────────────────────────────────────────────────────
   biography?: string | null;
   professionalTitle?: string | null;

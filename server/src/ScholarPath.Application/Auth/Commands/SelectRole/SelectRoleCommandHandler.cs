@@ -19,6 +19,20 @@ public sealed class SelectRoleCommandHandler(
     ILogger<SelectRoleCommandHandler> logger)
     : IRequestHandler<SelectRoleCommand, AuthTokensDto>
 {
+    // FR-ONB-03/04 + Auth alignment AUTH-CODE-02: applicants in these roles must
+    // upload at least this many supporting verification documents (Category =
+    // OnboardingDocument) before they reach the admin queue. The SRS lists the
+    // document keys that should be covered:
+    //   Company   → CompanyLegalRegistration, CompanyRepresentativeProof,
+    //               CompanyTaxCertificate (when tax-registered)
+    //   Consultant→ ConsultantIdentityProof, ConsultantDegreeCertificate,
+    //               ConsultantCvResume
+    // The wizard is responsible for guiding the user through which documents to
+    // upload; the backend enforces a defensive minimum count so an admin never
+    // sees an empty queue entry.
+    private const int CompanyMinDocs = 2;
+    private const int ConsultantMinDocs = 3;
+
     public async Task<AuthTokensDto> Handle(SelectRoleCommand request, CancellationToken ct)
     {
         var userId = currentUser.UserId
@@ -44,6 +58,23 @@ public sealed class SelectRoleCommandHandler(
         }
         else
         {
+            // AUTH-CODE-02 — enforce mandatory verification documents BEFORE
+            // the applicant lands in the admin queue. Counts only undeleted
+            // OnboardingDocument-category uploads owned by the applicant.
+            var onboardingDocCount = await db.Documents
+                .Where(d => d.OwnerUserId == userId
+                            && d.Category == DocumentCategory.OnboardingDocument)
+                .CountAsync(ct).ConfigureAwait(false);
+
+            var requiredDocs = request.Role == "Company" ? CompanyMinDocs : ConsultantMinDocs;
+            if (onboardingDocCount < requiredDocs)
+            {
+                var missing = requiredDocs - onboardingDocCount;
+                throw new ConflictException(
+                    $"Upload {requiredDocs} verification document(s) before submitting your onboarding request — "
+                    + $"{missing} more required.");
+            }
+
             // Company / Consultant must be vetted — park them in the onboarding queue.
             // ActiveRole carries the requested role (the queue surfaces it); the Identity
             // role itself is granted by ReviewOnboardingCommandHandler on approval.
@@ -82,6 +113,18 @@ public sealed class SelectRoleCommandHandler(
                     user.Profile.ContactPersonPosition = details.ContactPersonPosition;
                     user.Profile.ContactPhoneNumber = details.ContactPhoneNumber;
                     user.Profile.OrganizationVerificationStatus = "Pending";
+                    // AUTH-CODE-03 — conditional applicability fields.
+                    user.Profile.IsTaxRegistered = details.IsTaxRegistered;
+                    user.Profile.TaxNotApplicableReason = details.TaxNotApplicableReason;
+                    user.Profile.IsLegallyRegistered = details.IsLegallyRegistered;
+                    user.Profile.LegalRegistrationNotApplicableReason =
+                        details.LegalRegistrationNotApplicableReason;
+                    // AUTH-CODE-06 — once the applicant resubmits, the stored
+                    // rejection feedback is stale. Clear it so the wizard does
+                    // not keep showing the previous reason after they have
+                    // already acted on it.
+                    user.Profile.LastOnboardingRejectionReason = null;
+                    user.Profile.LastOnboardingRejectedAt = null;
                 }
                 else
                 {
@@ -103,6 +146,9 @@ public sealed class SelectRoleCommandHandler(
                     user.Profile.PortfolioUrl = details.PortfolioUrl;
                     if (!string.IsNullOrWhiteSpace(details.Country))
                         user.CountryOfResidence = details.Country;
+                    // AUTH-CODE-06 — clear stale rejection feedback on resubmission.
+                    user.Profile.LastOnboardingRejectionReason = null;
+                    user.Profile.LastOnboardingRejectedAt = null;
                 }
             }
         }

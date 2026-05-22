@@ -111,6 +111,12 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
         b.Property(p => p.ContactPersonFullName).HasMaxLength(100);
         b.Property(p => p.ContactPersonPosition).HasMaxLength(100);
         b.Property(p => p.ContactPhoneNumber).HasMaxLength(40);
+        // Conditional applicability fields (FR-ONB-03 — Auth alignment AUTH-CODE-03).
+        b.Property(p => p.TaxNotApplicableReason).HasMaxLength(500);
+        b.Property(p => p.LegalRegistrationNotApplicableReason).HasMaxLength(500);
+        // Onboarding rejection feedback (FR-ONB-07 — Auth alignment AUTH-CODE-06).
+        // Re-surfaced on the wizard when a rejected applicant resubmits.
+        b.Property(p => p.LastOnboardingRejectionReason).HasMaxLength(2000);
         b.Property(p => p.ProfessionalTitle).HasMaxLength(150);
         b.Property(p => p.HighestDegree).HasMaxLength(150);
         b.Property(p => p.FieldOfExpertise).HasMaxLength(200);

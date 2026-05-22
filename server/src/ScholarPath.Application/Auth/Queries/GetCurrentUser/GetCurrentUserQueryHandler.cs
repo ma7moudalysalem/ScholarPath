@@ -19,8 +19,12 @@ public sealed class GetCurrentUserQueryHandler(
         var userId = currentUser.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
+        // Include the Profile so we can surface the latest onboarding rejection
+        // reason (AUTH-CODE-06) — it's the only screen that consistently needs
+        // it, and the wizard renders the warning from this response.
         var user = await db.Users
             .AsNoTracking()
+            .Include(u => u.Profile)
             .FirstOrDefaultAsync(u => u.Id == userId, ct)
             ?? throw new NotFoundException(nameof(ApplicationUser), userId);
 
@@ -37,6 +41,8 @@ public sealed class GetCurrentUserQueryHandler(
             user.IsOnboardingComplete,
             roles,
             user.ActiveRole,
-            user.PreferredLanguage);
+            user.PreferredLanguage,
+            user.Profile?.LastOnboardingRejectionReason,
+            user.Profile?.LastOnboardingRejectedAt);
     }
 }

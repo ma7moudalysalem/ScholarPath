@@ -24,5 +24,12 @@ internal static class AuthDtoFactory
                 user.IsOnboardingComplete,
                 roles,
                 user.ActiveRole,
-                user.PreferredLanguage));
+                user.PreferredLanguage,
+                // AUTH-CODE-06 — surface the most recent onboarding rejection
+                // note so the wizard can render it on resubmission. Only set
+                // when Profile is loaded (the auth/me query loads it; the
+                // login/refresh paths don't, which is fine: those flows
+                // immediately call /api/auth/me to hydrate the full user).
+                user.Profile?.LastOnboardingRejectionReason,
+                user.Profile?.LastOnboardingRejectedAt));
 }

@@ -11,6 +11,7 @@ import {
   Upload,
   FileText,
   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
@@ -33,7 +34,9 @@ const ROLES: { key: RoleKey; i18n: string; icon: typeof GraduationCap }[] = [
 ];
 
 const COMPANY_TYPES = ["University", "NGO", "Company", "Foundation", "Government", "Other"] as const;
-const SESSION_DURATIONS = [30, 45, 60, 90] as const;
+// AUTH-CODE-04 — canonical session-duration list shared with the Profile module.
+// Backend mirror: SelectRoleCommandValidator.AllowedSessionDurations.
+const SESSION_DURATIONS = [30, 45, 60, 90, 120] as const;
 
 /** 2-step progress indicator used on both onboarding screens. Module-scope so
  * each render reuses the same component identity (react-hooks/static-components). */
@@ -205,6 +208,11 @@ function PendingReview() {
 }
 
 // ── Company onboarding form ────────────────────────────────────────────────
+// AUTH-CODE-03 — applicability is a tri-state on the wire: null = "not asked",
+// true = "yes, registered", false = "no, with a reason". The form uses
+// "" | "yes" | "no" for the radio selection and maps to bool/null on submit.
+type Applicability = "" | "yes" | "no";
+
 interface CompanyFormState {
   legalName: string;
   website: string;
@@ -217,6 +225,11 @@ interface CompanyFormState {
   contactName: string;
   contactPosition: string;
   contactPhone: string;
+  // AUTH-CODE-03 — conditional applicability.
+  isLegallyRegistered: Applicability;
+  legalNotApplicableReason: string;
+  isTaxRegistered: Applicability;
+  taxNotApplicableReason: string;
 }
 
 function emptyCompany(): CompanyFormState {
@@ -232,6 +245,10 @@ function emptyCompany(): CompanyFormState {
     contactName: "",
     contactPosition: "",
     contactPhone: "",
+    isLegallyRegistered: "",
+    legalNotApplicableReason: "",
+    isTaxRegistered: "",
+    taxNotApplicableReason: "",
   };
 }
 
@@ -239,18 +256,34 @@ function validateCompany(c: CompanyFormState): Record<string, string> {
   const errs: Record<string, string> = {};
   if (!c.legalName.trim()) errs.legalName = "Required";
   else if (c.legalName.length > 200) errs.legalName = "Max 200 characters";
+  // AUTH-CODE-04 — website must be a valid absolute URL (http/https).
   if (!c.website.trim()) errs.website = "Required";
-  else if (!/^https?:\/\/.+/.test(c.website)) errs.website = "Must be a valid URL";
+  else if (!/^https?:\/\/.+/i.test(c.website)) errs.website = "Must be a valid absolute URL (http:// or https://)";
   if (!c.email.trim()) errs.email = "Required";
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) errs.email = "Must be a valid email";
   if (!c.country.trim()) errs.country = "Required";
   if (!c.companyType) errs.companyType = "Required";
   if (!c.description.trim()) errs.description = "Required";
-  else if (c.description.length > 1000) errs.description = "Max 1000 characters";
+  // AUTH-CODE-04 — description max is 2000 (was 1000).
+  else if (c.description.length > 2000) errs.description = "Max 2000 characters";
   if (!c.contactName.trim()) errs.contactName = "Required";
   if (!c.contactPosition.trim()) errs.contactPosition = "Required";
   if (!c.contactPhone.trim()) errs.contactPhone = "Required";
   else if (!/^[+0-9 ()-]{6,40}$/.test(c.contactPhone)) errs.contactPhone = "Invalid phone format";
+
+  // AUTH-CODE-03 — conditional applicability.
+  if (c.isLegallyRegistered === "yes" && !c.registrationNumber.trim()) {
+    errs.registrationNumber = "Required when the organization is legally registered";
+  }
+  if (c.isLegallyRegistered === "no" && !c.legalNotApplicableReason.trim()) {
+    errs.legalNotApplicableReason = "Tell us why a legal registration does not apply";
+  }
+  if (c.isTaxRegistered === "yes" && !c.taxNumber.trim()) {
+    errs.taxNumber = "Required when the organization is tax-registered";
+  }
+  if (c.isTaxRegistered === "no" && !c.taxNotApplicableReason.trim()) {
+    errs.taxNotApplicableReason = "Tell us why a tax registration does not apply";
+  }
   return errs;
 }
 
@@ -297,7 +330,8 @@ function validateConsultant(c: ConsultantFormState): Record<string, string> {
   if (!c.highestDegree.trim()) errs.highestDegree = "Required";
   if (!c.fieldOfExpertise.trim()) errs.fieldOfExpertise = "Required";
   const years = Number(c.yearsExperience);
-  if (!c.yearsExperience || Number.isNaN(years) || years < 0) errs.yearsExperience = "Must be 0 or greater";
+  // AUTH-CODE-04 — minimum 1 year of experience (was 0).
+  if (!c.yearsExperience || Number.isNaN(years) || years < 1) errs.yearsExperience = "Must be at least 1";
   const tagCount = c.expertiseTags.split(",").map((s) => s.trim()).filter(Boolean).length;
   if (tagCount === 0) errs.expertiseTags = "At least one tag required";
   const fee = Number(c.fee);
@@ -307,15 +341,53 @@ function validateConsultant(c: ConsultantFormState): Record<string, string> {
   if (langCount === 0) errs.languages = "At least one language required";
   if (!c.country.trim()) errs.country = "Required";
   if (!c.timezone.trim()) errs.timezone = "Required";
-  if (c.linkedIn && !/^https?:\/\/.+/.test(c.linkedIn)) errs.linkedIn = "Must be a valid URL";
-  if (c.portfolio && !/^https?:\/\/.+/.test(c.portfolio)) errs.portfolio = "Must be a valid URL";
+  if (c.linkedIn && !/^https?:\/\/.+/i.test(c.linkedIn)) errs.linkedIn = "Must be a valid URL";
+  if (c.portfolio && !/^https?:\/\/.+/i.test(c.portfolio)) errs.portfolio = "Must be a valid URL";
   return errs;
+}
+
+/**
+ * AUTH-CODE-06 — banner shown to a previously-rejected applicant so they see
+ * the admin's rejection note before resubmitting (FR-ONB-07). Only renders when
+ * the backend exposes a non-empty `lastOnboardingRejectionReason` on the
+ * current user (cleared on resubmit / approval).
+ */
+function RejectionBanner({ reason, rejectedAt }: { reason: string; rejectedAt?: string | null }) {
+  const { t, i18n } = useTranslation(["auth"]);
+  const when = rejectedAt
+    ? new Date(rejectedAt).toLocaleDateString(i18n.language)
+    : null;
+  return (
+    <div
+      role="alert"
+      className="mx-auto mb-6 flex max-w-2xl items-start gap-3 rounded-xl border border-danger-300 bg-danger-50/60 px-4 py-3 text-start"
+    >
+      <AlertTriangle aria-hidden className="mt-0.5 size-5 shrink-0 text-danger-500" />
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-danger-700">
+          {t("auth:onboarding.rejection.title", "Your previous submission was rejected")}
+          {when && (
+            <span className="ms-2 text-xs font-normal text-danger-600">({when})</span>
+          )}
+        </p>
+        <p className="mt-1 whitespace-pre-line text-sm text-danger-700">{reason}</p>
+        <p className="mt-2 text-xs text-danger-600">
+          {t(
+            "auth:onboarding.rejection.help",
+            "Update the affected information and resubmit. Reach out to support if you need clarification.",
+          )}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 export function OnboardingWizard() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+  const rejectionReason = user?.lastOnboardingRejectionReason ?? null;
+  const rejectionAt = user?.lastOnboardingRejectedAt ?? null;
 
   const [step, setStep] = useState<"role" | "details">("role");
   const [detailsRole, setDetailsRole] = useState<"Company" | "Consultant">("Company");
@@ -379,6 +451,21 @@ export function OnboardingWizard() {
         contactPersonFullName: company.contactName.trim(),
         contactPersonPosition: company.contactPosition.trim(),
         contactPhoneNumber: company.contactPhone.trim(),
+        // AUTH-CODE-03 — conditional applicability.
+        isLegallyRegistered: company.isLegallyRegistered === ""
+          ? null
+          : company.isLegallyRegistered === "yes",
+        legalRegistrationNotApplicableReason:
+          company.isLegallyRegistered === "no"
+            ? company.legalNotApplicableReason.trim()
+            : null,
+        isTaxRegistered: company.isTaxRegistered === ""
+          ? null
+          : company.isTaxRegistered === "yes",
+        taxNotApplicableReason:
+          company.isTaxRegistered === "no"
+            ? company.taxNotApplicableReason.trim()
+            : null,
       });
     } else {
       const errs = validateConsultant(consultant);
@@ -415,6 +502,7 @@ export function OnboardingWizard() {
     return (
       <section className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
         <ProgressBar current={2} detailsLabel={t("auth:onboarding.documents.title", "Details")} />
+        {rejectionReason && <RejectionBanner reason={rejectionReason} rejectedAt={rejectionAt} />}
 
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -482,6 +570,7 @@ export function OnboardingWizard() {
   return (
     <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
       <ProgressBar current={1} detailsLabel={t("auth:onboarding.documents.title", "Details")} />
+      {rejectionReason && <RejectionBanner reason={rejectionReason} rejectedAt={rejectionAt} />}
 
       <div className="text-center max-w-2xl mx-auto">
         <h1 className="mb-3 text-4xl font-bold tracking-tight">{t("auth:onboarding.title")}</h1>
@@ -518,6 +607,85 @@ export function OnboardingWizard() {
   );
 }
 
+/**
+ * AUTH-CODE-03 — yes/no applicability switch. When the answer is "yes" the user
+ * must supply the corresponding registration number; when "no" they must supply
+ * a not-applicable reason. Backend mirror lives in SelectRoleCommandValidator.
+ */
+function ApplicabilityField({
+  legend,
+  value,
+  onChange,
+  numberLabel,
+  numberValue,
+  onNumberChange,
+  numberError,
+  reasonLabel,
+  reasonValue,
+  onReasonChange,
+  reasonError,
+}: {
+  legend: string;
+  value: Applicability;
+  onChange: (v: Applicability) => void;
+  numberLabel: string;
+  numberValue: string;
+  onNumberChange: (v: string) => void;
+  numberError?: string;
+  reasonLabel: string;
+  reasonValue: string;
+  onReasonChange: (v: string) => void;
+  reasonError?: string;
+}) {
+  const { t } = useTranslation(["auth", "common"]);
+  return (
+    <fieldset className="rounded-xl border border-border-subtle bg-bg-subtle/40 p-4">
+      <legend className="px-1 text-sm font-medium text-text-primary">{legend}</legend>
+      <div className="mb-3 flex gap-4">
+        <label className="inline-flex items-center gap-2 text-sm text-text-primary">
+          <input
+            type="radio"
+            checked={value === "yes"}
+            onChange={() => onChange("yes")}
+            className="size-4 accent-brand-500"
+          />
+          {t("common:yes", "Yes")}
+        </label>
+        <label className="inline-flex items-center gap-2 text-sm text-text-primary">
+          <input
+            type="radio"
+            checked={value === "no"}
+            onChange={() => onChange("no")}
+            className="size-4 accent-brand-500"
+          />
+          {t("common:no", "No")}
+        </label>
+      </div>
+      {value === "yes" && (
+        <Labeled label={numberLabel} required error={numberError}>
+          <input
+            className={`h-10 ${fieldClass}`}
+            value={numberValue}
+            onChange={(e) => onNumberChange(e.target.value)}
+            maxLength={100}
+          />
+        </Labeled>
+      )}
+      {value === "no" && (
+        <Labeled label={reasonLabel} required error={reasonError}>
+          <textarea
+            rows={2}
+            className={`py-2 ${fieldClass}`}
+            value={reasonValue}
+            onChange={(e) => onReasonChange(e.target.value)}
+            maxLength={500}
+          />
+        </Labeled>
+      )}
+    </fieldset>
+  );
+}
+
 function CompanyForm({
   value,
   onChange,
@@ -530,7 +698,9 @@ function CompanyForm({
   const { t } = useTranslation(["auth"]);
   const set = <K extends keyof CompanyFormState>(k: K, v: CompanyFormState[K]) =>
     onChange({ ...value, [k]: v });
-  const optional = t("auth:onboarding.details.optional");
+  // `optional` was used by the previous registration/tax inputs, kept here to
+  // preserve the legacy hint helper in case the form is extended.
+  void t("auth:onboarding.details.optional");
   return (
     <div className="grid gap-5 sm:grid-cols-2">
       <Labeled label={t("auth:onboarding.company.legalName")} required error={errors.legalName}>
@@ -559,18 +729,44 @@ function CompanyForm({
           ))}
         </select>
       </Labeled>
-      <Labeled label={t("auth:onboarding.company.registrationNumber")} hint={optional} error={errors.registrationNumber}>
-        <input className={`h-11 ${fieldClass}`} value={value.registrationNumber}
-          onChange={(e) => set("registrationNumber", e.target.value)} maxLength={100} />
-      </Labeled>
-      <Labeled label={t("auth:onboarding.company.taxNumber")} hint={optional} error={errors.taxNumber}>
-        <input className={`h-11 ${fieldClass}`} value={value.taxNumber}
-          onChange={(e) => set("taxNumber", e.target.value)} maxLength={100} />
-      </Labeled>
+      {/*
+        AUTH-CODE-03 — conditional applicability blocks.
+        Each block: a yes/no radio + either the registration number input (yes)
+        or a "not applicable" reason textbox (no). When the user has made no
+        selection, both downstream fields are optional, matching backend rules.
+      */}
+      <div className="sm:col-span-2 grid gap-5 sm:grid-cols-2">
+        <ApplicabilityField
+          legend={t("auth:onboarding.company.isLegallyRegistered", "Is the organization legally registered?")}
+          value={value.isLegallyRegistered}
+          onChange={(v) => set("isLegallyRegistered", v)}
+          numberLabel={t("auth:onboarding.company.registrationNumber")}
+          numberValue={value.registrationNumber}
+          onNumberChange={(v) => set("registrationNumber", v)}
+          numberError={errors.registrationNumber}
+          reasonLabel={t("auth:onboarding.company.legalNotApplicableReason", "Why is a legal registration not applicable?")}
+          reasonValue={value.legalNotApplicableReason}
+          onReasonChange={(v) => set("legalNotApplicableReason", v)}
+          reasonError={errors.legalNotApplicableReason}
+        />
+        <ApplicabilityField
+          legend={t("auth:onboarding.company.isTaxRegistered", "Is the organization tax-registered?")}
+          value={value.isTaxRegistered}
+          onChange={(v) => set("isTaxRegistered", v)}
+          numberLabel={t("auth:onboarding.company.taxNumber")}
+          numberValue={value.taxNumber}
+          onNumberChange={(v) => set("taxNumber", v)}
+          numberError={errors.taxNumber}
+          reasonLabel={t("auth:onboarding.company.taxNotApplicableReason", "Why is a tax registration not applicable?")}
+          reasonValue={value.taxNotApplicableReason}
+          onReasonChange={(v) => set("taxNotApplicableReason", v)}
+          reasonError={errors.taxNotApplicableReason}
+        />
+      </div>
       <div className="sm:col-span-2">
         <Labeled label={t("auth:onboarding.company.description")} required error={errors.description}>
           <textarea rows={4} className={`py-2.5 ${fieldClass}`} value={value.description}
-            onChange={(e) => set("description", e.target.value)} maxLength={1000} />
+            onChange={(e) => set("description", e.target.value)} maxLength={2000} />
         </Labeled>
       </div>
       <Labeled label={t("auth:onboarding.company.contactName")} required error={errors.contactName}>
@@ -636,7 +832,7 @@ function ConsultantForm({
           onChange={(e) => set("fieldOfExpertise", e.target.value)} maxLength={200} />
       </Labeled>
       <Labeled label={t("auth:onboarding.consultant.yearsExperience")} required error={errors.yearsExperience}>
-        <input type="number" min={0} max={80} className={`h-11 ${fieldClass}`}
+        <input type="number" min={1} max={80} className={`h-11 ${fieldClass}`}
           value={value.yearsExperience}
           onChange={(e) => set("yearsExperience", e.target.value)} />
       </Labeled>

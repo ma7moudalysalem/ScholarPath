@@ -33,6 +33,14 @@ public sealed record OnboardingDetails(
     string? ContactPersonFullName = null,
     string? ContactPersonPosition = null,
     string? ContactPhoneNumber = null,
+    // Conditional applicability flags (FR-ONB-03 / Auth alignment AUTH-CODE-03):
+    // A Company that is not tax-registered or not legally registered (e.g. a
+    // not-yet-incorporated initiative) must supply a reason; the corresponding
+    // numbers / documents become optional in that case.
+    bool? IsTaxRegistered = null,
+    string? TaxNotApplicableReason = null,
+    bool? IsLegallyRegistered = null,
+    string? LegalRegistrationNotApplicableReason = null,
     // ── Consultant ──────────────────────────────────────────────────────────
     string? Biography = null,
     string? ProfessionalTitle = null,

@@ -57,6 +57,30 @@ public class SelectRoleCommandHandlerTests
         return id;
     }
 
+    /// <summary>
+    /// Seeds the mandatory onboarding verification documents the handler now
+    /// requires before a Company/Consultant can enter the admin queue
+    /// (AUTH-CODE-02). Defaults to the maximum so callers can simply attach the
+    /// required minimum for either role.
+    /// </summary>
+    private static void SeedOnboardingDocuments(ApplicationDbContext db, Guid userId, int count = 3)
+    {
+        for (var i = 0; i < count; i++)
+        {
+            db.Documents.Add(new Document
+            {
+                Id = Guid.NewGuid(),
+                OwnerUserId = userId,
+                FileName = $"verification-{i}.pdf",
+                ContentType = "application/pdf",
+                SizeBytes = 1024,
+                StoragePath = $"documents/{userId}/verification-{i}.pdf",
+                Category = DocumentCategory.OnboardingDocument,
+                UploadedAt = DateTimeOffset.UtcNow,
+            });
+        }
+    }
+
     [Fact]
     public async Task Student_selection_activates_account_immediately()
     {
@@ -109,6 +133,7 @@ public class SelectRoleCommandHandlerTests
     {
         using var db = CreateDb();
         var userId = SeedUnassignedUser(db);
+        SeedOnboardingDocuments(db, userId, count: 2); // AUTH-CODE-02 — Company needs >= 2 docs.
         await db.SaveChangesAsync();
 
         var admin = Substitute.For<IUserAdministration>();
@@ -137,6 +162,7 @@ public class SelectRoleCommandHandlerTests
     {
         using var db = CreateDb();
         var userId = SeedUnassignedUser(db);
+        SeedOnboardingDocuments(db, userId, count: 3); // AUTH-CODE-02 — Consultant needs >= 3 docs.
         await db.SaveChangesAsync();
 
         var admin = Substitute.For<IUserAdministration>();
@@ -232,5 +258,106 @@ public class SelectRoleCommandHandlerTests
         var v = new SelectRoleCommandValidator();
         var d = ValidConsultantDetails() with { SessionDurationMinutes = 25 };
         v.Validate(new SelectRoleCommand("Consultant", d)).IsValid.Should().BeFalse();
+    }
+
+    // ── AUTH-CODE-02 — mandatory verification documents ──────────────────────
+
+    [Fact]
+    public async Task Company_submission_blocked_when_no_verification_documents()
+    {
+        using var db = CreateDb();
+        var userId = SeedUnassignedUser(db);
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.GetRolesAsync(userId, Arg.Any<CancellationToken>()).Returns(Array.Empty<string>());
+
+        var act = () => Sut(db, userId, admin).Handle(
+            new SelectRoleCommand("Company", ValidCompanyDetails()), default);
+
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("*verification document*");
+    }
+
+    [Fact]
+    public async Task Consultant_submission_blocked_when_too_few_documents()
+    {
+        using var db = CreateDb();
+        var userId = SeedUnassignedUser(db);
+        SeedOnboardingDocuments(db, userId, count: 2); // Consultant requires 3.
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.GetRolesAsync(userId, Arg.Any<CancellationToken>()).Returns(Array.Empty<string>());
+
+        var act = () => Sut(db, userId, admin).Handle(
+            new SelectRoleCommand("Consultant", ValidConsultantDetails()), default);
+
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("*verification document*");
+    }
+
+    // ── AUTH-CODE-03 — conditional applicability fields ──────────────────────
+
+    [Fact]
+    public void Validator_requires_tax_reason_when_not_tax_registered()
+    {
+        var v = new SelectRoleCommandValidator();
+        var d = ValidCompanyDetails() with { IsTaxRegistered = false, TaxNotApplicableReason = null };
+        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeFalse();
+
+        var ok = d with { TaxNotApplicableReason = "Charity is not tax-registered in Egypt." };
+        v.Validate(new SelectRoleCommand("Company", ok)).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validator_requires_tax_number_when_tax_registered()
+    {
+        var v = new SelectRoleCommandValidator();
+        var d = ValidCompanyDetails() with { IsTaxRegistered = true, OrganizationTaxNumber = null };
+        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validator_requires_legal_reason_when_not_legally_registered()
+    {
+        var v = new SelectRoleCommandValidator();
+        var d = ValidCompanyDetails() with { IsLegallyRegistered = false, LegalRegistrationNotApplicableReason = null };
+        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeFalse();
+    }
+
+    // ── AUTH-CODE-04 — validator rule alignment ──────────────────────────────
+
+    [Fact]
+    public void Validator_rejects_invalid_website_url()
+    {
+        var v = new SelectRoleCommandValidator();
+        var d = ValidCompanyDetails() with { OrganizationWebsite = "acme.edu" }; // missing scheme
+        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validator_accepts_extended_company_description_up_to_2000_chars()
+    {
+        var v = new SelectRoleCommandValidator();
+        // 1500 chars: between the old 1000 cap (rejected before) and the new 2000 cap.
+        var d = ValidCompanyDetails() with { CompanyDescription = new string('A', 1500) };
+        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Validator_rejects_zero_years_of_experience()
+    {
+        var v = new SelectRoleCommandValidator();
+        var d = ValidConsultantDetails() with { YearsOfExperience = 0 };
+        v.Validate(new SelectRoleCommand("Consultant", d)).IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Validator_accepts_120_minute_session_duration()
+    {
+        var v = new SelectRoleCommandValidator();
+        var d = ValidConsultantDetails() with { SessionDurationMinutes = 120 };
+        v.Validate(new SelectRoleCommand("Consultant", d)).IsValid.Should().BeTrue();
     }
 }

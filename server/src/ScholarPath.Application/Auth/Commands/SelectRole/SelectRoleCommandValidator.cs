@@ -9,6 +9,13 @@ public sealed class SelectRoleCommandValidator : AbstractValidator<SelectRoleCom
     private static readonly string[] AllowedCompanyTypes =
         ["University", "NGO", "Company", "Foundation", "Government", "Other"];
 
+    /// <summary>
+    /// Canonical list of allowed consultant session durations (minutes). Shared
+    /// between the Auth/onboarding flow and the Profile module so the frontend
+    /// only ever needs to read one list (AUTH-CODE-04).
+    /// </summary>
+    public static readonly int[] AllowedSessionDurations = [30, 45, 60, 90, 120];
+
     public SelectRoleCommandValidator()
     {
         RuleFor(x => x.Role)
@@ -26,9 +33,14 @@ public sealed class SelectRoleCommandValidator : AbstractValidator<SelectRoleCom
             RuleFor(x => x.Details!.OrganizationLegalName)
                 .NotEmpty().MaximumLength(200)
                 .WithMessage("Organization legal name is required.");
+            // AUTH-CODE-04: website must be a valid absolute URL — non-empty alone
+            // is not enough; an https://… URL is what the SRS specifies.
             RuleFor(x => x.Details!.OrganizationWebsite)
                 .NotEmpty().MaximumLength(300)
-                .WithMessage("Organization website is required.");
+                .Must(u => !string.IsNullOrWhiteSpace(u)
+                    && Uri.TryCreate(u, UriKind.Absolute, out var uri)
+                    && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps))
+                .WithMessage("Organization website must be a valid absolute URL (http:// or https://).");
             RuleFor(x => x.Details!.OrganizationEmail)
                 .NotEmpty().EmailAddress().MaximumLength(256)
                 .WithMessage("A valid organization email is required.");
@@ -39,9 +51,10 @@ public sealed class SelectRoleCommandValidator : AbstractValidator<SelectRoleCom
                 .NotEmpty()
                 .Must(t => t is not null && AllowedCompanyTypes.Contains(t))
                 .WithMessage("Company type must be one of: University, NGO, Company, Foundation, Government, Other.");
+            // AUTH-CODE-04: SRS says 2000 characters (was 1000 in code).
             RuleFor(x => x.Details!.CompanyDescription)
-                .NotEmpty().MaximumLength(1000)
-                .WithMessage("Company description is required (max 1000 characters).");
+                .NotEmpty().MaximumLength(2000)
+                .WithMessage("Company description is required (max 2000 characters).");
             RuleFor(x => x.Details!.ContactPersonFullName)
                 .NotEmpty().MaximumLength(100)
                 .WithMessage("Contact person full name is required.");
@@ -56,6 +69,26 @@ public sealed class SelectRoleCommandValidator : AbstractValidator<SelectRoleCom
                 .MaximumLength(100);
             RuleFor(x => x.Details!.OrganizationTaxNumber)
                 .MaximumLength(100);
+
+            // AUTH-CODE-03: conditional applicability — if the Company says they
+            // are NOT tax-registered, they owe an explanation. Same for legal
+            // registration. If they ARE registered, the number must be present.
+            RuleFor(x => x.Details!.TaxNotApplicableReason)
+                .NotEmpty().MaximumLength(500)
+                .When(x => x.Details!.IsTaxRegistered == false)
+                .WithMessage("Tell us why a tax registration does not apply (e.g. not-for-profit, unincorporated).");
+            RuleFor(x => x.Details!.OrganizationTaxNumber)
+                .NotEmpty()
+                .When(x => x.Details!.IsTaxRegistered == true)
+                .WithMessage("A tax registration number is required when the organization is tax-registered.");
+            RuleFor(x => x.Details!.LegalRegistrationNotApplicableReason)
+                .NotEmpty().MaximumLength(500)
+                .When(x => x.Details!.IsLegallyRegistered == false)
+                .WithMessage("Tell us why a legal registration does not apply.");
+            RuleFor(x => x.Details!.OrganizationRegistrationNumber)
+                .NotEmpty()
+                .When(x => x.Details!.IsLegallyRegistered == true)
+                .WithMessage("A business registration number is required when the organization is legally registered.");
         });
 
         When(x => x.Details is not null && x.Role == "Consultant", () =>
@@ -72,16 +105,18 @@ public sealed class SelectRoleCommandValidator : AbstractValidator<SelectRoleCom
             RuleFor(x => x.Details!.FieldOfExpertise)
                 .NotEmpty().MaximumLength(200)
                 .WithMessage("Field of expertise is required.");
+            // AUTH-CODE-04: SRS says years of experience >= 1 (was >= 0).
             RuleFor(x => x.Details!.YearsOfExperience)
-                .NotNull().GreaterThanOrEqualTo(0).LessThanOrEqualTo(80)
-                .WithMessage("Years of experience must be 0 or greater.");
+                .NotNull().GreaterThanOrEqualTo(1).LessThanOrEqualTo(80)
+                .WithMessage("Years of experience must be at least 1.");
             RuleFor(x => x.Details!.SessionFeeUsd)
                 .NotNull().GreaterThan(0)
                 .WithMessage("Session fee must be greater than zero.");
+            // AUTH-CODE-04: canonical session-duration list shared with Profile.
             RuleFor(x => x.Details!.SessionDurationMinutes)
                 .NotNull()
-                .Must(d => d is 30 or 45 or 60 or 90)
-                .WithMessage("Session duration must be 30, 45, 60 or 90 minutes.");
+                .Must(d => d is not null && AllowedSessionDurations.Contains(d.Value))
+                .WithMessage("Session duration must be one of 30, 45, 60, 90, or 120 minutes.");
             RuleFor(x => x.Details!.ExpertiseTags)
                 .NotNull()
                 .Must(tags => tags is { Length: > 0 })

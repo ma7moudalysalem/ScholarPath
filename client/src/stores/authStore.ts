@@ -13,6 +13,12 @@ export interface CurrentUser {
   roles: string[];
   activeRole: string | null;
   preferredLanguage: string | null;
+  // AUTH-CODE-06 / FR-ONB-07 — the latest admin rejection note, so the
+  // onboarding wizard can render the reason on resubmission. Both fields
+  // are null when the account has never been rejected (or after a fresh
+  // resubmission or approval has cleared them server-side).
+  lastOnboardingRejectionReason?: string | null;
+  lastOnboardingRejectedAt?: string | null;
 }
 
 export interface AuthTokens {

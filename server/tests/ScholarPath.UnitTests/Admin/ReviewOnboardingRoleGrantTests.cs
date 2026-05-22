@@ -77,4 +77,56 @@ public class ReviewOnboardingRoleGrantTests
         await admin.DidNotReceive()
             .AddRoleAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
+
+    // AUTH-CODE-06 — rejection reason must be persisted on UserProfile so the
+    // onboarding wizard can render it when the applicant resubmits.
+    [Fact]
+    public async Task Rejection_persists_the_reviewer_notes_on_profile()
+    {
+        using var db = CreateDb();
+        var userId = SeedPendingUser(db, "Company");
+        db.UserProfiles.Add(new UserProfile { UserId = userId });
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.SetAccountStatusAsync(userId, AccountStatus.Unassigned,
+                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        await Sut(db, admin).Handle(
+            new ReviewOnboardingCommand(userId, OnboardingDecision.Reject,
+                "Registration certificate unreadable. Please upload a clearer scan."),
+            default);
+
+        var profile = await db.UserProfiles.FirstAsync(p => p.UserId == userId);
+        profile.LastOnboardingRejectionReason
+            .Should().Be("Registration certificate unreadable. Please upload a clearer scan.");
+        profile.LastOnboardingRejectedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Approval_clears_any_stale_rejection_reason()
+    {
+        using var db = CreateDb();
+        var userId = SeedPendingUser(db, "Company");
+        db.UserProfiles.Add(new UserProfile
+        {
+            UserId = userId,
+            LastOnboardingRejectionReason = "Previous rejection",
+            LastOnboardingRejectedAt = DateTimeOffset.UtcNow.AddDays(-3),
+        });
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.SetAccountStatusAsync(userId, AccountStatus.Active,
+                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        await Sut(db, admin).Handle(
+            new ReviewOnboardingCommand(userId, OnboardingDecision.Approve, null), default);
+
+        var profile = await db.UserProfiles.FirstAsync(p => p.UserId == userId);
+        profile.LastOnboardingRejectionReason.Should().BeNull();
+        profile.LastOnboardingRejectedAt.Should().BeNull();
+    }
 }

@@ -116,6 +116,23 @@ public class UserProfile : AuditableEntity
     public string? ContactPersonPosition { get; set; }
     public string? ContactPhoneNumber { get; set; }
 
+    // Conditional applicability flags (FR-ONB-03 — SRS): a Company that is not
+    // tax-registered or not legally registered (e.g. a not-yet-incorporated
+    // initiative) must supply a reason, in which case the corresponding numbers
+    // / documents become optional.
+    public bool? IsTaxRegistered { get; set; }
+    public string? TaxNotApplicableReason { get; set; }
+    public bool? IsLegallyRegistered { get; set; }
+    public string? LegalRegistrationNotApplicableReason { get; set; }
+
+    /// <summary>
+    /// Latest admin rejection note from the onboarding queue, surfaced to the
+    /// applicant so they see why their previous submission was rejected before
+    /// resubmitting (FR-ONB-07).
+    /// </summary>
+    public string? LastOnboardingRejectionReason { get; set; }
+    public DateTimeOffset? LastOnboardingRejectedAt { get; set; }
+
     // Consultant fields
     public decimal? SessionFeeUsd { get; set; }
     public int? SessionDurationMinutes { get; set; }

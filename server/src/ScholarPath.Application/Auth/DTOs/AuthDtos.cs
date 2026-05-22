@@ -20,7 +20,13 @@ public sealed record CurrentUserDto(
     bool IsOnboardingComplete,
     IReadOnlyList<string> Roles,
     string? ActiveRole,
-    string? PreferredLanguage);
+    string? PreferredLanguage,
+    // AUTH-CODE-06 / FR-ONB-07 — the latest admin rejection note, so a
+    // rejected applicant sees why their previous onboarding was rejected
+    // before resubmitting. Null when the account has never been rejected
+    // or when the most recent decision was an approval.
+    string? LastOnboardingRejectionReason = null,
+    DateTimeOffset? LastOnboardingRejectedAt = null);
 
 public sealed record RegisterRequestDto(string Email, string Password, string FirstName, string LastName);
 public sealed record LoginRequestDto(string Email, string Password, bool RememberMe);

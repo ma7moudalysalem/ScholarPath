@@ -257,6 +257,37 @@ var app = builder.Build();
     }
 }
 
+// ─── SSO configuration provenance (AUTH-CODE-05) ─────────────────────────────
+// When Authentication:UseStub is false but real Google/Microsoft credentials
+// are missing/placeholder, DependencyInjection silently falls back to the stub
+// to avoid blocking boot or crashing on the first SSO click. Emit a clear
+// warning here so a misconfigured production environment does not slip through.
+{
+    var ssoStatus = app.Services.GetRequiredService<SsoConfigurationStatus>();
+    var ssoLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("SsoConfig");
+    if (ssoStatus.FellBackToStub)
+    {
+        ssoLogger.LogWarning(
+            "SSO fell back to StubSsoService — Authentication:UseStub=false was requested but "
+            + "provider credentials are missing or still placeholders "
+            + "(Google missing: {GoogleMissing}, Microsoft missing: {MicrosoftMissing}). "
+            + "Configure Authentication:Google:ClientId/ClientSecret and "
+            + "Authentication:Microsoft:ClientId/ClientSecret with real OAuth credentials, "
+            + "or set Authentication:UseStub=true to suppress this warning.",
+            ssoStatus.MissingGoogle, ssoStatus.MissingMicrosoft);
+    }
+    else if (ssoStatus.UseStubRequested)
+    {
+        ssoLogger.LogInformation(
+            "SSO is using StubSsoService (Authentication:UseStub=true) — expected in dev/test.");
+    }
+    else
+    {
+        ssoLogger.LogInformation(
+            "SSO is using the real Google/Microsoft OAuth providers.");
+    }
+}
+
 // ─── Upload antivirus-scanning provenance ────────────────────────────────────
 // Antivirus scanning of uploaded files is feature-flagged (FileScanning:Enabled).
 // When it is off, NoOpFileScanService is registered and uploads are NOT scanned
