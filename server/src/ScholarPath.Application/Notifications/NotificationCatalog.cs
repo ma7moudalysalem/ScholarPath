@@ -140,6 +140,24 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"Your upgrade request was not approved: {p.Reason ?? "see the reviewer notes"}.",
             $"لم تتم الموافقة على طلب ترقيتك: {p.Reason ?? "راجِع ملاحظات المراجِع"}."),
 
+        // Admin-inbound: a new applicant is waiting in the onboarding queue.
+        NotificationType.OnboardingSubmitted => new(
+            "New onboarding request", "طلب انضمام جديد",
+            $"{p.CounterpartyName ?? "An applicant"} submitted a {p.StatusText ?? "partner"} onboarding request for review.",
+            $"قدّم {p.CounterpartyName ?? "أحد المتقدمين"} طلب انضمام ({p.StatusText ?? "شريك"}) للمراجعة."),
+
+        // Admin-inbound: a student wants to become a consultant.
+        NotificationType.UpgradeRequestSubmitted => new(
+            "New upgrade request", "طلب ترقية جديد",
+            $"{p.CounterpartyName ?? "A student"} submitted a {p.StatusText ?? "consultant"} upgrade request for review.",
+            $"قدّم {p.CounterpartyName ?? "أحد الطلاب"} طلب ترقية إلى {p.StatusText ?? "مستشار"} للمراجعة."),
+
+        // Admin-inbound: a community post was reported and needs a moderation decision.
+        NotificationType.ContentReported => new(
+            "Post reported", "تم الإبلاغ عن منشور",
+            $"A community post was reported{(string.IsNullOrEmpty(p.Reason) ? string.Empty : $" ({p.Reason})")} and needs a moderation decision.",
+            $"تم الإبلاغ عن منشور في المجتمع{(string.IsNullOrEmpty(p.Reason) ? string.Empty : $" ({p.Reason})")} ويحتاج إلى قرار إشراف."),
+
         NotificationType.ChatMessageReceived => new(
             "New message", "رسالة جديدة",
             string.IsNullOrEmpty(p.Preview)

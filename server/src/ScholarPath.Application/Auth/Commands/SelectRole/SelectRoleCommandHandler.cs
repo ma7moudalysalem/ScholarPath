@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Auth.DTOs;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -16,6 +17,7 @@ public sealed class SelectRoleCommandHandler(
     ICurrentUserService currentUser,
     IUserAdministration userAdministration,
     ITokenService tokenService,
+    INotificationDispatcher notifications,
     ILogger<SelectRoleCommandHandler> logger)
     : IRequestHandler<SelectRoleCommand, AuthTokensDto>
 {
@@ -155,6 +157,13 @@ public sealed class SelectRoleCommandHandler(
 
         await db.SaveChangesAsync(ct);
 
+        // Company/Consultant just landed in the onboarding queue — let the admins
+        // know there's something to review. Best-effort: never break role selection.
+        if (user.AccountStatus == AccountStatus.PendingApproval)
+        {
+            await NotifyAdminsAsync(BuildDisplayName(user), request.Role, userId, ct);
+        }
+
         // Kill any session still carrying the old role-less JWT.
         await tokenService.RevokeAllForUserAsync(userId, "Role selected", ct);
 
@@ -166,5 +175,47 @@ public sealed class SelectRoleCommandHandler(
             userId, request.Role, user.AccountStatus);
 
         return AuthDtoFactory.Build(tokens, user, roles);
+    }
+
+    // FR-ONB — alert every admin so a new onboarding request never sits unseen.
+    // Best-effort: a notification-channel failure must never break role selection.
+    private async Task NotifyAdminsAsync(
+        string applicantName, string requestedRole, Guid applicantId, CancellationToken ct)
+    {
+        try
+        {
+            var adminIds = await db.Users
+                .Where(u => (u.ActiveRole == "Admin" || u.ActiveRole == "SuperAdmin")
+                            && u.AccountStatus == AccountStatus.Active)
+                .Select(u => u.Id)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+            if (adminIds.Count == 0) return;
+
+            foreach (var adminId in adminIds)
+            {
+                await notifications.DispatchAsync(
+                    adminId,
+                    NotificationType.OnboardingSubmitted,
+                    new NotificationParams { CounterpartyName = applicantName, StatusText = requestedRole },
+                    deepLink: "/admin/onboarding",
+                    idempotencyKey: $"onboarding-submitted:{applicantId:N}:{adminId:N}",
+                    ct).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to notify admins of onboarding submission by {ApplicantId}.", applicantId);
+        }
+    }
+
+    private static string BuildDisplayName(ApplicationUser user)
+    {
+        var name = $"{user.FirstName} {user.LastName}".Trim();
+        if (!string.IsNullOrWhiteSpace(name)) return name;
+        return user.Profile?.OrganizationLegalName
+            ?? user.Email
+            ?? "An applicant";
     }
 }

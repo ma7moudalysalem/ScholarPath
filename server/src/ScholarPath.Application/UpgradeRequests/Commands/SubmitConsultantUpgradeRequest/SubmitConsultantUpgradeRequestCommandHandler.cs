@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -22,6 +23,7 @@ public sealed class SubmitConsultantUpgradeRequestCommandHandler(
     ICurrentUserService currentUser,
     IUserAdministration userAdministration,
     IDateTimeService clock,
+    INotificationDispatcher notifications,
     ILogger<SubmitConsultantUpgradeRequestCommandHandler> logger)
     : IRequestHandler<SubmitConsultantUpgradeRequestCommand, Guid>
 {
@@ -118,10 +120,48 @@ public sealed class SubmitConsultantUpgradeRequestCommandHandler(
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
+        // Surface the new request in the admin upgrade queue. Best-effort:
+        // a notification failure must never break the submission itself.
+        var studentName = $"{user.FirstName} {user.LastName}".Trim();
+        await NotifyAdminsAsync(
+            string.IsNullOrWhiteSpace(studentName) ? user.Email ?? "A student" : studentName,
+            upgradeRequest.Id, ct);
+
         logger.LogInformation(
             "User {UserId} submitted consultant upgrade request {RequestId}.",
             userId, upgradeRequest.Id);
 
         return upgradeRequest.Id;
+    }
+
+    // FR-ONB-07 — alert every admin so a new upgrade request never sits unseen.
+    private async Task NotifyAdminsAsync(string studentName, Guid requestId, CancellationToken ct)
+    {
+        try
+        {
+            var adminIds = await db.Users
+                .Where(u => (u.ActiveRole == "Admin" || u.ActiveRole == "SuperAdmin")
+                            && u.AccountStatus == AccountStatus.Active)
+                .Select(u => u.Id)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+            if (adminIds.Count == 0) return;
+
+            foreach (var adminId in adminIds)
+            {
+                await notifications.DispatchAsync(
+                    adminId,
+                    NotificationType.UpgradeRequestSubmitted,
+                    new NotificationParams { CounterpartyName = studentName, StatusText = "Consultant" },
+                    deepLink: "/admin/upgrades",
+                    idempotencyKey: $"upgrade-submitted:{requestId:N}:{adminId:N}",
+                    ct).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to notify admins of upgrade request {RequestId}.", requestId);
+        }
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Application.UpgradeRequests.Commands.SubmitConsultantUpgradeRequest;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
@@ -35,8 +36,10 @@ public class SubmitConsultantUpgradeRequestCommandHandlerTests
     }
 
     private static SubmitConsultantUpgradeRequestCommandHandler Sut(
-        ApplicationDbContext db, Guid? userId, IUserAdministration admin) =>
+        ApplicationDbContext db, Guid? userId, IUserAdministration admin,
+        INotificationDispatcher? notifications = null) =>
         new(db, CurrentUser(userId), admin, Clock(),
+            notifications ?? Substitute.For<INotificationDispatcher>(),
             NullLogger<SubmitConsultantUpgradeRequestCommandHandler>.Instance);
 
     private static Guid SeedActiveStudent(ApplicationDbContext db)
@@ -102,6 +105,37 @@ public class SubmitConsultantUpgradeRequestCommandHandlerTests
         user.Profile.ExpertiseTagsJson.Should().Contain("SoP");
         user.Profile.LanguagesJson.Should().Contain("Arabic");
         user.CountryOfResidence.Should().Be("Egypt");
+    }
+
+    [Fact]
+    public async Task Submission_notifies_active_admins_with_upgrades_deep_link()
+    {
+        using var db = CreateDb();
+        var userId = SeedActiveStudent(db);
+        var adminId = Guid.NewGuid();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = adminId,
+            FirstName = "Site",
+            LastName = "Admin",
+            Email = "admin@scholarpath.local",
+            UserName = "admin@scholarpath.local",
+            ActiveRole = "Admin",
+            AccountStatus = AccountStatus.Active,
+        });
+        await db.SaveChangesAsync();
+
+        var notifications = Substitute.For<INotificationDispatcher>();
+
+        await Sut(db, userId, Admin("Student"), notifications).Handle(ValidCommand(), default);
+
+        await notifications.Received(1).DispatchAsync(
+            adminId,
+            NotificationType.UpgradeRequestSubmitted,
+            Arg.Any<NotificationParams>(),
+            "/admin/upgrades",
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

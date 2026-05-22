@@ -1,8 +1,10 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Domain.Enums;
@@ -30,7 +32,9 @@ public sealed class FlagPostCommandValidator : AbstractValidator<FlagPostCommand
 
 public sealed class FlagPostCommandHandler(
     IApplicationDbContext db,
-    ICurrentUserService currentUser)
+    ICurrentUserService currentUser,
+    INotificationDispatcher notifications,
+    ILogger<FlagPostCommandHandler> logger)
     : IRequestHandler<FlagPostCommand, bool>
 {
     public async Task<bool> Handle(FlagPostCommand request, CancellationToken ct)
@@ -72,6 +76,43 @@ public sealed class FlagPostCommandHandler(
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
+        // Let the admins know there's reported content awaiting moderation.
+        // Best-effort: a notification failure must never break the report.
+        await NotifyAdminsAsync(request.PostId, flag.FlaggedByUserId, request.Reason, ct);
+
         return true;
+    }
+
+    // PB-007 — alert every admin so reported content gets a timely moderation
+    // decision. Keyed per (post, reporter, admin) so a single report fires once.
+    private async Task NotifyAdminsAsync(
+        Guid postId, Guid reporterId, string reason, CancellationToken ct)
+    {
+        try
+        {
+            var adminIds = await db.Users
+                .Where(u => (u.ActiveRole == "Admin" || u.ActiveRole == "SuperAdmin")
+                            && u.AccountStatus == AccountStatus.Active)
+                .Select(u => u.Id)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+            if (adminIds.Count == 0) return;
+
+            foreach (var adminId in adminIds)
+            {
+                await notifications.DispatchAsync(
+                    adminId,
+                    NotificationType.ContentReported,
+                    new NotificationParams { Reason = reason },
+                    deepLink: "/admin/community",
+                    idempotencyKey: $"content-reported:{postId:N}:{reporterId:N}:{adminId:N}",
+                    ct).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to notify admins that post {PostId} was reported.", postId);
+        }
     }
 }

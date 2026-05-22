@@ -5,6 +5,7 @@ using NSubstitute;
 using ScholarPath.Application.Auth.Commands.SelectRole;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -38,8 +39,10 @@ public class SelectRoleCommandHandlerTests
     }
 
     private static SelectRoleCommandHandler Sut(
-        ApplicationDbContext db, Guid userId, IUserAdministration admin) =>
+        ApplicationDbContext db, Guid userId, IUserAdministration admin,
+        INotificationDispatcher? notifications = null) =>
         new(db, CurrentUser(userId), admin, TokenService(),
+            notifications ?? Substitute.For<INotificationDispatcher>(),
             NullLogger<SelectRoleCommandHandler>.Instance);
 
     private static Guid SeedUnassignedUser(ApplicationDbContext db)
@@ -155,6 +158,69 @@ public class SelectRoleCommandHandlerTests
         user.Profile.ContactPhoneNumber.Should().Be("+201234567890");
         await admin.DidNotReceive()
             .AddRoleAsync(userId, Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Company_submission_notifies_active_admins_with_onboarding_deep_link()
+    {
+        using var db = CreateDb();
+        var userId = SeedUnassignedUser(db);
+        SeedOnboardingDocuments(db, userId, count: 2);
+        var adminId = Guid.NewGuid();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = adminId,
+            FirstName = "Site",
+            LastName = "Admin",
+            Email = "admin@scholarpath.local",
+            UserName = "admin@scholarpath.local",
+            ActiveRole = "Admin",
+            AccountStatus = AccountStatus.Active,
+        });
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.GetRolesAsync(userId, Arg.Any<CancellationToken>()).Returns(Array.Empty<string>());
+        var notifications = Substitute.For<INotificationDispatcher>();
+
+        await Sut(db, userId, admin, notifications).Handle(
+            new SelectRoleCommand("Company", ValidCompanyDetails()), default);
+
+        await notifications.Received(1).DispatchAsync(
+            adminId,
+            NotificationType.OnboardingSubmitted,
+            Arg.Any<NotificationParams>(),
+            "/admin/onboarding",
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Student_selection_does_not_notify_admins()
+    {
+        using var db = CreateDb();
+        var userId = SeedUnassignedUser(db);
+        db.Users.Add(new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            FirstName = "Site",
+            LastName = "Admin",
+            Email = "admin2@scholarpath.local",
+            UserName = "admin2@scholarpath.local",
+            ActiveRole = "Admin",
+            AccountStatus = AccountStatus.Active,
+        });
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.GetRolesAsync(userId, Arg.Any<CancellationToken>()).Returns(Array.Empty<string>());
+        var notifications = Substitute.For<INotificationDispatcher>();
+
+        await Sut(db, userId, admin, notifications).Handle(new SelectRoleCommand("Student"), default);
+
+        await notifications.DidNotReceive().DispatchAsync(
+            Arg.Any<Guid>(), Arg.Any<NotificationType>(), Arg.Any<NotificationParams>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]

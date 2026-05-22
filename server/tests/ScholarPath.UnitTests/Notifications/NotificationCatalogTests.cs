@@ -65,4 +65,36 @@ public class NotificationCatalogTests
         content.BodyEn.Should().NotBeNullOrEmpty();
         content.BodyAr.Should().NotBeNullOrEmpty();
     }
+
+    [Fact]
+    public void Renders_onboarding_submitted_with_applicant_name_and_role()
+    {
+        var content = _catalog.Render(NotificationType.OnboardingSubmitted,
+            new NotificationParams { CounterpartyName = "Acme University", StatusText = "Company" });
+
+        content.BodyEn.Should().Contain("Acme University").And.Contain("Company");
+        content.TitleAr.Should().NotBeNullOrEmpty();
+        content.BodyAr.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public void Renders_upgrade_request_submitted_with_student_name()
+    {
+        var content = _catalog.Render(NotificationType.UpgradeRequestSubmitted,
+            new NotificationParams { CounterpartyName = "Mona Hassan", StatusText = "Consultant" });
+
+        content.BodyEn.Should().Contain("Mona Hassan");
+        content.BodyAr.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public void Renders_content_reported_with_the_reason()
+    {
+        var content = _catalog.Render(NotificationType.ContentReported,
+            new NotificationParams { Reason = "Spam" });
+
+        content.BodyEn.Should().Contain("Spam");
+        content.BodyAr.Should().Contain("Spam");
+        content.TitleEn.Should().NotBeNullOrEmpty();
+    }
 }

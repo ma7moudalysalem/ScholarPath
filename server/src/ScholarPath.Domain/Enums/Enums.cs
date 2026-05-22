@@ -187,10 +187,16 @@ public enum NotificationType
     UpgradeRequestApproved = 402,
     UpgradeRequestRejected = 403,
     AdminApprovalRequired = 404,
+    // Admin-inbound: a Company/Consultant applicant has reached the onboarding queue.
+    OnboardingSubmitted = 405,
+    // Admin-inbound: a Student has submitted a consultant upgrade request.
+    UpgradeRequestSubmitted = 406,
 
     // Community (PB-007)
     ReplyOnYourPost = 500,
     PostAutoHidden = 501,
+    // Admin-inbound: a community post was reported/flagged and needs moderation.
+    ContentReported = 502,
 
     // Resources (PB-009)
     ResourceApproved = 600,
