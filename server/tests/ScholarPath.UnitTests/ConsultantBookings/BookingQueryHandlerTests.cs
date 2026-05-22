@@ -181,6 +181,56 @@ public sealed class BookingQueryHandlerTests : IDisposable
         result.Id.Should().Be(booking.Id);
         result.Status.Should().Be(BookingStatus.Confirmed);
         result.ConsultantEmail.Should().Be("sarah@test.com");
+        result.HasStudentReview.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetBookingById_HasStudentReview_IsTrue_WhenAVisibleReviewExists()
+    {
+        var booking = SeedBooking(BookingStatus.Completed, DateTimeOffset.UtcNow.AddDays(-1));
+        _db.ConsultantReviews.Add(new ConsultantReview
+        {
+            Id = Guid.NewGuid(),
+            BookingId = booking.Id,
+            StudentId = _studentId,
+            ConsultantId = _consultantId,
+            Rating = 5,
+            Comment = "Great session",
+        });
+        await _db.SaveChangesAsync();
+
+        _currentUser.UserId.Returns(_studentId);
+        var handler = new GetBookingByIdQueryHandler(_db, _currentUser);
+
+        var result = await handler.Handle(
+            new GetBookingByIdQuery(booking.Id), CancellationToken.None);
+
+        result.HasStudentReview.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetBookingById_HasStudentReview_IsFalse_WhenTheOnlyReviewIsSoftDeleted()
+    {
+        var booking = SeedBooking(BookingStatus.Completed, DateTimeOffset.UtcNow.AddDays(-1));
+        _db.ConsultantReviews.Add(new ConsultantReview
+        {
+            Id = Guid.NewGuid(),
+            BookingId = booking.Id,
+            StudentId = _studentId,
+            ConsultantId = _consultantId,
+            Rating = 4,
+            IsDeleted = true,
+            DeletedAt = DateTimeOffset.UtcNow,
+        });
+        await _db.SaveChangesAsync();
+
+        _currentUser.UserId.Returns(_studentId);
+        var handler = new GetBookingByIdQueryHandler(_db, _currentUser);
+
+        var result = await handler.Handle(
+            new GetBookingByIdQuery(booking.Id), CancellationToken.None);
+
+        result.HasStudentReview.Should().BeFalse();
     }
 
     [Fact]

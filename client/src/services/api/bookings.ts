@@ -77,6 +77,12 @@ export interface BookingDetail extends BookingListItem {
    * left.
    */
   studentNotes?: string | null;
+  /**
+   * True when the student has already submitted a rating for this booking. The
+   * student-side UI uses it to hide the "Rate consultant" CTA after refresh so
+   * a duplicate submission cannot be attempted.
+   */
+  hasStudentReview: boolean;
 }
 
 /** A single saved availability rule — `GET /api/bookings/me/availability`. */

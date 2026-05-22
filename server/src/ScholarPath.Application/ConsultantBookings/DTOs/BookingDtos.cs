@@ -97,6 +97,13 @@ public sealed record BookingDetailDto
     public DateTimeOffset? StudentJoinedAt { get; init; }
     public DateTimeOffset? ConsultantJoinedAt { get; init; }
 
+    /// <summary>
+    /// True when the booking's student has already submitted a (non-deleted)
+    /// consultant rating for this booking. The student UI uses this to suppress
+    /// the "Rate consultant" CTA on refresh after a successful submission.
+    /// </summary>
+    public bool HasStudentReview { get; init; }
+
     public DateTimeOffset CreatedAt { get; init; }
 }
 

@@ -2,8 +2,10 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 import { toast } from "sonner";
+import { Star } from "lucide-react";
 import { useBookingDetailQuery, useCancelBookingMutation } from "@/hooks/useBookingsQuery";
 import { BookingRecordings } from "@/components/booking/BookingRecordings";
+import { RateConsultantModal } from "@/components/booking/RateConsultantModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { apiErrorMessage } from "@/services/api/client";
 import type { BookingDetail } from "@/services/api/bookings";
@@ -70,6 +72,7 @@ export function StudentBookingDetails() {
   const { data: booking, isLoading, isError } = useBookingDetailQuery(id);
   const cancelMut = useCancelBookingMutation();
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
 
   // A booking can be cancelled by the student while it is still awaiting the
   // consultant's response — the held payment is released, no charge is taken.
@@ -304,6 +307,49 @@ export function StudentBookingDetails() {
           </section>
 
           <aside className="space-y-6 lg:col-span-4">
+            {booking.status === "Completed" && !booking.hasStudentReview ? (
+              <div className="rounded-2xl border border-brand-200 bg-brand-50 p-6 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-600">
+                    <Star aria-hidden className="size-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
+                      {t("rating.ctaTitle")}
+                    </h2>
+                    <p className="mt-1 text-sm leading-6 text-text-secondary">
+                      {t("rating.ctaDescription")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setRateOpen(true)}
+                      className="mt-4 inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-medium text-white transition hover:bg-brand-600"
+                    >
+                      {t("rating.ctaButton")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {booking.status === "Completed" && booking.hasStudentReview ? (
+              <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-success-50 text-success-600">
+                    <Star aria-hidden className="size-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
+                      {t("rating.alreadyRatedTitle")}
+                    </h2>
+                    <p className="mt-1 text-sm leading-6 text-text-secondary">
+                      {t("rating.alreadyRatedDescription")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
               <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                 {t("details.quickActionsTitle")}
@@ -370,6 +416,13 @@ export function StudentBookingDetails() {
         confirmLabel={t("details.cancelBooking")}
         loading={cancelMut.isPending}
         onConfirm={handleCancel}
+      />
+
+      <RateConsultantModal
+        isOpen={rateOpen}
+        onOpenChange={setRateOpen}
+        bookingId={booking.id}
+        consultantName={booking.consultantName}
       />
     </main>
   );
