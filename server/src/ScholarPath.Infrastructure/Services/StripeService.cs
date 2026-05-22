@@ -53,6 +53,12 @@ public sealed class StripeService(
             Currency = currency,
             CaptureMethod = captureMethod,
             Metadata = metadata?.ToDictionary(k => k.Key, v => v.Value),
+            // Restrict to card. Without this Stripe inherits whatever wallets are
+            // toggled on in the dashboard (Amazon Pay, Cash App Pay, …) and the
+            // PaymentElement renders them even though we never set them up — which
+            // confused users and would fail at confirm time. Card only keeps the
+            // checkout to the one method we actually support.
+            PaymentMethodTypes = ["card"],
         };
 
         var requestOptions = new RequestOptions
