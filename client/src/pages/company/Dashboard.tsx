@@ -237,7 +237,7 @@ export function CompanyDashboard() {
               { icon: Plus, label: t('dashboard:company.quick.post'), to: '/company/scholarships/new', accent: 'brand' },
               { icon: ListChecks, label: t('dashboard:company.quick.review'), to: '/company/applications-review', accent: 'success' },
               { icon: Receipt, label: t('dashboard:company.quick.billing'), to: '/company/billing', accent: 'warning' },
-              { icon: BarChart2, label: t('dashboard:company.quick.analytics'), to: '/company', accent: 'neutral' },
+              { icon: BarChart2, label: t('dashboard:company.quick.analytics'), to: '/company/insights', accent: 'neutral' },
             ]}
           />
 
