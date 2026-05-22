@@ -4,6 +4,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
@@ -11,12 +12,18 @@ using ScholarPath.Application.CompanyReviews.Commands.RefundCompanyReview;
 
 namespace ScholarPath.UnitTests.CompanyReviews;
 
+/// <summary>
+/// Verifies PB-005 v1 CompanyReview refund behaviour against the unified
+/// <see cref="Payment"/> table (the legacy <c>CompanyReviewPayment</c> table
+/// is no longer used for the active flow).
+/// </summary>
 public sealed class RefundCompanyReviewCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly IStripeService _stripe = Substitute.For<IStripeService>();
     private readonly INotificationDispatcher _notifications = Substitute.For<INotificationDispatcher>();
-    private readonly ILogger<RefundCompanyReviewCommandHandler> _logger = Substitute.For<ILogger<RefundCompanyReviewCommandHandler>>();
+    private readonly ILogger<RefundCompanyReviewCommandHandler> _logger =
+        Substitute.For<ILogger<RefundCompanyReviewCommandHandler>>();
     private readonly RefundCompanyReviewCommandHandler _handler;
 
     public RefundCompanyReviewCommandHandlerTests()
@@ -27,77 +34,164 @@ public sealed class RefundCompanyReviewCommandHandlerTests : IDisposable
         _db = new ApplicationDbContext(options);
 
         _handler = new RefundCompanyReviewCommandHandler(
-            _db,
-            _stripe,
-            _notifications,
-            _logger);
+            _db, _stripe, _notifications, _logger);
     }
 
     public void Dispose() => _db.Dispose();
 
-    [Fact]
-    public async Task Handle_FullRefund_CancelsPaymentIntent()
+    private Payment SeedHeldPayment(Guid applicationId, long amountCents = 10_000)
     {
-        // Arrange
-        var appId = Guid.NewGuid();
-        var payment = new CompanyReviewPayment
+        var payment = new Payment
         {
             Id = Guid.NewGuid(),
-            ApplicationTrackerId = appId,
+            Type = PaymentType.CompanyReview,
             Status = PaymentStatus.Held,
-            StripePaymentIntentId = "pi_123",
-            AmountUsd = 100m,
-            IdempotencyKey = $"test-idem-{appId:N}"
+            AmountCents = amountCents,
+            Currency = "USD",
+            ProfitShareAmountCents = amountCents / 10,
+            PayeeAmountCents = amountCents - amountCents / 10,
+            RefundedAmountCents = 0,
+            PayerUserId = Guid.NewGuid(),
+            PayeeUserId = Guid.NewGuid(),
+            StripePaymentIntentId = $"pi_{Guid.NewGuid():N}",
+            IdempotencyKey = $"key_{Guid.NewGuid():N}",
+            RelatedApplicationId = applicationId,
         };
+        _db.Payments.Add(payment);
+        return payment;
+    }
 
-        _db.CompanyReviewPayments.Add(payment);
-        await _db.SaveChangesAsync();
-
-        _stripe.CancelPaymentIntentAsync("pi_123", "requested_by_customer", Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(new StripePaymentIntentResult("pi_123", "canceled", null, null));
-
-        var command = new RefundCompanyReviewCommand(appId, IsFullRefund: true);
-
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        result.Should().BeTrue();
-        payment.Status.Should().Be(PaymentStatus.Refunded);
-        payment.RefundedAmountUsd.Should().Be(100m);
-        await _stripe.Received(1).CancelPaymentIntentAsync("pi_123", "requested_by_customer", Arg.Any<string>(), Arg.Any<CancellationToken>());
+    private Payment SeedCapturedPayment(Guid applicationId, long amountCents = 10_000)
+    {
+        var payment = SeedHeldPayment(applicationId, amountCents);
+        payment.Status = PaymentStatus.Captured;
+        payment.CapturedAt = DateTimeOffset.UtcNow;
+        return payment;
     }
 
     [Fact]
-    public async Task Handle_PartialRefund_CapturesHalfAndReleasesRest()
+    public async Task Full_refund_on_Held_payment_cancels_intent_and_marks_Cancelled()
     {
-        // Arrange
         var appId = Guid.NewGuid();
-        var payment = new CompanyReviewPayment
+        var payment = SeedHeldPayment(appId);
+        _db.Applications.Add(new ApplicationTracker
         {
-            Id = Guid.NewGuid(),
-            ApplicationTrackerId = appId,
-            Status = PaymentStatus.Held,
-            StripePaymentIntentId = "pi_123",
-            AmountUsd = 100m,
-            IdempotencyKey = $"test-idem-{appId:N}"
-        };
-
-        _db.CompanyReviewPayments.Add(payment);
+            Id = appId, StudentId = Guid.NewGuid(), Status = ApplicationStatus.Pending,
+        });
         await _db.SaveChangesAsync();
 
-        _stripe.CapturePaymentIntentAsync("pi_123", 5000, Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(new StripePaymentIntentResult("pi_123", "succeeded", null, null));
+        _stripe.CancelPaymentIntentAsync(
+                payment.StripePaymentIntentId!, Arg.Any<string?>(),
+                Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new StripePaymentIntentResult(
+                payment.StripePaymentIntentId!, "canceled", null, null));
 
-        var command = new RefundCompanyReviewCommand(appId, IsFullRefund: false);
+        var result = await _handler.Handle(
+            new RefundCompanyReviewCommand(appId, IsFullRefund: true), default);
 
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
+        result.Should().BeTrue();
+        payment.Status.Should().Be(PaymentStatus.Cancelled);
+        payment.RefundedAmountCents.Should().Be(0);
+        payment.ProfitShareAmountCents.Should().Be(0);
+        payment.PayeeAmountCents.Should().Be(0);
+        await _stripe.Received(1).CancelPaymentIntentAsync(
+            payment.StripePaymentIntentId!, Arg.Any<string?>(),
+            Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _stripe.DidNotReceiveWithAnyArgs()
+            .RefundPaymentAsync(default!, default, default, default!, default);
+    }
 
-        // Assert
+    [Fact]
+    public async Task Full_refund_on_Captured_payment_issues_full_Stripe_refund()
+    {
+        var appId = Guid.NewGuid();
+        var payment = SeedCapturedPayment(appId, 10_000);
+        _db.Applications.Add(new ApplicationTracker
+        {
+            Id = appId, StudentId = Guid.NewGuid(), Status = ApplicationStatus.UnderReview,
+        });
+        await _db.SaveChangesAsync();
+
+        _stripe.RefundPaymentAsync(
+                payment.StripePaymentIntentId!, 10_000, Arg.Any<string?>(),
+                Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new StripeRefundResult("re_full", "succeeded", 10_000));
+
+        var result = await _handler.Handle(
+            new RefundCompanyReviewCommand(appId, IsFullRefund: true), default);
+
+        result.Should().BeTrue();
+        payment.Status.Should().Be(PaymentStatus.Refunded);
+        payment.RefundedAmountCents.Should().Be(10_000);
+        payment.ProfitShareAmountCents.Should().Be(0);
+        payment.PayeeAmountCents.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Partial_refund_on_Captured_payment_refunds_50_percent_and_recomputes_split()
+    {
+        var appId = Guid.NewGuid();
+        var payment = SeedCapturedPayment(appId, 10_000);
+        _db.Applications.Add(new ApplicationTracker
+        {
+            Id = appId, StudentId = Guid.NewGuid(), Status = ApplicationStatus.UnderReview,
+        });
+        await _db.SaveChangesAsync();
+
+        _stripe.RefundPaymentAsync(
+                payment.StripePaymentIntentId!, 5_000, Arg.Any<string?>(),
+                Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new StripeRefundResult("re_half", "succeeded", 5_000));
+
+        var result = await _handler.Handle(
+            new RefundCompanyReviewCommand(appId, IsFullRefund: false), default);
+
         result.Should().BeTrue();
         payment.Status.Should().Be(PaymentStatus.PartiallyRefunded);
-        payment.RefundedAmountUsd.Should().Be(50m);
-        await _stripe.Received(1).CapturePaymentIntentAsync("pi_123", 5000, Arg.Any<string>(), Arg.Any<CancellationToken>());
+        payment.RefundedAmountCents.Should().Be(5_000);
+        // Retained = 5000; default v1 split = 10% / 90%.
+        payment.ProfitShareAmountCents.Should().Be(500);
+        payment.PayeeAmountCents.Should().Be(4_500);
+    }
+
+    [Fact]
+    public async Task Returns_false_when_no_companyreview_payment_exists()
+    {
+        var result = await _handler.Handle(
+            new RefundCompanyReviewCommand(Guid.NewGuid(), IsFullRefund: true), default);
+
+        result.Should().BeFalse();
+        await _stripe.DidNotReceiveWithAnyArgs()
+            .CancelPaymentIntentAsync(default!, default, default!, default);
+        await _stripe.DidNotReceiveWithAnyArgs()
+            .RefundPaymentAsync(default!, default, default, default!, default);
+    }
+
+    [Fact]
+    public async Task Does_not_touch_unrelated_ConsultantBooking_payments()
+    {
+        var appId = Guid.NewGuid();
+        _db.Payments.Add(new Payment
+        {
+            Id = Guid.NewGuid(),
+            Type = PaymentType.ConsultantBooking,
+            Status = PaymentStatus.Held,
+            AmountCents = 10_000,
+            Currency = "USD",
+            ProfitShareAmountCents = 1_000,
+            PayeeAmountCents = 9_000,
+            PayerUserId = Guid.NewGuid(),
+            StripePaymentIntentId = "pi_booking",
+            IdempotencyKey = "k_booking",
+            RelatedApplicationId = appId,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _handler.Handle(
+            new RefundCompanyReviewCommand(appId, IsFullRefund: true), default);
+
+        result.Should().BeFalse();
+        await _stripe.DidNotReceiveWithAnyArgs()
+            .CancelPaymentIntentAsync(default!, default, default!, default);
     }
 }

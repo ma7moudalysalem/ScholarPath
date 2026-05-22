@@ -30,6 +30,7 @@ import {
   type DocumentCategory,
 } from "@/services/api/documents";
 import { ApiError, apiErrorMessage } from "@/services/api/client";
+import { ApplicationSubmitConfirmation } from "@/components/application/SubmitConfirmation";
 
 // ── Application-form schema ───────────────────────────────────────────────────
 // A scholarship's ApplicationFormSchemaJson is { "fields": [{ key, label, type,
@@ -486,6 +487,14 @@ function DraftApplicationForm({
       toast.error(apiErrorMessage(err, t("moderation:appDetail.form.saveError"))),
   });
 
+  // CompanyReview fee gating (PB-005 v1). When the scholarship configures a
+  // review fee the student must first authorise a manual-capture hold; only
+  // after Stripe confirms the authorization do we transition the application
+  // to Pending. For free scholarships the flow is unchanged.
+  const reviewFeeUsd = application.reviewFeeUsd ?? 0;
+  const requiresReviewFeePayment = reviewFeeUsd > 0;
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
   const submitMut = useMutation({
     mutationFn: async () => {
       // Persist the current answers, then transition the draft to Pending.
@@ -494,6 +503,7 @@ function DraftApplicationForm({
     },
     onSuccess: () => {
       toast.success(t("moderation:appDetail.submittedToast"));
+      setShowPaymentModal(false);
       invalidate();
     },
     onError: (err: unknown) => {
@@ -528,6 +538,18 @@ function DraftApplicationForm({
       return;
     }
     setErrors({});
+    if (requiresReviewFeePayment) {
+      // Persist the answers so a Stripe redirect-based payment method doesn't
+      // lose the student's work, then open the payment modal. The modal calls
+      // submitMut after the hold is authorised.
+      void applicationsApi
+        .saveDraft(application.id, buildBody())
+        .then(() => setShowPaymentModal(true))
+        .catch((err) =>
+          toast.error(apiErrorMessage(err, t("moderation:appDetail.form.saveError"))),
+        );
+      return;
+    }
     submitMut.mutate();
   };
 
@@ -820,7 +842,57 @@ function DraftApplicationForm({
             : t("moderation:appDetail.submit")}
         </button>
       </div>
+
+      {showPaymentModal && requiresReviewFeePayment && (
+        <ReviewFeePaymentModal
+          applicationId={application.id}
+          scholarshipTitle={application.scholarshipTitleEn}
+          companyName={application.companyName ?? ""}
+          reviewFeeUsd={reviewFeeUsd}
+          onPaymentSuccess={() => submitMut.mutate()}
+          onCancel={() => setShowPaymentModal(false)}
+        />
+      )}
     </section>
+  );
+}
+
+// ── CompanyReview fee payment modal ──────────────────────────────────────────
+// Wraps ApplicationSubmitConfirmation in a backdrop so it can render inline
+// from the submit button without needing its own route.
+
+function ReviewFeePaymentModal({
+  applicationId,
+  scholarshipTitle,
+  companyName,
+  reviewFeeUsd,
+  onPaymentSuccess,
+  onCancel,
+}: {
+  applicationId: string;
+  scholarshipTitle: string;
+  companyName: string;
+  reviewFeeUsd: number;
+  onPaymentSuccess: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 px-4 py-8"
+    >
+      <div className="w-full max-w-2xl rounded-2xl bg-bg-base shadow-xl">
+        <ApplicationSubmitConfirmation
+          applicationId={applicationId}
+          scholarshipTitle={scholarshipTitle}
+          companyName={companyName}
+          reviewFeeUsd={reviewFeeUsd}
+          onPaymentSuccess={onPaymentSuccess}
+          onCancel={onCancel}
+        />
+      </div>
+    </div>
   );
 }
 

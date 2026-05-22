@@ -38,13 +38,24 @@ public sealed class WithdrawApplicationCommandHandler(
         application.Status = ApplicationStatus.Withdrawn;
         application.WithdrawnAt = DateTimeOffset.UtcNow;
 
-        var payment = await db.CompanyReviewPayments
-            .FirstOrDefaultAsync(p => p.ApplicationTrackerId == application.Id && p.Status == PaymentStatus.Held, ct);
+        // PB-005 v1: company-review payments live on the unified Payment table
+        // (Type = CompanyReview). A payment qualifies for the withdrawal refund
+        // flow only when it has not yet been finalised — i.e. it is still Held
+        // (pre-acceptance) or already Captured (post-acceptance, under review).
+        var payment = await db.Payments
+            .FirstOrDefaultAsync(p =>
+                p.Type == PaymentType.CompanyReview
+                && p.RelatedApplicationId == application.Id
+                && (p.Status == PaymentStatus.Held
+                    || p.Status == PaymentStatus.Pending
+                    || p.Status == PaymentStatus.Captured),
+                ct);
 
         if (payment != null)
         {
-            // Refund policy: withdraw before the company starts reviewing -> 100%;
-            // withdraw once it is already under review -> 50%.
+            // Refund policy: withdraw before the company starts reviewing -> 100%
+            // (hold cancelled, no charge), withdraw once it is already under review
+            // -> 50% (Stripe Refund issued).
             var isFullRefund = statusBeforeWithdrawal
                 is ApplicationStatus.Draft or ApplicationStatus.Pending;
             var refundCommand = new ScholarPath.Application.CompanyReviews.Commands.RefundCompanyReview.RefundCompanyReviewCommand(

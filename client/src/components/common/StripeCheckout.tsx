@@ -3,10 +3,21 @@ import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { paymentsApi } from "@/services/api/payments";
+import { paymentsApi, type PaymentType } from "@/services/api/payments";
 
 interface StripeCheckoutProps {
-  bookingId: string;
+  /**
+   * Which payment kind this checkout authorises. ConsultantBooking and
+   * CompanyReview both use manual-capture intents; the capture happens
+   * server-side when the consultant accepts the booking or the company
+   * accepts the application review. Defaults to ConsultantBooking for
+   * legacy callers that pre-date the dual-flow rework.
+   */
+  paymentType?: PaymentType;
+  /** Consultant booking id — required when paymentType is ConsultantBooking. */
+  bookingId?: string;
+  /** Application id — required when paymentType is CompanyReview. */
+  applicationId?: string;
   amountCents: number;
   currency?: string;
   /**
@@ -16,21 +27,34 @@ interface StripeCheckoutProps {
    * (PB-006 gap report, Problem 1).
    */
   clientSecret?: string | null;
+  /** Path to redirect to after successful authorisation. Defaults match the type. */
+  returnUrlPath?: string;
   onSuccess?: () => void;
 }
 
 /**
- * Real Stripe Elements checkout for a consultant booking.
+ * Real Stripe Elements checkout for either a consultant booking or a company
+ * review (application) fee.
  *
- * Flow: create a manual-capture PaymentIntent for the booking → render the
- * Stripe PaymentElement → confirm → the session fee is authorized (held).
- * Capture happens server-side when the consultant accepts the booking.
+ * Flow (auto-create branch):
+ *   - Calls `POST /api/payments/intent` with the correct type + related id.
+ *   - Renders the Stripe PaymentElement.
+ *   - Student confirms → funds authorized (held) on the card.
+ *   - Capture happens server-side when the counterparty accepts.
+ *
+ * Flow (preset clientSecret branch):
+ *   - The intent was already created by the back-end (e.g. RequestBooking
+ *     returns one) and the caller passes its clientSecret — we never create a
+ *     second one.
  */
 export function StripeCheckout({
+  paymentType = "ConsultantBooking",
   bookingId,
+  applicationId,
   amountCents,
   currency = "USD",
   clientSecret: presetClientSecret,
+  returnUrlPath,
   onSuccess,
 }: StripeCheckoutProps) {
   const { t } = useTranslation("bookings");
@@ -45,18 +69,36 @@ export function StripeCheckout({
     [configured, publishableKey],
   );
 
+  // Compute the related-id once per render so the effect doesn't have to
+  // branch on payment type itself; this also lets us validate the props
+  // outside the effect (avoids react-hooks/set-state-in-effect).
+  const relatedBookingId =
+    paymentType === "ConsultantBooking" ? bookingId ?? null : null;
+  const relatedApplicationId =
+    paymentType === "CompanyReview" ? applicationId ?? null : null;
+
+  const propsError = !configured
+    ? null
+    : paymentType === "ConsultantBooking" && !relatedBookingId && !presetClientSecret
+      ? "Missing bookingId for ConsultantBooking checkout."
+      : paymentType === "CompanyReview" && !relatedApplicationId && !presetClientSecret
+        ? "Missing applicationId for CompanyReview checkout."
+        : null;
+
   useEffect(() => {
     // The booking flow passes an existing intent's client secret — the intent
     // is already created, so the widget must not create a second one
     // (PB-006 gap report, Problem 1).
-    if (!configured || presetClientSecret) return;
+    if (!configured || presetClientSecret || propsError) return;
+
     let cancelled = false;
     paymentsApi
       .createIntent({
-        type: "ConsultantBooking",
+        type: paymentType,
         amountCents,
         currency,
-        relatedBookingId: bookingId,
+        relatedBookingId,
+        relatedApplicationId,
       })
       .then((res) => {
         if (!cancelled) setClientSecret(res.clientSecret);
@@ -69,7 +111,19 @@ export function StripeCheckout({
     return () => {
       cancelled = true;
     };
-  }, [amountCents, currency, bookingId, configured, presetClientSecret, t]);
+  }, [
+    paymentType,
+    amountCents,
+    currency,
+    relatedBookingId,
+    relatedApplicationId,
+    configured,
+    presetClientSecret,
+    propsError,
+    t,
+  ]);
+
+  const effectiveError = error ?? propsError;
 
   if (!configured) {
     return (
@@ -79,10 +133,10 @@ export function StripeCheckout({
     );
   }
 
-  if (error) {
+  if (effectiveError) {
     return (
       <div className="rounded-lg border border-danger-200 bg-danger-50 p-4 text-sm text-danger-500">
-        {error}
+        {effectiveError}
       </div>
     );
   }
@@ -91,18 +145,24 @@ export function StripeCheckout({
     return <div className="text-sm text-text-tertiary">{t("checkout.payment.preparing")}</div>;
   }
 
+  const resolvedReturnPath =
+    returnUrlPath
+    ?? (paymentType === "CompanyReview" && applicationId
+      ? `/student/applications/${applicationId}`
+      : `/student/bookings/${bookingId ?? ""}`);
+
   return (
     <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
-      <CheckoutInner bookingId={bookingId} onSuccess={onSuccess} />
+      <CheckoutInner returnUrlPath={resolvedReturnPath} onSuccess={onSuccess} />
     </Elements>
   );
 }
 
 function CheckoutInner({
-  bookingId,
+  returnUrlPath,
   onSuccess,
 }: {
-  bookingId: string;
+  returnUrlPath: string;
   onSuccess?: () => void;
 }) {
   const { t } = useTranslation("bookings");
@@ -119,7 +179,7 @@ function CheckoutInner({
     // Amazon Pay, etc.).  Without it Stripe returns a 400 for those methods even
     // when `redirect: "if_required"` is set — Stripe still needs a fallback URL
     // in case the payment method forces a redirect.
-    const returnUrl = `${window.location.origin}/student/bookings/${bookingId}`;
+    const returnUrl = `${window.location.origin}${returnUrlPath}`;
     const { error } = await stripe.confirmPayment({
       elements,
       redirect: "if_required",

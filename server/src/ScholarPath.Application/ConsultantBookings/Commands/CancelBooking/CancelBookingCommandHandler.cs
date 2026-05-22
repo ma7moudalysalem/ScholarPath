@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.ConsultantBookings.Services;
+using ScholarPath.Application.FinancialConfig;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Events;
 using ScholarPath.Domain.Exceptions;
@@ -137,21 +138,16 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
                     ? PaymentStatus.Refunded
                     : PaymentStatus.PartiallyRefunded;
 
-                // Recompute payee net after partial refund so the payout job pays
-                // the consultant the kept portion minus the platform's locked-in
-                // profit share. Preserves invariant: refunded + payee <= gross.
-                // (FR-090: partial refund leaves consultant earning the kept half.)
-                if (payment.Status == PaymentStatus.PartiallyRefunded)
-                {
-                    payment.PayeeAmountCents = Math.Max(
-                        0,
-                        payment.AmountCents - payment.RefundedAmountCents - payment.ProfitShareAmountCents);
-                }
-                else
-                {
-                    // Full refund — consultant earns nothing.
-                    payment.PayeeAmountCents = 0;
-                }
+                // PB-014 v1: commission applies to retained amount, not gross.
+                // Re-resolve the split off (gross - refunded) so platform take
+                // and payee net shrink together with the refund. The resolver
+                // returns zero/zero for a full refund.
+                var retainedSplit = await FinancialRuleResolver.ResolveSplitFromRetainedAsync(
+                    _context, payment.Type,
+                    payment.AmountCents, payment.RefundedAmountCents,
+                    cancellationToken);
+                payment.ProfitShareAmountCents = retainedSplit.PlatformTakeCents;
+                payment.PayeeAmountCents = retainedSplit.PayeeNetCents;
             }
             else
             {

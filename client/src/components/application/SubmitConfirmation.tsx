@@ -11,13 +11,19 @@ interface SubmitConfirmationProps {
   onCancel: () => void;
 }
 
+/**
+ * CompanyReview fee confirmation modal. Hosts the StripeCheckout widget
+ * configured for the CompanyReview manual-capture flow: the student
+ * authorizes a hold now and the company captures it when the review is
+ * accepted. (PB-005 v1.)
+ */
 export function ApplicationSubmitConfirmation({
   applicationId,
   scholarshipTitle,
   companyName,
   reviewFeeUsd,
   onPaymentSuccess,
-  onCancel
+  onCancel,
 }: SubmitConfirmationProps) {
   const { t } = useTranslation('company');
 
@@ -59,8 +65,11 @@ export function ApplicationSubmitConfirmation({
               {t('submit.paymentDetails')}
             </p>
             <StripeCheckout
-              bookingId={applicationId}
+              paymentType="CompanyReview"
+              applicationId={applicationId}
               amountCents={Math.round(reviewFeeUsd * 100)}
+              currency="USD"
+              returnUrlPath={`/student/applications/${applicationId}`}
               onSuccess={onPaymentSuccess}
             />
           </div>

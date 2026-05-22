@@ -109,13 +109,16 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
             }
 
             // FR-090/193: a consultant no-show fully refunds the student, so the
-            // internal Payment row is marked Refunded for the gross amount.
+            // internal Payment row is marked Refunded for the gross amount and
+            // both commission and payee net are zeroed (retained = 0).
             if (booking.Payment is { } payment)
             {
                 payment.Status = PaymentStatus.Refunded;
                 payment.RefundedAmountCents = payment.AmountCents;
                 payment.RefundedAt = nowUtc;
                 payment.RefundReason = CancellationReason.ConsultantNoShow.ToString();
+                payment.ProfitShareAmountCents = 0;
+                payment.PayeeAmountCents = 0;
             }
 
             booking.IsNoShowConsultant = true;

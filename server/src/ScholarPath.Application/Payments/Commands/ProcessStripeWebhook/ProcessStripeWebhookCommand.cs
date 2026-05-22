@@ -235,6 +235,22 @@ public sealed class ProcessStripeWebhookCommandHandler(
                     payout.Status = PayoutStatus.Failed;
                     var reason = request.PayoutFailureMessage ?? "payout.failed";
                     payout.FailureReason = reason.Length > 500 ? reason[..500] : reason;
+
+                    // PB-013 recovery: release every payment that was pre-claimed
+                    // into this payout so the nightly StripePayoutJob can pick
+                    // them up again on its next run. Without this clearing, the
+                    // payments would be orphaned to the failed Payout forever.
+                    var orphanedPayments = await db.Payments
+                        .Where(p => p.PayoutId == payout.Id)
+                        .ToListAsync(ct).ConfigureAwait(false);
+                    foreach (var p in orphanedPayments)
+                    {
+                        p.PayoutId = null;
+                    }
+
+                    logger.LogInformation(
+                        "Payout {PayoutId} failed — released {Count} payment(s) for retry.",
+                        request.PayoutId, orphanedPayments.Count);
                 }
 
                 logger.LogInformation(

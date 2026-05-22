@@ -210,6 +210,13 @@ public sealed class BookingPaymentSyncTests : IDisposable
         var start = DateTimeOffset.UtcNow.AddHours(-2);
         var booking = await SeedAsync(
             BookingStatus.Confirmed, PaymentStatus.Captured, start, start.AddHours(1));
+        // Simulate a pre-existing snapshot from the capture-time split so we
+        // can prove the no-show refund zeroes both commission and payee.
+        var captured = await PaymentForAsync(booking.Id);
+        captured.ProfitShareAmountCents = 1_000;
+        captured.PayeeAmountCents = 9_000;
+        await _db.SaveChangesAsync();
+
         _stripe.RefundPaymentAsync(
                 Arg.Any<string>(), Arg.Any<long?>(), Arg.Any<string>(), Arg.Any<string>(),
                 Arg.Any<CancellationToken>())
@@ -221,6 +228,41 @@ public sealed class BookingPaymentSyncTests : IDisposable
         var payment = await PaymentForAsync(booking.Id);
         payment.Status.Should().Be(PaymentStatus.Refunded);
         payment.RefundedAmountCents.Should().Be(10_000);
+        payment.ProfitShareAmountCents.Should().Be(0);
+        payment.PayeeAmountCents.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Cancel_confirmed_booking_within_24h_recomputes_commission_from_retained()
+    {
+        // PB-014 v1: a <24h student cancel triggers a 50% refund; commission
+        // and payee net must recompute off the retained amount, not stay locked
+        // at the original 10% of gross.
+        _currentUser.IsAuthenticated.Returns(true);
+        _currentUser.UserId.Returns(_studentId); // student cancels <24h
+        var booking = await SeedAsync(
+            BookingStatus.Confirmed, PaymentStatus.Captured,
+            start: DateTimeOffset.UtcNow.AddHours(6));
+        var captured = await PaymentForAsync(booking.Id);
+        captured.ProfitShareAmountCents = 1_000;
+        captured.PayeeAmountCents = 9_000;
+        await _db.SaveChangesAsync();
+
+        _stripe.RefundPaymentAsync(
+                Arg.Any<string>(), Arg.Any<long?>(), Arg.Any<string>(), Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new StripeRefundResult("re_50", "succeeded", 5_000));
+
+        var handler = new CancelBookingCommandHandler(
+            _db, _currentUser, _stripe, new RefundCalculatorService(), _publisher);
+        await handler.Handle(new CancelBookingCommand(booking.Id), default);
+
+        var payment = await PaymentForAsync(booking.Id);
+        payment.Status.Should().Be(PaymentStatus.PartiallyRefunded);
+        payment.RefundedAmountCents.Should().Be(5_000);
+        // Retained 5000, default 10% / 90% split.
+        payment.ProfitShareAmountCents.Should().Be(500);
+        payment.PayeeAmountCents.Should().Be(4_500);
     }
 
     [Fact]

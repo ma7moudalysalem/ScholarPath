@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.FinancialConfig;
 using ScholarPath.Application.Notifications;
 using ScholarPath.Application.Payments;
 using ScholarPath.Domain.Enums;
@@ -14,8 +15,14 @@ public interface ICompanyReviewTimeoutRefundJob
 }
 
 /// <summary>
-/// Daily job to auto-refund review fees for applications that companies failed
-/// to review within 14 days of the deadline.
+/// Daily job that refunds review fees for applications the company failed to
+/// review within 14 days of the scholarship deadline (PB-005 AC#3 / FR-068).
+/// Operates on the unified <see cref="Domain.Entities.Payment"/> table. The
+/// refund action depends on the payment's current state:
+/// <list type="bullet">
+///   <item>Held — cancel the PaymentIntent (no charge).</item>
+///   <item>Captured — issue a full Stripe Refund.</item>
+/// </list>
 /// </summary>
 public sealed class CompanyReviewTimeoutRefundJob(
     ApplicationDbContext db,
@@ -27,9 +34,8 @@ public sealed class CompanyReviewTimeoutRefundJob(
     {
         var now = DateTimeOffset.UtcNow;
 
-        // Find applications where Status is Pending or UnderReview,
-        // the scholarship deadline has passed by 14 days,
-        // and there is a held payment.
+        // Applications still awaiting a decision whose scholarship deadline
+        // passed at least 14 days ago.
         var expiredApplications = await db.Applications
             .Include(a => a.Scholarship)
             .Where(a => (a.Status == ApplicationStatus.Pending || a.Status == ApplicationStatus.UnderReview)
@@ -38,51 +44,98 @@ public sealed class CompanyReviewTimeoutRefundJob(
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
+        if (expiredApplications.Count == 0)
+        {
+            return;
+        }
+
+        int refunded = 0;
+
         foreach (var app in expiredApplications)
         {
-            var payment = await db.CompanyReviewPayments
-                .FirstOrDefaultAsync(p => p.ApplicationTrackerId == app.Id && p.Status == PaymentStatus.Held, ct);
+            var payment = await db.Payments
+                .FirstOrDefaultAsync(p =>
+                    p.Type == PaymentType.CompanyReview
+                    && p.RelatedApplicationId == app.Id
+                    && (p.Status == PaymentStatus.Held
+                        || p.Status == PaymentStatus.Pending
+                        || p.Status == PaymentStatus.Captured),
+                    ct);
 
-            if (payment != null)
+            if (payment is null) continue;
+            if (string.IsNullOrWhiteSpace(payment.StripePaymentIntentId)) continue;
+
+            try
             {
-                try
+                if (payment.Status is PaymentStatus.Held or PaymentStatus.Pending)
                 {
-                    // Refund 100% — release the card hold; throws if Stripe does
-                    // not confirm, so a failed cancel is retried on the next run.
+                    // Refund 100% by cancelling the hold — no charge ever lands.
                     await stripeService.CancelHeldPaymentAsync(
                         payment.StripePaymentIntentId,
-                        $"company-review-timeout-refund:{payment.Id:N}",
-                        ct);
+                        idempotencyKey: $"company-review-timeout-refund:{payment.Id:N}:cancel",
+                        ct: ct).ConfigureAwait(false);
 
-                    payment.Status = PaymentStatus.Refunded;
-                    payment.RefundedAmountUsd = payment.AmountUsd;
+                    payment.Status = PaymentStatus.Cancelled;
+                    payment.RefundedAmountCents = 0;
+                    payment.ProfitShareAmountCents = 0;
+                    payment.PayeeAmountCents = 0;
                     payment.RefundReason = "Company failed to review within 14 days after deadline";
-
-                    // Notify student
-                    await notifications.DispatchAsync(
-                        app.StudentId,
-                        NotificationType.CompanyReviewRefunded,
-                        new NotificationParams { RefundKind = "Timeout" },
-                        null,
-                        null,
-                        ct);
-
-                    // Mark application as expired or something.
-                    // Let's just set it to Withdrawn, or maybe we just leave it?
-                    // We'll leave it pending/under review but refunded, or maybe we reject it automatically?
-                    // Let's just leave the status but note that the payment is refunded.
                 }
-                catch (Exception ex)
+                else
                 {
-                    logger.LogError(ex, "Failed to refund expired review for application {ApplicationId}", app.Id);
+                    // Captured — issue a full Stripe Refund.
+                    var refundAmountCents = payment.AmountCents - payment.RefundedAmountCents;
+                    if (refundAmountCents <= 0) continue;
+
+                    var refundResult = await stripeService.RefundPaymentAsync(
+                        paymentIntentId: payment.StripePaymentIntentId,
+                        amountCents: refundAmountCents,
+                        reason: "requested_by_customer",
+                        idempotencyKey: $"company-review-timeout-refund:{payment.Id:N}:full",
+                        ct: ct).ConfigureAwait(false);
+
+                    if (refundResult.Status != "succeeded")
+                    {
+                        logger.LogError(
+                            "Timeout refund for application {ApplicationId} returned Stripe status {Status}; left unchanged.",
+                            app.Id, refundResult.Status);
+                        continue;
+                    }
+
+                    payment.RefundedAmountCents += refundResult.AmountCents;
+                    payment.RefundedAt = now;
+                    payment.RefundReason = "Company failed to review within 14 days after deadline";
+                    payment.Status = payment.RefundedAmountCents >= payment.AmountCents
+                        ? PaymentStatus.Refunded
+                        : PaymentStatus.PartiallyRefunded;
+
+                    var retainedSplit = await FinancialRuleResolver.ResolveSplitFromRetainedAsync(
+                        db, payment.Type, payment.AmountCents, payment.RefundedAmountCents, ct);
+                    payment.ProfitShareAmountCents = retainedSplit.PlatformTakeCents;
+                    payment.PayeeAmountCents = retainedSplit.PayeeNetCents;
                 }
+
+                await notifications.DispatchAsync(
+                    app.StudentId,
+                    NotificationType.CompanyReviewRefunded,
+                    new NotificationParams { RefundKind = "Timeout" },
+                    deepLink: null,
+                    idempotencyKey: $"company-review-timeout-refund-notice:{payment.Id:N}",
+                    ct).ConfigureAwait(false);
+
+                refunded++;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex,
+                    "Failed to refund expired review for application {ApplicationId}",
+                    app.Id);
             }
         }
 
-        if (expiredApplications.Any())
-        {
-            await db.SaveChangesAsync(ct).ConfigureAwait(false);
-            logger.LogInformation("Processed {Count} expired application reviews and refunded fees.", expiredApplications.Count);
-        }
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        logger.LogInformation(
+            "CompanyReviewTimeoutRefundJob — scanned {Scanned} expired applications, refunded {Refunded}.",
+            expiredApplications.Count, refunded);
     }
 }

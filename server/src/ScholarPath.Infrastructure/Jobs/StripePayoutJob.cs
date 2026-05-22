@@ -120,6 +120,17 @@ public sealed class StripePayoutJob(
 
                 payout.Status = PayoutStatus.Failed;
                 payout.FailureReason = Truncate(ex.Message, 500);
+
+                // PB-013 recovery: the payments were pre-claimed (PayoutId set)
+                // before we called Stripe. The Stripe call failed, so release
+                // them — otherwise the next nightly run will skip them forever
+                // because PayoutId != null. Payees with restricted Connect
+                // accounts are still gated by the verified-status check above.
+                foreach (var p in payments)
+                {
+                    p.PayoutId = null;
+                }
+
                 await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
                 await SafeNotifyAsync(payeeId, NotificationType.PayoutFailed,
