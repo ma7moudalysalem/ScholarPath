@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ShieldCheck,
@@ -26,6 +27,8 @@ import {
   Settings,
   Wallet,
   Bell,
+  ChevronDown,
+  User as UserIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
@@ -72,10 +75,11 @@ const NAV: NavItem[] = [
 ];
 
 export function AdminLayout() {
-  const { t } = useTranslation(["admin", "common", "nav"]);
+  const { t, i18n } = useTranslation(["admin", "common", "nav"]);
   const navigate = useNavigate();
   const { user, clear } = useAuthStore();
   const location = useLocation();
+  const isRtl = i18n.language.startsWith("ar");
 
   // Same realtime + polling pair the AuthenticatedLayout uses — admins on
   // /admin/* now get a live unread-count badge and a Bell shortcut to the
@@ -169,12 +173,58 @@ export function AdminLayout() {
             )}
           </NavLink>
           {user && (
-            <div className="ms-2 flex items-center gap-2 rounded-md bg-bg-elevated px-3 py-1.5 text-sm">
-              <div className="flex size-6 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-text-on-brand">
-                {user.firstName[0]}
-              </div>
-              <span className="font-medium">{user.fullName}</span>
-            </div>
+            <DropdownMenu.Root dir={isRtl ? "rtl" : "ltr"}>
+              <DropdownMenu.Trigger asChild>
+                <button
+                  type="button"
+                  aria-label={t("common:nav.profile", "Open profile menu")}
+                  className="ms-2 flex items-center gap-2 rounded-md bg-bg-elevated px-3 py-1.5 text-sm transition-colors hover:bg-bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+                >
+                  <span className="flex size-6 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-text-on-brand">
+                    {user.firstName[0]}
+                  </span>
+                  <span className="font-medium">{user.fullName}</span>
+                  <ChevronDown aria-hidden className="size-3.5 text-text-tertiary" />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  side="bottom"
+                  align="end"
+                  sideOffset={8}
+                  collisionPadding={16}
+                  className="z-50 min-w-[220px] overflow-hidden rounded-md border border-border-subtle bg-bg-elevated p-1 text-sm text-text-primary shadow-lg text-start"
+                >
+                  <div className="px-3 py-2.5">
+                    <p className="truncate font-medium">{user.fullName}</p>
+                    <p className="truncate text-xs text-text-secondary">{user.email}</p>
+                  </div>
+                  <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />
+                  <DropdownMenu.Item
+                    onSelect={(e) => { e.preventDefault(); navigate("/profile"); }}
+                    className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm text-start outline-none data-[highlighted]:bg-bg-subtle"
+                  >
+                    <UserIcon aria-hidden className="size-4 text-text-tertiary" />
+                    {t("nav:common.profile", "Profile")}
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    onSelect={(e) => { e.preventDefault(); navigate("/admin/settings"); }}
+                    className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm text-start outline-none data-[highlighted]:bg-bg-subtle"
+                  >
+                    <Settings aria-hidden className="size-4 text-text-tertiary" />
+                    {t("nav:common.settings", "Settings")}
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Separator className="my-1 h-px bg-border-subtle" />
+                  <DropdownMenu.Item
+                    onSelect={(e) => { e.preventDefault(); onSignOut(); }}
+                    className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm text-start text-danger-500 outline-none data-[highlighted]:bg-danger-500/10"
+                  >
+                    <LogOut aria-hidden className="size-4" />
+                    {t("common:cta.signOut")}
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
           )}
         </header>
 
