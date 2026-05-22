@@ -181,7 +181,6 @@ export function StudentAnalytics() {
               value={data.totalApplications}
               icon={FileText}
               accent="brand"
-              trend={[1, 2, 2, 3, 3, 4, 5, 6, 6, 7]}
               delay={0.02}
             />
             <StatCard
@@ -189,7 +188,6 @@ export function StudentAnalytics() {
               value={data.submittedApplications}
               icon={CheckCircle2}
               accent="success"
-              trend={[0, 1, 1, 2, 2, 3, 3, 4, 4, 5]}
               delay={0.06}
             />
             <StatCard
@@ -197,7 +195,6 @@ export function StudentAnalytics() {
               value={data.acceptedApplications}
               icon={Sparkles}
               accent="warning"
-              trend={[0, 0, 1, 1, 2, 2, 2, 3, 3, 3]}
               delay={0.1}
             />
             <StatCard
@@ -213,7 +210,6 @@ export function StudentAnalytics() {
                     }
                   : null
               }
-              trend={[0, 1, 1, 2, 2, 3, 4, 4, 5, 5]}
               delay={0.14}
             />
           </>

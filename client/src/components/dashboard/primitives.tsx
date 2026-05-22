@@ -53,12 +53,14 @@ interface StatCardProps {
   icon: LucideIcon;
   accent?: StatAccent;
   delta?: { value: number; label: string } | null;
-  /** Optional sparkline points — defaults to a mocked rising curve. */
+  /**
+   * Optional REAL sparkline points (e.g. a per-day series). Omit it and no
+   * sparkline is drawn — we never fabricate a trend curve, so a card without
+   * real time-series data simply shows none.
+   */
   trend?: number[];
   delay?: number;
 }
-
-const DEFAULT_SPARKLINE: number[] = [12, 10, 8, 11, 6, 7, 4, 8, 5, 6];
 
 function buildSparklinePath(values: number[], w = 60, h = 16): string {
   if (values.length < 2) return "";
@@ -127,10 +129,11 @@ export function StatCard({
   icon: Icon,
   accent = "brand",
   delta,
-  trend = DEFAULT_SPARKLINE,
+  trend,
   delay = 0,
 }: StatCardProps) {
-  const path = buildSparklinePath(trend);
+  // Only draw a sparkline when the caller supplies real series data.
+  const path = trend && trend.length >= 2 ? buildSparklinePath(trend) : "";
   const positive = delta ? delta.value >= 0 : true;
   const deltaColor = positive ? "text-success-600 bg-success-50" : "text-danger-500 bg-danger-50";
   const DeltaIcon = positive ? ArrowUpRight : ArrowDownRight;
