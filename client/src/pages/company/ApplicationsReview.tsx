@@ -16,6 +16,11 @@ export function ApplicationsReview() {
   const lang = i18n.language;
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  // Status filter chip-row, toggled by the Filters button.
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">("all");
+  // Row whose details are open in the view drawer.
+  const [viewTarget, setViewTarget] = useState<CompanyApplicationRow | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["company", "applications"],
@@ -70,11 +75,18 @@ export function ApplicationsReview() {
   // `studentEmail` is not on the CompanyApplicationRow wire shape — searching
   // it crashed at runtime with "Cannot read property of undefined".
   const needle = searchTerm.toLowerCase();
-  const filteredApps = applications.filter(
-    (app: CompanyApplicationRow) =>
+  const filteredApps = applications.filter((app: CompanyApplicationRow) => {
+    const matchesSearch =
       app.studentName.toLowerCase().includes(needle) ||
-      app.scholarshipTitle.toLowerCase().includes(needle),
-  );
+      app.scholarshipTitle.toLowerCase().includes(needle);
+    const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  // Status values worth filtering on this queue (actionable + terminal).
+  const FILTER_STATUSES: (ApplicationStatus | "all")[] = [
+    "all", "Pending", "UnderReview", "WaitingResult", "Accepted", "Rejected",
+  ];
 
   return (
     <div className="mx-auto max-w-7xl p-6">
@@ -104,12 +116,42 @@ export function ApplicationsReview() {
 
         <button
           type="button"
-          className="flex items-center space-x-2 rounded-lg border border-border-subtle bg-bg-elevated px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-subtle"
+          onClick={() => setShowFilters((v) => !v)}
+          aria-expanded={showFilters}
+          className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
+            showFilters || statusFilter !== "all"
+              ? "border-brand-200 bg-brand-50 text-brand-600"
+              : "border-border-subtle bg-bg-elevated text-text-secondary hover:bg-bg-subtle"
+          }`}
         >
           <Filter size={18} />
           <span>{t("companyReview.filters")}</span>
+          {statusFilter !== "all" && (
+            <span className="rounded-full bg-brand-500 px-1.5 text-[10px] font-bold text-white">1</span>
+          )}
         </button>
       </div>
+
+      {showFilters && (
+        <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-border-subtle bg-bg-elevated p-3">
+          {FILTER_STATUSES.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatusFilter(s)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                statusFilter === s
+                  ? "bg-brand-500 text-white"
+                  : "bg-bg-subtle text-text-secondary hover:bg-bg-muted"
+              }`}
+            >
+              {s === "all"
+                ? t("companyReview.filterAll", "All")
+                : t(`companyReview.status.${s}`, { defaultValue: s })}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-xl border border-border-subtle bg-bg-elevated shadow-sm">
         <div className="overflow-x-auto">
@@ -189,6 +231,7 @@ export function ApplicationsReview() {
                       <div className="flex justify-end space-x-2">
                         <button
                           type="button"
+                          onClick={() => setViewTarget(app)}
                           className="p-1.5 text-text-tertiary transition-colors hover:text-brand-600"
                           aria-label={t("companyReview.actions.view")}
                           title={t("companyReview.actions.view")}
@@ -251,6 +294,60 @@ export function ApplicationsReview() {
         loading={reviewMutation.isPending}
         onConfirm={submitDecision}
       />
+
+      {/* View-details drawer — opened by the eye icon on each row */}
+      {viewTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-text-primary/30 p-4 backdrop-blur-sm"
+          onClick={() => setViewTarget(null)}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-elevation-3"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <h2 className="text-lg font-bold text-text-primary">
+                {t("companyReview.detail.title", "Application details")}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setViewTarget(null)}
+                className="rounded-md p-1 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary"
+                aria-label={t("companyReview.detail.close", "Close")}
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+            <dl className="space-y-3 text-sm">
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.student")}</dt>
+                <dd className="font-medium text-text-primary">{viewTarget.studentName}</dd>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.scholarship")}</dt>
+                <dd className="text-text-primary">{viewTarget.scholarshipTitle}</dd>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.status")}</dt>
+                <dd className="text-text-primary">
+                  {t(`companyReview.status.${viewTarget.status}`, { defaultValue: viewTarget.status })}
+                </dd>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.submitted")}</dt>
+                <dd className="text-text-primary">
+                  {viewTarget.submittedAt
+                    ? new Date(viewTarget.submittedAt).toLocaleDateString(lang)
+                    : "—"}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -101,6 +101,11 @@
       "acceptPrompt": "Notes for acceptance (optional):",
       "success": "Decision recorded successfully.",
       "error": "Failed to record decision. Please try again."
+    },
+    "filterAll": "All",
+    "detail": {
+      "title": "Application details",
+      "close": "Close"
     }
   }
 }
