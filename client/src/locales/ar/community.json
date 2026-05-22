@@ -38,6 +38,18 @@
     "voteOwnPost": "لا يمكنك التصويت على منشورك.",
     "replyError": "تعذّر نشر ردّك. حاول مرة أخرى."
   },
+  "flagDialog": {
+    "title": "الإبلاغ عن هذا المنشور",
+    "description": "وضّح لنا سبب حاجة هذا المحتوى لمراجعة من المشرف.",
+    "reasonLabel": "السبب",
+    "reasonPlaceholder": "اختر سبباً",
+    "detailsLabel": "تفاصيل إضافية",
+    "optional": "اختياري",
+    "detailsPlaceholder": "أضف أي معلومات تساعد المشرف…",
+    "submit": "إرسال البلاغ",
+    "submitting": "جارٍ الإرسال…",
+    "cancel": "إلغاء"
+  },
   "ask": {
     "title": "اطرح سؤالًا",
     "subtitle": "شارك سؤالك مع مجتمع ScholarPath.",

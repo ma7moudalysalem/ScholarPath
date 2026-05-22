@@ -20,6 +20,7 @@ import { ar } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
 import { apiErrorMessage } from "@/services/api/client";
+import { FlagPostDialog } from "@/components/community/FlagPostDialog";
 
 export function CommunityThread() {
   const { id } = useParams<{ id: string }>();
@@ -32,6 +33,8 @@ export function CommunityThread() {
   const currentUserId = useAuthStore((state) => state.user?.id);
 
   const [replyBody, setReplyBody] = useState("");
+  // Post id whose flag dialog is open (null = closed).
+  const [flagTarget, setFlagTarget] = useState<string | null>(null);
 
   const { data: thread, isLoading: loading } = useQuery({
     queryKey: ["community", "thread", id],
@@ -82,23 +85,33 @@ export function CommunityThread() {
     replyMutation.mutate(replyBody);
   };
 
-  const handleFlag = async (postId: string) => {
-    // TODO: replace the native prompt + toast with a Radix dialog
-    // (community-flag-dialog) for a polished UX. Native prompt is the minimum
-    // viable input; the success/error path is wired through sonner so it
-    // matches the rest of the app and isn't a blocking alert().
-    const reason = prompt(t("actions.flagReasonPrompt"));
-    if (!reason) return;
-
-    try {
-      await communityApi.flagPost(postId, { reason });
+  // Flagging now goes through a styled Radix dialog (FlagPostDialog) instead of
+  // the old blocking window.prompt(). The dialog captures a categorized reason
+  // key + optional details; success/error stay on sonner toasts.
+  const flagMutation = useMutation({
+    mutationFn: ({
+      postId,
+      reason,
+      additionalDetails,
+    }: {
+      postId: string;
+      reason: string;
+      additionalDetails: string;
+    }) =>
+      communityApi.flagPost(postId, {
+        reason,
+        additionalDetails: additionalDetails || undefined,
+      }),
+    onSuccess: () => {
+      setFlagTarget(null);
       toast.success(t("actions.flagSuccess"));
-    } catch (err) {
-      // Surface "You have already flagged this post." etc. straight from the
-      // server — silent console.error left users guessing what happened.
+    },
+    // Surface "You have already flagged this post." etc. straight from the
+    // server instead of a generic fallback.
+    onError: (err) => {
       toast.error(apiErrorMessage(err, t("actions.flagError")));
-    }
-  };
+    },
+  });
 
   if (loading) {
     return (
@@ -194,7 +207,7 @@ export function CommunityThread() {
                   </div>
                 </div>
                 <button
-                  onClick={() => handleFlag(thread.post.id)}
+                  onClick={() => setFlagTarget(thread.post.id)}
                   aria-label={t("actions.flagReasonPrompt")}
                   className="p-2 text-text-tertiary hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors shrink-0"
                 >
@@ -321,7 +334,7 @@ export function CommunityThread() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleFlag(reply.id)}
+                      onClick={() => setFlagTarget(reply.id)}
                       aria-label={t("actions.flagReasonPrompt")}
                       className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors"
                     >
@@ -339,6 +352,19 @@ export function CommunityThread() {
           );
         })}
       </div>
+
+      <FlagPostDialog
+        open={flagTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setFlagTarget(null);
+        }}
+        loading={flagMutation.isPending}
+        onSubmit={(reason, additionalDetails) => {
+          if (flagTarget) {
+            flagMutation.mutate({ postId: flagTarget, reason, additionalDetails });
+          }
+        }}
+      />
     </div>
   );
 }

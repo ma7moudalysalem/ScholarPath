@@ -38,6 +38,18 @@
     "voteOwnPost": "You can't vote on your own post.",
     "replyError": "Could not post your reply. Please try again."
   },
+  "flagDialog": {
+    "title": "Report this post",
+    "description": "Tell us why a moderator should review this content.",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "Select a reason",
+    "detailsLabel": "Additional details",
+    "optional": "optional",
+    "detailsPlaceholder": "Add any context that will help the moderator…",
+    "submit": "Submit report",
+    "submitting": "Submitting…",
+    "cancel": "Cancel"
+  },
   "ask": {
     "title": "Ask a Question",
     "subtitle": "Share a question with the ScholarPath community.",
