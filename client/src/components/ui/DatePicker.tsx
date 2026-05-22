@@ -5,6 +5,7 @@ import { DayPicker } from "react-day-picker";
 import { ar, enUS } from "date-fns/locale";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import "react-day-picker/dist/style.css";
 
 /**
@@ -103,10 +104,15 @@ export function DatePicker({
           type="button"
           disabled={disabled}
           aria-label={ariaLabel}
-          className={
-            className ??
-            "inline-flex h-10 w-full items-center justify-between gap-2 rounded-md border border-border-default bg-bg-elevated px-3 py-2 text-sm text-text-primary outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-          }
+          // Merge (not replace) the base trigger style with the caller's
+          // className: callers like the audit-log filter pass only sizing
+          // utilities ("h-10 w-44") and must keep the border / background /
+          // padding / focus ring. twMerge lets caller utilities win on
+          // conflicts (w-44 over w-full) while preserving the rest.
+          className={cn(
+            "inline-flex h-10 w-full items-center justify-between gap-2 rounded-md border border-border-default bg-bg-elevated px-3 py-2 text-sm text-text-primary outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 disabled:cursor-not-allowed disabled:opacity-60",
+            className,
+          )}
         >
           <span className="flex items-center gap-2 truncate">
             <CalendarIcon size={16} className="flex-shrink-0 text-text-tertiary" />
