@@ -573,6 +573,64 @@ export function ChartCard({ title, subtitle, trailing, children }: ChartCardProp
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// Horizontal category bars (status / breakdown distributions). A reusable
+// generalization of the admin application-funnel bars — feed it any labelled
+// counts and it renders proportional bars with a value column.
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface CategoryBar {
+  label: string;
+  count: number;
+}
+
+const CATEGORY_BAR_COLORS = [
+  "bg-brand-500",
+  "bg-success-500",
+  "bg-warning-500",
+  "bg-danger-500",
+  "bg-text-tertiary",
+];
+
+export function CategoryBars({
+  items,
+  emptyLabel,
+}: {
+  items: CategoryBar[];
+  emptyLabel?: string;
+}) {
+  const total = items.reduce((sum, it) => sum + it.count, 0);
+  if (items.length === 0 || total === 0) {
+    return (
+      <p className="py-8 text-center text-sm text-text-tertiary">{emptyLabel}</p>
+    );
+  }
+  const max = Math.max(...items.map((it) => it.count), 1);
+  return (
+    <div className="space-y-3">
+      {items.map((it, idx) => (
+        <div key={it.label} className="flex items-center gap-3">
+          <span className="w-32 shrink-0 truncate text-xs font-medium text-text-secondary">
+            {it.label}
+          </span>
+          <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-bg-subtle">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all",
+                CATEGORY_BAR_COLORS[idx % CATEGORY_BAR_COLORS.length],
+              )}
+              style={{ width: `${(it.count / max) * 100}%` }}
+            />
+          </div>
+          <span className="w-10 shrink-0 text-end text-xs font-semibold tabular-nums text-text-primary">
+            {it.count}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Hub card (smaller, used for module navigation grids)
 // ────────────────────────────────────────────────────────────────────────────
 

@@ -107,13 +107,18 @@
       "post": "Post Scholarship",
       "review": "Review Applications",
       "billing": "Billing",
-      "analytics": "Ratings"
+      "analytics": "Analytics"
     },
     "reviews": {
       "title": "Recent reviews",
       "viewAll": "View all",
       "emptyTitle": "No reviews yet",
       "emptyBody": "Student reviews appear after you complete application decisions."
+    },
+    "applicationsByStatus": {
+      "title": "Applications by status",
+      "subtitle": "Distribution across your current applications.",
+      "empty": "No applications yet."
     }
   },
   "admin": {

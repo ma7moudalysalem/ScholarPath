@@ -24,6 +24,9 @@ import {
   WelcomeBanner,
   StatCard,
   QuickActions,
+  ChartCard,
+  CategoryBars,
+  type CategoryBar,
 } from '@/components/dashboard/primitives';
 import { formatRelativeTime } from '@/components/dashboard/utils';
 
@@ -43,6 +46,9 @@ export interface CompanyRatingsSummaryDto {
   recentReviews: CompanyReviewRow[];
 }
 
+// Status buckets shown in the "Applications by status" breakdown, in order.
+const COMPANY_STATUS_ORDER = ['Applied', 'Pending', 'UnderReview', 'WaitingResult', 'Accepted', 'Rejected'];
+
 function greetingKey(): 'morning' | 'afternoon' | 'evening' {
   const h = new Date().getHours();
   if (h < 12) return 'morning';
@@ -51,7 +57,7 @@ function greetingKey(): 'morning' | 'afternoon' | 'evening' {
 }
 
 export function CompanyDashboard() {
-  const { t, i18n } = useTranslation(['company', 'dashboard']);
+  const { t, i18n } = useTranslation(['company', 'dashboard', 'applications']);
   const user = useAuthStore((state) => state.user);
   const firstName = user?.firstName ?? '';
 
@@ -78,13 +84,24 @@ export function CompanyDashboard() {
     [scholarships],
   );
 
-  const apps = applicationsPage?.items ?? [];
+  const apps = useMemo(() => applicationsPage?.items ?? [], [applicationsPage]);
   // totalCount is the full server-side total from the paged result. `apps.length`
   // would only reflect the 50-row page and understate companies with > 50 apps.
   const totalApplicants = applicationsPage?.totalCount ?? 0;
   const pendingReview = apps.filter(
     (a) => a.status === 'Pending' || a.status === 'UnderReview' || a.status === 'Applied',
   ).length;
+
+  // Real status distribution across the loaded applications (no fabricated
+  // numbers — derived straight from the rows). Ordered + zero buckets dropped.
+  const statusBreakdown = useMemo<CategoryBar[]>(() => {
+    const counts = new Map<string, number>();
+    for (const a of apps) counts.set(a.status, (counts.get(a.status) ?? 0) + 1);
+    return COMPANY_STATUS_ORDER.map((s) => ({
+      label: t(`applications:companyReview.status.${s}`, { defaultValue: s }),
+      count: counts.get(s) ?? 0,
+    })).filter((x) => x.count > 0);
+  }, [apps, t]);
 
   if (ratingsLoading) {
     return (
@@ -164,6 +181,16 @@ export function CompanyDashboard() {
 
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="space-y-6 lg:col-span-8">
+          <ChartCard
+            title={t('dashboard:company.applicationsByStatus.title')}
+            subtitle={t('dashboard:company.applicationsByStatus.subtitle')}
+          >
+            <CategoryBars
+              items={statusBreakdown}
+              emptyLabel={t('dashboard:company.applicationsByStatus.empty')}
+            />
+          </ChartCard>
+
           <section className="card-premium p-5 sm:p-6">
             <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
               <div>
