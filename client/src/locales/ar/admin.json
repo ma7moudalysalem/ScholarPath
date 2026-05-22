@@ -241,7 +241,11 @@
     },
     "growth": "نمو المستخدمين",
     "funnel": "قمع الطلبات",
-    "totalInWindow": "مستخدمون جدد في النافذة"
+    "totalInWindow": "مستخدمون جدد في النافذة",
+    "avgPerDay": "المتوسط / يوم",
+    "peakDay": "أعلى يوم",
+    "share": "النسبة من الإجمالي",
+    "acceptanceRate": "نسبة القبول"
   },
   "knowledgeBase": {
     "title": "قاعدة معرفة الذكاء الاصطناعي (RAG)",

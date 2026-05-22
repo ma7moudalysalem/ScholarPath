@@ -241,7 +241,11 @@
     },
     "growth": "User growth",
     "funnel": "Application funnel",
-    "totalInWindow": "New users in window"
+    "totalInWindow": "New users in window",
+    "avgPerDay": "Avg / day",
+    "peakDay": "Peak day",
+    "share": "Share of total",
+    "acceptanceRate": "Acceptance rate"
   },
   "knowledgeBase": {
     "title": "AI knowledge base (RAG)",
