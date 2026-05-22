@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { GraduationCap, Menu, X, Mail } from "lucide-react";
+import { GraduationCap, Menu, X, Mail, LogOut } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useAuthStore } from "@/stores/authStore";
+import { postAuthPath } from "@/services/api/auth";
 
 /** Email address used for placeholder footer links until proper static pages ship. */
 const SUPPORT_EMAIL = "support@scholarpath.local";
@@ -24,8 +25,24 @@ function authedFooterHref(authedPath: string, isAuthed: boolean): string {
 }
 
 export function PublicLayout({ children }: { children: ReactNode }) {
-  const { t } = useTranslation(["common", "home"]);
+  const { t } = useTranslation(["common", "home", "nav"]);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  // The onboarding wait-screen lives under PublicLayout (it shouldn't pull in
+  // the full sidebar chrome before the account is approved), but the user IS
+  // authenticated at that point. Detect the session so the header offers the
+  // right controls — "go to dashboard / sign out" instead of "sign in / get
+  // started". Same fix applies to the Home / About / Help / Legal pages when
+  // a signed-in user lands on them.
+  const user = useAuthStore((s) => s.user);
+  const clearAuth = useAuthStore((s) => s.clear);
+  const homePath = user ? postAuthPath(user) : "/";
+
+  const onSignOut = () => {
+    clearAuth();
+    setMobileOpen(false);
+    navigate("/");
+  };
 
   // Close drawer on route change / resize to desktop
   useEffect(() => {
@@ -62,18 +79,43 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           <nav className="hidden items-center gap-2 sm:flex">
             <LanguageSwitcher />
             <ThemeToggle />
-            <Link
-              to="/login"
-              className="inline-flex h-9 items-center rounded-md px-4 text-sm font-medium text-text-primary transition hover:bg-bg-subtle"
-            >
-              {t("common:cta.signIn")}
-            </Link>
-            <Link
-              to="/register"
-              className="cta-pill btn-brand bg-brand-500 text-white"
-            >
-              {t("common:cta.getStarted")}
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  to={homePath}
+                  className="inline-flex h-9 items-center gap-2 rounded-md bg-bg-subtle px-3 text-sm font-medium text-text-primary transition hover:bg-bg-muted"
+                  title={user.fullName}
+                >
+                  <span aria-hidden className="flex size-6 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white">
+                    {user.firstName?.[0] ?? "?"}
+                  </span>
+                  <span className="max-w-[8rem] truncate">{user.fullName}</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border-subtle px-3 text-sm font-medium text-text-secondary transition hover:border-danger-500/40 hover:text-danger-500"
+                >
+                  <LogOut aria-hidden className="size-4" />
+                  {t("common:cta.signOut")}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="inline-flex h-9 items-center rounded-md px-4 text-sm font-medium text-text-primary transition hover:bg-bg-subtle"
+                >
+                  {t("common:cta.signIn")}
+                </Link>
+                <Link
+                  to="/register"
+                  className="cta-pill btn-brand bg-brand-500 text-white"
+                >
+                  {t("common:cta.getStarted")}
+                </Link>
+              </>
+            )}
           </nav>
 
           {/* Mobile: utility icons + hamburger */}
@@ -119,20 +161,45 @@ export function PublicLayout({ children }: { children: ReactNode }) {
               className="fixed inset-x-0 top-14 z-40 border-b border-border-subtle bg-bg-elevated px-4 pb-5 pt-4 shadow-lg sm:hidden"
             >
               <nav className="flex flex-col gap-2">
-                <Link
-                  to="/login"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex h-11 items-center rounded-xl px-4 text-sm font-medium text-text-primary transition hover:bg-bg-subtle"
-                >
-                  {t("common:cta.signIn")}
-                </Link>
-                <Link
-                  to="/register"
-                  onClick={() => setMobileOpen(false)}
-                  className="flex h-11 items-center justify-center rounded-xl bg-brand-500 text-sm font-semibold text-white shadow-[0_4px_16px_rgb(23_96_240/0.3)] transition hover:bg-brand-600"
-                >
-                  {t("common:cta.getStarted")}
-                </Link>
+                {user ? (
+                  <>
+                    <Link
+                      to={homePath}
+                      onClick={() => setMobileOpen(false)}
+                      className="flex h-11 items-center gap-2 rounded-xl bg-bg-subtle px-4 text-sm font-medium text-text-primary"
+                    >
+                      <span aria-hidden className="flex size-7 items-center justify-center rounded-full bg-brand-500 text-xs font-semibold text-white">
+                        {user.firstName?.[0] ?? "?"}
+                      </span>
+                      <span className="truncate">{user.fullName}</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={onSignOut}
+                      className="flex h-11 items-center justify-center gap-1.5 rounded-xl border border-border-subtle text-sm font-medium text-text-secondary transition hover:border-danger-500/40 hover:text-danger-500"
+                    >
+                      <LogOut aria-hidden className="size-4" />
+                      {t("common:cta.signOut")}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex h-11 items-center rounded-xl px-4 text-sm font-medium text-text-primary transition hover:bg-bg-subtle"
+                    >
+                      {t("common:cta.signIn")}
+                    </Link>
+                    <Link
+                      to="/register"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex h-11 items-center justify-center rounded-xl bg-brand-500 text-sm font-semibold text-white shadow-[0_4px_16px_rgb(23_96_240/0.3)] transition hover:bg-brand-600"
+                    >
+                      {t("common:cta.getStarted")}
+                    </Link>
+                  </>
+                )}
               </nav>
             </motion.div>
           </>

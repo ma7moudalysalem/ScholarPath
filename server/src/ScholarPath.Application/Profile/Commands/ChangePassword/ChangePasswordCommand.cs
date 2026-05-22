@@ -26,13 +26,18 @@ public sealed class ChangePasswordCommandValidator
     public ChangePasswordCommandValidator()
     {
         RuleFor(x => x.CurrentPassword).NotEmpty();
+
+        // CR-PROF-05: match the registration / reset-password policy so all three
+        // flows enforce the same strength — at least one upper, one lower, one
+        // digit and one special character; 8–128 chars; not equal to the old one.
         RuleFor(x => x.NewPassword)
             .NotEmpty()
-            .MinimumLength(8)
-            .MaximumLength(128)
+            .MinimumLength(8).WithMessage("New password must be at least 8 characters.")
+            .MaximumLength(128).WithMessage("New password cannot exceed 128 characters.")
             .Matches(@"[A-Z]").WithMessage("New password must contain at least one uppercase letter.")
             .Matches(@"[a-z]").WithMessage("New password must contain at least one lowercase letter.")
             .Matches(@"[0-9]").WithMessage("New password must contain at least one digit.")
+            .Matches(@"[^a-zA-Z0-9]").WithMessage("New password must contain at least one special character.")
             .NotEqual(x => x.CurrentPassword)
             .WithMessage("New password must differ from the current password.");
     }
