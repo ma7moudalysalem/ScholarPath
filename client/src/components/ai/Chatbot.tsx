@@ -191,17 +191,24 @@ export const Chatbot = forwardRef<ChatbotHandle>(function Chatbot(_, ref) {
   });
 
   // When the server's persisted history catches up with the optimistic
-  // pending turns, clear pendingTurns so we don't double-render. This IS a
-  // "react to external state change" pattern — exactly the case the
-  // react-hooks/set-state-in-effect rule warns against — but the alternative
-  // (writing optimistic rows directly into the react-query cache) introduces
-  // a new failure mode when the session id changes mid-request.
+  // pending turns, clear pendingTurns so we don't double-render. We detect
+  // "caught up" by checking whether the tail of the server history already
+  // matches the optimistic turns (same role + text) — robust across both the
+  // same-session refetch and the first-turn session-id switch. The previous
+  // count-based check could never fire (serverTurns is derived from
+  // turnsQuery.data, so the two sides were always equal minus pendingTurns),
+  // which left every answer rendered twice.
   useEffect(() => {
-    if (pendingTurns.length === 0) return;
-    if (turnsQuery.data && turnsQuery.data.length * 2 >= serverTurns.length + pendingTurns.length) {
-      setPendingTurns([]);
-    }
-  }, [turnsQuery.data, serverTurns.length, pendingTurns.length]);
+    if (pendingTurns.length === 0 || !turnsQuery.data) return;
+    const tail = serverTurns.slice(-pendingTurns.length);
+    const caughtUp =
+      tail.length === pendingTurns.length &&
+      tail.every(
+        (turn, i) =>
+          turn.role === pendingTurns[i].role && turn.text === pendingTurns[i].text,
+      );
+    if (caughtUp) setPendingTurns([]);
+  }, [turnsQuery.data, serverTurns, pendingTurns]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
