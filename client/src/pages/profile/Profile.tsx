@@ -1,9 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { motion } from "motion/react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   ArrowRight,
   AtSign,
@@ -11,11 +13,13 @@ import {
   Briefcase,
   Camera,
   CheckCircle2,
+  ChevronDown,
   GraduationCap,
   Image as ImageIcon,
   Key,
   Link as LinkIcon,
   Loader2,
+  Repeat,
   Save,
   ShieldCheck,
   Sparkles,
@@ -31,11 +35,15 @@ import {
   type UpdateProfileRequest,
 } from "@/services/api/profile";
 import { useAuthStore } from "@/stores/authStore";
+import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
 import { userPhotoUrl } from "@/lib/userPhoto";
 import { apiErrorMessage } from "@/services/api/client";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { cn } from "@/lib/utils";
 import { COUNTRIES, countryLabel } from "@/lib/countryLabel";
+import { ConsultantUpgradeModal } from "@/components/profile/ConsultantUpgradeModal";
+
+const SWITCHABLE_ROLES = ["Student", "Consultant", "Company", "Admin"] as const;
 
 const PROFILE_KEY = ["profile", "me"] as const;
 
@@ -691,6 +699,165 @@ function SaveBar({
   );
 }
 
+// ── Active-role switcher ─────────────────────────────────────────────────────
+
+function ActiveRoleSwitcher() {
+  const { t, i18n } = useTranslation(["profile", "common"]);
+  const navigate = useNavigate();
+  const isRtl = i18n.language.startsWith("ar");
+  const user = useAuthStore((s) => s.user);
+
+  const switchRoleMut = useMutation({
+    mutationFn: (targetRole: string) => authApi.switchRole(targetRole),
+    onSuccess: (res) => {
+      const next = applyAuthSession(res);
+      toast.success(
+        t("common:roleSwitch.success", "Active role updated to {{role}}.", {
+          role: t(`common:roles.${next.activeRole}`, next.activeRole ?? ""),
+        }),
+      );
+      navigate(postAuthPath(next), { replace: true });
+    },
+    onError: (err) =>
+      toast.error(
+        apiErrorMessage(err, t("common:roleSwitch.error", "Could not switch role.")),
+      ),
+  });
+
+  if (!user) return null;
+  const activeRole = user.activeRole ?? user.roles[0] ?? null;
+  if (!activeRole) return null;
+
+  const switchableRoles = user.roles.filter((r) =>
+    (SWITCHABLE_ROLES as readonly string[]).includes(r),
+  );
+  const hasMultiple = switchableRoles.length > 1;
+  const activeLabel = t(`common:roles.${activeRole}`, activeRole);
+
+  if (!hasMultiple) {
+    return (
+      <span
+        className="badge badge-brand"
+        aria-label={t("common:roleSwitch.activeBadge", "Active: {{role}}", { role: activeLabel })}
+      >
+        {activeLabel}
+      </span>
+    );
+  }
+
+  const targets = switchableRoles.filter((r) => r !== activeRole);
+
+  return (
+    <DropdownMenu.Root dir={isRtl ? "rtl" : "ltr"}>
+      <DropdownMenu.Trigger asChild>
+        <button
+          type="button"
+          disabled={switchRoleMut.isPending}
+          aria-label={t("profile:role.switcherAria", "Switch active role")}
+          className="inline-flex items-center gap-1.5 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700 transition-colors hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {switchRoleMut.isPending ? (
+            <Loader2 aria-hidden className="size-3 animate-spin" />
+          ) : (
+            <Repeat aria-hidden className="size-3" />
+          )}
+          <span>{activeLabel}</span>
+          <ChevronDown aria-hidden className="size-3" />
+        </button>
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          side="bottom"
+          align="start"
+          sideOffset={6}
+          collisionPadding={16}
+          className="z-50 min-w-[200px] overflow-hidden rounded-md border border-border-subtle bg-bg-elevated p-1 text-sm text-text-primary shadow-lg text-start"
+        >
+          <DropdownMenu.Label className="px-3 pb-1 pt-1 text-[11px] uppercase tracking-wide text-text-tertiary">
+            {t("common:roleSwitch.heading", "Switch role")}
+          </DropdownMenu.Label>
+          {targets.map((role) => (
+            <DropdownMenu.Item
+              key={role}
+              disabled={switchRoleMut.isPending}
+              onSelect={(e) => {
+                e.preventDefault();
+                switchRoleMut.mutate(role);
+              }}
+              aria-label={t("common:roleSwitch.optionAria", "Switch to {{role}}", {
+                role: t(`common:roles.${role}`, role),
+              })}
+              className="flex cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-sm text-start outline-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 data-[highlighted]:bg-bg-subtle"
+            >
+              <Repeat aria-hidden className="size-4 text-text-tertiary" />
+              {t("common:roleSwitch.option", "Switch to {{role}}", {
+                role: t(`common:roles.${role}`, role),
+              })}
+            </DropdownMenu.Item>
+          ))}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
+  );
+}
+
+// ── Become-a-Consultant card ─────────────────────────────────────────────────
+
+function ConsultantUpgradeCard({
+  onRequest,
+  submitted,
+}: {
+  onRequest: () => void;
+  submitted: boolean;
+}) {
+  const { t } = useTranslation(["profile"]);
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 8 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+      className="card-premium relative overflow-hidden border-brand-200 bg-gradient-to-br from-brand-50 to-bg-elevated p-6 sm:p-8"
+    >
+      <div className="flex items-start gap-4">
+        <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-600">
+          <Sparkles aria-hidden className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-semibold text-text-primary">
+            {t("profile:upgrade.cardTitle", "Become a Consultant")}
+          </h2>
+          <p className="mt-1 text-sm text-text-secondary">
+            {t(
+              "profile:upgrade.cardDescription",
+              "Share your experience with other students and offer consultation sessions.",
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={onRequest}
+            disabled={submitted}
+            className="mt-4 inline-flex items-center gap-2 rounded-md bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Sparkles aria-hidden className="size-4" />
+            {submitted
+              ? t("profile:upgrade.pendingButton", "Upgrade request pending")
+              : t("profile:upgrade.cardCta", "Request Consultant Upgrade")}
+          </button>
+          {submitted && (
+            <p className="mt-2 text-xs text-text-tertiary">
+              {t(
+                "profile:upgrade.pendingHint",
+                "An admin will review your request and you'll be notified once it's approved.",
+              )}
+            </p>
+          )}
+        </div>
+      </div>
+    </motion.section>
+  );
+}
+
 // ── Sidebar navigation ───────────────────────────────────────────────────────
 
 interface SidebarEntry {
@@ -779,6 +946,19 @@ export function Profile() {
   const [photoFailed, setPhotoFailed] = useState(false);
 
   const [activeSection, setActiveSection] = useState<string | null>("personal");
+
+  // Consultant upgrade UI state — modal open + locally-tracked submission so
+  // the card switches to a "pending" hint after a successful request, even
+  // though the auth store still shows the user as a Student.
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [upgradeSubmitted, setUpgradeSubmitted] = useState(false);
+  const authUser = useAuthStore((s) => s.user);
+  const userRoles = authUser?.roles ?? [];
+  const showConsultantUpgrade =
+    !!authUser &&
+    userRoles.includes("Student") &&
+    !userRoles.includes("Consultant") &&
+    authUser.accountStatus === "Active";
 
   const syncAuthUser = (updated: UserProfile) => {
     const current = useAuthStore.getState().user;
@@ -1046,9 +1226,7 @@ export function Profile() {
               <h2 className="truncate text-xl font-semibold text-text-primary">
                 {profile.fullName}
               </h2>
-              {activeRole && (
-                <span className="badge badge-brand">{activeRole}</span>
-              )}
+              <ActiveRoleSwitcher />
               <span
                 className={cn(
                   "badge",
@@ -1095,6 +1273,16 @@ export function Profile() {
           </div>
         </div>
       </motion.section>
+
+      {/* Consultant upgrade — Students-only, Active accounts only, not yet Consultants */}
+      {showConsultantUpgrade && (
+        <div className="mb-6">
+          <ConsultantUpgradeCard
+            submitted={upgradeSubmitted}
+            onRequest={() => setUpgradeModalOpen(true)}
+          />
+        </div>
+      )}
 
       {/* Two-column layout: sticky sidebar + content */}
       <div className="grid gap-8 lg:grid-cols-[200px_minmax(0,1fr)]">
@@ -1628,6 +1816,14 @@ export function Profile() {
         onSave={onSave}
         onReset={onReset}
       />
+
+      {showConsultantUpgrade && (
+        <ConsultantUpgradeModal
+          isOpen={upgradeModalOpen}
+          onOpenChange={setUpgradeModalOpen}
+          onSubmitted={() => setUpgradeSubmitted(true)}
+        />
+      )}
     </div>
   );
 }
