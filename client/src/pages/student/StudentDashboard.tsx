@@ -30,7 +30,10 @@ import {
   HubCard,
   ActivityFeed,
   QuickActions,
+  ChartCard,
+  CategoryBars,
   type ActivityItem,
+  type CategoryBar,
   type StatAccent,
 } from "@/components/dashboard/primitives";
 import { formatRelativeTime } from "@/components/dashboard/utils";
@@ -52,8 +55,22 @@ function greetingKey(): "morning" | "afternoon" | "evening" {
   return "evening";
 }
 
+// Application buckets shown in the "Applications by status" breakdown, in
+// order. Labels reuse the applications kanban-column translations.
+const STUDENT_APP_STATUSES = [
+  "Intending",
+  "Draft",
+  "Applied",
+  "Pending",
+  "UnderReview",
+  "WaitingResult",
+  "Accepted",
+  "Rejected",
+  "Withdrawn",
+];
+
 export function StudentDashboard() {
-  const { t, i18n } = useTranslation(["dashboard", "notifications"]);
+  const { t, i18n } = useTranslation(["dashboard", "notifications", "applications"]);
   const firstName = useAuthStore((s) => s.user?.firstName ?? "");
 
   const { data: applications = [] } = useQuery({
@@ -89,6 +106,16 @@ export function StudentDashboard() {
   const upcomingBookings = bookings.filter(
     (b) => b.status === "Confirmed" && new Date(b.scheduledStartAt) > new Date(),
   ).length;
+
+  // Real application status distribution (derived straight from the rows).
+  const appCounts = applications.reduce<Record<string, number>>((acc, a) => {
+    acc[a.status] = (acc[a.status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const appBreakdown: CategoryBar[] = STUDENT_APP_STATUSES.map((s) => ({
+    label: t(`applications:kanban.columns.${s}`, { defaultValue: s }),
+    count: appCounts[s] ?? 0,
+  })).filter((x) => x.count > 0);
 
   const activities = useMemo<ActivityItem[]>(() => {
     if (!notifPage) return [];
@@ -150,8 +177,6 @@ export function StudentDashboard() {
           to="/student/applications"
           icon={ListChecks}
           accent="brand"
-          delta={{ value: 12, label: t("dashboard:student.stats.applicationsDelta") }}
-          trend={[4, 6, 5, 8, 7, 9, 11, 10, 12, 14]}
           delay={0.02}
         />
         <StatCard
@@ -160,8 +185,6 @@ export function StudentDashboard() {
           to="/student/bookmarks"
           icon={Bookmark}
           accent="warning"
-          delta={{ value: 8, label: t("dashboard:student.stats.savedDelta") }}
-          trend={[2, 3, 4, 4, 5, 6, 7, 9, 10, 11]}
           delay={0.06}
         />
         <StatCard
@@ -170,8 +193,6 @@ export function StudentDashboard() {
           to="/student/bookings"
           icon={CalendarCheck}
           accent="success"
-          delta={{ value: upcomingBookings > 0 ? 25 : 0, label: t("dashboard:student.stats.bookingsDelta") }}
-          trend={[1, 2, 1, 3, 2, 4, 3, 5, 4, 6]}
           delay={0.1}
         />
         <StatCard
@@ -180,8 +201,6 @@ export function StudentDashboard() {
           to="/notifications"
           icon={Bell}
           accent={unread > 0 ? "danger" : "neutral"}
-          delta={{ value: unread > 0 ? unread : 0, label: t("dashboard:student.stats.unreadDelta") }}
-          trend={[3, 2, 4, 5, 4, 3, 6, 5, 4, 5]}
           delay={0.14}
         />
       </section>
@@ -190,6 +209,16 @@ export function StudentDashboard() {
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Left column: nav hub cards */}
         <div className="space-y-6 lg:col-span-8">
+          <ChartCard
+            title={t("dashboard:student.applicationsByStatus.title")}
+            subtitle={t("dashboard:student.applicationsByStatus.subtitle")}
+          >
+            <CategoryBars
+              items={appBreakdown}
+              emptyLabel={t("dashboard:student.applicationsByStatus.empty")}
+            />
+          </ChartCard>
+
           <section>
             <header className="mb-4 flex items-center justify-between">
               <div>

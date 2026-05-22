@@ -22,7 +22,10 @@ import {
   HubCard,
   ActivityFeed,
   QuickActions,
+  ChartCard,
+  CategoryBars,
   type ActivityItem,
+  type CategoryBar,
   type StatAccent,
 } from "@/components/dashboard/primitives";
 import { formatRelativeTime } from "@/components/dashboard/utils";
@@ -42,6 +45,10 @@ function greetingKey(): "morning" | "afternoon" | "evening" {
   if (h < 18) return "afternoon";
   return "evening";
 }
+
+// Booking buckets shown in the "Bookings by status" breakdown, in order. The
+// two no-show statuses are merged into a single "NoShow" row at render time.
+const CONSULTANT_BOOKING_STATUSES = ["Requested", "Confirmed", "Completed", "Cancelled"];
 
 export function ConsultantDashboard() {
   const { t, i18n } = useTranslation(["dashboard"]);
@@ -92,6 +99,22 @@ export function ConsultantDashboard() {
     ].includes(b.status),
   ).length;
   const completionRate = totalRelevant > 0 ? Math.round((completed / totalRelevant) * 100) : 0;
+
+  // Real booking status distribution (derived straight from the rows). Computed
+  // inline — cheap, and avoids a useMemo over the `= []` default reference.
+  const bookingCounts = bookings.reduce<Record<string, number>>((acc, b) => {
+    acc[b.status] = (acc[b.status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const noShowCount =
+    (bookingCounts.NoShowStudent ?? 0) + (bookingCounts.NoShowConsultant ?? 0);
+  const bookingBreakdown: CategoryBar[] = [
+    ...CONSULTANT_BOOKING_STATUSES.map((s) => ({
+      label: t(`dashboard:consultant.bookingsByStatus.statuses.${s}`),
+      count: bookingCounts[s] ?? 0,
+    })),
+    { label: t("dashboard:consultant.bookingsByStatus.statuses.NoShow"), count: noShowCount },
+  ].filter((x) => x.count > 0);
 
   const activities = useMemo<ActivityItem[]>(() => {
     if (!notifPage) return [];
@@ -178,6 +201,16 @@ export function ConsultantDashboard() {
 
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="space-y-6 lg:col-span-8">
+          <ChartCard
+            title={t("dashboard:consultant.bookingsByStatus.title")}
+            subtitle={t("dashboard:consultant.bookingsByStatus.subtitle")}
+          >
+            <CategoryBars
+              items={bookingBreakdown}
+              emptyLabel={t("dashboard:consultant.bookingsByStatus.empty")}
+            />
+          </ChartCard>
+
           <section>
             <header className="mb-4">
               <h2 className="text-lg font-semibold text-text-primary">

@@ -49,6 +49,11 @@
       "messages": { "title": "الرسائل", "desc": "محادثاتك." },
       "ai": { "title": "أدوات الذكاء الاصطناعي", "desc": "توصيات ومساعدة." },
       "resources": { "title": "المصادر", "desc": "أدلة ومقالات." }
+    },
+    "applicationsByStatus": {
+      "title": "الطلبات حسب الحالة",
+      "subtitle": "توزيع طلباتك على الحالات.",
+      "empty": "لا توجد طلبات بعد."
     }
   },
   "consultant": {
@@ -81,6 +86,18 @@
       "availability": { "title": "أوقات الإتاحة", "desc": "حدّد جدولك الأسبوعي." },
       "bookings": { "title": "الحجوزات", "desc": "الجلسات الواردة والقادمة." },
       "earnings": { "title": "الأرباح", "desc": "المدفوعات والإيرادات." }
+    },
+    "bookingsByStatus": {
+      "title": "الحجوزات حسب الحالة",
+      "subtitle": "توزيع جميع حجوزاتك على الحالات.",
+      "empty": "لا توجد حجوزات بعد.",
+      "statuses": {
+        "Requested": "بانتظار الرد",
+        "Confirmed": "مؤكدة",
+        "Completed": "مكتملة",
+        "Cancelled": "ملغاة",
+        "NoShow": "لم يحضر"
+      }
     }
   },
   "company": {
