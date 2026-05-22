@@ -25,7 +25,7 @@ import {
   useScholarshipDetailQuery,
   useToggleBookmarkMutation,
 } from "@/hooks/useScholarshipsQuery";
-import { applicationsApi } from "@/services/api/applications";
+import { companyReviewRequestsApi } from "@/services/api/companyReviewRequests";
 import { ApiError, apiErrorMessage } from "@/services/api/client";
 import { profileApi, type UserProfile } from "@/services/api/profile";
 import type { FundingType } from "@/types/domain";
@@ -100,15 +100,17 @@ export function ScholarshipDetail() {
       profileQuery.data.fieldOfStudy.trim().length === 0
     : false;
 
+  // PB-005: Apply Now starts the paid CompanyReview support request flow.
+  // This creates a Stripe PaymentIntent in manual-capture mode (the card is
+  // authorised, not charged) and navigates the Student to the request page
+  // where Stripe Elements completes the authorisation and the Student waits
+  // for the Company to accept. The actual card-confirmation UI is delivered
+  // in a follow-up — this branch wires the backend round-trip and routing.
   const applyMut = useMutation({
-    mutationFn: (scholarshipId: string) => applicationsApi.start(scholarshipId),
+    mutationFn: (scholarshipId: string) => companyReviewRequestsApi.start(scholarshipId),
     onSuccess: (result) => {
-      toast.success(
-        result.alreadyExisted
-          ? t("scholarships:detail.applyResumed")
-          : t("scholarships:detail.applyStarted"),
-      );
-      navigate(`/student/applications/${result.applicationId}`);
+      toast.success(t("scholarships:detail.applyStarted"));
+      navigate(`/student/review-requests/${result.requestId}`);
     },
     onError: (err: unknown) => {
       const status = err instanceof ApiError ? err.status : undefined;
@@ -180,6 +182,14 @@ export function ScholarshipDetail() {
   const isUrgent     = daysLeft <= 7 && daysLeft >= 0;
   const isClosed     = daysLeft < 0;
   const isExternal   = data.mode === "ExternalUrl" && !!data.externalUrl;
+  // PB-005: in-app Apply Now needs a configured Review Service Fee. When
+  // missing, disable the button and tell the Student why so they don't get
+  // a generic "could not apply" error from the server.
+  const hasReviewFee = (data.reviewFeeUsd ?? 0) > 0;
+  const feeFormatted = data.reviewFeeUsd != null
+    ? new Intl.NumberFormat(i18n.language, { style: "currency", currency: "USD" })
+        .format(data.reviewFeeUsd)
+    : null;
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -387,19 +397,37 @@ export function ScholarshipDetail() {
                     {t("scholarships:detail.applyExternal")}
                   </a>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => applyMut.mutate(data.id)}
-                    disabled={isClosed || applyMut.isPending || profileIncomplete}
-                    title={profileIncomplete
-                      ? t("scholarships:detail.profileIncompleteTitle")
-                      : undefined}
-                    className="btn btn-primary w-full"
-                  >
-                    {applyMut.isPending
-                      ? t("scholarships:detail.applying")
-                      : t("scholarships:detail.apply")}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => applyMut.mutate(data.id)}
+                      disabled={
+                        isClosed ||
+                        applyMut.isPending ||
+                        profileIncomplete ||
+                        !hasReviewFee
+                      }
+                      title={
+                        !hasReviewFee
+                          ? t("scholarships:detail.applyMissingFee")
+                          : profileIncomplete
+                            ? t("scholarships:detail.profileIncompleteTitle")
+                            : undefined
+                      }
+                      className="btn btn-primary w-full"
+                    >
+                      {applyMut.isPending
+                        ? t("scholarships:detail.applying")
+                        : t("scholarships:detail.apply")}
+                    </button>
+                    {/* PB-005: spec PART 2 — when the fee is missing or invalid,
+                        Apply Now must be disabled with a clear message. */}
+                    {!hasReviewFee && (
+                      <p className="text-xs text-warning-600">
+                        {t("scholarships:detail.applyMissingFee")}
+                      </p>
+                    )}
+                  </>
                 )}
 
                 <Link
@@ -491,6 +519,18 @@ export function ScholarshipDetail() {
                     </dt>
                     <dd className="truncate font-medium text-text-primary">
                       {data.categoryName}
+                    </dd>
+                  </div>
+                )}
+                {/* PB-005: Review Service Fee — surfaced BEFORE Apply Now so
+                    the Student sees the price they're authorising. */}
+                {!isExternal && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-text-tertiary">
+                      {t("scholarships:detail.reviewFee")}
+                    </dt>
+                    <dd className="font-semibold text-text-primary">
+                      {feeFormatted ?? t("scholarships:detail.reviewFeeMissing")}
                     </dd>
                   </div>
                 )}

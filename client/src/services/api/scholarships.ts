@@ -41,6 +41,13 @@ export interface ScholarshipDetail extends ScholarshipListItem {
   /** Raw category id — populated by the server so the company edit form
    *  pre-selects the dropdown instead of starting empty. */
   categoryId?: string | null;
+  /** Per-scholarship Review Service Fee (PB-005). Null until the Company
+   *  configures one; when null the Apply Now button must be disabled and a
+   *  clear message shown. */
+  reviewFeeUsd?: number | null;
+  /** Owner Company id — exposed so the UI can disable Apply Now when the
+   *  signed-in user IS the owning Company (no self-apply). */
+  ownerCompanyId?: string | null;
 }
 
 /**
@@ -111,6 +118,9 @@ export interface CreateScholarshipInput {
   fundingType: FundingType;
   targetLevel: AcademicLevel;
   fieldsOfStudy?: string[];
+  /** Per-scholarship Review Service Fee in USD (PB-005). Required for in-app
+   *  listings — the server rejects null / non-positive values. */
+  reviewFeeUsd?: number;
 }
 
 /**
@@ -197,6 +207,8 @@ interface ScholarshipDetailWireDto extends ScholarshipWireDto {
   descriptionEn?: string | null;
   descriptionAr?: string | null;
   categoryId?: string | null;
+  reviewFeeUsd?: number | null;
+  ownerCompanyId?: string | null;
 }
 
 /** Server PaginatedList<T>. */
@@ -273,6 +285,8 @@ function toDetail(dto: ScholarshipDetailWireDto): ScholarshipDetail {
     descriptionEn: dto.descriptionEn ?? base.descriptionEn,
     descriptionAr: dto.descriptionAr ?? base.descriptionAr,
     categoryId: dto.categoryId,
+    reviewFeeUsd: dto.reviewFeeUsd ?? null,
+    ownerCompanyId: dto.ownerCompanyId ?? null,
     mode: dto.mode,
     externalUrl: dto.externalApplicationUrl,
     eligibilityCriteria: dto.eligibilityRequirements,

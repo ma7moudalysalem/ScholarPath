@@ -205,5 +205,47 @@
       "status": "Status",
       "date": "Date"
     }
+  },
+  "reviewRequest": {
+    "studentTitle": "My review requests",
+    "studentSubtitle": "Paid application-support requests you've sent to companies. ScholarPath authorises your card up-front and only captures the fee once the company accepts.",
+    "studentEmpty": "You haven't started any paid review requests yet.",
+    "companyTitle": "Incoming review requests",
+    "companySubtitle": "Accept to capture the held payment and start the service. Reject to release the hold without charging the student.",
+    "companyEmpty": "No incoming review requests yet.",
+    "fee": "Review fee",
+    "held": "Held",
+    "captured": "Captured",
+    "refunded": "Refunded",
+    "retained": "Retained",
+    "commission": "Platform commission (10%)",
+    "share": "Your share (90%)",
+    "reference": "Reference",
+    "unknownCompany": "Unknown company",
+    "unknownStudent": "Unknown student",
+    "cancel": "Cancel request",
+    "cancelWithRefund": "Cancel (50% refund)",
+    "cancelConfirm50": "Cancelling now triggers a 50% refund — the remaining 50% is retained. Continue?",
+    "cancelSuccess": "Review request cancelled.",
+    "accept": "Accept",
+    "acceptSuccess": "Request accepted and payment captured.",
+    "reject": "Reject",
+    "rejectPrompt": "Optional reason for rejecting this request (leave blank to skip):",
+    "rejectSuccess": "Request rejected and hold released.",
+    "complete": "Mark as completed",
+    "completeSuccess": "Request marked as completed.",
+    "status": {
+      "Draft": "Draft",
+      "Submitted": "Submitted",
+      "Pending": "Pending acceptance",
+      "UnderReview": "Under review",
+      "Completed": "Completed",
+      "Closed": "Closed",
+      "Cancelled": "Cancelled",
+      "Failed": "Payment failed",
+      "CancelledByStudent": "Cancelled by student",
+      "RejectedByCompany": "Rejected by company",
+      "Expired": "Expired"
+    }
   }
 }

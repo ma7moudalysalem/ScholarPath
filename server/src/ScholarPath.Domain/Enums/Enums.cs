@@ -97,6 +97,39 @@ public enum PaymentType
     CompanyReview = 1,
 }
 
+/// <summary>
+/// Lifecycle of a paid application-support / document-review request raised by a
+/// Student against a Company-owned scholarship (PB-005 "Apply Now" flow). The
+/// state machine is intentionally distinct from <see cref="ApplicationStatus"/>
+/// — an Application is the catalog-tracking entity, a CompanyReviewRequest is
+/// the paid engagement with its associated <see cref="PaymentType.CompanyReview"/>
+/// payment row.
+///
+/// Allowed transitions:
+///   Draft        → Submitted
+///   Submitted    → Pending | Cancelled | Failed
+///   Pending      → UnderReview | CancelledByStudent | RejectedByCompany | Expired
+///   UnderReview  → Completed | CancelledByStudent
+///   Completed    → Closed
+///
+/// Explicitly NOT modelled here: Disputed and CompanyFailure refund cases — the
+/// platform does not support those for this flow.
+/// </summary>
+public enum CompanyReviewRequestStatus
+{
+    Draft = 0,
+    Submitted = 1,
+    Pending = 2,
+    UnderReview = 3,
+    Completed = 4,
+    Closed = 5,
+    Cancelled = 6,
+    Failed = 7,
+    CancelledByStudent = 8,
+    RejectedByCompany = 9,
+    Expired = 10,
+}
+
 /// <summary>Whether a financial-config rule's platform fee is a percentage or a flat amount.</summary>
 public enum FeeKind
 {
@@ -160,6 +193,17 @@ public enum NotificationType
     CompanyRatingReceived = 110,
     CompanyReviewPaymentSuccess = 111,
     CompanyReviewRefunded = 112,
+
+    // Company review REQUEST lifecycle (PB-005 Apply Now → paid support flow).
+    // Each event carries the financial breakdown (held / captured / refunded,
+    // platform commission, company share) via NotificationParams so both
+    // in-app and email channels render the same numbers.
+    CompanyReviewRequestPaymentHeld = 113,
+    CompanyReviewRequestPaymentCaptured = 114,
+    CompanyReviewRequestPaymentHoldCancelled = 115,
+    CompanyReviewRequestPartiallyRefunded = 116,
+    CompanyReviewRequestCompleted = 117,
+    CompanyReviewRequestIncoming = 118,
 
     // Consultant booking (PB-006)
     BookingRequested = 200,

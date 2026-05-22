@@ -45,5 +45,47 @@ public sealed record NotificationParams
     /// </summary>
     public string? Preview { get; init; }
 
+    // ── CompanyReview request lifecycle (PB-005) ────────────────────────────
+    // Pre-formatted, safe-to-render amounts and references for the paid
+    // application-support flow. Every field is optional — a notification only
+    // sets what it needs. None of these are PCI data: card numbers and full
+    // bank accounts are NEVER passed through this record.
+
+    /// <summary>Held amount, pre-formatted with currency (e.g. "$45.00"). 0 until capture.</summary>
+    public string? HeldAmountText { get; init; }
+
+    /// <summary>Captured amount, pre-formatted with currency. 0 while the payment is only on hold.</summary>
+    public string? CapturedAmountText { get; init; }
+
+    /// <summary>Refund amount, pre-formatted with currency. Null when no refund applies.</summary>
+    public string? RefundAmountText { get; init; }
+
+    /// <summary>Final retained (= captured – refunded) amount, pre-formatted with currency.</summary>
+    public string? RetainedAmountText { get; init; }
+
+    /// <summary>Platform commission share (10% of retained), pre-formatted with currency.</summary>
+    public string? PlatformCommissionText { get; init; }
+
+    /// <summary>Company share (90% of retained), pre-formatted with currency.</summary>
+    public string? CompanyShareText { get; init; }
+
+    /// <summary>Payment reference number for receipts and dashboards.</summary>
+    public string? PaymentReference { get; init; }
+
+    /// <summary>Scholarship name, English.</summary>
+    public string? ScholarshipNameEn { get; init; }
+
+    /// <summary>Scholarship name, Arabic.</summary>
+    public string? ScholarshipNameAr { get; init; }
+
+    /// <summary>Request status text (e.g. "Pending", "UnderReview").</summary>
+    public string? RequestStatusText { get; init; }
+
+    /// <summary>Payment status text (e.g. "Held", "Captured", "PartiallyRefunded", "Cancelled").</summary>
+    public string? PaymentStatusText { get; init; }
+
+    /// <summary>Transaction timestamp text, pre-formatted (e.g. "2026-05-22 14:30 UTC").</summary>
+    public string? TransactionAtText { get; init; }
+
     public static readonly NotificationParams Empty = new();
 }

@@ -1,0 +1,202 @@
+import { useState } from "react";
+import { Link } from "react-router";
+import { useTranslation } from "react-i18next";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import {
+  companyReviewRequestsApi,
+  isRequestCancellableByStudent,
+  refundsHalfOnCancel,
+  type CompanyReviewRequestDto,
+  type CompanyReviewRequestStatus,
+} from "@/services/api/companyReviewRequests";
+import { apiErrorMessage } from "@/services/api/client";
+import { formatMoneyCents } from "@/services/api/payments";
+
+/**
+ * Student-facing list of paid CompanyReview support requests. Shows the
+ * request status, the payment numbers (held / captured / refunded /
+ * retained), and a Cancel action whose semantics depend on the current
+ * status (no-charge while Pending, 50% refund while UnderReview).
+ *
+ * Spec PART 14: "Allow cancellation — Pending: cancel hold/no charge,
+ * UnderReview: 50% refund, Completed: cancellation/refund not allowed."
+ */
+export function StudentReviewRequests() {
+  const { t, i18n } = useTranslation(["payments", "common"]);
+  const queryClient = useQueryClient();
+
+  const query = useQuery<CompanyReviewRequestDto[]>({
+    queryKey: ["companyReviewRequests", "mine", "student"],
+    queryFn: () => companyReviewRequestsApi.listMineAsStudent(),
+  });
+
+  const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
+
+  const cancelMut = useMutation({
+    mutationFn: (id: string) => companyReviewRequestsApi.cancel(id),
+    onSuccess: () => {
+      toast.success(t("payments:reviewRequest.cancelSuccess"));
+      void queryClient.invalidateQueries({
+        queryKey: ["companyReviewRequests", "mine", "student"],
+      });
+    },
+    onError: (err) =>
+      toast.error(apiErrorMessage(err, t("common:status.error"))),
+    onSettled: () => setPendingCancelId(null),
+  });
+
+  return (
+    <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+      <header className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+          {t("payments:reviewRequest.studentTitle")}
+        </h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          {t("payments:reviewRequest.studentSubtitle")}
+        </p>
+      </header>
+
+      {query.isLoading && (
+        <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 text-sm text-text-tertiary">
+          {t("common:status.loading")}
+        </div>
+      )}
+
+      {query.isError && (
+        <div className="rounded-2xl border border-danger-200 bg-danger-50 p-6 text-sm text-danger-500">
+          {t("common:status.error")}
+        </div>
+      )}
+
+      {query.data && query.data.length === 0 && (
+        <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-8 text-center text-sm text-text-secondary">
+          {t("payments:reviewRequest.studentEmpty")}
+        </div>
+      )}
+
+      <ul className="space-y-3">
+        {query.data?.map((req) => (
+          <li
+            key={req.id}
+            className="rounded-2xl border border-border-subtle bg-bg-elevated p-5 shadow-xs"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Link
+                  to={`/student/scholarships/${req.scholarshipId}`}
+                  className="text-base font-semibold text-text-primary hover:underline"
+                >
+                  {req.scholarshipTitle}
+                </Link>
+                <p className="mt-1 text-xs text-text-tertiary">
+                  {req.companyName ?? t("payments:reviewRequest.unknownCompany")}
+                </p>
+              </div>
+              <StatusBadge status={req.status} />
+            </div>
+
+            <dl className="mt-4 grid gap-3 text-xs text-text-secondary sm:grid-cols-2 lg:grid-cols-4">
+              <Stat
+                label={t("payments:reviewRequest.fee")}
+                value={formatMoneyCents(req.amountCents, req.currency, i18n.language)}
+              />
+              <Stat
+                label={t("payments:reviewRequest.held")}
+                value={formatMoneyCents(req.heldAmountCents, req.currency, i18n.language)}
+              />
+              <Stat
+                label={t("payments:reviewRequest.captured")}
+                value={formatMoneyCents(req.capturedAmountCents, req.currency, i18n.language)}
+              />
+              <Stat
+                label={t("payments:reviewRequest.refunded")}
+                value={formatMoneyCents(req.refundedAmountCents, req.currency, i18n.language)}
+                tone={req.refundedAmountCents > 0 ? "warning" : "neutral"}
+              />
+            </dl>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-text-tertiary">
+              <span>
+                {t("payments:reviewRequest.reference")}:{" "}
+                <code className="font-mono">{req.paymentReference ?? "—"}</code>
+              </span>
+              {isRequestCancellableByStudent(req.status) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (refundsHalfOnCancel(req.status)
+                      && !window.confirm(t("payments:reviewRequest.cancelConfirm50"))) {
+                      return;
+                    }
+                    setPendingCancelId(req.id);
+                    cancelMut.mutate(req.id);
+                  }}
+                  disabled={cancelMut.isPending && pendingCancelId === req.id}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-danger-200 bg-bg-canvas px-3 py-1.5 text-xs font-medium text-danger-500 hover:bg-danger-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {cancelMut.isPending && pendingCancelId === req.id && (
+                    <Loader2 aria-hidden className="size-3 animate-spin" />
+                  )}
+                  {refundsHalfOnCancel(req.status)
+                    ? t("payments:reviewRequest.cancelWithRefund")
+                    : t("payments:reviewRequest.cancel")}
+                </button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string;
+  value: string;
+  tone?: "neutral" | "warning";
+}) {
+  return (
+    <div className="rounded-lg border border-border-subtle bg-bg-canvas px-3 py-2">
+      <dt className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+        {label}
+      </dt>
+      <dd
+        className={
+          tone === "warning"
+            ? "mt-0.5 text-sm font-semibold text-warning-600"
+            : "mt-0.5 text-sm font-semibold text-text-primary"
+        }
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: CompanyReviewRequestStatus }) {
+  const { t } = useTranslation(["payments"]);
+  const cls: Record<CompanyReviewRequestStatus, string> = {
+    Draft: "badge-neutral",
+    Submitted: "badge-brand",
+    Pending: "badge-brand",
+    UnderReview: "badge-warning",
+    Completed: "badge-success",
+    Closed: "badge-neutral",
+    Cancelled: "badge-neutral",
+    Failed: "badge-danger",
+    CancelledByStudent: "badge-neutral",
+    RejectedByCompany: "badge-danger",
+    Expired: "badge-neutral",
+  };
+  return (
+    <span className={`badge ${cls[status]}`}>
+      {t(`payments:reviewRequest.status.${status}`)}
+    </span>
+  );
+}

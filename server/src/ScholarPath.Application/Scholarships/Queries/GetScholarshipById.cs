@@ -71,6 +71,10 @@ namespace ScholarPath.Application.Scholarships.Queries
                 DescriptionAr = entity.DescriptionAr,
                 CategoryId = entity.CategoryId,
 
+                // Review Service Fee surfaced for the Student Apply Now flow.
+                ReviewFeeUsd = entity.ReviewFeeUsd,
+                OwnerCompanyId = entity.OwnerCompanyId,
+
                 Children = entity.Children
                     .OrderBy(c => c.SortOrder)
                     .Select(c => new ScholarshipChildDto(

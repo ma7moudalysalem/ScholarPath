@@ -60,6 +60,7 @@ public class ApplicationDbContext(
     // Reviews
     public DbSet<CompanyReview> CompanyReviews => Set<CompanyReview>();
     public DbSet<CompanyReviewPayment> CompanyReviewPayments => Set<CompanyReviewPayment>();
+    public DbSet<CompanyReviewRequest> CompanyReviewRequests => Set<CompanyReviewRequest>();
     public DbSet<ConsultantReview> ConsultantReviews => Set<ConsultantReview>();
 
     // Bookings

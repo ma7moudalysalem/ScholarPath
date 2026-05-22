@@ -80,6 +80,15 @@ function makeSchema(t: TFunction) {
     fundingType: z.enum(FUNDING_TYPES),
     targetLevel: z.enum(ACADEMIC_LEVELS),
     fieldsOfStudy: z.array(z.string()).optional(),
+    // PB-005: per-scholarship Review Service Fee in USD. Required for in-app
+    // listings — the server rejects null/0/<0/>500. We mirror the same range
+    // here so the company sees the error before the network round-trip.
+    // Coerce so an empty number input doesn't fall through as `undefined` —
+    // the gt(0) rule then surfaces the right "required > 0" message.
+    reviewFeeUsd: z
+      .number({ error: required })
+      .gt(0, t("moderation:companyScholarships.form.reviewFeeMin"))
+      .lte(500, t("moderation:companyScholarships.form.reviewFeeMax")),
   });
 }
 
@@ -108,6 +117,9 @@ export function ScholarshipForm() {
       fundingType: "FullyFunded",
       targetLevel: "Undergrad",
       fieldsOfStudy: [],
+      // Sensible default so a Company can submit quickly. Validation still
+      // catches 0 / >500 / negative, and the company can pick any value.
+      reviewFeeUsd: 50,
     },
   });
 
@@ -141,6 +153,9 @@ export function ScholarshipForm() {
       // Pre-fill fields of study so the company sees what they picked before
       // and can toggle items on/off without losing the existing selection.
       fieldsOfStudy: d.fieldsOfStudy ?? [],
+      // Pre-fill the configured fee; default to 50 USD when the legacy
+      // listing has no fee yet so saving the edit fills it in.
+      reviewFeeUsd: d.reviewFeeUsd ?? 50,
     });
   }, [mode, detailQuery.data, form]);
 
@@ -197,6 +212,7 @@ export function ScholarshipForm() {
           values.fieldsOfStudy && values.fieldsOfStudy.length > 0
             ? values.fieldsOfStudy
             : undefined,
+        reviewFeeUsd: values.reviewFeeUsd,
       };
       updateMut.mutate({ id: editingId, input });
       return;
@@ -214,6 +230,7 @@ export function ScholarshipForm() {
       fieldsOfStudy: values.fieldsOfStudy && values.fieldsOfStudy.length > 0
         ? values.fieldsOfStudy
         : undefined,
+      reviewFeeUsd: values.reviewFeeUsd,
     };
     createMut.mutate(input);
   });
@@ -400,6 +417,36 @@ export function ScholarshipForm() {
                   </div>
                 );
               }}
+            />
+          </Field>
+
+          <Field
+            id="reviewFeeUsd"
+            label={t("moderation:companyScholarships.form.reviewFee")}
+            hint={t("moderation:companyScholarships.form.reviewFeeHint")}
+            error={errors.reviewFeeUsd?.message}
+          >
+            {/* Stored as a number so the zod schema's gt(0) / lte(500) rules
+                run on the parsed value, not the raw text. */}
+            <Controller
+              control={form.control}
+              name="reviewFeeUsd"
+              render={({ field }) => (
+                <input
+                  id="reviewFeeUsd"
+                  type="number"
+                  inputMode="decimal"
+                  min={1}
+                  max={500}
+                  step={1}
+                  className={fieldClass}
+                  value={field.value ?? ""}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    field.onChange(raw === "" ? undefined : Number(raw));
+                  }}
+                />
+              )}
             />
           </Field>
 
