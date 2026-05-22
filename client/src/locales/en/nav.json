@@ -25,7 +25,8 @@
     "applicationsReview": "Applications",
     "billing": "Billing",
     "resources": "My resources",
-    "insights": "Insights"
+    "insights": "Insights",
+    "reviews": "Reviews"
   },
   "consultant": {
     "dashboard": "Dashboard",
@@ -34,7 +35,8 @@
     "earnings": "Earnings",
     "resources": "My resources",
     "analytics": "My Analytics",
-    "earningsTrend": "Earnings trend"
+    "earningsTrend": "Earnings trend",
+    "reviews": "Reviews"
   },
   "admin": {
     "dashboard": "Dashboard",

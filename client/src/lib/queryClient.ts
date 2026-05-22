@@ -49,6 +49,10 @@ export const queryKeys = {
     detail: (id: string) => ["consultants", "detail", id] as const,
     availability: (id: string) => ["consultants", "availability", id] as const,
   },
+  reviews: {
+    companyMine: ["reviews", "company", "mine"] as const,
+    consultantMine: ["reviews", "consultant", "mine"] as const,
+  },
   notifications: {
     mine: ["notifications", "mine"] as const,
     unreadCount: ["notifications", "unreadCount"] as const,

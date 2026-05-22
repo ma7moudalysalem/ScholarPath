@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.CompanyReviews.Commands.HideCompanyReview;
 using ScholarPath.Application.CompanyReviews.Commands.SubmitCompanyRating;
+using ScholarPath.Application.CompanyReviews.DTOs;
 using ScholarPath.Application.CompanyReviews.Queries.GetCompanyRatings;
+using ScholarPath.Application.CompanyReviews.Queries.GetMyReceivedReviews;
 
 namespace ScholarPath.API.Controllers;
 
@@ -28,6 +30,17 @@ public class CompanyReviewsController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(query, ct);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Returns the authenticated company's own received reviews — masked author
+    /// names, admin-hidden and soft-deleted rows excluded, newest first — plus an
+    /// aggregate average and count. Backs the company "Reviews received" page.
+    /// </summary>
+    [HttpGet("mine")]
+    [Authorize(Roles = "Company")]
+    [ProducesResponseType(typeof(ReceivedReviewsSummaryDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ReceivedReviewsSummaryDto>> GetMyReceivedReviews(CancellationToken ct)
+        => Ok(await mediator.Send(new GetMyReceivedReviewsQuery(), ct));
 
     /// <summary>
     /// Admin moderation (FR-075): hide a company review from public listings or

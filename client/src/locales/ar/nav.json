@@ -25,7 +25,8 @@
     "applicationsReview": "الطلبات",
     "billing": "الفواتير",
     "resources": "مواردي",
-    "insights": "التحليلات"
+    "insights": "التحليلات",
+    "reviews": "التقييمات"
   },
   "consultant": {
     "dashboard": "لوحة التحكم",
@@ -34,7 +35,8 @@
     "earnings": "الأرباح",
     "resources": "مواردي",
     "analytics": "تحليلاتي",
-    "earningsTrend": "اتجاه الأرباح"
+    "earningsTrend": "اتجاه الأرباح",
+    "reviews": "التقييمات"
   },
   "admin": {
     "dashboard": "لوحة التحكم",

@@ -130,6 +130,9 @@ const CompanyBilling = lazy(() =>
 const CompanyInsights = lazy(() =>
   import("@/pages/company/CompanyInsights").then((m) => ({ default: m.CompanyInsights })),
 );
+const CompanyReviews = lazy(() =>
+  import("@/pages/company/CompanyReviews").then((m) => ({ default: m.CompanyReviews })),
+);
 
 // Consultant
 const ConsultantDashboard = lazy(() =>
@@ -165,6 +168,11 @@ const ConsultantAnalytics = lazy(() =>
 const ConsultantEarningsTrend = lazy(() =>
   import("@/pages/consultant/ConsultantEarningsTrend").then((m) => ({
     default: m.ConsultantEarningsTrend,
+  })),
+);
+const ConsultantReviews = lazy(() =>
+  import("@/pages/consultant/ConsultantReviews").then((m) => ({
+    default: m.ConsultantReviews,
   })),
 );
 
@@ -565,6 +573,16 @@ export function AppRouter() {
               </RequireRole>
             }
           />
+          <Route
+            path="/company/reviews"
+            element={
+              <RequireRole roles={["Company"]}>
+                <AnimatedRoute>
+                  <CompanyReviews />
+                </AnimatedRoute>
+              </RequireRole>
+            }
+          />
 
           <Route
             path="/consultant"
@@ -632,6 +650,16 @@ export function AppRouter() {
               <RequireRole roles={["Consultant"]}>
                 <AnimatedRoute>
                   <ConsultantEarningsTrend />
+                </AnimatedRoute>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/consultant/reviews"
+            element={
+              <RequireRole roles={["Consultant"]}>
+                <AnimatedRoute>
+                  <ConsultantReviews />
                 </AnimatedRoute>
               </RequireRole>
             }

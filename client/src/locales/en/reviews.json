@@ -1,0 +1,29 @@
+{
+  "company": {
+    "title": "Reviews received",
+    "subtitle": "Ratings students left after a finalized application. Reviewer names are partially hidden to keep feedback candid."
+  },
+  "consultant": {
+    "title": "Reviews received",
+    "subtitle": "Ratings students left after your completed sessions. Reviewer names are partially hidden to keep feedback candid."
+  },
+  "summary": {
+    "count_one": "{{count}} review",
+    "count_other": "{{count}} reviews"
+  },
+  "review": {
+    "noComment": "No written comment."
+  },
+  "empty": {
+    "title": "No reviews yet",
+    "body": "When someone rates you, their feedback will appear here."
+  },
+  "states": {
+    "error": "We couldn't load your reviews. Please try again.",
+    "retry": "Try again"
+  },
+  "aria": {
+    "average": "Average rating {{rating}} out of 5",
+    "reviewRating": "Rated {{rating}} out of 5"
+  }
+}

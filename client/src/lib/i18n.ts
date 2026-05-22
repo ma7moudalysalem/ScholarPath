@@ -28,6 +28,7 @@ import enConsultantPortal from "@/locales/en/consultantPortal.json";
 import enCommunity from "@/locales/en/community.json";
 import enAnalytics from "@/locales/en/analytics.json";
 import enLegal from "@/locales/en/legal.json";
+import enReviews from "@/locales/en/reviews.json";
 
 import arCommon from "@/locales/ar/common.json";
 import arAuth from "@/locales/ar/auth.json";
@@ -55,6 +56,7 @@ import arConsultantPortal from "@/locales/ar/consultantPortal.json";
 import arCommunity from "@/locales/ar/community.json";
 import arAnalytics from "@/locales/ar/analytics.json";
 import arLegal from "@/locales/ar/legal.json";
+import arReviews from "@/locales/ar/reviews.json";
 
 export const supportedLanguages = ["en", "ar"] as const;
 export type SupportedLanguage = (typeof supportedLanguages)[number];
@@ -98,6 +100,7 @@ void i18n
       "community",
       "analytics",
       "legal",
+      "reviews",
     ],
     defaultNS: "common",
     interpolation: { escapeValue: false },
@@ -137,6 +140,7 @@ void i18n
         community: enCommunity,
         analytics: enAnalytics,
         legal: enLegal,
+        reviews: enReviews,
       },
       ar: {
         common: arCommon,
@@ -165,6 +169,7 @@ void i18n
         community: arCommunity,
         analytics: arAnalytics,
         legal: arLegal,
+        reviews: arReviews,
       },
     },
   });

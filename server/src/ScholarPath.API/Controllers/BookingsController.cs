@@ -19,6 +19,8 @@ using ScholarPath.Application.ConsultantBookings.Queries.GetBookingRecordings;
 using ScholarPath.Application.ConsultantBookings.Queries.GetConsultantBookings;
 using ScholarPath.Application.ConsultantBookings.Queries.GetMyAvailability;
 using ScholarPath.Application.ConsultantBookings.Queries.GetMyBookings;
+using ScholarPath.Application.ConsultantBookings.Queries.GetMyReceivedReviews;
+using ScholarPath.Application.CompanyReviews.DTOs;
 
 namespace ScholarPath.API.Controllers;
 
@@ -53,6 +55,19 @@ public sealed class BookingsController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<BookingListItemDto>>> GetConsultantBookings(
         CancellationToken cancellationToken)
         => Ok(await _sender.Send(new GetConsultantBookingsQuery(), cancellationToken));
+
+    /// <summary>
+    /// Returns the authenticated consultant's own received reviews — masked
+    /// author names, admin-hidden and soft-deleted rows excluded, newest first —
+    /// plus an aggregate average and count. Backs the consultant "Reviews
+    /// received" page.
+    /// </summary>
+    [HttpGet("/api/consultant/reviews/mine")]
+    [Authorize(Roles = "Consultant")]
+    [ProducesResponseType(typeof(ReceivedReviewsSummaryDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ReceivedReviewsSummaryDto>> GetMyReceivedReviews(
+        CancellationToken cancellationToken)
+        => Ok(await _sender.Send(new GetMyReceivedConsultantReviewsQuery(), cancellationToken));
 
     /// <summary>
     /// Returns the authenticated consultant's own active availability rules.
