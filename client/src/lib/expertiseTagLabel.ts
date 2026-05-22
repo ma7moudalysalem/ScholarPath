@@ -144,6 +144,21 @@ const TAG_TRANSLATIONS_AR: Record<string, string> = {
   "panel": "حلقة نقاش",
   "financial-aid": "المساعدات المالية",
   "budgeting": "الميزانية",
+  // Article / video / checklist topic tags that were still rendering their
+  // raw English slug in Arabic (flagged on the Resources page). Keys match
+  // the TagsJson values seeded in DbSeeder.Resources.cs.
+  "beginner": "مبتدئ",
+  "article": "مقال",
+  "essays": "المقالات",
+  "writing": "الكتابة",
+  "recommendations": "خطابات التوصية",
+  "finance": "المالية",
+  "life-abroad": "الحياة بالخارج",
+  "wellbeing": "الرفاهية",
+  "planning": "التخطيط",
+  "shortlist": "القائمة المختصرة",
+  "documents": "المستندات",
+  "draft": "مسودة",
 };
 
 /**
