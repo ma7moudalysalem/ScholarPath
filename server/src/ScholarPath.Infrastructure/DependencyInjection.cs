@@ -94,7 +94,32 @@ public static class DependencyInjection
         // becomes fully functional once real client credentials replace the
         // placeholders in the Authentication:* config. Set Authentication:UseStub
         // = true (dev / tests) to fall back to the deterministic StubSsoService.
-        var useStubSso = config.GetValue<bool>($"{AuthenticationOptions.SectionName}:UseStub");
+        //
+        // AUTH-CODE-05 — if UseStub=false but provider credentials are clearly
+        // missing/placeholder, surface a clear startup warning and fall back to
+        // the stub so a misconfigured environment does not block boot or crash
+        // on the first SSO click. The warning is emitted by Program.cs via the
+        // ILogger pipeline, which is not yet built at this point — we stash the
+        // status in a transient singleton it reads on startup.
+        var authSection = config.GetSection(AuthenticationOptions.SectionName);
+        var useStubSso = authSection.GetValue<bool>("UseStub");
+        var ssoStatus = new SsoConfigurationStatus { UseStubRequested = useStubSso };
+
+        if (!useStubSso)
+        {
+            var googleConfigured = IsProviderConfigured(authSection.GetSection("Google"));
+            var microsoftConfigured = IsProviderConfigured(authSection.GetSection("Microsoft"));
+            if (!googleConfigured || !microsoftConfigured)
+            {
+                ssoStatus.FellBackToStub = true;
+                ssoStatus.MissingGoogle = !googleConfigured;
+                ssoStatus.MissingMicrosoft = !microsoftConfigured;
+                useStubSso = true;
+            }
+        }
+
+        services.AddSingleton(ssoStatus);
+
         if (useStubSso)
         {
             services.AddSingleton<ISsoService, StubSsoService>();
@@ -296,4 +321,34 @@ public static class DependencyInjection
 
         return services;
     }
+
+    /// <summary>
+    /// AUTH-CODE-05 — a provider section is considered "configured" only when
+    /// both client id and client secret are non-empty and not the
+    /// PLACEHOLDER_… defaults shipped in appsettings.json.
+    /// </summary>
+    private static bool IsProviderConfigured(IConfigurationSection providerSection)
+    {
+        var clientId = providerSection["ClientId"];
+        var clientSecret = providerSection["ClientSecret"];
+        return !string.IsNullOrWhiteSpace(clientId)
+            && !string.IsNullOrWhiteSpace(clientSecret)
+            && !clientId.StartsWith("PLACEHOLDER", StringComparison.OrdinalIgnoreCase)
+            && !clientSecret.StartsWith("PLACEHOLDER", StringComparison.OrdinalIgnoreCase);
+    }
+}
+
+/// <summary>
+/// AUTH-CODE-05 — startup-time provenance for the SSO wiring. Program.cs reads
+/// this from DI once the logging pipeline is up and emits a clear warning when
+/// the stub was swapped in because real credentials were missing. The class is
+/// mutable so it can be populated during <c>AddInfrastructureServices</c> before
+/// being registered as a singleton.
+/// </summary>
+public sealed class SsoConfigurationStatus
+{
+    public bool UseStubRequested { get; set; }
+    public bool FellBackToStub { get; set; }
+    public bool MissingGoogle { get; set; }
+    public bool MissingMicrosoft { get; set; }
 }

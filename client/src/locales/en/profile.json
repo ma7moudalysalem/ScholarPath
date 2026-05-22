@@ -16,7 +16,13 @@
     "dropTitle": "Profile photo",
     "upload": "Upload photo",
     "replace": "Replace photo",
-    "dragHint": "or drag and drop a file here"
+    "dragHint": "or drag and drop a file here",
+    "validation": {
+      "type": "Profile photo must be a JPG, PNG or WebP image.",
+      "size": "Profile photo must be 5 MB or smaller.",
+      "extensionMismatch": "File extension does not match the image type.",
+      "empty": "Choose a non-empty image file."
+    }
   },
   "sections": {
     "personal": "Personal information",
@@ -69,7 +75,34 @@
     "verificationStatus": "Verification status",
     "sessionFeeUsd": "Session fee (USD)",
     "sessionFeeUsdDesc": "What students pay you per session.",
-    "sessionDurationMinutes": "Session duration (minutes)"
+    "sessionDurationMinutes": "Session duration (minutes)",
+    "professionalTitle": "Professional title",
+    "professionalTitlePlaceholder": "e.g. Senior PhD admissions coach",
+    "yearsOfExperience": "Years of experience",
+    "expertiseTags": "Expertise tags",
+    "expertiseTagsDesc": "Add up to 20 tags — press Enter after each one.",
+    "expertiseTagsPlaceholder": "e.g. Statement of purpose",
+    "languages": "Languages",
+    "languagesDesc": "Spoken languages your students can pick from.",
+    "languagesPlaceholder": "e.g. English",
+    "timezone": "Time zone",
+    "timezonePlaceholder": "e.g. Europe/London"
+  },
+  "validation": {
+    "url": "Enter a valid http(s) URL.",
+    "futureDate": "Date cannot be in the future.",
+    "gpaScaleRequired": "Pick a GPA scale first.",
+    "gpaRange": "GPA must be between 0 and {{max}}.",
+    "sessionFeePositive": "Session fee must be greater than 0.",
+    "sessionFeeDecimals": "Use at most two decimal places.",
+    "sessionDuration": "Pick 30, 45, 60, 90 or 120 minutes.",
+    "expertiseTagRequired": "Add at least one tag.",
+    "languageRequired": "Add at least one language."
+  },
+  "sso": {
+    "passwordUnavailable": "Password change is not available.",
+    "passwordUnavailableDesc": "Your account is signed in through a social provider, so there is no password to update here.",
+    "manageWithProvider": "Manage your sign-in with your provider."
   },
   "languageOption": {
     "none": "Not set",
@@ -117,12 +150,18 @@
     "current": "Current password",
     "currentDesc": "We use this to confirm it's you.",
     "new": "New password",
-    "newDesc": "At least 8 characters. Mix letters, numbers, and symbols.",
+    "newDesc": "8–128 characters. Include upper, lower, a digit and a special character.",
     "confirm": "Confirm new password",
     "change": "Update password",
     "changing": "Changing…",
     "mismatch": "New passwords do not match.",
     "tooShort": "New password must be at least 8 characters.",
+    "tooLong": "New password cannot exceed 128 characters.",
+    "missingUpper": "New password must contain at least one uppercase letter.",
+    "missingLower": "New password must contain at least one lowercase letter.",
+    "missingDigit": "New password must contain at least one digit.",
+    "missingSpecial": "New password must contain at least one special character.",
+    "sameAsCurrent": "New password must differ from the current password.",
     "success": "Password changed. Other sessions have been signed out.",
     "error": "Could not change password."
   }
