@@ -13,6 +13,11 @@
   "quickActions": {
     "title": "Quick actions"
   },
+  "ranges": {
+    "7d": "7 days",
+    "30d": "30 days",
+    "90d": "90 days"
+  },
   "student": {
     "title": "Welcome back, {{name}}",
     "subtitle": "Your scholarship journey at a glance.",

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -28,7 +28,7 @@ import {
   QuickActions,
   ChartCard,
   SmoothAreaChart,
-  LegendRow,
+  TimeRangeTabs,
   type StatAccent,
 } from "@/components/dashboard/primitives";
 import { formatRelativeTime } from "@/components/dashboard/utils";
@@ -94,14 +94,18 @@ function greetingKey(): "morning" | "afternoon" | "evening" {
 export function AdminDashboard() {
   const { t, i18n } = useTranslation(["admin", "dashboard"]);
 
+  // Period toggle for the user-growth chart (7 / 30 / 90 days). The day count
+  // is part of the query key so switching ranges refetches + caches per range.
+  const [growthDays, setGrowthDays] = useState(30);
+
   const overview = useQuery<AnalyticsOverviewDto>({
     queryKey: ["admin", "analytics", "overview"],
     queryFn: () => adminApi.analyticsOverview(),
   });
 
   const growth = useQuery<GrowthPoint[]>({
-    queryKey: ["admin", "analytics", "user-growth", 30],
-    queryFn: () => adminApi.userGrowth(30),
+    queryKey: ["admin", "analytics", "user-growth", growthDays],
+    queryFn: () => adminApi.userGrowth(growthDays),
   });
 
   const funnel = useQuery<ApplicationStatusPoint[]>({
@@ -226,7 +230,18 @@ export function AdminDashboard() {
               <ChartCard
                 title={t("dashboard:admin.charts.growthTitle")}
                 subtitle={t("dashboard:admin.charts.growthSubtitle")}
-                trailing={<LegendRow items={[{ label: t("admin:analytics.growth"), colorClass: "text-brand-500" }]} />}
+                trailing={
+                  <TimeRangeTabs
+                    value={growthDays}
+                    onChange={setGrowthDays}
+                    ariaLabel={t("dashboard:admin.charts.growthTitle")}
+                    options={[
+                      { value: 7, label: t("dashboard:ranges.7d") },
+                      { value: 30, label: t("dashboard:ranges.30d") },
+                      { value: 90, label: t("dashboard:ranges.90d") },
+                    ]}
+                  />
+                }
               >
                 {growth.isLoading ? (
                   <div className="h-48 animate-pulse rounded-lg bg-bg-subtle sm:h-56" />
