@@ -362,8 +362,15 @@ function SidebarContent({
           </Link>
         )}
 
+        {/*
+          The user card above already opens /profile. This "Settings" entry
+          must lead somewhere distinct — notification preferences — otherwise
+          both the card and the gear navigate to the same page (the duplicate
+          the team lead flagged). Profile = who you are + password; Settings =
+          notification preferences.
+        */}
         <NavLink
-          to="/profile"
+          to="/notifications/preferences"
           onClick={onNavigate}
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-subtle hover:text-text-primary"
         >
