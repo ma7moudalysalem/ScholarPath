@@ -191,6 +191,9 @@ public enum NotificationType
     OnboardingSubmitted = 405,
     // Admin-inbound: a Student has submitted a consultant upgrade request.
     UpgradeRequestSubmitted = 406,
+    // Admin-inbound: a Company's average rating dropped below the low-rating
+    // threshold and needs admin review (PB-005R).
+    CompanyLowRatingFlagged = 407,
 
     // Community (PB-007)
     ReplyOnYourPost = 500,

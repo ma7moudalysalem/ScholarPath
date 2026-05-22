@@ -152,6 +152,14 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"{p.CounterpartyName ?? "A student"} submitted a {p.StatusText ?? "consultant"} upgrade request for review.",
             $"قدّم {p.CounterpartyName ?? "أحد الطلاب"} طلب ترقية إلى {p.StatusText ?? "مستشار"} للمراجعة."),
 
+        // Admin-inbound: a Company's average rating fell below the low-rating
+        // threshold (PB-005R). AmountText carries the formatted average and
+        // Count carries the number of visible reviews behind that average.
+        NotificationType.CompanyLowRatingFlagged => new(
+            "Company flagged for low rating", "تم تنبيه على شركة بسبب تقييم منخفض",
+            $"{p.CounterpartyName ?? "A company"} dropped to an average rating of {p.AmountText ?? "below threshold"} over {p.Count ?? 0} review(s). Review and decide whether to suspend the account.",
+            $"انخفض متوسط تقييم {p.CounterpartyName ?? "إحدى الشركات"} إلى {p.AmountText ?? "أقل من الحد"} عبر {p.Count ?? 0} تقييم. راجِع الحساب وقرّر ما إذا كان يجب إيقافه."),
+
         // Admin-inbound: a community post was reported and needs a moderation decision.
         NotificationType.ContentReported => new(
             "Post reported", "تم الإبلاغ عن منشور",

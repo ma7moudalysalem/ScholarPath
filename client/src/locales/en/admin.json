@@ -333,5 +333,27 @@
     "previous": "Previous",
     "pageOf": "Page {{page}} of {{total}}",
     "next": "Next"
+  },
+  "accountStatus": {
+    "Unassigned": "Unassigned",
+    "PendingApproval": "Pending approval",
+    "Active": "Active",
+    "Suspended": "Suspended",
+    "Deactivated": "Deactivated"
+  },
+  "lowRatedCompanies": {
+    "title": "Companies flagged for low rating",
+    "subtitle": "Companies whose average rating fell below 2.5. Review each case and either clear the flag or suspend the account.",
+    "empty": "No companies are currently flagged for low rating.",
+    "average": "Average rating",
+    "reviews": "Reviews",
+    "flaggedAt": "Flagged",
+    "lastReviewAt": "Last review",
+    "clear": "Clear flag",
+    "clearedToast": "Flag cleared — company removed from the queue.",
+    "suspend": "Suspend account",
+    "suspendConfirm": "Suspend this Company account? They will lose access to restricted Company actions.",
+    "suspendReason": "Company average rating below 2.5",
+    "suspendedToast": "Company suspended."
   }
 }

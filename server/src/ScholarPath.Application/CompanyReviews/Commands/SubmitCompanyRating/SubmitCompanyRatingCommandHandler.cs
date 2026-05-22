@@ -67,9 +67,152 @@ public sealed class SubmitCompanyRatingCommandHandler(
             null,
             ct);
 
+        // PB-005R: recalculate the company's rating snapshot, then run the
+        // low-rating policy check. Done after the new review row is persisted
+        // so the aggregate query sees it. Aggregation excludes soft-deleted
+        // and admin-hidden rows so a moderation action immediately reshapes
+        // the next computed average.
+        await RecalculateAndFlagLowRatingAsync(companyId, ct);
+
         logger.LogInformation("Student {StudentId} submitted a {Rating}-star rating for company {CompanyId}",
             currentUser.UserId, request.Rating, companyId);
 
         return review.Id;
+    }
+
+    private async Task RecalculateAndFlagLowRatingAsync(Guid companyId, CancellationToken ct)
+    {
+        // Aggregate over visible reviews only. Soft-deleted rows are already
+        // filtered by the CompanyReview global query filter; the explicit
+        // !IsHiddenByAdmin keeps admin-moderated rows out of the average.
+        var visibleReviews = db.CompanyReviews
+            .AsNoTracking()
+            .Where(r => r.CompanyId == companyId && !r.IsHiddenByAdmin);
+
+        var reviewCount = await visibleReviews.CountAsync(ct);
+        // Math.Round on the decimal average — server-side aggregation already
+        // returns decimal, but a CLR Math.Round at write time keeps the
+        // persisted snapshot at 2-decimal precision matching the column.
+        decimal? averageRating = reviewCount == 0
+            ? null
+            : await visibleReviews.AverageAsync(r => (decimal)r.Rating, ct);
+        if (averageRating is not null)
+        {
+            averageRating = Math.Round(averageRating.Value, 2, MidpointRounding.AwayFromZero);
+        }
+
+        var profile = await db.UserProfiles
+            .FirstOrDefaultAsync(p => p.UserId == companyId, ct);
+
+        if (profile is null)
+        {
+            // Onboarding always creates a UserProfile, so a missing one is a
+            // data-integrity surprise rather than a normal path. Log and
+            // exit — the review is already saved, no point throwing now.
+            logger.LogWarning(
+                "UserProfile not found for company {CompanyId} — rating snapshot was not updated.",
+                companyId);
+            return;
+        }
+
+        profile.CompanyAverageRating = averageRating;
+        profile.CompanyReviewCount = reviewCount;
+
+        var shouldFlag = averageRating is { } avg
+            && reviewCount >= CompanyRatingThresholds.MinimumReviewsForFlagging
+            && avg < CompanyRatingThresholds.LowRatingThreshold;
+
+        // Sticky flag: don't overwrite an existing FlaggedAt timestamp on
+        // subsequent sub-2.5 ratings. The original flag-time is what the
+        // admin queue surfaces; it's cleared only by an admin action.
+        var firstFlagging = shouldFlag && profile.CompanyLowRatingFlaggedAt is null;
+        if (firstFlagging)
+        {
+            profile.CompanyLowRatingFlaggedAt = DateTimeOffset.UtcNow;
+        }
+
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        if (firstFlagging)
+        {
+            await NotifyAdminsAsync(companyId, averageRating!.Value, reviewCount, ct);
+        }
+    }
+
+    private async Task NotifyAdminsAsync(
+        Guid companyId,
+        decimal averageRating,
+        int reviewCount,
+        CancellationToken ct)
+    {
+        try
+        {
+            var adminIds = await db.Users
+                .Where(u => (u.ActiveRole == "Admin" || u.ActiveRole == "SuperAdmin")
+                            && u.AccountStatus == AccountStatus.Active)
+                .Select(u => u.Id)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+
+            if (adminIds.Count == 0) return;
+
+            // Resolve a human-readable Company name (best-effort — fall back to
+            // a placeholder so a profile without FirstName/LastName doesn't
+            // throw inside the notification template).
+            var companyName = await db.Users
+                .Where(u => u.Id == companyId)
+                .Select(u => (u.FirstName + " " + u.LastName).Trim())
+                .FirstOrDefaultAsync(ct);
+
+            // AmountText carries the formatted average, Count carries the
+            // review count — both fields already exist on NotificationParams,
+            // no schema growth needed.
+            var parameters = new NotificationParams
+            {
+                CounterpartyName = string.IsNullOrWhiteSpace(companyName) ? "A company" : companyName,
+                AmountText = averageRating.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
+                Count = reviewCount,
+            };
+
+            foreach (var adminId in adminIds)
+            {
+                // Per-admin idempotency key so re-running the handler (e.g.
+                // during retries) never double-notifies the same admin about
+                // the same flag event.
+                var idempotencyKey = $"crr-low-rating:{companyId:N}:{adminId:N}";
+
+                try
+                {
+                    await notifications.DispatchAsync(
+                        adminId,
+                        NotificationType.CompanyLowRatingFlagged,
+                        parameters,
+                        deepLink: $"/admin/low-rated-companies",
+                        idempotencyKey: idempotencyKey,
+                        ct);
+                }
+                catch (Exception ex)
+                {
+                    // Notification dispatch must not roll back the rating
+                    // submission or the snapshot update; log and continue.
+                    logger.LogWarning(ex,
+                        "Failed to dispatch CompanyLowRatingFlagged to admin {AdminId} for company {CompanyId}.",
+                        adminId, companyId);
+                }
+            }
+
+            logger.LogInformation(
+                "Flagged company {CompanyId} for low rating: avg={Avg} count={Count}, notified {AdminCount} admins.",
+                companyId, averageRating, reviewCount, adminIds.Count);
+        }
+        catch (Exception ex)
+        {
+            // Resolving admin IDs failed (e.g. DB hiccup). Snapshot + flag are
+            // already saved; log and move on — the admin queue page still
+            // shows the flagged company on next load.
+            logger.LogWarning(ex,
+                "Could not resolve admin recipients for CompanyLowRatingFlagged on company {CompanyId}.",
+                companyId);
+        }
     }
 }

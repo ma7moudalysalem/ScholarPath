@@ -122,6 +122,14 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
         b.Property(p => p.FieldOfExpertise).HasMaxLength(200);
         b.Property(p => p.Gpa).HasPrecision(4, 2);
         b.Property(p => p.SessionFeeUsd).HasPrecision(10, 2);
+        // PB-005R: Company rating snapshot. Precision 3,2 fits 0.00..5.00.
+        b.Property(p => p.CompanyAverageRating).HasPrecision(3, 2);
+        // Filtered index drives the admin low-rated-companies queue cheaply —
+        // typical population is the whole users table, but only the small
+        // flagged subset is selected.
+        b.HasIndex(p => p.CompanyLowRatingFlaggedAt)
+            .HasFilter("[CompanyLowRatingFlaggedAt] IS NOT NULL")
+            .HasDatabaseName("IX_UserProfiles_CompanyLowRatingFlagged");
         b.Property(p => p.AcademicLevel).HasConversion<string>().HasMaxLength(32);
         b.Property(p => p.StripeConnectAccountId).HasMaxLength(256);
         b.Property(p => p.StripeConnectStatus).HasConversion<string>().HasMaxLength(24);
