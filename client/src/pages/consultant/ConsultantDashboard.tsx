@@ -240,7 +240,7 @@ export function ConsultantDashboard() {
               { icon: Clock, label: t("dashboard:consultant.quick.availability"), to: "/consultant/availability", accent: "brand" },
               { icon: CalendarCheck, label: t("dashboard:consultant.quick.bookings"), to: "/consultant/bookings", accent: "success" },
               { icon: Wallet, label: t("dashboard:consultant.quick.earnings"), to: "/consultant/earnings", accent: "warning" },
-              { icon: FileEdit, label: t("dashboard:consultant.quick.profile"), to: "/settings/profile", accent: "neutral" },
+              { icon: FileEdit, label: t("dashboard:consultant.quick.profile"), to: "/profile", accent: "neutral" },
             ]}
           />
 
