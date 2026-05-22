@@ -32,6 +32,9 @@ public sealed class ToggleVoteCommandHandler(
 {
     public async Task<bool> Handle(ToggleVoteCommand request, CancellationToken ct)
     {
+        if (!currentUser.IsInRole("Student"))
+            throw new ForbiddenAccessException("Only students can vote in the community.");
+
         var post = await db.ForumPosts
             .Include(p => p.Votes.Where(v => v.UserId == currentUser.UserId))
             .FirstOrDefaultAsync(p => p.Id == request.PostId && !p.IsDeleted, ct)

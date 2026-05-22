@@ -48,6 +48,35 @@ public class ForumPost : AuditableEntity, ISoftDeletable
     public ICollection<ForumPostAttachment> Attachments { get; } = [];
     public ICollection<ForumVote> Votes { get; } = [];
     public ICollection<ForumFlag> Flags { get; } = [];
+    public ICollection<ForumPostTag> PostTags { get; } = [];
+    public ICollection<ForumBookmark> Bookmarks { get; } = [];
+}
+
+public class ForumBookmark : BaseEntity
+{
+    public Guid ForumPostId { get; set; }
+    public Guid UserId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public ForumPost? ForumPost { get; set; }
+}
+
+public class ForumTag : BaseEntity
+{
+    public string Name { get; set; } = default!;
+    public string Slug { get; set; } = default!;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    public ICollection<ForumPostTag> PostTags { get; } = [];
+}
+
+public class ForumPostTag
+{
+    public Guid ForumPostId { get; set; }
+    public Guid ForumTagId { get; set; }
+
+    public ForumPost? ForumPost { get; set; }
+    public ForumTag? ForumTag { get; set; }
 }
 
 public class ForumPostAttachment : BaseEntity

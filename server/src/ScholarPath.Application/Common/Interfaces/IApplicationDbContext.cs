@@ -52,6 +52,9 @@ public interface IApplicationDbContext
     DbSet<ForumPostAttachment> ForumPostAttachments { get; }
     DbSet<ForumVote> ForumVotes { get; }
     DbSet<ForumFlag> ForumFlags { get; }
+    DbSet<ForumBookmark> ForumBookmarks { get; }
+    DbSet<ForumTag> ForumTags { get; }
+    DbSet<ForumPostTag> ForumPostTags { get; }
 
     DbSet<ChatConversation> Conversations { get; }
     DbSet<ChatMessage> Messages { get; }

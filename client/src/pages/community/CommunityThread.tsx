@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router";
+import { useEffect, useState } from "react";
+import { useParams, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
@@ -10,9 +10,13 @@ import {
   Send,
   Shield,
   Loader2,
+  Bookmark,
+  Pencil,
+  Trash2,
+  Hash,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { communityApi, type VoteType } from "@/services/api/community";
+import { communityApi, type ForumPost, type VoteType } from "@/services/api/community";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { formatDistanceToNow } from "date-fns";
@@ -21,20 +25,31 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
 import { apiErrorMessage } from "@/services/api/client";
 import { FlagPostDialog } from "@/components/community/FlagPostDialog";
+import { EditPostDialog } from "@/components/community/EditPostDialog";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { createTypedCommunityHub } from "@/services/signalR/communityHub";
+
+const REPLY_MAX = 10000;
 
 export function CommunityThread() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation("community");
   const isRtl = i18n.dir() === "rtl";
   const dateLocale = isRtl ? ar : undefined;
   const qc = useQueryClient();
-  // The server returns 409 on self-vote; we pre-empt by disabling the buttons
-  // when the author is the current user.
   const currentUserId = useAuthStore((state) => state.user?.id);
+  const activeRole = useAuthStore((state) => state.user?.activeRole);
+  const roles = useAuthStore((state) => state.user?.roles ?? []);
+  const isStudent = activeRole === "Student" || roles.includes("Student");
 
   const [replyBody, setReplyBody] = useState("");
   // Post id whose flag dialog is open (null = closed).
   const [flagTarget, setFlagTarget] = useState<string | null>(null);
+  // Editing state — the post being edited, or null.
+  const [editTarget, setEditTarget] = useState<ForumPost | null>(null);
+  // Delete state — the post id pending confirmation, or null.
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; isRoot: boolean } | null>(null);
 
   const { data: thread, isLoading: loading } = useQuery({
     queryKey: ["community", "thread", id],
@@ -46,14 +61,10 @@ export function CommunityThread() {
     mutationFn: ({ postId, type }: { postId: string; type: VoteType }) =>
       communityApi.toggleVote(postId, type),
     onSuccess: () => {
-      // Refresh both the thread and the list cards — the score on the list
-      // is stale until the user navigates back otherwise.
       void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
       void qc.invalidateQueries({ queryKey: ["community", "posts"] });
       void qc.invalidateQueries({ queryKey: ["community", "trending"] });
     },
-    // Surface the server's own message (e.g. "You cannot vote on your own
-    // post.") instead of a generic fallback.
     onError: (err) => {
       toast.error(apiErrorMessage(err, t("actions.voteError")));
     },
@@ -64,30 +75,13 @@ export function CommunityThread() {
     onSuccess: () => {
       setReplyBody("");
       void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
-      // The list page caches replyCount on each post card — refresh it too so
-      // the count badge updates without a manual page refresh.
       void qc.invalidateQueries({ queryKey: ["community", "posts"] });
     },
-    // Surface the server's validation error (e.g. "Body cannot be empty") so
-    // the user knows what to fix instead of a generic fallback.
     onError: (err) => {
       toast.error(apiErrorMessage(err, t("actions.replyError")));
     },
   });
 
-  const handleVote = (postId: string, type: VoteType) => {
-    voteMutation.mutate({ postId, type });
-  };
-
-  const handleReply = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id || !replyBody.trim()) return;
-    replyMutation.mutate(replyBody);
-  };
-
-  // Flagging now goes through a styled Radix dialog (FlagPostDialog) instead of
-  // the old blocking window.prompt(). The dialog captures a categorized reason
-  // key + optional details; success/error stay on sonner toasts.
   const flagMutation = useMutation({
     mutationFn: ({
       postId,
@@ -106,12 +100,83 @@ export function CommunityThread() {
       setFlagTarget(null);
       toast.success(t("actions.flagSuccess"));
     },
-    // Surface "You have already flagged this post." etc. straight from the
-    // server instead of a generic fallback.
     onError: (err) => {
       toast.error(apiErrorMessage(err, t("actions.flagError")));
     },
   });
+
+  const bookmarkMutation = useMutation({
+    mutationFn: (postId: string) => communityApi.toggleBookmark(postId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
+      void qc.invalidateQueries({ queryKey: ["community", "posts"] });
+      void qc.invalidateQueries({ queryKey: ["community", "bookmarks-feed"] });
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, t("actions.bookmarkError"))),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (postId: string) => communityApi.deletePost(postId),
+    onSuccess: (_data, postId) => {
+      void qc.invalidateQueries({ queryKey: ["community", "posts"] });
+      void qc.invalidateQueries({ queryKey: ["community", "bookmarks-feed"] });
+      // If we deleted the root post we're viewing, bounce back to the feed.
+      // If we deleted a reply, just refresh the thread.
+      if (deleteTarget?.isRoot) {
+        toast.success(t("actions.deletePostSuccess"));
+        navigate("/student/community");
+      } else {
+        toast.success(t("actions.deleteReplySuccess"));
+        void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
+      }
+      setDeleteTarget(null);
+      void postId;
+    },
+    onError: (err) => {
+      toast.error(apiErrorMessage(err, t("actions.deleteError")));
+      setDeleteTarget(null);
+    },
+  });
+
+  const handleVote = (postId: string, type: VoteType) => {
+    voteMutation.mutate({ postId, type });
+  };
+
+  const handleReply = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !replyBody.trim()) return;
+    replyMutation.mutate(replyBody);
+  };
+
+  // ── Real-time: join this thread's group and refetch on ReplyCreated.
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    const hub = createTypedCommunityHub();
+    const handleReplyCreated = () => {
+      void qc.invalidateQueries({ queryKey: ["community", "thread", id] });
+    };
+
+    hub.onReplyCreated(handleReplyCreated);
+    hub
+      .start()
+      .then(() => {
+        if (!cancelled) {
+          return hub.joinPost(id);
+        }
+        return undefined;
+      })
+      .catch(() => {
+        /* connection error — query invalidation keeps UI fresh */
+      });
+
+    return () => {
+      cancelled = true;
+      hub.offReplyCreated(handleReplyCreated);
+      hub.leavePost(id).catch(() => {});
+      hub.stop().catch(() => {});
+    };
+  }, [id, qc]);
 
   if (loading) {
     return (
@@ -134,6 +199,7 @@ export function CommunityThread() {
   }
 
   const postScore = thread.post.upvoteCount - thread.post.downvoteCount;
+  const isRootOwn = thread.post.authorId === currentUserId;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -155,9 +221,8 @@ export function CommunityThread() {
       >
         <div className="p-6 sm:p-8">
           <div className="flex gap-5 sm:gap-6">
-            {/* Vote Side — disabled on your own post (matches the server-side
-                "cannot vote on your own post" rule). */}
-            {(() => {
+            {/* Vote Side — students only */}
+            {isStudent && (() => {
               const isOwnPost = thread.post.authorId === currentUserId;
               const title = isOwnPost ? t("actions.voteOwnPost") : undefined;
               return (
@@ -206,18 +271,82 @@ export function CommunityThread() {
                     </span>
                   </div>
                 </div>
-                <button
-                  onClick={() => setFlagTarget(thread.post.id)}
-                  aria-label={t("actions.flagReasonPrompt")}
-                  className="p-2 text-text-tertiary hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors shrink-0"
-                >
-                  <Flag size={16} aria-hidden />
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  {isStudent && isRootOwn && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setEditTarget(thread.post)}
+                        aria-label={t("actions.editPost")}
+                        title={t("actions.editPost")}
+                        className="p-2 text-text-tertiary hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                      >
+                        <Pencil size={16} aria-hidden />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget({ id: thread.post.id, isRoot: true })}
+                        aria-label={t("actions.deletePost")}
+                        title={t("actions.deletePost")}
+                        className="p-2 text-text-tertiary hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 size={16} aria-hidden />
+                      </button>
+                    </>
+                  )}
+                  {isStudent && (
+                    <button
+                      type="button"
+                      onClick={() => bookmarkMutation.mutate(thread.post.id)}
+                      aria-label={
+                        thread.post.isBookmarked ? t("actions.bookmarkRemove") : t("actions.bookmarkAdd")
+                      }
+                      title={
+                        thread.post.isBookmarked ? t("actions.bookmarkRemove") : t("actions.bookmarkAdd")
+                      }
+                      className={`p-2 rounded-lg transition-colors ${
+                        thread.post.isBookmarked
+                          ? "text-brand-600 hover:bg-brand-50"
+                          : "text-text-tertiary hover:text-brand-600 hover:bg-brand-50"
+                      }`}
+                    >
+                      <Bookmark
+                        size={16}
+                        aria-hidden
+                        fill={thread.post.isBookmarked ? "currentColor" : "none"}
+                      />
+                    </button>
+                  )}
+                  {isStudent && !isRootOwn && (
+                    <button
+                      onClick={() => setFlagTarget(thread.post.id)}
+                      aria-label={t("actions.flagReasonPrompt")}
+                      className="p-2 text-text-tertiary hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors shrink-0"
+                    >
+                      <Flag size={16} aria-hidden />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-bold mb-5 leading-tight tracking-tight">
                 {thread.post.title}
               </h1>
+
+              {thread.post.tags.length > 0 && (
+                <div className="mb-4 flex flex-wrap gap-1.5">
+                  {thread.post.tags.map((tag) => (
+                    <Link
+                      key={tag}
+                      to={`/student/community?tag=${encodeURIComponent(tag)}`}
+                      className="inline-flex items-center gap-1 rounded-full bg-brand-50/70 px-2.5 py-0.5 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-100"
+                    >
+                      <Hash size={10} aria-hidden />
+                      {tag}
+                    </Link>
+                  ))}
+                </div>
+              )}
 
               <div className="max-w-none text-text-secondary leading-relaxed mb-6 space-y-2 text-[15px]">
                 {thread.post.bodyMarkdown.split('\n').filter((l) => l.trim()).map((line, idx) => (
@@ -240,29 +369,32 @@ export function CommunityThread() {
         </div>
       </motion.div>
 
-      {/* Reply Form */}
-      <div className="mb-10">
-        <form onSubmit={handleReply} className="relative">
-          <textarea
-            value={replyBody}
-            onChange={(e) => setReplyBody(e.target.value)}
-            placeholder={t("thread.replyPlaceholder")}
-            className="w-full bg-bg-elevated border border-border-default rounded-2xl px-5 py-4 pe-16 outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-400 transition-all shadow-elevation-1 min-h-[120px] resize-none text-sm leading-relaxed placeholder:text-text-tertiary"
-          />
-          <button
-            type="submit"
-            disabled={replyMutation.isPending || !replyBody.trim()}
-            aria-label={t("ask.submit")}
-            className="absolute end-3 bottom-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm transition-all hover:shadow-brand-md hover:from-brand-600 hover:to-brand-800 active:scale-95 disabled:bg-none disabled:bg-bg-subtle disabled:text-text-tertiary disabled:shadow-none disabled:cursor-not-allowed"
-          >
-            {replyMutation.isPending ? (
-              <Loader2 size={18} className="animate-spin" aria-hidden />
-            ) : (
-              <Send size={16} className="rtl:rotate-180" aria-hidden />
-            )}
-          </button>
-        </form>
-      </div>
+      {/* Reply Form — students only */}
+      {isStudent && (
+        <div className="mb-10">
+          <form onSubmit={handleReply} className="relative">
+            <textarea
+              value={replyBody}
+              onChange={(e) => setReplyBody(e.target.value)}
+              placeholder={t("thread.replyPlaceholder")}
+              maxLength={REPLY_MAX}
+              className="w-full bg-bg-elevated border border-border-default rounded-2xl px-5 py-4 pe-16 outline-none focus:ring-2 focus:ring-brand-400/40 focus:border-brand-400 transition-all shadow-elevation-1 min-h-[120px] resize-none text-sm leading-relaxed placeholder:text-text-tertiary"
+            />
+            <button
+              type="submit"
+              disabled={replyMutation.isPending || !replyBody.trim()}
+              aria-label={t("ask.submit")}
+              className="absolute end-3 bottom-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm transition-all hover:shadow-brand-md hover:from-brand-600 hover:to-brand-800 active:scale-95 disabled:bg-none disabled:bg-bg-subtle disabled:text-text-tertiary disabled:shadow-none disabled:cursor-not-allowed"
+            >
+              {replyMutation.isPending ? (
+                <Loader2 size={18} className="animate-spin" aria-hidden />
+              ) : (
+                <Send size={16} className="rtl:rotate-180" aria-hidden />
+              )}
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Replies List */}
       <div className="space-y-3 relative">
@@ -304,42 +436,67 @@ export function CommunityThread() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleVote(reply.id, "Up")}
-                      disabled={isOwnReply}
-                      title={replyVoteTitle}
-                      aria-label={t("thread.upvoteReply")}
-                      className="p-1.5 rounded-md text-text-tertiary hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
-                    >
-                      <ArrowUp size={14} strokeWidth={2.5} aria-hidden />
-                    </button>
-                    <span className={`text-xs font-bold w-5 text-center tabular-nums ${
-                      replyScore > 0 ? "text-brand-600" : replyScore < 0 ? "text-danger-500" : "text-text-secondary"
-                    }`}>
-                      {replyScore}
-                    </span>
-                    {/* Downvote was missing for replies — users could upvote but
-                        not downvote a comment, which is broken-by-default for
-                        a Q&A community. */}
-                    <button
-                      type="button"
-                      onClick={() => handleVote(reply.id, "Down")}
-                      disabled={isOwnReply}
-                      title={replyVoteTitle}
-                      aria-label={t("thread.downvoteReply")}
-                      className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
-                    >
-                      <ArrowDown size={14} strokeWidth={2.5} aria-hidden />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFlagTarget(reply.id)}
-                      aria-label={t("actions.flagReasonPrompt")}
-                      className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors"
-                    >
-                      <Flag size={12} aria-hidden />
-                    </button>
+                    {isStudent && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleVote(reply.id, "Up")}
+                          disabled={isOwnReply}
+                          title={replyVoteTitle}
+                          aria-label={t("thread.upvoteReply")}
+                          className="p-1.5 rounded-md text-text-tertiary hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
+                        >
+                          <ArrowUp size={14} strokeWidth={2.5} aria-hidden />
+                        </button>
+                        <span className={`text-xs font-bold w-5 text-center tabular-nums ${
+                          replyScore > 0 ? "text-brand-600" : replyScore < 0 ? "text-danger-500" : "text-text-secondary"
+                        }`}>
+                          {replyScore}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleVote(reply.id, "Down")}
+                          disabled={isOwnReply}
+                          title={replyVoteTitle}
+                          aria-label={t("thread.downvoteReply")}
+                          className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
+                        >
+                          <ArrowDown size={14} strokeWidth={2.5} aria-hidden />
+                        </button>
+                      </>
+                    )}
+                    {isStudent && isOwnReply && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setEditTarget(reply)}
+                          aria-label={t("actions.editReply")}
+                          title={t("actions.editReply")}
+                          className="p-1.5 rounded-md text-text-tertiary hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                        >
+                          <Pencil size={12} aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget({ id: reply.id, isRoot: false })}
+                          aria-label={t("actions.deleteReply")}
+                          title={t("actions.deleteReply")}
+                          className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors"
+                        >
+                          <Trash2 size={12} aria-hidden />
+                        </button>
+                      </>
+                    )}
+                    {isStudent && !isOwnReply && (
+                      <button
+                        type="button"
+                        onClick={() => setFlagTarget(reply.id)}
+                        aria-label={t("actions.flagReasonPrompt")}
+                        className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors"
+                      >
+                        <Flag size={12} aria-hidden />
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="text-text-secondary text-sm leading-relaxed space-y-1.5">
@@ -363,6 +520,37 @@ export function CommunityThread() {
           if (flagTarget) {
             flagMutation.mutate({ postId: flagTarget, reason, additionalDetails });
           }
+        }}
+      />
+
+      {editTarget && (
+        <EditPostDialog
+          key={editTarget.id}
+          open={editTarget !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditTarget(null);
+          }}
+          isRoot={editTarget.id === thread.post.id}
+          post={editTarget}
+        />
+      )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title={deleteTarget?.isRoot ? t("actions.deletePost") : t("actions.deleteReply")}
+        description={
+          deleteTarget?.isRoot
+            ? t("actions.deletePostConfirm")
+            : t("actions.deleteReplyConfirm")
+        }
+        confirmLabel={t("actions.deleteConfirmLabel")}
+        variant="destructive"
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
         }}
       />
     </div>

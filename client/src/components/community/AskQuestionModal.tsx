@@ -6,6 +6,11 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { communityApi, type ForumCategory } from "@/services/api/community";
+import { TagInput, MAX_TAG_LENGTH, MAX_TAGS_PER_POST } from "@/components/community/TagInput";
+import { apiErrorMessage } from "@/services/api/client";
+
+const BODY_MAX = 10000;
+const TITLE_MAX = 200;
 
 interface AskQuestionModalProps {
   isOpen: boolean;
@@ -30,6 +35,7 @@ export function AskQuestionModal({
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [body, setBody] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
 
   const createPost = useMutation({
     mutationFn: () =>
@@ -37,6 +43,7 @@ export function AskQuestionModal({
         categoryId,
         title: title.trim(),
         bodyMarkdown: body.trim(),
+        tags,
       }),
     onSuccess: (newPostId) => {
       void queryClient.invalidateQueries({ queryKey: ["community", "posts"] });
@@ -44,10 +51,11 @@ export function AskQuestionModal({
       setTitle("");
       setCategoryId("");
       setBody("");
+      setTags([]);
       onOpenChange(false);
       navigate(`/student/community/${newPostId}`);
     },
-    onError: () => toast.error(t("ask.error")),
+    onError: (err) => toast.error(apiErrorMessage(err, t("ask.error"))),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -99,7 +107,7 @@ export function AskQuestionModal({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={t("ask.titlePlaceholder")}
-                maxLength={200}
+                maxLength={TITLE_MAX}
                 className={fieldClass}
               />
             </div>
@@ -139,8 +147,22 @@ export function AskQuestionModal({
                 onChange={(e) => setBody(e.target.value)}
                 placeholder={t("ask.bodyPlaceholder")}
                 rows={5}
-                maxLength={5000}
+                maxLength={BODY_MAX}
                 className={fieldClass}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-text-primary">
+                {t("ask.tagsLabel")}
+                <span className="ms-1 font-normal text-text-tertiary">
+                  ({t("ask.tagsHint", { max: MAX_TAGS_PER_POST, len: MAX_TAG_LENGTH })})
+                </span>
+              </label>
+              <TagInput
+                value={tags}
+                onChange={setTags}
+                placeholder={t("ask.tagsPlaceholder")}
               />
             </div>
 

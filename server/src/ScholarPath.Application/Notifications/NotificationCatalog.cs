@@ -60,6 +60,15 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"A community post was automatically hidden after {p.Count ?? 0} flags.",
             $"تم إخفاء منشور في المجتمع تلقائيًا بعد {p.Count ?? 0} بلاغات."),
 
+        NotificationType.ReplyOnYourPost => new(
+            "New reply on your post", "رد جديد على منشورك",
+            string.IsNullOrEmpty(p.TitleEn)
+                ? $"{p.CounterpartyName ?? "Someone"} replied to your community post."
+                : $"{p.CounterpartyName ?? "Someone"} replied to \"{p.TitleEn}\".",
+            string.IsNullOrEmpty(p.TitleAr)
+                ? $"رد {p.CounterpartyName ?? "أحدهم"} على منشورك في المجتمع."
+                : $"رد {p.CounterpartyName ?? "أحدهم"} على \"{p.TitleAr}\"."),
+
         NotificationType.PaymentSuccess => new(
             "Payment receipt", "إيصال الدفع",
             $"Your payment of {p.AmountText ?? "the session fee"} was received — keep this as your receipt.",

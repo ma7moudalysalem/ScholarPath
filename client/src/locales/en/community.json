@@ -12,12 +12,18 @@
     "repliesCount": "{{count}} replies",
     "trendingTitle": "Trending now",
     "trendingSubtitle": "Top discussions in the last 30 days",
+    "tabAll": "All posts",
+    "tabBookmarks": "Bookmarked",
+    "filteringByTag": "Filtering by tag",
+    "clearTag": "Clear tag",
     "emptyTitle": "No discussions yet",
     "emptyBody": "Be the first to start a conversation here.",
     "emptyCategoryTitle": "Nothing in {{category}} yet",
     "emptyCategoryBody": "This category is quiet — be the first to post in {{category}}.",
     "emptySearchTitle": "No matches for your search",
-    "emptySearchBody": "We couldn't find any discussions matching \"{{query}}\". Try a different keyword."
+    "emptySearchBody": "We couldn't find any discussions matching \"{{query}}\". Try a different keyword.",
+    "emptyBookmarksTitle": "No bookmarks yet",
+    "emptyBookmarksBody": "Bookmark a post to save it here for later."
   },
   "thread": {
     "notFound": "Thread not found",
@@ -36,7 +42,20 @@
     "flagError": "Could not report this content. Please try again.",
     "voteError": "Could not register your vote. Please try again.",
     "voteOwnPost": "You can't vote on your own post.",
-    "replyError": "Could not post your reply. Please try again."
+    "replyError": "Could not post your reply. Please try again.",
+    "bookmarkAdd": "Bookmark this post",
+    "bookmarkRemove": "Remove bookmark",
+    "bookmarkError": "Could not update your bookmark. Please try again.",
+    "editPost": "Edit post",
+    "editReply": "Edit reply",
+    "deletePost": "Delete post",
+    "deletePostConfirm": "Delete this post? This cannot be undone.",
+    "deletePostSuccess": "Your post has been deleted.",
+    "deleteReply": "Delete reply",
+    "deleteReplyConfirm": "Delete this reply? This cannot be undone.",
+    "deleteReplySuccess": "Your reply has been deleted.",
+    "deleteConfirmLabel": "Delete",
+    "deleteError": "Could not delete. Please try again."
   },
   "flagDialog": {
     "title": "Report this post",
@@ -59,11 +78,29 @@
     "categoryPlaceholder": "Select a category",
     "bodyLabel": "Details",
     "bodyPlaceholder": "Add details that will help others answer. Markdown is supported.",
+    "tagsLabel": "Tags",
+    "tagsHint": "up to {{max}}, max {{len}} chars each",
+    "tagsPlaceholder": "Add a tag and press Enter",
     "submit": "Post Question",
     "submitting": "Posting…",
     "cancel": "Cancel",
     "success": "Your question has been posted.",
     "error": "Could not post your question. Please try again.",
     "validation": "Add a title, choose a category, and write some details."
+  },
+  "tags": {
+    "remove": "Remove tag {{tag}}",
+    "limitReached": "Tag limit reached"
+  },
+  "edit": {
+    "titleRoot": "Edit post",
+    "titleReply": "Edit reply",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "success": "Your changes have been saved.",
+    "error": "Could not save your changes. Please try again.",
+    "titleRequired": "A title is required.",
+    "bodyRequired": "Add some details before saving."
   }
 }

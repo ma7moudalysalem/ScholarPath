@@ -1,6 +1,3 @@
-using MediatR;
-using ScholarPath.Domain.Enums;
-
 namespace ScholarPath.Application.Community.DTOs;
 
 public record ForumPostDto(
@@ -13,7 +10,9 @@ public record ForumPostDto(
     int UpvoteCount,
     int DownvoteCount,
     int ReplyCount,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    IReadOnlyList<string> Tags,
+    bool IsBookmarked);
 
 public record ForumCategoryDto(
     Guid Id,

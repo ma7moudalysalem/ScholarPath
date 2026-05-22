@@ -39,6 +39,9 @@ public sealed class FlagPostCommandHandler(
 {
     public async Task<bool> Handle(FlagPostCommand request, CancellationToken ct)
     {
+        if (!currentUser.IsInRole("Student"))
+            throw new ForbiddenAccessException("Only students can report community content.");
+
         var post = await db.ForumPosts
             .Include(p => p.Flags)
             .FirstOrDefaultAsync(p => p.Id == request.PostId && !p.IsDeleted, ct)

@@ -22,6 +22,8 @@ export interface ForumPost {
   downvoteCount: number;
   replyCount: number;
   createdAt: string;
+  tags: string[];
+  isBookmarked: boolean;
 }
 
 export interface ForumThread {
@@ -62,19 +64,22 @@ export interface FlaggedPost {
   createdAt: string;
 }
 
+export interface GetPostsParams {
+  categoryId?: string;
+  query?: string;
+  sortBy?: string;
+  tag?: string;
+  page?: number;
+  pageSize?: number;
+}
+
 export const communityApi = {
   async getCategories(): Promise<ForumCategory[]> {
     const { data } = await apiClient.get<ForumCategory[]>("/api/community/categories");
     return data;
   },
 
-  async getPosts(params: {
-    categoryId?: string;
-    query?: string;
-    sortBy?: string;
-    page?: number;
-    pageSize?: number;
-  }): Promise<PagedResult<ForumPost>> {
+  async getPosts(params: GetPostsParams): Promise<PagedResult<ForumPost>> {
     const { data } = await apiClient.get<PagedResult<ForumPost>>("/api/community/posts", { params });
     return data;
   },
@@ -84,9 +89,25 @@ export const communityApi = {
     return data;
   },
 
-  async createPost(req: { categoryId: string; title: string; bodyMarkdown: string }): Promise<string> {
+  async createPost(req: {
+    categoryId: string;
+    title: string;
+    bodyMarkdown: string;
+    tags?: string[];
+  }): Promise<string> {
     const { data } = await apiClient.post<string>("/api/community/posts", req);
     return data;
+  },
+
+  async updatePost(
+    postId: string,
+    req: { title?: string | null; bodyMarkdown: string; tags?: string[] },
+  ): Promise<void> {
+    await apiClient.put(`/api/community/posts/${postId}`, req);
+  },
+
+  async deletePost(postId: string): Promise<void> {
+    await apiClient.delete(`/api/community/posts/${postId}`);
   },
 
   async createReply(postId: string, req: { bodyMarkdown: string }): Promise<string> {
@@ -100,6 +121,31 @@ export const communityApi = {
 
   async flagPost(postId: string, req: { reason: string; additionalDetails?: string }): Promise<void> {
     await apiClient.post(`/api/community/posts/${postId}/flag`, req);
+  },
+
+  // ── Bookmarks ──────────────────────────────────────────────────────────────
+
+  /**
+   * Toggles a bookmark on a root post. Returns the new state — true when
+   * the post is now saved, false when it was removed.
+   */
+  async toggleBookmark(postId: string): Promise<boolean> {
+    const { data } = await apiClient.post<{ bookmarked: boolean }>(
+      `/api/community/posts/${postId}/bookmark`,
+    );
+    return data.bookmarked;
+  },
+
+  /** Lists the current student's bookmarked posts. Student-only. */
+  async getMyBookmarks(
+    page = 1,
+    pageSize = 20,
+  ): Promise<PagedResult<ForumPost>> {
+    const { data } = await apiClient.get<PagedResult<ForumPost>>(
+      "/api/community/bookmarks",
+      { params: { page, pageSize } },
+    );
+    return data;
   },
 
   // ── Admin moderation ───────────────────────────────────────────────────────

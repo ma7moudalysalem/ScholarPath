@@ -627,6 +627,46 @@ public sealed class ForumFlagConfiguration : IEntityTypeConfiguration<ForumFlag>
     }
 }
 
+public sealed class ForumBookmarkConfiguration : IEntityTypeConfiguration<ForumBookmark>
+{
+    public void Configure(EntityTypeBuilder<ForumBookmark> b)
+    {
+        b.HasIndex(x => new { x.ForumPostId, x.UserId }).IsUnique();
+        b.HasIndex(x => x.UserId);
+        b.HasOne(x => x.ForumPost)
+            .WithMany(p => p.Bookmarks)
+            .HasForeignKey(x => x.ForumPostId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public sealed class ForumTagConfiguration : IEntityTypeConfiguration<ForumTag>
+{
+    public void Configure(EntityTypeBuilder<ForumTag> b)
+    {
+        b.Property(t => t.Name).IsRequired().HasMaxLength(30);
+        b.Property(t => t.Slug).IsRequired().HasMaxLength(30);
+        b.HasIndex(t => t.Slug).IsUnique();
+    }
+}
+
+public sealed class ForumPostTagConfiguration : IEntityTypeConfiguration<ForumPostTag>
+{
+    public void Configure(EntityTypeBuilder<ForumPostTag> b)
+    {
+        b.HasKey(x => new { x.ForumPostId, x.ForumTagId });
+        b.HasOne(x => x.ForumPost)
+            .WithMany(p => p.PostTags)
+            .HasForeignKey(x => x.ForumPostId)
+            .OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.ForumTag)
+            .WithMany(t => t.PostTags)
+            .HasForeignKey(x => x.ForumTagId)
+            .OnDelete(DeleteBehavior.Cascade);
+        b.HasIndex(x => x.ForumTagId);
+    }
+}
+
 public sealed class ChatConversationConfiguration : IEntityTypeConfiguration<ChatConversation>
 {
     public void Configure(EntityTypeBuilder<ChatConversation> b)
