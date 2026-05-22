@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Notifications.DTOs;
+using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Notifications.Queries.GetNotifications;
@@ -20,7 +21,11 @@ public sealed class GetNotificationsQueryHandler(
         var page = Math.Max(1, request.Page);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
-        var baseQuery = db.Notifications.Where(n => n.RecipientUserId == userId);
+        // Only the in-app feed rows. The dispatcher persists one row per enabled
+        // channel (InApp + Email), so without the channel filter every
+        // notification — and the unread count — was returned twice.
+        var baseQuery = db.Notifications.Where(
+            n => n.RecipientUserId == userId && n.Channel == NotificationChannel.InApp);
 
         var total = await baseQuery.CountAsync(ct);
         var unreadCount = await baseQuery.CountAsync(n => !n.IsRead, ct);
