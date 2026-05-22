@@ -35,6 +35,7 @@ import { userPhotoUrl } from "@/lib/userPhoto";
 import { apiErrorMessage } from "@/services/api/client";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { cn } from "@/lib/utils";
+import { COUNTRIES, countryLabel } from "@/lib/countryLabel";
 
 const PROFILE_KEY = ["profile", "me"] as const;
 
@@ -60,25 +61,9 @@ const GPA_MAX: Record<GpaScale, number> = {
 
 const SESSION_DURATIONS = [30, 45, 60, 90, 120] as const;
 
-// Most common countries for a scholarship platform — displayed in English across both locales.
-const COUNTRIES = [
-  "Afghanistan", "Albania", "Algeria", "Argentina", "Armenia", "Australia",
-  "Austria", "Azerbaijan", "Bahrain", "Bangladesh", "Belarus", "Belgium",
-  "Bolivia", "Bosnia and Herzegovina", "Brazil", "Bulgaria", "Cambodia",
-  "Cameroon", "Canada", "Chile", "China", "Colombia", "Croatia", "Cuba",
-  "Czech Republic", "Denmark", "Ecuador", "Egypt", "Ethiopia", "Finland",
-  "France", "Georgia", "Germany", "Ghana", "Greece", "Guatemala", "Hungary",
-  "India", "Indonesia", "Iran", "Iraq", "Ireland", "Italy", "Japan", "Jordan",
-  "Kazakhstan", "Kenya", "Kuwait", "Kyrgyzstan", "Lebanon", "Libya", "Malaysia",
-  "Mexico", "Morocco", "Myanmar", "Nepal", "Netherlands", "New Zealand",
-  "Nigeria", "Norway", "Oman", "Pakistan", "Palestine", "Peru", "Philippines",
-  "Poland", "Portugal", "Qatar", "Romania", "Russia", "Saudi Arabia", "Senegal",
-  "Serbia", "South Africa", "South Korea", "Spain", "Sri Lanka", "Sudan",
-  "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania",
-  "Thailand", "Tunisia", "Turkey", "Turkmenistan", "Uganda", "Ukraine",
-  "United Arab Emirates", "United Kingdom", "United States", "Uzbekistan",
-  "Venezuela", "Vietnam", "Yemen", "Other",
-];
+// Canonical country list + Arabic labels live in the shared lib so the stored
+// value stays the English name (matching the backend) while AR users see
+// Arabic labels via countryLabel(name, lang).
 
 interface FormState {
   firstName: string;
@@ -763,7 +748,7 @@ function ProfileSidebar({
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export function Profile() {
-  const { t } = useTranslation(["profile", "common"]);
+  const { t, i18n } = useTranslation(["profile", "common"]);
   const qc = useQueryClient();
   const activeRole = useAuthStore((s) => s.user?.activeRole ?? null);
 
@@ -925,8 +910,10 @@ export function Profile() {
   const set = <K extends keyof FormState>(key: K, value: string) =>
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
 
-  const setTags = (key: "expertiseTags" | "languages", tags: string[]) =>
-    setForm((prev) => (prev ? { ...prev, [key]: tags } : prev));
+  const setTags = (
+    key: "expertiseTags" | "languages" | "preferredCountries" | "preferredFields",
+    tags: string[],
+  ) => setForm((prev) => (prev ? { ...prev, [key]: tags } : prev));
 
   const dirty = !shallowEqual(form, original);
 
@@ -1192,7 +1179,7 @@ export function Profile() {
                     <option value="">{t("profile:countryOption.none")}</option>
                     {COUNTRIES.map((c) => (
                       <option key={c} value={c}>
-                        {c}
+                        {countryLabel(c, i18n.language)}
                       </option>
                     ))}
                   </select>
@@ -1208,7 +1195,7 @@ export function Profile() {
                 <option value="">{t("profile:countryOption.none")}</option>
                 {COUNTRIES.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {countryLabel(c, i18n.language)}
                   </option>
                 ))}
               </select>
