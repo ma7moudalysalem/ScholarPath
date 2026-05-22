@@ -48,6 +48,10 @@
       "title": "Application form",
       "intro": "Fill in the answers, attach the required documents, then submit.",
       "required": "required",
+      "fields": {
+        "motivation": "Motivation statement",
+        "gpa": "Current GPA"
+      },
       "documents": "Documents",
       "requiredDocsHint": "Required document types: {{docs}}",
       "attachLabel": "Attach from your uploaded documents",

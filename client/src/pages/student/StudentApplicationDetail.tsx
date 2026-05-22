@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -23,6 +23,7 @@ import {
   type ApplicationStatus,
 } from "@/services/api/applications";
 import { scholarshipsApi } from "@/services/api/scholarships";
+import { profileApi } from "@/services/api/profile";
 import {
   documentsApi,
   documentCategories,
@@ -376,6 +377,35 @@ function DraftApplicationForm({
     parseFormValues(application.formDataJson),
   );
 
+  // Pre-fill known questions from the student's profile so they don't re-type
+  // data we already hold — e.g. the "gpa" question maps to the profile GPA.
+  // Runs once, and only fills fields that are still empty: it never clobbers a
+  // saved answer or something the student just typed.
+  const { data: profile } = useQuery({
+    queryKey: ["profile", "me"],
+    queryFn: profileApi.getMine,
+  });
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (!profile || prefilledRef.current) return;
+    const fromProfile: Record<string, string | undefined> = {
+      gpa: profile.gpa != null ? String(profile.gpa) : undefined,
+    };
+    setFormValues((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const f of schemaFields) {
+        const candidate = fromProfile[f.key];
+        if (candidate && !(next[f.key] ?? "").trim()) {
+          next[f.key] = candidate;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+    prefilledRef.current = true;
+  }, [profile, schemaFields]);
+
   // Per-slot upload state: doc name → uploaded file name (or "" when empty).
   // On mount we first-fit any previously saved attachments into the slots so
   // re-editing a draft shows the previous files.
@@ -562,7 +592,9 @@ function DraftApplicationForm({
                 htmlFor={`field-${field.key}`}
                 className="mb-1 block text-sm font-medium text-text-primary"
               >
-                {field.label}
+                {t(`moderation:appDetail.form.fields.${field.key}`, {
+                  defaultValue: field.label,
+                })}
                 {field.required && (
                   <span className="ms-1 text-xs font-normal text-danger-500">
                     ({t("moderation:appDetail.form.required")})
