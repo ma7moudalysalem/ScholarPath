@@ -202,6 +202,7 @@
     "autoHidden": "Auto-hidden",
     "flags": "{{count}} flag",
     "flags_other": "{{count}} flags",
+    "pendingCount": "{{n}} awaiting review",
     "topReason": "Top reason",
     "headers": {
       "post": "Post",

@@ -4,13 +4,14 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { EyeOff } from "lucide-react";
+import { EyeOff, Flag } from "lucide-react";
 import {
   communityApi,
   type CommunityPagedResult,
   type FlaggedPost,
 } from "@/services/api/community";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { flagReasonLabel } from "@/lib/flagReasons";
 
 const PAGE_SIZE = 20;
 
@@ -64,13 +65,21 @@ export function AdminCommunity() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
-          {t("moderation:communityModeration.title")}
-        </h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          {t("moderation:communityModeration.subtitle")}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
+            {t("moderation:communityModeration.title")}
+          </h1>
+          <p className="mt-1 text-sm text-text-secondary">
+            {t("moderation:communityModeration.subtitle")}
+          </p>
+        </div>
+        {totalCount > 0 && (
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-danger-500/10 px-3 py-1 text-sm font-semibold text-danger-500">
+            <Flag className="size-4" />
+            {t("moderation:communityModeration.pendingCount", { n: totalCount })}
+          </span>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border-subtle bg-bg-elevated">
@@ -141,14 +150,18 @@ export function AdminCommunity() {
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{p.authorName}</td>
                 <td className="px-4 py-3">
-                  <span className="font-medium text-danger-500">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-danger-500/10 px-2 py-0.5 text-xs font-semibold text-danger-500">
+                    <Flag className="size-3" />
                     {t("moderation:communityModeration.flags", {
                       count: p.validFlagCount,
                     })}
                   </span>
                   {p.topFlagReason && (
-                    <p className="mt-0.5 text-xs text-text-tertiary">
-                      {t("moderation:communityModeration.topReason")}: {p.topFlagReason}
+                    <p className="mt-1 text-xs text-text-tertiary">
+                      {t("moderation:communityModeration.topReason")}:{" "}
+                      <span className="text-text-secondary">
+                        {flagReasonLabel(p.topFlagReason, i18n.language)}
+                      </span>
                     </p>
                   )}
                 </td>

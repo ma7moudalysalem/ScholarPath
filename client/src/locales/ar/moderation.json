@@ -202,6 +202,7 @@
     "autoHidden": "مُخفى تلقائيًا",
     "flags": "بلاغ واحد",
     "flags_other": "{{count}} بلاغات",
+    "pendingCount": "{{n}} بانتظار المراجعة",
     "topReason": "أبرز سبب",
     "headers": {
       "post": "المنشور",
