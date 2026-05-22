@@ -30,6 +30,9 @@ public sealed record NotificationParams
     /// <summary>Refund variant for CompanyReviewRefunded: "Full", "Partial", or "Timeout".</summary>
     public string? RefundKind { get; init; }
 
+    /// <summary>Reminder variant for BookingReminder: "24h" or "1h" before the session starts.</summary>
+    public string? ReminderKind { get; init; }
+
     /// <summary>A counterparty display name (consultant or student) for booking notifications.</summary>
     public string? CounterpartyName { get; init; }
 
