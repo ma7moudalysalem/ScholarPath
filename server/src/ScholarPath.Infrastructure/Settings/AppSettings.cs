@@ -186,6 +186,13 @@ public sealed class OpenAiOptions
 {
     public string? ApiKey { get; set; }
     public string Model { get; set; } = "gpt-4o-mini";
+
+    /// <summary>Embeddings model — produces real RAG knowledge-base vectors when
+    /// Ai:Provider = OpenAi (otherwise the retriever falls back to local-hash).</summary>
+    public string EmbeddingModel { get; set; } = "text-embedding-3-small";
+
+    /// <summary>Dimensionality of the embeddings model (text-embedding-3-small = 1536).</summary>
+    public int EmbeddingDimensions { get; set; } = 1536;
 }
 
 public sealed class AzureOpenAiOptions

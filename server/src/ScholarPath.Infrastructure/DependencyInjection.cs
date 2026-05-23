@@ -251,6 +251,14 @@ public static class DependencyInjection
             services.AddHttpClient("azure-openai");
             services.AddScoped<IEmbeddingService, AzureOpenAiEmbeddingService>();
         }
+        else if (useOpenAi)
+        {
+            // OpenAI-direct embeddings with the same key as chat — without this an
+            // OpenAi-configured deployment produced REAL chat but FAKE (local-hash)
+            // retrieval vectors.
+            services.AddHttpClient("openai");
+            services.AddScoped<IEmbeddingService, OpenAiEmbeddingService>();
+        }
         else
         {
             services.AddScoped<IEmbeddingService>(sp => sp.GetRequiredService<LocalEmbeddingService>());
