@@ -14,6 +14,7 @@ import {
   Sparkles,
   Database,
   ShieldAlert,
+  AlertTriangle,
   Megaphone,
   FileText,
   Coins,
@@ -58,6 +59,7 @@ const NAV: NavItem[] = [
   { to: "/admin/featured-scholarships", key: "nav.featuredScholarships",  icon: Star },
   { to: "/admin/articles", key: "nav.articles", icon: BookOpen },
   { to: "/admin/community", key: "nav.community", icon: MessageSquare },
+  { to: "/admin/low-rated-companies", key: "nav.lowRatedCompanies", icon: AlertTriangle },
   // Finance
   { to: "/admin/payments", key: "nav.payments", icon: CreditCard, divider: true },
   { to: "/admin/profit-share", key: "nav.profitShare", icon: PieChart },

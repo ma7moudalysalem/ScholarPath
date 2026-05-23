@@ -20,7 +20,8 @@
     "settings": "الإعدادات",
     "featuredScholarships": "المنح المميزة",
     "reports": "التقارير",
-    "revenueReport": "تقرير الإيرادات"
+    "revenueReport": "تقرير الإيرادات",
+    "lowRatedCompanies": "الشركات منخفضة التقييم"
   },
   "dashboard": {
     "totalUsers": "إجمالي المستخدمين",

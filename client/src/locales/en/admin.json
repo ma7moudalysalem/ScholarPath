@@ -20,7 +20,8 @@
     "settings": "Settings",
     "featuredScholarships": "Featured Scholarships",
     "reports": "Reports",
-    "revenueReport": "Revenue report"
+    "revenueReport": "Revenue report",
+    "lowRatedCompanies": "Low-rated companies"
   },
   "dashboard": {
     "totalUsers": "Total users",
