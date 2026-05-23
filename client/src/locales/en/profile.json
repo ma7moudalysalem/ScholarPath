@@ -170,5 +170,56 @@
     "sameAsCurrent": "New password must differ from the current password.",
     "success": "Password changed. Other sessions have been signed out.",
     "error": "Could not change password."
+  },
+  "role": {
+    "switcherAria": "Switch active role"
+  },
+  "upgrade": {
+    "cardTitle": "Become a Consultant",
+    "cardDescription": "Share your experience with other students and offer consultation sessions.",
+    "cardCta": "Request Consultant Upgrade",
+    "pendingButton": "Upgrade request pending",
+    "pendingHint": "An admin will review your request and you'll be notified once it's approved.",
+    "modalTitle": "Request Consultant Upgrade",
+    "modalSubtitle": "Tell us about your background. An admin will review your request before your consultant profile goes live.",
+    "submit": "Submit for review",
+    "submitting": "Submitting…",
+    "success": "Your consultant upgrade request has been submitted for admin review.",
+    "errorConflict": "You already have a pending consultant upgrade request.",
+    "errorForbidden": "Only active Student accounts can request a consultant upgrade.",
+    "errorValidation": "Please fix the highlighted fields and try again.",
+    "errorGeneric": "Could not submit your upgrade request. Please try again.",
+    "fields": {
+      "biography": "Short bio",
+      "professionalTitle": "Professional title",
+      "highestDegree": "Highest degree",
+      "fieldOfExpertise": "Field of expertise",
+      "yearsOfExperience": "Years of experience",
+      "expertiseTags": "Expertise tags",
+      "expertiseTagsPlaceholder": "e.g. Statement of Purpose, Interview Prep",
+      "sessionFeeUsd": "Session fee (USD)",
+      "sessionDurationMinutes": "Session duration",
+      "languages": "Languages",
+      "languagesPlaceholder": "e.g. English, Arabic",
+      "country": "Country",
+      "timezone": "Time zone",
+      "linkedInUrl": "LinkedIn URL (optional)",
+      "portfolioUrl": "Portfolio URL (optional)"
+    },
+    "hints": {
+      "biography": "Max 2000 characters.",
+      "tags": "Press Enter or comma to add a tag. At least one required.",
+      "languages": "Press Enter or comma to add a language. At least one required."
+    },
+    "validation": {
+      "required": "This field is required.",
+      "maxChars": "Use at most {{max}} characters.",
+      "yearsRange": "Enter a whole number between 0 and 80.",
+      "atLeastOneTag": "Add at least one expertise tag.",
+      "atLeastOneLanguage": "Add at least one language.",
+      "feePositive": "Session fee must be greater than 0.",
+      "duration": "Pick 30, 45, 60, or 90 minutes.",
+      "url": "Enter a valid http(s) URL."
+    }
   }
 }
