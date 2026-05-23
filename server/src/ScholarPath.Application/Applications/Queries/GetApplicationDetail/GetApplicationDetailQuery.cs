@@ -28,7 +28,10 @@ public sealed record ApplicationDetailDto(
     DateTimeOffset? UpdatedAt,
     DateTimeOffset? SubmittedAt,
     DateTimeOffset? ReviewStartedAt,
-    DateTimeOffset? DecisionAt);
+    DateTimeOffset? DecisionAt,
+    // Surfaced so the student UI can decide whether to gate "Submit" behind
+    // a CompanyReview payment confirmation. Null/0 = no fee required.
+    decimal? ReviewFeeUsd);
 
 // ─── Query ────────────────────────────────────────────────────────────────────
 
@@ -85,6 +88,7 @@ public sealed class GetApplicationDetailQueryHandler(
             application.UpdatedAt,
             application.SubmittedAt,
             application.ReviewStartedAt,
-            application.DecisionAt);
+            application.DecisionAt,
+            scholarship?.ReviewFeeUsd);
     }
 }

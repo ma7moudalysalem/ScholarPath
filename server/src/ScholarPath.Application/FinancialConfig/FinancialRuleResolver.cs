@@ -48,6 +48,27 @@ public static class FinancialRuleResolver
         var platformTake = Math.Min(breakdown.PlatformTotalCents, grossAmountCents);
         return new PaymentSplit(platformTake, grossAmountCents - platformTake);
     }
+
+    /// <summary>
+    /// Recomputes the platform take and payee net from the amount the payee
+    /// actually keeps after refunds — gross minus refunded. Called after any
+    /// refund so commission shrinks proportionally with retained revenue
+    /// (PB-014 v1: commission applies to the final retained amount, not the
+    /// captured-at-acceptance amount). Returns zero/zero when fully refunded.
+    /// </summary>
+    public static Task<PaymentSplit> ResolveSplitFromRetainedAsync(
+        IApplicationDbContext db,
+        PaymentType type,
+        long grossAmountCents,
+        long refundedAmountCents,
+        CancellationToken ct)
+    {
+        var retained = grossAmountCents - refundedAmountCents;
+        if (retained <= 0)
+            return Task.FromResult(new PaymentSplit(0, 0));
+
+        return ResolvePaymentSplitAsync(db, type, retained, ct);
+    }
 }
 
 /// <summary>The platform take and payee net for a payment, summing to the gross.</summary>

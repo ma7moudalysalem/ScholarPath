@@ -216,4 +216,155 @@ public class RefundPaymentCommandHandlerTests
         v.Validate(new RefundPaymentCommand(Guid.NewGuid(), null, null))
             .IsValid.Should().BeTrue();
     }
+
+    // ── PB-014 v1: commission applies to RETAINED amount, not to gross ──────
+
+    [Fact]
+    public async Task Full_refund_on_Held_zeroes_commission_and_payee()
+    {
+        using var db = CreateDb();
+        var payment = MakePayment(PaymentStatus.Held, 10_000);
+        payment.ProfitShareAmountCents = 1_000;
+        payment.PayeeAmountCents = 9_000;
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        var stripe = Substitute.For<IStripeService>();
+        stripe.CancelPaymentIntentAsync(
+                Arg.Any<string>(), Arg.Any<string?>(),
+                Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new StripePaymentIntentResult(
+                payment.StripePaymentIntentId!, "canceled", null, null));
+
+        var sut = new RefundPaymentCommandHandler(
+            db, stripe, AdminUser(), NullLogger<RefundPaymentCommandHandler>.Instance);
+
+        var ok = await sut.Handle(new RefundPaymentCommand(payment.Id, null, "full"), default);
+
+        ok.Should().BeTrue();
+        var updated = await db.Payments.FindAsync(payment.Id);
+        updated!.ProfitShareAmountCents.Should().Be(0);
+        updated.PayeeAmountCents.Should().Be(0);
+        updated.RefundedAmountCents.Should().Be(10_000);
+    }
+
+    [Fact]
+    public async Task Full_refund_on_Captured_zeroes_commission_and_payee()
+    {
+        using var db = CreateDb();
+        var payment = MakePayment(PaymentStatus.Captured, 10_000);
+        payment.ProfitShareAmountCents = 1_000;
+        payment.PayeeAmountCents = 9_000;
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        var stripe = Substitute.For<IStripeService>();
+        stripe.RefundPaymentAsync(
+                Arg.Any<string>(), Arg.Any<long?>(),
+                Arg.Any<string?>(), Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new StripeRefundResult("re_full", "succeeded", 10_000));
+
+        var sut = new RefundPaymentCommandHandler(
+            db, stripe, AdminUser(), NullLogger<RefundPaymentCommandHandler>.Instance);
+
+        await sut.Handle(new RefundPaymentCommand(payment.Id, null, "full"), default);
+
+        var updated = await db.Payments.FindAsync(payment.Id);
+        updated!.Status.Should().Be(PaymentStatus.Refunded);
+        updated.RefundedAmountCents.Should().Be(10_000);
+        updated.ProfitShareAmountCents.Should().Be(0);
+        updated.PayeeAmountCents.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Partial_refund_50pct_recomputes_commission_from_retained()
+    {
+        // Gross 10000, refund 5000 → retained 5000.
+        // Default v1 split = 10% / 90% → commission 500, payee 4500.
+        using var db = CreateDb();
+        var payment = MakePayment(PaymentStatus.Captured, 10_000);
+        payment.ProfitShareAmountCents = 1_000;
+        payment.PayeeAmountCents = 9_000;
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        var stripe = Substitute.For<IStripeService>();
+        stripe.RefundPaymentAsync(
+                Arg.Any<string>(), Arg.Any<long?>(),
+                Arg.Any<string?>(), Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new StripeRefundResult("re_half", "succeeded", 5_000));
+
+        var sut = new RefundPaymentCommandHandler(
+            db, stripe, AdminUser(), NullLogger<RefundPaymentCommandHandler>.Instance);
+
+        await sut.Handle(new RefundPaymentCommand(payment.Id, 5_000, "partial"), default);
+
+        var updated = await db.Payments.FindAsync(payment.Id);
+        updated!.Status.Should().Be(PaymentStatus.PartiallyRefunded);
+        updated.RefundedAmountCents.Should().Be(5_000);
+        updated.ProfitShareAmountCents.Should().Be(500);
+        updated.PayeeAmountCents.Should().Be(4_500);
+        (updated.RefundedAmountCents + updated.ProfitShareAmountCents + updated.PayeeAmountCents)
+            .Should().Be(updated.AmountCents);
+    }
+
+    [Fact]
+    public async Task Partial_refund_30pct_recomputes_commission_from_retained()
+    {
+        // Gross 10000, refund 3000 → retained 7000.
+        // 10% commission = 700, payee = 6300.
+        using var db = CreateDb();
+        var payment = MakePayment(PaymentStatus.Captured, 10_000);
+        payment.ProfitShareAmountCents = 1_000;
+        payment.PayeeAmountCents = 9_000;
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        var stripe = Substitute.For<IStripeService>();
+        stripe.RefundPaymentAsync(
+                Arg.Any<string>(), Arg.Any<long?>(),
+                Arg.Any<string?>(), Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new StripeRefundResult("re_30", "succeeded", 3_000));
+
+        var sut = new RefundPaymentCommandHandler(
+            db, stripe, AdminUser(), NullLogger<RefundPaymentCommandHandler>.Instance);
+
+        await sut.Handle(new RefundPaymentCommand(payment.Id, 3_000, "30pct"), default);
+
+        var updated = await db.Payments.FindAsync(payment.Id);
+        updated!.ProfitShareAmountCents.Should().Be(700);
+        updated.PayeeAmountCents.Should().Be(6_300);
+    }
+
+    [Fact]
+    public async Task Tiny_amount_refund_handles_rounding_safely()
+    {
+        // Gross 1c, fully refunded → retained 0 → commission 0, payee 0.
+        using var db = CreateDb();
+        var payment = MakePayment(PaymentStatus.Captured, 1);
+        payment.ProfitShareAmountCents = 0;
+        payment.PayeeAmountCents = 1;
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        var stripe = Substitute.For<IStripeService>();
+        stripe.RefundPaymentAsync(
+                Arg.Any<string>(), Arg.Any<long?>(),
+                Arg.Any<string?>(), Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(new StripeRefundResult("re_tiny", "succeeded", 1));
+
+        var sut = new RefundPaymentCommandHandler(
+            db, stripe, AdminUser(), NullLogger<RefundPaymentCommandHandler>.Instance);
+
+        await sut.Handle(new RefundPaymentCommand(payment.Id, null, null), default);
+
+        var updated = await db.Payments.FindAsync(payment.Id);
+        updated!.Status.Should().Be(PaymentStatus.Refunded);
+        updated.ProfitShareAmountCents.Should().Be(0);
+        updated.PayeeAmountCents.Should().Be(0);
+    }
 }

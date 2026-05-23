@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.FinancialConfig;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
@@ -98,6 +99,8 @@ public sealed class RefundPaymentCommandHandler(
             payment.RefundedAmountCents = payment.AmountCents;
             payment.RefundedAt = DateTimeOffset.UtcNow;
             payment.RefundReason = request.Reason ?? "Full refund — intent cancelled";
+            payment.ProfitShareAmountCents = 0;
+            payment.PayeeAmountCents = 0;
         }
         // 3b. Full or partial refund on a Captured payment → Stripe Refund API
         else
@@ -136,18 +139,17 @@ public sealed class RefundPaymentCommandHandler(
                 ? PaymentStatus.Refunded
                 : PaymentStatus.PartiallyRefunded;
 
-            // Recompute payee net so the consultant earns the kept portion minus
-            // the locked-in profit share. Preserves invariant: refunded + payee <= gross.
-            if (payment.Status == PaymentStatus.PartiallyRefunded)
-            {
-                payment.PayeeAmountCents = Math.Max(
-                    0,
-                    payment.AmountCents - payment.RefundedAmountCents - payment.ProfitShareAmountCents);
-            }
-            else
-            {
-                payment.PayeeAmountCents = 0;
-            }
+            // PB-014 v1: platform commission applies to the retained amount, not
+            // the captured-at-acceptance amount. Resolving the split off
+            // (gross - refunded) shrinks both commission and payee share
+            // proportionally and keeps the invariant
+            //   refunded + commission + payee == gross
+            // (except for sub-cent rounding which the resolver assigns to the
+            // payee — same rule as the original capture-time split).
+            var retainedSplit = await FinancialRuleResolver.ResolveSplitFromRetainedAsync(
+                db, payment.Type, payment.AmountCents, payment.RefundedAmountCents, ct);
+            payment.ProfitShareAmountCents = retainedSplit.PlatformTakeCents;
+            payment.PayeeAmountCents = retainedSplit.PayeeNetCents;
         }
 
         // 4. Persist

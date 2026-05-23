@@ -119,6 +119,99 @@ public class ProcessStripeWebhookConnectTests
     }
 
     [Fact]
+    public async Task Payout_failed_releases_linked_payments_for_retry()
+    {
+        // PB-013 recovery: when Stripe reports a payout failed, every Payment
+        // pre-claimed into it must have PayoutId cleared so the next nightly
+        // run can include them in a fresh batch. Otherwise the payments are
+        // orphaned forever.
+        using var db = CreateDb();
+        var payee = Guid.NewGuid();
+        var payout = new Payout
+        {
+            Id = Guid.NewGuid(),
+            PayeeUserId = payee,
+            AmountCents = 7500,
+            Currency = "USD",
+            Status = PayoutStatus.InTransit,
+            StripePayoutId = "po_fail",
+        };
+        db.Payouts.Add(payout);
+
+        var p1 = new Payment
+        {
+            Id = Guid.NewGuid(),
+            Type = PaymentType.ConsultantBooking,
+            Status = PaymentStatus.Captured,
+            AmountCents = 5000, Currency = "USD",
+            PayerUserId = Guid.NewGuid(), PayeeUserId = payee,
+            PayeeAmountCents = 4500, ProfitShareAmountCents = 500,
+            StripePaymentIntentId = "pi_a",
+            IdempotencyKey = "k_a",
+            PayoutId = payout.Id,
+        };
+        var p2 = new Payment
+        {
+            Id = Guid.NewGuid(),
+            Type = PaymentType.ConsultantBooking,
+            Status = PaymentStatus.Captured,
+            AmountCents = 3000, Currency = "USD",
+            PayerUserId = Guid.NewGuid(), PayeeUserId = payee,
+            PayeeAmountCents = 2700, ProfitShareAmountCents = 300,
+            StripePaymentIntentId = "pi_b",
+            IdempotencyKey = "k_b",
+            PayoutId = payout.Id,
+        };
+        db.Payments.AddRange(p1, p2);
+        await db.SaveChangesAsync();
+
+        await Sut(db).Handle(new ProcessStripeWebhookCommand(
+            "evt_release", "payout.failed", null, null, null, "{}",
+            PayoutId: "po_fail", PayoutFailureMessage: "account closed"), default);
+
+        var refreshed1 = await db.Payments.FindAsync(p1.Id);
+        var refreshed2 = await db.Payments.FindAsync(p2.Id);
+        refreshed1!.PayoutId.Should().BeNull();
+        refreshed2!.PayoutId.Should().BeNull();
+
+        var refreshedPayout = await db.Payouts.FindAsync(payout.Id);
+        refreshedPayout!.Status.Should().Be(PayoutStatus.Failed);
+    }
+
+    [Fact]
+    public async Task Payout_paid_does_not_release_linked_payments()
+    {
+        using var db = CreateDb();
+        var payout = new Payout
+        {
+            Id = Guid.NewGuid(),
+            PayeeUserId = Guid.NewGuid(),
+            AmountCents = 5000, Currency = "USD",
+            Status = PayoutStatus.InTransit,
+            StripePayoutId = "po_ok",
+        };
+        db.Payouts.Add(payout);
+        var p = new Payment
+        {
+            Id = Guid.NewGuid(),
+            Type = PaymentType.ConsultantBooking,
+            Status = PaymentStatus.Captured,
+            AmountCents = 5000, Currency = "USD",
+            PayerUserId = Guid.NewGuid(),
+            StripePaymentIntentId = "pi_z", IdempotencyKey = "k_z",
+            PayoutId = payout.Id,
+        };
+        db.Payments.Add(p);
+        await db.SaveChangesAsync();
+
+        await Sut(db).Handle(new ProcessStripeWebhookCommand(
+            "evt_paid", "payout.paid", null, null, null, "{}",
+            PayoutId: "po_ok"), default);
+
+        (await db.Payments.FindAsync(p.Id))!.PayoutId.Should().Be(payout.Id);
+    }
+
+    [Fact]
     public async Task Charge_dispute_created_marks_payment_disputed_and_alerts_admins()
     {
         using var db = CreateDb();

@@ -87,6 +87,12 @@ export interface ApplicationDetail {
   submittedAt: string | null;
   reviewStartedAt: string | null;
   decisionAt: string | null;
+  /**
+   * CompanyReview fee in USD. Null/0 = no review fee, submit directly;
+   * > 0 = the submit flow must first collect a manual-capture payment held
+   * in escrow until the company finalises the review (PB-005 v1).
+   */
+  reviewFeeUsd: number | null;
 }
 
 /** Result of `POST /api/applications` — mirrors the server's StartApplicationResult. */

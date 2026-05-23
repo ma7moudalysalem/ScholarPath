@@ -86,10 +86,32 @@ public sealed class CreatePaymentIntentCommandHandler(
         var split = await FinancialRuleResolver
             .ResolvePaymentSplitAsync(db, request.Type, request.AmountCents, ct);
 
-        // 2. Capture method per type
-        var captureMethod = request.Type == PaymentType.ConsultantBooking
-            ? "manual"      // hold until consultant accepts
-            : "automatic";  // charge immediately for company reviews
+        // 2. Both payment types use a manual-capture hold: funds are authorized on
+        //    the student's card now and captured only when the counterparty
+        //    confirms (consultant accepts a booking, or company accepts an
+        //    application review). This matches FR-080 (consultant) and FR-066/068
+        //    (company review escrow).
+        const string captureMethod = "manual";
+
+        // 2b. For CompanyReview, resolve PayeeUserId server-side from the
+        //     scholarship's owning company — never trust a client-supplied id
+        //     to choose who gets paid.
+        Guid? payeeUserId = request.PayeeUserId;
+        if (request.Type == PaymentType.CompanyReview)
+        {
+            var resolved = await db.Applications
+                .Where(a => a.Id == request.RelatedApplicationId)
+                .Select(a => a.Scholarship!.OwnerCompanyId)
+                .FirstOrDefaultAsync(ct);
+
+            if (resolved is null)
+            {
+                throw new ConflictException(
+                    "Cannot create a CompanyReview payment for an application whose scholarship has no owning company.");
+            }
+
+            payeeUserId = resolved;
+        }
 
         // 3. Deterministic idempotency key
         var relatedId = (request.RelatedBookingId ?? request.RelatedApplicationId)!.Value;
@@ -138,7 +160,7 @@ public sealed class CreatePaymentIntentCommandHandler(
             PayeeAmountCents = split.PayeeNetCents,
             RefundedAmountCents = 0,
             PayerUserId = payerUserId,
-            PayeeUserId = request.PayeeUserId,
+            PayeeUserId = payeeUserId,
             StripePaymentIntentId = stripeResult.Id,
             StripeChargeId = stripeResult.LatestChargeId,
             IdempotencyKey = idempotencyKey,

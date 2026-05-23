@@ -132,4 +132,30 @@ public class StripePayoutJobTests
         payout.Status.Should().Be(PayoutStatus.Failed);
         payout.FailureReason.Should().Contain("stripe down");
     }
+
+    [Fact]
+    public async Task Stripe_failure_releases_payments_for_next_run()
+    {
+        // PB-013 recovery: pre-claimed payments must be released when Stripe
+        // rejects the payout, otherwise PayoutId != null prevents future runs
+        // from ever paying them again.
+        using var db = CreateDb();
+        var payeeId = Guid.NewGuid();
+        db.UserProfiles.Add(Payee(payeeId, StripeConnectStatus.Verified));
+        var p1 = CapturedPayment(payeeId, 4000);
+        var p2 = CapturedPayment(payeeId, 1500);
+        db.Payments.AddRange(p1, p2);
+        await db.SaveChangesAsync();
+
+        var stripe = Substitute.For<IStripeService>();
+        stripe.CreatePayoutAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<string>(),
+                Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("stripe down"));
+
+        await Sut(db, stripe, Substitute.For<INotificationDispatcher>()).RunAsync(default);
+
+        (await db.Payments.FindAsync(p1.Id))!.PayoutId.Should().BeNull();
+        (await db.Payments.FindAsync(p2.Id))!.PayoutId.Should().BeNull();
+        db.Payouts.Single().Status.Should().Be(PayoutStatus.Failed);
+    }
 }
