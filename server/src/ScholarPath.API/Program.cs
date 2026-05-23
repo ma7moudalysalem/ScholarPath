@@ -370,6 +370,8 @@ if (hangfireOpts.Enabled)
     recurring.AddOrUpdate<IIntegrityCheckJob>("integrity-check", j => j.RunAsync(CancellationToken.None), Cron.Daily(4));
     recurring.AddOrUpdate<ISessionExpiryJob>("session-expiry", j => j.RunAsync(CancellationToken.None), "*/15 * * * *"); // every 15 min
     recurring.AddOrUpdate<ICompletionJob>("booking-completion", j => j.RunAsync(CancellationToken.None), "*/15 * * * *"); // every 15 min
+    // PB-006 — 24-hour and 1-hour BookingReminder notifications for Confirmed sessions.
+    recurring.AddOrUpdate<IBookingReminderJob>("booking-reminders", j => j.RunAsync(CancellationToken.None), "*/15 * * * *"); // every 15 min
     // FR-217 — automated no-show detection from session-room join timestamps.
     recurring.AddOrUpdate<IMeetingNoShowSweepJob>("meeting-no-show-sweep", j => j.RunAsync(CancellationToken.None), "*/15 * * * *"); // every 15 min
     recurring.AddOrUpdate<IStripePayoutJob>("stripe-payouts", j => j.RunAsync(CancellationToken.None), Cron.Daily(2));

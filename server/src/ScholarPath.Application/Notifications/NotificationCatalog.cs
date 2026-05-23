@@ -120,6 +120,8 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"Your session{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" with {p.CounterpartyName}")} is complete — you can now leave a rating.",
             $"اكتملت جلستك{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" مع {p.CounterpartyName}")} — يمكنك الآن إضافة تقييمك."),
 
+        NotificationType.BookingReminder => RenderBookingReminder(p),
+
         NotificationType.OnboardingApproved => new(
             "Account approved", "تم اعتماد حسابك",
             "Your onboarding request was approved — your account is now active.",
@@ -176,6 +178,27 @@ public sealed class NotificationCatalog : INotificationCatalog
             "New notification", "إشعار جديد",
             "You have a new notification.",
             "لديك إشعار جديد."),
+    };
+
+    // BookingReminder has two variants — a day-out heads-up and a final 1-hour ping — so
+    // the catalog picks the wording per kind and falls back to a neutral message if the
+    // discriminator was somehow missed.
+    private static NotificationContent RenderBookingReminder(NotificationParams p) => p.ReminderKind switch
+    {
+        "1h" => new(
+            "Session starts in 1 hour", "تبدأ جلستك خلال ساعة",
+            $"Your session{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" with {p.CounterpartyName}")} starts in about 1 hour{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" ({p.StartAtText})")}.",
+            $"تبدأ جلستك{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" مع {p.CounterpartyName}")} خلال ساعة تقريبًا{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" ({p.StartAtText})")}."),
+
+        "24h" => new(
+            "Session reminder — tomorrow", "تذكير بالجلسة — غدًا",
+            $"Reminder: your session{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" with {p.CounterpartyName}")} is scheduled in about 24 hours{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" on {p.StartAtText}")}.",
+            $"تذكير: جلستك{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" مع {p.CounterpartyName}")} مجدولة خلال 24 ساعة تقريبًا{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" بتاريخ {p.StartAtText}")}."),
+
+        _ => new(
+            "Session reminder", "تذكير بالجلسة",
+            $"Reminder: your session{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" with {p.CounterpartyName}")} is coming up{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" on {p.StartAtText}")}.",
+            $"تذكير: جلستك{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" مع {p.CounterpartyName}")} قادمة{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" بتاريخ {p.StartAtText}")}."),
     };
 
     private static NotificationContent RenderReviewRefund(NotificationParams p) => p.RefundKind switch
