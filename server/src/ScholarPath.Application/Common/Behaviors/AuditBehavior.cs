@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
@@ -36,7 +37,7 @@ public sealed class AuditBehavior<TRequest, TResponse>(
         try
         {
             var targetId = ResolveTargetId(response, request, attr.TargetIdProperty);
-            var summary = attr.SummaryTemplate?.Replace("{TargetId}", targetId?.ToString() ?? "-", StringComparison.Ordinal);
+            var summary = BuildSummary(attr.SummaryTemplate, targetId, response, request);
 
             await audit.WriteAsync(
                 attr.Action,
@@ -54,6 +55,47 @@ public sealed class AuditBehavior<TRequest, TResponse>(
         }
 
         return response;
+    }
+
+    private static readonly Regex PlaceholderRegex = new(@"\{(\w+)\}", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Substitutes every {Token} in the template with a real value: {TargetId}
+    /// uses the resolved target id, any other {Property} is looked up by name on
+    /// the response (preferred) then the request. Previously only {TargetId} was
+    /// replaced, so summaries like "AI chatbot turn ({SessionId})" leaked the
+    /// raw placeholder into the audit log.
+    /// </summary>
+    private static string? BuildSummary(string? template, Guid? targetId, object? response, object request)
+    {
+        if (string.IsNullOrEmpty(template))
+        {
+            return template;
+        }
+
+        return PlaceholderRegex.Replace(template, match =>
+        {
+            var name = match.Groups[1].Value;
+            if (string.Equals(name, "TargetId", StringComparison.Ordinal))
+            {
+                return targetId?.ToString() ?? "-";
+            }
+
+            return ResolvePropertyValue(response, request, name) ?? "-";
+        });
+    }
+
+    /// <summary>Reads a property by name from the response (preferred) or request, as a string.</summary>
+    private static string? ResolvePropertyValue(object? response, object request, string propertyName)
+    {
+        if (response is not null)
+        {
+            var v = response.GetType().GetProperty(propertyName)?.GetValue(response);
+            if (v is not null) return v.ToString();
+        }
+
+        var r = request.GetType().GetProperty(propertyName)?.GetValue(request);
+        return r?.ToString();
     }
 
     private static Guid? ResolveTargetId(object? response, object request, string propertyName)
