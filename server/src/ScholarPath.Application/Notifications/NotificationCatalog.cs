@@ -161,6 +161,13 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"A booking{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" with {p.CounterpartyName}")}{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" on {p.StartAtText}")} was cancelled{(string.IsNullOrEmpty(p.Reason) ? string.Empty : $" ({p.Reason})")}.",
             $"تم إلغاء حجز{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" مع {p.CounterpartyName}")}{(string.IsNullOrEmpty(p.StartAtText) ? string.Empty : $" بتاريخ {p.StartAtText}")}{(string.IsNullOrEmpty(p.Reason) ? string.Empty : $" ({p.Reason})")}."),
 
+        // Sent to the student when a booking request expires unanswered and the
+        // SessionExpiryJob releases the payment hold (previously silent).
+        NotificationType.BookingExpired => new(
+            "Booking request expired", "انتهت صلاحية طلب الحجز",
+            $"Your booking request{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" with {p.CounterpartyName}")} expired before it was answered — any payment hold has been released. You can request another session anytime.",
+            $"انتهت صلاحية طلب حجزك{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" مع {p.CounterpartyName}")} قبل الرد عليه — تم إلغاء أي حجز للمبلغ على بطاقتك. يمكنك طلب جلسة أخرى في أي وقت."),
+
         NotificationType.BookingCompleted => new(
             "Session completed", "اكتملت الجلسة",
             $"Your session{(string.IsNullOrEmpty(p.CounterpartyName) ? string.Empty : $" with {p.CounterpartyName}")} is complete — you can now leave a rating.",

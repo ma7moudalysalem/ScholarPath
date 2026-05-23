@@ -295,7 +295,8 @@ public sealed class BookingPaymentSyncTests : IDisposable
             .Returns(new StripePaymentIntentResult("pi_test", "canceled", null, null));
 
         var job = new SessionExpiryJob(
-            _db, _stripe, Options.Create(new BookingOptions()),
+            _db, _stripe, Substitute.For<INotificationDispatcher>(),
+            Options.Create(new BookingOptions()),
             Substitute.For<ILogger<SessionExpiryJob>>());
         await job.RunAsync(default);
 

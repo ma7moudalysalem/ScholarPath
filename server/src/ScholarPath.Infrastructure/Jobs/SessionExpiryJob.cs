@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Infrastructure.Jobs;
@@ -11,17 +12,20 @@ public sealed class SessionExpiryJob : ISessionExpiryJob
 {
     private readonly IApplicationDbContext _context;
     private readonly IStripeService _stripeService;
+    private readonly INotificationDispatcher _notifications;
     private readonly ILogger<SessionExpiryJob> _logger;
     private readonly int _responseWindowHours;
 
     public SessionExpiryJob(
         IApplicationDbContext context,
         IStripeService stripeService,
+        INotificationDispatcher notifications,
         IOptions<BookingOptions> bookingOptions,
         ILogger<SessionExpiryJob> logger)
     {
         _context = context;
         _stripeService = stripeService;
+        _notifications = notifications;
         _responseWindowHours = bookingOptions.Value.ConsultantResponseWindowHours;
         _logger = logger;
     }
@@ -45,6 +49,7 @@ public sealed class SessionExpiryJob : ISessionExpiryJob
             return;
         }
 
+        var expired = new List<(Guid BookingId, Guid StudentId)>();
         foreach (var booking in bookings)
         {
             try
@@ -70,6 +75,7 @@ public sealed class SessionExpiryJob : ISessionExpiryJob
 
                 booking.Status = BookingStatus.Expired;
                 booking.ExpiredAt = DateTimeOffset.UtcNow;
+                expired.Add((booking.Id, booking.StudentId));
             }
             catch (Exception ex)
             {
@@ -78,6 +84,27 @@ public sealed class SessionExpiryJob : ISessionExpiryJob
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        // Tell each student their request lapsed and the hold was released — the
+        // expiry was previously silent (BookingExpired was defined but never sent).
+        // A delivery failure here must not undo the (already-committed) expiry.
+        foreach (var (bookingId, studentId) in expired)
+        {
+            try
+            {
+                await _notifications.DispatchAsync(
+                    studentId,
+                    NotificationType.BookingExpired,
+                    new NotificationParams(),
+                    deepLink: "/student/bookings",
+                    idempotencyKey: $"booking-expired-notif:{bookingId:N}",
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send BookingExpired notification for {BookingId}.", bookingId);
+            }
+        }
 
         _logger.LogInformation("SessionExpiryJob processed {Count} expired requested bookings.", bookings.Count);
     }
