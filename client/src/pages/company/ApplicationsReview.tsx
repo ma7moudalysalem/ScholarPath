@@ -345,6 +345,35 @@ export function ApplicationsReview() {
                 </dd>
               </div>
             </dl>
+            {/* Accept / Reject from inside the detail drawer (QA BUG-019 — the
+                popup previously showed details only, with no way to act). Hidden
+                once the application is in a terminal state. */}
+            {!["Accepted", "Rejected", "Withdrawn"].includes(viewTarget.status) && (
+              <div className="mt-5 flex justify-end gap-2 border-t border-border-subtle pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = viewTarget;
+                    setViewTarget(null);
+                    handleDecisionClick(target.applicationId, "Rejected");
+                  }}
+                  className="rounded-lg border border-danger-200 px-3 py-1.5 text-sm font-medium text-danger-600 transition hover:border-danger-400 hover:bg-danger-50"
+                >
+                  {t("companyReview.actions.reject")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = viewTarget;
+                    setViewTarget(null);
+                    handleDecisionClick(target.applicationId, "Accepted");
+                  }}
+                  className="rounded-lg bg-success-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-success-600"
+                >
+                  {t("companyReview.actions.accept")}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

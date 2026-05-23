@@ -17,6 +17,14 @@ public static class ApplicationStateMachine
         // Normal in-app flow
         (ApplicationStatus.Draft, ApplicationStatus.Pending) => true,
         (ApplicationStatus.Pending, ApplicationStatus.UnderReview) => true,
+        // A company may also decide directly on a Pending application without an
+        // explicit "move to under review" step — clicking Accept / Reject /
+        // Shortlist on a freshly-submitted application is the common path and
+        // previously threw "Transition from Pending to Accepted is not allowed"
+        // (QA BUG-018).
+        (ApplicationStatus.Pending, ApplicationStatus.Shortlisted) => true,
+        (ApplicationStatus.Pending, ApplicationStatus.Accepted) => true,
+        (ApplicationStatus.Pending, ApplicationStatus.Rejected) => true,
         (ApplicationStatus.UnderReview, ApplicationStatus.Shortlisted) => true,
         (ApplicationStatus.UnderReview, ApplicationStatus.Accepted) => true,
         (ApplicationStatus.UnderReview, ApplicationStatus.Rejected) => true,

@@ -18,6 +18,13 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"Your application status changed to {p.StatusText ?? "updated"}.",
             $"تغيّرت حالة طلبك إلى {p.StatusText ?? "محدّثة"}."),
 
+        // Sent to the scholarship's owning company when a student submits a new
+        // in-app application (QA BUG-017 — the company was never told).
+        NotificationType.ApplicationSubmitted => new(
+            "New application received", "طلب جديد وارد",
+            $"A new application was submitted for \"{p.TitleEn ?? "your scholarship"}\".",
+            $"تم استلام طلب جديد على \"{p.TitleAr ?? "منحتك"}\"."),
+
         NotificationType.ApplicationWithdrawn => new(
             "Application withdrawn", "تم سحب الطلب",
             "Your application has been withdrawn.",

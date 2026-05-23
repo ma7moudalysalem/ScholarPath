@@ -60,6 +60,9 @@ public class ApplicationStateMachineTests
     [Theory]
     [InlineData(ApplicationStatus.Draft, ApplicationStatus.Pending)]
     [InlineData(ApplicationStatus.Pending, ApplicationStatus.UnderReview)]
+    [InlineData(ApplicationStatus.Pending, ApplicationStatus.Shortlisted)]
+    [InlineData(ApplicationStatus.Pending, ApplicationStatus.Accepted)]
+    [InlineData(ApplicationStatus.Pending, ApplicationStatus.Rejected)]
     [InlineData(ApplicationStatus.UnderReview, ApplicationStatus.Shortlisted)]
     [InlineData(ApplicationStatus.UnderReview, ApplicationStatus.Accepted)]
     [InlineData(ApplicationStatus.UnderReview, ApplicationStatus.Rejected)]
@@ -83,7 +86,6 @@ public class ApplicationStateMachineTests
     [InlineData(ApplicationStatus.Withdrawn, ApplicationStatus.Pending)]
     [InlineData(ApplicationStatus.Accepted, ApplicationStatus.Pending)]
     [InlineData(ApplicationStatus.Draft, ApplicationStatus.Accepted)]
-    [InlineData(ApplicationStatus.Pending, ApplicationStatus.Accepted)]
     public void IsTransitionAllowed_Should_Return_False_For_Invalid_Transitions(
         ApplicationStatus from, ApplicationStatus to)
     {
