@@ -22,7 +22,11 @@ public sealed record MeetingJoinResult(
     string AccessToken,
     string AcsUserId,
     DateTimeOffset TokenExpiresAt,
-    DateTimeOffset JoinedAt);
+    DateTimeOffset JoinedAt,
+    // The active meeting provider ("Stub" when ACS isn't configured). The client
+    // uses this to show an honest "video not configured" message instead of
+    // handing the ACS SDK a stub token, which throws.
+    string Provider);
 
 public sealed class RecordMeetingJoinCommandHandler(
     IApplicationDbContext context,
@@ -108,6 +112,7 @@ public sealed class RecordMeetingJoinCommandHandler(
             access.Token,
             access.AcsUserId,
             access.ExpiresAt,
-            joinedAt);
+            joinedAt,
+            meetingService.Provider);
     }
 }

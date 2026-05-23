@@ -12,6 +12,8 @@ export interface MeetingJoinResult {
   acsUserId: string;
   tokenExpiresAt: string;
   joinedAt: string;
+  /** Active meeting provider — "Stub" when ACS isn't configured. */
+  provider: string;
 }
 
 /** A session recording entry — mirrors the server SessionRecordingDto. */

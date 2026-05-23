@@ -100,6 +100,7 @@
     "errorRoomClosed": "The session room has closed. Sessions remain joinable until 15 minutes after the scheduled end time.",
     "errorNotParticipant": "You are not a participant of this booking, so you cannot join its session.",
     "errorPermissionDenied": "ScholarPath needs access to your camera and microphone to join the session. Grant permission in your browser and try again.",
+    "errorNotConfigured": "Video calling isn't enabled on this environment yet. Please contact support or use your scheduled meeting link.",
     "micOn": "Unmute",
     "micOff": "Mute",
     "camOn": "Turn camera on",

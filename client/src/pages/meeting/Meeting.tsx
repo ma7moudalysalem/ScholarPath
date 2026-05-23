@@ -88,6 +88,13 @@ export function Meeting() {
         const join = await meetingsApi.join(bookingId!);
         if (disposed) return;
 
+        // When ACS isn't configured the server issues a stub token. Feeding it to
+        // the ACS SDK throws an opaque credential error, so surface an honest
+        // "video not configured" message instead of a broken-looking call.
+        if (join.provider === "Stub") {
+          throw new Error(t("bookings:meeting.errorNotConfigured"));
+        }
+
         const callClient = new CallClient();
         const credential = new AzureCommunicationTokenCredential(join.accessToken);
         const agent = await callClient.createCallAgent(credential, { displayName });
