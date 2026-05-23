@@ -18,6 +18,13 @@ public record UpdateScholarshipCommand : IRequest<bool>
     public Guid CategoryId { get; init; }
     /// <summary>Optional updated list of eligible academic fields of study.</summary>
     public string[]? FieldsOfStudy { get; init; }
+
+    /// <summary>
+    /// Optional updated Review Service Fee. Null leaves the existing value
+    /// untouched (so the legacy ConfigureReviewFee endpoint and existing
+    /// PUT bodies both keep working); a positive value updates it.
+    /// </summary>
+    public decimal? ReviewFeeUsd { get; init; }
 }
 
 public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentUserService user)
@@ -46,6 +53,18 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
         entity.FieldsOfStudyJson = request.FieldsOfStudy is { Length: > 0 }
             ? System.Text.Json.JsonSerializer.Serialize(request.FieldsOfStudy)
             : null;
+
+        // PB-005: only overwrite the Review Service Fee when the caller actually
+        // sent one — null means "leave the configured fee as-is" so the legacy
+        // ConfigureReviewFee endpoint and existing PUT bodies keep working.
+        if (request.ReviewFeeUsd is { } fee)
+        {
+            if (fee <= 0m)
+                throw new ConflictException("Review Service Fee must be greater than 0.");
+            if (fee > 500m)
+                throw new ConflictException("Review Service Fee cannot exceed $500.");
+            entity.ReviewFeeUsd = fee;
+        }
 
         await db.SaveChangesAsync(ct);
         return true;

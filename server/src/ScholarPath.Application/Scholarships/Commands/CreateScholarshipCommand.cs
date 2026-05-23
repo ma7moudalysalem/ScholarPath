@@ -34,6 +34,13 @@ public record CreateScholarshipCommand : IRequest<Guid>
     /// ExternalUrl; ignored otherwise.
     /// </summary>
     public string? ExternalApplicationUrl { get; init; }
+
+    /// <summary>
+    /// Per-scholarship Review Service Fee in USD (PB-005). Required for in-app
+    /// listings — drives the gross amount the Student authorises when they
+    /// click Apply Now and creates the paid CompanyReview support flow.
+    /// </summary>
+    public decimal? ReviewFeeUsd { get; init; }
 }
 
 public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholarshipCommand>
@@ -54,6 +61,21 @@ public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholar
         RuleFor(v => v.Deadline)
             .Must(deadline => deadline > DateTimeOffset.UtcNow.AddDays(7))
             .WithMessage("Deadline must be at least 7 days from now.");
+
+        // PB-005: in-app listings must declare a Review Service Fee at create
+        // time so the Apply Now flow always has a price to authorise. External
+        // listings don't need one — the Student leaves the platform to apply,
+        // and the company is paid out-of-band.
+        When(v => v.Mode == ListingMode.InApp, () =>
+        {
+            RuleFor(v => v.ReviewFeeUsd)
+                .NotNull()
+                .WithMessage("Review Service Fee is required.")
+                .GreaterThan(0m)
+                .WithMessage("Review Service Fee must be greater than 0.")
+                .LessThanOrEqualTo(500m)
+                .WithMessage("Review Service Fee cannot exceed $500.");
+        });
 
         // External-URL listings need a real apply target — the column is
         // nullable up to 2048 chars on the schema, so without this check a
@@ -107,6 +129,12 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             Mode = request.Mode,
             ExternalApplicationUrl = request.Mode == ListingMode.ExternalUrl
                 ? request.ExternalApplicationUrl
+                : null,
+            // Only persist the fee for in-app listings; external listings settle
+            // off-platform so the column stays null and the Apply Now button
+            // becomes a redirect rather than a paid flow.
+            ReviewFeeUsd = request.Mode == ListingMode.InApp
+                ? request.ReviewFeeUsd
                 : null,
             // Company-created listings always start in the admin moderation
             // queue (FR-SCH-10). They become Open only after an admin Approve,

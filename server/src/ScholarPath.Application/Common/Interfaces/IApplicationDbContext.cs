@@ -36,6 +36,7 @@ public interface IApplicationDbContext
 
     DbSet<CompanyReview> CompanyReviews { get; }
     DbSet<CompanyReviewPayment> CompanyReviewPayments { get; }
+    DbSet<CompanyReviewRequest> CompanyReviewRequests { get; }
     DbSet<ConsultantReview> ConsultantReviews { get; }
 
     DbSet<ConsultantAvailability> Availabilities { get; }

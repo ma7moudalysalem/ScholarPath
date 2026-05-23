@@ -107,6 +107,18 @@ const StudentMessages = lazy(() =>
   import("@/pages/chat/Chat").then((m) => ({ default: m.Chat })),
 );
 
+// PB-005: paid CompanyReview support requests
+const StudentReviewRequests = lazy(() =>
+  import("@/pages/student/StudentReviewRequests").then((m) => ({
+    default: m.StudentReviewRequests,
+  })),
+);
+const CompanyReviewRequestsPage = lazy(() =>
+  import("@/pages/company/CompanyReviewRequests").then((m) => ({
+    default: m.CompanyReviewRequests,
+  })),
+);
+
 // Company
 const CompanyDashboard = lazy(() =>
   import("@/pages/company/Dashboard").then((m) => ({ default: m.CompanyDashboard })),
@@ -446,6 +458,24 @@ export function AppRouter() {
           <Route path="/student/applications"      element={<AnimatedRoute><StudentApplications /></AnimatedRoute>} />
           <Route path="/student/applications/:id"  element={<AnimatedRoute><StudentApplicationDetail /></AnimatedRoute>} />
 
+          {/* PB-005: paid CompanyReview support requests */}
+          <Route
+            path="/student/review-requests"
+            element={
+              <RequireRole roles={["Student"]}>
+                <AnimatedRoute><StudentReviewRequests /></AnimatedRoute>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/student/review-requests/:id"
+            element={
+              <RequireRole roles={["Student"]}>
+                <AnimatedRoute><StudentReviewRequests /></AnimatedRoute>
+              </RequireRole>
+            }
+          />
+
           {/* PB-006: Consultant Booking */}
           <Route path="/student/consultants"       element={<AnimatedRoute><StudentConsultants /></AnimatedRoute>} />
           <Route path="/student/consultants/:id"   element={<AnimatedRoute><StudentConsultantDetail /></AnimatedRoute>} />
@@ -539,6 +569,16 @@ export function AppRouter() {
               <RequireRole roles={["Company"]}>
                 <AnimatedRoute>
                   <CompanyScholarshipForm />
+                </AnimatedRoute>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/company/review-requests"
+            element={
+              <RequireRole roles={["Company"]}>
+                <AnimatedRoute>
+                  <CompanyReviewRequestsPage />
                 </AnimatedRoute>
               </RequireRole>
             }

@@ -401,6 +401,46 @@ public sealed class CompanyReviewPaymentConfiguration : IEntityTypeConfiguration
     }
 }
 
+public sealed class CompanyReviewRequestConfiguration : IEntityTypeConfiguration<CompanyReviewRequest>
+{
+    public void Configure(EntityTypeBuilder<CompanyReviewRequest> b)
+    {
+        b.Property(r => r.Status).HasConversion<string>().HasMaxLength(32);
+        b.Property(r => r.Currency).HasMaxLength(8);
+        b.Property(r => r.ReviewFeeUsdSnapshot).HasPrecision(10, 2);
+        b.Property(r => r.CancelReason).HasMaxLength(500);
+        b.Property(r => r.RejectReason).HasMaxLength(500);
+        b.Property(r => r.RowVersion).IsRowVersion();
+
+        b.HasIndex(r => new { r.StudentId, r.Status });
+        b.HasIndex(r => new { r.CompanyId, r.Status });
+        b.HasIndex(r => r.ScholarshipId);
+        b.HasIndex(r => r.PaymentId);
+
+        // A student can have at most one live (non-terminal) request per
+        // scholarship. Cancelled / RejectedByCompany / Expired / Failed /
+        // Completed / Closed are all terminal and excluded from the filter.
+        b.HasIndex(r => new { r.StudentId, r.ScholarshipId })
+            .IsUnique()
+            .HasFilter(
+                $"[Status] = '{nameof(CompanyReviewRequestStatus.Draft)}' " +
+                $"OR [Status] = '{nameof(CompanyReviewRequestStatus.Submitted)}' " +
+                $"OR [Status] = '{nameof(CompanyReviewRequestStatus.Pending)}' " +
+                $"OR [Status] = '{nameof(CompanyReviewRequestStatus.UnderReview)}'")
+            .HasDatabaseName("UX_CompanyReviewRequests_Student_Scholarship_Active");
+
+        b.HasQueryFilter(r => !r.IsDeleted);
+
+        // Three FKs to Users (Student + Company) and one each to Scholarship
+        // and Payment — explicit Restrict to avoid SQL Server's
+        // multiple-cascade-paths error (1785).
+        b.HasOne(r => r.Student).WithMany().HasForeignKey(r => r.StudentId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.Company).WithMany().HasForeignKey(r => r.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.Scholarship).WithMany().HasForeignKey(r => r.ScholarshipId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.Payment).WithMany().HasForeignKey(r => r.PaymentId).OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
 public sealed class ConsultantReviewConfiguration : IEntityTypeConfiguration<ConsultantReview>
 {
     public void Configure(EntityTypeBuilder<ConsultantReview> b)

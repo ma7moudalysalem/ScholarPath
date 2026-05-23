@@ -40,6 +40,36 @@ public sealed class NotificationCatalog : INotificationCatalog
 
         NotificationType.CompanyReviewRefunded => RenderReviewRefund(p),
 
+        NotificationType.CompanyReviewRequestPaymentHeld => new(
+            "Review fee on hold", "تم حجز رسوم المراجعة",
+            $"Your card was authorised for {p.HeldAmountText ?? "the review fee"} on \"{p.ScholarshipNameEn ?? "the scholarship"}\" — the amount is held but not captured. The Company will be charged only if they accept your request. Reference: {p.PaymentReference ?? "—"}.",
+            $"تم حجز مبلغ {p.HeldAmountText ?? "رسوم المراجعة"} على بطاقتك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" — لن يُخصم المبلغ ما لم تقبل الشركة الطلب. المرجع: {p.PaymentReference ?? "—"}."),
+
+        NotificationType.CompanyReviewRequestPaymentCaptured => new(
+            "Review fee charged", "تم خصم رسوم المراجعة",
+            $"The Company accepted your request — {p.CapturedAmountText ?? "the review fee"} was captured from your card for \"{p.ScholarshipNameEn ?? "the scholarship"}\". Reference: {p.PaymentReference ?? "—"}.",
+            $"قبلت الشركة طلبك — تم خصم {p.CapturedAmountText ?? "رسوم المراجعة"} من بطاقتك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\". المرجع: {p.PaymentReference ?? "—"}."),
+
+        NotificationType.CompanyReviewRequestPaymentHoldCancelled => new(
+            "Review fee hold released", "تم الإفراج عن حجز رسوم المراجعة",
+            $"Your request for \"{p.ScholarshipNameEn ?? "the scholarship"}\" was {p.RequestStatusText ?? "closed"} — the {p.HeldAmountText ?? "card hold"} was released and nothing was captured. Reference: {p.PaymentReference ?? "—"}.",
+            $"تم {p.RequestStatusText ?? "إغلاق"} طلبك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" — أُفرج عن حجز {p.HeldAmountText ?? "البطاقة"} ولم يُخصم أي مبلغ. المرجع: {p.PaymentReference ?? "—"}."),
+
+        NotificationType.CompanyReviewRequestPartiallyRefunded => new(
+            "50% review fee refunded", "تم استرداد 50% من رسوم المراجعة",
+            $"Your cancellation of \"{p.ScholarshipNameEn ?? "the scholarship"}\" request was processed — {p.RefundAmountText ?? "50%"} refunded, {p.RetainedAmountText ?? "the remainder"} retained. Reference: {p.PaymentReference ?? "—"}.",
+            $"تمت معالجة إلغائك لطلب \"{p.ScholarshipNameAr ?? "المنحة"}\" — تم استرداد {p.RefundAmountText ?? "50%"} والاحتفاظ بـ {p.RetainedAmountText ?? "النصف المتبقي"}. المرجع: {p.PaymentReference ?? "—"}."),
+
+        NotificationType.CompanyReviewRequestCompleted => new(
+            "Application support service completed", "اكتملت خدمة دعم الطلب",
+            $"The Company marked your support service for \"{p.ScholarshipNameEn ?? "the scholarship"}\" as completed. Reference: {p.PaymentReference ?? "—"}.",
+            $"وضعت الشركة خدمة دعم طلبك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" كمكتملة. المرجع: {p.PaymentReference ?? "—"}."),
+
+        NotificationType.CompanyReviewRequestIncoming => new(
+            "New paid review request", "طلب مراجعة مدفوع جديد",
+            $"{p.CounterpartyName ?? "A student"} submitted a paid review request for \"{p.ScholarshipNameEn ?? "your scholarship"}\". Hold: {p.HeldAmountText ?? "—"}. Accept to capture and start the service. Reference: {p.PaymentReference ?? "—"}.",
+            $"قدّم {p.CounterpartyName ?? "أحد الطلاب"} طلب مراجعة مدفوع للمنحة \"{p.ScholarshipNameAr ?? "الخاصة بك"}\". الحجز: {p.HeldAmountText ?? "—"}. اقبل الطلب لخصم المبلغ وبدء الخدمة. المرجع: {p.PaymentReference ?? "—"}."),
+
         NotificationType.CompanyRatingReceived => new(
             "New company rating", "تقييم جديد للشركة",
             $"You received a {p.Count ?? 0}-star company rating.",
