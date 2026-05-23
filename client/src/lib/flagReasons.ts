@@ -35,6 +35,10 @@ const LABELS_AR: Record<string, string> = {
   misinformation: "معلومات مضلّلة",
   inappropriate: "محتوى غير لائق",
   other: "أخرى",
+  // Free-text reasons used by the demo seed data — kept so the moderation
+  // queue shows readable Arabic instead of the raw English string.
+  Advertising: "إعلانات",
+  "Academic dishonesty": "غش أكاديمي",
 };
 
 /**

@@ -11,6 +11,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { analyticsApi, type AdminRevenueDto } from "@/services/api/analytics";
+import { DatePicker } from "@/components/ui/DatePicker";
 import {
   ChartCard,
   StatCard,
@@ -281,22 +282,22 @@ export function AdminRevenueReport() {
           </div>
           <label className="flex flex-col gap-1 text-xs">
             <span className="text-text-secondary">{t("analytics:reports.dateRange.from")}</span>
-            <input
-              type="date"
+            <DatePicker
               value={from}
               max={to}
-              onChange={(e) => setFrom(e.target.value)}
-              className="rounded-md border border-border-subtle bg-bg-elevated px-3 py-1.5 text-sm text-text-primary focus:border-brand-400 focus:outline-none"
+              onChange={setFrom}
+              ariaLabel={t("analytics:reports.dateRange.from")}
+              className="h-9 w-40 rounded-md border border-border-subtle bg-bg-elevated px-3 text-sm"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs">
             <span className="text-text-secondary">{t("analytics:reports.dateRange.to")}</span>
-            <input
-              type="date"
+            <DatePicker
               value={to}
               min={from}
-              onChange={(e) => setTo(e.target.value)}
-              className="rounded-md border border-border-subtle bg-bg-elevated px-3 py-1.5 text-sm text-text-primary focus:border-brand-400 focus:outline-none"
+              onChange={setTo}
+              ariaLabel={t("analytics:reports.dateRange.to")}
+              className="h-9 w-40 rounded-md border border-border-subtle bg-bg-elevated px-3 text-sm"
             />
           </label>
           <button

@@ -177,7 +177,7 @@ export function UsersAdmin() {
           className="h-10 rounded-md border border-border-subtle bg-bg-elevated px-3 text-sm"
         >
           <option value="">{t("admin:users.allRoles")}</option>
-          {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+          {ROLES.map((r) => <option key={r} value={r}>{t(`common:roles.${r}`, { defaultValue: r })}</option>)}
         </select>
 
         <label className="flex items-center gap-2 text-sm text-text-secondary">
@@ -237,7 +237,7 @@ export function UsersAdmin() {
                     {t(`admin:status.${u.accountStatus}`)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-xs text-text-secondary">{u.roles.join(", ") || "—"}</td>
+                <td className="px-4 py-3 text-xs text-text-secondary">{u.roles.map((r) => t(`common:roles.${r}`, { defaultValue: r })).join("، ") || "—"}</td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(u.createdAt), "yyyy-MM-dd", { locale: dateLocale })}</td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
                   {u.lastLoginAt ? format(new Date(u.lastLoginAt), "yyyy-MM-dd HH:mm", { locale: dateLocale }) : "—"}
@@ -386,7 +386,7 @@ export function UsersAdmin() {
                     className="flex items-center justify-between rounded-lg border border-border-subtle px-3 py-2"
                   >
                     <span className="text-sm font-medium text-text-primary">
-                      {r}
+                      {t(`common:roles.${r}`, { defaultValue: r })}
                       {assigned && (
                         <span className="ms-2 text-[11px] font-normal text-success-600">
                           • {t("admin:users.rolesDialog.assigned")}

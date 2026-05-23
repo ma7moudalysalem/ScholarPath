@@ -306,7 +306,12 @@
     "noData": "لا يوجد استخدام للذكاء الاصطناعي في هذه النافذة.",
     "aboveTarget": "أعلى من المستهدف ({{target}}٪)",
     "belowTarget": "أقل من المستهدف ({{target}}٪)",
-    "ctrHint": "{{clicks}} نقرة / {{impressions}} ظهور"
+    "ctrHint": "{{clicks}} نقرة / {{impressions}} ظهور",
+    "features": {
+      "Recommendation": "التوصيات",
+      "Eligibility": "فحص الأهلية",
+      "Chatbot": "المحادث الآلي"
+    }
   },
   "redactionAudit": {
     "title": "تدقيق إخفاء البيانات الشخصية",

@@ -11,10 +11,14 @@ const WINDOWS = [7, 30, 90] as const;
 type Window = (typeof WINDOWS)[number];
 
 function formatUsd(n: number): string {
+  // AI costs are tiny (fractions of a cent per call), so 2 decimals rounds a
+  // real cost like $0.006 down to "$0.00" and looks broken. Use more precision
+  // for sub-dollar amounts so small-but-nonzero costs stay visible.
+  const maximumFractionDigits = n >= 10 ? 0 : n >= 1 ? 2 : 4;
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: n >= 10 ? 0 : 2,
+    maximumFractionDigits,
   }).format(n);
 }
 
@@ -211,7 +215,7 @@ export function AiEconomyPage() {
                   )}
                   {q.data.byFeature.map((row) => (
                     <tr key={row.feature} className="border-t border-border-subtle">
-                      <td className="py-2 font-medium">{row.feature}</td>
+                      <td className="py-2 font-medium">{t(`admin:aiEconomy.features.${row.feature}`, { defaultValue: row.feature })}</td>
                       <td className="py-2 text-end tabular-nums">{row.interactions.toLocaleString(localeTag)}</td>
                       <td className="py-2 text-end tabular-nums">{formatUsd(row.costUsd)}</td>
                       <td className="py-2 text-end tabular-nums text-text-secondary">

@@ -306,7 +306,12 @@
     "noData": "No AI usage in this window.",
     "aboveTarget": "Above target ({{target}}%)",
     "belowTarget": "Below target ({{target}}%)",
-    "ctrHint": "{{clicks}} clicks / {{impressions}} impressions"
+    "ctrHint": "{{clicks}} clicks / {{impressions}} impressions",
+    "features": {
+      "Recommendation": "Recommendations",
+      "Eligibility": "Eligibility check",
+      "Chatbot": "Chatbot"
+    }
   },
   "redactionAudit": {
     "title": "PII redaction audit",
