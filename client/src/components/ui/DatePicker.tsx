@@ -4,7 +4,7 @@ import * as Popover from "@radix-ui/react-popover";
 import { DayPicker } from "react-day-picker";
 import { ar, enUS } from "date-fns/locale";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, X } from "lucide-react";
+import { Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import "react-day-picker/dist/style.css";
 
@@ -82,6 +82,13 @@ export function DatePicker({
   const minDate = useMemo(() => parseIso(min), [min]);
   const maxDate = useMemo(() => parseIso(max), [max]);
 
+  // Bounds for the month + year dropdowns. Default to a wide range (covers a
+  // date of birth ~80y back through deadlines ~10y ahead); narrow it when the
+  // caller passes a min/max so the year dropdown only offers valid years.
+  const currentYear = new Date().getFullYear();
+  const startMonth = minDate ?? new Date(currentYear - 80, 0, 1);
+  const endMonth = maxDate ?? new Date(currentYear + 10, 11, 31);
+
   // Default placeholder lives in `common:datePicker.placeholder` so every
   // empty DatePicker across the app reads the same — callers should NOT
   // pass the field's LABEL as `placeholder`, that just duplicates the
@@ -157,6 +164,25 @@ export function DatePicker({
             }}
             locale={locale}
             dir={isAr ? "rtl" : "ltr"}
+            // Month + year dropdowns so users can jump directly instead of
+            // stepping one month at a time with the arrows (which also can't
+            // change the year). The dropdowns are bounded by startMonth/endMonth.
+            captionLayout="dropdown"
+            startMonth={startMonth}
+            endMonth={endMonth}
+            components={{
+              // Clean lucide chevrons. react-day-picker passes the visually
+              // correct orientation per the calendar's dir, so left/right is
+              // already RTL-aware here.
+              Chevron: ({ orientation }) =>
+                orientation === "left" ? (
+                  <ChevronLeft className="size-4" />
+                ) : orientation === "right" ? (
+                  <ChevronRight className="size-4" />
+                ) : (
+                  <ChevronDown className="size-3.5 opacity-60" />
+                ),
+            }}
             disabled={[
               ...(minDate ? [{ before: minDate }] : []),
               ...(maxDate ? [{ after: maxDate }] : []),
@@ -168,13 +194,16 @@ export function DatePicker({
               months: "flex flex-col",
               month: "space-y-2",
               month_caption:
-                "flex justify-center items-center pt-1 pb-2 relative h-8",
+                "flex justify-center items-center pt-1 pb-2 px-9 relative h-9",
               caption_label: "text-sm font-semibold",
-              nav: "flex items-center justify-between absolute inset-x-1 top-1",
+              dropdowns: "flex items-center justify-center gap-1.5",
+              dropdown:
+                "cursor-pointer rounded-md border border-border-subtle bg-bg-elevated px-2 py-1 text-sm font-semibold text-text-primary hover:bg-bg-subtle focus:border-brand-500 focus:outline-none",
+              nav: "flex items-center justify-between absolute inset-x-1 top-1.5",
               button_previous:
-                "inline-flex h-7 w-7 items-center justify-center rounded-md text-text-secondary hover:bg-bg-subtle",
+                "inline-flex h-7 w-7 items-center justify-center rounded-md text-text-secondary hover:bg-bg-subtle disabled:opacity-30 z-10",
               button_next:
-                "inline-flex h-7 w-7 items-center justify-center rounded-md text-text-secondary hover:bg-bg-subtle",
+                "inline-flex h-7 w-7 items-center justify-center rounded-md text-text-secondary hover:bg-bg-subtle disabled:opacity-30 z-10",
               month_grid: "w-full border-collapse",
               weekdays: "flex",
               weekday:
