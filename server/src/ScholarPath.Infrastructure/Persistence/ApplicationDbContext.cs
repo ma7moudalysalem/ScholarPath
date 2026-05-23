@@ -80,6 +80,9 @@ public class ApplicationDbContext(
     public DbSet<ForumPostAttachment> ForumPostAttachments => Set<ForumPostAttachment>();
     public DbSet<ForumVote> ForumVotes => Set<ForumVote>();
     public DbSet<ForumFlag> ForumFlags => Set<ForumFlag>();
+    public DbSet<ForumBookmark> ForumBookmarks => Set<ForumBookmark>();
+    public DbSet<ForumTag> ForumTags => Set<ForumTag>();
+    public DbSet<ForumPostTag> ForumPostTags => Set<ForumPostTag>();
 
     // Chat
     public DbSet<ChatConversation> Conversations => Set<ChatConversation>();

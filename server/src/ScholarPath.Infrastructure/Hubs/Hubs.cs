@@ -81,4 +81,14 @@ public sealed class CommunityHub : AuthenticatedHub
 
     public Task LeaveCategory(string categorySlug) =>
         Groups.RemoveFromGroupAsync(Context.ConnectionId, $"forum-category:{categorySlug}");
+
+    /// <summary>
+    /// Joins the per-thread group so clients viewing a single thread receive
+    /// the ReplyCreated event the realtime notifier fans out for that post.
+    /// </summary>
+    public Task JoinPost(string postId) =>
+        Groups.AddToGroupAsync(Context.ConnectionId, $"forum-post:{postId}");
+
+    public Task LeavePost(string postId) =>
+        Groups.RemoveFromGroupAsync(Context.ConnectionId, $"forum-post:{postId}");
 }

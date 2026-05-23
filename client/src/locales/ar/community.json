@@ -12,12 +12,18 @@
     "repliesCount": "{{count}} ردًّا",
     "trendingTitle": "الأكثر تداولًا الآن",
     "trendingSubtitle": "أبرز النقاشات خلال آخر 30 يومًا",
+    "tabAll": "كل المنشورات",
+    "tabBookmarks": "المحفوظة",
+    "filteringByTag": "تصفية حسب الوسم",
+    "clearTag": "إزالة الوسم",
     "emptyTitle": "لا توجد نقاشات بعد",
     "emptyBody": "كن أول من يبدأ نقاشًا هنا.",
     "emptyCategoryTitle": "لا يوجد شيء في {{category}} بعد",
     "emptyCategoryBody": "هذه الفئة هادئة — كن أول من ينشر في {{category}}.",
     "emptySearchTitle": "لا توجد نتائج مطابقة",
-    "emptySearchBody": "لم نجد أي نقاشات تطابق \"{{query}}\". جرّب كلمة مختلفة."
+    "emptySearchBody": "لم نجد أي نقاشات تطابق \"{{query}}\". جرّب كلمة مختلفة.",
+    "emptyBookmarksTitle": "لا توجد منشورات محفوظة بعد",
+    "emptyBookmarksBody": "احفظ منشورًا ليظهر هنا لاحقًا."
   },
   "thread": {
     "notFound": "الموضوع غير موجود",
@@ -36,7 +42,20 @@
     "flagError": "تعذّر الإبلاغ عن هذا المحتوى. حاول مرة أخرى.",
     "voteError": "تعذّر تسجيل تصويتك. حاول مرة أخرى.",
     "voteOwnPost": "لا يمكنك التصويت على منشورك.",
-    "replyError": "تعذّر نشر ردّك. حاول مرة أخرى."
+    "replyError": "تعذّر نشر ردّك. حاول مرة أخرى.",
+    "bookmarkAdd": "حفظ هذا المنشور",
+    "bookmarkRemove": "إزالة من المحفوظات",
+    "bookmarkError": "تعذّر تحديث الحفظ. حاول مرة أخرى.",
+    "editPost": "تعديل المنشور",
+    "editReply": "تعديل الرد",
+    "deletePost": "حذف المنشور",
+    "deletePostConfirm": "هل تريد حذف هذا المنشور؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deletePostSuccess": "تم حذف منشورك.",
+    "deleteReply": "حذف الرد",
+    "deleteReplyConfirm": "هل تريد حذف هذا الرد؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deleteReplySuccess": "تم حذف ردّك.",
+    "deleteConfirmLabel": "حذف",
+    "deleteError": "تعذّر الحذف. حاول مرة أخرى."
   },
   "flagDialog": {
     "title": "الإبلاغ عن هذا المنشور",
@@ -59,11 +78,29 @@
     "categoryPlaceholder": "اختر فئة",
     "bodyLabel": "التفاصيل",
     "bodyPlaceholder": "أضِف تفاصيل تساعد الآخرين على الإجابة. صيغة Markdown مدعومة.",
+    "tagsLabel": "الوسوم",
+    "tagsHint": "حتى {{max}} وسوم، بحد أقصى {{len}} حرفًا لكل وسم",
+    "tagsPlaceholder": "أضِف وسمًا ثم اضغط Enter",
     "submit": "نشر السؤال",
     "submitting": "جارٍ النشر…",
     "cancel": "إلغاء",
     "success": "تم نشر سؤالك.",
     "error": "تعذّر نشر سؤالك. حاول مرة أخرى.",
     "validation": "أضِف عنوانًا، واختر فئة، واكتب بعض التفاصيل."
+  },
+  "tags": {
+    "remove": "إزالة الوسم {{tag}}",
+    "limitReached": "وصلت إلى الحد الأقصى للوسوم"
+  },
+  "edit": {
+    "titleRoot": "تعديل المنشور",
+    "titleReply": "تعديل الرد",
+    "save": "حفظ التعديلات",
+    "saving": "جارٍ الحفظ…",
+    "cancel": "إلغاء",
+    "success": "تم حفظ التعديلات.",
+    "error": "تعذّر حفظ التعديلات. حاول مرة أخرى.",
+    "titleRequired": "العنوان مطلوب.",
+    "bodyRequired": "أضِف بعض التفاصيل قبل الحفظ."
   }
 }

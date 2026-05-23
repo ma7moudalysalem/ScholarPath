@@ -1,12 +1,13 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
-using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Domain.Enums;
-
+using ScholarPath.Domain.Events;
+using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Community.Commands.CreateReply;
 
@@ -33,24 +34,31 @@ public sealed class CreateReplyCommandHandler(
 {
     public async Task<Guid> Handle(CreateReplyCommand request, CancellationToken ct)
     {
+        if (!currentUser.IsInRole("Student"))
+            throw new ForbiddenAccessException("Only students can reply in the community.");
+
+        var authorId = currentUser.UserId
+            ?? throw new ForbiddenAccessException();
+
         var parent = await db.ForumPosts
             .FirstOrDefaultAsync(p => p.Id == request.ParentPostId && !p.IsDeleted, ct)
+            .ConfigureAwait(false)
             ?? throw new NotFoundException(nameof(ForumPost), request.ParentPostId);
 
         var sanitizer = new Ganss.Xss.HtmlSanitizer();
 
         var reply = new ForumPost
         {
-           AuthorId = (currentUser.UserId ?? throw new ForbiddenAccessException()),
-           ParentPostId = request.ParentPostId,
-            BodyMarkdown = sanitizer.Sanitize(request.BodyMarkdown)
+            AuthorId = authorId,
+            ParentPostId = request.ParentPostId,
+            BodyMarkdown = sanitizer.Sanitize(request.BodyMarkdown),
         };
 
         parent.ReplyCount++;
 
         db.ForumPosts.Add(reply);
 
-        reply.RaiseDomainEvent(new ScholarPath.Domain.Events.ForumReplyCreatedEvent(reply.Id, request.ParentPostId, (currentUser.UserId ?? throw new ForbiddenAccessException())));
+        reply.RaiseDomainEvent(new ForumReplyCreatedEvent(reply.Id, request.ParentPostId, authorId));
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
