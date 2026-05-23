@@ -5,6 +5,7 @@
     "subtitle": "Discover, track, and secure scholarships with AI-matched recommendations and verified consultants — all in one gated workspace.",
     "primaryCta": "Create your account",
     "secondaryCta": "See how it works",
+    "dashboardCta": "Go to my dashboard",
     "trustedBy": "Trusted by students from leading universities worldwide",
     "builtAt": "Graduation project · Built at",
     "builtAtName": "Faculty of Graduate Studies for Statistical Research, Cairo University",
@@ -140,7 +141,8 @@
     "title": "Ready to start?",
     "body": "Register in less than a minute. No credit card required.",
     "primaryCta": "Get started free",
-    "secondaryCta": "Sign in"
+    "secondaryCta": "Sign in",
+    "dashboardCta": "Go to my dashboard"
   },
   "footer": {
     "tagline": "The bilingual scholarship workspace for ambitious students.",

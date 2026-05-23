@@ -14,9 +14,16 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { useAuthStore } from "@/stores/authStore";
+import { postAuthPath } from "@/services/api/auth";
 
 export function Home() {
   const { t } = useTranslation(["home", "common"]);
+  // The home page is reachable while signed in (via the logo / nav), so its
+  // CTAs must adapt: an authenticated user should be sent to their dashboard,
+  // not asked to "create an account".
+  const user = useAuthStore((s) => s.user);
+  const dashboardPath = user ? postAuthPath(user) : null;
 
   return (
     <div>
@@ -86,10 +93,10 @@ export function Home() {
             className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row"
           >
             <Link
-              to="/register"
+              to={dashboardPath ?? "/register"}
               className="cta-pill btn-brand bg-brand-500 px-7 py-3.5 text-base text-white"
             >
-              {t("home:hero.primaryCta")}
+              {t(dashboardPath ? "home:hero.dashboardCta" : "home:hero.primaryCta")}
               <ArrowRight
                 aria-hidden
                 className="ms-2 size-4 rtl:rotate-180"
@@ -628,22 +635,34 @@ export function Home() {
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1], delay: 0.16 }}
                 className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
               >
-                <Link
-                  to="/register"
-                  className="inline-flex items-center rounded-xl bg-white px-8 py-4 text-base font-semibold text-brand-700 shadow-sm transition-all duration-150 hover:bg-brand-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                >
-                  {t("home:ready.primaryCta")}
-                  <ArrowRight
-                    aria-hidden
-                    className="ms-2 size-4 rtl:rotate-180"
-                  />
-                </Link>
-                <Link
-                  to="/login"
-                  className="inline-flex items-center rounded-xl border border-white/30 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-150 hover:border-white/50 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-                >
-                  {t("home:ready.secondaryCta")}
-                </Link>
+                {dashboardPath ? (
+                  <Link
+                    to={dashboardPath}
+                    className="inline-flex items-center rounded-xl bg-white px-8 py-4 text-base font-semibold text-brand-700 shadow-sm transition-all duration-150 hover:bg-brand-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                  >
+                    {t("home:ready.dashboardCta")}
+                    <ArrowRight aria-hidden className="ms-2 size-4 rtl:rotate-180" />
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/register"
+                      className="inline-flex items-center rounded-xl bg-white px-8 py-4 text-base font-semibold text-brand-700 shadow-sm transition-all duration-150 hover:bg-brand-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    >
+                      {t("home:ready.primaryCta")}
+                      <ArrowRight
+                        aria-hidden
+                        className="ms-2 size-4 rtl:rotate-180"
+                      />
+                    </Link>
+                    <Link
+                      to="/login"
+                      className="inline-flex items-center rounded-xl border border-white/30 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-150 hover:border-white/50 hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                    >
+                      {t("home:ready.secondaryCta")}
+                    </Link>
+                  </>
+                )}
               </motion.div>
             </div>
           </motion.div>
