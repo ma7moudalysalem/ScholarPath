@@ -74,7 +74,7 @@ BEGIN
         CREATE INDEX [IX_CompanyReviewRequests_StudentId_Status] ON [CompanyReviewRequests] ([StudentId], [Status]);
 
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = N'UX_CompanyReviewRequests_Student_Scholarship_Active' AND object_id = OBJECT_ID(N'CompanyReviewRequests'))
-        EXEC(N'CREATE UNIQUE INDEX [UX_CompanyReviewRequests_Student_Scholarship_Active] ON [CompanyReviewRequests] ([StudentId], [ScholarshipId]) WHERE [Status] = ''Draft'' OR [Status] = ''Submitted'' OR [Status] = ''Pending'' OR [Status] = ''UnderReview''');
+        EXEC(N'CREATE UNIQUE INDEX [UX_CompanyReviewRequests_Student_Scholarship_Active] ON [CompanyReviewRequests] ([StudentId], [ScholarshipId]) WHERE [Status] IN (''Draft'', ''Submitted'', ''Pending'', ''UnderReview'')');
 
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
     VALUES (N'20260522033457_AddCompanyReviewRequests_PB005', N'10.0.6');

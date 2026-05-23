@@ -1043,7 +1043,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasIndex("StudentId", "ScholarshipId")
                         .IsUnique()
                         .HasDatabaseName("UX_CompanyReviewRequests_Student_Scholarship_Active")
-                        .HasFilter("[Status] = 'Draft' OR [Status] = 'Submitted' OR [Status] = 'Pending' OR [Status] = 'UnderReview'");
+                        .HasFilter("[Status] IN ('Draft', 'Submitted', 'Pending', 'UnderReview')");
 
                     b.HasIndex("StudentId", "Status");
 

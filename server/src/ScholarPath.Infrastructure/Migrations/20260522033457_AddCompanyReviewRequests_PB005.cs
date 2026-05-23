@@ -97,7 +97,7 @@ namespace ScholarPath.Infrastructure.Migrations
                 table: "CompanyReviewRequests",
                 columns: new[] { "StudentId", "ScholarshipId" },
                 unique: true,
-                filter: "[Status] = 'Draft' OR [Status] = 'Submitted' OR [Status] = 'Pending' OR [Status] = 'UnderReview'");
+                filter: "[Status] IN ('Draft', 'Submitted', 'Pending', 'UnderReview')");
         }
 
         /// <inheritdoc />

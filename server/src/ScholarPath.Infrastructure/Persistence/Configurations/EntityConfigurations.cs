@@ -430,11 +430,13 @@ public sealed class CompanyReviewRequestConfiguration : IEntityTypeConfiguration
         // Completed / Closed are all terminal and excluded from the filter.
         b.HasIndex(r => new { r.StudentId, r.ScholarshipId })
             .IsUnique()
+            // SQL Server filtered indexes reject OR in the predicate ("Incorrect
+            // syntax near the keyword 'OR'") but accept IN — use IN here.
             .HasFilter(
-                $"[Status] = '{nameof(CompanyReviewRequestStatus.Draft)}' " +
-                $"OR [Status] = '{nameof(CompanyReviewRequestStatus.Submitted)}' " +
-                $"OR [Status] = '{nameof(CompanyReviewRequestStatus.Pending)}' " +
-                $"OR [Status] = '{nameof(CompanyReviewRequestStatus.UnderReview)}'")
+                $"[Status] IN ('{nameof(CompanyReviewRequestStatus.Draft)}', " +
+                $"'{nameof(CompanyReviewRequestStatus.Submitted)}', " +
+                $"'{nameof(CompanyReviewRequestStatus.Pending)}', " +
+                $"'{nameof(CompanyReviewRequestStatus.UnderReview)}')")
             .HasDatabaseName("UX_CompanyReviewRequests_Student_Scholarship_Active");
 
         b.HasQueryFilter(r => !r.IsDeleted);
