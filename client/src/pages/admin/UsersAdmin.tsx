@@ -15,7 +15,10 @@ import {
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PromptDialog } from "@/components/ui/PromptDialog";
 
-const STATUSES: AccountStatus[] = ["PendingApproval", "Active", "Suspended", "Deactivated"];
+// "Unassigned" is the status of a just-registered / first-SSO account that has
+// not picked a role yet (it holds NO role row, so the Roles column shows "—").
+// Listing it lets an admin filter for these users and grant them a role.
+const STATUSES: AccountStatus[] = ["Unassigned", "PendingApproval", "Active", "Suspended", "Deactivated"];
 // Real, seeded roles only. "Moderator" was never seeded into AspNetRoles (no
 // user can hold it, no [Authorize] uses it), so listing it just produced an
 // empty filter — drop it.
