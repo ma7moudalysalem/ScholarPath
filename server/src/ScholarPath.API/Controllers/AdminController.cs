@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Admin.Commands.ApproveOnboarding;
 using ScholarPath.Application.Admin.Commands.ChangeUserRole;
+using ScholarPath.Application.Admin.Commands.ClearCompanyLowRatingFlag;
+using ScholarPath.Application.Admin.Queries.GetLowRatedCompanies;
 using ScholarPath.Application.Admin.Commands.ReinstateBookingIntake;
 using ScholarPath.Application.Admin.Commands.ReviewUpgradeRequest;
 using ScholarPath.Application.Admin.Commands.SendBroadcast;
@@ -154,6 +156,39 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
     {
         var decision = body.Approve ? OnboardingDecision.Approve : OnboardingDecision.Reject;
         await mediator.Send(new ReviewOnboardingCommand(userId, decision, body.Notes), ct).ConfigureAwait(false);
+        return NoContent();
+    }
+
+    // ─── Low-rated companies queue (PB-005R) ──────────────────────────────
+
+    /// <summary>
+    /// Paginated list of companies still flagged for low average rating.
+    /// Suspension stays on the existing POST /api/admin/users/{userId}/status
+    /// route; this controller adds only the queue read + the dedicated
+    /// "reviewed, no action needed" clear-flag write.
+    /// </summary>
+    [HttpGet("low-rated-companies")]
+    [ProducesResponseType(typeof(PagedResult<LowRatedCompanyRow>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLowRatedCompanies(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken ct = default)
+    {
+        var result = await mediator
+            .Send(new GetLowRatedCompaniesQuery(page, pageSize), ct)
+            .ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    [HttpPost("companies/{companyId:guid}/clear-low-rating-flag")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ClearCompanyLowRatingFlag(
+        Guid companyId, CancellationToken ct)
+    {
+        await mediator
+            .Send(new ClearCompanyLowRatingFlagCommand(companyId), ct)
+            .ConfigureAwait(false);
         return NoContent();
     }
 

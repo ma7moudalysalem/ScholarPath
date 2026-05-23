@@ -137,6 +137,24 @@ export interface UpgradeRequestRow {
   createdAt: string;
 }
 
+/**
+ * PB-005R: a Company currently flagged in the low-rating admin queue.
+ * `averageRating` is the snapshot at flag time; `reviewCount` and
+ * `accountStatus` are live. `flaggedAt` is sticky — the queue is sorted
+ * by it, newest first.
+ */
+export interface LowRatedCompanyRow {
+  companyId: string;
+  email: string;
+  companyName: string;
+  organizationLegalName: string | null;
+  accountStatus: AccountStatus;
+  averageRating: number | null;
+  reviewCount: number;
+  flaggedAt: string;
+  lastReviewAt: string | null;
+}
+
 export interface AnalyticsOverviewDto {
   totalUsers: number;
   activeUsers: number;
@@ -329,6 +347,23 @@ export const adminApi = {
   },
   async reviewUpgrade(requestId: string, body: ReviewBody): Promise<void> {
     await apiClient.post(`/api/admin/upgrade-queue/${requestId}/review`, body);
+  },
+
+  // PB-005R: low-rated companies queue
+  async getLowRatedCompanies(
+    page = 1,
+    pageSize = 25,
+  ): Promise<PagedResult<LowRatedCompanyRow>> {
+    const { data } = await apiClient.get<PagedResult<LowRatedCompanyRow>>(
+      "/api/admin/low-rated-companies",
+      { params: { page, pageSize } },
+    );
+    return data;
+  },
+  async clearCompanyLowRatingFlag(companyId: string): Promise<void> {
+    await apiClient.post(
+      `/api/admin/companies/${companyId}/clear-low-rating-flag`,
+    );
   },
 
   // analytics
