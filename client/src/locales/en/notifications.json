@@ -110,7 +110,17 @@
       "ResourceApproved": "Resource approved",
       "ResourceRejected": "Resource rejected",
       "ChatMessageReceived": "New message",
-      "Broadcast": "Platform announcements"
+      "Broadcast": "Platform announcements",
+      "OnboardingSubmitted": "Onboarding request submitted",
+      "UpgradeRequestSubmitted": "Role upgrade request submitted",
+      "ContentReported": "Content reported",
+      "CompanyReviewRequestIncoming": "New paid review request",
+      "CompanyReviewRequestPaymentHeld": "Review payment held",
+      "CompanyReviewRequestPaymentCaptured": "Review payment captured",
+      "CompanyReviewRequestPaymentHoldCancelled": "Review payment hold released",
+      "CompanyReviewRequestPartiallyRefunded": "Review partially refunded",
+      "CompanyReviewRequestCompleted": "Review completed",
+      "CompanyLowRatingFlagged": "Company flagged for low rating"
     }
   }
 }

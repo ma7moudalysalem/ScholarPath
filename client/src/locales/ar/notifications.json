@@ -110,7 +110,17 @@
       "ResourceApproved": "تمت الموافقة على المصدر",
       "ResourceRejected": "تم رفض المصدر",
       "ChatMessageReceived": "رسالة جديدة",
-      "Broadcast": "إعلانات المنصة"
+      "Broadcast": "إعلانات المنصة",
+      "OnboardingSubmitted": "تم إرسال طلب التأهيل",
+      "UpgradeRequestSubmitted": "تم إرسال طلب ترقية الدور",
+      "ContentReported": "تم الإبلاغ عن محتوى",
+      "CompanyReviewRequestIncoming": "طلب مراجعة مدفوع جديد",
+      "CompanyReviewRequestPaymentHeld": "تم حجز دفعة المراجعة",
+      "CompanyReviewRequestPaymentCaptured": "تم تحصيل دفعة المراجعة",
+      "CompanyReviewRequestPaymentHoldCancelled": "تم تحرير حجز دفعة المراجعة",
+      "CompanyReviewRequestPartiallyRefunded": "استرداد جزئي لدفعة المراجعة",
+      "CompanyReviewRequestCompleted": "اكتملت المراجعة",
+      "CompanyLowRatingFlagged": "تم وضع علامة على الشركة لتقييم منخفض"
     }
   }
 }
