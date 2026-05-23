@@ -185,6 +185,7 @@
     "loading": "Loading…",
     "tryAgain": "Try again",
     "page": "Page {{page}} of {{total}}",
+    "totalCount": "{{count}} total",
     "prev": "Previous",
     "next": "Next"
   },

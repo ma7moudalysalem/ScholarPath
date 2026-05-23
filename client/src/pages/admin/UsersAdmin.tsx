@@ -16,7 +16,10 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PromptDialog } from "@/components/ui/PromptDialog";
 
 const STATUSES: AccountStatus[] = ["PendingApproval", "Active", "Suspended", "Deactivated"];
-const ROLES = ["Student", "Company", "Consultant", "Admin", "Moderator"];
+// Real, seeded roles only. "Moderator" was never seeded into AspNetRoles (no
+// user can hold it, no [Authorize] uses it), so listing it just produced an
+// empty filter — drop it.
+const ROLES = ["Student", "Company", "Consultant", "Admin"];
 // Roles an admin can grant/revoke from the user table (e.g. to give a
 // freshly-registered SSO user who never picked a role their Student role).
 const ASSIGNABLE_ROLES = ["Student", "Consultant", "Company", "Admin"];
@@ -295,9 +298,13 @@ export function UsersAdmin() {
         </table>
       </div>
 
-      {data && totalPages > 1 && (
+      {data && (
         <div className="flex items-center justify-between text-sm text-text-secondary">
-          <span>{t("admin:common.page", { page: data.page, total: totalPages })}</span>
+          <span>
+            {t("admin:common.page", { page: data.page, total: totalPages })}
+            {" · "}
+            {t("admin:common.totalCount", { count: data.totalCount, defaultValue: "{{count}} total" })}
+          </span>
           <div className="flex gap-2">
             <button
               type="button"

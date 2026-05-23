@@ -185,6 +185,7 @@
     "loading": "جارٍ التحميل…",
     "tryAgain": "حاول مجدداً",
     "page": "الصفحة {{page}} من {{total}}",
+    "totalCount": "{{count}} الإجمالي",
     "prev": "السابق",
     "next": "التالي"
   },
