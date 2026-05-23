@@ -228,7 +228,8 @@
     "Rejected": "Rejected",
     "Withdrawn": "Withdrawn",
     "Intending": "Intending",
-    "Applied": "Applied"
+    "Applied": "Applied",
+    "WaitingResult": "Waiting for result"
   },
   "analytics": {
     "title": "Analytics",
