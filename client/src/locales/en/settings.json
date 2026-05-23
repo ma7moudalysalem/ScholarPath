@@ -12,6 +12,13 @@
   "saveError": "Could not update the setting.",
   "viewHistory": "View change history",
   "noDescription": "No description.",
+  "labels": {
+    "maintenance.enabled": "Maintenance mode",
+    "registration.open": "Open registration",
+    "ai.features.enabled": "AI features",
+    "platform.announcement": "Platform announcement banner",
+    "support.email": "Support email address"
+  },
   "enabled": "Enabled",
   "disabled": "Disabled",
   "lastUpdated": "Last updated {{date}}",

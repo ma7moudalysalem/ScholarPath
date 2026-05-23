@@ -12,6 +12,13 @@
   "saveError": "تعذّر تحديث الإعداد.",
   "viewHistory": "عرض سجل التغييرات",
   "noDescription": "لا يوجد وصف.",
+  "labels": {
+    "maintenance.enabled": "وضع الصيانة",
+    "registration.open": "فتح التسجيل",
+    "ai.features.enabled": "ميزات الذكاء الاصطناعي",
+    "platform.announcement": "شريط إعلان المنصة",
+    "support.email": "بريد الدعم"
+  },
   "enabled": "مُفعَّل",
   "disabled": "مُعطَّل",
   "lastUpdated": "آخر تحديث {{date}}",

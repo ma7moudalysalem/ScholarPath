@@ -156,7 +156,7 @@ export function AdminSettings() {
           </p>
         </div>
         <a
-          href="/admin/audit-logs"
+          href="/admin/audit-log"
           className="btn btn-secondary btn-sm"
         >
           <History aria-hidden className="size-3.5" />
@@ -407,8 +407,8 @@ function SettingRow({
     <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] md:items-start md:gap-8">
       <div className="md:pt-2">
         <div className="flex items-center gap-2">
-          <p className="font-mono text-sm font-semibold text-text-primary">
-            {setting.key}
+          <p className="text-sm font-semibold text-text-primary">
+            {t(`settings:labels.${setting.key}`, { defaultValue: setting.key })}
           </p>
           {dirty && (
             <span className="badge badge-warning text-[10px]">
@@ -416,6 +416,7 @@ function SettingRow({
             </span>
           )}
         </div>
+        <p className="mt-0.5 font-mono text-[11px] text-text-tertiary">{setting.key}</p>
         <p className="mt-1 text-sm text-text-secondary">
           {description ?? t("settings:noDescription")}
         </p>
