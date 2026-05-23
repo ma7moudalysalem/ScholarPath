@@ -60,7 +60,8 @@
       "deactivate": "تعطيل",
       "activate": "تنشيط",
       "delete": "حذف",
-      "reinstateIntake": "إعادة تفعيل الاستقبال"
+      "reinstateIntake": "إعادة تفعيل الاستقبال",
+      "manageRoles": "الأدوار"
     },
     "empty": "لا يوجد مستخدمون يطابقون الفلاتر.",
     "atRisk": "في خطر",
@@ -73,6 +74,15 @@
       "submit": "تطبيق",
       "cancel": "إلغاء",
       "confirmDelete": "هل تريد حذف المستخدم؟ سيتم تسجيل خروجه من جميع الأجهزة."
+    },
+    "rolesDialog": {
+      "title": "إدارة الأدوار",
+      "subtitle": "أضِف أو أزِل أدوار {{email}}.",
+      "assigned": "معيَّن",
+      "add": "إضافة",
+      "remove": "إزالة",
+      "none": "لا توجد أدوار معيَّنة بعد.",
+      "close": "إغلاق"
     }
   },
   "onboarding": {

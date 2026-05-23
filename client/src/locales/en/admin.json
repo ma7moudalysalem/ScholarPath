@@ -60,7 +60,8 @@
       "deactivate": "Deactivate",
       "activate": "Activate",
       "delete": "Delete",
-      "reinstateIntake": "Reinstate intake"
+      "reinstateIntake": "Reinstate intake",
+      "manageRoles": "Roles"
     },
     "empty": "No users matched the filters.",
     "atRisk": "At risk",
@@ -73,6 +74,15 @@
       "submit": "Apply",
       "cancel": "Cancel",
       "confirmDelete": "Soft-delete this user? They'll be signed out of every device."
+    },
+    "rolesDialog": {
+      "title": "Manage roles",
+      "subtitle": "Add or remove roles for {{email}}.",
+      "assigned": "Assigned",
+      "add": "Add",
+      "remove": "Remove",
+      "none": "No roles assigned yet.",
+      "close": "Close"
     }
   },
   "onboarding": {

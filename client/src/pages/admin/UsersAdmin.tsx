@@ -4,18 +4,22 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import {
   adminApi,
   type AccountStatus,
   type AdminUserRow,
   type PagedResult,
+  type RoleOp,
 } from "@/services/api/admin";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PromptDialog } from "@/components/ui/PromptDialog";
 
 const STATUSES: AccountStatus[] = ["PendingApproval", "Active", "Suspended", "Deactivated"];
 const ROLES = ["Student", "Company", "Consultant", "Admin", "Moderator"];
+// Roles an admin can grant/revoke from the user table (e.g. to give a
+// freshly-registered SSO user who never picked a role their Student role).
+const ASSIGNABLE_ROLES = ["Student", "Consultant", "Company", "Admin"];
 
 function statusBadgeClass(s: AccountStatus): string {
   switch (s) {
@@ -89,6 +93,16 @@ export function UsersAdmin() {
     onError: () => toast.error(t("common:status.error")),
   });
 
+  const roleMut = useMutation({
+    mutationFn: ({ id, role, op }: { id: string; role: string; op: RoleOp }) =>
+      adminApi.changeUserRole(id, role, op),
+    onSuccess: () => {
+      toast.success(t("common:status.success"));
+      void qc.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+    onError: () => toast.error(t("common:status.error")),
+  });
+
   // Suspend/Deactivate require a reason — surface that through a PromptDialog;
   // Activate goes directly through the mutation with no extra dialog.
   const [reasonTarget, setReasonTarget] = useState<
@@ -96,6 +110,10 @@ export function UsersAdmin() {
     | null
   >(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  // The role dialog tracks a user id, then reads the LATEST row from the query
+  // so it reflects each grant/revoke as the list refetches.
+  const [roleTargetId, setRoleTargetId] = useState<string | null>(null);
+  const roleUser = data?.items.find((u) => u.id === roleTargetId) ?? null;
 
   const changeStatus = (u: AdminUserRow, newStatus: AccountStatus) => {
     const needsReason = newStatus === "Suspended" || newStatus === "Deactivated";
@@ -257,6 +275,13 @@ export function UsersAdmin() {
                     )}
                     <button
                       type="button"
+                      onClick={() => setRoleTargetId(u.id)}
+                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-brand-500 hover:text-brand-500"
+                    >
+                      {t("admin:users.actions.manageRoles")}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => confirmDelete(u)}
                       className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500"
                     >
@@ -321,6 +346,81 @@ export function UsersAdmin() {
         loading={deleteMut.isPending}
         onConfirm={submitDelete}
       />
+
+      {/* Manage roles — grant/revoke roles (e.g. give a role-less SSO user
+          their Student role). Calls POST /api/admin/users/{id}/roles. */}
+      {roleUser && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-text-primary/30 p-4 backdrop-blur-sm"
+          onClick={() => setRoleTargetId(null)}
+          role="presentation"
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-elevation-3"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="mb-1 flex items-start justify-between gap-4">
+              <h2 className="text-lg font-bold text-text-primary">
+                {t("admin:users.rolesDialog.title")}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setRoleTargetId(null)}
+                aria-label={t("admin:users.rolesDialog.close")}
+                className="rounded-md p-1 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <p className="mb-4 text-sm text-text-secondary">
+              {t("admin:users.rolesDialog.subtitle", { email: roleUser.email })}
+            </p>
+            <div className="space-y-2">
+              {ASSIGNABLE_ROLES.map((r) => {
+                const assigned = roleUser.roles.includes(r);
+                return (
+                  <div
+                    key={r}
+                    className="flex items-center justify-between rounded-lg border border-border-subtle px-3 py-2"
+                  >
+                    <span className="text-sm font-medium text-text-primary">
+                      {r}
+                      {assigned && (
+                        <span className="ms-2 text-[11px] font-normal text-success-600">
+                          • {t("admin:users.rolesDialog.assigned")}
+                        </span>
+                      )}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={roleMut.isPending}
+                      onClick={() =>
+                        roleMut.mutate({ id: roleUser.id, role: r, op: assigned ? "Remove" : "Add" })
+                      }
+                      className={
+                        assigned
+                          ? "rounded-md border border-danger-200 px-3 py-1 text-xs font-medium text-danger-600 transition hover:bg-danger-50 disabled:opacity-50"
+                          : "rounded-md border border-brand-200 px-3 py-1 text-xs font-medium text-brand-600 transition hover:bg-brand-50 disabled:opacity-50"
+                      }
+                    >
+                      {assigned
+                        ? t("admin:users.rolesDialog.remove")
+                        : t("admin:users.rolesDialog.add")}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            {roleUser.roles.length === 0 && (
+              <p className="mt-3 text-xs text-text-tertiary">
+                {t("admin:users.rolesDialog.none")}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
