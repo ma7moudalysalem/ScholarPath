@@ -71,6 +71,8 @@ public sealed class GetBookingByIdQueryHandler(
                 NoShowMarkedAt = b.NoShowMarkedAt,
                 StudentJoinedAt = b.StudentJoinedAt,
                 ConsultantJoinedAt = b.ConsultantJoinedAt,
+                HasStudentReview = db.ConsultantReviews
+                    .Any(r => r.BookingId == b.Id && !r.IsDeleted),
                 CreatedAt = b.CreatedAt,
             })
             .FirstOrDefaultAsync(ct)

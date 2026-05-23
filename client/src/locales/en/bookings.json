@@ -119,6 +119,29 @@
     "description": "This booking could not be loaded. It may have been removed, or you may not have access to it.",
     "backToBookings": "Back to my bookings"
   },
+  "rating": {
+    "ctaTitle": "Rate your consultant",
+    "ctaDescription": "Your session is complete. Share a quick rating to help other students choose the right consultant.",
+    "ctaButton": "Rate consultant",
+    "alreadyRatedTitle": "Rating submitted",
+    "alreadyRatedDescription": "Thank you — your rating for this session has been recorded.",
+    "title": "Rate {{consultant}}",
+    "description": "Pick a star rating from 1 to 5 and add an optional note about your session.",
+    "starsAriaLabel": "Session rating",
+    "starAriaLabel": "{{count}} stars",
+    "commentLabel": "Comment",
+    "commentPlaceholder": "What stood out about this session? (optional)",
+    "optional": "optional",
+    "submit": "Submit rating",
+    "submitting": "Submitting…",
+    "cancel": "Cancel",
+    "close": "Close",
+    "submitSuccess": "Thanks — your rating was submitted.",
+    "submitError": "Could not submit the rating.",
+    "errors": {
+      "pleaseSelectRating": "Please pick a star rating before submitting."
+    }
+  },
   "summaries": {
     "pending": "Your booking request was created successfully and is now waiting for the consultant to review it.",
     "confirmed": "The consultant accepted your request. Your consultation is now confirmed at the selected date and time.",
