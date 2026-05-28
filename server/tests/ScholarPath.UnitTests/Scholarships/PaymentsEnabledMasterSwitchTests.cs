@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ScholarPath.Application.Common;
+using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.CompanyReviewRequests.Commands.Start;
 using ScholarPath.Application.Scholarships.Commands.ConfigureReviewFee;
@@ -131,5 +132,60 @@ public class PaymentsEnabledMasterSwitchTests
             7_500, Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<IDictionary<string, string>>(),
             Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ApplyNow_works_when_payments_off_and_stored_fee_is_null()
+    {
+        // Legacy listing: the Company never configured a Review Service Fee
+        // (ReviewFeeUsd is NULL on the row). When the master switch is OFF,
+        // the platform treats every request as free, so this should NOT be
+        // blocked by the "fee is not configured" guard.
+        using var db = CompanyReviewRequestTestFixtures.CreateDb();
+        var (scholarship, student, _) = CompanyReviewRequestTestFixtures
+            .SeedParticipants(db, reviewFeeUsd: null);
+        SeedSetting(db, PlatformSettingsKeys.PaymentsEnabled, value: false);
+
+        var currentUser = Substitute.For<ICurrentUserService>();
+        currentUser.UserId.Returns(student.Id);
+        var stripe = Substitute.For<IStripeService>();
+
+        var sut = new StartCompanyReviewRequestCommandHandler(
+            db, stripe, currentUser,
+            NullLogger<StartCompanyReviewRequestCommandHandler>.Instance);
+
+        var result = await sut.Handle(
+            new StartCompanyReviewRequestCommand(scholarship.Id), default);
+
+        result.IsFree.Should().BeTrue();
+        result.PaymentId.Should().BeNull();
+        result.AmountCents.Should().Be(0);
+
+        var entity = db.CompanyReviewRequests.Single();
+        entity.Status.Should().Be(CompanyReviewRequestStatus.Pending);
+        entity.PaymentId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ApplyNow_still_throws_when_payments_on_and_stored_fee_is_null()
+    {
+        // Inverse case: with payments ON, a missing fee remains a hard error —
+        // the previous behaviour must not regress for paid-mode platforms.
+        using var db = CompanyReviewRequestTestFixtures.CreateDb();
+        var (scholarship, student, _) = CompanyReviewRequestTestFixtures
+            .SeedParticipants(db, reviewFeeUsd: null);
+
+        var currentUser = Substitute.For<ICurrentUserService>();
+        currentUser.UserId.Returns(student.Id);
+
+        var sut = new StartCompanyReviewRequestCommandHandler(
+            db, Substitute.For<IStripeService>(), currentUser,
+            NullLogger<StartCompanyReviewRequestCommandHandler>.Instance);
+
+        var act = () => sut.Handle(
+            new StartCompanyReviewRequestCommand(scholarship.Id), default);
+
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("*Review Service Fee*");
     }
 }

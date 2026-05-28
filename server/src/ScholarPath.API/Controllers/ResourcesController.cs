@@ -39,6 +39,17 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
     public async Task<IActionResult> Search([FromQuery] SearchResourcesQuery query, CancellationToken ct)
         => Ok(await mediator.Send(query, ct));
 
+    /// <summary>
+    /// Canonical list of category slugs the platform recognises. Authoring
+    /// clients use this to render the dropdown so the validator and the UI
+    /// stay in sync.
+    /// </summary>
+    [HttpGet("categories")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
+    public IActionResult Categories()
+        => Ok(ResourceCategoryCatalog.Slugs);
+
     /// <summary>Featured resources for the homepage hub.</summary>
     [HttpGet("featured")]
     [AllowAnonymous]

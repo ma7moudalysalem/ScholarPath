@@ -21,10 +21,11 @@ import { cn } from "@/lib/utils";
 
 const RESOURCE_TYPES: ResourceType[] = ["Article", "Guide", "Checklist", "VideoLink"];
 
-// Category slugs the backend recognises (see DbSeeder.Resources). Kept as a
-// closed list on the client so authors pick a known slug and don't invent new
-// ones; aligns with the published categories used across the resources hub.
-const RESOURCE_CATEGORIES = [
+// Fallback used when /api/resources/categories isn't reachable yet (cold cache,
+// transient network blip). Mirrors the server's `ResourceCategoryCatalog.Slugs`
+// so the picker still renders something even before the request lands. The
+// authoritative list always wins once the query resolves.
+const RESOURCE_CATEGORIES_FALLBACK = [
   "applications",
   "essays",
   "interviews",
@@ -170,6 +171,17 @@ export function ResourceEditor() {
 
   const { fields: chapters, append, remove } = useFieldArray({ control, name: "chapters" });
   const watchedType = useWatch({ control, name: "type" });
+
+  // Canonical category slugs come from the server so the dropdown adapts when
+  // a new category is added platform-wide without a client release. The
+  // hardcoded list is a fallback for the first paint while the request lands.
+  const categoriesQuery = useQuery<string[]>({
+    queryKey: ["resources", "categories"],
+    queryFn: () => resourcesApi.getCategories(),
+    staleTime: 60 * 60_000, // 1 h — the catalog rarely changes
+  });
+  const categorySlugs: ReadonlyArray<string> =
+    categoriesQuery.data ?? RESOURCE_CATEGORIES_FALLBACK;
 
   // ── Load existing resource when editing ──────────────────────────────────
 
@@ -343,7 +355,7 @@ export function ResourceEditor() {
               className={cn(fieldClass, "bg-bg-canvas")}
             >
               <option value="">{t("resources:author.categoryPlaceholder")}</option>
-              {RESOURCE_CATEGORIES.map((slug) => (
+              {categorySlugs.map((slug) => (
                 <option key={slug} value={slug}>
                   {t(`resources:author.categories.${slug}`)}
                 </option>

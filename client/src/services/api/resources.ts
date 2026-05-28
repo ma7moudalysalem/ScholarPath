@@ -143,6 +143,17 @@ export const resourcesApi = {
     return data;
   },
 
+  /**
+   * Canonical list of resource category slugs from the server's
+   * `ResourceCategoryCatalog`. The authoring dropdown calls this so a new
+   * category added on the server appears in the picker without a client
+   * release. Cached for the session by the caller's query.
+   */
+  async getCategories(): Promise<string[]> {
+    const { data } = await apiClient.get<string[]>("/api/resources/categories");
+    return data;
+  },
+
   /** Featured resources for the hub. */
   async getFeatured(): Promise<ResourceListItem[]> {
     const { data } = await apiClient.get<ResourceListItem[]>("/api/resources/featured");

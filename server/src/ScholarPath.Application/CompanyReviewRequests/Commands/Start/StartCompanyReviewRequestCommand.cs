@@ -103,16 +103,27 @@ public sealed class StartCompanyReviewRequestCommandHandler(
         if (scholarship.OwnerCompanyId == studentId)
             throw new ConflictException("A Company cannot start a paid review request for its own scholarship.");
 
-        if (scholarship.ReviewFeeUsd is not { } storedFee || storedFee < 0m)
-            throw new ConflictException(
-                "Review Service Fee is not configured for this scholarship. Apply Now is unavailable.");
-
         // Master switch: when payments are off, treat every request as free
         // regardless of the stored fee — money never moves on this platform
-        // until the admin re-enables payments.
+        // until the admin re-enables payments. This also lets legacy listings
+        // with NULL ReviewFeeUsd (created before any fee was set) be applied
+        // to in free mode, which would otherwise trip the "not configured"
+        // guard below.
         var paymentsEnabled = await PlatformSettingsReader.GetBooleanAsync(
             db, PlatformSettingsKeys.PaymentsEnabled, defaultValue: true, ct);
-        var fee = paymentsEnabled ? storedFee : 0m;
+
+        decimal fee;
+        if (!paymentsEnabled)
+        {
+            fee = 0m;
+        }
+        else
+        {
+            if (scholarship.ReviewFeeUsd is not { } storedFee || storedFee < 0m)
+                throw new ConflictException(
+                    "Review Service Fee is not configured for this scholarship. Apply Now is unavailable.");
+            fee = storedFee;
+        }
 
         var companyId = scholarship.OwnerCompanyId.Value;
         var currency = scholarship.Currency ?? "USD";

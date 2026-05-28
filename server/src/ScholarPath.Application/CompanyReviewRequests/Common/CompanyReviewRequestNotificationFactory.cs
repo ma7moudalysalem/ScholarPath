@@ -12,6 +12,14 @@ namespace ScholarPath.Application.CompanyReviewRequests.Common;
 /// </summary>
 internal static class CompanyReviewRequestNotificationFactory
 {
+    /// <summary>
+    /// Placeholder used in every amount field when a request is free (no
+    /// Payment row, snapshot fee = 0). Picking a single neutral token keeps
+    /// the in-app + e-mail templates locale-stable; the recipient's client
+    /// can swap it for a translated label at render time if needed.
+    /// </summary>
+    public const string FreeAmountToken = "Free";
+
     public static NotificationParams Build(
         CompanyReviewRequest request,
         Payment? payment,
@@ -33,6 +41,12 @@ internal static class CompanyReviewRequestNotificationFactory
                 or Domain.Enums.PaymentStatus.Refunded
         } ? amountCents : 0;
 
+        // A request is "free" when it never had a Payment row attached — i.e.
+        // the Apply Now flow short-circuited Stripe entirely. We surface that
+        // explicitly in every money field so the recipient doesn't read
+        // "0.00 USD" for a transaction that simply never happened.
+        var isFree = payment is null && amountCents == 0;
+
         return new NotificationParams
         {
             ScholarshipNameEn = scholarshipTitleEn,
@@ -45,17 +59,17 @@ internal static class CompanyReviewRequestNotificationFactory
                 ?? request.UpdatedAt
                 ?? DateTimeOffset.UtcNow)
                 .UtcDateTime.ToString("yyyy-MM-dd HH:mm 'UTC'", CultureInfo.InvariantCulture),
-            HeldAmountText = FormatCents(heldCents, currency),
-            CapturedAmountText = FormatCents(capturedCents, currency),
+            HeldAmountText = isFree ? FreeAmountToken : FormatCents(heldCents, currency),
+            CapturedAmountText = isFree ? FreeAmountToken : FormatCents(capturedCents, currency),
             RefundAmountText = refundedCents > 0 ? FormatCents(refundedCents, currency) : null,
-            RetainedAmountText = FormatCents(retainedCents, currency),
+            RetainedAmountText = isFree ? FreeAmountToken : FormatCents(retainedCents, currency),
             PlatformCommissionText = payment is not null
                 ? FormatCents(payment.ProfitShareAmountCents, currency)
-                : null,
+                : (isFree ? FreeAmountToken : null),
             CompanyShareText = payment is not null
                 ? FormatCents(payment.PayeeAmountCents, currency)
-                : null,
-            AmountText = FormatCents(amountCents, currency),
+                : (isFree ? FreeAmountToken : null),
+            AmountText = isFree ? FreeAmountToken : FormatCents(amountCents, currency),
         };
     }
 

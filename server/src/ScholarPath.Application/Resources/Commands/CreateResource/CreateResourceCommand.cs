@@ -39,7 +39,14 @@ public sealed class CreateResourceCommandValidator : AbstractValidator<CreateRes
         RuleFor(x => x.TitleAr).NotEmpty().MaximumLength(300);
         RuleFor(x => x.DescriptionEn).MaximumLength(2000);
         RuleFor(x => x.DescriptionAr).MaximumLength(2000);
-        RuleFor(x => x.CategorySlug).MaximumLength(120);
+        // Closed-set check against the canonical catalog so the dropdown,
+        // validator, and seed cannot drift apart. NULL / empty stays allowed
+        // for the Draft state — the publish guard (ResourcePublishRules)
+        // separately requires the field to be filled before Submit.
+        RuleFor(x => x.CategorySlug)
+            .MaximumLength(120)
+            .Must(ResourceCategoryCatalog.IsKnown)
+            .WithMessage("Unknown resource category.");
         RuleFor(x => x.ExternalLinkUrl).MaximumLength(2048);
         RuleFor(x => x.CoverImageUrl).MaximumLength(2048);
         RuleFor(x => x.Type).IsInEnum();

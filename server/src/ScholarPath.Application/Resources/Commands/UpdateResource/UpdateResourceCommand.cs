@@ -44,7 +44,10 @@ public sealed class UpdateResourceCommandValidator : AbstractValidator<UpdateRes
         RuleFor(x => x.TitleAr).NotEmpty().MaximumLength(300);
         RuleFor(x => x.DescriptionEn).MaximumLength(2000);
         RuleFor(x => x.DescriptionAr).MaximumLength(2000);
-        RuleFor(x => x.CategorySlug).MaximumLength(120);
+        RuleFor(x => x.CategorySlug)
+            .MaximumLength(120)
+            .Must(ResourceCategoryCatalog.IsKnown)
+            .WithMessage("Unknown resource category.");
         RuleFor(x => x.ExternalLinkUrl).MaximumLength(2048);
         RuleFor(x => x.CoverImageUrl).MaximumLength(2048);
         RuleFor(x => x.Type).IsInEnum();
