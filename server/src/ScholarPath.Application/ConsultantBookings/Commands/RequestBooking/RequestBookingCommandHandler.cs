@@ -84,7 +84,7 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             throw new BookingDomainException("Consultant profile was not found.");
         }
 
-        if (!consultant.Profile.SessionFeeUsd.HasValue || consultant.Profile.SessionFeeUsd.Value <= 0)
+        if (!consultant.Profile.SessionFeeUsd.HasValue || consultant.Profile.SessionFeeUsd.Value < 0)
         {
             throw new BookingDomainException("Consultant session fee is not configured.");
         }
@@ -194,13 +194,21 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             throw new BookingDomainException("Student already has a booking that overlaps this time.");
         }
 
-        var priceUsd = consultant.Profile.SessionFeeUsd.Value;
+        var storedPriceUsd = consultant.Profile.SessionFeeUsd.Value;
+
+        // Master switch: when payments are off platform-wide, every booking
+        // is free regardless of the consultant's stored session fee.
+        var paymentsEnabled = await PlatformSettingsReader.GetBooleanAsync(
+            _context, PlatformSettingsKeys.PaymentsEnabled, defaultValue: true, cancellationToken);
+        var priceUsd = paymentsEnabled ? storedPriceUsd : 0m;
         var amountCents = (long)decimal.Round(priceUsd * 100m, 0, MidpointRounding.AwayFromZero);
 
-        if (amountCents <= 0)
+        if (amountCents < 0)
         {
-            throw new BookingDomainException("Calculated booking amount must be greater than zero.");
+            throw new BookingDomainException("Calculated booking amount cannot be negative.");
         }
+
+        var isFree = amountCents == 0;
 
         var idempotencyKey =
             $"booking-request:{studentId:N}:{request.ConsultantId:N}:{scheduledStartAtUtc:yyyyMMddHHmm}:{scheduledEndAtUtc:yyyyMMddHHmm}";
@@ -219,6 +227,62 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             metadata["availabilityId"] = request.AvailabilityId.Value.ToString("N");
         }
 
+        // Normalise the optional note — blank-only strings become null so the
+        // consultant-side details page can skip the section cleanly instead of
+        // showing an empty box.
+        var normalisedNotes = string.IsNullOrWhiteSpace(request.Notes)
+            ? null
+            : request.Notes.Trim();
+
+        var nowUtc = DateTimeOffset.UtcNow;
+
+        // ── Free path: consultant set their session fee to 0. No Stripe intent,
+        //     no Payment row — the booking goes straight to Requested and the
+        //     consultant's accept/reject flow just flips state. ────────────────
+        if (isFree)
+        {
+            var freeBooking = new ConsultantBooking
+            {
+                StudentId = studentId,
+                ConsultantId = request.ConsultantId,
+                AvailabilityId = request.AvailabilityId,
+                ScheduledStartAt = scheduledStartAtUtc,
+                ScheduledEndAt = scheduledEndAtUtc,
+                DurationMinutes = durationMinutes,
+                PriceUsd = priceUsd,
+                StudentNotes = normalisedNotes,
+                Status = BookingStatus.Requested,
+                RequestedAt = nowUtc,
+                StripePaymentIntentId = null,
+                Payment = null,
+                ConfirmedAt = null,
+                RejectedAt = null,
+                ExpiredAt = null,
+                CancelledAt = null,
+                CompletedAt = null,
+                CancellationReason = null,
+                CancelledByUserId = null,
+                IsNoShowStudent = false,
+                IsNoShowConsultant = false,
+                NoShowMarkedAt = null,
+                IsDeleted = false,
+                DeletedAt = null,
+                DeletedByUserId = null
+            };
+
+            _context.Bookings.Add(freeBooking);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _publisher.Publish(
+                new BookingRequestedEvent(
+                    freeBooking.Id,
+                    freeBooking.StudentId,
+                    freeBooking.ConsultantId),
+                cancellationToken);
+
+            return new RequestBookingResult(freeBooking.Id, IsFree: true, ClientSecret: null, PaymentIntentId: null);
+        }
+
         var paymentIntent = await _stripeService.CreatePaymentIntentAsync(
             amountCents: amountCents,
             currency: "usd",
@@ -231,8 +295,6 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
         {
             throw new BookingDomainException("Stripe payment intent was not created successfully.");
         }
-
-        var nowUtc = DateTimeOffset.UtcNow;
 
         var payment = new Payment
         {
@@ -263,13 +325,6 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             DeletedAt = null,
             DeletedByUserId = null
         };
-
-        // Normalise the optional note — blank-only strings become null so the
-        // consultant-side details page can skip the section cleanly instead of
-        // showing an empty box.
-        var normalisedNotes = string.IsNullOrWhiteSpace(request.Notes)
-            ? null
-            : request.Notes.Trim();
 
         var booking = new ConsultantBooking
         {
@@ -316,6 +371,6 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
 
         // Return the intent's client secret so the checkout widget confirms
         // THIS intent — it must not create a second one (PB-006 Problem 1).
-        return new RequestBookingResult(booking.Id, paymentIntent.ClientSecret, paymentIntent.Id);
+        return new RequestBookingResult(booking.Id, IsFree: false, paymentIntent.ClientSecret, paymentIntent.Id);
     }
 }

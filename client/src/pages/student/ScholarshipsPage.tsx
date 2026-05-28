@@ -12,6 +12,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
+import { parseCalendarDate } from "@/lib/dates";
 import { ar, type Locale } from "date-fns/locale";
 import { toast } from "sonner";
 import { motion } from "motion/react";
@@ -77,7 +78,7 @@ function ScholarshipCard({
 
   const title        = isRtl ? scholarship.titleAr       : scholarship.titleEn;
   const desc         = isRtl ? scholarship.descriptionAr : scholarship.descriptionEn;
-  const deadlineDate = new Date(scholarship.deadline);
+  const deadlineDate = parseCalendarDate(scholarship.deadline) ?? new Date(scholarship.deadline);
   const daysLeft     = differenceInCalendarDays(deadlineDate, new Date());
   const isUrgent     = daysLeft <= 7 && daysLeft >= 0;
   const isClosed     = daysLeft < 0;

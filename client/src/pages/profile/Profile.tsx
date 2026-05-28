@@ -35,6 +35,7 @@ import {
   type UpdateProfileRequest,
 } from "@/services/api/profile";
 import { useAuthStore } from "@/stores/authStore";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
 import { userPhotoUrl } from "@/lib/userPhoto";
 import { apiErrorMessage } from "@/services/api/client";
@@ -918,6 +919,9 @@ export function Profile() {
   const { t, i18n } = useTranslation(["profile", "common"]);
   const qc = useQueryClient();
   const activeRole = useAuthStore((s) => s.user?.activeRole ?? null);
+  // Master payments switch — when off, the consultant session fee field is
+  // hidden because the server will force the stored value to 0 anyway.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const {
     data: profile,
@@ -1727,32 +1731,45 @@ export function Profile() {
                   maxLength={100}
                 />
               </FieldRow>
-              <FieldRow
-                label={t("profile:fields.sessionFeeUsd")}
-                description={t("profile:fields.sessionFeeUsdDesc")}
-              >
-                <div>
-                  <div className="relative">
-                    <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-sm text-text-tertiary">
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      className="input-premium ps-7"
-                      value={form.sessionFeeUsd}
-                      onChange={(e) => set("sessionFeeUsd", e.target.value)}
-                      aria-invalid={feeError ? true : undefined}
-                    />
+              {paymentsEnabled ? (
+                <FieldRow
+                  label={t("profile:fields.sessionFeeUsd")}
+                  description={t("profile:fields.sessionFeeUsdDesc")}
+                >
+                  <div>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-sm text-text-tertiary">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min={0}
+                        className="input-premium ps-7"
+                        value={form.sessionFeeUsd}
+                        onChange={(e) => set("sessionFeeUsd", e.target.value)}
+                        aria-invalid={feeError ? true : undefined}
+                      />
+                    </div>
+                    {feeError && (
+                      <p className="mt-1.5 text-xs font-medium text-danger-500">
+                        {feeError}
+                      </p>
+                    )}
                   </div>
-                  {feeError && (
-                    <p className="mt-1.5 text-xs font-medium text-danger-500">
-                      {feeError}
-                    </p>
-                  )}
-                </div>
-              </FieldRow>
+                </FieldRow>
+              ) : (
+                // Payments disabled — the field is hidden because the server
+                // will overwrite the stored fee with 0 on the next save.
+                <FieldRow
+                  label={t("profile:fields.sessionFeeUsd")}
+                  description={t("profile:paymentsDisabledNotice")}
+                >
+                  <p className="text-sm font-medium text-brand-600">
+                    {t("scholarships:freeListing")}
+                  </p>
+                </FieldRow>
+              )}
               <FieldRow label={t("profile:fields.sessionDurationMinutes")}>
                 <select
                   className="input-premium"

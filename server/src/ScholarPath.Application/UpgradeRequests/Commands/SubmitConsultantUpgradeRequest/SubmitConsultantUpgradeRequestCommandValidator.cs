@@ -27,9 +27,11 @@ public sealed class SubmitConsultantUpgradeRequestCommandValidator
         RuleFor(x => x.YearsOfExperience)
             .NotNull().GreaterThanOrEqualTo(0).LessThanOrEqualTo(80)
             .WithMessage("Years of experience must be 0 or greater.");
+        // A fee of 0 marks the consultant's sessions as free (no payment,
+        // no commission); only negative values are rejected.
         RuleFor(x => x.SessionFeeUsd)
-            .NotNull().GreaterThan(0)
-            .WithMessage("Session fee must be greater than zero.");
+            .NotNull().GreaterThanOrEqualTo(0m)
+            .WithMessage("Session fee cannot be negative.");
         RuleFor(x => x.SessionDurationMinutes)
             .NotNull()
             .Must(d => d is 30 or 45 or 60 or 90)

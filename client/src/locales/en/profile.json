@@ -1,6 +1,7 @@
 {
   "title": "My profile",
   "subtitle": "Manage your account and personal information.",
+  "paymentsDisabledNotice": "Payments are disabled platform-wide — sessions are free for now.",
   "completeness": "Profile {{percent}}% complete",
   "completenessLabel": "Profile completeness",
   "completenessHint": "Complete your profile to unlock all features.",

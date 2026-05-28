@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router";
 import { toast } from "sonner";
 import { useConsultantDetailQuery } from "@/hooks/useConsultantsQuery";
 import { useRequestBookingMutation } from "@/hooks/useBookingsQuery";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { durationLabel, formatDate, formatTime, formatUsd } from "@/lib/bookingFormat";
 import { StripeCheckout } from "@/components/common/StripeCheckout";
 import { apiErrorMessage } from "@/services/api/client";
@@ -58,7 +59,10 @@ export function BookingCheckout() {
     );
   }, [endAt, hasCompleteSlotParams, startAt]);
 
-  const feeAmount = consultant?.sessionFeeUsd ?? 0;
+  // Master payments switch: when off, the platform runs in fully-free mode,
+  // so every booking is priced at 0 regardless of the consultant's stored fee.
+  const paymentsEnabled = usePaymentsEnabled();
+  const feeAmount = paymentsEnabled ? (consultant?.sessionFeeUsd ?? 0) : 0;
 
   const slotSummary = useMemo(() => {
     if (!hasCompleteSlotParams) return t("checkout.holdSummaryEmpty");
@@ -97,8 +101,10 @@ export function BookingCheckout() {
         onSuccess: (result) => {
           setCreatedBookingId(result.bookingId);
           setClientSecret(result.clientSecret);
-          // A zero-fee session has nothing to charge — skip straight to done.
-          if (feeAmount <= 0) setPaid(true);
+          // Free session (consultant fee = 0): the server skips Stripe entirely
+          // and returns isFree=true with no client secret. Skip the payment
+          // step on the UI side too — the booking is already in Requested.
+          if (result.isFree || feeAmount <= 0) setPaid(true);
         },
         // Surface the server-side detail (e.g. "Slot already taken") instead
         // of a generic "We couldn't load your bookings" — the latter is
@@ -192,7 +198,7 @@ export function BookingCheckout() {
         value={`${formatTime(startAt, lang)} – ${formatTime(endAt, lang)}`}
       />
       <Detail label={t("fields.duration")} value={durationLabel(durationMinutes, t)} />
-      <Detail label={t("fields.consultantFee")} value={formatUsd(feeAmount)} />
+      <Detail label={t("fields.consultantFee")} value={feeAmount === 0 ? t("scholarships:freeListing") : formatUsd(feeAmount)} />
     </div>
   );
 
@@ -204,12 +210,12 @@ export function BookingCheckout() {
       <div className="mt-5 space-y-4 text-sm">
         <div className="flex items-center justify-between">
           <span className="text-text-secondary">{t("checkout.priceSummary.sessionFee")}</span>
-          <span className="font-medium text-text-primary">{formatUsd(feeAmount)}</span>
+          <span className="font-medium text-text-primary">{feeAmount === 0 ? t("scholarships:freeListing") : formatUsd(feeAmount)}</span>
         </div>
         <div className="border-t border-border-subtle pt-4">
           <div className="flex items-center justify-between">
             <span className="font-medium text-text-primary">{t("checkout.priceSummary.total")}</span>
-            <span className="text-2xl font-semibold text-text-primary">{formatUsd(feeAmount)}</span>
+            <span className="text-2xl font-semibold text-text-primary">{feeAmount === 0 ? t("scholarships:freeListing") : formatUsd(feeAmount)}</span>
           </div>
         </div>
       </div>
@@ -265,7 +271,7 @@ export function BookingCheckout() {
               <div className="mt-5 space-y-4 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-text-secondary">{t("checkout.priceSummary.sessionFee")}</span>
-                  <span className="font-medium text-text-primary">{formatUsd(feeAmount)}</span>
+                  <span className="font-medium text-text-primary">{feeAmount === 0 ? t("scholarships:freeListing") : formatUsd(feeAmount)}</span>
                 </div>
                 <div className="border-t border-border-subtle pt-4">
                   <div className="flex items-center justify-between">
@@ -273,7 +279,7 @@ export function BookingCheckout() {
                       {t("checkout.priceSummary.total")}
                     </span>
                     <span className="text-2xl font-semibold text-text-primary">
-                      {formatUsd(feeAmount)}
+                      {feeAmount === 0 ? t("scholarships:freeListing") : formatUsd(feeAmount)}
                     </span>
                   </div>
                 </div>
@@ -440,7 +446,7 @@ export function BookingCheckout() {
             <div className="mt-5 space-y-4 text-sm">
               <div className="flex items-center justify-between">
                 <span className="text-text-secondary">{t("checkout.priceSummary.sessionFee")}</span>
-                <span className="font-medium text-text-primary">{formatUsd(feeAmount)}</span>
+                <span className="font-medium text-text-primary">{feeAmount === 0 ? t("scholarships:freeListing") : formatUsd(feeAmount)}</span>
               </div>
               <div className="border-t border-border-subtle pt-4">
                 <div className="flex items-center justify-between">
@@ -448,7 +454,7 @@ export function BookingCheckout() {
                     {t("checkout.priceSummary.total")}
                   </span>
                   <span className="text-2xl font-semibold text-text-primary">
-                    {formatUsd(feeAmount)}
+                    {feeAmount === 0 ? t("scholarships:freeListing") : formatUsd(feeAmount)}
                   </span>
                 </div>
               </div>

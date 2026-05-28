@@ -24,6 +24,7 @@ import {
 import { apiErrorMessage } from "@/services/api/client";
 import { documentsApi } from "@/services/api/documents";
 import { useAuthStore } from "@/stores/authStore";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 type RoleKey = "Student" | "Company" | "Consultant";
 
@@ -322,7 +323,10 @@ function emptyConsultant(): ConsultantFormState {
   };
 }
 
-function validateConsultant(c: ConsultantFormState): Record<string, string> {
+function validateConsultant(
+  c: ConsultantFormState,
+  paymentsEnabled: boolean,
+): Record<string, string> {
   const errs: Record<string, string> = {};
   if (!c.bio.trim()) errs.bio = "Required";
   else if (c.bio.length > 2000) errs.bio = "Max 2000 characters";
@@ -334,8 +338,13 @@ function validateConsultant(c: ConsultantFormState): Record<string, string> {
   if (!c.yearsExperience || Number.isNaN(years) || years < 1) errs.yearsExperience = "Must be at least 1";
   const tagCount = c.expertiseTags.split(",").map((s) => s.trim()).filter(Boolean).length;
   if (tagCount === 0) errs.expertiseTags = "At least one tag required";
-  const fee = Number(c.fee);
-  if (!c.fee || Number.isNaN(fee) || fee <= 0) errs.fee = "Must be greater than zero";
+  // Master payments switch: when off, the fee field is hidden and the
+  // value is irrelevant — the server forces it to 0 on submit. Only enforce
+  // the ≥0 rule when payments are actually on.
+  if (paymentsEnabled) {
+    const fee = Number(c.fee);
+    if (!c.fee || Number.isNaN(fee) || fee < 0) errs.fee = "Must be zero or greater";
+  }
   if (!c.durationMinutes) errs.durationMinutes = "Required";
   const langCount = c.languages.split(",").map((s) => s.trim()).filter(Boolean).length;
   if (langCount === 0) errs.languages = "At least one language required";
@@ -388,6 +397,9 @@ export function OnboardingWizard() {
   const user = useAuthStore((s) => s.user);
   const rejectionReason = user?.lastOnboardingRejectionReason ?? null;
   const rejectionAt = user?.lastOnboardingRejectedAt ?? null;
+  // Master payments switch — controls whether the consultant session-fee
+  // field is rendered + validated.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const [step, setStep] = useState<"role" | "details">("role");
   const [detailsRole, setDetailsRole] = useState<"Company" | "Consultant">("Company");
@@ -468,19 +480,24 @@ export function OnboardingWizard() {
             : null,
       });
     } else {
-      const errs = validateConsultant(consultant);
+      const errs = validateConsultant(consultant, paymentsEnabled);
       setConsultantErrors(errs);
       if (Object.keys(errs).length > 0) {
         toast.error(t("auth:onboarding.details.required"));
         return;
       }
+      // When payments are disabled platform-wide, force the fee to 0 — the
+      // server does the same on its side, but submitting 0 here keeps the
+      // wire payload consistent with the validator and avoids NaN from an
+      // empty string.
+      const feeNumber = paymentsEnabled ? Number(consultant.fee) : 0;
       void submitRole("Consultant", {
         biography: consultant.bio.trim(),
         professionalTitle: consultant.title.trim(),
         highestDegree: consultant.highestDegree.trim(),
         fieldOfExpertise: consultant.fieldOfExpertise.trim(),
         yearsOfExperience: Number(consultant.yearsExperience),
-        sessionFeeUsd: Number(consultant.fee),
+        sessionFeeUsd: feeNumber,
         sessionDurationMinutes: Number(consultant.durationMinutes),
         expertiseTags: consultant.expertiseTags.split(",").map((s) => s.trim()).filter(Boolean),
         languages: consultant.languages.split(",").map((s) => s.trim()).filter(Boolean),
@@ -795,6 +812,9 @@ function ConsultantForm({
   errors: Record<string, string>;
 }) {
   const { t } = useTranslation(["auth"]);
+  // Master payments switch — when off, the session-fee field is hidden so a
+  // new consultant doesn't fill in a price they can't actually charge.
+  const paymentsEnabled = usePaymentsEnabled();
   const set = <K extends keyof ConsultantFormState>(k: K, v: ConsultantFormState[K]) =>
     onChange({ ...value, [k]: v });
   // Common IANA time zones — kept short; the input is still free-text so the
@@ -836,10 +856,19 @@ function ConsultantForm({
           value={value.yearsExperience}
           onChange={(e) => set("yearsExperience", e.target.value)} />
       </Labeled>
-      <Labeled label={t("auth:onboarding.consultant.fee")} required error={errors.fee}>
-        <input type="number" min={1} className={`h-11 ${fieldClass}`} value={value.fee}
-          onChange={(e) => set("fee", e.target.value)} />
-      </Labeled>
+      {paymentsEnabled ? (
+        <Labeled label={t("auth:onboarding.consultant.fee")} required error={errors.fee}>
+          <input type="number" min={0} className={`h-11 ${fieldClass}`} value={value.fee}
+            onChange={(e) => set("fee", e.target.value)} />
+        </Labeled>
+      ) : (
+        // Payments disabled platform-wide — the fee is auto-0 on the server.
+        // We stash 0 in the form state so the validator + submit handler
+        // (which still expect a number) keep working.
+        <Labeled label={t("auth:onboarding.consultant.fee")}>
+          <input type="number" className={`h-11 ${fieldClass}`} value="0" disabled readOnly />
+        </Labeled>
+      )}
       <Labeled label={t("auth:onboarding.consultant.duration")} required error={errors.durationMinutes}>
         <select className={`h-11 ${fieldClass}`} value={value.durationMinutes}
           onChange={(e) => set("durationMinutes", e.target.value)}>

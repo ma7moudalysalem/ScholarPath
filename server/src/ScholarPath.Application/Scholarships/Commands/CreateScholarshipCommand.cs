@@ -1,4 +1,5 @@
 using MediatR;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
@@ -65,14 +66,15 @@ public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholar
         // PB-005: in-app listings must declare a Review Service Fee at create
         // time so the Apply Now flow always has a price to authorise. External
         // listings don't need one — the Student leaves the platform to apply,
-        // and the company is paid out-of-band.
+        // and the company is paid out-of-band. A fee of 0 means the listing is
+        // free for the Student (no payment authorisation, no commission).
         When(v => v.Mode == ListingMode.InApp, () =>
         {
             RuleFor(v => v.ReviewFeeUsd)
                 .NotNull()
                 .WithMessage("Review Service Fee is required.")
-                .GreaterThan(0m)
-                .WithMessage("Review Service Fee must be greater than 0.")
+                .GreaterThanOrEqualTo(0m)
+                .WithMessage("Review Service Fee cannot be negative.")
                 .LessThanOrEqualTo(500m)
                 .WithMessage("Review Service Fee cannot exceed $500.");
         });
@@ -112,6 +114,26 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
         var ownerCompanyId = user.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
+        // Settings gates:
+        //   1. Master switch — when payments are disabled platform-wide, force
+        //      the fee to 0 silently. The Company's input is ignored on
+        //      purpose so flows don't surprise the user with an error.
+        //   2. Allow-free toggle — only checked when payments ARE enabled.
+        var paymentsEnabled = await PlatformSettingsReader.GetBooleanAsync(
+            db, PlatformSettingsKeys.PaymentsEnabled, defaultValue: true, ct);
+        var effectiveFee = paymentsEnabled
+            ? request.ReviewFeeUsd
+            : (request.Mode == ListingMode.InApp ? 0m : (decimal?)null);
+
+        if (paymentsEnabled && request.Mode == ListingMode.InApp && effectiveFee == 0m)
+        {
+            var freeAllowed = await PlatformSettingsReader.GetBooleanAsync(
+                db, PlatformSettingsKeys.AllowFreeScholarships, defaultValue: true, ct);
+            if (!freeAllowed)
+                throw new ConflictException(
+                    "Free in-app scholarships are not enabled on this platform. Please set a Review Service Fee greater than 0.");
+        }
+
         var entity = new Scholarship
         {
             Id = Guid.NewGuid(),
@@ -132,9 +154,11 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
                 : null,
             // Only persist the fee for in-app listings; external listings settle
             // off-platform so the column stays null and the Apply Now button
-            // becomes a redirect rather than a paid flow.
+            // becomes a redirect rather than a paid flow. When the master
+            // payments switch is off, the effective fee was already clamped
+            // to 0 above so the Apply Now flow runs free-mode.
             ReviewFeeUsd = request.Mode == ListingMode.InApp
-                ? request.ReviewFeeUsd
+                ? effectiveFee
                 : null,
             // Company-created listings always start in the admin moderation
             // queue (FR-SCH-10). They become Open only after an admin Approve,

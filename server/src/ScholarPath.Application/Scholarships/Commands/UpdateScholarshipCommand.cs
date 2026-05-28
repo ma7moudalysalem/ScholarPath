@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
@@ -22,7 +23,8 @@ public record UpdateScholarshipCommand : IRequest<bool>
     /// <summary>
     /// Optional updated Review Service Fee. Null leaves the existing value
     /// untouched (so the legacy ConfigureReviewFee endpoint and existing
-    /// PUT bodies both keep working); a positive value updates it.
+    /// PUT bodies both keep working); a non-negative value (0 = free)
+    /// updates it.
     /// </summary>
     public decimal? ReviewFeeUsd { get; init; }
 }
@@ -57,13 +59,35 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
         // PB-005: only overwrite the Review Service Fee when the caller actually
         // sent one — null means "leave the configured fee as-is" so the legacy
         // ConfigureReviewFee endpoint and existing PUT bodies keep working.
+        // A fee of 0 marks the listing as free (no payment authorisation, no
+        // commission); the Apply Now flow short-circuits for free listings.
         if (request.ReviewFeeUsd is { } fee)
         {
-            if (fee <= 0m)
-                throw new ConflictException("Review Service Fee must be greater than 0.");
+            if (fee < 0m)
+                throw new ConflictException("Review Service Fee cannot be negative.");
             if (fee > 500m)
                 throw new ConflictException("Review Service Fee cannot exceed $500.");
-            entity.ReviewFeeUsd = fee;
+
+            // Master switch: when payments are disabled platform-wide, force
+            // the fee to 0 silently regardless of what the Company sent.
+            var paymentsEnabled = await PlatformSettingsReader.GetBooleanAsync(
+                db, PlatformSettingsKeys.PaymentsEnabled, defaultValue: true, ct);
+            if (!paymentsEnabled)
+            {
+                entity.ReviewFeeUsd = 0m;
+            }
+            else
+            {
+                if (fee == 0m)
+                {
+                    var freeAllowed = await PlatformSettingsReader.GetBooleanAsync(
+                        db, PlatformSettingsKeys.AllowFreeScholarships, defaultValue: true, ct);
+                    if (!freeAllowed)
+                        throw new ConflictException(
+                            "Free in-app scholarships are not enabled on this platform. Please set a Review Service Fee greater than 0.");
+                }
+                entity.ReviewFeeUsd = fee;
+            }
         }
 
         await db.SaveChangesAsync(ct);

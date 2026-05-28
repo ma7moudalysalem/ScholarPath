@@ -157,6 +157,20 @@ public sealed class CancelCompanyReviewRequestCommandHandler(
     private async Task CancelUnderReviewWithHalfRefundAsync(
         Domain.Entities.CompanyReviewRequest entity, string? reason, CancellationToken ct)
     {
+        // Free request (no Payment row): the half-refund step is a no-op, but
+        // the state still has to flip so the Company stops working on it.
+        if (entity.PaymentId is null)
+        {
+            entity.Status = CompanyReviewRequestStatus.CancelledByStudent;
+            entity.CancelledAt = DateTimeOffset.UtcNow;
+            entity.CancelReason = reason;
+
+            logger.LogInformation(
+                "CompanyReviewRequest {RequestId} cancelled from UnderReview by Student (FREE — no refund).",
+                entity.Id);
+            return;
+        }
+
         if (entity.Payment is null || entity.Payment.StripePaymentIntentId is null)
             throw new ConflictException("CompanyReviewRequest has no payment to refund.");
         if (entity.Payment.Status != PaymentStatus.Captured)

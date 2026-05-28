@@ -114,6 +114,11 @@ export interface RequestBookingInput {
 /** Result of `POST /api/consultants/{id}/book` (`RequestBookingResult`). */
 export interface RequestBookingResult {
   bookingId: string;
+  /**
+   * True for free consultations (consultant fee = 0) — no Stripe widget,
+   * the booking is straight-into Requested awaiting consultant accept/reject.
+   */
+  isFree: boolean;
   /** Stripe client secret of the booking's PaymentIntent — confirm THIS one. */
   clientSecret: string | null;
   paymentIntentId: string | null;

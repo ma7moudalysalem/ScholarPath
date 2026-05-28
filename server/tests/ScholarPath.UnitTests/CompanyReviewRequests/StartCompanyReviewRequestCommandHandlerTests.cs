@@ -147,6 +147,68 @@ public class StartCompanyReviewRequestCommandHandlerTests
     }
 
     [Fact]
+    public async Task Free_scholarship_skips_Stripe_and_lands_directly_in_Pending()
+    {
+        using var db = CompanyReviewRequestTestFixtures.CreateDb();
+        var (scholarship, student, _) = CompanyReviewRequestTestFixtures
+            .SeedParticipants(db, reviewFeeUsd: 0m);
+
+        var currentUser = Substitute.For<ICurrentUserService>();
+        currentUser.UserId.Returns(student.Id);
+        var stripe = Substitute.For<IStripeService>();
+
+        var sut = new StartCompanyReviewRequestCommandHandler(
+            db, stripe, currentUser,
+            NullLogger<StartCompanyReviewRequestCommandHandler>.Instance);
+
+        var result = await sut.Handle(
+            new StartCompanyReviewRequestCommand(scholarship.Id), default);
+
+        result.IsFree.Should().BeTrue();
+        result.PaymentId.Should().BeNull();
+        result.ClientSecret.Should().BeNull();
+        result.PaymentIntentId.Should().BeNull();
+        result.AmountCents.Should().Be(0);
+
+        // Stripe must NOT be called for free requests — a 0-amount intent
+        // would be rejected by Stripe with an api_error.
+        await stripe.DidNotReceiveWithAnyArgs().CreatePaymentIntentAsync(
+            default, default!, default!, default!, default!, default);
+
+        var entity = db.CompanyReviewRequests.Single();
+        entity.Status.Should().Be(CompanyReviewRequestStatus.Pending);
+        entity.PaymentId.Should().BeNull();
+        entity.ReviewFeeUsdSnapshot.Should().Be(0m);
+
+        db.Payments.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Free_path_is_idempotent_on_double_click()
+    {
+        using var db = CompanyReviewRequestTestFixtures.CreateDb();
+        var (scholarship, student, _) = CompanyReviewRequestTestFixtures
+            .SeedParticipants(db, reviewFeeUsd: 0m);
+
+        var currentUser = Substitute.For<ICurrentUserService>();
+        currentUser.UserId.Returns(student.Id);
+
+        var sut = new StartCompanyReviewRequestCommandHandler(
+            db, Substitute.For<IStripeService>(), currentUser,
+            NullLogger<StartCompanyReviewRequestCommandHandler>.Instance);
+
+        var first = await sut.Handle(
+            new StartCompanyReviewRequestCommand(scholarship.Id), default);
+        var second = await sut.Handle(
+            new StartCompanyReviewRequestCommand(scholarship.Id), default);
+
+        first.RequestId.Should().Be(second.RequestId);
+        first.IsFree.Should().BeTrue();
+        second.IsFree.Should().BeTrue();
+        db.CompanyReviewRequests.Count().Should().Be(1);
+    }
+
+    [Fact]
     public async Task Rejects_when_scholarship_is_not_open()
     {
         using var db = CompanyReviewRequestTestFixtures.CreateDb();

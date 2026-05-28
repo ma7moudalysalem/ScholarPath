@@ -10,6 +10,7 @@ import {
   type PaymentStatus,
   type PayoutStatus,
 } from "@/services/api/payments";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 function paymentBadge(s: PaymentStatus): string {
   switch (s) {
@@ -46,6 +47,7 @@ function payoutBadge(s: PayoutStatus): string {
 export function CompanyBilling() {
   const { t, i18n } = useTranslation(["payments", "common"]);
   const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
+  const paymentsEnabled = usePaymentsEnabled();
   const dash = (iso: string | null) =>
     iso ? format(new Date(iso), "yyyy-MM-dd", { locale: dateLocale }) : "—";
 
@@ -67,6 +69,12 @@ export function CompanyBilling() {
         <h1 className="text-2xl font-semibold tracking-tight">{t("payments:billing.title")}</h1>
         <p className="mt-1 text-sm text-text-secondary">{t("payments:billing.subtitle")}</p>
       </div>
+
+      {!paymentsEnabled && (
+        <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
+          {t("payments:billing.paymentsDisabledBanner")}
+        </div>
+      )}
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{t("payments:billing.paymentsTitle")}</h2>

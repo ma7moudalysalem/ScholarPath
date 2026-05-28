@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import {
   scholarshipsApi,
@@ -10,6 +9,7 @@ import {
   type ScholarshipStatus,
 } from "@/services/api/scholarships";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { formatCalendarDate } from "@/lib/dates";
 
 const STATUSES: ScholarshipStatus[] = [
   "UnderReview",
@@ -181,7 +181,7 @@ export function AdminScholarships() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {format(new Date(s.deadline), "yyyy-MM-dd", { locale: dateLocale })}
+                  {formatCalendarDate(s.deadline, "yyyy-MM-dd", dateLocale)}
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{s.applicantCount}</td>
                 <td className="px-4 py-3 text-end">

@@ -65,7 +65,12 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
             throw new BookingDomainException("Only requested bookings can be accepted.");
         }
 
-        if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
+        // PB-006 (free path): a 0-price booking has no Stripe intent and no
+        // Payment row. Skip the capture call and just flip the state; the
+        // meeting room is provisioned below as usual.
+        var isFree = booking.PriceUsd == 0m && booking.Payment is null;
+
+        if (!isFree && string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
         {
             throw new BookingDomainException("Booking has no Stripe payment intent to capture.");
         }
@@ -75,44 +80,47 @@ public sealed class AcceptBookingCommandHandler : IRequestHandler<AcceptBookingC
             0,
             MidpointRounding.AwayFromZero);
 
-        if (amountCents <= 0)
+        if (amountCents < 0)
         {
-            throw new BookingDomainException("Booking amount must be greater than zero.");
-        }
-
-        var idempotencyKey = $"booking-accept:{booking.Id:N}";
-
-        var captureResult = await _stripeService.CapturePaymentIntentAsync(
-            paymentIntentId: booking.StripePaymentIntentId,
-            amountToCaptureCents: amountCents,
-            idempotencyKey: idempotencyKey,
-            ct: cancellationToken);
-
-        if (string.IsNullOrWhiteSpace(captureResult.Id))
-        {
-            throw new BookingDomainException("Stripe payment capture failed.");
+            throw new BookingDomainException("Booking amount cannot be negative.");
         }
 
         var nowUtc = DateTimeOffset.UtcNow;
 
-        // FR-081/187/190: sync the internal Payment row with the Stripe capture —
-        // mark it Captured and lock in the platform/payee split from the financial
-        // rule in force, so payment history, payouts and reporting stay accurate.
-        // Accepts Held or Pending: the Stripe capture above already proved the
-        // intent was authorised, even if the Held webhook has not landed yet (P2).
-        if (booking.Payment is { Status: PaymentStatus.Held or PaymentStatus.Pending } payment)
+        if (!isFree)
         {
-            payment.Status = PaymentStatus.Captured;
-            payment.CapturedAt = nowUtc;
-            if (!string.IsNullOrWhiteSpace(captureResult.LatestChargeId))
+            var idempotencyKey = $"booking-accept:{booking.Id:N}";
+
+            var captureResult = await _stripeService.CapturePaymentIntentAsync(
+                paymentIntentId: booking.StripePaymentIntentId!,
+                amountToCaptureCents: amountCents,
+                idempotencyKey: idempotencyKey,
+                ct: cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(captureResult.Id))
             {
-                payment.StripeChargeId = captureResult.LatestChargeId;
+                throw new BookingDomainException("Stripe payment capture failed.");
             }
 
-            var split = await FinancialRuleResolver.ResolvePaymentSplitAsync(
-                _context, payment.Type, payment.AmountCents, cancellationToken);
-            payment.ProfitShareAmountCents = split.PlatformTakeCents;
-            payment.PayeeAmountCents = split.PayeeNetCents;
+            // FR-081/187/190: sync the internal Payment row with the Stripe capture —
+            // mark it Captured and lock in the platform/payee split from the financial
+            // rule in force, so payment history, payouts and reporting stay accurate.
+            // Accepts Held or Pending: the Stripe capture above already proved the
+            // intent was authorised, even if the Held webhook has not landed yet (P2).
+            if (booking.Payment is { Status: PaymentStatus.Held or PaymentStatus.Pending } payment)
+            {
+                payment.Status = PaymentStatus.Captured;
+                payment.CapturedAt = nowUtc;
+                if (!string.IsNullOrWhiteSpace(captureResult.LatestChargeId))
+                {
+                    payment.StripeChargeId = captureResult.LatestChargeId;
+                }
+
+                var split = await FinancialRuleResolver.ResolvePaymentSplitAsync(
+                    _context, payment.Type, payment.AmountCents, cancellationToken);
+                payment.ProfitShareAmountCents = split.PlatformTakeCents;
+                payment.PayeeAmountCents = split.PayeeNetCents;
+            }
         }
 
         booking.Status = BookingStatus.Confirmed;

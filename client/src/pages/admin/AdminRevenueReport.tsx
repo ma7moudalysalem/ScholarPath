@@ -11,6 +11,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { analyticsApi, type AdminRevenueDto } from "@/services/api/analytics";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { DatePicker } from "@/components/ui/DatePicker";
 import {
   ChartCard,
@@ -188,8 +189,11 @@ function exportCsv(filename: string, rows: (string | number)[][]): void {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export function AdminRevenueReport() {
-  const { t, i18n } = useTranslation(["analytics", "common"]);
+  const { t, i18n } = useTranslation(["analytics", "common", "payments"]);
   const locale = i18n.language === "ar" ? "ar-EG" : "en-US";
+  // Master payments switch — when off, the report still loads but shows a
+  // banner so the admin knows new transactions stopped accruing.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const initial = useMemo(() => defaultRange(), []);
   const [from, setFrom] = useState(initial.from);
@@ -244,6 +248,11 @@ export function AdminRevenueReport() {
 
   return (
     <div className="space-y-6">
+      {!paymentsEnabled && (
+        <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
+          {t("payments:billing.paymentsDisabledBanner")}
+        </div>
+      )}
       {/* Header */}
       <section className="relative overflow-hidden rounded-3xl border border-border-subtle bg-bg-elevated p-6 sm:p-8">
         <div className="orb orb-brand orb-animated -end-24 -top-24 size-72 opacity-30" />

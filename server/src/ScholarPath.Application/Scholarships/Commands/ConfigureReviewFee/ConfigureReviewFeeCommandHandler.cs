@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 
@@ -24,7 +25,28 @@ public sealed class ConfigureReviewFeeCommandHandler(
             throw new ForbiddenAccessException();
         }
 
-        scholarship.ReviewFeeUsd = request.ReviewFeeUsd;
+        // Master switch: when payments are off platform-wide, the requested
+        // value is ignored and the fee is forced to 0 — the Apply Now flow
+        // then runs free-mode for this listing.
+        var paymentsEnabled = await PlatformSettingsReader.GetBooleanAsync(
+            db, PlatformSettingsKeys.PaymentsEnabled, defaultValue: true, ct);
+        if (!paymentsEnabled)
+        {
+            scholarship.ReviewFeeUsd = 0m;
+        }
+        else
+        {
+            // Settings gate: free in-app scholarships can be disabled platform-wide.
+            if (request.ReviewFeeUsd == 0m)
+            {
+                var freeAllowed = await PlatformSettingsReader.GetBooleanAsync(
+                    db, PlatformSettingsKeys.AllowFreeScholarships, defaultValue: true, ct);
+                if (!freeAllowed)
+                    throw new ConflictException(
+                        "Free in-app scholarships are not enabled on this platform. Please set a Review Service Fee greater than 0.");
+            }
+            scholarship.ReviewFeeUsd = request.ReviewFeeUsd;
+        }
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 

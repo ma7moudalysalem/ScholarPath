@@ -203,6 +203,49 @@ public static partial class DbSeeder
                 DescriptionAr = "تفعيل ميزات الذكاء الاصطناعي عالمياً.",
                 CreatedAt = DateTimeOffset.UtcNow,
             },
+            // Master payments switch: when off, the platform runs in fully-free
+            // mode — every fee on every flow is forced to 0, Stripe is never
+            // called, billing dashboards show a "payments disabled" banner. The
+            // per-feature allow-free toggles below are moot when this is off.
+            new PlatformSetting
+            {
+                Id = Guid.NewGuid(),
+                Key = "payments.enabled",
+                Value = "true",
+                ValueType = PlatformSettingType.Boolean,
+                Category = "Payments",
+                DescriptionEn = "Master toggle. When off, the platform runs fully free — all fees become 0, Stripe is bypassed everywhere.",
+                DescriptionAr = "المفتاح الرئيسي. عند إيقافه تعمل المنصة مجاناً بالكامل — جميع الرسوم تصبح صفر، ولا يُستدعى Stripe.",
+                CreatedAt = DateTimeOffset.UtcNow,
+            },
+            // PB-005R: lets the admin disable free in-app scholarship listings
+            // platform-wide. When off, a Company creating or updating an in-app
+            // scholarship must set a Review Service Fee > 0.
+            new PlatformSetting
+            {
+                Id = Guid.NewGuid(),
+                Key = "payments.allowFreeScholarships",
+                Value = "true",
+                ValueType = PlatformSettingType.Boolean,
+                Category = "Payments",
+                DescriptionEn = "Allow companies to mark in-app scholarships as free (review fee = 0).",
+                DescriptionAr = "السماح للشركات بجعل المنح داخل المنصة مجانية (رسوم المراجعة = 0).",
+                CreatedAt = DateTimeOffset.UtcNow,
+            },
+            // PB-006R: lets the admin disable free consultant sessions platform-
+            // wide. When off, a Consultant editing their profile or signing up
+            // must set a Session Fee > 0.
+            new PlatformSetting
+            {
+                Id = Guid.NewGuid(),
+                Key = "payments.allowFreeConsultantSessions",
+                Value = "true",
+                ValueType = PlatformSettingType.Boolean,
+                Category = "Payments",
+                DescriptionEn = "Allow consultants to offer free sessions (session fee = 0).",
+                DescriptionAr = "السماح للمستشارين بتقديم جلسات مجانية (رسوم الجلسة = 0).",
+                CreatedAt = DateTimeOffset.UtcNow,
+            },
         };
 
         var existingKeys = await db.PlatformSettings

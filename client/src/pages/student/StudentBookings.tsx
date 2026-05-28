@@ -253,7 +253,9 @@ export function StudentBookings() {
                           <span className="inline-flex items-center gap-1.5 text-text-secondary">
                             <DollarSign aria-hidden className="size-3.5 text-text-tertiary" />
                             <span className="font-semibold text-text-primary">
-                              {formatUsd(booking.priceUsd)}
+                              {booking.priceUsd === 0
+                                ? t("scholarships:freeListing")
+                                : formatUsd(booking.priceUsd)}
                             </span>
                           </span>
                         </div>

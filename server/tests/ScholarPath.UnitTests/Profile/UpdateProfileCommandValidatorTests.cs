@@ -152,12 +152,21 @@ public sealed class UpdateProfileCommandValidatorTests
 
     // ── Consultant session settings (CR-PROF-09) ─────────────────────────────
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-10)]
-    public void Non_positive_session_fee_is_rejected(double fee)
+    [Fact]
+    public void Zero_session_fee_marks_consultant_free_and_is_accepted()
     {
-        var fields = Empty() with { SessionFeeUsd = (decimal)fee };
+        // A fee of 0 means the consultant offers free sessions — the validator
+        // must allow this. Stripe is bypassed for 0-priced bookings; only
+        // negative values stay rejected.
+        var fields = Empty() with { SessionFeeUsd = 0m };
+        var result = NewValidator().TestValidate(Cmd(fields));
+        result.ShouldNotHaveValidationErrorFor(x => x.Fields.SessionFeeUsd);
+    }
+
+    [Fact]
+    public void Negative_session_fee_is_rejected()
+    {
+        var fields = Empty() with { SessionFeeUsd = -10m };
         var result = NewValidator().TestValidate(Cmd(fields));
         result.ShouldHaveValidationErrorFor(x => x.Fields.SessionFeeUsd);
     }

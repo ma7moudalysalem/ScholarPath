@@ -218,7 +218,9 @@ export function StudentBookingDetails() {
                     {t("fields.fee")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-text-primary">
-                    {formatUsd(booking.priceUsd)}
+                    {booking.priceUsd === 0
+                      ? t("scholarships:freeListing")
+                      : formatUsd(booking.priceUsd)}
                   </p>
                 </div>
               </div>

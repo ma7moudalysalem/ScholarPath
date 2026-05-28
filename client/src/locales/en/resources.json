@@ -94,8 +94,21 @@
       "contentEn": "Content (English)",
       "contentAr": "Content (Arabic)",
       "externalLinkUrl": "External link URL",
+      "category": "Category",
       "tags": "Tags",
       "readMinutes": "Read time (min)"
+    },
+    "categoryPlaceholder": "Select a category…",
+    "categories": {
+      "applications": "Applications",
+      "essays": "Essays & writing",
+      "interviews": "Interviews",
+      "language": "Language tests",
+      "finance": "Funding & finance",
+      "visas": "Visas & travel",
+      "planning": "Planning & strategy",
+      "life-abroad": "Life abroad",
+      "misc": "Other"
     }
   },
   "moderation": {

@@ -12,6 +12,13 @@ import { useAuthStore } from "@/stores/authStore";
 
 interface StatusResponse {
   maintenanceModeEnabled: boolean;
+  /**
+   * Master payments switch. When false the platform runs fully free —
+   * fee inputs are hidden, dashboards show a banner, Apply Now / Booking
+   * always take the free path. Default true so client code that hasn't
+   * loaded the status yet keeps showing paid UI.
+   */
+  paymentsEnabled: boolean;
   version: string;
   serverTime: string;
 }

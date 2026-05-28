@@ -21,7 +21,7 @@ import { formatMoneyCents } from "@/services/api/payments";
  * will pay out.
  */
 export function CompanyReviewRequests() {
-  const { t, i18n } = useTranslation(["payments", "common"]);
+  const { t, i18n } = useTranslation(["payments", "common", "scholarships"]);
   const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -123,19 +123,27 @@ export function CompanyReviewRequests() {
               <dl className="mt-4 grid gap-3 text-xs text-text-secondary sm:grid-cols-2 lg:grid-cols-4">
                 <Stat
                   label={t("payments:reviewRequest.fee")}
-                  value={formatMoneyCents(req.amountCents, req.currency, i18n.language)}
+                  value={req.isFree
+                    ? t("scholarships:detail.freeListing")
+                    : formatMoneyCents(req.amountCents, req.currency, i18n.language)}
                 />
                 <Stat
                   label={t("payments:reviewRequest.retained")}
-                  value={formatMoneyCents(req.retainedAmountCents, req.currency, i18n.language)}
+                  value={req.isFree
+                    ? "—"
+                    : formatMoneyCents(req.retainedAmountCents, req.currency, i18n.language)}
                 />
                 <Stat
                   label={t("payments:reviewRequest.commission")}
-                  value={formatMoneyCents(req.platformCommissionCents, req.currency, i18n.language)}
+                  value={req.isFree
+                    ? "—"
+                    : formatMoneyCents(req.platformCommissionCents, req.currency, i18n.language)}
                 />
                 <Stat
                   label={t("payments:reviewRequest.share")}
-                  value={formatMoneyCents(req.companyShareCents, req.currency, i18n.language)}
+                  value={req.isFree
+                    ? "—"
+                    : formatMoneyCents(req.companyShareCents, req.currency, i18n.language)}
                   tone="success"
                 />
               </dl>

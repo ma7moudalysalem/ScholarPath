@@ -24,7 +24,8 @@ public sealed class StatusController(
     IServiceScopeFactory scopeFactory,
     ILogger<StatusController> logger) : ControllerBase
 {
-    private const string CacheKey = "platform:maintenance.enabled";
+    private const string MaintenanceCacheKey = "platform:maintenance.enabled";
+    private const string PaymentsCacheKey = "platform:payments.enabled";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
 
     /// <summary>Returns the current platform status.</summary>
@@ -33,37 +34,55 @@ public sealed class StatusController(
     [ProducesResponseType(typeof(StatusResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get(CancellationToken ct)
     {
-        bool maintenanceModeEnabled;
+        var maintenanceModeEnabled = await ReadBoolSettingAsync(
+            MaintenanceCacheKey, "maintenance.enabled", defaultValue: false, ct);
+
+        var paymentsEnabled = await ReadBoolSettingAsync(
+            PaymentsCacheKey, "payments.enabled", defaultValue: true, ct);
+
+        return Ok(new StatusResponse(
+            MaintenanceModeEnabled: maintenanceModeEnabled,
+            PaymentsEnabled: paymentsEnabled,
+            Version: typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0.0.0",
+            ServerTime: DateTimeOffset.UtcNow));
+    }
+
+    /// <summary>
+    /// 30 s in-memory cache around a single boolean platform setting — the
+    /// status endpoint is polled cheaply on every page load, so we don't want
+    /// to hit Postgres for each call.
+    /// </summary>
+    private async Task<bool> ReadBoolSettingAsync(
+        string cacheKey, string settingKey, bool defaultValue, CancellationToken ct)
+    {
         try
         {
-            maintenanceModeEnabled = await cache.GetOrCreateAsync(CacheKey, async entry =>
+            return await cache.GetOrCreateAsync(cacheKey, async entry =>
             {
                 entry.AbsoluteExpirationRelativeToNow = CacheTtl;
                 using var scope = scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
                 var value = await db.PlatformSettings
                     .AsNoTracking()
-                    .Where(s => s.Key == "maintenance.enabled")
+                    .Where(s => s.Key == settingKey)
                     .Select(s => s.Value)
                     .FirstOrDefaultAsync(ct)
                     .ConfigureAwait(false);
-                return bool.TryParse(value, out var flag) && flag;
+                return bool.TryParse(value, out var flag) ? flag : defaultValue;
             }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "StatusController: could not read maintenance setting; defaulting to false.");
-            maintenanceModeEnabled = false;
+            logger.LogWarning(ex,
+                "StatusController: could not read {SettingKey}; defaulting to {Default}.",
+                settingKey, defaultValue);
+            return defaultValue;
         }
-
-        return Ok(new StatusResponse(
-            MaintenanceModeEnabled: maintenanceModeEnabled,
-            Version: typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0.0.0",
-            ServerTime: DateTimeOffset.UtcNow));
     }
 
     public sealed record StatusResponse(
         bool MaintenanceModeEnabled,
+        bool PaymentsEnabled,
         string Version,
         DateTimeOffset ServerTime);
 }

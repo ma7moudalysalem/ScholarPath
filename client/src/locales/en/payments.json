@@ -172,7 +172,8 @@
     "paymentsTitle": "Review payments",
     "payoutsTitle": "Payouts",
     "noPayments": "No payments yet.",
-    "noPayouts": "No payouts yet."
+    "noPayouts": "No payouts yet.",
+    "paymentsDisabledBanner": "Payments are disabled platform-wide. New scholarships are free for students; no new transactions are processing. Existing records below are read-only history."
   },
   "earnings": {
     "title": "Earnings",

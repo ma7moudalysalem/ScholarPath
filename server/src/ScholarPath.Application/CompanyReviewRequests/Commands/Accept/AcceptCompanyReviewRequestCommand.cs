@@ -71,6 +71,23 @@ public sealed class AcceptCompanyReviewRequestCommandHandler(
             throw new ConflictException(
                 $"Cannot accept a CompanyReviewRequest in status {entity.Status} — only Pending requests can be accepted.");
 
+        // Free request (PaymentId is null when the scholarship was free at
+        // start time): skip Stripe entirely and just flip the state. There is
+        // no money to capture, no commission to compute.
+        if (entity.PaymentId is null)
+        {
+            entity.Status = CompanyReviewRequestStatus.UnderReview;
+            entity.AcceptedAt = DateTimeOffset.UtcNow;
+
+            await db.SaveChangesAsync(ct);
+            await DispatchAsync(entity, ct);
+
+            logger.LogInformation(
+                "CompanyReviewRequest {RequestId} accepted → UnderReview (FREE — no capture).",
+                entity.Id);
+            return true;
+        }
+
         if (entity.Payment is null || entity.Payment.StripePaymentIntentId is null)
             throw new ConflictException("CompanyReviewRequest has no payment intent to capture.");
 

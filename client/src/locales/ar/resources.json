@@ -94,8 +94,21 @@
       "contentEn": "المحتوى (إنجليزي)",
       "contentAr": "المحتوى (عربي)",
       "externalLinkUrl": "رابط المصدر الخارجي",
+      "category": "التصنيف",
       "tags": "الوسوم",
       "readMinutes": "وقت القراءة (دقيقة)"
+    },
+    "categoryPlaceholder": "اختر تصنيفًا…",
+    "categories": {
+      "applications": "التقديم على المنح",
+      "essays": "المقالات والكتابة",
+      "interviews": "المقابلات",
+      "language": "اختبارات اللغة",
+      "finance": "التمويل والميزانية",
+      "visas": "التأشيرات والسفر",
+      "planning": "التخطيط والاستراتيجية",
+      "life-abroad": "الحياة في الخارج",
+      "misc": "أخرى"
     }
   },
   "moderation": {

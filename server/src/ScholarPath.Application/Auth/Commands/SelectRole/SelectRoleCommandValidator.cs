@@ -109,9 +109,11 @@ public sealed class SelectRoleCommandValidator : AbstractValidator<SelectRoleCom
             RuleFor(x => x.Details!.YearsOfExperience)
                 .NotNull().GreaterThanOrEqualTo(1).LessThanOrEqualTo(80)
                 .WithMessage("Years of experience must be at least 1.");
+            // A fee of 0 marks the consultant's sessions as free (no payment,
+            // no commission); only negative values are rejected.
             RuleFor(x => x.Details!.SessionFeeUsd)
-                .NotNull().GreaterThan(0)
-                .WithMessage("Session fee must be greater than zero.");
+                .NotNull().GreaterThanOrEqualTo(0m)
+                .WithMessage("Session fee cannot be negative.");
             // AUTH-CODE-04: canonical session-duration list shared with Profile.
             RuleFor(x => x.Details!.SessionDurationMinutes)
                 .NotNull()

@@ -24,7 +24,7 @@ import { formatMoneyCents } from "@/services/api/payments";
  * UnderReview: 50% refund, Completed: cancellation/refund not allowed."
  */
 export function StudentReviewRequests() {
-  const { t, i18n } = useTranslation(["payments", "common"]);
+  const { t, i18n } = useTranslation(["payments", "common", "scholarships"]);
   const queryClient = useQueryClient();
 
   const query = useQuery<CompanyReviewRequestDto[]>({
@@ -100,7 +100,9 @@ export function StudentReviewRequests() {
             <dl className="mt-4 grid gap-3 text-xs text-text-secondary sm:grid-cols-2 lg:grid-cols-4">
               <Stat
                 label={t("payments:reviewRequest.fee")}
-                value={formatMoneyCents(req.amountCents, req.currency, i18n.language)}
+                value={req.isFree
+                  ? t("scholarships:detail.freeListing")
+                  : formatMoneyCents(req.amountCents, req.currency, i18n.language)}
               />
               <Stat
                 label={t("payments:reviewRequest.held")}

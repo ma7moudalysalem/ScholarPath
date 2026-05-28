@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
@@ -13,6 +12,7 @@ import {
 } from "@/services/api/scholarships";
 import { apiErrorMessage } from "@/services/api/client";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { formatCalendarDate } from "@/lib/dates";
 
 function statusBadgeClass(s: ScholarshipStatus): string {
   switch (s) {
@@ -147,7 +147,7 @@ export function CompanyScholarships() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {format(new Date(s.deadline), "yyyy-MM-dd", { locale: dateLocale })}
+                  {formatCalendarDate(s.deadline, "yyyy-MM-dd", dateLocale)}
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{s.applicantCount}</td>
                 <td className="px-4 py-3">

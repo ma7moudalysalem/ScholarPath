@@ -17,6 +17,7 @@ import {
   type UpdateScholarshipInput,
 } from "@/services/api/scholarships";
 import { apiErrorMessage } from "@/services/api/client";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import type { AcademicLevel, FundingType } from "@/types/domain";
 
 // ── Form schema ──────────────────────────────────────────────────────────────
@@ -54,19 +55,36 @@ function minDeadlineDate(): Date {
   return new Date(Date.now() + 8 * 86_400_000);
 }
 
+// Language sniffers for bilingual fields. The "English" side accepts mixed
+// content (brand names, dates, etc.) as long as *some* Latin letter is present;
+// the "Arabic" side likewise requires at least one Arabic letter. This catches
+// authors typing the wrong language entirely while still allowing realistic
+// mixed text like "منحة BioCure 2026".
+const ARABIC_LETTER_RE = 
+  /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+const LATIN_LETTER_RE = /[A-Za-z]/;
+const looksEnglish = (s: string) => s.length === 0 || LATIN_LETTER_RE.test(s);
+const looksArabic  = (s: string) => s.length === 0 || ARABIC_LETTER_RE.test(s);
+
 function makeSchema(t: TFunction) {
   const required = t("errors:validate.required");
   const tooLong = t("errors:validate.tooLong");
+  const englishOnly = t("errors:validate.englishOnly");
+  const arabicOnly = t("errors:validate.arabicOnly");
   const deadlineMsg = t("moderation:companyScholarships.form.deadlineHint");
 
   // Single schema — funding type and target level are always validated, but
   // only sent to the server in create mode. In edit mode the form keeps them
   // around to display the current values; they're filtered out at submit.
   return z.object({
-    titleEn: z.string().min(1, required).max(300, tooLong),
-    titleAr: z.string().min(1, required).max(300, tooLong),
-    descriptionEn: z.string().min(1, required),
-    descriptionAr: z.string().min(1, required),
+    titleEn: z.string().min(1, required).max(300, tooLong)
+      .refine(looksEnglish, englishOnly),
+    titleAr: z.string().min(1, required).max(300, tooLong)
+      .refine(looksArabic, arabicOnly),
+    descriptionEn: z.string().min(1, required)
+      .refine(looksEnglish, englishOnly),
+    descriptionAr: z.string().min(1, required)
+      .refine(looksArabic, arabicOnly),
     categoryId: z.string().min(1, required),
     deadline: z
       .string()
@@ -81,13 +99,14 @@ function makeSchema(t: TFunction) {
     targetLevel: z.enum(ACADEMIC_LEVELS),
     fieldsOfStudy: z.array(z.string()).optional(),
     // PB-005: per-scholarship Review Service Fee in USD. Required for in-app
-    // listings — the server rejects null/0/<0/>500. We mirror the same range
-    // here so the company sees the error before the network round-trip.
-    // Coerce so an empty number input doesn't fall through as `undefined` —
-    // the gt(0) rule then surfaces the right "required > 0" message.
+    // listings — the server rejects negative or >500 values. A fee of 0 marks
+    // the listing as free (no payment authorisation, no commission). The
+    // `error: required` here triggers when the input is left empty after a
+    // clear, since a missing number coerces to undefined and fails the type
+    // check before the range rules run.
     reviewFeeUsd: z
       .number({ error: required })
-      .gt(0, t("moderation:companyScholarships.form.reviewFeeMin"))
+      .gte(0, t("moderation:companyScholarships.form.reviewFeeMin"))
       .lte(500, t("moderation:companyScholarships.form.reviewFeeMax")),
   });
 }
@@ -102,6 +121,10 @@ export function ScholarshipForm() {
   const isAr = i18n.language.startsWith("ar");
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // Master payments switch. When off, the Review Service Fee input is hidden
+  // and the form auto-submits 0 — the server enforces the same rule, but the
+  // UI is gated here so the Company isn't shown a price field they can't use.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const schema = useMemo(() => makeSchema(t), [t]);
 
@@ -117,9 +140,10 @@ export function ScholarshipForm() {
       fundingType: "FullyFunded",
       targetLevel: "Undergrad",
       fieldsOfStudy: [],
-      // Sensible default so a Company can submit quickly. Validation still
-      // catches 0 / >500 / negative, and the company can pick any value.
-      reviewFeeUsd: 50,
+      // Sensible default so a Company can submit quickly. When the platform's
+      // master payments switch is off, the form auto-populates 0 and hides the
+      // input below — validation still catches negative / >500 / >2dp.
+      reviewFeeUsd: paymentsEnabled ? 50 : 0,
     },
   });
 
@@ -154,10 +178,13 @@ export function ScholarshipForm() {
       // and can toggle items on/off without losing the existing selection.
       fieldsOfStudy: d.fieldsOfStudy ?? [],
       // Pre-fill the configured fee; default to 50 USD when the legacy
-      // listing has no fee yet so saving the edit fills it in.
-      reviewFeeUsd: d.reviewFeeUsd ?? 50,
+      // listing has no fee yet so saving the edit fills it in. When the
+      // platform's master payments switch is off, force the fee to 0 so the
+      // listing stays consistent with the platform mode even when an older
+      // value is still stored in the database.
+      reviewFeeUsd: paymentsEnabled ? (d.reviewFeeUsd ?? 50) : 0,
     });
-  }, [mode, detailQuery.data, form]);
+  }, [mode, detailQuery.data, form, paymentsEnabled]);
 
   const createMut = useMutation({
     mutationFn: (input: CreateScholarshipInput) =>
@@ -420,35 +447,44 @@ export function ScholarshipForm() {
             />
           </Field>
 
-          <Field
-            id="reviewFeeUsd"
-            label={t("moderation:companyScholarships.form.reviewFee")}
-            hint={t("moderation:companyScholarships.form.reviewFeeHint")}
-            error={errors.reviewFeeUsd?.message}
-          >
-            {/* Stored as a number so the zod schema's gt(0) / lte(500) rules
-                run on the parsed value, not the raw text. */}
-            <Controller
-              control={form.control}
-              name="reviewFeeUsd"
-              render={({ field }) => (
-                <input
-                  id="reviewFeeUsd"
-                  type="number"
-                  inputMode="decimal"
-                  min={1}
-                  max={500}
-                  step={1}
-                  className={fieldClass}
-                  value={field.value ?? ""}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    field.onChange(raw === "" ? undefined : Number(raw));
-                  }}
-                />
-              )}
-            />
-          </Field>
+          {paymentsEnabled ? (
+            <Field
+              id="reviewFeeUsd"
+              label={t("moderation:companyScholarships.form.reviewFee")}
+              hint={t("moderation:companyScholarships.form.reviewFeeHint")}
+              error={errors.reviewFeeUsd?.message}
+            >
+              {/* Stored as a number so the zod schema's gte(0) / lte(500) rules
+                  run on the parsed value, not the raw text. min={0} lets the
+                  arrow step down to zero — a fee of 0 marks the listing free. */}
+              <Controller
+                control={form.control}
+                name="reviewFeeUsd"
+                render={({ field }) => (
+                  <input
+                    id="reviewFeeUsd"
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    max={500}
+                    step={1}
+                    className={fieldClass}
+                    value={field.value ?? ""}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      field.onChange(raw === "" ? undefined : Number(raw));
+                    }}
+                  />
+                )}
+              />
+            </Field>
+          ) : (
+            // Payments disabled platform-wide — the input is hidden and the
+            // form submits 0 by default. A small notice tells the Company why.
+            <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
+              {t("moderation:companyScholarships.form.paymentsDisabledNotice")}
+            </div>
+          )}
 
           {mode === "create" && (
             <div className="grid gap-4 sm:grid-cols-2">

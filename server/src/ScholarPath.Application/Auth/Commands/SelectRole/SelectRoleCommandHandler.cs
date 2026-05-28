@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Auth.DTOs;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Notifications;
@@ -130,12 +131,27 @@ public sealed class SelectRoleCommandHandler(
                 }
                 else
                 {
+                    // Master switch: when payments are off platform-wide,
+                    // force the session fee to 0 silently.
+                    var paymentsEnabled = await PlatformSettingsReader.GetBooleanAsync(
+                        db, PlatformSettingsKeys.PaymentsEnabled, defaultValue: true, ct);
+                    var effectiveSessionFee = paymentsEnabled ? details.SessionFeeUsd : 0m;
+
+                    if (paymentsEnabled && details.SessionFeeUsd == 0m)
+                    {
+                        var freeAllowed = await PlatformSettingsReader.GetBooleanAsync(
+                            db, PlatformSettingsKeys.AllowFreeConsultantSessions, defaultValue: true, ct);
+                        if (!freeAllowed)
+                            throw new ConflictException(
+                                "Free consultant sessions are not enabled on this platform. Please set a Session Fee greater than 0.");
+                    }
+
                     user.Profile.Biography = details.Biography;
                     user.Profile.ProfessionalTitle = details.ProfessionalTitle;
                     user.Profile.HighestDegree = details.HighestDegree;
                     user.Profile.FieldOfExpertise = details.FieldOfExpertise;
                     user.Profile.YearsOfExperience = details.YearsOfExperience;
-                    user.Profile.SessionFeeUsd = details.SessionFeeUsd;
+                    user.Profile.SessionFeeUsd = effectiveSessionFee;
                     user.Profile.SessionDurationMinutes = details.SessionDurationMinutes ?? 45;
                     user.Profile.ExpertiseTagsJson = details.ExpertiseTags is { Length: > 0 } tags
                         ? JsonSerializer.Serialize(tags)

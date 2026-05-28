@@ -36,10 +36,19 @@ public class CreateScholarshipReviewFeeValidatorTests
     }
 
     [Fact]
-    public void Rejects_in_app_listing_with_zero_fee()
+    public void Accepts_in_app_listing_with_zero_fee()
+    {
+        // A fee of 0 marks the listing as free for the Student (no payment
+        // authorisation, no commission). The validator must allow this.
+        var v = new CreateScholarshipCommandValidator();
+        v.Validate(Base(0m)).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Rejects_in_app_listing_with_negative_fee()
     {
         var v = new CreateScholarshipCommandValidator();
-        v.Validate(Base(0m)).IsValid.Should().BeFalse();
+        v.Validate(Base(-1m)).IsValid.Should().BeFalse();
     }
 
     [Fact]

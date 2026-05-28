@@ -64,6 +64,35 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
             throw new BookingDomainException("Only requested or confirmed bookings can be cancelled.");
         }
 
+        // Free booking (no Stripe intent, no Payment row): the refund
+        // calculator and Stripe steps don't apply — just flip state.
+        if (booking.PriceUsd == 0m && booking.Payment is null)
+        {
+            booking.Status = BookingStatus.Cancelled;
+            booking.CancelledAt = DateTimeOffset.UtcNow;
+            booking.CancelledByUserId = currentUserId;
+            // Mirror the paid-path reasoning: a Student cancelling a Requested
+            // booking is "before acceptance"; otherwise (Confirmed, or
+            // Consultant initiated) classify as the consultant-side reason so
+            // the booking's audit trail still shows a meaningful cause even
+            // though no money moved.
+            booking.CancellationReason = isStudent && booking.Status == BookingStatus.Requested
+                ? CancellationReason.StudentCancelledBeforeAcceptance
+                : CancellationReason.ConsultantCancelledAfterAcceptance;
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await _publisher.Publish(
+                new BookingCancelledEvent(
+                    booking.Id,
+                    booking.StudentId,
+                    booking.ConsultantId,
+                    currentUserId,
+                    booking.CancellationReason?.ToString()),
+                cancellationToken);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
         {
             throw new BookingDomainException("Booking has no Stripe payment intent.");

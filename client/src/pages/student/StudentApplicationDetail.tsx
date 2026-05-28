@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { format } from "date-fns";
+import { formatCalendarDate } from "@/lib/dates";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import {
@@ -260,7 +261,7 @@ export function StudentApplicationDetail() {
           </Field>
           <Field label={t("moderation:appDetail.deadline")}>
             {data.deadline
-              ? format(new Date(data.deadline), "dd MMM yyyy", { locale: dateLocale })
+              ? formatCalendarDate(data.deadline, "dd MMM yyyy", dateLocale)
               : t("moderation:appDetail.notProvided")}
           </Field>
         </dl>

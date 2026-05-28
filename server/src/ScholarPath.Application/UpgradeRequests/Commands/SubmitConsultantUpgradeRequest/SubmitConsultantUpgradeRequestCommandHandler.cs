@@ -2,6 +2,7 @@ using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Notifications;
@@ -86,12 +87,27 @@ public sealed class SubmitConsultantUpgradeRequestCommandHandler(
             user.Profile = newProfile;
         }
 
+        // Master switch: when payments are off, force the requested session
+        // fee to 0 silently regardless of what the upgrade request set.
+        var paymentsEnabled = await PlatformSettingsReader.GetBooleanAsync(
+            db, PlatformSettingsKeys.PaymentsEnabled, defaultValue: true, ct);
+        var effectiveSessionFee = paymentsEnabled ? request.SessionFeeUsd : 0m;
+
+        if (paymentsEnabled && request.SessionFeeUsd == 0m)
+        {
+            var freeAllowed = await PlatformSettingsReader.GetBooleanAsync(
+                db, PlatformSettingsKeys.AllowFreeConsultantSessions, defaultValue: true, ct);
+            if (!freeAllowed)
+                throw new ConflictException(
+                    "Free consultant sessions are not enabled on this platform. Please set a Session Fee greater than 0.");
+        }
+
         user.Profile.Biography = request.Biography;
         user.Profile.ProfessionalTitle = request.ProfessionalTitle;
         user.Profile.HighestDegree = request.HighestDegree;
         user.Profile.FieldOfExpertise = request.FieldOfExpertise;
         user.Profile.YearsOfExperience = request.YearsOfExperience;
-        user.Profile.SessionFeeUsd = request.SessionFeeUsd;
+        user.Profile.SessionFeeUsd = effectiveSessionFee;
         user.Profile.SessionDurationMinutes = request.SessionDurationMinutes ?? 45;
         user.Profile.ExpertiseTagsJson = request.ExpertiseTags is { Length: > 0 } tags
             ? JsonSerializer.Serialize(tags)

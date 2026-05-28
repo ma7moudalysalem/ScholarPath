@@ -118,8 +118,10 @@ public sealed class UpdateProfileCommandValidator : AbstractValidator<UpdateProf
             .When(x => x.Fields.OrganizationLegalName is not null);
 
         // ── Consultant session settings (CR-PROF-09) ─────────────────────────
+        // A fee of 0 marks the consultant's sessions as free (no payment, no
+        // commission); only negative values are rejected.
         RuleFor(x => x.Fields.SessionFeeUsd)
-            .GreaterThan(0m).WithMessage("Session fee must be greater than 0.")
+            .GreaterThanOrEqualTo(0m).WithMessage("Session fee cannot be negative.")
             .Must(HaveAtMostTwoDecimalPlaces)
             .WithMessage("Session fee can have at most two decimal places.")
             .LessThanOrEqualTo(10000m)

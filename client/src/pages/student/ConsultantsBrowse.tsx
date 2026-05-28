@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useConsultantsQuery } from "@/hooks/useConsultantsQuery";
 import type { ConsultantSummary } from "@/services/api/consultants";
 import { durationLabel, formatUsd } from "@/lib/bookingFormat";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { expertiseTagLabelByLang } from "@/lib/expertiseTagLabel";
 import { UserAvatar } from "@/components/common/UserAvatar";
 
@@ -181,6 +182,9 @@ function ConsultantCard({
   index: number;
 }) {
   const { t, i18n } = useTranslation("consultants");
+  // Master payments switch: when off, the entire platform is free regardless
+  // of each consultant's stored SessionFeeUsd.
+  const paymentsEnabled = usePaymentsEnabled();
 
   return (
     <motion.article
@@ -271,7 +275,9 @@ function ConsultantCard({
             {consultant.sessionFeeUsd != null ? (
               <>
                 <p className="text-lg font-bold text-brand-600">
-                  {formatUsd(consultant.sessionFeeUsd)}
+                  {!paymentsEnabled || consultant.sessionFeeUsd === 0
+                    ? t("scholarships:freeListing")
+                    : formatUsd(consultant.sessionFeeUsd)}
                 </p>
                 <p className="text-[10px] font-medium uppercase tracking-wider text-text-tertiary">
                   {consultant.sessionDurationMinutes != null

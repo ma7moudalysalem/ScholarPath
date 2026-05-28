@@ -18,6 +18,7 @@ import {
 } from "@/hooks/useConsultantsQuery";
 import type { BookableSlot } from "@/services/api/consultants";
 import { durationLabel, formatDate, formatTime, formatUsd } from "@/lib/bookingFormat";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { expertiseTagLabelByLang, languageNameByLang } from "@/lib/expertiseTagLabel";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { cn } from "@/lib/utils";
@@ -88,6 +89,8 @@ export function ConsultantDetail() {
   const isRtl = i18n.dir() === "rtl";
   const BackIcon = isRtl ? ArrowRight : ArrowLeft;
   const { id } = useParams();
+  // Master payments switch — see ScholarshipDetail / ConsultantsBrowse.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const {
     data: consultant,
@@ -249,8 +252,12 @@ export function ConsultantDetail() {
               value={
                 consultant.sessionFeeUsd != null
                   ? consultant.sessionDurationMinutes != null
-                    ? `${formatUsd(consultant.sessionFeeUsd)} · ${durationLabel(consultant.sessionDurationMinutes, t)}`
-                    : formatUsd(consultant.sessionFeeUsd)
+                    ? `${!paymentsEnabled || consultant.sessionFeeUsd === 0
+                        ? t("scholarships:freeListing")
+                        : formatUsd(consultant.sessionFeeUsd)} · ${durationLabel(consultant.sessionDurationMinutes, t)}`
+                    : !paymentsEnabled || consultant.sessionFeeUsd === 0
+                      ? t("scholarships:freeListing")
+                      : formatUsd(consultant.sessionFeeUsd)
                   : t("card.feeUnset")
               }
             />
@@ -405,7 +412,9 @@ export function ConsultantDetail() {
               {consultant.sessionFeeUsd != null && (
                 <div className="mt-3 flex items-baseline gap-1.5">
                   <span className="text-3xl font-bold text-brand-600">
-                    {formatUsd(consultant.sessionFeeUsd)}
+                    {!paymentsEnabled || consultant.sessionFeeUsd === 0
+                      ? t("scholarships:freeListing")
+                      : formatUsd(consultant.sessionFeeUsd)}
                   </span>
                   {consultant.sessionDurationMinutes != null && (
                     <span className="text-xs text-text-tertiary">

@@ -21,34 +21,79 @@ import { cn } from "@/lib/utils";
 
 const RESOURCE_TYPES: ResourceType[] = ["Article", "Guide", "Checklist", "VideoLink"];
 
+// Category slugs the backend recognises (see DbSeeder.Resources). Kept as a
+// closed list on the client so authors pick a known slug and don't invent new
+// ones; aligns with the published categories used across the resources hub.
+const RESOURCE_CATEGORIES = [
+  "applications",
+  "essays",
+  "interviews",
+  "language",
+  "finance",
+  "visas",
+  "planning",
+  "life-abroad",
+  "misc",
+] as const;
+
 const fieldClass =
   "w-full rounded-lg border border-border-subtle bg-bg-canvas px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20";
 
 const labelClass = "mb-1 block text-sm font-medium text-text-secondary";
 const errorClass = "mt-1 text-xs text-danger-500";
 
+// Language sniffers for bilingual fields. The "English" side accepts mixed
+// content (brand names, dates, etc.) as long as *some* Latin letter is present;
+// the "Arabic" side likewise requires at least one Arabic letter. This catches
+// the common authoring mistake of typing the wrong language entirely while
+// still allowing realistic mixed text like "منحة BioCure 2026".
+// Arabic Unicode blocks: Arabic (U+0600..U+06FF), Arabic Supplement
+// (U+0750..U+077F), Arabic Extended-A (U+08A0..U+08FF), Arabic Presentation
+// Forms-A (U+FB50..U+FDFF), Arabic Presentation Forms-B (U+FE70..U+FEFF).
+// Written as \u escape sequences so ESLint's no-irregular-whitespace rule
+// doesn't trip on the U+FEFF / U+FE70..U+FEFF characters in raw source.
+const ARABIC_LETTER_RE = 
+  /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+const LATIN_LETTER_RE = /[A-Za-z]/;
+
+const looksEnglish = (s: string) => s.length === 0 || LATIN_LETTER_RE.test(s);
+const looksArabic  = (s: string) => s.length === 0 || ARABIC_LETTER_RE.test(s);
+
 // ── Schema ───────────────────────────────────────────────────────────────────
 
 function makeSchema(t: TFunction) {
-  const required = t("errors:validate.required");
-  const tooLong  = t("errors:validate.tooLong");
+  const required    = t("errors:validate.required");
+  const tooLong     = t("errors:validate.tooLong");
+  const englishOnly = t("errors:validate.englishOnly");
+  const arabicOnly  = t("errors:validate.arabicOnly");
 
   const chapterSchema = z.object({
-    titleEn: z.string().min(1, required).max(300, tooLong),
-    titleAr: z.string().min(1, required).max(300, tooLong),
-    contentMarkdownEn: z.string().max(20000),
-    contentMarkdownAr: z.string().max(20000),
+    titleEn: z.string().min(1, required).max(300, tooLong)
+      .refine(looksEnglish, englishOnly),
+    titleAr: z.string().min(1, required).max(300, tooLong)
+      .refine(looksArabic, arabicOnly),
+    contentMarkdownEn: z.string().max(20000)
+      .refine(looksEnglish, englishOnly),
+    contentMarkdownAr: z.string().max(20000)
+      .refine(looksArabic, arabicOnly),
     estimatedReadMinutes: z.coerce.number().int().min(0).max(600),
   });
 
   return z.object({
-    titleEn:           z.string().min(1, required).max(300, tooLong),
-    titleAr:           z.string().min(1, required).max(300, tooLong),
+    titleEn:           z.string().min(1, required).max(300, tooLong)
+      .refine(looksEnglish, englishOnly),
+    titleAr:           z.string().min(1, required).max(300, tooLong)
+      .refine(looksArabic, arabicOnly),
     type:              z.enum(["Article", "Guide", "Checklist", "VideoLink"] as const),
-    descriptionEn:     z.string().max(2000, tooLong),
-    descriptionAr:     z.string().max(2000, tooLong),
-    contentMarkdownEn: z.string().max(50000),
-    contentMarkdownAr: z.string().max(50000),
+    categorySlug:      z.string().min(1, required).max(120, tooLong),
+    descriptionEn:     z.string().max(2000, tooLong)
+      .refine(looksEnglish, englishOnly),
+    descriptionAr:     z.string().max(2000, tooLong)
+      .refine(looksArabic, arabicOnly),
+    contentMarkdownEn: z.string().max(50000)
+      .refine(looksEnglish, englishOnly),
+    contentMarkdownAr: z.string().max(50000)
+      .refine(looksArabic, arabicOnly),
     // Allow an empty string (no link) or a valid http(s) URL
     externalLinkUrl:   z.union([z.string().url().max(2048), z.literal("")]),
     tagsRaw:           z.string().max(500),
@@ -61,6 +106,7 @@ type FormValues = {
   titleEn: string;
   titleAr: string;
   type: ResourceType;
+  categorySlug: string;
   descriptionEn: string;
   descriptionAr: string;
   contentMarkdownEn: string;
@@ -111,6 +157,7 @@ export function ResourceEditor() {
       titleEn: "",
       titleAr: "",
       type: "Article",
+      categorySlug: "",
       descriptionEn: "",
       descriptionAr: "",
       contentMarkdownEn: "",
@@ -150,6 +197,7 @@ export function ResourceEditor() {
       titleEn:           detail.titleEn ?? "",
       titleAr:           detail.titleAr ?? "",
       type:              detail.type,
+      categorySlug:      detail.categorySlug ?? "",
       descriptionEn:     detail.descriptionEn ?? "",
       descriptionAr:     detail.descriptionAr ?? "",
       contentMarkdownEn: detail.contentMarkdownEn ?? "",
@@ -174,6 +222,7 @@ export function ResourceEditor() {
         titleEn:           vals.titleEn,
         titleAr:           vals.titleAr,
         type:              vals.type,
+        categorySlug:      vals.categorySlug,
         descriptionEn:     vals.descriptionEn || undefined,
         descriptionAr:     vals.descriptionAr || undefined,
         contentMarkdownEn: vals.contentMarkdownEn || undefined,
@@ -203,6 +252,7 @@ export function ResourceEditor() {
         titleEn:           vals.titleEn,
         titleAr:           vals.titleAr,
         type:              vals.type,
+        categorySlug:      vals.categorySlug,
         descriptionEn:     vals.descriptionEn || undefined,
         descriptionAr:     vals.descriptionAr || undefined,
         contentMarkdownEn: vals.contentMarkdownEn || undefined,
@@ -257,29 +307,52 @@ export function ResourceEditor() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-        {/* ── Type ── */}
-        <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-xs">
-          <label className={labelClass} htmlFor="type">
-            {t("resources:author.fields.type")}
-          </label>
-          <Controller
-            control={control}
-            name="type"
-            render={({ field }) => (
-              <select
-                {...field}
-                id="type"
-                disabled={!isDraft}
-                className={cn(fieldClass, "bg-bg-canvas")}
-              >
-                {RESOURCE_TYPES.map((rt) => (
-                  <option key={rt} value={rt}>
-                    {t(`resources:resourceType.${rt}`)}
-                  </option>
-                ))}
-              </select>
+        {/* ── Type + Category ── */}
+        <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-xs grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={labelClass} htmlFor="type">
+              {t("resources:author.fields.type")}
+            </label>
+            <Controller
+              control={control}
+              name="type"
+              render={({ field }) => (
+                <select
+                  {...field}
+                  id="type"
+                  disabled={!isDraft}
+                  className={cn(fieldClass, "bg-bg-canvas")}
+                >
+                  {RESOURCE_TYPES.map((rt) => (
+                    <option key={rt} value={rt}>
+                      {t(`resources:resourceType.${rt}`)}
+                    </option>
+                  ))}
+                </select>
+              )}
+            />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="categorySlug">
+              {t("resources:author.fields.category")}
+            </label>
+            <select
+              id="categorySlug"
+              {...register("categorySlug")}
+              disabled={!isDraft}
+              className={cn(fieldClass, "bg-bg-canvas")}
+            >
+              <option value="">{t("resources:author.categoryPlaceholder")}</option>
+              {RESOURCE_CATEGORIES.map((slug) => (
+                <option key={slug} value={slug}>
+                  {t(`resources:author.categories.${slug}`)}
+                </option>
+              ))}
+            </select>
+            {errors.categorySlug && (
+              <p className={errorClass}>{errors.categorySlug.message}</p>
             )}
-          />
+          </div>
         </div>
 
         {/* ── Titles ── */}
@@ -332,6 +405,9 @@ export function ResourceEditor() {
               className={cn(fieldClass, "resize-y")}
               dir="ltr"
             />
+            {errors.descriptionEn && (
+              <p className={errorClass}>{errors.descriptionEn.message}</p>
+            )}
           </div>
           <div>
             <label className={labelClass} htmlFor="descriptionAr">
@@ -345,6 +421,9 @@ export function ResourceEditor() {
               className={cn(fieldClass, "resize-y")}
               dir="rtl"
             />
+            {errors.descriptionAr && (
+              <p className={errorClass}>{errors.descriptionAr.message}</p>
+            )}
           </div>
         </div>
 
@@ -388,6 +467,9 @@ export function ResourceEditor() {
                 dir="ltr"
                 placeholder="# Introduction&#10;&#10;Write your content in **Markdown**…"
               />
+              {errors.contentMarkdownEn && (
+                <p className={errorClass}>{errors.contentMarkdownEn.message}</p>
+              )}
             </div>
             <div>
               <label className={labelClass} htmlFor="contentMarkdownAr">
@@ -402,6 +484,9 @@ export function ResourceEditor() {
                 dir="rtl"
                 placeholder="# مقدمة&#10;&#10;اكتب محتواك بصيغة **Markdown**…"
               />
+              {errors.contentMarkdownAr && (
+                <p className={errorClass}>{errors.contentMarkdownAr.message}</p>
+              )}
             </div>
           </div>
         )}
@@ -486,6 +571,11 @@ export function ResourceEditor() {
                       className={fieldClass}
                       dir="rtl"
                     />
+                    {errors.chapters?.[idx]?.titleAr && (
+                      <p className={errorClass}>
+                        {errors.chapters[idx].titleAr?.message}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -500,6 +590,11 @@ export function ResourceEditor() {
                       className={cn(fieldClass, "resize-y font-mono text-xs")}
                       dir="ltr"
                     />
+                    {errors.chapters?.[idx]?.contentMarkdownEn && (
+                      <p className={errorClass}>
+                        {errors.chapters[idx].contentMarkdownEn?.message}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className={labelClass}>
@@ -512,6 +607,11 @@ export function ResourceEditor() {
                       className={cn(fieldClass, "resize-y font-mono text-xs")}
                       dir="rtl"
                     />
+                    {errors.chapters?.[idx]?.contentMarkdownAr && (
+                      <p className={errorClass}>
+                        {errors.chapters[idx].contentMarkdownAr?.message}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="w-36">

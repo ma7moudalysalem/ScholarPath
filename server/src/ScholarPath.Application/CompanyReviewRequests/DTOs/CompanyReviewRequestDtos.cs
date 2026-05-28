@@ -24,6 +24,9 @@ public sealed record CompanyReviewRequestDto
     public decimal ReviewFeeUsdSnapshot { get; init; }
     public string Currency { get; init; } = "USD";
 
+    /// <summary>True when the request is free (snapshot fee = 0, no payment row).</summary>
+    public bool IsFree => ReviewFeeUsdSnapshot == 0m && PaymentId is null;
+
     public DateTimeOffset? SubmittedAt { get; init; }
     public DateTimeOffset? AcceptedAt { get; init; }
     public DateTimeOffset? RejectedAt { get; init; }

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Profile.DTOs;
@@ -76,7 +77,30 @@ public sealed class UpdateProfileCommandHandler(
             profile.OrganizationVerifiedAt = null;
         }
 
-        if (f.SessionFeeUsd is not null) profile.SessionFeeUsd = f.SessionFeeUsd;
+        if (f.SessionFeeUsd is not null)
+        {
+            // Master switch: when payments are off platform-wide, force the
+            // session fee to 0 regardless of what was submitted.
+            var paymentsEnabled = await PlatformSettingsReader.GetBooleanAsync(
+                db, PlatformSettingsKeys.PaymentsEnabled, defaultValue: true, ct);
+            if (!paymentsEnabled)
+            {
+                profile.SessionFeeUsd = 0m;
+            }
+            else
+            {
+                // Settings gate: free consultant sessions can be disabled.
+                if (f.SessionFeeUsd.Value == 0m)
+                {
+                    var freeAllowed = await PlatformSettingsReader.GetBooleanAsync(
+                        db, PlatformSettingsKeys.AllowFreeConsultantSessions, defaultValue: true, ct);
+                    if (!freeAllowed)
+                        throw new ConflictException(
+                            "Free consultant sessions are not enabled on this platform. Please set a Session Fee greater than 0.");
+                }
+                profile.SessionFeeUsd = f.SessionFeeUsd;
+            }
+        }
         if (f.SessionDurationMinutes is not null) profile.SessionDurationMinutes = f.SessionDurationMinutes;
 
         // Consultant professional fields (CR-PROF-08).

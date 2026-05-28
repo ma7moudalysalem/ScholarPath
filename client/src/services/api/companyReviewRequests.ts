@@ -35,6 +35,8 @@ export interface CompanyReviewRequestDto {
   companyName?: string | null;
   status: CompanyReviewRequestStatus;
   reviewFeeUsdSnapshot: number;
+  /** True when the request was started free (snapshot fee = 0, no payment row). */
+  isFree: boolean;
   currency: string;
   submittedAt?: string | null;
   acceptedAt?: string | null;
@@ -61,9 +63,11 @@ export interface CompanyReviewRequestDto {
 
 export interface StartCompanyReviewRequestResult {
   requestId: string;
-  paymentId: string;
-  clientSecret: string;
-  paymentIntentId: string;
+  /** True for free scholarships — skip Stripe Elements entirely. */
+  isFree: boolean;
+  paymentId: string | null;
+  clientSecret: string | null;
+  paymentIntentId: string | null;
   amountCents: number;
   currency: string;
 }

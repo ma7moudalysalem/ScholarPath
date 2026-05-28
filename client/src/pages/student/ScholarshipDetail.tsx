@@ -18,9 +18,11 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
+import { parseCalendarDate } from "@/lib/dates";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import {
   useScholarshipDetailQuery,
   useToggleBookmarkMutation,
@@ -87,6 +89,9 @@ export function ScholarshipDetail() {
   const navigate     = useNavigate();
   const { data, isLoading, isError } = useScholarshipDetailQuery(id);
   const bookmarkMut = useToggleBookmarkMutation();
+  // Master payments switch — when off, every listing is treated as free
+  // regardless of its stored ReviewFeeUsd.
+  const paymentsEnabled = usePaymentsEnabled();
 
   // Profile pre-flight (same logic, unchanged) ───────────────────────────────
   const profileQuery = useQuery<UserProfile>({
@@ -109,7 +114,11 @@ export function ScholarshipDetail() {
   const applyMut = useMutation({
     mutationFn: (scholarshipId: string) => companyReviewRequestsApi.start(scholarshipId),
     onSuccess: (result) => {
-      toast.success(t("scholarships:detail.applyStarted"));
+      toast.success(
+        result.isFree
+          ? t("scholarships:detail.applyStartedFree")
+          : t("scholarships:detail.applyStarted"),
+      );
       navigate(`/student/review-requests/${result.requestId}`);
     },
     onError: (err: unknown) => {
@@ -177,19 +186,31 @@ export function ScholarshipDetail() {
   const title       = isRtl ? data.titleAr       : data.titleEn;
   const description = isRtl ? data.descriptionAr : data.descriptionEn;
 
-  const deadlineDate = new Date(data.deadline);
+  const deadlineDate = parseCalendarDate(data.deadline) ?? new Date(data.deadline);
   const daysLeft     = differenceInCalendarDays(deadlineDate, new Date());
   const isUrgent     = daysLeft <= 7 && daysLeft >= 0;
   const isClosed     = daysLeft < 0;
   const isExternal   = data.mode === "ExternalUrl" && !!data.externalUrl;
-  // PB-005: in-app Apply Now needs a configured Review Service Fee. When
-  // missing, disable the button and tell the Student why so they don't get
-  // a generic "could not apply" error from the server.
-  const hasReviewFee = (data.reviewFeeUsd ?? 0) > 0;
-  const feeFormatted = data.reviewFeeUsd != null
-    ? new Intl.NumberFormat(i18n.language, { style: "currency", currency: "USD" })
-        .format(data.reviewFeeUsd)
-    : null;
+  // PB-005: an in-app scholarship is "ready to apply" when the Review Service
+  // Fee is set — including the explicit 0 (free) case. Null means the Company
+  // hasn't configured a fee yet, so Apply Now stays disabled with a clear
+  // message instead of bubbling a generic server error.
+  //
+  // When the platform's master payments switch is off, EVERY listing behaves
+  // as if its fee were 0 — the server forces the free path regardless of the
+  // stored ReviewFeeUsd, so the UI mirrors that to avoid a confusing mismatch
+  // between the displayed price and what the Apply Now button actually does.
+  const hasReviewFee =
+    !paymentsEnabled || (data.reviewFeeUsd != null && data.reviewFeeUsd >= 0);
+  const isFreeListing = !paymentsEnabled || data.reviewFeeUsd === 0;
+  const feeFormatted = !paymentsEnabled
+    ? t("scholarships:detail.freeListing")
+    : data.reviewFeeUsd != null
+      ? (data.reviewFeeUsd === 0
+          ? t("scholarships:detail.freeListing")
+          : new Intl.NumberFormat(i18n.language, { style: "currency", currency: "USD" })
+              .format(data.reviewFeeUsd))
+      : null;
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -418,7 +439,9 @@ export function ScholarshipDetail() {
                     >
                       {applyMut.isPending
                         ? t("scholarships:detail.applying")
-                        : t("scholarships:detail.apply")}
+                        : isFreeListing
+                          ? t("scholarships:detail.applyFree")
+                          : t("scholarships:detail.apply")}
                     </button>
                     {/* PB-005: spec PART 2 — when the fee is missing or invalid,
                         Apply Now must be disabled with a clear message. */}

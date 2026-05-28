@@ -79,46 +79,54 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
 
         if (isStudent)
         {
-            if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
+            // Free booking (no Stripe intent, no Payment row): the student is
+            // still entitled to mark the consultant as a no-show — there's just
+            // no money to refund. Skip the Stripe + Payment-row updates.
+            var isFree = booking.PriceUsd == 0m && booking.Payment is null;
+
+            if (!isFree)
             {
-                throw new BookingDomainException("Booking has no Stripe payment intent to refund.");
-            }
+                if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
+                {
+                    throw new BookingDomainException("Booking has no Stripe payment intent to refund.");
+                }
 
-            var amountCents = (long)decimal.Round(
-                booking.PriceUsd * 100m,
-                0,
-                MidpointRounding.AwayFromZero);
+                var amountCents = (long)decimal.Round(
+                    booking.PriceUsd * 100m,
+                    0,
+                    MidpointRounding.AwayFromZero);
 
-            if (amountCents <= 0)
-            {
-                throw new BookingDomainException("Booking amount must be greater than zero.");
-            }
+                if (amountCents < 0)
+                {
+                    throw new BookingDomainException("Booking amount cannot be negative.");
+                }
 
-            var idempotencyKey = $"booking-noshow-refund:{booking.Id:N}";
+                var idempotencyKey = $"booking-noshow-refund:{booking.Id:N}";
 
-            var refundResult = await _stripeService.RefundPaymentAsync(
-                paymentIntentId: booking.StripePaymentIntentId,
-                amountCents: amountCents,
-                reason: CancellationReason.ConsultantNoShow.ToString(),
-                idempotencyKey: idempotencyKey,
-                ct: cancellationToken);
+                var refundResult = await _stripeService.RefundPaymentAsync(
+                    paymentIntentId: booking.StripePaymentIntentId,
+                    amountCents: amountCents,
+                    reason: CancellationReason.ConsultantNoShow.ToString(),
+                    idempotencyKey: idempotencyKey,
+                    ct: cancellationToken);
 
-            if (string.IsNullOrWhiteSpace(refundResult.Id))
-            {
-                throw new BookingDomainException("Stripe refund failed.");
-            }
+                if (string.IsNullOrWhiteSpace(refundResult.Id))
+                {
+                    throw new BookingDomainException("Stripe refund failed.");
+                }
 
-            // FR-090/193: a consultant no-show fully refunds the student, so the
-            // internal Payment row is marked Refunded for the gross amount and
-            // both commission and payee net are zeroed (retained = 0).
-            if (booking.Payment is { } payment)
-            {
-                payment.Status = PaymentStatus.Refunded;
-                payment.RefundedAmountCents = payment.AmountCents;
-                payment.RefundedAt = nowUtc;
-                payment.RefundReason = CancellationReason.ConsultantNoShow.ToString();
-                payment.ProfitShareAmountCents = 0;
-                payment.PayeeAmountCents = 0;
+                // FR-090/193: a consultant no-show fully refunds the student, so the
+                // internal Payment row is marked Refunded for the gross amount and
+                // both commission and payee net are zeroed (retained = 0).
+                if (booking.Payment is { } payment)
+                {
+                    payment.Status = PaymentStatus.Refunded;
+                    payment.RefundedAmountCents = payment.AmountCents;
+                    payment.RefundedAt = nowUtc;
+                    payment.RefundReason = CancellationReason.ConsultantNoShow.ToString();
+                    payment.ProfitShareAmountCents = 0;
+                    payment.PayeeAmountCents = 0;
+                }
             }
 
             booking.IsNoShowConsultant = true;

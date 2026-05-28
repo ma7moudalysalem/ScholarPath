@@ -14,7 +14,9 @@
     "tooLong": "Must be 100 characters or fewer",
     "passwordUppercase": "Must contain at least one uppercase letter",
     "passwordDigit": "Must contain at least one digit",
-    "passwordSpecial": "Must contain at least one special character"
+    "passwordSpecial": "Must contain at least one special character",
+    "englishOnly": "Please use English in this field.",
+    "arabicOnly": "Please use Arabic in this field."
   },
   "boundary": {
     "title": "Something went wrong",

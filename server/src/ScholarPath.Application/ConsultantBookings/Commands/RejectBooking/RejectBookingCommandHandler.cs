@@ -61,30 +61,36 @@ public sealed class RejectBookingCommandHandler : IRequestHandler<RejectBookingC
             throw new BookingDomainException("Only requested bookings can be rejected.");
         }
 
-        if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
+        // Free booking (no Stripe intent, no Payment row): just flip the state.
+        var isFree = booking.PriceUsd == 0m && booking.Payment is null;
+
+        if (!isFree)
         {
-            throw new BookingDomainException("Booking has no Stripe payment intent to cancel.");
-        }
+            if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
+            {
+                throw new BookingDomainException("Booking has no Stripe payment intent to cancel.");
+            }
 
-        var idempotencyKey = $"booking-reject:{booking.Id:N}";
+            var idempotencyKey = $"booking-reject:{booking.Id:N}";
 
-        var cancelResult = await _stripeService.CancelPaymentIntentAsync(
-            paymentIntentId: booking.StripePaymentIntentId,
-            cancellationReason: "abandoned",
-            idempotencyKey: idempotencyKey,
-            ct: cancellationToken);
+            var cancelResult = await _stripeService.CancelPaymentIntentAsync(
+                paymentIntentId: booking.StripePaymentIntentId,
+                cancellationReason: "abandoned",
+                idempotencyKey: idempotencyKey,
+                ct: cancellationToken);
 
-        if (string.IsNullOrWhiteSpace(cancelResult.Id))
-        {
-            throw new BookingDomainException("Stripe payment intent cancellation failed.");
-        }
+            if (string.IsNullOrWhiteSpace(cancelResult.Id))
+            {
+                throw new BookingDomainException("Stripe payment intent cancellation failed.");
+            }
 
-        // FR-082/188: release the internal Payment hold — the consultant
-        // rejected, so the row moves to Cancelled rather than staying Held.
-        if (booking.Payment is { Status: PaymentStatus.Held or PaymentStatus.Pending } payment)
-        {
-            payment.Status = PaymentStatus.Cancelled;
-            payment.FailureReason = "rejected_by_consultant";
+            // FR-082/188: release the internal Payment hold — the consultant
+            // rejected, so the row moves to Cancelled rather than staying Held.
+            if (booking.Payment is { Status: PaymentStatus.Held or PaymentStatus.Pending } payment)
+            {
+                payment.Status = PaymentStatus.Cancelled;
+                payment.FailureReason = "rejected_by_consultant";
+            }
         }
 
         booking.Status = BookingStatus.Rejected;
