@@ -13,6 +13,7 @@ import {
   type PaymentType,
 } from "@/services/api/payments";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 const STATUSES: PaymentStatus[] = [
   "Pending",
@@ -53,6 +54,9 @@ export function AdminPayments() {
   // Explicit BCP-47 tag so currency formatting renders Arabic-Indic digits in AR.
   const numberLocale = i18n.language.startsWith("ar") ? "ar-EG" : "en-US";
   const qc = useQueryClient();
+  // Master payments switch — surface a banner so the admin knows new
+  // transactions aren't accruing. Historical rows below stay readable.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const [status, setStatus] = useState<PaymentStatus | "">("");
   const [type, setType] = useState<PaymentType | "">("");
@@ -110,6 +114,12 @@ export function AdminPayments() {
           {t("payments:adminPayments.subtitle")}
         </p>
       </div>
+
+      {!paymentsEnabled && (
+        <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
+          {t("payments:billing.paymentsDisabledBanner")}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <select

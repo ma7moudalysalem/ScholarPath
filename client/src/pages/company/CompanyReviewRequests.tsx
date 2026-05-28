@@ -10,6 +10,7 @@ import {
 } from "@/services/api/companyReviewRequests";
 import { apiErrorMessage } from "@/services/api/client";
 import { formatMoneyCents } from "@/services/api/payments";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 /**
  * Company-side queue of incoming paid CompanyReview requests. Pending rows
@@ -24,6 +25,9 @@ export function CompanyReviewRequests() {
   const { t, i18n } = useTranslation(["payments", "common", "scholarships"]);
   const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Master payments switch — collapses the money breakdown to a single Free
+  // row and hides commission / share columns when the platform is free-mode.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const query = useQuery<CompanyReviewRequestDto[]>({
     queryKey: ["companyReviewRequests", "mine", "company"],
@@ -123,29 +127,30 @@ export function CompanyReviewRequests() {
               <dl className="mt-4 grid gap-3 text-xs text-text-secondary sm:grid-cols-2 lg:grid-cols-4">
                 <Stat
                   label={t("payments:reviewRequest.fee")}
-                  value={req.isFree
-                    ? t("scholarships:detail.freeListing")
+                  value={!paymentsEnabled || req.isFree
+                    ? t("scholarships:freeListing")
                     : formatMoneyCents(req.amountCents, req.currency, i18n.language)}
                 />
-                <Stat
-                  label={t("payments:reviewRequest.retained")}
-                  value={req.isFree
-                    ? "—"
-                    : formatMoneyCents(req.retainedAmountCents, req.currency, i18n.language)}
-                />
-                <Stat
-                  label={t("payments:reviewRequest.commission")}
-                  value={req.isFree
-                    ? "—"
-                    : formatMoneyCents(req.platformCommissionCents, req.currency, i18n.language)}
-                />
-                <Stat
-                  label={t("payments:reviewRequest.share")}
-                  value={req.isFree
-                    ? "—"
-                    : formatMoneyCents(req.companyShareCents, req.currency, i18n.language)}
-                  tone="success"
-                />
+                {/* Retained / commission / share are money-flow metrics that
+                    don't apply in free mode — collapse the row to a single
+                    Free fee when the platform is free-only. */}
+                {paymentsEnabled && !req.isFree && (
+                  <>
+                    <Stat
+                      label={t("payments:reviewRequest.retained")}
+                      value={formatMoneyCents(req.retainedAmountCents, req.currency, i18n.language)}
+                    />
+                    <Stat
+                      label={t("payments:reviewRequest.commission")}
+                      value={formatMoneyCents(req.platformCommissionCents, req.currency, i18n.language)}
+                    />
+                    <Stat
+                      label={t("payments:reviewRequest.share")}
+                      value={formatMoneyCents(req.companyShareCents, req.currency, i18n.language)}
+                      tone="success"
+                    />
+                  </>
+                )}
               </dl>
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-text-tertiary">

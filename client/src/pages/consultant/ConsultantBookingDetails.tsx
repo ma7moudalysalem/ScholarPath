@@ -19,6 +19,7 @@ import {
   statusBucket,
   statusLabelKey,
 } from "@/lib/bookingFormat";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 export function ConsultantBookingDetails() {
   const { t, i18n } = useTranslation("consultantPortal");
@@ -26,6 +27,8 @@ export function ConsultantBookingDetails() {
   const { id } = useParams();
 
   const { data: booking, isLoading, isError } = useBookingDetailQuery(id);
+  // Master payments switch — gates the price label.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const acceptMutation = useAcceptBookingMutation();
   const rejectMutation = useRejectBookingMutation();
@@ -209,7 +212,7 @@ export function ConsultantBookingDetails() {
                     {t("details.summaryCard.fee")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-text-primary">
-                    {booking.priceUsd === 0
+                    {!paymentsEnabled || booking.priceUsd === 0
                       ? t("scholarships:freeListing")
                       : formatUsd(booking.priceUsd)}
                   </p>

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMyBookingsQuery } from "@/hooks/useBookingsQuery";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import type { BookingListItem } from "@/services/api/bookings";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import {
@@ -73,6 +74,9 @@ export function StudentBookings() {
   const lang = i18n.language;
   const isRtl = i18n.dir() === "rtl";
   const { data, isLoading, isError } = useMyBookingsQuery();
+  // Master payments switch — every booking should read as "Free" when off,
+  // regardless of the historical priceUsd stored on the row.
+  const paymentsEnabled = usePaymentsEnabled();
   const [filter, setFilter] = useState<StudentFilter>("all");
 
   const bookings = useMemo<BookingListItem[]>(() => data ?? [], [data]);
@@ -253,7 +257,7 @@ export function StudentBookings() {
                           <span className="inline-flex items-center gap-1.5 text-text-secondary">
                             <DollarSign aria-hidden className="size-3.5 text-text-tertiary" />
                             <span className="font-semibold text-text-primary">
-                              {booking.priceUsd === 0
+                              {!paymentsEnabled || booking.priceUsd === 0
                                 ? t("scholarships:freeListing")
                                 : formatUsd(booking.priceUsd)}
                             </span>

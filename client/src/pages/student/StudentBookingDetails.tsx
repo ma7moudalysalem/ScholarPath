@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 import { Star } from "lucide-react";
 import { useBookingDetailQuery, useCancelBookingMutation } from "@/hooks/useBookingsQuery";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { BookingRecordings } from "@/components/booking/BookingRecordings";
 import { RateConsultantModal } from "@/components/booking/RateConsultantModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -72,6 +73,9 @@ export function StudentBookingDetails() {
   const { data: booking, isLoading, isError } = useBookingDetailQuery(id);
   const cancelMut = useCancelBookingMutation();
   const [cancelOpen, setCancelOpen] = useState(false);
+  // Master payments switch — hides the payment status card and refund row
+  // when the platform is in free mode.
+  const paymentsEnabled = usePaymentsEnabled();
   const [rateOpen, setRateOpen] = useState(false);
 
   // A booking can be cancelled by the student while it is still awaiting the
@@ -218,7 +222,7 @@ export function StudentBookingDetails() {
                     {t("fields.fee")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-text-primary">
-                    {booking.priceUsd === 0
+                    {!paymentsEnabled || booking.priceUsd === 0
                       ? t("scholarships:freeListing")
                       : formatUsd(booking.priceUsd)}
                   </p>
@@ -226,7 +230,7 @@ export function StudentBookingDetails() {
               </div>
             </div>
 
-            {booking.paymentStatus ? (
+            {paymentsEnabled && booking.paymentStatus ? (
               <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm">
                 <h2 className="text-lg font-semibold tracking-[-0.01em] text-text-primary">
                   {t("details.paymentTitle")}

@@ -13,6 +13,7 @@ import {
   statusLabelKey,
   type BookingStatusBucket,
 } from "@/lib/bookingFormat";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 type ConsultantFilter = "all" | BookingStatusBucket;
 
@@ -21,6 +22,8 @@ export function ConsultantBookings() {
   const lang = i18n.language;
   const { data, isLoading, isError } = useConsultantBookingsQuery();
   const [filter, setFilter] = useState<ConsultantFilter>("all");
+  // Master payments switch — every booking reads as "Free" when off.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const bookings = useMemo<BookingListItem[]>(() => data ?? [], [data]);
 
@@ -204,7 +207,7 @@ export function ConsultantBookings() {
                               {t("bookings.card.fee")}
                             </p>
                             <p className="mt-1 text-sm font-medium text-text-primary">
-                              {booking.priceUsd === 0
+                              {!paymentsEnabled || booking.priceUsd === 0
                                 ? t("scholarships:freeListing")
                                 : formatUsd(booking.priceUsd)}
                             </p>

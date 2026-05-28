@@ -13,6 +13,7 @@ import {
 } from "@/services/api/companyReviewRequests";
 import { apiErrorMessage } from "@/services/api/client";
 import { formatMoneyCents } from "@/services/api/payments";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 /**
  * Student-facing list of paid CompanyReview support requests. Shows the
@@ -26,6 +27,9 @@ import { formatMoneyCents } from "@/services/api/payments";
 export function StudentReviewRequests() {
   const { t, i18n } = useTranslation(["payments", "common", "scholarships"]);
   const queryClient = useQueryClient();
+  // Master payments switch — when off the whole list reads as "Free", and
+  // the held/captured/refunded breakdown collapses to a single fee row.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const query = useQuery<CompanyReviewRequestDto[]>({
     queryKey: ["companyReviewRequests", "mine", "student"],
@@ -100,35 +104,51 @@ export function StudentReviewRequests() {
             <dl className="mt-4 grid gap-3 text-xs text-text-secondary sm:grid-cols-2 lg:grid-cols-4">
               <Stat
                 label={t("payments:reviewRequest.fee")}
-                value={req.isFree
-                  ? t("scholarships:detail.freeListing")
+                value={!paymentsEnabled || req.isFree
+                  ? t("scholarships:freeListing")
                   : formatMoneyCents(req.amountCents, req.currency, i18n.language)}
               />
-              <Stat
-                label={t("payments:reviewRequest.held")}
-                value={formatMoneyCents(req.heldAmountCents, req.currency, i18n.language)}
-              />
-              <Stat
-                label={t("payments:reviewRequest.captured")}
-                value={formatMoneyCents(req.capturedAmountCents, req.currency, i18n.language)}
-              />
-              <Stat
-                label={t("payments:reviewRequest.refunded")}
-                value={formatMoneyCents(req.refundedAmountCents, req.currency, i18n.language)}
-                tone={req.refundedAmountCents > 0 ? "warning" : "neutral"}
-              />
+              {/* Held / captured / refunded only make sense in paid mode.
+                  Hide them when the platform is in free mode — there's no
+                  payment flow to report on. */}
+              {paymentsEnabled && !req.isFree && (
+                <>
+                  <Stat
+                    label={t("payments:reviewRequest.held")}
+                    value={formatMoneyCents(req.heldAmountCents, req.currency, i18n.language)}
+                  />
+                  <Stat
+                    label={t("payments:reviewRequest.captured")}
+                    value={formatMoneyCents(req.capturedAmountCents, req.currency, i18n.language)}
+                  />
+                  <Stat
+                    label={t("payments:reviewRequest.refunded")}
+                    value={formatMoneyCents(req.refundedAmountCents, req.currency, i18n.language)}
+                    tone={req.refundedAmountCents > 0 ? "warning" : "neutral"}
+                  />
+                </>
+              )}
             </dl>
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-text-tertiary">
-              <span>
-                {t("payments:reviewRequest.reference")}:{" "}
-                <code className="font-mono">{req.paymentReference ?? "—"}</code>
-              </span>
+              {paymentsEnabled && !req.isFree ? (
+                <span>
+                  {t("payments:reviewRequest.reference")}:{" "}
+                  <code className="font-mono">{req.paymentReference ?? "—"}</code>
+                </span>
+              ) : (
+                <span />
+              )}
               {isRequestCancellableByStudent(req.status) && (
                 <button
                   type="button"
                   onClick={() => {
-                    if (refundsHalfOnCancel(req.status)
+                    // Skip the 50%-refund confirmation when the platform is
+                    // in free mode or the request itself is free — there's no
+                    // money to refund.
+                    const showRefundConfirm = paymentsEnabled && !req.isFree
+                      && refundsHalfOnCancel(req.status);
+                    if (showRefundConfirm
                       && !window.confirm(t("payments:reviewRequest.cancelConfirm50"))) {
                       return;
                     }

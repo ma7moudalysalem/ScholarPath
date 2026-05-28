@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { ApiError } from "@/services/api/client";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import {
   upgradeRequestsApi,
   type SubmitConsultantUpgradeRequestPayload,
@@ -165,6 +166,9 @@ export function ConsultantUpgradeModal({
 }: ConsultantUpgradeModalProps) {
   const { t, i18n } = useTranslation(["profile", "common"]);
   const isRtl = i18n.dir() === "rtl";
+  // Master payments switch — when off, hide the fee field; the server will
+  // clamp the submitted value to 0 regardless.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const [form, setForm] = useState<FormState>(emptyState);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -212,9 +216,13 @@ export function ConsultantUpgradeModal({
     if (form.expertiseTags.length === 0)
       e.expertiseTags = t("profile:upgrade.validation.atLeastOneTag");
 
-    const fee = Number(form.sessionFeeUsd);
-    if (!form.sessionFeeUsd || !Number.isFinite(fee) || fee <= 0)
-      e.sessionFeeUsd = t("profile:upgrade.validation.feePositive");
+    // Master switch — when payments are off the field is hidden and the
+    // server forces the value to 0 on save, so skip the validation entirely.
+    if (paymentsEnabled) {
+      const fee = Number(form.sessionFeeUsd);
+      if (!form.sessionFeeUsd || !Number.isFinite(fee) || fee < 0)
+        e.sessionFeeUsd = t("profile:upgrade.validation.feePositive");
+    }
 
     const duration = Number(form.sessionDurationMinutes);
     if (![30, 45, 60, 90].includes(duration))
@@ -248,7 +256,9 @@ export function ConsultantUpgradeModal({
     highestDegree: form.highestDegree.trim(),
     fieldOfExpertise: form.fieldOfExpertise.trim(),
     yearsOfExperience: Number(form.yearsOfExperience),
-    sessionFeeUsd: Number(form.sessionFeeUsd),
+    // When the master switch is off the form hides the fee field — submit 0
+    // so the server's validator + handler don't trip on an empty string.
+    sessionFeeUsd: paymentsEnabled ? Number(form.sessionFeeUsd) : 0,
     sessionDurationMinutes: Number(form.sessionDurationMinutes),
     expertiseTags: form.expertiseTags,
     languages: form.languages,
@@ -441,28 +451,30 @@ export function ConsultantUpgradeModal({
               />
             </Field>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field
-                label={t("profile:upgrade.fields.sessionFeeUsd")}
-                htmlFor="upg-fee"
-                required
-                error={errors.sessionFeeUsd}
-              >
-                <div className="relative">
-                  <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-sm text-text-tertiary">
-                    $
-                  </span>
-                  <input
-                    id="upg-fee"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={form.sessionFeeUsd}
-                    onChange={(e) => set("sessionFeeUsd", e.target.value)}
-                    className={`ps-7 ${errors.sessionFeeUsd ? invalidClass : inputClass}`}
-                  />
-                </div>
-              </Field>
+            <div className={paymentsEnabled ? "grid gap-4 sm:grid-cols-2" : "grid gap-4"}>
+              {paymentsEnabled && (
+                <Field
+                  label={t("profile:upgrade.fields.sessionFeeUsd")}
+                  htmlFor="upg-fee"
+                  required
+                  error={errors.sessionFeeUsd}
+                >
+                  <div className="relative">
+                    <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-sm text-text-tertiary">
+                      $
+                    </span>
+                    <input
+                      id="upg-fee"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.sessionFeeUsd}
+                      onChange={(e) => set("sessionFeeUsd", e.target.value)}
+                      className={`ps-7 ${errors.sessionFeeUsd ? invalidClass : inputClass}`}
+                    />
+                  </div>
+                </Field>
+              )}
               <Field
                 label={t("profile:upgrade.fields.sessionDurationMinutes")}
                 htmlFor="upg-duration"

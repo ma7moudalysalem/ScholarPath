@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { ShieldCheck, Info, CreditCard } from 'lucide-react';
+import { usePaymentsEnabled } from '@/hooks/usePlatformStatus';
 
 interface ApplyConfirmationProps {
   scholarshipTitle: string;
@@ -18,7 +19,11 @@ export function ApplyConfirmation({
   onCancel,
   isSubmitting = false,
 }: ApplyConfirmationProps) {
-  const { t } = useTranslation('company');
+  const { t } = useTranslation(['company', 'scholarships']);
+  // Master payments switch: when off, treat every application as free
+  // regardless of the stored fee.
+  const paymentsEnabled = usePaymentsEnabled();
+  const isFree = !paymentsEnabled || reviewFeeUsd === 0;
 
   return (
     <div className="flex flex-col space-y-6">
@@ -37,7 +42,7 @@ export function ApplyConfirmation({
             {t('submit.reviewFee')}
           </span>
           <span className="text-lg font-bold text-text-primary">
-            ${reviewFeeUsd.toFixed(2)}
+            {isFree ? t('scholarships:freeListing') : `$${reviewFeeUsd.toFixed(2)}`}
           </span>
         </div>
 
@@ -54,12 +59,16 @@ export function ApplyConfirmation({
         </div>
       </div>
 
-      <div className="flex items-start space-x-3 text-text-tertiary">
-        <Info size={16} className="shrink-0 mt-0.5" />
-        <p className="text-[11px] leading-relaxed">
-          By proceeding, you agree to our terms of service. The fee is non-refundable if the application is rejected, but fully refundable if the company fails to review it within 14 days.
-        </p>
-      </div>
+      {/* Refund / escrow disclaimer only renders for paid applications —
+          there's nothing to refund when the platform is in free mode. */}
+      {!isFree && (
+        <div className="flex items-start space-x-3 text-text-tertiary">
+          <Info size={16} className="shrink-0 mt-0.5" />
+          <p className="text-[11px] leading-relaxed">
+            By proceeding, you agree to our terms of service. The fee is non-refundable if the application is rejected, but fully refundable if the company fails to review it within 14 days.
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-col space-y-3 pt-2">
         <button
