@@ -2,6 +2,12 @@
 
 You've just joined a module on ScholarPath. Read this page end-to-end before your first commit.
 
+> ⚠️ **Status update (2026-06-02).** The "stub / awaiting backend wiring" language in
+> this onboarding doc reflects the **May scaffold** and is now out of date — auth,
+> Stripe, SSO, Hangfire, AI and the module pages are all implemented on `main`. Use
+> [`REMEDIATION-PLAN.md`](./REMEDIATION-PLAN.md) for what's actually left, and
+> [`TECHNICAL-BRIEF.md`](./TECHNICAL-BRIEF.md) for how the system really works today.
+
 ## Status snapshot — May 2026
 
 Beyond the initial scaffold, three modules have been shipped end-to-end by @ma7moudalysalem:

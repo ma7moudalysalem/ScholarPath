@@ -90,7 +90,7 @@ Client-side Zod schema mirrors server rules for instant UX feedback.
 
 ## Security baseline
 
-- JWT signed with **HMAC-SHA256** in scaffold (scratch key in `appsettings.json`). **Migrate to RS256 + Azure Key Vault before production** (`docs/deploy.md` checklist).
+- JWT signed with **RS256** (asymmetric). The signing key comes from a key provider: in production set `Jwt:KeyVaultUri` so the RSA key is read from **Azure Key Vault** via `DefaultAzureCredential`; in development the local provider loads `DevKeyPath` or generates an ephemeral key (`appsettings.json` → `Jwt`). No private key is ever committed.
 - TLS 1.2+ enforced in production (Kestrel config + Azure App Service default).
 - Lockout policy (see above).
 - Refresh token rotation with replacement chain.

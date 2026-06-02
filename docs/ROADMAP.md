@@ -4,6 +4,13 @@
 **Current tag**: `v2.0.0-scaffold` (pending)
 **Repo**: https://github.com/ma7moudalysalem/ScholarPath
 
+> ⚠️ **Status update (2026-06-02) — read this first.** This document describes the
+> *original plan and the May scaffold*. The product has moved well past it: auth,
+> payments, AI, notifications, community, resources and ~60 routes are **implemented
+> on `main`**, not stubbed. Anything below marked "stub / awaiting wiring" is
+> **out of date**. For the true current state and the remaining work see
+> [`REMEDIATION-PLAN.md`](./REMEDIATION-PLAN.md) and [`TECHNICAL-BRIEF.md`](./TECHNICAL-BRIEF.md).
+
 This document is the narrative companion to `docs/HANDOFF.md`. It answers:
 
 1. What did we set out to build?
