@@ -194,6 +194,7 @@
     },
     "paymentMissing": "We couldn't open the payment form. Please cancel this booking and try again.",
     "continueToPayment": "Continue to payment",
+    "sendRequest": "Send booking request",
     "paymentStep": {
       "title": "Payment",
       "description": "Authorize the session fee — it is held securely and only charged when the consultant accepts your booking."

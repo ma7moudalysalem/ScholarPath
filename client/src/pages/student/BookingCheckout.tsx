@@ -476,7 +476,9 @@ export function BookingCheckout() {
               >
                 {requestBooking.isPending
                   ? t("states.submitting")
-                  : t("checkout.continueToPayment")}
+                  : feeAmount === 0
+                    ? t("checkout.sendRequest")
+                    : t("checkout.continueToPayment")}
               </button>
               <Link
                 to={`/student/consultants/${consultant.id}`}
