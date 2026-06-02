@@ -23,6 +23,7 @@ export function SsoCallback() {
       .completeSso(provider, code)
       .then((res) => {
         const user = applyAuthSession(res);
+        toast.success(t("auth:login.welcomeBack", { name: user.firstName || user.fullName }));
         navigate(postAuthPath(user), { replace: true });
       })
       .catch((err) => {

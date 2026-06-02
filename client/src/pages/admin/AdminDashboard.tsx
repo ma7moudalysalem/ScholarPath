@@ -33,6 +33,7 @@ import {
 } from "@/components/dashboard/primitives";
 import { formatRelativeTime } from "@/components/dashboard/utils";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
 
 const AUDIT_ICON: Record<string, { icon: LucideIcon; accent: StatAccent }> = {
   UserStatusChange: { icon: UserCheck, accent: "warning" },
@@ -93,6 +94,7 @@ function greetingKey(): "morning" | "afternoon" | "evening" {
 
 export function AdminDashboard() {
   const { t, i18n } = useTranslation(["admin", "dashboard"]);
+  const firstName = useAuthStore((s) => s.user?.firstName ?? "");
 
   // Period toggle for the user-growth chart (7 / 30 / 90 days). The day count
   // is part of the query key so switching ranges refetches + caches per range.
@@ -136,7 +138,7 @@ export function AdminDashboard() {
   return (
     <div className="space-y-6">
       <WelcomeBanner
-        eyebrow={t(`dashboard:greeting.${greetingKey()}`, { name: t("admin:title") })}
+        eyebrow={t(`dashboard:greeting.${greetingKey()}`, { name: firstName || t("admin:title") })}
         title={
           <>
             {t("dashboard:admin.headlinePrefix")}{" "}

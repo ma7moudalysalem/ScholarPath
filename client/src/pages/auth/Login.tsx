@@ -86,6 +86,7 @@ export function Login() {
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       const user = applyAuthSession(await authApi.login(values));
+      toast.success(t("auth:login.welcomeBack", { name: user.firstName || user.fullName }));
       // If the caller carried a ?redirect=… and the user has finished
       // onboarding AND can actually open the target with their active role,
       // honour it. Otherwise fall back to the role-specific home — e.g.
