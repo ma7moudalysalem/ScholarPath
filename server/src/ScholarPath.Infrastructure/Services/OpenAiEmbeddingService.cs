@@ -26,10 +26,11 @@ public sealed class OpenAiEmbeddingService(
 {
     private const string EmbeddingsUrl = "https://api.openai.com/v1/embeddings";
 
+    // Provider-neutral model tag (no vendor brand surfaced).
     public string ModelName =>
         string.IsNullOrWhiteSpace(opts.Value.OpenAi.ApiKey)
             ? local.ModelName
-            : $"openai:{opts.Value.OpenAi.EmbeddingModel}";
+            : $"sp:{opts.Value.OpenAi.EmbeddingModel}";
 
     public int Dimensions => opts.Value.OpenAi.EmbeddingDimensions;
 

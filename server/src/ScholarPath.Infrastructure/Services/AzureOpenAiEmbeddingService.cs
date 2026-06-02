@@ -25,9 +25,12 @@ public sealed class AzureOpenAiEmbeddingService(
     LocalEmbeddingService local,
     ILogger<AzureOpenAiEmbeddingService> logger) : IEmbeddingService
 {
+    // Provider-neutral model tag (no vendor brand surfaced). The prefix
+    // namespaces the vector space so documents embedded with a different
+    // model are never matched against the active one.
     public string ModelName =>
         IsAzureEmbeddingConfigured()
-            ? $"azure:{opts.Value.AzureOpenAi.EmbeddingDeploymentName}"
+            ? $"sp:{opts.Value.AzureOpenAi.EmbeddingDeploymentName}"
             : local.ModelName;
 
     public int Dimensions => opts.Value.AzureOpenAi.EmbeddingDimensions;
