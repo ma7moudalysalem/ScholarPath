@@ -92,8 +92,15 @@ apiClient.interceptors.response.use(
       useAuthStore.getState().clear();
     }
 
-    if (error.response?.data) {
-      throw new ApiError(error.response.data);
+    // Use the server body only when it's a real ProblemDetails object. A
+    // platform-level 500/502 (e.g. an App Service HTML error page) arrives as a
+    // string, which would otherwise wrap into an ApiError with no usable
+    // title/detail and surface as a misleading generic message. Falling back to
+    // axios's message ("Request failed with status code 500") tells the user
+    // it's a server error, not a validation problem.
+    const data = error.response?.data;
+    if (data && typeof data === "object" && "status" in data) {
+      throw new ApiError(data as ApiErrorPayload);
     }
     throw new ApiError({
       title: error.message || "Unknown error",
