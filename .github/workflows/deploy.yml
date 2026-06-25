@@ -149,16 +149,17 @@ jobs:
       # (say) Stripe keeps the stub. Values come from Secrets — never hard-coded.
       # SSO is the one that unblocks Google/Microsoft sign-in: without these the
       # API falls back to StubSsoService and builds an invalid consent URL.
-      # Required Secrets (set the ones you use):
-      #   AUTH_GOOGLE_CLIENT_ID / AUTH_GOOGLE_CLIENT_SECRET
-      #   AUTH_MICROSOFT_CLIENT_ID / AUTH_MICROSOFT_CLIENT_SECRET
+      # The Google/Microsoft client IDs already exist as the VITE_*_CLIENT_ID
+      # repo variables (reused here for the backend), so you only need to add the
+      # two CLIENT SECRETS. Required Secrets (set the ones you use):
+      #   AUTH_GOOGLE_CLIENT_SECRET · AUTH_MICROSOFT_CLIENT_SECRET
       #   STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET / STRIPE_CONNECT_CLIENT_ID
       #   SENDGRID_API_KEY · ACS_CONNECTION_STRING
       - name: Sync auth + integration app settings
         env:
-          AUTH_GOOGLE_CLIENT_ID: ${{ secrets.AUTH_GOOGLE_CLIENT_ID }}
+          AUTH_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
           AUTH_GOOGLE_CLIENT_SECRET: ${{ secrets.AUTH_GOOGLE_CLIENT_SECRET }}
-          AUTH_MICROSOFT_CLIENT_ID: ${{ secrets.AUTH_MICROSOFT_CLIENT_ID }}
+          AUTH_MICROSOFT_CLIENT_ID: ${{ vars.VITE_MICROSOFT_CLIENT_ID }}
           AUTH_MICROSOFT_CLIENT_SECRET: ${{ secrets.AUTH_MICROSOFT_CLIENT_SECRET }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
@@ -173,10 +174,14 @@ jobs:
           fi
 
           settings=()
-          if [ -n "$AUTH_GOOGLE_CLIENT_ID" ];     then settings+=("Authentication__Google__ClientId=$AUTH_GOOGLE_CLIENT_ID"); fi
-          if [ -n "$AUTH_GOOGLE_CLIENT_SECRET" ]; then settings+=("Authentication__Google__ClientSecret=$AUTH_GOOGLE_CLIENT_SECRET"); fi
-          if [ -n "$AUTH_MICROSOFT_CLIENT_ID" ];     then settings+=("Authentication__Microsoft__ClientId=$AUTH_MICROSOFT_CLIENT_ID"); fi
-          if [ -n "$AUTH_MICROSOFT_CLIENT_SECRET" ]; then settings+=("Authentication__Microsoft__ClientSecret=$AUTH_MICROSOFT_CLIENT_SECRET"); fi
+          # Apply a provider only when its client SECRET is supplied (the IDs
+          # always come from the VITE_* vars), so a half-config is never written.
+          if [ -n "$AUTH_GOOGLE_CLIENT_SECRET" ] && [ -n "$AUTH_GOOGLE_CLIENT_ID" ]; then
+            settings+=("Authentication__Google__ClientId=$AUTH_GOOGLE_CLIENT_ID" "Authentication__Google__ClientSecret=$AUTH_GOOGLE_CLIENT_SECRET")
+          fi
+          if [ -n "$AUTH_MICROSOFT_CLIENT_SECRET" ] && [ -n "$AUTH_MICROSOFT_CLIENT_ID" ]; then
+            settings+=("Authentication__Microsoft__ClientId=$AUTH_MICROSOFT_CLIENT_ID" "Authentication__Microsoft__ClientSecret=$AUTH_MICROSOFT_CLIENT_SECRET")
+          fi
           if [ -n "$STRIPE_SECRET_KEY" ];        then settings+=("Stripe__SecretKey=$STRIPE_SECRET_KEY"); fi
           if [ -n "$STRIPE_WEBHOOK_SECRET" ];    then settings+=("Stripe__WebhookSecret=$STRIPE_WEBHOOK_SECRET"); fi
           if [ -n "$STRIPE_CONNECT_CLIENT_ID" ]; then settings+=("Stripe__ConnectClientId=$STRIPE_CONNECT_CLIENT_ID"); fi
