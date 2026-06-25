@@ -290,6 +290,39 @@ resource redis 'Microsoft.Cache/redis@2024-03-01' = if (deployRedis) {
   }
 }
 
+// ─── Storage Account (document vault — FR-216) ──────────────────────────────
+// The document vault writes uploaded files to Blob storage. Storage account
+// names are globally unique, 3-24 chars, lowercase alphanumeric (no hyphens).
+
+var storageAccountName = take('st${replace(nameSuffix, '-', '')}${uniqueSuffix}', 24)
+
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: storageAccountName
+  location: location
+  tags: tags
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
+    allowBlobPublicAccess: false
+    supportsHttpsTrafficOnly: true
+  }
+}
+
+// Blob connection string secret. The API reads it via a Key Vault reference
+// (resolved at runtime by the App Service managed identity), exactly like the
+// SQL connection string — the key never appears in App Service configuration.
+resource storageConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: keyVault
+  name: 'Storage--AzureBlob--ConnectionString'
+  properties: {
+    value: 'DefaultEndpointsProtocol=https;AccountName=${storageAccount.name};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
+    contentType: 'text/plain'
+  }
+}
+
 // ─── App Service Plan + API App Service ─────────────────────────────────────
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
@@ -391,6 +424,17 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
           name: 'ApplicationInsights__ConnectionString'
           value: appInsights.properties.ConnectionString
         }
+        // Document vault → Azure Blob storage (FR-216). Without these the API
+        // falls back to the Local provider and writes to the App Service's
+        // ephemeral/read-only filesystem, which fails in production.
+        {
+          name: 'Storage__Provider'
+          value: 'AzureBlob'
+        }
+        {
+          name: 'Storage__AzureBlob__ConnectionString'
+          value: '@Microsoft.KeyVault(SecretUri=${storageConnectionSecret.properties.secretUri})'
+        }
       ], deployRedis ? [
         {
           name: 'Redis__ConnectionString'
@@ -491,6 +535,9 @@ output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
 
 @description('Name of the Azure SQL database.')
 output sqlDatabaseName string = sqlDatabase.name
+
+@description('Name of the Storage Account backing the document vault.')
+output storageAccountName string = storageAccount.name
 
 @description('Key Vault name.')
 output keyVaultName string = keyVault.name
