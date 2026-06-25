@@ -1133,19 +1133,22 @@ export function Profile() {
   const feeError =
     feeNumber == null
       ? null
-      : !Number.isFinite(feeNumber) || feeNumber <= 0
+      : !Number.isFinite(feeNumber) || feeNumber < 0
         ? t("profile:validation.sessionFeePositive")
         : Math.round(feeNumber * 100) !== feeNumber * 100
           ? t("profile:validation.sessionFeeDecimals")
           : null;
 
-  const hasClientErrors = Boolean(
-    linkedInError || websiteError || orgWebsiteError || gpaError || feeError,
-  );
-
   const onSave = () => {
-    if (hasClientErrors) {
-      toast.error(t("profile:error"));
+    // Surface the first *specific* reason a save is blocked. Falling back to
+    // the generic "couldn't save your profile" toast hid which field was at
+    // fault — and the offending field is often in a section that isn't on
+    // screen (e.g. a stale session-fee), so the save looked like an
+    // unexplained server error.
+    const firstError =
+      linkedInError ?? websiteError ?? orgWebsiteError ?? gpaError ?? feeError;
+    if (firstError) {
+      toast.error(firstError);
       return;
     }
     updateMut.mutate(toRequest(form), {

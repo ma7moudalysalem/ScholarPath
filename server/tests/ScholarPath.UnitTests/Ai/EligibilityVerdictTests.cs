@@ -64,7 +64,8 @@ public sealed class EligibilityVerdictTests : IDisposable
     }
 
     private async Task SeedProfileAsync(
-        Guid userId, AcademicLevel? level, string? nationality, string? fieldOfStudy)
+        Guid userId, AcademicLevel? level, string? nationality, string? fieldOfStudy,
+        string? preferredCountriesJson = null)
     {
         _db.UserProfiles.Add(new UserProfile
         {
@@ -73,6 +74,7 @@ public sealed class EligibilityVerdictTests : IDisposable
             AcademicLevel = level,
             Nationality = nationality,
             FieldOfStudy = fieldOfStudy,
+            PreferredCountriesJson = preferredCountriesJson,
         });
         await _db.SaveChangesAsync();
     }
@@ -118,6 +120,58 @@ public sealed class EligibilityVerdictTests : IDisposable
         var result = await _ai.CheckEligibilityAsync(userId, scholarshipId, CancellationToken.None);
 
         result.Verdict.Should().Be(EligibilityVerdict.PartiallyEligible);
+    }
+
+    [Fact]
+    public async Task IsoCodeCountry_MatchesFullNameNationality()
+    {
+        // Real-world data shape: scholarships store ISO alpha-2 codes while the
+        // profile stores a full country name. Before normalization "EG" never
+        // equalled "Egypt", so the country criterion always read "no" and pulled
+        // the verdict down to NotEligible.
+        var userId = Guid.NewGuid();
+        var scholarshipId = await SeedScholarshipAsync(
+            AcademicLevel.Masters, "[\"EG\",\"JO\",\"AE\"]", "[\"Engineering\"]");
+        await SeedProfileAsync(userId, AcademicLevel.Masters, "Egypt", "Engineering");
+
+        var result = await _ai.CheckEligibilityAsync(userId, scholarshipId, CancellationToken.None);
+
+        result.Criteria.Single(c => c.NameEn == "Country").Match.Should().Be("yes");
+        result.Verdict.Should().Be(EligibilityVerdict.Eligible);
+    }
+
+    [Fact]
+    public async Task PreferredDestination_MatchesScholarshipCountry_EvenWhenNationalityDiffers()
+    {
+        // The exact reported case: an Egyptian student who wants to study in
+        // France, against a France scholarship. The award's country is a study
+        // destination, so it must match the student's preferred destination —
+        // not their nationality. Before the fix the criterion read "no".
+        var userId = Guid.NewGuid();
+        var scholarshipId = await SeedScholarshipAsync(
+            AcademicLevel.Masters, "[\"France\"]", "[\"Computer Science\"]");
+        await SeedProfileAsync(
+            userId, AcademicLevel.Masters, nationality: "Egypt",
+            fieldOfStudy: "Computer Science", preferredCountriesJson: "[\"France\"]");
+
+        var result = await _ai.CheckEligibilityAsync(userId, scholarshipId, CancellationToken.None);
+
+        result.Criteria.Single(c => c.NameEn == "Country").Match.Should().Be("yes");
+        result.Verdict.Should().Be(EligibilityVerdict.Eligible);
+    }
+
+    [Fact]
+    public async Task IsoCodeCountry_NonMatchingNationality_ReadsNo()
+    {
+        var userId = Guid.NewGuid();
+        var scholarshipId = await SeedScholarshipAsync(
+            AcademicLevel.Masters, "[\"EG\",\"JO\"]", "[\"Engineering\"]");
+        await SeedProfileAsync(userId, AcademicLevel.Masters, "Germany", "Engineering");
+
+        var result = await _ai.CheckEligibilityAsync(userId, scholarshipId, CancellationToken.None);
+
+        result.Criteria.Single(c => c.NameEn == "Country").Match.Should().Be("no");
+        result.Verdict.Should().Be(EligibilityVerdict.NotEligible);
     }
 
     [Fact]

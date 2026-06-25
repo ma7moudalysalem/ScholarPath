@@ -91,10 +91,14 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
                     throw new BookingDomainException("Booking has no Stripe payment intent to refund.");
                 }
 
-                var amountCents = (long)decimal.Round(
-                    booking.PriceUsd * 100m,
-                    0,
-                    MidpointRounding.AwayFromZero);
+                // Refund the amount that was actually captured (the Payment row
+                // is the source of truth), not a re-derivation from PriceUsd —
+                // the two can diverge if the booking was re-priced after payment,
+                // which would otherwise over- or under-refund on Stripe while the
+                // Payment row claims a full refund.
+                var amountCents = booking.Payment is { } capturedPayment
+                    ? capturedPayment.AmountCents
+                    : (long)decimal.Round(booking.PriceUsd * 100m, 0, MidpointRounding.AwayFromZero);
 
                 if (amountCents < 0)
                 {

@@ -413,7 +413,12 @@ public sealed class StripeService(
                 case Charge ch:
                     chargeId = ch.Id;
                     paymentIntentId = ch.PaymentIntentId;
-                    amountCents = ch.Amount;
+                    // For `charge.refunded` this must be the CUMULATIVE amount
+                    // refunded on the charge — using ch.Amount (the gross charge)
+                    // made every partial refund record as a full refund and flip
+                    // the status to Refunded. ch.AmountRefunded is the only
+                    // consumer of this value for a Charge.
+                    amountCents = ch.AmountRefunded;
                     break;
                 case Account acct:
                     connectAccountId = acct.Id;
