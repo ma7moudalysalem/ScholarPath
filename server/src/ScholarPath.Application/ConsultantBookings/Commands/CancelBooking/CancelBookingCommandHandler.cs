@@ -68,6 +68,11 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
         // calculator and Stripe steps don't apply — just flip state.
         if (booking.PriceUsd == 0m && booking.Payment is null)
         {
+            // Capture the lifecycle phase BEFORE mutating Status — otherwise the
+            // reason check below always reads "Cancelled" and every free-booking
+            // cancellation is mis-recorded as a consultant-side cancellation.
+            var wasRequested = booking.Status == BookingStatus.Requested;
+
             booking.Status = BookingStatus.Cancelled;
             booking.CancelledAt = DateTimeOffset.UtcNow;
             booking.CancelledByUserId = currentUserId;
@@ -76,7 +81,7 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
             // Consultant initiated) classify as the consultant-side reason so
             // the booking's audit trail still shows a meaningful cause even
             // though no money moved.
-            booking.CancellationReason = isStudent && booking.Status == BookingStatus.Requested
+            booking.CancellationReason = isStudent && wasRequested
                 ? CancellationReason.StudentCancelledBeforeAcceptance
                 : CancellationReason.ConsultantCancelledAfterAcceptance;
 
