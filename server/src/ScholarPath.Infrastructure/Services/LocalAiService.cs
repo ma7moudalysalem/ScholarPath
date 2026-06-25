@@ -70,7 +70,9 @@ public sealed class LocalAiService(
 
             if (userLevel.HasValue && userLevel.Value == c.TargetLevel) score += 30;
             score += OverlapScore(preferredFields, fosFields, maxPoints: 40);
-            score += OverlapScore(preferredCountries, countries, maxPoints: 25);
+            // Countries are compared on their canonical ISO key so a preferred
+            // "Egypt" / "مصر" overlaps a scholarship's "EG".
+            score += OverlapScore(NormalizeCountries(preferredCountries), NormalizeCountries(countries), maxPoints: 25);
 
             // Funding bonus — bigger awards nudge up by a few points
             if (c.FundingAmountUsd >= 10_000) score += 5;
@@ -130,17 +132,31 @@ public sealed class LocalAiService(
             Match: profile?.AcademicLevel == scholarship.TargetLevel ? "yes"
                 : profile?.AcademicLevel is null ? "unknown" : "no"));
 
-        // Country match (nullable)
+        // Country match. A scholarship's target country is where the award lets
+        // you study; the UI asks students for exactly that as "preferred study
+        // destinations" (preferredCountries) and promises to "match scholarships
+        // in those countries with you". So the listing is matched against the
+        // student's preferred destinations AND their nationality (some awards
+        // are nationality-restricted) — not nationality alone, which made an
+        // Egyptian who wants to study in France read "no" on a France award.
+        // CountryNormalizer folds ISO codes ("FR"), full names ("France") and
+        // Arabic to a common key so the spelling/format no longer matters.
         var listingCountries = ParseJsonArray(scholarship.TargetCountriesJson);
-        var studentCountry = profile?.Nationality ?? string.Empty;
+        var studentCountries = ParseJsonArray(profile?.PreferredCountriesJson).ToList();
+        var nationality = profile?.Nationality;
+        if (!string.IsNullOrWhiteSpace(nationality))
+            studentCountries.Add(nationality);
+
         criteria.Add(new AiEligibilityCriterion(
             NameEn: "Country",
             NameAr: "الدولة",
-            StudentValue: string.IsNullOrWhiteSpace(studentCountry) ? "unknown" : studentCountry,
+            StudentValue: studentCountries.Count == 0
+                ? "unknown"
+                : string.Join(", ", studentCountries.Distinct(StringComparer.OrdinalIgnoreCase)),
             ListingRequirement: listingCountries.Count == 0 ? "any" : string.Join(", ", listingCountries),
             Match: listingCountries.Count == 0 ? "yes"
-                : string.IsNullOrWhiteSpace(studentCountry) ? "unknown"
-                : listingCountries.Any(c => string.Equals(c, studentCountry, StringComparison.OrdinalIgnoreCase)) ? "yes" : "no"));
+                : studentCountries.Count == 0 ? "unknown"
+                : listingCountries.Any(lc => studentCountries.Any(sc => CountryNormalizer.Matches(lc, sc))) ? "yes" : "no"));
 
         // Field of study — use dedicated FieldsOfStudyJson; fall back to tags only if not set
         var fosFields = ParseJsonArray(scholarship.FieldsOfStudyJson);
@@ -286,6 +302,11 @@ public sealed class LocalAiService(
             return Array.Empty<string>();
         }
     }
+
+    // Fold a country list to its canonical ISO keys, dropping blanks, so
+    // overlap is measured on "the same place" rather than identical spelling.
+    private static IReadOnlyList<string> NormalizeCountries(IReadOnlyList<string> countries)
+        => countries.Select(CountryNormalizer.ToKey).Where(k => k.Length > 0).ToList();
 
     private static int OverlapScore(IReadOnlyList<string> a, IReadOnlyList<string> b, int maxPoints)
     {
