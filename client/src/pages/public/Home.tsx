@@ -16,6 +16,7 @@ import {
 import { motion } from "motion/react";
 import { useAuthStore } from "@/stores/authStore";
 import { postAuthPath } from "@/services/api/auth";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 export function Home() {
   const { t } = useTranslation(["home", "common"]);
@@ -367,6 +368,9 @@ export function Home() {
   // ─── Pricing ──────────────────────────────────────────────────────
 
   function PricingSection() {
+    const paymentsEnabled = usePaymentsEnabled();
+    if (!paymentsEnabled) return null;
+
     const tiers = [
       {
         key: "free",
