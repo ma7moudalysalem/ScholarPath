@@ -3,6 +3,7 @@ using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Ai.DTOs;
 
+// Cached shape — only AI-generated fields; stored as JSON in AiInteraction.ResponseText.
 public sealed record RecommendationItemDto(
     Guid ScholarshipId,
     string TitleEn,
@@ -11,8 +12,20 @@ public sealed record RecommendationItemDto(
     string ExplanationEn,
     string ExplanationAr);
 
+// API response shape — enriched with live scholarship metadata.
+public sealed record RecommendationCardDto(
+    Guid ScholarshipId,
+    string TitleEn,
+    string TitleAr,
+    int MatchScore,
+    string ExplanationEn,
+    string ExplanationAr,
+    DateTimeOffset Deadline,
+    decimal? FundingAmountUsd,
+    string FundingType);
+
 public sealed record RecommendationsDto(
-    IReadOnlyList<RecommendationItemDto> Items,
+    IReadOnlyList<RecommendationCardDto> Items,
     string Disclaimer,
     DateTimeOffset GeneratedAt);
 

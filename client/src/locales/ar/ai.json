@@ -21,7 +21,14 @@
     "matchScoreLabel": "نسبة التوافق {{score}}%",
     "viewListing": "افتح المنحة",
     "generatedAt": "أُنشئت {{when}}",
-    "error": "تعذّر تحميل الاقتراحات. حاول مرة أخرى."
+    "error": "تعذّر تحميل الاقتراحات. حاول مرة أخرى.",
+    "daysLeft": "يتبقى {{count}} يوم",
+    "deadlineClosed": "انتهى",
+    "funding": {
+      "FullyFunded": "تمويل كامل",
+      "PartiallyFunded": "تمويل جزئي",
+      "TuitionOnly": "رسوم دراسية"
+    }
   },
   "eligibility": {
     "heading": "فحص الأهلية",
