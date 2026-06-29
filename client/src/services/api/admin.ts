@@ -291,6 +291,27 @@ export interface FineTuningDataset {
   generatedAt: string;
 }
 
+export interface StartFineTuningJobResult {
+  jobId: string;
+  fileId: string;
+  baseModel: string;
+  trainingExamples: number;
+}
+
+export interface FineTuningStatusResult {
+  jobId: string | null;
+  status: string;
+  fineTunedModel: string | null;
+  error: string | null;
+  activeDeploymentName: string | null;
+  hasActiveDeployment: boolean;
+}
+
+export interface ActivateFineTunedModelResult {
+  deploymentName: string;
+  replaced: boolean;
+}
+
 // ─── API ─────────────────────────────────────────────────────────────────
 export const adminApi = {
   // users
@@ -415,6 +436,33 @@ export const adminApi = {
       "/api/admin/ai/fine-tuning/dataset",
     );
     return data;
+  },
+  async startFineTuningJob(
+    baseModel = "gpt-4o-mini",
+  ): Promise<StartFineTuningJobResult> {
+    const { data } = await apiClient.post<StartFineTuningJobResult>(
+      "/api/admin/ai/fine-tuning/start",
+      null,
+      { params: { baseModel } },
+    );
+    return data;
+  },
+  async fineTuningStatus(): Promise<FineTuningStatusResult> {
+    const { data } = await apiClient.get<FineTuningStatusResult>(
+      "/api/admin/ai/fine-tuning/status",
+    );
+    return data;
+  },
+  async activateFineTunedModel(deploymentName: string): Promise<ActivateFineTunedModelResult> {
+    const { data } = await apiClient.put<ActivateFineTunedModelResult>(
+      "/api/admin/ai/fine-tuning/activate",
+      null,
+      { params: { deploymentName } },
+    );
+    return data;
+  },
+  async deactivateFineTunedModel(): Promise<void> {
+    await apiClient.delete("/api/admin/ai/fine-tuning/activate");
   },
 
   // redaction audit (PB-017 US-178)

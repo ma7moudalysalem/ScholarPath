@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Infrastructure.Settings;
 
@@ -25,6 +26,7 @@ public sealed class AzureOpenAiService(
     IOptions<AiOptions> opts,
     IKnowledgeRetriever retriever,
     LocalAiService local,
+    IApplicationDbContext db,
     ILogger<AzureOpenAiService> logger) : IAiService
 {
     private const string Disclaimer = "AI-generated guidance. Verify with official sources before acting.";
@@ -134,10 +136,14 @@ public sealed class AzureOpenAiService(
             throw new InvalidOperationException(
                 "Ai:AzureOpenAi:Endpoint and ApiKey are required when Ai:Provider=AzureOpenAi.");
 
-        // Use the fine-tuned deployment when one is configured (see the fine-tuning runbook).
-        var deployment = string.IsNullOrWhiteSpace(az.FineTunedDeploymentName)
-            ? az.DeploymentName
-            : az.FineTunedDeploymentName;
+        // Deployment priority: DB platform setting → appsettings override → base model.
+        var dbDeployment = await PlatformSettingsReader.GetStringAsync(
+            db, PlatformSettingsKeys.ActiveFineTunedDeploymentName, null, ct).ConfigureAwait(false);
+        var deployment = !string.IsNullOrWhiteSpace(dbDeployment)
+            ? dbDeployment
+            : !string.IsNullOrWhiteSpace(az.FineTunedDeploymentName)
+                ? az.FineTunedDeploymentName
+                : az.DeploymentName;
 
         using var client = httpFactory.CreateClient("azure-openai");
         client.Timeout = TimeSpan.FromSeconds(60);

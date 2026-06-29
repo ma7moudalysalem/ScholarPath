@@ -269,6 +269,9 @@ public static class DependencyInjection
         services.AddScoped<IKnowledgeRetriever, KnowledgeRetriever>();
         services.AddScoped<IKnowledgeBaseIndexer, KnowledgeBaseIndexer>();
 
+        // Fine-tuning service (Azure OpenAI Files + Jobs REST API wrapper).
+        services.AddScoped<IAzureFineTuningService, AzureFineTuningService>();
+
         // LocalAiService is always registered as a concrete service so the cloud
         // providers can delegate scoring to it and fall back to it.
         services.AddScoped<LocalAiService>();
