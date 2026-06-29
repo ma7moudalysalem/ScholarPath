@@ -28,7 +28,8 @@
     "billing": "الفواتير",
     "resources": "مواردي",
     "insights": "التحليلات",
-    "reviews": "التقييمات"
+    "reviews": "التقييمات",
+    "bookings": "الحجوزات"
   },
   "consultant": {
     "dashboard": "لوحة التحكم",

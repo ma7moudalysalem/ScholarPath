@@ -28,7 +28,8 @@
     "billing": "Billing",
     "resources": "My resources",
     "insights": "Insights",
-    "reviews": "Reviews"
+    "reviews": "Reviews",
+    "bookings": "Bookings"
   },
   "consultant": {
     "dashboard": "Dashboard",

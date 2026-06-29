@@ -17,6 +17,7 @@ using ScholarPath.Application.ConsultantBookings.Queries.DownloadSessionRecordin
 using ScholarPath.Application.ConsultantBookings.Queries.GetBookingById;
 using ScholarPath.Application.ConsultantBookings.Queries.GetBookingRecordings;
 using ScholarPath.Application.ConsultantBookings.Queries.GetConsultantBookings;
+using ScholarPath.Application.ConsultantBookings.Queries.GetAllBookings;
 using ScholarPath.Application.ConsultantBookings.Queries.GetMyAvailability;
 using ScholarPath.Application.ConsultantBookings.Queries.GetMyBookings;
 using ScholarPath.Application.ConsultantBookings.Queries.GetMyReceivedReviews;
@@ -37,6 +38,16 @@ public sealed class BookingsController : ControllerBase
     }
 
     // ─── Read / query endpoints ───────────────────────────────────────────────
+
+    /// <summary>
+    /// Lists all bookings platform-wide — admin and company users only.
+    /// </summary>
+    [HttpGet]
+    [Authorize(Roles = "Admin,SuperAdmin,Company")]
+    [ProducesResponseType(typeof(IReadOnlyList<BookingListItemDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<BookingListItemDto>>> GetAllBookings(
+        CancellationToken cancellationToken)
+        => Ok(await _sender.Send(new GetAllBookingsQuery(), cancellationToken));
 
     /// <summary>
     /// Lists the authenticated student's consultant bookings, newest first.

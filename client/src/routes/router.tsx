@@ -145,6 +145,9 @@ const CompanyInsights = lazy(() =>
 const CompanyReviews = lazy(() =>
   import("@/pages/company/CompanyReviews").then((m) => ({ default: m.CompanyReviews })),
 );
+const CompanyBookings = lazy(() =>
+  import("@/pages/company/CompanyBookings").then((m) => ({ default: m.CompanyBookings })),
+);
 
 // Consultant
 const ConsultantDashboard = lazy(() =>
@@ -624,6 +627,16 @@ export function AppRouter() {
               <RequireRole roles={["Company"]}>
                 <AnimatedRoute>
                   <CompanyReviews />
+                </AnimatedRoute>
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/company/bookings"
+            element={
+              <RequireRole roles={["Company"]}>
+                <AnimatedRoute>
+                  <CompanyBookings />
                 </AnimatedRoute>
               </RequireRole>
             }

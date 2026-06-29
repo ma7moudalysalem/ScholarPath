@@ -37,6 +37,18 @@ export function formatTime(iso: string | null | undefined, lang: string): string
   });
 }
 
+/** Formats an ISO-8601 instant as a time label with timezone abbreviation (e.g. "6:30 PM GMT+3"). */
+export function formatTimeWithTz(iso: string | null | undefined, lang: string): string {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleTimeString(intlLocale(lang), {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  });
+}
+
 /** Formats an ISO-8601 instant as a combined date + time label. */
 export function formatDateTime(iso: string, lang: string): string {
   return `${formatDate(iso, lang)} · ${formatTime(iso, lang)}`;

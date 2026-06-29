@@ -40,6 +40,7 @@ export const queryKeys = {
     all: ["bookings"] as const,
     mine: ["bookings", "mine"] as const,
     consultant: ["bookings", "consultant"] as const,
+    admin: ["bookings", "admin"] as const,
     detail: (id: string) => ["bookings", "detail", id] as const,
     myAvailability: ["bookings", "myAvailability"] as const,
   },

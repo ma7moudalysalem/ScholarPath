@@ -24,6 +24,11 @@
     "submitSuccess": "Thank you for your rating!",
     "submitError": "Failed to submit rating. Please try again."
   },
+  "bookings": {
+    "title": "Consultant Bookings",
+    "subtitle": "View all consultant booking sessions across the platform.",
+    "studentLabel": "Student"
+  },
   "submit": {
     "title": "Review Fee Payment",
     "subtitle": "Pay the review fee to submit your application for {{scholarship}}.",
