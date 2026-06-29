@@ -142,8 +142,11 @@ public sealed class LocalAiService(
         // CountryNormalizer folds ISO codes ("FR"), full names ("France") and
         // Arabic to a common key so the spelling/format no longer matters.
         var listingCountries = ParseJsonArray(scholarship.TargetCountriesJson);
-        var studentCountries = ParseJsonArray(profile?.PreferredCountriesJson).ToList();
-        var nationality = profile?.Nationality;
+        var studentCountries = ParseJsonArray(profile?.PreferredCountriesJson)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim())
+            .ToList();
+        var nationality = profile?.Nationality?.Trim();
         if (!string.IsNullOrWhiteSpace(nationality))
             studentCountries.Add(nationality);
 
