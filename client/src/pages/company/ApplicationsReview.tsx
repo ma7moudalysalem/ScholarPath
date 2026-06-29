@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Eye, Clock, Search, Filter } from "lucide-react";
+import { CheckCircle, XCircle, Eye, Clock, Search, Filter, Download, FileText, Loader2 } from "lucide-react";
 import {
   applicationsApi,
   type CompanyApplicationRow,
   type ApplicationStatus,
 } from "@/services/api/applications";
+import { documentsApi } from "@/services/api/documents";
 import { apiErrorMessage } from "@/services/api/client";
 import { PromptDialog } from "@/components/ui/PromptDialog";
 
@@ -302,86 +303,209 @@ export function ApplicationsReview() {
 
       {/* View-details drawer — opened by the eye icon on each row */}
       {viewTarget && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-text-primary/30 p-4 backdrop-blur-sm"
-          onClick={() => setViewTarget(null)}
-          role="presentation"
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-elevation-3"
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="mb-4 flex items-start justify-between gap-4">
-              <h2 className="text-lg font-bold text-text-primary">
-                {t("companyReview.detail.title", "Application details")}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setViewTarget(null)}
-                className="rounded-md p-1 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary"
-                aria-label={t("companyReview.detail.close", "Close")}
-              >
-                <XCircle size={20} />
-              </button>
-            </div>
-            <dl className="space-y-3 text-sm">
-              <div className="flex flex-col gap-0.5">
-                <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.student")}</dt>
-                <dd className="font-medium text-text-primary">{viewTarget.studentName}</dd>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.scholarship")}</dt>
-                <dd className="text-text-primary">{viewTarget.scholarshipTitle}</dd>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.status")}</dt>
-                <dd className="text-text-primary">
-                  {t(`companyReview.status.${viewTarget.status}`, { defaultValue: viewTarget.status })}
-                </dd>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.submitted")}</dt>
-                <dd className="text-text-primary">
-                  {viewTarget.submittedAt
-                    ? new Date(viewTarget.submittedAt).toLocaleDateString(lang)
-                    : "—"}
-                </dd>
-              </div>
-            </dl>
-            {/* Accept / Reject from inside the detail drawer (QA BUG-019 — the
-                popup previously showed details only, with no way to act). Hidden
-                once the application is in a terminal state. */}
-            {!["Accepted", "Rejected", "Withdrawn"].includes(viewTarget.status) && (
-              <div className="mt-5 flex justify-end gap-2 border-t border-border-subtle pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = viewTarget;
-                    setViewTarget(null);
-                    handleDecisionClick(target.applicationId, "Rejected");
-                  }}
-                  className="rounded-lg border border-danger-200 px-3 py-1.5 text-sm font-medium text-danger-600 transition hover:border-danger-400 hover:bg-danger-50"
-                >
-                  {t("companyReview.actions.reject")}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = viewTarget;
-                    setViewTarget(null);
-                    handleDecisionClick(target.applicationId, "Accepted");
-                  }}
-                  className="rounded-lg bg-success-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-success-600"
-                >
-                  {t("companyReview.actions.accept")}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <ApplicationDetailModal
+          row={viewTarget}
+          lang={lang}
+          t={t}
+          onClose={() => setViewTarget(null)}
+          onDecision={(id, status) => {
+            setViewTarget(null);
+            handleDecisionClick(id, status);
+          }}
+        />
       )}
+    </div>
+  );
+}
+
+// ── Application detail modal ──────────────────────────────────────────────────
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function ApplicationDetailModal({
+  row,
+  lang,
+  t,
+  onClose,
+  onDecision,
+}: {
+  row: CompanyApplicationRow;
+  lang: string;
+  t: ReturnType<typeof useTranslation<"applications">>["t"];
+  onClose: () => void;
+  onDecision: (id: string, status: "Accepted" | "Rejected") => void;
+}) {
+  const { data: details, isLoading } = useQuery({
+    queryKey: ["company", "application", "detail", row.applicationId],
+    queryFn: () => applicationsApi.getCompanyApplicationDetails(row.applicationId),
+  });
+
+  const handleDownload = async (docId: string, fileName: string) => {
+    try {
+      const blob = await documentsApi.download(docId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      // silent — the download icon just fails to trigger, no toast needed here
+    }
+  };
+
+  // Parse flat {key: value} form data for display
+  const formEntries: [string, string][] = (() => {
+    if (!details?.formDataJson) return [];
+    try {
+      const parsed = JSON.parse(details.formDataJson) as Record<string, unknown>;
+      return Object.entries(parsed).map(([k, v]) => [k, v == null ? "" : String(v)]);
+    } catch {
+      return [];
+    }
+  })();
+
+  const isTerminal = ["Accepted", "Rejected", "Withdrawn"].includes(row.status);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-text-primary/30 p-4 backdrop-blur-sm"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-elevated shadow-elevation-3"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 border-b border-border-subtle p-6 pb-4">
+          <h2 className="text-lg font-bold text-text-primary">
+            {t("companyReview.detail.title", "Application details")}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary"
+            aria-label={t("companyReview.detail.close", "Close")}
+          >
+            <XCircle size={20} />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto p-6 pt-4 space-y-5">
+          {/* Summary */}
+          <dl className="space-y-3 text-sm">
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.student")}</dt>
+              <dd className="font-medium text-text-primary">{row.studentName}</dd>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.scholarship")}</dt>
+              <dd className="text-text-primary">{row.scholarshipTitle}</dd>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.status")}</dt>
+              <dd className="text-text-primary">
+                {t(`companyReview.status.${row.status}`, { defaultValue: row.status })}
+              </dd>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.submitted")}</dt>
+              <dd className="text-text-primary">
+                {row.submittedAt ? new Date(row.submittedAt).toLocaleDateString(lang) : "—"}
+              </dd>
+            </div>
+          </dl>
+
+          {isLoading && (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 size={20} className="animate-spin text-text-tertiary" />
+            </div>
+          )}
+
+          {/* Form answers */}
+          {!isLoading && formEntries.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                {t("companyReview.detail.formAnswers", "Form answers")}
+              </h3>
+              <dl className="space-y-2 rounded-lg border border-border-subtle bg-bg-canvas p-3 text-sm">
+                {formEntries.map(([key, value]) => (
+                  <div key={key}>
+                    <dt className="text-xs text-text-tertiary capitalize">{key.replace(/_/g, " ")}</dt>
+                    <dd className="text-text-primary whitespace-pre-wrap">{value || "—"}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+
+          {/* Uploaded documents */}
+          {!isLoading && details && details.documents.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                {t("companyReview.detail.documents", "Documents")}
+              </h3>
+              <ul className="space-y-2">
+                {details.documents.map((doc) => (
+                  <li
+                    key={doc.id}
+                    className="flex items-center gap-3 rounded-lg border border-border-subtle bg-bg-canvas p-3 text-sm"
+                  >
+                    <FileText size={16} className="shrink-0 text-text-tertiary" />
+                    <span className="flex-1 truncate text-text-primary">{doc.fileName}</span>
+                    <span className="text-xs text-text-tertiary">{formatBytes(doc.sizeBytes)}</span>
+                    <button
+                      type="button"
+                      onClick={() => void handleDownload(doc.id, doc.fileName)}
+                      title={t("companyReview.detail.download", "Download")}
+                      className="rounded-md p-1.5 text-text-tertiary transition hover:bg-bg-subtle hover:text-brand-600"
+                    >
+                      <Download size={15} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* No documents hint */}
+          {!isLoading && details && details.documents.length === 0 && !details.formDataJson && (
+            <p className="text-sm text-text-tertiary">
+              {t("companyReview.detail.noContent", "No form answers or documents were submitted.")}
+            </p>
+          )}
+        </div>
+
+        {/* Footer actions */}
+        {!isTerminal && (
+          <div className="flex justify-end gap-2 border-t border-border-subtle p-4">
+            <button
+              type="button"
+              onClick={() => onDecision(row.applicationId, "Rejected")}
+              className="rounded-lg border border-danger-200 px-3 py-1.5 text-sm font-medium text-danger-600 transition hover:border-danger-400 hover:bg-danger-50"
+            >
+              {t("companyReview.actions.reject")}
+            </button>
+            <button
+              type="button"
+              onClick={() => onDecision(row.applicationId, "Accepted")}
+              className="rounded-lg bg-success-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-success-600"
+            >
+              {t("companyReview.actions.accept")}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -26,6 +26,12 @@ public sealed class GetCompanyApplicationDetailsQueryHandler(
             throw new ForbiddenAccessException();
         }
 
+        var documents = await db.Documents
+            .AsNoTracking()
+            .Where(d => d.ApplicationTrackerId == application.Id && !d.IsDeleted)
+            .Select(d => new CompanyDocumentInfo(d.Id, d.FileName, d.ContentType, d.SizeBytes))
+            .ToListAsync(ct);
+
         return new CompanyApplicationDetailsDto(
             application.Id,
             application.StudentId,
@@ -37,7 +43,8 @@ public sealed class GetCompanyApplicationDetailsQueryHandler(
             application.Status,
             application.SubmittedAt,
             application.FormDataJson,
-            application.AttachedDocumentsJson
+            application.AttachedDocumentsJson,
+            documents
         );
     }
 }

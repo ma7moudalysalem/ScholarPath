@@ -67,6 +67,28 @@ export interface CompanyApplicationRow {
   submittedAt: string | null;
 }
 
+export interface CompanyDocumentInfo {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+}
+
+/** Full application details visible to the company reviewer. */
+export interface CompanyApplicationDetails {
+  applicationId: string;
+  studentId: string;
+  studentName: string;
+  scholarshipId: string;
+  scholarshipTitle: string;
+  status: ApplicationStatus;
+  submittedAt: string | null;
+  formDataJson: string | null;
+  attachedDocumentsJson: string | null;
+  /** Vault documents uploaded by the student for this application (with IDs). */
+  documents: CompanyDocumentInfo[];
+}
+
 export interface ApplicationDetail {
   id: string;
   scholarshipId: string | null;
@@ -145,8 +167,8 @@ export const applicationsApi = {
     return data;
   },
 
-  async getCompanyApplicationDetails(id: string): Promise<CompanyApplicationRow> {
-    const { data } = await apiClient.get<CompanyApplicationRow>(`/api/applications/company/${id}`);
+  async getCompanyApplicationDetails(id: string): Promise<CompanyApplicationDetails> {
+    const { data } = await apiClient.get<CompanyApplicationDetails>(`/api/applications/company/${id}`);
     return data;
   },
 
