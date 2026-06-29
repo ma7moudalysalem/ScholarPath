@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using ScholarPath.Application.Common.Exceptions;
+using ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
 using ScholarPath.Application.ConsultantBookings.Queries.GetBookingById;
 using ScholarPath.Application.ConsultantBookings.Queries.GetConsultantBookings;
 using ScholarPath.Application.ConsultantBookings.Queries.GetMyAvailability;
@@ -355,6 +356,53 @@ public sealed class BookingQueryHandlerTests : IDisposable
 
         await act.Should().ThrowAsync<ForbiddenAccessException>();
     }
+
+    // A weekday may now carry more than one recurring window. Saving several
+    // slots for the same day must persist each as its own rule and read back
+    // intact — this guards the multi-slot-per-day editor end to end.
+    [Fact]
+    public async Task UpdateThenGetMyAvailability_RoundTripsMultipleRecurringSlotsOnOneDay()
+    {
+        _currentUser.IsAuthenticated.Returns(true);
+        _currentUser.IsInRole("Consultant").Returns(true);
+        _currentUser.UserId.Returns(_consultantId);
+
+        var update = new UpdateAvailabilityCommandHandler(_db, _currentUser);
+        await update.Handle(
+            new UpdateAvailabilityCommand(
+                ReplaceExisting: true,
+                Slots:
+                [
+                    Recurring(DayOfWeek.Monday, new TimeOnly(9, 0), new TimeOnly(11, 0)),
+                    Recurring(DayOfWeek.Monday, new TimeOnly(14, 0), new TimeOnly(16, 0)),
+                    Recurring(DayOfWeek.Wednesday, new TimeOnly(18, 0), new TimeOnly(20, 0)),
+                ]),
+            CancellationToken.None);
+
+        var query = new GetMyAvailabilityQueryHandler(_db, _currentUser);
+        var result = await query.Handle(new GetMyAvailabilityQuery(), CancellationToken.None);
+
+        result.Should().HaveCount(3);
+        result.Should().OnlyContain(r => r.ConsultantId == _consultantId && r.IsActive && r.IsRecurring);
+
+        var monday = result.Where(r => r.DayOfWeek == DayOfWeek.Monday).ToList();
+        monday.Should().HaveCount(2);
+        monday.Select(r => r.StartTime).Should().BeEquivalentTo(
+            new TimeOnly?[] { new TimeOnly(9, 0), new TimeOnly(14, 0) });
+        monday.Select(r => r.EndTime).Should().BeEquivalentTo(
+            new TimeOnly?[] { new TimeOnly(11, 0), new TimeOnly(16, 0) });
+    }
+
+    private static AvailabilityInputModel Recurring(DayOfWeek day, TimeOnly start, TimeOnly end) =>
+        new(
+            IsRecurring: true,
+            DayOfWeek: day,
+            StartTime: start,
+            EndTime: end,
+            SpecificStartAt: null,
+            SpecificEndAt: null,
+            Timezone: "Africa/Cairo",
+            IsActive: true);
 
     public void Dispose() => _db.Dispose();
 }
