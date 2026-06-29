@@ -7,6 +7,9 @@ original SRS style:
 - **EERD** — Graphviz, Chen notation (`eerd/*.dot`)
 - **Relational mapping** — PlantUML, crow's-foot (`mapping/*.puml`)
 
+A written walkthrough of every class relationship and a full ERD description is
+in **[RELATIONSHIPS-AND-ERD.md](RELATIONSHIPS-AND-ERD.md)**.
+
 Rendered PNGs live in [`images/`](images/). Regenerate everything with:
 
 ```bash
