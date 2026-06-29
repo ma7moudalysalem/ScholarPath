@@ -65,7 +65,6 @@ function FundingPill({ fundingType, amountUsd }: { fundingType: string; amountUs
 }
 
 function RecommendationCard({ item, isAr }: { item: RecommendationItem; isAr: boolean }) {
-  const { t } = useTranslation("ai");
   return (
     <li className="flex items-start gap-3 rounded-md border border-border-subtle bg-bg-canvas p-3 transition hover:border-brand-500/50">
       <MatchScoreBadge score={item.matchScore} />
