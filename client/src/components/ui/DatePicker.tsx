@@ -195,7 +195,7 @@ export function DatePicker({
               month: "space-y-2",
               month_caption:
                 "flex justify-center items-center pt-1 pb-2 px-9 relative h-9",
-              caption_label: "text-sm font-semibold",
+              caption_label: "hidden",
               dropdowns: "flex items-center justify-center gap-1.5",
               dropdown:
                 "cursor-pointer rounded-md border border-border-subtle bg-bg-elevated px-2 py-1 text-sm font-semibold text-text-primary hover:bg-bg-subtle focus:border-brand-500 focus:outline-none",
