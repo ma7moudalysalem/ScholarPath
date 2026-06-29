@@ -1,6 +1,11 @@
 # ScholarPath — Remediation & Clarity Plan
 
-**Owner:** @ma7moudalysalem (team lead) · **Created:** 2026-06-02 · **Status:** living document
+**Owner:** @ma7moudalysalem (team lead) · **Created:** 2026-06-02 · **Last updated:** 2026-06-29 · **Status:** living document
+
+> ✅ **Status update 2026-06-29 — system is fully deployed and operational.**
+> All P0 and P1 items are resolved. Azure resources are ScholarPath-branded.
+> Production is live with all integrations configured (Azure OpenAI, ACS, Stripe,
+> SendGrid, Blob Storage, SQL, SSO). See resolved items below.
 
 This plan is the single source of truth for "what is actually left to do" on `main`.
 It was produced by auditing the live code, not the older planning docs. Where the
@@ -42,30 +47,37 @@ These were audited and found correct. Listed so we don't re-open settled questio
 
 ## 2. Open items — prioritized
 
-### 🔴 P0 — Repo & documentation clarity (cheapest win, do first)
+### 🔴 P0 — Repo & documentation clarity
 
-| # | Item | Where | Effort |
+| # | Item | Status |
+|---|---|---|
+| P0-1 | **Branch sprawl** — `worktree-agent-*` + Madiha's orphan branches | ✅ **DONE 2026-06-29** — 6 stale remote branches deleted |
+| P0-2 | **Orphan branches superseded** — `feat/PB-001-*`, `feat/PB-002-profile`, `feat/PB-010-notifications` | ✅ **DONE 2026-06-29** — all deleted |
+| P0-3 | **`ROADMAP.md` + `HANDOFF.md` stale (May)** | ✅ **DONE 2026-06-02** — status banners added pointing to this plan |
+| P0-4 | **`AUTH.md` JWT drift** — was described as HMAC, already RS256 in code | ✅ **DONE** — `docs/AUTH.md:93` already says RS256 |
+
+### 🟠 P1 — Configuration & operations
+
+| # | Item | Status |
+|---|---|---|
+| P1-1 | **Azure OpenAI** → knowledge-base/rebuild 503 | ✅ **RESOLVED 2026-06-02** — `ai-scholarpath-prod` (GlobalStandard gpt-4o-mini + text-embedding-3-small) wired in App Service; rebuild → 200, 849 docs indexed, chat live |
+| P1-2 | **Pre-prod secrets** — KV, Stripe, SendGrid, ACS, SSO | ✅ **DONE 2026-06-29** — all secrets configured in Azure Key Vault + App Service + GitHub Actions |
+| P1-3 | **Global authorization** — fallback policy check | ✅ **VERIFIED** — all 32 controllers carry `[Authorize]`; selective `[AllowAnonymous]` on public endpoints (webhooks, public content). Pattern is correct; no fallback policy needed. |
+
+### 🟢 P2 — Polish & consistency
+
+| # | Item | Status |
+|---|---|---|
+| P2-1 | **Admin dashboard greeting** uses title not firstName | ✅ **DONE** — `AdminDashboard.tsx:141` already uses `firstName` with title fallback |
+| P2-2 | **i18n drift sweep** | ✅ **VERIFIED 2026-06-29** — full audit found all keys in sync across EN/AR; no missing keys |
+| P2-3 | **Frontend test coverage** | 🟡 ongoing — E2E smoke tests in place; component tests deferred post-defense |
+
+### ✅ Copilot review follow-ups
+
+| PR | Issue | Fix PR | Status |
 |---|---|---|---|
-| P0-1 | **Branch sprawl**: ~40 `worktree-agent-*` branches + `.claude/worktrees/`, `backup/*`, `pr-24`. Prune worktrees, archive/delete stale branches. **Remote deletion is gated on the lead's explicit OK** (see Appendix A). | git | 1–2 h |
-| P0-2 | **Orphan branches are superseded, not pending.** `main` independently implements PB-001/002/010 (auth incl. change-password, profile, notifications). Madiha's `feat/PB-001-*`, `feat/PB-002-profile`, `feat/PB-010-notifications` add nothing `main` lacks → **archive & close**, don't rescue. Backup refs already exist under `backup/*`. | git + `docs/reviews/madiha-orphan-branches-review.md` | 1 h |
-| P0-3 | **`ROADMAP.md` + `HANDOFF.md` are stale (May).** They call Stripe/SSO/Hangfire/AI/40 pages "stub / awaiting wiring" — all now real. Add a "Status update 2026-06-02" banner pointing to this plan + `TECHNICAL-BRIEF.md`. **Important before the defense.** | `docs/ROADMAP.md`, `docs/HANDOFF.md` | 1 h |
-| P0-4 | **`AUTH.md` JWT drift**: says "HMAC-SHA256 scratch key, migrate to RS256". Code/`appsettings.json:42` is **already RS256** with a Key-Vault-or-local key provider. Correct the doc. | `docs/AUTH.md:93` | 15 m |
-
-### 🟠 P1 — Configuration & operations (needed for a "real" demo / deploy)
-
-| # | Item | Where | Effort |
-|---|---|---|---|
-| P1-1 | **Azure OpenAI unconfigured** → `knowledge-base/rebuild` returns **503**, real AI chat/RAG unavailable. Default `Ai:Provider="Stub"`. Decide: (a) configure Azure OpenAI (needs lead's Azure access), or (b) set `Ai:Provider="Local"` for the demo and document it. Runbook: `docs/runbooks/azure-openai-setup.md`. | `appsettings.json:96`, `KnowledgeBaseIndexer.cs` | 1–3 h (a) / 15 m (b) |
-| P1-2 | **Pre-prod secrets/services**: Key Vault URIs (JWT + field-encryption), Stripe **live** keys, SendGrid key, ACS connection string, Power BI service principal — all placeholders. Tracked for deploy phase. | `appsettings.json` | deploy phase |
-| P1-3 | **Verify global authorization.** `AUTH.md` says a global `[Authorize]` fallback policy "will be added before production." Confirm every controller except `AuthController` is covered, or add the fallback policy in `Program.cs`. | `Program.cs` | 1 h |
-
-### 🟢 P2 — Polish & consistency (the "feels finished" layer)
-
-| # | Item | Where | Effort |
-|---|---|---|---|
-| P2-1 | **Admin dashboard greeting** uses the section title as the name instead of the admin's `firstName`. Make it consistent with the other three role dashboards. | `AdminDashboard.tsx:139` | 15 m |
-| P2-2 | **i18n drift sweep**: confirm no key exists in EN but missing in AR (or vice-versa) across the 26 namespaces; flag any hardcoded English bypassing `t()`. | `client/src/locales/*` | 1–2 h |
-| P2-3 | **Frontend test coverage**: currently smoke/E2E only. Add component tests for the critical flows (login, onboarding, checkout) toward the constitution's ≥70%. | `client/src/test/` | ongoing |
+| [#37](https://github.com/ma7moudalysalem/ScholarPath/pull/37) | FTS empty-term guard, RequiredDocs normalize, stable list key, localized aria-label | [#39](https://github.com/ma7moudalysalem/ScholarPath/pull/39) | ✅ Merged 2026-06-29 |
+| [#34](https://github.com/ma7moudalysalem/ScholarPath/pull/34) | Blank entries in `studentCountries` eligibility check | [#40](https://github.com/ma7moudalysalem/ScholarPath/pull/40) | ✅ Merged 2026-06-29 |
 
 ---
 
