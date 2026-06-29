@@ -1,0 +1,80 @@
+@startuml mapping-05-resources-notifications
+title Relational Mapping — Resources & Notifications
+
+skinparam linetype ortho
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #2563eb
+}
+
+entity "Resources" as res {
+  *Id : uniqueidentifier <<PK>>
+  --
+  AuthorUserId : uniqueidentifier <<FK>>
+  Slug : nvarchar <<UK>>
+  Type : int
+  Status : int
+}
+
+entity "ResourceChapters" as rc {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ResourceId : uniqueidentifier <<FK>>
+  TitleEn : nvarchar
+  SortOrder : int
+}
+
+entity "ResourceBookmarks" as rb {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ResourceId : uniqueidentifier <<FK>>
+  UserId : uniqueidentifier <<FK>>
+  BookmarkedAt : datetimeoffset
+}
+
+entity "ResourceProgresses" as rp {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ResourceId : uniqueidentifier <<FK>>
+  UserId : uniqueidentifier <<FK>>
+  LastAccessedAt : datetimeoffset
+}
+
+entity "ResourceProgressChildren" as rpc {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ResourceProgressId : uniqueidentifier <<FK>>
+  ResourceChapterId : uniqueidentifier <<FK>>
+  IsCompleted : bit
+}
+
+entity "Notifications" as nt {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK>>
+  Type : int
+  Channel : int
+  IsRead : bit
+}
+
+entity "NotificationPreferences" as np {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK>>
+  Type : int
+  Channel : int
+  IsEnabled : bit
+}
+
+res ||--o{ rc
+res ||--o{ rb
+res ||--o{ rp
+rp ||--o{ rpc
+rc ||--o{ rpc
+
+note bottom of rb
+  FIX (review): ResourceBookmarks and ResourceProgresses each carry a
+  UserId FK — the owning user, which the SRS EERD left implicit.
+end note
+@enduml

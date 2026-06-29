@@ -1,0 +1,60 @@
+// EERD — EER Specialization (User Hierarchy)
+// Overlapping (o), partial specialization of USER into role subclasses.
+graph EERSpecialization {
+  rankdir=TB;
+  labelloc="t";
+  label="EER Specialization — User Hierarchy";
+  fontname="Helvetica-Bold"; fontsize=16;
+  node [fontname="Helvetica", fontsize=11];
+  edge [color="#444444"];
+
+  // superclass + its key/discriminator attributes
+  USER [shape=box, style=filled, fillcolor="#cfe0fb"];
+  a_id  [shape=ellipse, label=<<u>Id</u>>];
+  a_em  [shape=ellipse, label="Email"];
+  a_as  [shape=ellipse, label="AccountStatus"];
+  a_ar  [shape=ellipse, label="ActiveRole"];
+  a_id -- USER; a_em -- USER; a_as -- USER; a_ar -- USER;
+
+  // specialization circle: o = overlapping
+  spec [shape=circle, width=0.35, fixedsize=true, label="o"];
+  USER -- spec [penwidth=2, label="  (subset ⊆: each subclass IS-A USER)"];
+
+  // subclasses
+  STUDENT    [shape=box, style=filled, fillcolor="#dff0df"];
+  COMPANY    [shape=box, style=filled, fillcolor="#dff0df"];
+  CONSULTANT [shape=box, style=filled, fillcolor="#dff0df"];
+  ADMIN      [shape=box, style=filled, fillcolor="#dff0df"];
+
+  // partial participation (single line) — an Unassigned user has no subclass yet
+  spec -- STUDENT;
+  spec -- COMPANY;
+  spec -- CONSULTANT;
+  spec -- ADMIN;
+
+  // subclass-specific attributes
+  st1 [shape=ellipse, label="AcademicLevel"];
+  st2 [shape=ellipse, label="Gpa"];
+  st3 [shape=ellipse, label="FieldOfStudy"];
+  st4 [shape=ellipse, peripheries=2, label="PreferredCountries"];
+  STUDENT -- st1; STUDENT -- st2; STUDENT -- st3; STUDENT -- st4;
+
+  co1 [shape=ellipse, label="OrganizationLegalName"];
+  co2 [shape=ellipse, label="VerificationStatus"];
+  co3 [shape=ellipse, label="CompanyType"];
+  co4 [shape=ellipse, style=dashed, label="CompanyAverageRating"];
+  COMPANY -- co1; COMPANY -- co2; COMPANY -- co3; COMPANY -- co4;
+
+  cn1 [shape=ellipse, label="SessionFeeUsd"];
+  cn2 [shape=ellipse, peripheries=2, label="ExpertiseTags"];
+  cn3 [shape=ellipse, peripheries=2, label="Languages"];
+  cn4 [shape=ellipse, label="StripeConnectStatus"];
+  CONSULTANT -- cn1; CONSULTANT -- cn2; CONSULTANT -- cn3; CONSULTANT -- cn4;
+
+  ad1 [shape=ellipse, style=dashed, label="(no role-specific\nattributes)"];
+  ADMIN -- ad1;
+
+  // legend
+  legend [shape=note, fillcolor="#fff6d6", style=filled, fontsize=10,
+    label=<<b>EER specialization legend</b><br align="left"/>circle <b>o</b> = overlapping (a user may hold several roles)<br align="left"/>single line = partial participation (Unassigned user has no subclass yet)<br align="left"/>double line = total participation<br align="left"/>⊆ = subset symbol: each subclass IS-A USER<br align="left"/>double ellipse = multivalued · dashed ellipse = derived<br align="left"/>>];
+}

@@ -1,0 +1,72 @@
+// EERD — Community & Chat
+// FIX (review): the SRS only linked USER via AUTHORS / PARTICIPATES / BLOCKS.
+// Every user-owned interaction (vote, flag, bookmark, message sender) is now an
+// explicit relationship, and USER_BLOCK is modeled with BOTH participants.
+graph EERD_Community {
+  rankdir=TB; labelloc="t";
+  label="EERD — Community & Chat";
+  fontname="Helvetica-Bold"; fontsize=16;
+  node [fontname="Helvetica", fontsize=10];
+  edge [color="#444444"];
+
+  USER          [shape=box, style=filled, fillcolor="#e8eefc"];
+  FORUM_CATEGORY[shape=box, style=filled, fillcolor="#e8eefc", label="FORUM_CATEGORY"];
+  FORUM_POST    [shape=box, style=filled, fillcolor="#e8eefc", label="FORUM_POST"];
+  FORUM_TAG     [shape=box, style=filled, fillcolor="#e8eefc", label="FORUM_TAG"];
+  FORUM_POST_TAG[shape=box, peripheries=2, style=filled, fillcolor="#e8eefc", label="FORUM_POST_TAG"];
+  FORUM_VOTE    [shape=box, style=filled, fillcolor="#e8eefc", label="FORUM_VOTE"];
+  FORUM_FLAG    [shape=box, style=filled, fillcolor="#e8eefc", label="FORUM_FLAG"];
+  FORUM_BOOKMARK[shape=box, style=filled, fillcolor="#e8eefc", label="FORUM_BOOKMARK"];
+  FORUM_POST_ATTACHMENT [shape=box, peripheries=2, style=filled, fillcolor="#e8eefc", label="FORUM_POST_ATTACHMENT"];
+  CONVERSATION  [shape=box, style=filled, fillcolor="#e8eefc"];
+  MESSAGE       [shape=box, style=filled, fillcolor="#e8eefc"];
+  USER_BLOCK    [shape=box, style=filled, fillcolor="#e8eefc", label="USER_BLOCK"];
+
+  GROUPS    [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  AUTHORS   [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  REPLIES   [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  ATTACHES  [shape=diamond, peripheries=2, style=filled, fillcolor="#eef7ee"];
+  TAGGED    [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  TAGS      [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  CASTS     [shape=diamond, style=filled, fillcolor="#fde8c8"];
+  RECEIVES_VOTE [shape=diamond, style=filled, fillcolor="#eef7ee", label="RECEIVES_VOTE"];
+  FILES_FLAG[shape=diamond, style=filled, fillcolor="#fde8c8", label="FILES"];
+  RECEIVES_FLAG [shape=diamond, style=filled, fillcolor="#eef7ee", label="RECEIVES_FLAG"];
+  SAVES_POST[shape=diamond, style=filled, fillcolor="#fde8c8", label="SAVES"];
+  SAVED_IN  [shape=diamond, style=filled, fillcolor="#eef7ee", label="SAVED_IN"];
+  PARTICIPATES [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  CONTAINS  [shape=diamond, peripheries=2, style=filled, fillcolor="#eef7ee"];
+  SENDS     [shape=diamond, style=filled, fillcolor="#fde8c8"];
+  BLOCKER   [shape=diamond, style=filled, fillcolor="#fde8c8"];
+  BLOCKED   [shape=diamond, style=filled, fillcolor="#fde8c8"];
+
+  FORUM_CATEGORY -- GROUPS [label="1"]; GROUPS -- FORUM_POST [label="N"];
+  USER -- AUTHORS [label="1"]; AUTHORS -- FORUM_POST [label="N"];
+  FORUM_POST -- REPLIES [label="1"]; REPLIES -- FORUM_POST [label="N"];
+  FORUM_POST -- ATTACHES [label="1"]; ATTACHES -- FORUM_POST_ATTACHMENT [label="N", penwidth=2];
+  FORUM_POST -- TAGGED [label="1"]; TAGGED -- FORUM_POST_TAG [label="N"]; FORUM_TAG -- TAGS [label="1"]; TAGS -- FORUM_POST_TAG [label="N"];
+
+  // FIX: who casts the vote / files the flag / saves the bookmark / sends the message
+  USER -- CASTS [label="1"]; CASTS -- FORUM_VOTE [label="N"]; FORUM_POST -- RECEIVES_VOTE [label="1"]; RECEIVES_VOTE -- FORUM_VOTE [label="N"];
+  USER -- FILES_FLAG [label="1"]; FILES_FLAG -- FORUM_FLAG [label="N"]; FORUM_POST -- RECEIVES_FLAG [label="1"]; RECEIVES_FLAG -- FORUM_FLAG [label="N"];
+  USER -- SAVES_POST [label="1"]; SAVES_POST -- FORUM_BOOKMARK [label="N"]; FORUM_POST -- SAVED_IN [label="1"]; SAVED_IN -- FORUM_BOOKMARK [label="N"];
+
+  USER -- PARTICIPATES [label="N"]; PARTICIPATES -- CONVERSATION [label="M"];
+  CONVERSATION -- CONTAINS [label="1"]; CONTAINS -- MESSAGE [label="N", penwidth=2];
+  USER -- SENDS [label="1"]; SENDS -- MESSAGE [label="N"];
+
+  // FIX: UserBlock has two distinct user roles.
+  USER -- BLOCKER [label="1"]; BLOCKER -- USER_BLOCK [label="N"];
+  USER -- BLOCKED [label="1"]; BLOCKED -- USER_BLOCK [label="N"];
+
+  // selected attributes
+  fp_id [shape=ellipse,label=<<u>Id</u>>]; fp_ms [shape=ellipse,label="ModerationStatus"];
+  fp_uv [shape=ellipse,style=dashed,label="UpvoteCount"]; fp_fc [shape=ellipse,style=dashed,label="FlagCount"];
+  FORUM_POST -- fp_id; FORUM_POST -- fp_ms; FORUM_POST -- fp_uv; FORUM_POST -- fp_fc;
+
+  m_id [shape=ellipse,label=<<u>Id</u>>]; m_body [shape=ellipse,label="Body"];
+  MESSAGE -- m_id; MESSAGE -- m_body;
+
+  ub_id [shape=ellipse,label=<<u>Id</u>>]; ub_rs [shape=ellipse,label="Reason"];
+  USER_BLOCK -- ub_id; USER_BLOCK -- ub_rs;
+}

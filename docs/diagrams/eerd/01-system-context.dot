@@ -1,0 +1,34 @@
+// EERD — System / subject-area context
+// Shows USERS as the shared aggregate root referenced by every subject area.
+digraph SystemContext {
+  rankdir=LR;
+  labelloc="t";
+  label="ScholarPath — Subject-Area Context";
+  fontname="Helvetica-Bold"; fontsize=16;
+  node [fontname="Helvetica", fontsize=11];
+  edge [color="#444444"];
+
+  USERS [shape=box, style=filled, fillcolor="#cfe0fb",
+         label="USERS\n(Student / Company / Consultant / Admin)"];
+
+  s4 [shape=box, style="filled,rounded", fillcolor="#eef2ff",
+      label="§4  Identity & Profile\nUserProfile, EducationEntry, RefreshToken, UpgradeRequest"];
+  s5 [shape=box, style="filled,rounded", fillcolor="#eef2ff",
+      label="§5  Scholarships, Applications & Documents\nScholarship, ApplicationTracker, Document, CompanyReviewRequest"];
+  s6 [shape=box, style="filled,rounded", fillcolor="#eef2ff",
+      label="§6  Booking, Payments & Ratings\nAvailability, Booking, Payment, Payout, ConsultantReview, SessionRecording"];
+  s7 [shape=box, style="filled,rounded", fillcolor="#eef2ff",
+      label="§7  Community & Chat\nForumPost, Vote, Flag, Tag, Conversation, Message, UserBlock"];
+  s8 [shape=box, style="filled,rounded", fillcolor="#eef2ff",
+      label="§8  Resources & Notifications\nResource, Chapter, Progress, Notification, Preference"];
+  s9 [shape=box, style="filled,rounded", fillcolor="#eef2ff",
+      label="§9  AI, Knowledge & Platform\nAiInteraction, KnowledgeDocument, AuditLog, Setting, RiskFlag"];
+
+  USERS -> s4 [arrowhead=none];
+  USERS -> s5 [arrowhead=none];
+  USERS -> s6 [arrowhead=none];
+  USERS -> s7 [arrowhead=none];
+  USERS -> s8 [arrowhead=none];
+  USERS -> s9 [arrowhead=none];
+  s5 -> s6 [style=dashed, label="paid review"];
+}

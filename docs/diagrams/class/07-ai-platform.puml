@@ -1,0 +1,69 @@
+@startuml class-07-ai-platform
+title Class Diagram — AI, Knowledge, Platform & Cross-cutting\n(all classes : AuditableEntity unless noted)
+
+skinparam classAttributeIconSize 0
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #444444
+  ArrowColor #444444
+}
+
+class KnowledgeDocument {
+  - SourceType : KnowledgeSourceType
+  - SourceKey : string
+  + /IsEmbedded : bool
+}
+
+class AuditLog <<BaseEntity>> {
+  - Action : AuditAction
+  - TargetType : string
+  - TargetId : Guid? <<polymorphic>>
+}
+
+class UserDataRequest {
+  - Type : DataRequestType
+  - Status : DataRequestStatus
+}
+
+class AiInteraction {
+  - Feature : AiFeature
+  - Provider : AiProvider
+  - CostUsd : decimal
+}
+
+class RecommendationClickEvent <<BaseEntity>> {
+  - Source : string
+  - ClickedAt : DateTimeOffset
+}
+
+class AiRedactionAuditSample <<BaseEntity>> {
+  - Verdict : RedactionVerdict?
+  - SampledAt : DateTimeOffset
+}
+
+class SuccessStory {
+  - HeadlineEn : string
+  - IsApproved : bool
+  - IsFeatured : bool
+}
+
+class UserRiskFlag <<BaseEntity>> {
+  - Score : decimal
+  - IsAtRisk : bool
+}
+
+class PlatformSetting {
+  - Key : string
+  - ValueType : PlatformSettingType
+}
+
+class Scholarship <<from Scholarships ctx>> {
+}
+
+AiInteraction "1" -- "*" RecommendationClickEvent : aiAttributed
+AiInteraction "1" -- "0..1" AiRedactionAuditSample : sampled
+
+' RecommendationClickEvent references the scholarship that was clicked.
+RecommendationClickEvent "*" -- "1" Scholarship : clicked
+@enduml

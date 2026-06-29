@@ -1,0 +1,59 @@
+// EERD — Booking, Payments & Ratings
+graph EERD_Booking {
+  rankdir=TB; labelloc="t";
+  label="EERD — Booking, Payments & Ratings";
+  fontname="Helvetica-Bold"; fontsize=16;
+  node [fontname="Helvetica", fontsize=10];
+  edge [color="#444444"];
+
+  USER        [shape=box, style=filled, fillcolor="#e8eefc"];
+  AVAILABILITY[shape=box, style=filled, fillcolor="#e8eefc"];
+  BOOKING     [shape=box, style=filled, fillcolor="#e8eefc"];
+  PAYMENT     [shape=box, style=filled, fillcolor="#e8eefc"];
+  PAYOUT      [shape=box, style=filled, fillcolor="#e8eefc"];
+  CONSULTANT_REVIEW [shape=box, style=filled, fillcolor="#e8eefc", label="CONSULTANT_REVIEW"];
+  SESSION_RECORDING [shape=box, peripheries=2, style=filled, fillcolor="#e8eefc", label="SESSION_RECORDING"];
+  COMPANY_REVIEW_REQUEST [shape=box, style=filled, fillcolor="#e8eefc", label="COMPANY_REVIEW_REQUEST"];
+  STRIPE_WEBHOOK_EVENT [shape=box, style=filled, fillcolor="#e8eefc", label="STRIPE_WEBHOOK_EVENT"];
+  PROFIT_SHARE_CONFIG [shape=box, style=filled, fillcolor="#e8eefc", label="PROFIT_SHARE_CONFIG"];
+  FINANCIAL_CONFIG_RULE [shape=box, style=filled, fillcolor="#e8eefc", label="FINANCIAL_CONFIG_RULE"];
+
+  PUBLISHES [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  BOOKS     [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  CONDUCTS  [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  RESERVES  [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  SETTLED_BY[shape=diamond, style=filled, fillcolor="#eef7ee", label="SETTLED_BY"];
+  SETTLES_CRR[shape=diamond, style=filled, fillcolor="#fde8c8", label="SETTLES"];
+  RATED_BY  [shape=diamond, style=filled, fillcolor="#eef7ee", label="RATED_BY"];
+  RECORDED_AS[shape=diamond, peripheries=2, style=filled, fillcolor="#eef7ee", label="RECORDED_AS"];
+  AGGREGATES[shape=diamond, style=filled, fillcolor="#eef7ee"];
+  PAYER_PAYEE [shape=diamond, style=filled, fillcolor="#fde8c8", label="PAYER / PAYEE"];
+
+  USER -- PUBLISHES [label="1"]; PUBLISHES -- AVAILABILITY [label="N"];
+  USER -- BOOKS [label="1"]; BOOKS -- BOOKING [label="N"];
+  USER -- CONDUCTS [label="1"]; CONDUCTS -- BOOKING [label="N"];
+  AVAILABILITY -- RESERVES [label="1"]; RESERVES -- BOOKING [label="N"];
+  BOOKING -- SETTLED_BY [label="1"]; SETTLED_BY -- PAYMENT [label="1"];
+  BOOKING -- RATED_BY [label="1"]; RATED_BY -- CONSULTANT_REVIEW [label="1"];
+  BOOKING -- RECORDED_AS [label="1"]; RECORDED_AS -- SESSION_RECORDING [label="N", penwidth=2];
+  PAYOUT -- AGGREGATES [label="1"]; AGGREGATES -- PAYMENT [label="N"];
+
+  // FIX: Payment is polymorphic and also settles a company-review request, plus carries payer/payee.
+  COMPANY_REVIEW_REQUEST -- SETTLES_CRR [label="1"]; SETTLES_CRR -- PAYMENT [label="1"];
+  USER -- PAYER_PAYEE [label="1"]; PAYER_PAYEE -- PAYMENT [label="N"];
+
+  // selected attributes
+  b_id [shape=ellipse,label=<<u>Id</u>>]; b_start [shape=ellipse,label="ScheduledStartAt"];
+  b_price [shape=ellipse,label="PriceUsd"]; b_st [shape=ellipse,label="Status"];
+  BOOKING -- b_id; BOOKING -- b_start; BOOKING -- b_price; BOOKING -- b_st;
+
+  pm_id [shape=ellipse,label=<<u>Id</u>>]; pm_t [shape=ellipse,label="Type"];
+  pm_st [shape=ellipse,label="Status"]; pm_amt [shape=ellipse,label="AmountCents"];
+  PAYMENT -- pm_id; PAYMENT -- pm_t; PAYMENT -- pm_st; PAYMENT -- pm_amt;
+
+  po_id [shape=ellipse,label=<<u>Id</u>>]; po_amt [shape=ellipse,label="AmountCents"]; po_st [shape=ellipse,label="Status"];
+  PAYOUT -- po_id; PAYOUT -- po_amt; PAYOUT -- po_st;
+
+  av_id [shape=ellipse,label=<<u>Id</u>>]; av_act [shape=ellipse,label="IsActive"];
+  AVAILABILITY -- av_id; AVAILABILITY -- av_act;
+}

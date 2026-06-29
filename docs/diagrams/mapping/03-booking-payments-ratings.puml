@@ -1,0 +1,103 @@
+@startuml mapping-03-booking-payments-ratings
+title Relational Mapping — Booking, Payments & Ratings
+
+skinparam linetype ortho
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #2563eb
+}
+
+entity "ConsultantAvailabilities" as av {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ConsultantUserId : uniqueidentifier <<FK>>
+  IsRecurring : bit
+  IsActive : bit
+}
+
+entity "ConsultantBookings" as bk {
+  *Id : uniqueidentifier <<PK>>
+  --
+  StudentUserId : uniqueidentifier <<FK>>
+  ConsultantUserId : uniqueidentifier <<FK>>
+  AvailabilityId : uniqueidentifier <<FK, NULL>>
+  PaymentId : uniqueidentifier <<FK, NULL>>
+  ScheduledStartAt : datetimeoffset <<UK slot>>
+  PriceUsd : decimal
+  Status : int
+}
+
+entity "Payments" as pay {
+  *Id : uniqueidentifier <<PK>>
+  --
+  PayerUserId : uniqueidentifier <<FK>>
+  PayeeUserId : uniqueidentifier <<FK, NULL>>
+  PayoutId : uniqueidentifier <<FK, NULL>>
+  RelatedBookingId : uniqueidentifier <<FK, NULL>>
+  RelatedApplicationId : uniqueidentifier <<FK, NULL>>
+  Type : int
+  Status : int
+  AmountCents : bigint
+  IdempotencyKey : nvarchar <<UK>>
+}
+
+entity "Payouts" as po {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ConsultantUserId : uniqueidentifier <<FK>>
+  AmountCents : bigint
+  Status : int
+  IncludedPaymentIdsJson : nvarchar
+}
+
+entity "ConsultantReviews" as rev {
+  *Id : uniqueidentifier <<PK>>
+  --
+  BookingId : uniqueidentifier <<FK>>
+  Rating : int
+  IsHiddenByAdmin : bit
+}
+
+entity "SessionRecordings" as rec {
+  *Id : uniqueidentifier <<PK>>
+  --
+  BookingId : uniqueidentifier <<FK>>
+  RecordingId : nvarchar
+  StoragePath : nvarchar
+}
+
+entity "StripeWebhookEvents" as swe {
+  *Id : uniqueidentifier <<PK>>
+  --
+  StripeEventId : nvarchar <<UK>>
+  EventType : nvarchar
+  IsProcessed : bit
+}
+
+entity "ProfitShareConfigs" as psc {
+  *Id : uniqueidentifier <<PK>>
+  --
+  PaymentType : int
+  Percentage : decimal
+}
+
+entity "FinancialConfigRules" as fcr {
+  *Id : uniqueidentifier <<PK>>
+  --
+  PaymentType : int
+  Status : int
+}
+
+av ||--o{ bk
+bk ||--o| pay
+bk ||--o| rev
+bk ||--o{ rec
+po ||--o{ pay
+
+note bottom of pay
+  FIX (review): Payment is polymorphic — RelatedBookingId OR
+  RelatedApplicationId — and carries Payer/Payee + Payout FKs.
+  CompanyReviewRequests.PaymentId points here too (see Scholarships map).
+end note
+@enduml

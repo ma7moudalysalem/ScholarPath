@@ -1,0 +1,89 @@
+@startuml class-04-booking-payments-ratings
+title Class Diagram — Consultant Booking, Payments & Ratings\n(all classes : AuditableEntity)
+
+skinparam classAttributeIconSize 0
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #444444
+  ArrowColor #444444
+}
+
+class ConsultantAvailability {
+  - IsRecurring : bool
+  - IsActive : bool
+}
+
+class ConsultantBooking {
+  - ScheduledStartAt : DateTimeOffset
+  - PriceUsd : decimal
+  - Status : BookingStatus
+  - RecordingStartedAt : DateTimeOffset?
+  - NoShowMarkedAt : DateTimeOffset?
+  - StudentJoinedAt : DateTimeOffset?
+  - ConsultantJoinedAt : DateTimeOffset?
+}
+
+class Payment {
+  - Type : PaymentType
+  - Status : PaymentStatus
+  - AmountCents : long
+  - IdempotencyKey : string
+  - PayerUserId : Guid
+  - PayeeUserId : Guid?
+  - RelatedBookingId : Guid?
+  - RelatedApplicationId : Guid?
+}
+
+class Payout {
+  - AmountCents : long
+  - Status : PayoutStatus
+  - IncludedPaymentIdsJson : string
+}
+
+class ConsultantReview {
+  - Rating : int
+  - IsHiddenByAdmin : bool
+}
+
+class SessionRecording {
+  - RecordingId : string
+  - StoragePath : string
+}
+
+class StripeWebhookEvent {
+  - StripeEventId : string
+  - EventType : string
+  - IsProcessed : bool
+}
+
+class ProfitShareConfig {
+  - PaymentType : PaymentType
+  - Percentage : decimal
+}
+
+class FinancialConfigRule {
+  - PaymentType : PaymentType
+  - Status : FinancialRuleStatus
+}
+
+class CompanyReviewRequest <<from Scholarships ctx>> {
+}
+
+ConsultantAvailability "0..1" -- "*" ConsultantBooking : reserves
+ConsultantBooking "1" -- "0..1" Payment : settledBy
+ConsultantBooking "1" -- "0..1" ConsultantReview : ratedBy
+ConsultantBooking "1" *-- "*" SessionRecording : recordedAs
+Payout "1" o-- "*" Payment : aggregates
+
+' FIX: Payment is polymorphic (RelatedBookingId / RelatedApplicationId).
+' The SRS class diagrams only linked Payment to ConsultantBooking; the paid
+' company-review path settles through Payment too -- now made explicit.
+CompanyReviewRequest "1" -- "0..1" Payment : settledBy
+
+note bottom of Payment
+  Polymorphic settlement: a Payment settles EITHER a
+  ConsultantBooking (RelatedBookingId) OR a CompanyReviewRequest
+  (RelatedApplicationId). PayerUserId / PayeeUserId tie it to users.
+end note
+@enduml

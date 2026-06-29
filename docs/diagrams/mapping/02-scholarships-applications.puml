@@ -1,0 +1,106 @@
+@startuml mapping-02-scholarships-applications
+title Relational Mapping — Scholarships & Applications
+
+skinparam linetype ortho
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #2563eb
+}
+
+entity "Categories" as cat {
+  *Id : uniqueidentifier <<PK>>
+  --
+  Slug : nvarchar <<UK>>
+  NameEn : nvarchar
+}
+
+entity "Scholarships" as sch {
+  *Id : uniqueidentifier <<PK>>
+  --
+  CategoryId : uniqueidentifier <<FK>>
+  CompanyUserId : uniqueidentifier <<FK>>
+  Slug : nvarchar <<UK>>
+  Status : int
+  Mode : int
+  Deadline : datetimeoffset
+  ReviewFeeUsd : decimal
+  IsDeleted : bit <<SD>>
+}
+
+entity "ScholarshipChildren" as schc {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ScholarshipId : uniqueidentifier <<FK>>
+  ChildType : nvarchar
+  KeyEn : nvarchar
+}
+
+entity "SavedScholarships" as saved {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK>>
+  ScholarshipId : uniqueidentifier <<FK>>
+  SavedAt : datetimeoffset
+}
+
+entity "ApplicationTrackers" as app {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK>>
+  ScholarshipId : uniqueidentifier <<FK>>
+  Status : int
+  Mode : int
+  PersonalNotes : nvarchar <<enc>>
+}
+
+entity "ApplicationTrackerChildren" as appc {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ApplicationTrackerId : uniqueidentifier <<FK>>
+  ChildType : nvarchar
+  Content : nvarchar
+}
+
+entity "Documents" as doc {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ApplicationTrackerId : uniqueidentifier <<FK, NULL>>
+  OwnerUserId : uniqueidentifier <<FK>>
+  Category : int
+  StoragePath : nvarchar
+}
+
+entity "CompanyReviewRequests" as crr {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ScholarshipId : uniqueidentifier <<FK>>
+  RequesterUserId : uniqueidentifier <<FK>>
+  PaymentId : uniqueidentifier <<FK, NULL>>
+  Status : int
+  ReviewFeeUsdSnapshot : decimal
+}
+
+entity "CompanyReviews" as cr {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ApplicationTrackerId : uniqueidentifier <<FK>>
+  Rating : int
+  IsHiddenByAdmin : bit
+}
+
+cat ||--o{ sch
+sch ||--o{ schc
+sch ||--o{ saved
+sch ||--o{ app
+app ||--o{ appc
+app ||--o{ doc
+app ||--o| cr
+sch ||--o{ crr
+
+note bottom of doc
+  FIX (review): Documents.ApplicationTrackerId is a nullable FK ->
+  one application has MANY documents (1:N), correcting the SRS class
+  diagram which showed 0..1.
+end note
+@enduml

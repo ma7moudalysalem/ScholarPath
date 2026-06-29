@@ -1,0 +1,51 @@
+// EERD — Resources Hub & Notifications
+// FIX (review): added the user who owns a bookmark / progress (was implied only).
+graph EERD_Resources {
+  rankdir=TB; labelloc="t";
+  label="EERD — Resources Hub & Notifications";
+  fontname="Helvetica-Bold"; fontsize=16;
+  node [fontname="Helvetica", fontsize=10];
+  edge [color="#444444"];
+
+  USER      [shape=box, style=filled, fillcolor="#e8eefc"];
+  RESOURCE  [shape=box, style=filled, fillcolor="#e8eefc"];
+  RESOURCE_CHAPTER [shape=box, peripheries=2, style=filled, fillcolor="#e8eefc", label="RESOURCE_CHAPTER"];
+  RESOURCE_BOOKMARK[shape=box, style=filled, fillcolor="#e8eefc", label="RESOURCE_BOOKMARK"];
+  RESOURCE_PROGRESS[shape=box, style=filled, fillcolor="#e8eefc", label="RESOURCE_PROGRESS"];
+  RESOURCE_PROGRESS_CHILD [shape=box, peripheries=2, style=filled, fillcolor="#e8eefc", label="RESOURCE_PROGRESS_CHILD"];
+  NOTIFICATION [shape=box, style=filled, fillcolor="#e8eefc"];
+  NOTIFICATION_PREFERENCE [shape=box, style=filled, fillcolor="#e8eefc", label="NOTIFICATION_PREFERENCE"];
+
+  AUTHORS   [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  SPLIT_INTO[shape=diamond, peripheries=2, style=filled, fillcolor="#eef7ee", label="SPLIT_INTO"];
+  SAVES_RES [shape=diamond, style=filled, fillcolor="#fde8c8", label="SAVES"];
+  SAVED_IN  [shape=diamond, style=filled, fillcolor="#eef7ee", label="SAVED_IN"];
+  TRACKS    [shape=diamond, style=filled, fillcolor="#fde8c8"];
+  TRACKED_IN[shape=diamond, style=filled, fillcolor="#eef7ee", label="TRACKED_IN"];
+  PER_CHAPTER[shape=diamond, peripheries=2, style=filled, fillcolor="#eef7ee", label="PER_CHAPTER"];
+  RECEIVES  [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  CONFIGURES[shape=diamond, style=filled, fillcolor="#eef7ee"];
+
+  USER -- AUTHORS [label="1"]; AUTHORS -- RESOURCE [label="N"];
+  RESOURCE -- SPLIT_INTO [label="1"]; SPLIT_INTO -- RESOURCE_CHAPTER [label="N", penwidth=2];
+
+  // FIX: bookmark and progress belong to a user, not only to a resource.
+  USER -- SAVES_RES [label="1"]; SAVES_RES -- RESOURCE_BOOKMARK [label="N"];
+  RESOURCE -- SAVED_IN [label="1"]; SAVED_IN -- RESOURCE_BOOKMARK [label="N"];
+  USER -- TRACKS [label="1"]; TRACKS -- RESOURCE_PROGRESS [label="N"];
+  RESOURCE -- TRACKED_IN [label="1"]; TRACKED_IN -- RESOURCE_PROGRESS [label="N"];
+
+  RESOURCE_PROGRESS -- PER_CHAPTER [label="1"]; PER_CHAPTER -- RESOURCE_PROGRESS_CHILD [label="N", penwidth=2];
+  USER -- RECEIVES [label="1"]; RECEIVES -- NOTIFICATION [label="N"];
+  USER -- CONFIGURES [label="1"]; CONFIGURES -- NOTIFICATION_PREFERENCE [label="N"];
+
+  // selected attributes
+  r_id [shape=ellipse,label=<<u>Id</u>>]; r_slug [shape=ellipse,label="Slug"]; r_st [shape=ellipse,label="Status"];
+  RESOURCE -- r_id; RESOURCE -- r_slug; RESOURCE -- r_st;
+
+  rp_id [shape=ellipse,label=<<u>Id</u>>]; rp_cc [shape=ellipse,style=dashed,label="ChaptersCompletedCount"];
+  RESOURCE_PROGRESS -- rp_id; RESOURCE_PROGRESS -- rp_cc;
+
+  n_id [shape=ellipse,label=<<u>Id</u>>]; n_t [shape=ellipse,label="Type"]; n_read [shape=ellipse,label="IsRead"];
+  NOTIFICATION -- n_id; NOTIFICATION -- n_t; NOTIFICATION -- n_read;
+}

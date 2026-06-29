@@ -1,0 +1,67 @@
+// EERD — Scholarships & Applications
+graph EERD_Scholarships {
+  rankdir=TB; labelloc="t";
+  label="EERD — Scholarships & Applications";
+  fontname="Helvetica-Bold"; fontsize=16;
+  node [fontname="Helvetica", fontsize=10];
+  edge [color="#444444"];
+
+  USER       [shape=box, style=filled, fillcolor="#e8eefc"];
+  CATEGORY   [shape=box, style=filled, fillcolor="#e8eefc"];
+  SCHOLARSHIP[shape=box, style=filled, fillcolor="#e8eefc"];
+  SCHOLARSHIP_CHILD [shape=box, peripheries=2, style=filled, fillcolor="#e8eefc", label="SCHOLARSHIP_CHILD"];
+  SAVED_SCHOLARSHIP [shape=box, style=filled, fillcolor="#e8eefc", label="SAVED_SCHOLARSHIP"];
+  APPLICATION[shape=box, style=filled, fillcolor="#e8eefc"];
+  APPLICATION_CHILD [shape=box, peripheries=2, style=filled, fillcolor="#e8eefc", label="APPLICATION_CHILD"];
+  DOCUMENT   [shape=box, style=filled, fillcolor="#e8eefc"];
+  COMPANY_REVIEW [shape=box, style=filled, fillcolor="#e8eefc", label="COMPANY_REVIEW"];
+  COMPANY_REVIEW_REQUEST [shape=box, style=filled, fillcolor="#e8eefc", label="COMPANY_REVIEW_REQUEST"];
+  COMPANY_REVIEW_PAYMENT [shape=box, style="filled,dashed", fillcolor="#f3f3f3", label="COMPANY_REVIEW_PAYMENT\n«legacy»"];
+
+  CLASSIFIES [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  HAS_DETAIL [shape=diamond, peripheries=2, style=filled, fillcolor="#eef7ee", label="HAS_DETAIL"];
+  SAVES      [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  OWNS       [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  RECEIVES_APP [shape=diamond, style=filled, fillcolor="#eef7ee", label="RECEIVES"];
+  HAS_HISTORY[shape=diamond, peripheries=2, style=filled, fillcolor="#eef7ee", label="HAS_HISTORY"];
+  SUPPORTS   [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  RATED_BY   [shape=diamond, style=filled, fillcolor="#eef7ee", label="RATED_BY"];
+  UNDER      [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  RAISES     [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  LEGACY_PAY [shape=diamond, style="filled,dashed", fillcolor="#f3f3f3", label="LEGACY_PAY"];
+
+  CATEGORY -- CLASSIFIES [label="1"]; CLASSIFIES -- SCHOLARSHIP [label="N"];
+  SCHOLARSHIP -- HAS_DETAIL [label="1"]; HAS_DETAIL -- SCHOLARSHIP_CHILD [label="N", penwidth=2];
+  USER -- SAVES [label="1"]; SAVES -- SAVED_SCHOLARSHIP [label="N"]; SAVED_SCHOLARSHIP -- SCHOLARSHIP [label="1"];
+  USER -- OWNS [label="1"]; OWNS -- APPLICATION [label="N"];
+  SCHOLARSHIP -- RECEIVES_APP [label="1"]; RECEIVES_APP -- APPLICATION [label="N"];
+  APPLICATION -- HAS_HISTORY [label="1"]; HAS_HISTORY -- APPLICATION_CHILD [label="N", penwidth=2];
+
+  // FIX: one application is supported by MANY documents (was 0..1 in SRS class diagram).
+  APPLICATION -- SUPPORTS [label="1"]; SUPPORTS -- DOCUMENT [label="N"];
+
+  APPLICATION -- RATED_BY [label="1"]; RATED_BY -- COMPANY_REVIEW [label="1"];
+  SCHOLARSHIP -- UNDER [label="1"]; UNDER -- COMPANY_REVIEW_REQUEST [label="N"];
+  USER -- RAISES [label="1"]; RAISES -- COMPANY_REVIEW_REQUEST [label="N"];
+  APPLICATION -- LEGACY_PAY [label="1"]; LEGACY_PAY -- COMPANY_REVIEW_PAYMENT [label="1"];
+
+  // selected attributes
+  s_id [shape=ellipse,label=<<u>Id</u>>]; s_slug [shape=ellipse,label="Slug"];
+  s_st [shape=ellipse,label="Status"]; s_dl [shape=ellipse,label="Deadline"]; s_fee [shape=ellipse,label="ReviewFeeUsd"];
+  SCHOLARSHIP -- s_id; SCHOLARSHIP -- s_slug; SCHOLARSHIP -- s_st; SCHOLARSHIP -- s_dl; SCHOLARSHIP -- s_fee;
+
+  a_id [shape=ellipse,label=<<u>Id</u>>]; a_st [shape=ellipse,label="Status"]; a_mode [shape=ellipse,label="Mode"];
+  APPLICATION -- a_id; APPLICATION -- a_st; APPLICATION -- a_mode;
+
+  d_id [shape=ellipse,label=<<u>Id</u>>]; d_cat [shape=ellipse,label="Category"];
+  DOCUMENT -- d_id; DOCUMENT -- d_cat;
+
+  c_id [shape=ellipse,label=<<u>Id</u>>]; c_slug [shape=ellipse,label="Slug"];
+  CATEGORY -- c_id; CATEGORY -- c_slug;
+
+  crr_id [shape=ellipse,label=<<u>Id</u>>]; crr_st [shape=ellipse,label="Status"];
+  COMPANY_REVIEW_REQUEST -- crr_id; COMPANY_REVIEW_REQUEST -- crr_st;
+
+  cr_id [shape=ellipse,label=<<u>Id</u>>]; cr_rt [shape=ellipse,label="Rating"];
+  COMPANY_REVIEW -- cr_id; COMPANY_REVIEW -- cr_rt;
+}

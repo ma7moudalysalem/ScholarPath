@@ -1,0 +1,54 @@
+@startuml class-01-base-types
+title Class Diagram — Base Types and Shared Enumerations\n(domain classes inherit AuditableEntity; ApplicationUser is the exception)
+
+skinparam classAttributeIconSize 0
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #444444
+  ArrowColor #444444
+}
+
+abstract class BaseEntity {
+  - Id : Guid
+  + DomainEvents : IReadOnlyCollection<DomainEvent>
+  --
+  + RaiseDomainEvent(e) : void
+  + ClearDomainEvents() : void
+}
+
+abstract class AuditableEntity {
+  - CreatedAt : DateTimeOffset
+  - CreatedByUserId : Guid?
+  - UpdatedAt : DateTimeOffset?
+  - UpdatedByUserId : Guid?
+  - RowVersion : byte[]
+}
+
+interface ISoftDeletable {
+  + IsDeleted : bool
+  + DeletedAt : DateTimeOffset?
+  + DeletedByUserId : Guid?
+}
+
+class "DomainEvent" as DomainEvent <<record>> {
+}
+
+class "IdentityUser<Guid>" as IdentityUser <<framework>> {
+}
+
+class ApplicationUser <<identity>> {
+}
+
+BaseEntity <|-- AuditableEntity
+BaseEntity ..> DomainEvent : raises
+IdentityUser <|-- ApplicationUser
+ApplicationUser ..|> ISoftDeletable
+
+note bottom of ApplicationUser
+  ApplicationUser does NOT inherit AuditableEntity.
+  It extends IdentityUser<Guid>, implements ISoftDeletable,
+  and carries a stripped audit triple (CreatedAt, UpdatedAt,
+  RowVersion) -- no CreatedByUserId / UpdatedByUserId.
+end note
+@enduml

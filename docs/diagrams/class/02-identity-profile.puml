@@ -1,0 +1,107 @@
+@startuml class-02-identity-profile
+title Class Diagram — Identity & Profile\n(all classes : AuditableEntity, except ApplicationUser : IdentityUser<Guid>)
+
+skinparam classAttributeIconSize 0
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #444444
+  ArrowColor #444444
+}
+
+class ApplicationUser <<identity + ISoftDeletable>> {
+  - Email : string
+  - FirstName : string
+  - LastName : string
+  - AccountStatus : AccountStatus
+  - ActiveRole : string?
+  - IsOnboardingComplete : bool
+  - LastLoginAt : DateTimeOffset?
+  + /FullName : string
+}
+
+class "ApplicationRole\n<<IdentityRole<Guid>>>" as ApplicationRole {
+  - Name : string
+  - Description : string
+}
+
+class UserProfile {
+  - Biography : string <<enc>>
+  - Gpa : decimal
+  - OrganizationLegalName : string
+  - SessionFeeUsd : decimal
+  - CompanyAverageRating : decimal
+  - StripeConnectStatus : string
+  - ProfileCompletenessPercent : int
+}
+
+class EducationEntry {
+  - InstitutionName : string
+  - Degree : string
+  - FieldOfStudy : string
+}
+
+class ExpertiseTag <<lookup>> {
+  - Slug : string
+  - NameEn : string
+  - Category : string
+}
+
+class RefreshToken {
+  - TokenHash : string
+  - ExpiresAt : DateTimeOffset
+  - IsRevoked : bool
+}
+
+class PasswordResetToken {
+  - TokenHash : string
+  - ExpiresAt : DateTimeOffset
+  - UsedAt : DateTimeOffset?
+}
+
+class LoginAttempt {
+  - Email : string
+  - Succeeded : bool
+  - OccurredAt : DateTimeOffset
+}
+
+class UpgradeRequest {
+  - Target : UpgradeTarget
+  - Status : UpgradeRequestStatus
+  - Reason : string
+}
+
+class UpgradeRequestFile {
+  - FileName : string
+  - BlobUrl : string
+}
+
+class UpgradeRequestLink {
+  - Label : string
+  - Url : string
+}
+
+ApplicationUser "1" -- "*" ApplicationRole : roles
+ApplicationUser "1" -- "0..1" UserProfile : profile
+UserProfile "1" *-- "*" EducationEntry : education
+ApplicationUser "1" -- "*" RefreshToken : issues
+ApplicationUser "1" -- "*" PasswordResetToken : resets
+ApplicationUser "1" -- "*" LoginAttempt : attempts
+ApplicationUser "1" -- "*" UpgradeRequest : requests
+UpgradeRequest "1" *-- "*" UpgradeRequestFile : files
+UpgradeRequest "1" *-- "*" UpgradeRequestLink : links
+
+' FIX: ExpertiseTag was floating with no relationship in the SRS.
+' A consultant's expertise is a many-to-many against the tag taxonomy.
+UserProfile "*" -- "*" ExpertiseTag : expertise
+
+note right of ExpertiseTag
+  FIX (review): in the SRS this lookup floated
+  with no association while UserProfile also held
+  an "ExpertiseTags" multivalued attribute -- redundant.
+  Modeled here as a single M:N relationship.
+  Persistence note: current implementation denormalizes
+  the selection to UserProfile.ExpertiseTagsJson; the
+  normalized join table is shown in the relational mapping.
+end note
+@enduml

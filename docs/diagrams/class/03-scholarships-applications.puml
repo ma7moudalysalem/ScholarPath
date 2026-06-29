@@ -1,0 +1,89 @@
+@startuml class-03-scholarships-applications
+title Class Diagram — Scholarships, Applications & Documents\n(all classes : AuditableEntity)
+
+skinparam classAttributeIconSize 0
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #444444
+  ArrowColor #444444
+}
+
+class Category {
+  - Slug : string
+  - NameEn : string
+}
+
+class Scholarship {
+  - Slug : string
+  - Status : ScholarshipStatus
+  - Mode : ListingMode
+  - Deadline : DateTimeOffset
+  - ReviewFeeUsd : decimal?
+}
+
+class ScholarshipChild {
+  - ChildType : string
+  - KeyEn : string
+  - ValueEn : string
+}
+
+class SavedScholarship {
+  - SavedAt : DateTimeOffset
+  - Note : string
+}
+
+class ApplicationTracker {
+  - Status : ApplicationStatus
+  - Mode : ApplicationMode
+  - PersonalNotes : string <<enc>>
+  + /IsActive : bool
+  + /IsReadOnly : bool
+}
+
+class ApplicationTrackerChild {
+  - ChildType : string
+  - Content : string
+}
+
+class Document {
+  - Category : DocumentCategory
+  - StoragePath : string
+}
+
+class CompanyReviewRequest {
+  - Status : CompanyReviewRequestStatus
+  - ReviewFeeUsdSnapshot : decimal
+}
+
+class CompanyReview {
+  - Rating : int
+  - IsHiddenByAdmin : bool
+}
+
+class CompanyReviewPayment <<legacy / deprecated>> {
+  - Status : string
+  - StripePaymentIntentId : string
+}
+
+Category "0..1" -- "*" Scholarship : classifies
+Scholarship "1" *-- "*" ScholarshipChild : details
+Scholarship "1" -- "*" SavedScholarship : bookmarks
+Scholarship "1" -- "0..1" ApplicationTracker : receives
+Scholarship "1" -- "*" CompanyReviewRequest : under
+ApplicationTracker "1" *-- "*" ApplicationTrackerChild : history
+
+' FIX: SRS class diagram showed 0..1 Document, but Document.ApplicationTrackerId
+' (nullable) is 1:N in the schema and the EERD (SUPPORTS) is N. An application
+' can be supported by many documents.
+ApplicationTracker "1" -- "*" Document : supportedBy
+
+ApplicationTracker "1" -- "0..1" CompanyReview : ratedBy
+
+note bottom of CompanyReviewPayment
+  FIX (review): retained for historical data only.
+  The active paid-review flow settles through Payment
+  (RelatedApplicationId / CompanyReviewRequest) -- see
+  the Booking, Payments & Ratings class diagram.
+end note
+@enduml

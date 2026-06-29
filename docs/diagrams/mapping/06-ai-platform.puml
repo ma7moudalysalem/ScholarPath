@@ -1,0 +1,91 @@
+@startuml mapping-06-ai-platform
+title Relational Mapping — AI, Knowledge & Platform
+
+skinparam linetype ortho
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #2563eb
+}
+
+entity "AiInteractions" as ai {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK>>
+  Feature : int
+  Provider : int
+  CostUsd : decimal
+}
+
+entity "RecommendationClickEvents" as rce {
+  *Id : uniqueidentifier <<PK>>
+  --
+  AiInteractionId : uniqueidentifier <<FK>>
+  ScholarshipId : uniqueidentifier <<FK>>
+  Source : nvarchar
+  ClickedAt : datetimeoffset
+}
+
+entity "AiRedactionAuditSamples" as ras {
+  *Id : uniqueidentifier <<PK>>
+  --
+  AiInteractionId : uniqueidentifier <<FK>>
+  Verdict : int
+  SampledAt : datetimeoffset
+}
+
+entity "KnowledgeDocuments" as kd {
+  *Id : uniqueidentifier <<PK>>
+  --
+  SourceType : int
+  SourceKey : nvarchar
+}
+
+entity "UserRiskFlags" as urf {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK>>
+  Score : decimal
+  IsAtRisk : bit
+}
+
+entity "AuditLogs" as al {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ActorUserId : uniqueidentifier <<FK, NULL>>
+  Action : int
+  TargetType : nvarchar
+  TargetId : uniqueidentifier <<polymorphic>>
+}
+
+entity "UserDataRequests" as udr {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK>>
+  Type : int
+  Status : int
+}
+
+entity "SuccessStories" as ss {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK>>
+  HeadlineEn : nvarchar
+  IsApproved : bit
+}
+
+entity "PlatformSettings" as pst {
+  *Id : uniqueidentifier <<PK>>
+  --
+  SettingKey : nvarchar <<UK>>
+  ValueType : int
+}
+
+ai ||--o{ rce
+ai ||--o| ras
+
+note bottom of al
+  AuditLogs.TargetId is a polymorphic reference (TargetType + TargetId);
+  it has no DB-level FK by design.
+end note
+@enduml

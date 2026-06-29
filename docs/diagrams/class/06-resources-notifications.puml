@@ -1,0 +1,58 @@
+@startuml class-06-resources-notifications
+title Class Diagram — Resources Hub & Notifications\n(all classes : AuditableEntity)
+
+skinparam classAttributeIconSize 0
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #444444
+  ArrowColor #444444
+}
+
+class Resource {
+  - Slug : string
+  - Type : ResourceType
+  - Status : ResourceStatus
+}
+
+class "ResourceChild\n(Resource Chapter)" as ResourceChild {
+  - TitleEn : string
+  - SortOrder : int
+}
+
+class ResourceBookmark {
+  - BookmarkedAt : DateTimeOffset
+}
+
+class ResourceProgress {
+  - /ChaptersCompletedCount : int
+  - LastAccessedAt : DateTimeOffset
+}
+
+class ResourceProgressChild {
+  - IsCompleted : bool
+}
+
+class Notification {
+  - Type : NotificationType
+  - Channel : NotificationChannel
+  - IsRead : bool
+}
+
+class NotificationPreference {
+  - Type : NotificationType
+  - Channel : NotificationChannel
+  - IsEnabled : bool
+}
+
+Resource "1" *-- "*" ResourceChild : chapters
+Resource "1" -- "*" ResourceBookmark : savedBy
+Resource "1" -- "*" ResourceProgress : trackedIn
+ResourceProgress "1" *-- "*" ResourceProgressChild : perChapter
+
+note bottom of ResourceProgress
+  FIX (review): ChaptersCompletedCount marked derived ( / )
+  to match the EERD (dashed attribute) -- it is computed
+  from ResourceProgressChild.IsCompleted.
+end note
+@enduml

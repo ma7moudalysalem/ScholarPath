@@ -1,0 +1,71 @@
+// EERD — Identity & Profile
+graph EERD_Identity {
+  rankdir=TB;
+  labelloc="t";
+  label="EERD — Identity & Profile";
+  fontname="Helvetica-Bold"; fontsize=16;
+  node [fontname="Helvetica", fontsize=10];
+  edge [color="#444444"];
+
+  // ----- entities -----
+  USER       [shape=box, style=filled, fillcolor="#e8eefc"];
+  USER_PROFILE [shape=box, style=filled, fillcolor="#e8eefc", label="USER_PROFILE"];
+  EDUCATION_ENTRY [shape=box, style=filled, fillcolor="#e8eefc", peripheries=2, label="EDUCATION_ENTRY"];
+  ROLE       [shape=box, style=filled, fillcolor="#e8eefc"];
+  REFRESH_TOKEN [shape=box, style=filled, fillcolor="#e8eefc", label="REFRESH_TOKEN"];
+  PASSWORD_RESET_TOKEN [shape=box, style=filled, fillcolor="#e8eefc", label="PASSWORD_RESET_TOKEN"];
+  LOGIN_ATTEMPT [shape=box, style=filled, fillcolor="#e8eefc", label="LOGIN_ATTEMPT"];
+  UPGRADE_REQUEST [shape=box, style=filled, fillcolor="#e8eefc", label="UPGRADE_REQUEST"];
+  UPGRADE_REQUEST_FILE [shape=box, style=filled, fillcolor="#e8eefc", peripheries=2, label="UPGRADE_REQUEST_FILE"];
+  UPGRADE_REQUEST_LINK [shape=box, style=filled, fillcolor="#e8eefc", peripheries=2, label="UPGRADE_REQUEST_LINK"];
+  EXPERTISE_TAG [shape=box, style=filled, fillcolor="#e8eefc", label="EXPERTISE_TAG"];
+
+  // ----- relationships -----
+  HAS_PROFILE [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  HAS_ROLE    [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  HAS_EDU     [shape=diamond, style=filled, fillcolor="#eef7ee", peripheries=2];
+  ISSUES      [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  RESETS      [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  ATTEMPTS    [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  REQUESTS_UPG[shape=diamond, style=filled, fillcolor="#eef7ee", label="REQUESTS_UPG"];
+  HAS_FILE    [shape=diamond, style=filled, fillcolor="#eef7ee", peripheries=2];
+  HAS_LINK    [shape=diamond, style=filled, fillcolor="#eef7ee", peripheries=2];
+  HAS_EXPERTISE [shape=diamond, style=filled, fillcolor="#fde8c8", label="HAS_EXPERTISE"];
+
+  USER -- HAS_PROFILE [label="1"]; HAS_PROFILE -- USER_PROFILE [label="1", penwidth=2];
+  USER -- HAS_ROLE [label="M"]; HAS_ROLE -- ROLE [label="N"];
+  USER_PROFILE -- HAS_EDU [label="1"]; HAS_EDU -- EDUCATION_ENTRY [label="N", penwidth=2];
+  USER -- ISSUES [label="1"]; ISSUES -- REFRESH_TOKEN [label="N"];
+  USER -- RESETS [label="1"]; RESETS -- PASSWORD_RESET_TOKEN [label="N"];
+  USER -- ATTEMPTS [label="1"]; ATTEMPTS -- LOGIN_ATTEMPT [label="N"];
+  USER -- REQUESTS_UPG [label="1"]; REQUESTS_UPG -- UPGRADE_REQUEST [label="N"];
+  UPGRADE_REQUEST -- HAS_FILE [label="1"]; HAS_FILE -- UPGRADE_REQUEST_FILE [label="N", penwidth=2];
+  UPGRADE_REQUEST -- HAS_LINK [label="1"]; HAS_LINK -- UPGRADE_REQUEST_LINK [label="N", penwidth=2];
+
+  // FIX: EXPERTISE_TAG is now related (M:N) instead of floating + duplicated as a multivalued attribute.
+  USER_PROFILE -- HAS_EXPERTISE [label="M"]; HAS_EXPERTISE -- EXPERTISE_TAG [label="N"];
+
+  // ----- selected attributes -----
+  u_id [shape=ellipse, label=<<u>Id</u>>]; u_em [shape=ellipse, label="Email"];
+  u_as [shape=ellipse, label="AccountStatus"]; u_ar [shape=ellipse, label="ActiveRole"];
+  USER -- u_id; USER -- u_em; USER -- u_as; USER -- u_ar;
+
+  p_id [shape=ellipse, label=<<u>Id</u>>]; p_gpa [shape=ellipse, label="Gpa"];
+  p_pc [shape=ellipse, style=dashed, label="ProfileCompletenessPercent"];
+  p_cr [shape=ellipse, style=dashed, label="CompanyAverageRating"];
+  p_pcty [shape=ellipse, peripheries=2, label="PreferredCountries"];
+  USER_PROFILE -- p_id; USER_PROFILE -- p_gpa; USER_PROFILE -- p_pc; USER_PROFILE -- p_cr; USER_PROFILE -- p_pcty;
+
+  et_id [shape=ellipse, label=<<u>Id</u>>]; et_slug [shape=ellipse, label="Slug"]; et_cat [shape=ellipse, label="Category"];
+  EXPERTISE_TAG -- et_id; EXPERTISE_TAG -- et_slug; EXPERTISE_TAG -- et_cat;
+
+  ro_id [shape=ellipse, label=<<u>Id</u>>]; ro_nm [shape=ellipse, label="Name"];
+  ROLE -- ro_id; ROLE -- ro_nm;
+
+  ur_id [shape=ellipse, label=<<u>Id</u>>]; ur_t [shape=ellipse, label="Target"]; ur_s [shape=ellipse, label="Status"];
+  UPGRADE_REQUEST -- ur_id; UPGRADE_REQUEST -- ur_t; UPGRADE_REQUEST -- ur_s;
+
+  note1 [shape=note, style=filled, fillcolor="#fff6d6", fontsize=9,
+    label=<<b>FIX</b>: EXPERTISE_TAG was isolated in the SRS while<br align="left"/>USER_PROFILE also carried an "ExpertiseTags" multivalued<br align="left"/>attribute (redundant). Resolved to one M:N relationship.<br align="left"/>>];
+  note1 -- EXPERTISE_TAG [style=invis];
+}

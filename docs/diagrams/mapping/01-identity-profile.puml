@@ -1,0 +1,122 @@
+@startuml mapping-01-identity-profile
+title Relational Mapping — Identity & Profile
+
+skinparam linetype ortho
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #2563eb
+}
+
+entity "Users" as users {
+  *Id : uniqueidentifier <<PK>>
+  --
+  Email : nvarchar
+  FirstName : nvarchar
+  LastName : nvarchar
+  AccountStatus : int
+  ActiveRole : nvarchar
+  IsDeleted : bit <<SD>>
+  RowVersion : rowversion <<RV>>
+}
+
+entity "Roles" as roles {
+  *Id : uniqueidentifier <<PK>>
+  --
+  Name : nvarchar
+}
+
+entity "UserRoles" as userroles {
+  *UserId : uniqueidentifier <<PK,FK>>
+  *RoleId : uniqueidentifier <<PK,FK>>
+}
+
+entity "UserProfiles" as profiles {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK,UK 1:1>>
+  Gpa : decimal(4,2)
+  AcademicLevel : nvarchar
+  SessionFeeUsd : decimal(10,2)
+  CompanyAverageRating : decimal
+  StripeConnectStatus : nvarchar
+  ProfileCompletenessPercent : int
+}
+
+entity "EducationEntries" as edu {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserProfileId : uniqueidentifier <<FK>>
+  InstitutionName : nvarchar
+  Degree : nvarchar
+}
+
+entity "ExpertiseTags" as tags {
+  *Id : uniqueidentifier <<PK>>
+  --
+  Slug : nvarchar <<UK>>
+  NameEn : nvarchar
+  Category : nvarchar
+}
+
+entity "UserProfileExpertiseTags" as profiletags <<FIX: normalized M:N>> {
+  *UserProfileId : uniqueidentifier <<PK,FK>>
+  *ExpertiseTagId : uniqueidentifier <<PK,FK>>
+}
+
+entity "UserPreferredCountries" as countries <<FIX: multivalued -> table>> {
+  *UserProfileId : uniqueidentifier <<PK,FK>>
+  *CountryCode : char(2) <<PK>>
+}
+
+entity "RefreshTokens" as rt {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK>>
+  TokenHash : nvarchar <<UK>>
+  ExpiresAt : datetimeoffset
+  IsRevoked : bit
+}
+
+entity "PasswordResetTokens" as prt {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK>>
+  TokenHash : nvarchar
+  UsedAt : datetimeoffset
+}
+
+entity "UpgradeRequests" as upg {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UserId : uniqueidentifier <<FK>>
+  Target : int
+  Status : int
+}
+
+entity "UpgradeRequestFiles" as upgf {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UpgradeRequestId : uniqueidentifier <<FK>>
+  BlobUrl : nvarchar
+}
+
+users ||--o{ userroles
+roles ||--o{ userroles
+users ||--|| profiles
+profiles ||--o{ edu
+profiles ||--o{ profiletags
+tags ||--o{ profiletags
+profiles ||--o{ countries
+users ||--o{ rt
+users ||--o{ prt
+users ||--o{ upg
+upg ||--o{ upgf
+
+note bottom of profiletags
+  FIX (review): the EERD modeled ExpertiseTags / PreferredCountries
+  as multivalued attributes but no tables existed in the SRS mapping.
+  Normalized here into join tables. (Current implementation denormalizes
+  these to JSON columns: UserProfiles.ExpertiseTagsJson, PreferredCountriesJson.)
+end note
+@enduml

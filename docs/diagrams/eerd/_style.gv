@@ -1,0 +1,14 @@
+// Shared Chen-notation conventions used by every EERD fragment in this folder.
+// (This file documents the style; each .dot inlines the same defaults so it
+//  renders standalone.)
+//
+//   Entity            shape=box,  fillcolor="#e8eefc"
+//   Weak entity       shape=box,  peripheries=2
+//   Relationship      shape=diamond, fillcolor="#eef7ee"
+//   Identifying rel.  shape=diamond, peripheries=2
+//   Attribute         shape=ellipse
+//   Key attribute     label=<<u>Name</u>>
+//   Multivalued attr  shape=ellipse, peripheries=2
+//   Derived attr      shape=ellipse, style="dashed"
+//   Cardinality       edge label "1" / "N" / "M"
+//   Total participation edge  penwidth=2  (double-line equivalent)

@@ -1,0 +1,51 @@
+// EERD — AI, Knowledge & Platform
+graph EERD_AI {
+  rankdir=TB; labelloc="t";
+  label="EERD — AI, Knowledge & Platform";
+  fontname="Helvetica-Bold"; fontsize=16;
+  node [fontname="Helvetica", fontsize=10];
+  edge [color="#444444"];
+
+  USER       [shape=box, style=filled, fillcolor="#e8eefc"];
+  AI_INTERACTION [shape=box, style=filled, fillcolor="#e8eefc", label="AI_INTERACTION"];
+  RECOMMENDATION_CLICK_EVENT [shape=box, style=filled, fillcolor="#e8eefc", label="RECOMMENDATION_CLICK_EVENT"];
+  AI_REDACTION_AUDIT_SAMPLE [shape=box, style=filled, fillcolor="#e8eefc", label="AI_REDACTION_AUDIT_SAMPLE"];
+  SCHOLARSHIP[shape=box, style=filled, fillcolor="#e8eefc"];
+  USER_RISK_FLAG [shape=box, style=filled, fillcolor="#e8eefc", label="USER_RISK_FLAG"];
+  AUDIT_LOG  [shape=box, style=filled, fillcolor="#e8eefc", label="AUDIT_LOG"];
+  USER_DATA_REQUEST [shape=box, style=filled, fillcolor="#e8eefc", label="USER_DATA_REQUEST"];
+  SUCCESS_STORY [shape=box, style=filled, fillcolor="#e8eefc", label="SUCCESS_STORY"];
+  KNOWLEDGE_DOCUMENT [shape=box, style=filled, fillcolor="#e8eefc", label="KNOWLEDGE_DOCUMENT"];
+  PLATFORM_SETTING [shape=box, style=filled, fillcolor="#e8eefc", label="PLATFORM_SETTING"];
+
+  INVOKES   [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  FROM_AI   [shape=diamond, style=filled, fillcolor="#eef7ee", label="FROM_AI"];
+  CLICKED   [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  SAMPLED   [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  SCORED    [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  ACTOR_OF  [shape=diamond, style=filled, fillcolor="#eef7ee", label="ACTOR_OF"];
+  RAISES    [shape=diamond, style=filled, fillcolor="#eef7ee"];
+  STARS_IN  [shape=diamond, style=filled, fillcolor="#eef7ee", label="STARS_IN"];
+
+  USER -- INVOKES [label="1"]; INVOKES -- AI_INTERACTION [label="N"];
+  AI_INTERACTION -- FROM_AI [label="1"]; FROM_AI -- RECOMMENDATION_CLICK_EVENT [label="N"];
+  SCHOLARSHIP -- CLICKED [label="1"]; CLICKED -- RECOMMENDATION_CLICK_EVENT [label="N"];
+  AI_INTERACTION -- SAMPLED [label="1"]; SAMPLED -- AI_REDACTION_AUDIT_SAMPLE [label="1"];
+  USER -- SCORED [label="1"]; SCORED -- USER_RISK_FLAG [label="N"];
+  USER -- ACTOR_OF [label="1"]; ACTOR_OF -- AUDIT_LOG [label="N"];
+  USER -- RAISES [label="1"]; RAISES -- USER_DATA_REQUEST [label="N"];
+  USER -- STARS_IN [label="1"]; STARS_IN -- SUCCESS_STORY [label="N"];
+
+  // selected attributes
+  ai_id [shape=ellipse,label=<<u>Id</u>>]; ai_f [shape=ellipse,label="Feature"]; ai_c [shape=ellipse,style=dashed,label="CostUsd"];
+  AI_INTERACTION -- ai_id; AI_INTERACTION -- ai_f; AI_INTERACTION -- ai_c;
+
+  kd_id [shape=ellipse,label=<<u>Id</u>>]; kd_s [shape=ellipse,label="SourceType"];
+  KNOWLEDGE_DOCUMENT -- kd_id; KNOWLEDGE_DOCUMENT -- kd_s;
+
+  ps_id [shape=ellipse,label=<<u>Id</u>>]; ps_k [shape=ellipse,label="SettingKey"];
+  PLATFORM_SETTING -- ps_id; PLATFORM_SETTING -- ps_k;
+
+  rf_id [shape=ellipse,label=<<u>Id</u>>]; rf_sc [shape=ellipse,style=dashed,label="Score"];
+  USER_RISK_FLAG -- rf_id; USER_RISK_FLAG -- rf_sc;
+}

@@ -1,0 +1,86 @@
+@startuml class-05-community-chat
+title Class Diagram — Community & Chat\n(all classes : AuditableEntity)
+
+skinparam classAttributeIconSize 0
+hide circle
+skinparam class {
+  BackgroundColor White
+  BorderColor #444444
+  ArrowColor #444444
+}
+
+class ForumCategory {
+  - Slug : string
+  - IsActive : bool
+}
+
+class ForumPost {
+  - Title : string
+  - ModerationStatus : PostModerationStatus
+  - UpvoteCount : int
+  - FlagCount : int
+}
+
+class "ForumPostTag" as ForumPostTag <<composite PK>> {
+  - ForumPostId : Guid
+  - ForumTagId : Guid
+}
+
+class ForumTag {
+  - Slug : string
+}
+
+class ForumVote {
+  - VoteType : VoteType
+}
+
+class ForumFlag {
+  - Reason : string
+  - IsValid : bool
+}
+
+class ForumBookmark {
+  - CreatedAt : DateTimeOffset
+}
+
+class ForumPostAttachment {
+  - FileName : string
+  - BlobUrl : string
+}
+
+class ChatConversation {
+  - LastMessageAt : DateTimeOffset
+}
+
+class ChatMessage {
+  - Body : string
+  - SentAt : DateTimeOffset
+}
+
+class UserBlock {
+  - BlockerId : Guid
+  - BlockedUserId : Guid
+  - Reason : string
+}
+
+ForumCategory "0..1" -- "*" ForumPost : groups
+ForumPost "0..1" -- "*" ForumPost : parent (reply)
+ForumPost "1" *-- "*" ForumPostAttachment : attaches
+ForumPost "1" *-- "*" ForumVote : votes
+ForumPost "1" *-- "*" ForumFlag : flags
+ForumPost "1" *-- "*" ForumBookmark : bookmarks
+ForumPost "1" -- "*" ForumPostTag
+ForumTag "1" -- "*" ForumPostTag
+ChatConversation "1" *-- "*" ChatMessage : messages
+
+note bottom of UserBlock
+  FIX (review): UserBlock holds two user references
+  -- BlockerId and BlockedUserId -- not a single
+  user association as the SRS EERD implied.
+end note
+
+note right of ForumPostTag
+  Association class resolving the M:N
+  ForumPost <-> ForumTag relationship.
+end note
+@enduml
