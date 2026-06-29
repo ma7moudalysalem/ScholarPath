@@ -26,8 +26,8 @@ function DeadlinePill({ deadline, isAr }: { deadline: string; isAr: boolean }) {
   }
 
   const colorClass =
-    daysLeft <= 14 ? "bg-danger-100 text-danger-600" :
-    daysLeft <= 45 ? "bg-warning-100 text-warning-700" :
+    daysLeft <= 14 ? "bg-danger-50 text-danger-500" :
+    daysLeft <= 45 ? "bg-warning-50 text-warning-600" :
     "bg-bg-subtle text-text-secondary";
 
   const label =
