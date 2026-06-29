@@ -8,6 +8,7 @@ import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useAuthStore } from "@/stores/authStore";
 import { postAuthPath } from "@/services/api/auth";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 /** Email address used for placeholder footer links until proper static pages ship. */
 const SUPPORT_EMAIL = "support@scholarpath.local";
@@ -216,6 +217,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
 function SiteFooter() {
   const { t } = useTranslation(["home", "common"]);
   const isAuthed = useAuthStore((s) => s.user !== null);
+  const paymentsEnabled = usePaymentsEnabled();
 
   // Product links lead to authenticated areas — anonymous users go through
   // /login?redirect=… so Login.tsx restores their intent post-auth.
@@ -241,7 +243,7 @@ function SiteFooter() {
           label: t("home:footer.product.community"),
           href: authedFooterHref("/student/community", isAuthed),
         },
-        { label: t("home:footer.product.pricing"), href: "/#pricing" },
+        ...(paymentsEnabled ? [{ label: t("home:footer.product.pricing"), href: "/#pricing" }] : []),
       ],
     },
     {
