@@ -174,7 +174,8 @@
       "requiredDocsHint": "أضف أسماء المستندات التي يجب على المتقدّم رفعها (مثال: كشف الدرجات، خطاب التوصية).",
       "requiredDocsPlaceholder": "اسم المستند…",
       "requiredDocsAdd": "إضافة",
-      "requiredDocsEmpty": "لم تُضَف أي مستندات مطلوبة بعد."
+      "requiredDocsEmpty": "لم تُضَف أي مستندات مطلوبة بعد.",
+      "requiredDocsRemove": "إزالة {{doc}}"
     }
   },
   "scholarshipStatus": {

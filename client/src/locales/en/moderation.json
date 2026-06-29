@@ -174,7 +174,8 @@
       "requiredDocsHint": "List the document types applicants must upload (e.g. Transcript, Recommendation Letter).",
       "requiredDocsPlaceholder": "Document name…",
       "requiredDocsAdd": "Add",
-      "requiredDocsEmpty": "No required documents added yet."
+      "requiredDocsEmpty": "No required documents added yet.",
+      "requiredDocsRemove": "Remove {{doc}}"
     }
   },
   "scholarshipStatus": {

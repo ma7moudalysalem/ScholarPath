@@ -154,9 +154,7 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             FieldsOfStudyJson = request.FieldsOfStudy is { Length: > 0 }
                 ? System.Text.Json.JsonSerializer.Serialize(request.FieldsOfStudy)
                 : null,
-            RequiredDocumentsJson = request.RequiredDocuments is { Length: > 0 }
-                ? System.Text.Json.JsonSerializer.Serialize(request.RequiredDocuments)
-                : null,
+            RequiredDocumentsJson = NormalizeRequiredDocs(request.RequiredDocuments),
             Mode = request.Mode,
             ExternalApplicationUrl = request.Mode == ListingMode.ExternalUrl
                 ? request.ExternalApplicationUrl
@@ -194,6 +192,17 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
     /// <see cref="ScholarPath.Application.Resources.Commands.CreateResource.CreateResourceCommandHandler"/>
     /// so both content types feel the same in URLs.
     /// </summary>
+    internal static string? NormalizeRequiredDocs(string[]? docs)
+    {
+        if (docs is null) return null;
+        var clean = docs
+            .Select(d => d.Trim())
+            .Where(d => d.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return clean.Length > 0 ? System.Text.Json.JsonSerializer.Serialize(clean) : null;
+    }
+
     private static string GenerateSlug(string titleEn, string titleAr)
     {
         // Prefer the English title when present; fall back to the Arabic one so
