@@ -72,7 +72,7 @@ entity "ForumPostAttachments" as fa {
   BlobUrl : nvarchar
 }
 
-entity "ChatConversations" as cc {
+entity "Conversations" as cc {
   *Id : uniqueidentifier <<PK>>
   --
   ParticipantOneId : uniqueidentifier <<FK>>
@@ -80,7 +80,7 @@ entity "ChatConversations" as cc {
   LastMessageAt : datetimeoffset
 }
 
-entity "ChatMessages" as cm {
+entity "Messages" as cm {
   *Id : uniqueidentifier <<PK>>
   --
   ConversationId : uniqueidentifier <<FK>>

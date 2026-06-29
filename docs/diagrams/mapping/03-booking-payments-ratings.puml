@@ -12,7 +12,7 @@ entity "Users" as users <<ref · Identity ctx>> #EEEEEE {
   *Id : uniqueidentifier <<PK>>
 }
 
-entity "ConsultantAvailabilities" as av {
+entity "Availabilities" as av {
   *Id : uniqueidentifier <<PK>>
   --
   ConsultantId : uniqueidentifier <<FK>>
@@ -20,7 +20,7 @@ entity "ConsultantAvailabilities" as av {
   IsActive : bit
 }
 
-entity "ConsultantBookings" as bk {
+entity "Bookings" as bk {
   *Id : uniqueidentifier <<PK>>
   --
   StudentId : uniqueidentifier <<FK>>

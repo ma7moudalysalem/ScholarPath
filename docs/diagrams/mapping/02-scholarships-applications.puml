@@ -52,7 +52,7 @@ entity "SavedScholarships" as saved {
   SavedAt : datetimeoffset
 }
 
-entity "ApplicationTrackers" as app {
+entity "Applications" as app {
   *Id : uniqueidentifier <<PK>>
   --
   UserId : uniqueidentifier <<FK>>
@@ -62,7 +62,7 @@ entity "ApplicationTrackers" as app {
   PersonalNotes : nvarchar <<enc>>
 }
 
-entity "ApplicationTrackerChildren" as appc {
+entity "ApplicationChildren" as appc {
   *Id : uniqueidentifier <<PK>>
   --
   ApplicationTrackerId : uniqueidentifier <<FK>>
@@ -98,6 +98,15 @@ entity "CompanyReviews" as cr {
   IsHiddenByAdmin : bit
 }
 
+entity "CompanyReviewPayments" as crp <<legacy / deprecated>> {
+  *Id : uniqueidentifier <<PK>>
+  --
+  ApplicationTrackerId : uniqueidentifier <<FK>>
+  CompanyId : uniqueidentifier <<FK>>
+  Status : nvarchar
+  StripePaymentIntentId : nvarchar
+}
+
 ' ----- intra-context FKs -----
 cat   |o--o{ sch
 sch   ||--o{ schc
@@ -115,6 +124,8 @@ users ||--o{ app   : UserId
 users ||--o{ doc   : OwnerUserId
 users ||--o{ crr   : StudentId / CompanyId
 pay   |o--o| crr   : PaymentId
+app   ||--o{ crp   : ApplicationTrackerId
+users ||--o{ crp   : CompanyId
 
 note bottom of doc
   FIX (review): Documents.ApplicationTrackerId is a nullable FK ->

@@ -101,6 +101,23 @@ entity "UpgradeRequestFiles" as upgf {
   BlobUrl : nvarchar
 }
 
+entity "UpgradeRequestLinks" as upgl {
+  *Id : uniqueidentifier <<PK>>
+  --
+  UpgradeRequestId : uniqueidentifier <<FK>>
+  Label : nvarchar
+  Url : nvarchar
+}
+
+entity "LoginAttempts" as la {
+  *Id : uniqueidentifier <<PK>>
+  --
+  Email : nvarchar
+  Succeeded : bit
+  OccurredAt : datetimeoffset
+  ' append-only; no FK to Users (keyed by Email)
+}
+
 users ||--o{ userroles
 roles ||--o{ userroles
 users ||--|| profiles
@@ -112,6 +129,7 @@ users ||--o{ rt
 users ||--o{ prt
 users ||--o{ upg
 upg ||--o{ upgf
+upg ||--o{ upgl
 
 note bottom of profiletags
   FIX (review): the EERD modeled ExpertiseTags / PreferredCountries

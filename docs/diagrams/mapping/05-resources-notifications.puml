@@ -37,7 +37,7 @@ entity "ResourceBookmarks" as rb {
   BookmarkedAt : datetimeoffset
 }
 
-entity "ResourceProgresses" as rp {
+entity "ResourceProgress" as rp {
   *Id : uniqueidentifier <<PK>>
   --
   ResourceId : uniqueidentifier <<FK>>

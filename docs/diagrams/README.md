@@ -36,6 +36,9 @@ These diagrams correct the inconsistencies found while reviewing the SRS
 | 7 | **User participations made explicit in EERD** — who casts a vote / files a flag / saves a bookmark / sends a message / owns a progress record. | `eerd/06`, `eerd/07` |
 | 8 | **Derived attributes marked** — `ChaptersCompletedCount` (and `ProfileCompletenessPercent`, `CompanyAverageRating`) shown derived consistently across class & EERD. | `class/06`, `eerd/03`, `eerd/07` |
 | 9 | **Single-table inheritance strategy documented** — the EER specialization (Student/Company/Consultant/Admin) maps to `Users` + a single `UserProfiles` table. | `eerd/02`, `mapping/01` |
+| 10 | **Reconciled against the current schema** — relational-mapping table names corrected to the actual SQL tables (`Applications`, `ApplicationChildren`, `Availabilities`, `Bookings`, `Conversations`, `Messages`, `ResourceProgress`); added missing tables (`LoginAttempts`, `UpgradeRequestLinks`, legacy `CompanyReviewPayments`). All 57 domain entities are covered. | `mapping/01`–`mapping/06` |
+
+> **Naming convention:** class diagrams use Domain **class** names (e.g. `ApplicationTracker`, `ConsultantBooking`), the EERD uses conceptual **entity** names (e.g. `APPLICATION`, `BOOKING`), and the relational mapping uses the actual **SQL table** names (e.g. `Applications`, `Bookings`). ASP.NET Identity framework join tables (`UserClaims`, `UserLogins`, `UserTokens`, `RoleClaims`) are intentionally omitted from the mapping.
 
 ---
 
