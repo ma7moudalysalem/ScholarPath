@@ -50,10 +50,29 @@ public sealed class SubmitApplicationCommandHandler(
                 throw new ConflictException("Complete the application form before submitting.");
             }
 
-            if (!string.IsNullOrWhiteSpace(scholarship.RequiredDocumentsJson)
-                && string.IsNullOrWhiteSpace(application.AttachedDocumentsJson))
+            if (!string.IsNullOrWhiteSpace(scholarship.RequiredDocumentsJson))
             {
-                throw new ConflictException("Attach the required documents before submitting.");
+                var required = System.Text.Json.JsonSerializer
+                    .Deserialize<string[]>(scholarship.RequiredDocumentsJson) ?? [];
+                if (required.Length > 0)
+                {
+                    var attached = string.IsNullOrWhiteSpace(application.AttachedDocumentsJson)
+                        ? []
+                        : System.Text.Json.JsonSerializer
+                            .Deserialize<string[]>(application.AttachedDocumentsJson) ?? [];
+
+                    // Parallel arrays: required[i] maps to attached[i].
+                    // Every slot must be filled (non-empty URL).
+                    var missing = required
+                        .Select((name, i) => new { name, url = attached.ElementAtOrDefault(i) })
+                        .Where(x => string.IsNullOrWhiteSpace(x.url))
+                        .Select(x => x.name)
+                        .ToList();
+
+                    if (missing.Count > 0)
+                        throw new ConflictException(
+                            $"Missing required documents: {string.Join(", ", missing)}. Upload all required files before submitting.");
+                }
             }
         }
 

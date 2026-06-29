@@ -113,12 +113,16 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
 {
     public async Task<Guid> Handle(CreateScholarshipCommand request, CancellationToken ct)
     {
-        // Only an authenticated Company account can publish an in-app listing.
-        if (!user.IsInRole("Company"))
-            throw new ForbiddenAccessException("Only a Company account can create scholarship listings.");
-
-        var ownerCompanyId = user.UserId
+        var callerId = user.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
+
+        var isAdmin = user.IsInRole("Admin") || user.IsInRole("SuperAdmin");
+        if (!isAdmin && !user.IsInRole("Company"))
+            throw new ForbiddenAccessException("Only a Company, Admin, or SuperAdmin account can create scholarship listings.");
+
+        // Admins create platform scholarships (no company owner); they go
+        // straight to Open and do not need moderation approval.
+        Guid? ownerCompanyId = isAdmin ? null : callerId;
 
         // Settings gates:
         //   1. Master switch — when payments are disabled platform-wide, force
@@ -167,12 +171,12 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             ReviewFeeUsd = request.Mode == ListingMode.InApp
                 ? effectiveFee
                 : null,
-            // Company-created listings always start in the admin moderation
-            // queue (FR-SCH-10). They become Open only after an admin Approve,
-            // which is the path that stamps OpenedAt. We deliberately leave
-            // OpenedAt null here so "freshness-since-open" sorts and analytics
-            // measure from the approve moment, not from the create moment.
-            Status = ScholarshipStatus.UnderReview,
+            // Company-created listings start in the moderation queue and become
+            // Open after an admin Approve. Admin-created listings (platform
+            // scholarships) skip moderation and open immediately — the admin IS
+            // the moderator.
+            Status = isAdmin ? ScholarshipStatus.Open : ScholarshipStatus.UnderReview,
+            OpenedAt = isAdmin ? DateTimeOffset.UtcNow : null,
             OwnerCompanyId = ownerCompanyId,
             // Slug is REQUIRED + UNIQUE on the schema — generate from the
             // English title with a short Guid suffix so two scholarships sharing

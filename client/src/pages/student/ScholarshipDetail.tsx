@@ -28,6 +28,7 @@ import {
   useToggleBookmarkMutation,
 } from "@/hooks/useScholarshipsQuery";
 import { companyReviewRequestsApi } from "@/services/api/companyReviewRequests";
+import { applicationsApi } from "@/services/api/applications";
 import { ApiError, apiErrorMessage } from "@/services/api/client";
 import { profileApi, type UserProfile } from "@/services/api/profile";
 import type { FundingType } from "@/types/domain";
@@ -105,21 +106,30 @@ export function ScholarshipDetail() {
       profileQuery.data.fieldOfStudy.trim().length === 0
     : false;
 
-  // PB-005: Apply Now starts the paid CompanyReview support request flow.
-  // This creates a Stripe PaymentIntent in manual-capture mode (the card is
-  // authorised, not charged) and navigates the Student to the request page
-  // where Stripe Elements completes the authorisation and the Student waits
-  // for the Company to accept. The actual card-confirmation UI is delivered
-  // in a follow-up — this branch wires the backend round-trip and routing.
+  // Apply Now: for company-owned scholarships uses the PB-005 CompanyReview
+  // paid flow; for platform/admin scholarships (no ownerCompanyId) falls back
+  // to a direct free application (StartApplicationCommand).
   const applyMut = useMutation({
-    mutationFn: (scholarshipId: string) => companyReviewRequestsApi.start(scholarshipId),
+    mutationFn: async (scholarshipId: string) => {
+      if (!data?.ownerCompanyId) {
+        const res = await applicationsApi.start(scholarshipId);
+        return { type: "direct" as const, applicationId: res.applicationId };
+      }
+      const res = await companyReviewRequestsApi.start(scholarshipId);
+      return { type: "review" as const, ...res };
+    },
     onSuccess: (result) => {
-      toast.success(
-        result.isFree
-          ? t("scholarships:detail.applyStartedFree")
-          : t("scholarships:detail.applyStarted"),
-      );
-      navigate(`/student/review-requests/${result.requestId}`);
+      if (result.type === "direct") {
+        toast.success(t("scholarships:detail.applyStartedFree"));
+        navigate(`/student/applications/${result.applicationId}`);
+      } else {
+        toast.success(
+          result.isFree
+            ? t("scholarships:detail.applyStartedFree")
+            : t("scholarships:detail.applyStarted"),
+        );
+        navigate(`/student/review-requests/${result.requestId}`);
+      }
     },
     onError: (err: unknown) => {
       const status = err instanceof ApiError ? err.status : undefined;

@@ -79,9 +79,8 @@ namespace ScholarPath.API.Controllers
             return await mediator.Send(new GetScholarshipByIdQuery(id, lang));
         }
 
-        //  Post/Put/Delete methods with [Authorize] will be added here in the next step
         [HttpPost]
-        [Authorize(Roles = "Company")] //  Authorization enforced
+        [Authorize(Roles = "Company,Admin,SuperAdmin")]
         public async Task<ActionResult<Guid>> Create(CreateScholarshipCommand command)
         {
             return await mediator.Send(command);

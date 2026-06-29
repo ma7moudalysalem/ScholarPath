@@ -8,6 +8,7 @@ import {
   companyReviewRequestsApi,
   isRequestCancellableByStudent,
   refundsHalfOnCancel,
+  TERMINAL_REQUEST_STATUSES,
   type CompanyReviewRequestDto,
   type CompanyReviewRequestStatus,
 } from "@/services/api/companyReviewRequests";
@@ -138,6 +139,14 @@ export function StudentReviewRequests() {
                 </span>
               ) : (
                 <span />
+              )}
+              {TERMINAL_REQUEST_STATUSES.has(req.status) && (
+                <Link
+                  to={`/student/scholarships/${req.scholarshipId}`}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-brand-200 bg-bg-canvas px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50"
+                >
+                  {t("payments:reviewRequest.applyAgain")}
+                </Link>
               )}
               {isRequestCancellableByStudent(req.status) && (
                 <button

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useForm, Controller } from "react-hook-form";
@@ -121,6 +121,9 @@ export function ScholarshipForm() {
   const { t, i18n } = useTranslation(["moderation", "common", "errors"]);
   const isAr = i18n.language.startsWith("ar");
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith("/admin");
+  const returnPath = isAdminPath ? "/admin/scholarships" : "/company/scholarships";
   const queryClient = useQueryClient();
   // Master payments switch. When off, the Review Service Fee input is hidden
   // and the form auto-submits 0 — the server enforces the same rule, but the
@@ -197,7 +200,7 @@ export function ScholarshipForm() {
       void queryClient.invalidateQueries({
         queryKey: ["company", "scholarships", "mine"],
       });
-      navigate("/company/scholarships");
+      navigate(returnPath);
     },
     onError: (err) =>
       toast.error(
@@ -216,7 +219,7 @@ export function ScholarshipForm() {
       void queryClient.invalidateQueries({
         queryKey: ["scholarships", "detail", editingId],
       });
-      navigate("/company/scholarships");
+      navigate(returnPath);
     },
     onError: (err) =>
       toast.error(
@@ -281,7 +284,7 @@ export function ScholarshipForm() {
             : t("moderation:companyScholarships.form.titleCreate")}
         </h1>
         <Link
-          to="/company/scholarships"
+          to={returnPath}
           className="text-sm text-text-secondary hover:text-text-primary hover:underline"
         >
           {t("moderation:companyScholarships.form.back")}
@@ -553,7 +556,7 @@ export function ScholarshipForm() {
 
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
             <Link
-              to="/company/scholarships"
+              to={returnPath}
               className="inline-flex h-11 items-center justify-center rounded-lg border border-border-default bg-bg-subtle px-5 text-sm font-medium text-text-primary transition hover:border-border-strong hover:bg-bg-elevated"
             >
               {t("moderation:companyScholarships.form.cancel")}

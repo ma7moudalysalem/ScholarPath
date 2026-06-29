@@ -747,6 +747,7 @@ export function AppRouter() {
           <Route path="/admin/knowledge-base"   element={<AnimatedRoute><AdminKnowledgeBase /></AnimatedRoute>} />
           <Route path="/admin/redaction-audit"  element={<AnimatedRoute><AdminRedactionAudit /></AnimatedRoute>} />
           <Route path="/admin/scholarships"          element={<AnimatedRoute><AdminScholarships /></AnimatedRoute>} />
+          <Route path="/admin/scholarships/new"      element={<AnimatedRoute><CompanyScholarshipForm /></AnimatedRoute>} />
           <Route path="/admin/featured-scholarships" element={<AnimatedRoute><AdminFeaturedScholarships /></AnimatedRoute>} />
           <Route path="/admin/articles"         element={<AnimatedRoute><AdminArticles /></AnimatedRoute>} />
           <Route path="/admin/community"        element={<AnimatedRoute><AdminCommunity /></AnimatedRoute>} />

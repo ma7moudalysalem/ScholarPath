@@ -13,7 +13,7 @@ import { BookingRecordings } from "@/components/booking/BookingRecordings";
 import {
   durationLabel,
   formatDate,
-  formatTime,
+  formatTimeWithTz,
   formatUsd,
   statusBadgeClass,
   statusBucket,
@@ -194,7 +194,7 @@ export function ConsultantBookingDetails() {
                     {t("details.summaryCard.selectedTime")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-text-primary">
-                    {formatTime(booking.scheduledStartAt, lang)}
+                    {formatTimeWithTz(booking.scheduledStartAt, lang)}
                   </p>
                 </div>
 

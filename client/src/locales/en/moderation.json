@@ -188,6 +188,7 @@
   "scholarshipModeration": {
     "title": "Scholarship moderation",
     "subtitle": "Review scholarships submitted by companies before they go live.",
+    "create": "Create Scholarship",
     "filterStatus": "Status",
     "loading": "Loading…",
     "loadError": "Could not load scholarships.",

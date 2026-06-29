@@ -13,7 +13,7 @@ import type { BookingDetail } from "@/services/api/bookings";
 import {
   durationLabel,
   formatDate,
-  formatTime,
+  formatTimeWithTz,
   formatUsd,
   statusBadgeClass,
   statusBucket,
@@ -204,7 +204,7 @@ export function StudentBookingDetails() {
                     {t("fields.selectedTime")}
                   </p>
                   <p className="mt-1 text-sm font-medium text-text-primary">
-                    {formatTime(booking.scheduledStartAt, lang)}
+                    {formatTimeWithTz(booking.scheduledStartAt, lang)}
                   </p>
                 </div>
 
