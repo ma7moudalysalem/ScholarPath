@@ -362,7 +362,7 @@ export function Documents() {
                     <FileIcon size={20} aria-hidden />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-sm text-text-primary truncate tracking-tight" title={doc.fileName}>
+                    <h3 dir="auto" className="font-bold text-sm text-text-primary truncate tracking-tight" title={doc.fileName}>
                       {doc.fileName}
                     </h3>
                     <p className="text-xs text-text-tertiary mt-0.5">
@@ -437,7 +437,7 @@ export function Documents() {
                         <span className={`inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br ${theme} text-white shadow-elevation-1`}>
                           <FileIcon size={14} aria-hidden />
                         </span>
-                        <span className="truncate font-medium">{doc.fileName}</span>
+                        <span dir="auto" className="truncate font-medium">{doc.fileName}</span>
                       </span>
                     </td>
                     <td className="px-4 py-3 text-text-secondary">
