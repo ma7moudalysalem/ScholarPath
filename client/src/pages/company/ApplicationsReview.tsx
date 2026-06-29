@@ -23,8 +23,14 @@ export function ApplicationsReview() {
   const [viewTarget, setViewTarget] = useState<CompanyApplicationRow | null>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["company", "applications"],
-    queryFn: () => applicationsApi.getCompanyApplications(),
+    queryKey: ["company", "applications", statusFilter],
+    queryFn: () =>
+      applicationsApi.getCompanyApplications(
+        undefined,
+        1,
+        100,
+        statusFilter === "all" ? undefined : statusFilter,
+      ),
   });
   const applications = data?.items ?? [];
 
@@ -72,16 +78,15 @@ export function ApplicationsReview() {
     });
   };
 
-  // `studentEmail` is not on the CompanyApplicationRow wire shape — searching
-  // it crashed at runtime with "Cannot read property of undefined".
+  // Status is now filtered server-side; only apply the search term here.
   const needle = searchTerm.toLowerCase();
-  const filteredApps = applications.filter((app: CompanyApplicationRow) => {
-    const matchesSearch =
-      app.studentName.toLowerCase().includes(needle) ||
-      app.scholarshipTitle.toLowerCase().includes(needle);
-    const matchesStatus = statusFilter === "all" || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredApps = needle
+    ? applications.filter(
+        (app: CompanyApplicationRow) =>
+          app.studentName.toLowerCase().includes(needle) ||
+          app.scholarshipTitle.toLowerCase().includes(needle),
+      )
+    : applications;
 
   // Status values worth filtering on this queue (actionable + terminal).
   const FILTER_STATUSES: (ApplicationStatus | "all")[] = [

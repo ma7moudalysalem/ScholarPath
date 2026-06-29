@@ -169,7 +169,12 @@
       "createSuccess": "Scholarship submitted for admin review.",
       "updateSuccess": "Scholarship updated.",
       "error": "Could not save the scholarship. Please try again.",
-      "reviewNotice": "New scholarships are reviewed by an admin before they go live. You can track the status from your scholarships dashboard."
+      "reviewNotice": "New scholarships are reviewed by an admin before they go live. You can track the status from your scholarships dashboard.",
+      "requiredDocs": "Required documents",
+      "requiredDocsHint": "List the document types applicants must upload (e.g. Transcript, Recommendation Letter).",
+      "requiredDocsPlaceholder": "Document name…",
+      "requiredDocsAdd": "Add",
+      "requiredDocsEmpty": "No required documents added yet."
     }
   },
   "scholarshipStatus": {

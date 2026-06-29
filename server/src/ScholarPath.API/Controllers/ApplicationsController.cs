@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ScholarPath.Domain.Enums;
 using ScholarPath.Application.Applications.Commands.ExternalIntent;
 using ScholarPath.Application.Applications.Commands.ReviewApplication;
 using ScholarPath.Application.Applications.Commands.SaveApplicationDraft;
@@ -157,10 +158,11 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
         [FromQuery] Guid? scholarshipId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
+        [FromQuery] ApplicationStatus? status = null,
         CancellationToken ct = default)
     {
         var result = await mediator.Send(
-            new GetCompanyApplicationsQuery(scholarshipId, page, pageSize), ct);
+            new GetCompanyApplicationsQuery(scholarshipId, page, pageSize, status), ct);
         return Ok(result);
     }
 

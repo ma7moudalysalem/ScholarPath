@@ -121,6 +121,8 @@ export interface CreateScholarshipInput {
   /** Per-scholarship Review Service Fee in USD (PB-005). Required for in-app
    *  listings — the server rejects null / non-positive values. */
   reviewFeeUsd?: number;
+  /** Ordered list of document names the applicant must upload (e.g. "Transcript"). */
+  requiredDocuments?: string[];
 }
 
 /**

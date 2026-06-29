@@ -59,8 +59,11 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserS
         //  Full-Text Search
         if (!string.IsNullOrWhiteSpace(request.Term))
         {
-            query = query.Where(s => EF.Functions.Contains(s.TitleEn, request.Term) ||
-                                     EF.Functions.Contains(s.TitleAr, request.Term));
+            // SQL Server CONTAINS requires a quoted phrase for multi-word queries.
+            // Single-word terms also work fine inside quotes, so we always quote.
+            var ftsTerm = $"\"{request.Term.Trim().Replace("\"", "")}\"";
+            query = query.Where(s => EF.Functions.Contains(s.TitleEn, ftsTerm) ||
+                                     EF.Functions.Contains(s.TitleAr, ftsTerm));
         }
 
         //  Filters

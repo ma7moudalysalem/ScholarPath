@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import {
   scholarshipsApi,
   type CreateScholarshipInput,
@@ -108,6 +108,7 @@ function makeSchema(t: TFunction) {
       .number({ error: required })
       .gte(0, t("moderation:companyScholarships.form.reviewFeeMin"))
       .lte(500, t("moderation:companyScholarships.form.reviewFeeMax")),
+    requiredDocuments: z.array(z.string()).optional(),
   });
 }
 
@@ -140,6 +141,7 @@ export function ScholarshipForm() {
       fundingType: "FullyFunded",
       targetLevel: "Undergrad",
       fieldsOfStudy: [],
+      requiredDocuments: [],
       // Sensible default so a Company can submit quickly. When the platform's
       // master payments switch is off, the form auto-populates 0 and hides the
       // input below — validation still catches negative / >500 / >2dp.
@@ -177,6 +179,7 @@ export function ScholarshipForm() {
       // Pre-fill fields of study so the company sees what they picked before
       // and can toggle items on/off without losing the existing selection.
       fieldsOfStudy: d.fieldsOfStudy ?? [],
+      requiredDocuments: d.requiredDocuments ?? [],
       // Pre-fill the configured fee; default to 50 USD when the legacy
       // listing has no fee yet so saving the edit fills it in. When the
       // platform's master payments switch is off, force the fee to 0 so the
@@ -240,6 +243,7 @@ export function ScholarshipForm() {
             ? values.fieldsOfStudy
             : undefined,
         reviewFeeUsd: values.reviewFeeUsd,
+        requiredDocuments: values.requiredDocuments ?? [],
       };
       updateMut.mutate({ id: editingId, input });
       return;
@@ -258,6 +262,7 @@ export function ScholarshipForm() {
         ? values.fieldsOfStudy
         : undefined,
       reviewFeeUsd: values.reviewFeeUsd,
+      requiredDocuments: values.requiredDocuments ?? [],
     };
     createMut.mutate(input);
   });
@@ -447,6 +452,26 @@ export function ScholarshipForm() {
             />
           </Field>
 
+          <Field
+            id="requiredDocuments"
+            label={t("moderation:companyScholarships.form.requiredDocs")}
+            hint={t("moderation:companyScholarships.form.requiredDocsHint")}
+          >
+            <Controller
+              control={form.control}
+              name="requiredDocuments"
+              render={({ field }) => (
+                <RequiredDocsEditor
+                  value={field.value ?? []}
+                  onChange={field.onChange}
+                  addLabel={t("moderation:companyScholarships.form.requiredDocsAdd")}
+                  placeholder={t("moderation:companyScholarships.form.requiredDocsPlaceholder")}
+                  emptyLabel={t("moderation:companyScholarships.form.requiredDocsEmpty")}
+                />
+              )}
+            />
+          </Field>
+
           {paymentsEnabled ? (
             <Field
               id="reviewFeeUsd"
@@ -548,6 +573,75 @@ export function ScholarshipForm() {
             </button>
           </div>
         </form>
+      )}
+    </div>
+  );
+}
+
+function RequiredDocsEditor({
+  value,
+  onChange,
+  addLabel,
+  placeholder,
+  emptyLabel,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+  addLabel: string;
+  placeholder: string;
+  emptyLabel: string;
+}) {
+  const [input, setInput] = useState("");
+
+  const add = () => {
+    const trimmed = input.trim();
+    if (!trimmed || value.includes(trimmed)) return;
+    onChange([...value, trimmed]);
+    setInput("");
+  };
+
+  const remove = (i: number) => onChange(value.filter((_, j) => j !== i));
+
+  return (
+    <div className="space-y-2">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+          placeholder={placeholder}
+          className="w-full rounded-lg border border-border-subtle bg-bg-canvas px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+        />
+        <button
+          type="button"
+          onClick={add}
+          className="shrink-0 rounded-lg border border-border-subtle bg-bg-elevated px-3 py-2 text-sm font-medium text-text-secondary hover:bg-bg-subtle"
+        >
+          {addLabel}
+        </button>
+      </div>
+      {value.length === 0 ? (
+        <p className="text-xs text-text-tertiary">{emptyLabel}</p>
+      ) : (
+        <ul className="space-y-1">
+          {value.map((doc, i) => (
+            <li
+              key={i}
+              className="flex items-center justify-between gap-2 rounded-md border border-border-subtle bg-bg-canvas px-3 py-1.5 text-sm"
+            >
+              <span className="text-text-primary">{doc}</span>
+              <button
+                type="button"
+                onClick={() => remove(i)}
+                className="shrink-0 text-text-tertiary hover:text-danger-500"
+                aria-label={`Remove ${doc}`}
+              >
+                <X className="size-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

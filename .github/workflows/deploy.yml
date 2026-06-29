@@ -144,6 +144,61 @@ jobs:
               "Cors__AllowedOrigins__0=$CLIENT_ORIGIN_URL" \
             --output none
 
+      # Sync the secret-backed integration settings the app needs in prod. Each
+      # is applied only when its secret is provided, so an environment without
+      # (say) Stripe keeps the stub. Values come from Secrets — never hard-coded.
+      # SSO is the one that unblocks Google/Microsoft sign-in: without these the
+      # API falls back to StubSsoService and builds an invalid consent URL.
+      # The Google/Microsoft client IDs already exist as the VITE_*_CLIENT_ID
+      # repo variables (reused here for the backend), so you only need to add the
+      # two CLIENT SECRETS. Required Secrets (set the ones you use):
+      #   AUTH_GOOGLE_CLIENT_SECRET · AUTH_MICROSOFT_CLIENT_SECRET
+      #   STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET / STRIPE_CONNECT_CLIENT_ID
+      #   SENDGRID_API_KEY · ACS_CONNECTION_STRING
+      - name: Sync auth + integration app settings
+        env:
+          AUTH_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+          AUTH_GOOGLE_CLIENT_SECRET: ${{ secrets.AUTH_GOOGLE_CLIENT_SECRET }}
+          AUTH_MICROSOFT_CLIENT_ID: ${{ vars.VITE_MICROSOFT_CLIENT_ID }}
+          AUTH_MICROSOFT_CLIENT_SECRET: ${{ secrets.AUTH_MICROSOFT_CLIENT_SECRET }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_CONNECT_CLIENT_ID: ${{ secrets.STRIPE_CONNECT_CLIENT_ID }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          ACS_CONNECTION_STRING: ${{ secrets.ACS_CONNECTION_STRING }}
+        run: |
+          rg=$(az webapp list --query "[?name=='${{ vars.AZURE_API_APP_NAME }}'] | [0].resourceGroup" -o tsv)
+          if [ -z "$rg" ]; then
+            echo "Could not resolve resource group for ${{ vars.AZURE_API_APP_NAME }}."
+            exit 1
+          fi
+
+          settings=()
+          # Apply a provider only when its client SECRET is supplied (the IDs
+          # always come from the VITE_* vars), so a half-config is never written.
+          if [ -n "$AUTH_GOOGLE_CLIENT_SECRET" ] && [ -n "$AUTH_GOOGLE_CLIENT_ID" ]; then
+            settings+=("Authentication__Google__ClientId=$AUTH_GOOGLE_CLIENT_ID" "Authentication__Google__ClientSecret=$AUTH_GOOGLE_CLIENT_SECRET")
+          fi
+          if [ -n "$AUTH_MICROSOFT_CLIENT_SECRET" ] && [ -n "$AUTH_MICROSOFT_CLIENT_ID" ]; then
+            settings+=("Authentication__Microsoft__ClientId=$AUTH_MICROSOFT_CLIENT_ID" "Authentication__Microsoft__ClientSecret=$AUTH_MICROSOFT_CLIENT_SECRET")
+          fi
+          if [ -n "$STRIPE_SECRET_KEY" ];        then settings+=("Stripe__SecretKey=$STRIPE_SECRET_KEY"); fi
+          if [ -n "$STRIPE_WEBHOOK_SECRET" ];    then settings+=("Stripe__WebhookSecret=$STRIPE_WEBHOOK_SECRET"); fi
+          if [ -n "$STRIPE_CONNECT_CLIENT_ID" ]; then settings+=("Stripe__ConnectClientId=$STRIPE_CONNECT_CLIENT_ID"); fi
+          if [ -n "$SENDGRID_API_KEY" ];         then settings+=("Email__Provider=SendGrid" "Email__SendGrid__ApiKey=$SENDGRID_API_KEY"); fi
+          if [ -n "$ACS_CONNECTION_STRING" ];    then settings+=("Acs__ConnectionString=$ACS_CONNECTION_STRING"); fi
+
+          if [ ${#settings[@]} -eq 0 ]; then
+            echo "No auth/integration secrets configured — skipping (stubs stay active)."
+            exit 0
+          fi
+          az webapp config appsettings set \
+            --name "${{ vars.AZURE_API_APP_NAME }}" \
+            --resource-group "$rg" \
+            --settings "${settings[@]}" \
+            --output none
+          echo "Applied ${#settings[@]} integration app setting(s)."
+
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
