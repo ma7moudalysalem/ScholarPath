@@ -128,7 +128,10 @@
     "stats": {
       "activeDays": "الأيام النشطة",
       "adHocSlots": "مواعيد فردية",
-      "timezone": "المنطقة الزمنية"
+      "timezone": "المنطقة الزمنية",
+      "upcomingSlots": "المواعيد المرئية (28 يوماً)",
+      "nextSlot": "التالي",
+      "previewError": "المعاينة غير متاحة"
     },
     "weeklySchedule": {
       "title": "الجدول الأسبوعي",

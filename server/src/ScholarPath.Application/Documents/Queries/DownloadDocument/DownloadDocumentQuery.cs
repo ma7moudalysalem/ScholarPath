@@ -34,7 +34,24 @@ public sealed class DownloadDocumentQueryHandler(
 
         var isAdmin = currentUser.IsInRole("Admin") || currentUser.IsInRole("SuperAdmin");
         if (document.OwnerUserId != userId && !isAdmin)
-            throw new ForbiddenAccessException("You can only download your own documents.");
+        {
+            // A company reviewer may download documents that are attached to an
+            // application submitted against one of their own scholarships.
+            var isCompanyReviewer = currentUser.IsInRole("Company")
+                && document.ApplicationTrackerId.HasValue
+                && await db.Applications
+                    .AsNoTracking()
+                    .Include(a => a.Scholarship)
+                    .AnyAsync(
+                        a => a.Id == document.ApplicationTrackerId.Value
+                          && a.Scholarship != null
+                          && a.Scholarship.OwnerCompanyId == userId,
+                        ct)
+                    .ConfigureAwait(false);
+
+            if (!isCompanyReviewer)
+                throw new ForbiddenAccessException("You can only download your own documents.");
+        }
 
         // Demo / seeded documents store a placeholder StoragePath that doesn't
         // exist in the real blob container. Return a friendly text placeholder
