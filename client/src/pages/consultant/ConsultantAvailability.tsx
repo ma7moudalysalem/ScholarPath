@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   useMyAvailabilityQuery,
@@ -32,13 +33,43 @@ const WEEKDAYS: { key: string; day: DayOfWeek }[] = [
 
 const timezoneOptions = ["Africa/Cairo", "Asia/Riyadh", "Asia/Dubai", "Europe/London", "UTC"];
 
+const DEFAULT_SLOT_START = "16:00";
+const DEFAULT_SLOT_END = "20:00";
+
+/** One editable working-hours window within a weekday — a day can hold many. */
+type Slot = {
+  /** Stable React key — the saved rule id, or a fresh client id for new slots. */
+  id: string;
+  start: string;
+  end: string;
+};
+
 type DayRow = {
   key: string;
   day: DayOfWeek;
   isEnabled: boolean;
-  start: string;
-  end: string;
+  slots: Slot[];
 };
+
+// Monotonic id source for slots added in the editor. Only used as a React list
+// key — never sent to the server, which assigns real ids when the slot is saved.
+let nextClientSlotId = 0;
+function freshSlotId(): string {
+  nextClientSlotId += 1;
+  return `new-${nextClientSlotId}`;
+}
+
+/** A single default working-hours window for a freshly-enabled day. */
+function defaultSlot(): Slot {
+  return { id: freshSlotId(), start: DEFAULT_SLOT_START, end: DEFAULT_SLOT_END };
+}
+
+/** Returns an `"HH:mm"` value plus one hour, clamped to 23:59. */
+function plusOneHour(value: string): string {
+  const [hours, minutes] = value.split(":").map((part) => Number(part));
+  if (hours >= 23) return "23:59";
+  return `${String(hours + 1).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
 
 /** Trims a server `"HH:mm:ss"` time to the `"HH:mm"` an `<input type="time">` wants. */
 function toInputTime(value: string | null | undefined, fallback: string): string {
@@ -51,18 +82,28 @@ function toApiTime(value: string): string {
   return value.length === 5 ? `${value}:00` : value;
 }
 
-/** Builds the editable weekday rows from the consultant's saved rules. */
+/**
+ * Builds the editable weekday rows from the consultant's saved rules. Every
+ * recurring rule on a day becomes its own slot, so a single weekday can expose
+ * more than one bookable window. Days with no saved rule still carry one
+ * (disabled) default slot so enabling the day always has something to edit.
+ */
 function buildRows(rules: AvailabilityRule[]): DayRow[] {
   return WEEKDAYS.map(({ key, day }) => {
-    const rule = rules.find(
-      (r) => r.isRecurring && r.dayOfWeek === day && r.isActive,
-    );
+    const slots: Slot[] = rules
+      .filter((r) => r.isRecurring && r.dayOfWeek === day && r.isActive)
+      .sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""))
+      .map((rule) => ({
+        id: rule.id,
+        start: toInputTime(rule.startTime, DEFAULT_SLOT_START),
+        end: toInputTime(rule.endTime, DEFAULT_SLOT_END),
+      }));
+
     return {
       key,
       day,
-      isEnabled: Boolean(rule),
-      start: toInputTime(rule?.startTime, "16:00"),
-      end: toInputTime(rule?.endTime, "20:00"),
+      isEnabled: slots.length > 0,
+      slots: slots.length > 0 ? slots : [defaultSlot()],
     };
   });
 }
@@ -104,31 +145,99 @@ export function ConsultantAvailability() {
 
   const handleToggleDay = (key: string) => {
     setRows((current) =>
+      current.map((row) => {
+        if (row.key !== key) return row;
+        const isEnabled = !row.isEnabled;
+        // Never leave a day enabled with no windows to edit.
+        const slots = isEnabled && row.slots.length === 0 ? [defaultSlot()] : row.slots;
+        return { ...row, isEnabled, slots };
+      }),
+    );
+  };
+
+  const handleSlotTimeChange = (
+    key: string,
+    slotId: string,
+    field: "start" | "end",
+    value: string,
+  ) => {
+    setRows((current) =>
       current.map((row) =>
-        row.key === key ? { ...row, isEnabled: !row.isEnabled } : row,
+        row.key === key
+          ? {
+              ...row,
+              slots: row.slots.map((slot) =>
+                slot.id === slotId ? { ...slot, [field]: value } : slot,
+              ),
+            }
+          : row,
       ),
     );
   };
 
-  const handleTimeChange = (key: string, field: "start" | "end", value: string) => {
+  const handleAddSlot = (key: string) => {
     setRows((current) =>
-      current.map((row) => (row.key === key ? { ...row, [field]: value } : row)),
+      current.map((row) => {
+        if (row.key !== key) return row;
+        // Seed the new window right after the day's last one so it doesn't
+        // overlap by default — fall back to the standard window for an empty day.
+        const last = row.slots[row.slots.length - 1];
+        const start = last?.end ?? DEFAULT_SLOT_START;
+        return {
+          ...row,
+          slots: [...row.slots, { id: freshSlotId(), start, end: plusOneHour(start) }],
+        };
+      }),
+    );
+  };
+
+  const handleRemoveSlot = (key: string, slotId: string) => {
+    setRows((current) =>
+      current.map((row) =>
+        // Keep at least one slot per day — clearing a day is done via "Turn off".
+        row.key === key && row.slots.length > 1
+          ? { ...row, slots: row.slots.filter((slot) => slot.id !== slotId) }
+          : row,
+      ),
     );
   };
 
   const handleSave = () => {
+    // Catch bad windows client-side for instant feedback — the API enforces the
+    // same rules, but a toast beats waiting on a round-trip 400.
+    for (const row of rows) {
+      if (!row.isEnabled) continue;
+
+      for (const slot of row.slots) {
+        if (slot.start >= slot.end) {
+          toast.error(t("availability.weeklySchedule.invalidSlot"));
+          return;
+        }
+      }
+
+      const ordered = [...row.slots].sort((a, b) => a.start.localeCompare(b.start));
+      for (let i = 0; i < ordered.length - 1; i += 1) {
+        if (ordered[i].end > ordered[i + 1].start) {
+          toast.error(t("availability.weeklySchedule.slotOverlap"));
+          return;
+        }
+      }
+    }
+
     const recurringSlots: AvailabilityInput[] = rows
       .filter((row) => row.isEnabled)
-      .map((row) => ({
-        isRecurring: true,
-        dayOfWeek: row.day,
-        startTime: toApiTime(row.start),
-        endTime: toApiTime(row.end),
-        specificStartAt: null,
-        specificEndAt: null,
-        timezone,
-        isActive: true,
-      }));
+      .flatMap((row) =>
+        row.slots.map((slot) => ({
+          isRecurring: true,
+          dayOfWeek: row.day,
+          startTime: toApiTime(slot.start),
+          endTime: toApiTime(slot.end),
+          specificStartAt: null,
+          specificEndAt: null,
+          timezone,
+          isActive: true,
+        })),
+      );
 
     // Preserve the consultant's existing ad-hoc rules — the weekly editor only
     // owns the recurring rules, but `ReplaceExisting` rewrites the whole set.
@@ -247,36 +356,75 @@ export function ConsultantAvailability() {
                               </span>
                             </div>
 
-                            <div className="grid gap-4 sm:grid-cols-2">
-                              <label className="block">
-                                <span className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
-                                  {t("availability.weeklySchedule.startTime")}
-                                </span>
-                                <input
-                                  type="time"
-                                  value={row.start}
-                                  disabled={!row.isEnabled}
-                                  onChange={(event) =>
-                                    handleTimeChange(row.key, "start", event.target.value)
-                                  }
-                                  className="mt-2 h-11 w-full rounded-lg border border-border-default bg-bg-elevated px-3 text-sm text-text-primary outline-none focus:border-brand-500 disabled:cursor-not-allowed disabled:bg-bg-subtle"
-                                />
-                              </label>
+                            <div className="space-y-3">
+                              {row.slots.map((slot, index) => (
+                                <div key={slot.id} className="flex items-end gap-3">
+                                  <label className="block flex-1">
+                                    {index === 0 ? (
+                                      <span className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
+                                        {t("availability.weeklySchedule.startTime")}
+                                      </span>
+                                    ) : null}
+                                    <input
+                                      type="time"
+                                      value={slot.start}
+                                      disabled={!row.isEnabled}
+                                      onChange={(event) =>
+                                        handleSlotTimeChange(
+                                          row.key,
+                                          slot.id,
+                                          "start",
+                                          event.target.value,
+                                        )
+                                      }
+                                      className="mt-2 h-11 w-full rounded-lg border border-border-default bg-bg-elevated px-3 text-sm text-text-primary outline-none focus:border-brand-500 disabled:cursor-not-allowed disabled:bg-bg-subtle"
+                                    />
+                                  </label>
 
-                              <label className="block">
-                                <span className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
-                                  {t("availability.weeklySchedule.endTime")}
-                                </span>
-                                <input
-                                  type="time"
-                                  value={row.end}
-                                  disabled={!row.isEnabled}
-                                  onChange={(event) =>
-                                    handleTimeChange(row.key, "end", event.target.value)
-                                  }
-                                  className="mt-2 h-11 w-full rounded-lg border border-border-default bg-bg-elevated px-3 text-sm text-text-primary outline-none focus:border-brand-500 disabled:cursor-not-allowed disabled:bg-bg-subtle"
-                                />
-                              </label>
+                                  <label className="block flex-1">
+                                    {index === 0 ? (
+                                      <span className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
+                                        {t("availability.weeklySchedule.endTime")}
+                                      </span>
+                                    ) : null}
+                                    <input
+                                      type="time"
+                                      value={slot.end}
+                                      disabled={!row.isEnabled}
+                                      onChange={(event) =>
+                                        handleSlotTimeChange(
+                                          row.key,
+                                          slot.id,
+                                          "end",
+                                          event.target.value,
+                                        )
+                                      }
+                                      className="mt-2 h-11 w-full rounded-lg border border-border-default bg-bg-elevated px-3 text-sm text-text-primary outline-none focus:border-brand-500 disabled:cursor-not-allowed disabled:bg-bg-subtle"
+                                    />
+                                  </label>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveSlot(row.key, slot.id)}
+                                    disabled={!row.isEnabled || row.slots.length === 1}
+                                    aria-label={t("availability.weeklySchedule.removeSlot")}
+                                    title={t("availability.weeklySchedule.removeSlot")}
+                                    className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border-default bg-bg-elevated text-text-secondary transition hover:border-danger-500 hover:text-danger-500 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border-default disabled:hover:text-text-secondary"
+                                  >
+                                    <X className="h-4 w-4" aria-hidden="true" />
+                                  </button>
+                                </div>
+                              ))}
+
+                              <button
+                                type="button"
+                                onClick={() => handleAddSlot(row.key)}
+                                disabled={!row.isEnabled}
+                                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-brand-500 px-3 text-sm font-medium text-brand-500 transition hover:bg-brand-50 disabled:cursor-not-allowed disabled:border-border-default disabled:text-text-tertiary disabled:hover:bg-transparent"
+                              >
+                                <Plus className="h-4 w-4" aria-hidden="true" />
+                                {t("availability.weeklySchedule.addTimeSlot")}
+                              </button>
                             </div>
                           </div>
 

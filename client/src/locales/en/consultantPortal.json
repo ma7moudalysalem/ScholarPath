@@ -132,13 +132,17 @@
     },
     "weeklySchedule": {
       "title": "Weekly schedule",
-      "description": "Configure which days are bookable and define working hours for each day.",
+      "description": "Configure which days are bookable and add one or more working-hour windows per day.",
       "available": "Available",
       "off": "Off",
       "startTime": "Start time",
       "endTime": "End time",
       "turnOffDay": "Turn off day",
-      "enableDay": "Enable day"
+      "enableDay": "Enable day",
+      "addTimeSlot": "Add time slot",
+      "removeSlot": "Remove time slot",
+      "invalidSlot": "Each slot's start time must be before its end time.",
+      "slotOverlap": "Time slots on the same day can't overlap."
     },
     "bookingRules": {
       "title": "Booking rules",
