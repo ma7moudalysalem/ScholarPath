@@ -61,9 +61,13 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserS
         {
             // SQL Server CONTAINS requires a quoted phrase for multi-word queries.
             // Single-word terms also work fine inside quotes, so we always quote.
-            var ftsTerm = $"\"{request.Term.Trim().Replace("\"", "")}\"";
-            query = query.Where(s => EF.Functions.Contains(s.TitleEn, ftsTerm) ||
-                                     EF.Functions.Contains(s.TitleAr, ftsTerm));
+            var sanitized = request.Term.Trim().Replace("\"", "");
+            if (!string.IsNullOrWhiteSpace(sanitized))
+            {
+                var ftsTerm = $"\"{sanitized}\"";
+                query = query.Where(s => EF.Functions.Contains(s.TitleEn, ftsTerm) ||
+                                         EF.Functions.Contains(s.TitleAr, ftsTerm));
+            }
         }
 
         //  Filters

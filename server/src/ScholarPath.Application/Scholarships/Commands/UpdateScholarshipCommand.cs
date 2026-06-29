@@ -64,11 +64,7 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
 
         // Only overwrite required documents when the caller sent the field.
         if (request.RequiredDocuments is not null)
-        {
-            entity.RequiredDocumentsJson = request.RequiredDocuments.Length > 0
-                ? System.Text.Json.JsonSerializer.Serialize(request.RequiredDocuments)
-                : null;
-        }
+            entity.RequiredDocumentsJson = CreateScholarshipCommandHandler.NormalizeRequiredDocs(request.RequiredDocuments);
 
         // PB-005: only overwrite the Review Service Fee when the caller actually
         // sent one — null means "leave the configured fee as-is" so the legacy

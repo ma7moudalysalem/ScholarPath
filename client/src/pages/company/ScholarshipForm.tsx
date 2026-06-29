@@ -467,6 +467,7 @@ export function ScholarshipForm() {
                   addLabel={t("moderation:companyScholarships.form.requiredDocsAdd")}
                   placeholder={t("moderation:companyScholarships.form.requiredDocsPlaceholder")}
                   emptyLabel={t("moderation:companyScholarships.form.requiredDocsEmpty")}
+                  removeLabel={(doc) => t("moderation:companyScholarships.form.requiredDocsRemove", { doc })}
                 />
               )}
             />
@@ -584,12 +585,14 @@ function RequiredDocsEditor({
   addLabel,
   placeholder,
   emptyLabel,
+  removeLabel,
 }: {
   value: string[];
   onChange: (v: string[]) => void;
   addLabel: string;
   placeholder: string;
   emptyLabel: string;
+  removeLabel: (doc: string) => string;
 }) {
   const [input, setInput] = useState("");
 
@@ -627,7 +630,7 @@ function RequiredDocsEditor({
         <ul className="space-y-1">
           {value.map((doc, i) => (
             <li
-              key={i}
+              key={doc}
               className="flex items-center justify-between gap-2 rounded-md border border-border-subtle bg-bg-canvas px-3 py-1.5 text-sm"
             >
               <span className="text-text-primary">{doc}</span>
@@ -635,9 +638,9 @@ function RequiredDocsEditor({
                 type="button"
                 onClick={() => remove(i)}
                 className="shrink-0 text-text-tertiary hover:text-danger-500"
-                aria-label={`Remove ${doc}`}
+                aria-label={removeLabel(doc)}
               >
-                <X className="size-3.5" />
+                <X className="size-3.5" aria-hidden />
               </button>
             </li>
           ))}
