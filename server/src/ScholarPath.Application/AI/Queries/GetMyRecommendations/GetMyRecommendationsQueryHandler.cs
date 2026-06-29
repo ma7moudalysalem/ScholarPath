@@ -45,12 +45,28 @@ public sealed class GetMyRecommendationsQueryHandler(
 
         try
         {
-            var items = JsonSerializer.Deserialize<List<RecommendationItemDto>>(row.ResponseText)
+            var cached = JsonSerializer.Deserialize<List<RecommendationItemDto>>(row.ResponseText)
                 ?? new List<RecommendationItemDto>();
-            return new RecommendationsDto(
-                items,
-                Disclaimer,
-                row.CompletedAt ?? row.StartedAt);
+
+            // Re-hydrate live scholarship metadata (deadline/funding may change).
+            var ids = cached.Select(i => i.ScholarshipId).ToList();
+            var meta = await db.Scholarships
+                .AsNoTracking()
+                .Where(s => ids.Contains(s.Id))
+                .Select(s => new { s.Id, s.Deadline, s.FundingAmountUsd, s.FundingType })
+                .ToDictionaryAsync(s => s.Id, ct)
+                .ConfigureAwait(false);
+
+            var cards = cached.Select(i =>
+            {
+                var m = meta.TryGetValue(i.ScholarshipId, out var x) ? x : null;
+                return new RecommendationCardDto(
+                    i.ScholarshipId, i.TitleEn, i.TitleAr,
+                    i.MatchScore, i.ExplanationEn, i.ExplanationAr,
+                    m?.Deadline ?? default, m?.FundingAmountUsd, m?.FundingType.ToString() ?? "");
+            }).ToList();
+
+            return new RecommendationsDto(cards, Disclaimer, row.CompletedAt ?? row.StartedAt);
         }
         catch (JsonException ex)
         {

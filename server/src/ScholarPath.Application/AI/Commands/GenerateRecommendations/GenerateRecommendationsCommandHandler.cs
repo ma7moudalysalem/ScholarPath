@@ -55,35 +55,39 @@ public sealed class GenerateRecommendationsCommandHandler(
         {
             var result = await ai.GenerateRecommendationsAsync(userId, topN, ct).ConfigureAwait(false);
 
-            // Hydrate scholarship titles for the UI — AI returns only IDs + scores
+            // Hydrate scholarship metadata for the UI — AI returns only IDs + scores
             var ids = result.Items.Select(i => i.ScholarshipId).ToList();
             var scholarships = await db.Scholarships
                 .AsNoTracking()
                 .Where(s => ids.Contains(s.Id))
-                .Select(s => new { s.Id, s.TitleEn, s.TitleAr })
+                .Select(s => new { s.Id, s.TitleEn, s.TitleAr, s.Deadline, s.FundingAmountUsd, s.FundingType })
                 .ToListAsync(ct)
                 .ConfigureAwait(false);
-            var titleMap = scholarships.ToDictionary(s => s.Id, s => (s.TitleEn, s.TitleAr));
+            var metaMap = scholarships.ToDictionary(s => s.Id);
 
-            var items = result.Items.Select(i =>
+            var cacheItems = new List<RecommendationItemDto>(result.Items.Count);
+            var cards = new List<RecommendationCardDto>(result.Items.Count);
+            foreach (var i in result.Items)
             {
-                var t = titleMap.TryGetValue(i.ScholarshipId, out var pair)
-                    ? pair
-                    : (TitleEn: "", TitleAr: "");
-                return new RecommendationItemDto(
-                    i.ScholarshipId, t.TitleEn, t.TitleAr,
-                    i.MatchScore, i.ExplanationEn, i.ExplanationAr);
-            }).ToList();
+                var m = metaMap.TryGetValue(i.ScholarshipId, out var meta) ? meta : null;
+                cacheItems.Add(new RecommendationItemDto(
+                    i.ScholarshipId, m?.TitleEn ?? "", m?.TitleAr ?? "",
+                    i.MatchScore, i.ExplanationEn, i.ExplanationAr));
+                cards.Add(new RecommendationCardDto(
+                    i.ScholarshipId, m?.TitleEn ?? "", m?.TitleAr ?? "",
+                    i.MatchScore, i.ExplanationEn, i.ExplanationAr,
+                    m?.Deadline ?? default, m?.FundingAmountUsd, m?.FundingType.ToString() ?? ""));
+            }
 
-            interaction.ResponseText = System.Text.Json.JsonSerializer.Serialize(items);
+            interaction.ResponseText = System.Text.Json.JsonSerializer.Serialize(cacheItems);
             interaction.PromptTokens = result.PromptTokens;
             interaction.CompletionTokens = result.CompletionTokens;
-            interaction.CostUsd = EstimatedCostPerItem * Math.Max(items.Count, 1);
+            interaction.CostUsd = EstimatedCostPerItem * Math.Max(cards.Count, 1);
             interaction.CompletedAt = clock.UtcNow;
 
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-            return new RecommendationsDto(items, result.Disclaimer, interaction.CompletedAt.Value);
+            return new RecommendationsDto(cards, result.Disclaimer, interaction.CompletedAt.Value);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

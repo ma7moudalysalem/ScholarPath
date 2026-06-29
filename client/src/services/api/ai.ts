@@ -17,6 +17,9 @@ export interface RecommendationItem {
   matchScore: number;
   explanationEn: string;
   explanationAr: string;
+  deadline: string;
+  fundingAmountUsd: number | null;
+  fundingType: "FullyFunded" | "PartiallyFunded" | "TuitionOnly" | string;
 }
 
 export interface RecommendationsDto {

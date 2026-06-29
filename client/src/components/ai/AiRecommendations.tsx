@@ -1,13 +1,95 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { formatDistanceToNow } from "date-fns";
-import { AlertCircle, RefreshCw, Sparkles } from "lucide-react";
-import { aiApi, type RecommendationsDto } from "@/services/api/ai";
+import { formatDistanceToNow, differenceInDays, isPast } from "date-fns";
+import { ar as arLocale } from "date-fns/locale";
+import { AlertCircle, Calendar, RefreshCw, Sparkles } from "lucide-react";
+import { aiApi, type RecommendationItem, type RecommendationsDto } from "@/services/api/ai";
 import { AiDisclaimer } from "./AiDisclaimer";
 import { MatchScoreBadge } from "./MatchScoreBadge";
 
 const KEY = ["ai", "recommendations"] as const;
+
+function DeadlinePill({ deadline, isAr }: { deadline: string; isAr: boolean }) {
+  const { t } = useTranslation("ai");
+  if (!deadline || deadline === "0001-01-01T00:00:00Z") return null;
+
+  const date = new Date(deadline);
+  const daysLeft = differenceInDays(date, new Date());
+
+  if (isPast(date)) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-danger-100 px-2 py-0.5 text-[10px] font-medium text-danger-600">
+        {t("recommendations.deadlineClosed")}
+      </span>
+    );
+  }
+
+  const colorClass =
+    daysLeft <= 14 ? "bg-danger-100 text-danger-600" :
+    daysLeft <= 45 ? "bg-warning-100 text-warning-700" :
+    "bg-bg-subtle text-text-secondary";
+
+  const label =
+    daysLeft <= 60
+      ? t("recommendations.daysLeft", { count: daysLeft })
+      : formatDistanceToNow(date, { addSuffix: true, locale: isAr ? arLocale : undefined });
+
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${colorClass}`}>
+      <Calendar aria-hidden className="size-2.5 shrink-0" />
+      {label}
+    </span>
+  );
+}
+
+function FundingPill({ fundingType, amountUsd }: { fundingType: string; amountUsd: number | null }) {
+  const { t } = useTranslation("ai");
+  if (!fundingType) return null;
+
+  const colorClass =
+    fundingType === "FullyFunded" ? "bg-success-100 text-success-700" :
+    fundingType === "PartiallyFunded" ? "bg-brand-100 text-brand-700" :
+    "bg-bg-subtle text-text-secondary";
+
+  const label = t(`recommendations.funding.${fundingType}`, {
+    defaultValue: fundingType,
+    amount: amountUsd ? `$${Math.round(amountUsd).toLocaleString()}` : "",
+  });
+
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${colorClass}`}>
+      {label}
+    </span>
+  );
+}
+
+function RecommendationCard({ item, isAr }: { item: RecommendationItem; isAr: boolean }) {
+  const { t } = useTranslation("ai");
+  return (
+    <li className="flex items-start gap-3 rounded-md border border-border-subtle bg-bg-canvas p-3 transition hover:border-brand-500/50">
+      <MatchScoreBadge score={item.matchScore} />
+      <div className="min-w-0 flex-1">
+        <Link
+          to={`/student/scholarships/${item.scholarshipId}`}
+          onClick={() => {
+            void aiApi.logRecommendationClick(item.scholarshipId, null, "card");
+          }}
+          className="block truncate font-medium hover:text-brand-500"
+        >
+          {isAr ? item.titleAr || item.titleEn : item.titleEn || item.titleAr}
+        </Link>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <FundingPill fundingType={item.fundingType} amountUsd={item.fundingAmountUsd} />
+          <DeadlinePill deadline={item.deadline} isAr={isAr} />
+        </div>
+        <p className="mt-1.5 text-xs text-text-secondary">
+          {isAr ? item.explanationAr : item.explanationEn}
+        </p>
+      </div>
+    </li>
+  );
+}
 
 export function AiRecommendations() {
   const { t, i18n } = useTranslation(["ai", "common"]);
@@ -52,7 +134,7 @@ export function AiRecommendations() {
 
       {q.isLoading && (
         <div className="space-y-2">
-          {[0, 1, 2].map((i) => <div key={i} className="h-14 animate-pulse rounded-md bg-bg-subtle" />)}
+          {[0, 1, 2].map((i) => <div key={i} className="h-20 animate-pulse rounded-md bg-bg-subtle" />)}
         </div>
       )}
 
@@ -91,31 +173,7 @@ export function AiRecommendations() {
       {q.data && q.data.items.length > 0 && (
         <ul className="space-y-2">
           {q.data.items.map((item) => (
-            <li
-              key={item.scholarshipId}
-              className="flex items-start gap-3 rounded-md border border-border-subtle bg-bg-canvas p-3 transition hover:border-brand-500/50"
-            >
-              <MatchScoreBadge score={item.matchScore} />
-              <div className="min-w-0 flex-1">
-                <Link
-                  to={`/student/scholarships/${item.scholarshipId}`}
-                  onClick={() => {
-                    // Fire-and-forget; server-side debounce handles rapid repeats.
-                    void aiApi.logRecommendationClick(
-                      item.scholarshipId,
-                      null,
-                      "card",
-                    );
-                  }}
-                  className="block truncate font-medium hover:text-brand-500"
-                >
-                  {isAr ? item.titleAr || item.titleEn : item.titleEn || item.titleAr}
-                </Link>
-                <p className="mt-0.5 text-xs text-text-secondary">
-                  {isAr ? item.explanationAr : item.explanationEn}
-                </p>
-              </div>
-            </li>
+            <RecommendationCard key={item.scholarshipId} item={item} isAr={isAr} />
           ))}
         </ul>
       )}
@@ -123,7 +181,10 @@ export function AiRecommendations() {
       {q.data?.generatedAt && (
         <p className="text-xs text-text-tertiary">
           {t("ai:recommendations.generatedAt", {
-            when: formatDistanceToNow(new Date(q.data.generatedAt), { addSuffix: true }),
+            when: formatDistanceToNow(new Date(q.data.generatedAt), {
+              addSuffix: true,
+              locale: isAr ? arLocale : undefined,
+            }),
           })}
         </p>
       )}
