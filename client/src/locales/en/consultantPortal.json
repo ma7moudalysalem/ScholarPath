@@ -128,7 +128,10 @@
     "stats": {
       "activeDays": "Active days",
       "adHocSlots": "One-off slots",
-      "timezone": "Timezone"
+      "timezone": "Timezone",
+      "upcomingSlots": "Visible slots (next 28 days)",
+      "nextSlot": "Next",
+      "previewError": "Preview unavailable"
     },
     "weeklySchedule": {
       "title": "Weekly schedule",

@@ -7,6 +7,7 @@ import {
   useMyAvailabilityQuery,
   useUpdateAvailabilityMutation,
 } from "@/hooks/useBookingsQuery";
+import { useConsultantAvailabilityQuery } from "@/hooks/useConsultantsQuery";
 import type {
   AvailabilityInput,
   AvailabilityRule,
@@ -14,6 +15,7 @@ import type {
 } from "@/services/api/bookings";
 import { formatDate, formatTime } from "@/lib/bookingFormat";
 import { apiErrorMessage } from "@/services/api/client";
+import { useAuthStore } from "@/stores/authStore";
 
 // ── Weekly schedule editor state ──────────────────────────────────────────────
 //
@@ -119,6 +121,15 @@ export function ConsultantAvailability() {
 
   const { data, isLoading, isError } = useMyAvailabilityQuery();
   const updateMutation = useUpdateAvailabilityMutation();
+
+  // Preview: show the consultant exactly how many slots students currently see.
+  // Uses the same public endpoint students call, so the count is authoritative.
+  const consultantId = useAuthStore((s) => s.user?.id);
+  const {
+    data: previewSlots,
+    isLoading: isPreviewLoading,
+    isError: isPreviewError,
+  } = useConsultantAvailabilityQuery(consultantId);
 
   const [rows, setRows] = useState<DayRow[]>(() => buildRows([]));
   const [timezone, setTimezone] = useState("Africa/Cairo");
@@ -289,7 +300,7 @@ export function ConsultantAvailability() {
           </div>
         ) : (
           <>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-sm">
                 <div className="inline-flex rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-600">
                   {t("availability.stats.activeDays")}
@@ -313,6 +324,35 @@ export function ConsultantAvailability() {
                   {t("availability.stats.timezone")}
                 </div>
                 <p className="mt-4 text-sm font-semibold text-text-primary">{timezone}</p>
+              </div>
+
+              {/* Live preview — how many slots students actually see right now */}
+              <div className="rounded-xl border border-brand-200 bg-brand-50/30 p-5 shadow-sm">
+                <div className="inline-flex rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700">
+                  {t("availability.stats.upcomingSlots")}
+                </div>
+                {isPreviewLoading ? (
+                  <p className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-text-primary">
+                    …
+                  </p>
+                ) : isPreviewError ? (
+                  <p className="mt-4 text-sm font-medium text-danger-500">
+                    {t("availability.stats.previewError")}
+                  </p>
+                ) : (
+                  <>
+                    <p className="mt-4 text-3xl font-semibold tracking-[-0.02em] text-text-primary">
+                      {previewSlots?.length ?? 0}
+                    </p>
+                    {previewSlots?.[0] ? (
+                      <p className="mt-1 text-xs text-text-secondary">
+                        {t("availability.stats.nextSlot")}:{" "}
+                        {formatDate(previewSlots[0].startAt, lang)}{" "}
+                        {formatTime(previewSlots[0].startAt, lang)}
+                      </p>
+                    ) : null}
+                  </>
+                )}
               </div>
             </div>
 
