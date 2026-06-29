@@ -201,11 +201,15 @@ export function Meeting() {
     }
 
     function resolveErrorMessage(err: unknown): string {
-      // The browser permission flow throws a localised Error directly — keep
-      // its message rather than re-translating, since `askDevicePermission`'s
-      // failures arrive here pre-translated.
-      if (err instanceof Error && err.message === t("bookings:meeting.errorPermissionDenied")) {
-        return err.message;
+      // The browser permission flow and stub-provider path both throw a localised
+      // Error directly — keep the message rather than re-translating.
+      if (err instanceof Error) {
+        if (
+          err.message === t("bookings:meeting.errorPermissionDenied") ||
+          err.message === t("bookings:meeting.errorNotConfigured")
+        ) {
+          return err.message;
+        }
       }
       if (err instanceof ApiError) {
         // 403 — the authenticated user is not a participant of this booking.

@@ -42,6 +42,12 @@ public record CreateScholarshipCommand : IRequest<Guid>
     /// click Apply Now and creates the paid CompanyReview support flow.
     /// </summary>
     public decimal? ReviewFeeUsd { get; init; }
+
+    /// <summary>
+    /// Optional ordered list of document names the applicant must upload
+    /// (e.g. "Transcript", "Recommendation Letter"). Stored as JSON.
+    /// </summary>
+    public string[]? RequiredDocuments { get; init; }
 }
 
 public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholarshipCommand>
@@ -147,6 +153,9 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             TargetLevel = request.TargetLevel,
             FieldsOfStudyJson = request.FieldsOfStudy is { Length: > 0 }
                 ? System.Text.Json.JsonSerializer.Serialize(request.FieldsOfStudy)
+                : null,
+            RequiredDocumentsJson = request.RequiredDocuments is { Length: > 0 }
+                ? System.Text.Json.JsonSerializer.Serialize(request.RequiredDocuments)
                 : null,
             Mode = request.Mode,
             ExternalApplicationUrl = request.Mode == ListingMode.ExternalUrl

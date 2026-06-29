@@ -27,6 +27,12 @@ public record UpdateScholarshipCommand : IRequest<bool>
     /// updates it.
     /// </summary>
     public decimal? ReviewFeeUsd { get; init; }
+
+    /// <summary>
+    /// Optional updated list of document names the applicant must upload.
+    /// Null leaves the existing value untouched; an empty array clears it.
+    /// </summary>
+    public string[]? RequiredDocuments { get; init; }
 }
 
 public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentUserService user)
@@ -55,6 +61,14 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
         entity.FieldsOfStudyJson = request.FieldsOfStudy is { Length: > 0 }
             ? System.Text.Json.JsonSerializer.Serialize(request.FieldsOfStudy)
             : null;
+
+        // Only overwrite required documents when the caller sent the field.
+        if (request.RequiredDocuments is not null)
+        {
+            entity.RequiredDocumentsJson = request.RequiredDocuments.Length > 0
+                ? System.Text.Json.JsonSerializer.Serialize(request.RequiredDocuments)
+                : null;
+        }
 
         // PB-005: only overwrite the Review Service Fee when the caller actually
         // sent one — null means "leave the configured fee as-is" so the legacy

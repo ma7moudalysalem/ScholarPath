@@ -26,6 +26,11 @@ public sealed class GetCompanyApplicationsQueryHandler(
             q = q.Where(a => a.ScholarshipId == request.ScholarshipId.Value);
         }
 
+        if (request.Status.HasValue)
+        {
+            q = q.Where(a => a.Status == request.Status.Value);
+        }
+
         var total = await q.CountAsync(ct).ConfigureAwait(false);
 
         var rows = await q

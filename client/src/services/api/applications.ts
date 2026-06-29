@@ -138,9 +138,9 @@ export const applicationsApi = {
     });
   },
 
-  async getCompanyApplications(scholarshipId?: string, page = 1, pageSize = 25): Promise<PagedResult<CompanyApplicationRow>> {
+  async getCompanyApplications(scholarshipId?: string, page = 1, pageSize = 25, status?: ApplicationStatus): Promise<PagedResult<CompanyApplicationRow>> {
     const { data } = await apiClient.get<PagedResult<CompanyApplicationRow>>("/api/applications/company", {
-      params: { scholarshipId, page, pageSize },
+      params: { scholarshipId, page, pageSize, status },
     });
     return data;
   },
