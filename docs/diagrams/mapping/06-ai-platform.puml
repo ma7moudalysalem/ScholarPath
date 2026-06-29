@@ -8,6 +8,14 @@ skinparam class {
   BorderColor #2563eb
 }
 
+' ----- reference tables owned by other contexts (shown so FKs have a target) -----
+entity "Users" as users <<ref · Identity ctx>> #EEEEEE {
+  *Id : uniqueidentifier <<PK>>
+}
+entity "Scholarships" as sch <<ref · Scholarships ctx>> #EEEEEE {
+  *Id : uniqueidentifier <<PK>>
+}
+
 entity "AiInteractions" as ai {
   *Id : uniqueidentifier <<PK>>
   --
@@ -20,8 +28,9 @@ entity "AiInteractions" as ai {
 entity "RecommendationClickEvents" as rce {
   *Id : uniqueidentifier <<PK>>
   --
-  AiInteractionId : uniqueidentifier <<FK>>
+  AiInteractionId : uniqueidentifier <<FK, NULL>>
   ScholarshipId : uniqueidentifier <<FK>>
+  UserId : uniqueidentifier <<FK>>
   Source : nvarchar
   ClickedAt : datetimeoffset
 }
@@ -32,13 +41,6 @@ entity "AiRedactionAuditSamples" as ras {
   AiInteractionId : uniqueidentifier <<FK>>
   Verdict : int
   SampledAt : datetimeoffset
-}
-
-entity "KnowledgeDocuments" as kd {
-  *Id : uniqueidentifier <<PK>>
-  --
-  SourceType : int
-  SourceKey : nvarchar
 }
 
 entity "UserRiskFlags" as urf {
@@ -69,23 +71,41 @@ entity "UserDataRequests" as udr {
 entity "SuccessStories" as ss {
   *Id : uniqueidentifier <<PK>>
   --
-  UserId : uniqueidentifier <<FK>>
+  StudentId : uniqueidentifier <<FK>>
   HeadlineEn : nvarchar
   IsApproved : bit
 }
 
-entity "PlatformSettings" as pst {
+entity "KnowledgeDocuments" as kd <<standalone · no FK>> {
+  *Id : uniqueidentifier <<PK>>
+  --
+  SourceType : int
+  SourceKey : nvarchar
+}
+
+entity "PlatformSettings" as pst <<standalone · no FK>> {
   *Id : uniqueidentifier <<PK>>
   --
   SettingKey : nvarchar <<UK>>
   ValueType : int
 }
 
-ai ||--o{ rce
+' ----- intra-context FKs -----
+ai |o--o{ rce
 ai ||--o| ras
+
+' ----- cross-context FKs -----
+users ||--o{ ai  : UserId
+users ||--o{ rce : UserId
+sch   ||--o{ rce : ScholarshipId
+users ||--o{ urf : UserId
+users |o--o{ al  : ActorUserId
+users ||--o{ udr : UserId
+users ||--o{ ss  : StudentId
 
 note bottom of al
   AuditLogs.TargetId is a polymorphic reference (TargetType + TargetId);
-  it has no DB-level FK by design.
+  it has no DB-level FK by design. KnowledgeDocuments and PlatformSettings
+  are standalone tables with no foreign keys.
 end note
 @enduml

@@ -8,6 +8,10 @@ skinparam class {
   BorderColor #2563eb
 }
 
+entity "Users" as users <<ref · Identity ctx>> #EEEEEE {
+  *Id : uniqueidentifier <<PK>>
+}
+
 entity "Resources" as res {
   *Id : uniqueidentifier <<PK>>
   --
@@ -45,14 +49,14 @@ entity "ResourceProgressChildren" as rpc {
   *Id : uniqueidentifier <<PK>>
   --
   ResourceProgressId : uniqueidentifier <<FK>>
-  ResourceChapterId : uniqueidentifier <<FK>>
+  ResourceChildId : uniqueidentifier <<FK>>
   IsCompleted : bit
 }
 
 entity "Notifications" as nt {
   *Id : uniqueidentifier <<PK>>
   --
-  UserId : uniqueidentifier <<FK>>
+  RecipientUserId : uniqueidentifier <<FK>>
   Type : int
   Channel : int
   IsRead : bit
@@ -67,11 +71,19 @@ entity "NotificationPreferences" as np {
   IsEnabled : bit
 }
 
+' ----- intra-context FKs -----
 res ||--o{ rc
 res ||--o{ rb
 res ||--o{ rp
-rp ||--o{ rpc
-rc ||--o{ rpc
+rp  ||--o{ rpc
+rc  ||--o{ rpc
+
+' ----- cross-context FKs -----
+users ||--o{ res : AuthorUserId
+users ||--o{ rb  : UserId
+users ||--o{ rp  : UserId
+users ||--o{ nt  : RecipientUserId
+users ||--o{ np  : UserId
 
 note bottom of rb
   FIX (review): ResourceBookmarks and ResourceProgresses each carry a

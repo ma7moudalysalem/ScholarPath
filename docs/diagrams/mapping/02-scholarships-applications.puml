@@ -8,6 +8,14 @@ skinparam class {
   BorderColor #2563eb
 }
 
+' ----- reference tables owned by other contexts (shown so FKs have a target) -----
+entity "Users" as users <<ref · Identity ctx>> #EEEEEE {
+  *Id : uniqueidentifier <<PK>>
+}
+entity "Payments" as pay <<ref · Booking ctx>> #EEEEEE {
+  *Id : uniqueidentifier <<PK>>
+}
+
 entity "Categories" as cat {
   *Id : uniqueidentifier <<PK>>
   --
@@ -18,8 +26,8 @@ entity "Categories" as cat {
 entity "Scholarships" as sch {
   *Id : uniqueidentifier <<PK>>
   --
-  CategoryId : uniqueidentifier <<FK>>
-  CompanyUserId : uniqueidentifier <<FK>>
+  CategoryId : uniqueidentifier <<FK, NULL>>
+  OwnerCompanyId : uniqueidentifier <<FK, NULL>>
   Slug : nvarchar <<UK>>
   Status : int
   Mode : int
@@ -65,8 +73,8 @@ entity "ApplicationTrackerChildren" as appc {
 entity "Documents" as doc {
   *Id : uniqueidentifier <<PK>>
   --
-  ApplicationTrackerId : uniqueidentifier <<FK, NULL>>
   OwnerUserId : uniqueidentifier <<FK>>
+  ApplicationTrackerId : uniqueidentifier <<FK, NULL>>
   Category : int
   StoragePath : nvarchar
 }
@@ -75,7 +83,8 @@ entity "CompanyReviewRequests" as crr {
   *Id : uniqueidentifier <<PK>>
   --
   ScholarshipId : uniqueidentifier <<FK>>
-  RequesterUserId : uniqueidentifier <<FK>>
+  StudentId : uniqueidentifier <<FK>>
+  CompanyId : uniqueidentifier <<FK>>
   PaymentId : uniqueidentifier <<FK, NULL>>
   Status : int
   ReviewFeeUsdSnapshot : decimal
@@ -89,14 +98,23 @@ entity "CompanyReviews" as cr {
   IsHiddenByAdmin : bit
 }
 
-cat ||--o{ sch
-sch ||--o{ schc
-sch ||--o{ saved
-sch ||--o{ app
-app ||--o{ appc
-app ||--o{ doc
-app ||--o| cr
-sch ||--o{ crr
+' ----- intra-context FKs -----
+cat   |o--o{ sch
+sch   ||--o{ schc
+sch   ||--o{ saved
+sch   ||--o{ app
+app   ||--o{ appc
+app   |o--o{ doc
+app   ||--o| cr
+sch   ||--o{ crr
+
+' ----- cross-context FKs (to reference tables) -----
+users ||--o{ sch   : OwnerCompanyId
+users ||--o{ saved : UserId
+users ||--o{ app   : UserId
+users ||--o{ doc   : OwnerUserId
+users ||--o{ crr   : StudentId / CompanyId
+pay   |o--o| crr   : PaymentId
 
 note bottom of doc
   FIX (review): Documents.ApplicationTrackerId is a nullable FK ->

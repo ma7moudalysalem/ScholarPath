@@ -8,10 +8,14 @@ skinparam class {
   BorderColor #2563eb
 }
 
+entity "Users" as users <<ref · Identity ctx>> #EEEEEE {
+  *Id : uniqueidentifier <<PK>>
+}
+
 entity "ConsultantAvailabilities" as av {
   *Id : uniqueidentifier <<PK>>
   --
-  ConsultantUserId : uniqueidentifier <<FK>>
+  ConsultantId : uniqueidentifier <<FK>>
   IsRecurring : bit
   IsActive : bit
 }
@@ -19,8 +23,8 @@ entity "ConsultantAvailabilities" as av {
 entity "ConsultantBookings" as bk {
   *Id : uniqueidentifier <<PK>>
   --
-  StudentUserId : uniqueidentifier <<FK>>
-  ConsultantUserId : uniqueidentifier <<FK>>
+  StudentId : uniqueidentifier <<FK>>
+  ConsultantId : uniqueidentifier <<FK>>
   AvailabilityId : uniqueidentifier <<FK, NULL>>
   PaymentId : uniqueidentifier <<FK, NULL>>
   ScheduledStartAt : datetimeoffset <<UK slot>>
@@ -45,7 +49,7 @@ entity "Payments" as pay {
 entity "Payouts" as po {
   *Id : uniqueidentifier <<PK>>
   --
-  ConsultantUserId : uniqueidentifier <<FK>>
+  PayeeUserId : uniqueidentifier <<FK>>
   AmountCents : bigint
   Status : int
   IncludedPaymentIdsJson : nvarchar
@@ -55,6 +59,8 @@ entity "ConsultantReviews" as rev {
   *Id : uniqueidentifier <<PK>>
   --
   BookingId : uniqueidentifier <<FK>>
+  ConsultantId : uniqueidentifier <<FK>>
+  StudentId : uniqueidentifier <<FK>>
   Rating : int
   IsHiddenByAdmin : bit
 }
@@ -67,7 +73,7 @@ entity "SessionRecordings" as rec {
   StoragePath : nvarchar
 }
 
-entity "StripeWebhookEvents" as swe {
+entity "StripeWebhookEvents" as swe <<standalone · no FK>> {
   *Id : uniqueidentifier <<PK>>
   --
   StripeEventId : nvarchar <<UK>>
@@ -75,29 +81,41 @@ entity "StripeWebhookEvents" as swe {
   IsProcessed : bit
 }
 
-entity "ProfitShareConfigs" as psc {
+entity "ProfitShareConfigs" as psc <<standalone · no FK>> {
   *Id : uniqueidentifier <<PK>>
   --
   PaymentType : int
   Percentage : decimal
 }
 
-entity "FinancialConfigRules" as fcr {
+entity "FinancialConfigRules" as fcr <<standalone · no FK>> {
   *Id : uniqueidentifier <<PK>>
   --
   PaymentType : int
   Status : int
 }
 
-av ||--o{ bk
-bk ||--o| pay
-bk ||--o| rev
-bk ||--o{ rec
-po ||--o{ pay
+' ----- intra-context FKs -----
+av  |o--o{ bk
+bk  ||--o| pay
+bk  ||--o| rev
+bk  ||--o{ rec
+po  |o--o{ pay
+
+' ----- cross-context FKs -----
+users ||--o{ av  : ConsultantId
+users ||--o{ bk  : Student / Consultant
+users ||--o{ pay : PayerUserId
+users ||--o{ po  : PayeeUserId
 
 note bottom of pay
   FIX (review): Payment is polymorphic — RelatedBookingId OR
   RelatedApplicationId — and carries Payer/Payee + Payout FKs.
   CompanyReviewRequests.PaymentId points here too (see Scholarships map).
+end note
+
+note top of swe
+  StripeWebhookEvents / ProfitShareConfigs / FinancialConfigRules are
+  standalone config & event-log tables — no foreign keys by design.
 end note
 @enduml

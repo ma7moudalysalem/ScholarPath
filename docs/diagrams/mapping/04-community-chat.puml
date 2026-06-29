@@ -8,6 +8,10 @@ skinparam class {
   BorderColor #2563eb
 }
 
+entity "Users" as users <<ref · Identity ctx>> #EEEEEE {
+  *Id : uniqueidentifier <<PK>>
+}
+
 entity "ForumCategories" as fcat {
   *Id : uniqueidentifier <<PK>>
   --
@@ -18,8 +22,8 @@ entity "ForumCategories" as fcat {
 entity "ForumPosts" as fp {
   *Id : uniqueidentifier <<PK>>
   --
-  AuthorUserId : uniqueidentifier <<FK>>
-  ForumCategoryId : uniqueidentifier <<FK, NULL>>
+  AuthorId : uniqueidentifier <<FK>>
+  CategoryId : uniqueidentifier <<FK, NULL>>
   ParentPostId : uniqueidentifier <<FK, NULL>>
   Title : nvarchar
   ModerationStatus : int
@@ -50,7 +54,7 @@ entity "ForumFlags" as ff {
   *Id : uniqueidentifier <<PK>>
   --
   ForumPostId : uniqueidentifier <<FK>>
-  UserId : uniqueidentifier <<FK>>
+  FlaggedByUserId : uniqueidentifier <<FK>>
   Reason : nvarchar
 }
 
@@ -71,6 +75,8 @@ entity "ForumPostAttachments" as fa {
 entity "ChatConversations" as cc {
   *Id : uniqueidentifier <<PK>>
   --
+  ParticipantOneId : uniqueidentifier <<FK>>
+  ParticipantTwoId : uniqueidentifier <<FK>>
   LastMessageAt : datetimeoffset
 }
 
@@ -78,7 +84,7 @@ entity "ChatMessages" as cm {
   *Id : uniqueidentifier <<PK>>
   --
   ConversationId : uniqueidentifier <<FK>>
-  SenderUserId : uniqueidentifier <<FK>>
+  SenderId : uniqueidentifier <<FK>>
   Body : nvarchar
   SentAt : datetimeoffset
 }
@@ -92,18 +98,30 @@ entity "UserBlocks" as ub {
   ' UK (BlockerId, BlockedUserId)
 }
 
-fcat ||--o{ fp
-fp ||--o{ fpt
-ft ||--o{ fpt
-fp ||--o{ fv
-fp ||--o{ ff
-fp ||--o{ fb
-fp ||--o{ fa
-fp ||--o{ fp
-cc ||--o{ cm
+' ----- intra-context FKs -----
+fcat |o--o{ fp
+fp   |o--o{ fp
+fp   ||--o{ fpt
+ft   ||--o{ fpt
+fp   ||--o{ fv
+fp   ||--o{ ff
+fp   ||--o{ fb
+fp   ||--o{ fa
+cc   ||--o{ cm
+
+' ----- cross-context FKs -----
+users ||--o{ fp : AuthorId
+users ||--o{ fv : UserId
+users ||--o{ ff : FlaggedByUserId
+users ||--o{ fb : UserId
+users ||--o{ cm : SenderId
+users ||--o{ cc : ParticipantOne / Two
+users ||--o{ ub : Blocker / Blocked
 
 note bottom of ub
   FIX (review): UserBlocks has two user FKs (BlockerId, BlockedUserId)
   with a composite unique index — two distinct relationships to Users.
+  ChatConversations likewise references two participants (ParticipantOneId,
+  ParticipantTwoId).
 end note
 @enduml
