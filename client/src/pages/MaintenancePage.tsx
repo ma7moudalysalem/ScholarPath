@@ -17,24 +17,27 @@ async function fetchStatus(): Promise<StatusResponse> {
 
 /**
  * Full-screen maintenance page shown while `maintenance.enabled = "true"` in
- * PlatformSettings.  Polls GET /api/status every 30 s and automatically
- * navigates to the app root as soon as maintenance ends.
+ * PlatformSettings.  Polls GET /api/status every 30 s; as soon as maintenance
+ * ends, `App.tsx`'s own status gate stops rendering this page and swaps in the
+ * router — no page reload required.
  */
 export function MaintenancePage() {
   const { t } = useTranslation("errors");
 
+  // Keep the shared status query warm so the App-level gate flips back to the
+  // app the moment maintenance ends.
+  //
+  // We deliberately do NOT call window.location.reload() here. It used to live
+  // inside this query's `select`, but `select` must be pure and can run on
+  // every render — when the status endpoint briefly reported "off" (e.g. one
+  // App Service instance lagging behind another), the reload fired in a loop
+  // and the landing page refreshed endlessly. Letting App.tsx re-render into
+  // the router on the next poll is loop-proof and needs no reload.
   useQuery({
     queryKey: ["platform", "status"],
     queryFn: fetchStatus,
     refetchInterval: 30_000,
     retry: false,
-    select: (data) => {
-      if (!data.maintenanceModeEnabled) {
-        // Maintenance is over — hard-reload so the full app bootstraps cleanly.
-        window.location.reload();
-      }
-      return data;
-    },
   });
 
   return (
