@@ -11,7 +11,8 @@ namespace ScholarPath.Application.Auth.Commands.RefreshToken;
 public sealed class RefreshTokenCommandHandler(
     IApplicationDbContext db,
     ITokenService tokenService,
-    IUserAdministration userAdministration)
+    IUserAdministration userAdministration,
+    IConsultantEligibilityService consultantEligibility)
     : IRequestHandler<RefreshTokenCommand, AuthTokensDto>
 {
     public async Task<AuthTokensDto> Handle(RefreshTokenCommand request, CancellationToken ct)
@@ -30,6 +31,7 @@ public sealed class RefreshTokenCommandHandler(
             ?? throw new ConflictException("Invalid or expired refresh token.");
 
         var roles = await userAdministration.GetRolesAsync(user.Id, ct);
-        return AuthDtoFactory.Build(tokens, user, roles);
+        var canActAsConsultant = await consultantEligibility.CanActAsConsultantAsync(user.Id, roles, ct);
+        return AuthDtoFactory.Build(tokens, user, roles, canActAsConsultant);
     }
 }

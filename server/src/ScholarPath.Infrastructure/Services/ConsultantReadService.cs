@@ -62,6 +62,21 @@ public sealed class ConsultantReadService(
             return Array.Empty<ConsultantSummaryDto>();
         }
 
+        // Being in the Consultant role + Active is not enough to be *listed*:
+        // the marketplace must only surface verified/approved consultants (same
+        // rule as IConsultantEligibilityService). Keep those with the official
+        // verification marker or an approved consultant upgrade request.
+        var upgradeApprovedIds = await LoadApprovedConsultantUpgradeIdsAsync(
+            consultants.Select(c => c.Id).ToList(), ct).ConfigureAwait(false);
+        consultants = consultants
+            .Where(c => c.Profile?.ConsultantVerifiedAt != null || upgradeApprovedIds.Contains(c.Id))
+            .ToList();
+
+        if (consultants.Count == 0)
+        {
+            return Array.Empty<ConsultantSummaryDto>();
+        }
+
         var ids = consultants.Select(c => c.Id).ToList();
         var ratings = await LoadRatingAggregatesAsync(ids, ct).ConfigureAwait(false);
         var completed = await LoadCompletedCountsAsync(ids, ct).ConfigureAwait(false);
@@ -124,6 +139,15 @@ public sealed class ConsultantReadService(
             return null;
         }
 
+        // Only verified/approved consultants are publicly viewable (same rule as
+        // IConsultantEligibilityService) — an unapproved Consultant-role account
+        // must 404 here just as it is absent from Browse.
+        if (consultant.Profile?.ConsultantVerifiedAt is null
+            && !await HasApprovedConsultantUpgradeAsync(consultantId, ct).ConfigureAwait(false))
+        {
+            return null;
+        }
+
         var ids = new List<Guid> { consultantId };
         var ratings = await LoadRatingAggregatesAsync(ids, ct).ConfigureAwait(false);
         var completed = await LoadCompletedCountsAsync(ids, ct).ConfigureAwait(false);
@@ -179,18 +203,30 @@ public sealed class ConsultantReadService(
     public async Task<IReadOnlyList<BookableSlotDto>?> GetConsultantOpenSlotsAsync(
         Guid consultantId, CancellationToken ct)
     {
-        var isConsultant = await (
+        var eligibility = await (
                 from u in db.Users.AsNoTracking()
                 join ur in db.UserRoles on u.Id equals ur.UserId
                 join r in db.Roles on ur.RoleId equals r.Id
                 where r.Name == ConsultantRole
                       && u.Id == consultantId
                       && u.AccountStatus == AccountStatus.Active
-                select u.Id)
-            .AnyAsync(ct)
+                select new
+                {
+                    HasVerificationMarker = u.Profile != null && u.Profile.ConsultantVerifiedAt != null,
+                })
+            .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
-        if (!isConsultant)
+        // Not an active Consultant-role account at all → not a marketplace entity.
+        if (eligibility is null)
+        {
+            return null;
+        }
+
+        // In the role + active, but not yet verified/approved → no bookable slots
+        // are exposed publicly (same rule as IConsultantEligibilityService).
+        if (!eligibility.HasVerificationMarker
+            && !await HasApprovedConsultantUpgradeAsync(consultantId, ct).ConfigureAwait(false))
         {
             return null;
         }
@@ -401,6 +437,41 @@ public sealed class ConsultantReadService(
             yield return (slotStart, slotStart + session);
         }
     }
+
+    // ── Consultant eligibility (marketplace visibility) ─────────────────────────
+
+    /// <summary>
+    /// Of the supplied user ids, returns those with an approved, non-deleted
+    /// Consultant upgrade request — the fallback approval signal for accounts
+    /// that predate the <c>ConsultantVerifiedAt</c> marker. Mirrors
+    /// <see cref="Application.Common.Interfaces.IConsultantEligibilityService"/>.
+    /// </summary>
+    private async Task<HashSet<Guid>> LoadApprovedConsultantUpgradeIdsAsync(
+        IReadOnlyCollection<Guid> userIds, CancellationToken ct)
+    {
+        var ids = await db.UpgradeRequests
+            .AsNoTracking()
+            .Where(r => userIds.Contains(r.UserId)
+                        && r.Target == UpgradeTarget.Consultant
+                        && r.Status == UpgradeRequestStatus.Approved
+                        && !r.IsDeleted)
+            .Select(r => r.UserId)
+            .Distinct()
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        return ids.ToHashSet();
+    }
+
+    /// <summary>Single-user variant of the approved-upgrade eligibility check.</summary>
+    private async Task<bool> HasApprovedConsultantUpgradeAsync(Guid userId, CancellationToken ct) =>
+        await db.UpgradeRequests
+            .AsNoTracking()
+            .AnyAsync(r => r.UserId == userId
+                        && r.Target == UpgradeTarget.Consultant
+                        && r.Status == UpgradeRequestStatus.Approved
+                        && !r.IsDeleted, ct)
+            .ConfigureAwait(false);
 
     // ── Aggregate loaders (batched, no N+1) ─────────────────────────────────────
 

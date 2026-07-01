@@ -16,17 +16,20 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
     private readonly ICurrentUserService _currentUser;
     private readonly IStripeService _stripeService;
     private readonly IPublisher _publisher;
+    private readonly IConsultantEligibilityService _consultantEligibility;
 
     public RequestBookingCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
         IStripeService stripeService,
-        IPublisher publisher)
+        IPublisher publisher,
+        IConsultantEligibilityService consultantEligibility)
     {
         _context = context;
         _currentUser = currentUser;
         _stripeService = stripeService;
         _publisher = publisher;
+        _consultantEligibility = consultantEligibility;
     }
 
     public async Task<RequestBookingResult> Handle(RequestBookingCommand request, CancellationToken cancellationToken)
@@ -77,6 +80,15 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
         if (consultant is null)
         {
             throw new BookingDomainException("Consultant was not found.");
+        }
+
+        // A student may only book a genuinely eligible consultant (in-role,
+        // Active, verified/approved). This closes the direct-API path: the public
+        // marketplace already hides unverified consultants, but a crafted request
+        // could still target a stale/unapproved Consultant-role account by id.
+        if (!await _consultantEligibility.CanActAsConsultantAsync(request.ConsultantId, cancellationToken))
+        {
+            throw new BookingDomainException("This consultant is not available for booking.");
         }
 
         if (consultant.Profile is null)

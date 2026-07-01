@@ -14,6 +14,7 @@ public sealed class LoginCommandHandler(
     IPasswordHasher passwordHasher,
     ITokenService tokenService,
     IUserAdministration userAdministration,
+    IConsultantEligibilityService consultantEligibility,
     IDateTimeService clock)
     : IRequestHandler<LoginCommand, AuthTokensDto>
 {
@@ -86,8 +87,9 @@ public sealed class LoginCommandHandler(
         await db.SaveChangesAsync(ct);
 
         var roles = await userAdministration.GetRolesAsync(user.Id, ct);
+        var canActAsConsultant = await consultantEligibility.CanActAsConsultantAsync(user.Id, roles, ct);
         var tokens = tokenService.IssueTokens(user, roles, user.ActiveRole, request.RememberMe);
-        return AuthDtoFactory.Build(tokens, user, roles);
+        return AuthDtoFactory.Build(tokens, user, roles, canActAsConsultant);
     }
 
     private static LoginAttempt BuildAttempt(

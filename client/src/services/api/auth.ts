@@ -145,6 +145,24 @@ export function applyAuthSession(res: AuthTokensResponse): CurrentUser {
   return res.user;
 }
 
+/** Roles that a dual-role account is allowed to make its active session role. */
+const SWITCHABLE_ROLES = ["Student", "Consultant", "Company", "Admin"] as const;
+
+/**
+ * The roles the user may switch their active session to. Consultant is special:
+ * it is only offered when the backend confirms eligibility (`canActAsConsultant`),
+ * never on a raw — and possibly stale/unapproved — Consultant role row. The
+ * backend enforces the same rule on POST /api/auth/switch-role, so this only
+ * keeps the UI honest.
+ */
+export function switchableRoles(user: CurrentUser): string[] {
+  return user.roles.filter((role) => {
+    if (!(SWITCHABLE_ROLES as readonly string[]).includes(role)) return false;
+    if (role === "Consultant") return user.canActAsConsultant === true;
+    return true;
+  });
+}
+
 /** Where to send the user after a successful sign-in. */
 export function postAuthPath(user: CurrentUser): string {
   if (!user.isOnboardingComplete) return "/onboarding";

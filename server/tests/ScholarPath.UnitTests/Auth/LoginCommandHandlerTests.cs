@@ -4,6 +4,7 @@ using NSubstitute;
 using ScholarPath.Application.Auth.Commands.Login;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Common.Services;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -38,7 +39,9 @@ public sealed class LoginCommandHandlerTests : IDisposable
         _userAdmin.GetRolesAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(Array.Empty<string>());
 
-        _handler = new LoginCommandHandler(_db, _hasher, _tokens, _userAdmin, _clock);
+        _handler = new LoginCommandHandler(
+            _db, _hasher, _tokens, _userAdmin,
+            new ConsultantEligibilityService(_db, _userAdmin), _clock);
     }
 
     private async Task<ApplicationUser> SeedUserAsync()
