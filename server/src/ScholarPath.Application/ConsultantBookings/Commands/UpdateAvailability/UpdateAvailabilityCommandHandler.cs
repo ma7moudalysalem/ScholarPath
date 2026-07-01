@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Exceptions;
@@ -11,11 +12,16 @@ public sealed class UpdateAvailabilityCommandHandler : IRequestHandler<UpdateAva
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly IConsultantEligibilityService _consultantEligibility;
 
-    public UpdateAvailabilityCommandHandler(IApplicationDbContext context, ICurrentUserService currentUser)
+    public UpdateAvailabilityCommandHandler(
+        IApplicationDbContext context,
+        ICurrentUserService currentUser,
+        IConsultantEligibilityService consultantEligibility)
     {
         _context = context;
         _currentUser = currentUser;
+        _consultantEligibility = consultantEligibility;
     }
 
     public async Task<Unit> Handle(UpdateAvailabilityCommand request, CancellationToken cancellationToken)
@@ -25,13 +31,18 @@ public sealed class UpdateAvailabilityCommandHandler : IRequestHandler<UpdateAva
             throw new UnauthorizedAccessException("User is not authenticated.");
         }
 
-        if (!_currentUser.IsInRole("Consultant"))
-        {
-            throw new UnauthorizedAccessException("Only consultants can update availability.");
-        }
-
         var consultantId = _currentUser.UserId
             ?? throw new UnauthorizedAccessException("Authenticated user id is missing.");
+
+        // Availability is a consultant-only capability, and holding the
+        // Consultant role is not enough — the account must be a verified/approved
+        // consultant. Without this, a stale Consultant role would let a student
+        // publish availability and surface themselves in the marketplace.
+        if (!await _consultantEligibility.CanActAsConsultantAsync(consultantId, cancellationToken))
+        {
+            throw new ForbiddenAccessException(
+                "Only verified consultants can manage availability. Your consultant access is not active.");
+        }
 
         var existingAvailabilities = await _context.Availabilities
             .Where(a => a.ConsultantId == consultantId && !a.IsDeleted && a.IsActive)

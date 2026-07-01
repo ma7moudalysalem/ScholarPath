@@ -14,6 +14,7 @@ public sealed class SsoLoginCommandHandler(
     ISsoService ssoService,
     ITokenService tokenService,
     IUserAdministration userAdministration,
+    IConsultantEligibilityService consultantEligibility,
     IDateTimeService clock)
     : IRequestHandler<SsoLoginCommand, AuthTokensDto>
 {
@@ -65,7 +66,8 @@ public sealed class SsoLoginCommandHandler(
             roles = await userAdministration.GetRolesAsync(user.Id, ct);
         }
 
+        var canActAsConsultant = await consultantEligibility.CanActAsConsultantAsync(user.Id, roles, ct);
         var tokens = tokenService.IssueTokens(user, roles, user.ActiveRole, rememberMe: false);
-        return AuthDtoFactory.Build(tokens, user, roles);
+        return AuthDtoFactory.Build(tokens, user, roles, canActAsConsultant);
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Notifications;
+using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
@@ -52,6 +53,15 @@ public sealed class ReviewUpgradeRequestCommandHandler(
             await admin.SetAccountStatusAsync(req.UserId, AccountStatus.Active,
                 $"Upgrade to {targetRole} approved.", ct).ConfigureAwait(false);
 
+            // Granting the Consultant role is not enough — stamp the official
+            // verification marker so the user passes IConsultantEligibilityService
+            // (role switch, availability, marketplace). This keeps the approval a
+            // single, atomic act of "you are now a consultant".
+            if (req.Target == UpgradeTarget.Consultant)
+            {
+                await MarkConsultantVerifiedAsync(req.UserId, now, ct).ConfigureAwait(false);
+            }
+
             logger.LogInformation("Approved upgrade {RequestId}: user {UserId} → {Role}",
                 req.Id, req.UserId, targetRole);
         }
@@ -80,5 +90,26 @@ public sealed class ReviewUpgradeRequestCommandHandler(
             ct).ConfigureAwait(false);
 
         return true;
+    }
+
+    /// <summary>
+    /// Sets <see cref="Domain.Entities.UserProfile.ConsultantVerifiedAt"/> — the
+    /// official consultant approval marker — creating the profile row if the
+    /// user somehow has none. Idempotent: an already-verified consultant keeps
+    /// their original verification timestamp.
+    /// </summary>
+    private async Task MarkConsultantVerifiedAsync(Guid userId, DateTimeOffset now, CancellationToken ct)
+    {
+        var profile = await db.UserProfiles
+            .FirstOrDefaultAsync(p => p.UserId == userId, ct)
+            .ConfigureAwait(false);
+
+        if (profile is null)
+        {
+            profile = new UserProfile { UserId = userId, CreatedAt = now };
+            db.UserProfiles.Add(profile);
+        }
+
+        profile.ConsultantVerifiedAt ??= now;
     }
 }

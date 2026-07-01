@@ -7,7 +7,11 @@ namespace ScholarPath.Application.Auth;
 /// <summary>Builds the <see cref="AuthTokensDto"/> returned by register/login/refresh.</summary>
 internal static class AuthDtoFactory
 {
-    public static AuthTokensDto Build(TokenPair tokens, ApplicationUser user, IReadOnlyList<string> roles) =>
+    public static AuthTokensDto Build(
+        TokenPair tokens,
+        ApplicationUser user,
+        IReadOnlyList<string> roles,
+        bool canActAsConsultant = false) =>
         new(
             tokens.AccessToken,
             tokens.RefreshToken,
@@ -31,5 +35,6 @@ internal static class AuthDtoFactory
                 // login/refresh paths don't, which is fine: those flows
                 // immediately call /api/auth/me to hydrate the full user).
                 user.Profile?.LastOnboardingRejectionReason,
-                user.Profile?.LastOnboardingRejectedAt));
+                user.Profile?.LastOnboardingRejectedAt,
+                canActAsConsultant));
 }

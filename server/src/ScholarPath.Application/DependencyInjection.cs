@@ -3,6 +3,8 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using ScholarPath.Application.Common.Behaviors;
+using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Common.Services;
 using ScholarPath.Application.ConsultantBookings.Services;
 
 namespace ScholarPath.Application;
@@ -31,6 +33,10 @@ public static class DependencyInjection
 
         // Consultant booking services
         services.AddScoped<RefundCalculatorService>();
+
+        // Central business rule: who may act as a Consultant (role switch,
+        // availability management, marketplace visibility all defer to this).
+        services.AddScoped<IConsultantEligibilityService, ConsultantEligibilityService>();
 
         return services;
     }

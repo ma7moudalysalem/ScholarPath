@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using ScholarPath.Application.Common.Exceptions;
+using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.ConsultantBookings.Commands.UpdateAvailability;
 using ScholarPath.Application.ConsultantBookings.Queries.GetBookingById;
 using ScholarPath.Application.ConsultantBookings.Queries.GetConsultantBookings;
@@ -367,7 +368,13 @@ public sealed class BookingQueryHandlerTests : IDisposable
         _currentUser.IsInRole("Consultant").Returns(true);
         _currentUser.UserId.Returns(_consultantId);
 
-        var update = new UpdateAvailabilityCommandHandler(_db, _currentUser);
+        // Eligibility is covered by UpdateAvailabilityCommandHandlerTests; this
+        // test only exercises the multi-slot round-trip, so treat the consultant
+        // as eligible.
+        var eligibility = Substitute.For<IConsultantEligibilityService>();
+        eligibility.CanActAsConsultantAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+        var update = new UpdateAvailabilityCommandHandler(_db, _currentUser, eligibility);
         await update.Handle(
             new UpdateAvailabilityCommand(
                 ReplaceExisting: true,

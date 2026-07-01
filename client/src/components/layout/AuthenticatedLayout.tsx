@@ -37,14 +37,12 @@ import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useAuthStore } from "@/stores/authStore";
-import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
+import { authApi, applyAuthSession, postAuthPath, switchableRoles } from "@/services/api/auth";
 import { apiErrorMessage } from "@/services/api/client";
 import { useNotificationHub } from "@/hooks/useNotificationHub";
 import { notificationsApi, UNREAD_COUNT_QUERY_KEY } from "@/services/api/notifications";
 import { cn } from "@/lib/utils";
 import { userPhotoUrl } from "@/lib/userPhoto";
-
-const SWITCHABLE_ROLES = ["Student", "Consultant", "Company", "Admin"] as const;
 
 function ProfileMenu() {
   const { t, i18n } = useTranslation(["common", "nav"]);
@@ -71,9 +69,7 @@ function ProfileMenu() {
 
   if (!user) return null;
   const activeRole = user.activeRole ?? user.roles[0] ?? null;
-  const switchTargets = user.roles.filter(
-    (r) => r !== activeRole && (SWITCHABLE_ROLES as readonly string[]).includes(r),
-  );
+  const switchTargets = switchableRoles(user).filter((r) => r !== activeRole);
 
   const onSignOut = () => {
     clear();

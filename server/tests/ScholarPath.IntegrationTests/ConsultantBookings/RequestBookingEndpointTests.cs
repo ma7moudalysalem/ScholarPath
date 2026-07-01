@@ -81,6 +81,10 @@ public sealed class RequestBookingEndpointTests : IntegrationTestBase
             }
 
             await db.SaveChangesAsync();
+
+            // RequestBooking now requires the target to be a verified/approved
+            // consultant — make the seeded consultant genuinely eligible.
+            await EnsureEligibleConsultantAsync(sp, consultantId);
         });
 
         var command = new RequestBookingCommand(

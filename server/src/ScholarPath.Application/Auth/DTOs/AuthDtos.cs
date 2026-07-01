@@ -26,7 +26,13 @@ public sealed record CurrentUserDto(
     // before resubmitting. Null when the account has never been rejected
     // or when the most recent decision was an approval.
     string? LastOnboardingRejectionReason = null,
-    DateTimeOffset? LastOnboardingRejectedAt = null);
+    DateTimeOffset? LastOnboardingRejectedAt = null,
+    // Consultant eligibility gate — true only when the backend confirms the
+    // user may act as a Consultant (verified/approved), NOT merely that a
+    // Consultant role row exists. The role-switch UI uses this so a stale or
+    // unapproved Consultant role can never surface the "switch to Consultant"
+    // option; the backend still enforces the same rule server-side.
+    bool CanActAsConsultant = false);
 
 public sealed record RegisterRequestDto(string Email, string Password, string FirstName, string LastName);
 public sealed record LoginRequestDto(string Email, string Password, bool RememberMe);
