@@ -96,4 +96,27 @@ public sealed class UserAdministration(
         }
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
+
+    public async Task AddExternalLoginAsync(Guid userId, string provider, string providerKey, CancellationToken ct)
+    {
+        var user = await users.FindByIdAsync(userId.ToString()).ConfigureAwait(false);
+        if (user is null) return;
+
+        // Idempotent — a repeat SSO sign-in must not add a duplicate (provider, key) login.
+        var existing = await users.GetLoginsAsync(user).ConfigureAwait(false);
+        if (existing.Any(l => l.LoginProvider == provider && l.ProviderKey == providerKey)) return;
+
+        var result = await users.AddLoginAsync(user, new UserLoginInfo(provider, providerKey, provider)).ConfigureAwait(false);
+        if (!result.Succeeded)
+        {
+            logger.LogWarning("Failed to record external login {Provider} for user {UserId}: {Errors}",
+                provider, userId, string.Join("; ", result.Errors.Select(e => e.Description)));
+        }
+    }
+
+    public async Task<Guid?> FindUserIdByExternalLoginAsync(string provider, string providerKey, CancellationToken ct)
+    {
+        var user = await users.FindByLoginAsync(provider, providerKey).ConfigureAwait(false);
+        return user?.Id;
+    }
 }
