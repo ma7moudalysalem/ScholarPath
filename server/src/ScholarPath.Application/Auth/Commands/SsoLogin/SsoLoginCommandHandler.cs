@@ -30,7 +30,14 @@ public sealed class SsoLoginCommandHandler(
         var normalizedEmail = email.ToUpperInvariant();
         var now = clock.UtcNow;
 
-        var user = await db.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, ct);
+        // GAP-2 / FR-AUTH-13 — resolve by the recorded external identity first; only
+        // then fall back to the provider-verified email. This makes account linking
+        // explicit (a provider identity maps to exactly one account) rather than
+        // implicitly re-binding by whatever email a provider currently reports.
+        var linkedUserId = await userAdministration.FindUserIdByExternalLoginAsync(info.Provider, info.ProviderUserId, ct);
+        var user = linkedUserId is { } lid
+            ? await db.Users.FirstOrDefaultAsync(u => u.Id == lid, ct)
+            : await db.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, ct);
 
         IReadOnlyList<string> roles;
         if (user is null)
@@ -64,6 +71,10 @@ public sealed class SsoLoginCommandHandler(
             await db.SaveChangesAsync(ct);
             roles = await userAdministration.GetRolesAsync(user.Id, ct);
         }
+
+        // Record the external identity link (idempotent) so the next sign-in — even
+        // if the provider later reports a different email — resolves to THIS account.
+        await userAdministration.AddExternalLoginAsync(user.Id, info.Provider, info.ProviderUserId, ct);
 
         var tokens = tokenService.IssueTokens(user, roles, user.ActiveRole, rememberMe: false);
         return AuthDtoFactory.Build(tokens, user, roles);

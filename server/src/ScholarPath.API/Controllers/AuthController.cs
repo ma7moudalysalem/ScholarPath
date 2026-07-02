@@ -101,6 +101,7 @@ public sealed class AuthController(IMediator mediator, ISsoService ssoService, I
 
     /// <summary>Confirm an email address using the token from the verification link (FR-215).</summary>
     [HttpPost("verify-email")]
+    [EnableRateLimiting("auth")] // R3 — throttle token-guessing on the verification endpoint
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
@@ -171,6 +172,7 @@ public sealed class AuthController(IMediator mediator, ISsoService ssoService, I
     /// </summary>
     [HttpPost("change-email/confirm")]
     [Authorize]
+    [EnableRateLimiting("auth")] // R3 — throttle token-guessing on email-change confirmation
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
