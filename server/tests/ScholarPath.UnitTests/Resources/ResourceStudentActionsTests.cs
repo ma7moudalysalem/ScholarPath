@@ -5,6 +5,7 @@ using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Resources.Commands.CompleteResourceChapter;
 using ScholarPath.Application.Resources.Commands.ToggleResourceBookmark;
+using ScholarPath.Application.Resources.Queries.GetResourceProgressDetail;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -106,5 +107,86 @@ public class ResourceStudentActionsTests
             new CompleteResourceChapterCommand(resource.Id, Guid.NewGuid()), default);
 
         await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task Complete_chapter_twice_is_idempotent()
+    {
+        using var db = CreateDb();
+        var resource = PublishedResource();
+        var chapter = new ResourceChild
+        {
+            Id = Guid.NewGuid(),
+            ResourceId = resource.Id,
+            TitleEn = "Ch", TitleAr = "فصل",
+            SortOrder = 0,
+        };
+        db.Resources.Add(resource);
+        db.ResourceChapters.Add(chapter);
+        await db.SaveChangesAsync();
+
+        var studentId = Guid.NewGuid();
+        var sut = new CompleteResourceChapterCommandHandler(db, User(studentId));
+        var cmd = new CompleteResourceChapterCommand(resource.Id, chapter.Id);
+
+        await sut.Handle(cmd, default);
+        var second = await sut.Handle(cmd, default);
+
+        second.ChaptersCompletedCount.Should().Be(1);
+        (await db.ResourceProgress.CountAsync()).Should().Be(1);
+        (await db.ResourceProgressChildren.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Progress_detail_returns_completed_chapter_ids()
+    {
+        using var db = CreateDb();
+        var resource = PublishedResource();
+        var chapterOne = new ResourceChild
+        {
+            Id = Guid.NewGuid(), ResourceId = resource.Id,
+            TitleEn = "One", TitleAr = "١", SortOrder = 0,
+        };
+        var chapterTwo = new ResourceChild
+        {
+            Id = Guid.NewGuid(), ResourceId = resource.Id,
+            TitleEn = "Two", TitleAr = "٢", SortOrder = 1,
+        };
+        db.Resources.Add(resource);
+        db.ResourceChapters.AddRange(chapterOne, chapterTwo);
+        await db.SaveChangesAsync();
+
+        var studentId = Guid.NewGuid();
+        await new CompleteResourceChapterCommandHandler(db, User(studentId))
+            .Handle(new CompleteResourceChapterCommand(resource.Id, chapterOne.Id), default);
+
+        var progress = await new GetResourceProgressDetailQueryHandler(db, User(studentId))
+            .Handle(new GetResourceProgressDetailQuery(resource.Id), default);
+
+        progress.TotalChapters.Should().Be(2);
+        progress.ChaptersCompletedCount.Should().Be(1);
+        progress.CompletedChapterIds.Should().ContainSingle().Which.Should().Be(chapterOne.Id);
+    }
+
+    [Fact]
+    public async Task Progress_detail_is_empty_when_nothing_completed()
+    {
+        using var db = CreateDb();
+        var resource = PublishedResource();
+        var chapter = new ResourceChild
+        {
+            Id = Guid.NewGuid(), ResourceId = resource.Id,
+            TitleEn = "Ch", TitleAr = "فصل", SortOrder = 0,
+        };
+        db.Resources.Add(resource);
+        db.ResourceChapters.Add(chapter);
+        await db.SaveChangesAsync();
+
+        var progress = await new GetResourceProgressDetailQueryHandler(db, User(Guid.NewGuid()))
+            .Handle(new GetResourceProgressDetailQuery(resource.Id), default);
+
+        progress.TotalChapters.Should().Be(1);
+        progress.ChaptersCompletedCount.Should().Be(0);
+        progress.CompletedChapterIds.Should().BeEmpty();
     }
 }

@@ -23,6 +23,7 @@ import {
 import {
   resourcesApi,
   type ResourceDetail as ResourceDetailDto,
+  type ResourceProgressDetail,
   type ChapterProgressResult,
   type ResourceType,
 } from "@/services/api/resources";
@@ -182,6 +183,16 @@ export function ResourceDetail() {
     enabled: !!idOrSlug,
   });
 
+  // ── Per-resource progress (which chapters the student has completed) ───────
+  const resourceId = data?.id;
+  const hasChapters = (data?.chapters.length ?? 0) > 0;
+  const { data: progress } = useQuery<ResourceProgressDetail>({
+    queryKey: ["resources", "progress", "detail", resourceId],
+    queryFn: () => resourcesApi.getResourceProgress(resourceId!),
+    enabled: !!user && !!resourceId && hasChapters,
+  });
+  const completedChapters = new Set(progress?.completedChapterIds ?? []);
+
   // ── Bookmark toggle ──────────────────────────────────────────────────────
   const bookmarkMut = useMutation({
     mutationFn: (id: string) => resourcesApi.toggleBookmark(id),
@@ -196,11 +207,14 @@ export function ResourceDetail() {
     mutationFn: ({ resourceId, chapterId }) =>
       resourcesApi.completeChapter(resourceId, chapterId),
     onSuccess: (res) => {
-      if (res.isResourceComplete) {
+      const isResourceComplete =
+        res.totalChapters > 0 && res.chaptersCompletedCount >= res.totalChapters;
+      if (isResourceComplete) {
         toast.success(t("resources:detail.resourceComplete"));
       } else {
         toast.success(t("resources:detail.chapterMarked"));
       }
+      // Refreshes both this page's completion state and the "My Progress" list.
       void qc.invalidateQueries({ queryKey: ["resources", "progress"] });
     },
     onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
@@ -377,11 +391,45 @@ export function ResourceDetail() {
               <h2 id="chapters" className="text-xl font-bold text-text-primary tracking-tight scroll-mt-24">
                 {t("resources:detail.chapters")}
               </h2>
+
+              {/* Completion bar (signed-in students only) */}
+              {user && (() => {
+                const done = completedChapters.size;
+                const total = chapters.length;
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                return (
+                  <div className="card-premium p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-primary">
+                        <CheckCircle aria-hidden className="size-4 text-success-500" />
+                        {t("resources:detail.progressLabel", { done, total })}
+                      </span>
+                      <span className="text-sm font-bold text-brand-600">
+                        {t("resources:detail.progressPercent", { percent: pct })}
+                      </span>
+                    </div>
+                    <div
+                      className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-bg-subtle"
+                      role="progressbar"
+                      aria-valuenow={pct}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-success-500 to-success-600 transition-[width] duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
               {chapters.map((ch, idx) => {
                 const chTitle = isAr ? ch.titleAr || ch.titleEn : ch.titleEn || ch.titleAr;
                 const chContent = isAr
                   ? ch.contentMarkdownAr ?? ch.contentMarkdownEn
                   : ch.contentMarkdownEn ?? ch.contentMarkdownAr;
+                const isChapterDone = completedChapters.has(ch.id);
                 return (
                   <div
                     key={ch.id}
@@ -390,8 +438,14 @@ export function ResourceDetail() {
                   >
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <h3 className="flex items-center gap-3 font-bold text-text-primary tracking-tight text-lg leading-snug">
-                        <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white shadow-brand-sm">
-                          {idx + 1}
+                        <span
+                          className={`flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-xs font-bold text-white shadow-brand-sm ${
+                            isChapterDone
+                              ? "from-success-500 to-success-600"
+                              : "from-brand-500 to-brand-700"
+                          }`}
+                        >
+                          {isChapterDone ? <CheckCircle aria-hidden className="size-4" /> : idx + 1}
                         </span>
                         {chTitle}
                       </h3>
@@ -404,20 +458,26 @@ export function ResourceDetail() {
                             })}
                           </span>
                         )}
-                        {user && (
-                          <button
-                            type="button"
-                            disabled={chapterMut.isPending}
-                            onClick={() =>
-                              chapterMut.mutate({ resourceId: data.id, chapterId: ch.id })
-                            }
-                            className="inline-flex items-center gap-1 rounded-full border border-success-200 bg-success-50 px-2.5 py-1 text-xs font-semibold text-success-700 transition hover:bg-success-100 disabled:opacity-60"
-                            aria-label={t("resources:detail.markComplete")}
-                          >
-                            <CheckCircle aria-hidden className="size-3.5" />
-                            {t("resources:detail.markComplete")}
-                          </button>
-                        )}
+                        {user &&
+                          (isChapterDone ? (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-success-200 bg-success-100 px-2.5 py-1 text-xs font-semibold text-success-700">
+                              <CheckCircle aria-hidden className="size-3.5" />
+                              {t("resources:detail.completed")}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled={chapterMut.isPending}
+                              onClick={() =>
+                                chapterMut.mutate({ resourceId: data.id, chapterId: ch.id })
+                              }
+                              className="inline-flex items-center gap-1 rounded-full border border-success-200 bg-success-50 px-2.5 py-1 text-xs font-semibold text-success-700 transition hover:bg-success-100 disabled:opacity-60"
+                              aria-label={t("resources:detail.markComplete")}
+                            >
+                              <CheckCircle aria-hidden className="size-3.5" />
+                              {t("resources:detail.markComplete")}
+                            </button>
+                          ))}
                       </div>
                     </div>
                     {chContent && chContent.trim() && (

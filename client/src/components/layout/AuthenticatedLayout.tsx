@@ -224,6 +224,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/student/bookings", key: "student.bookings", icon: Calendar },
     { to: "/student/community", key: "student.community", icon: MessageSquare },
     { to: "/student/resources", key: "student.resources", icon: BookOpen },
+    { to: "/student/resource-progress", key: "student.resourceProgress", icon: TrendingUp },
     { to: "/student/documents", key: "student.documents", icon: FolderOpen },
     { to: "/student/ai", key: "student.ai", icon: Sparkles },
     { to: "/student/messages", key: "student.messages", icon: MessageSquare },
