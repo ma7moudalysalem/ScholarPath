@@ -36,8 +36,27 @@
     "bookmark": "حفظ",
     "bookmarkToggle": "تبديل الحفظ",
     "markComplete": "تم",
+    "completed": "مكتمل",
+    "progressLabel": "{{done}} من {{total}} فصلاً مكتملة",
+    "progressPercent": "{{percent}}٪",
     "chapterMarked": "تم تمييز الفصل كمكتمل.",
     "resourceComplete": "اكتمل المورد! أحسنت."
+  },
+  "progress": {
+    "title": "تقدّمي في الموارد",
+    "subtitle": "الموارد التي بدأتها ومدى تقدّمك فيها.",
+    "loadError": "تعذّر تحميل تقدّمك.",
+    "retry": "إعادة المحاولة",
+    "empty": "لم تبدأ أي مورد بعد.",
+    "emptyBody": "افتح دليلاً أو قائمة تحقّق وميّز الفصول كمكتملة لتتبّع تقدّمك هنا.",
+    "browse": "تصفّح الموارد",
+    "inProgress": "قيد التقدّم",
+    "completed": "مكتمل",
+    "chaptersDone": "{{done}} من {{total}} فصلاً",
+    "percentComplete": "{{percent}}٪ مكتمل",
+    "continue": "متابعة",
+    "review": "مراجعة",
+    "lastAccessed": "آخر فتح {{date}}"
   },
   "author": {
     "title": "مواردي",

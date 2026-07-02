@@ -97,6 +97,11 @@ const StudentResourceDetail = lazy(() =>
     default: m.ResourceDetail,
   })),
 );
+const StudentResourceProgress = lazy(() =>
+  import("@/pages/student/ResourceProgressPage").then((m) => ({
+    default: m.ResourceProgressPage,
+  })),
+);
 const StudentDocuments = lazy(() =>
   import("@/pages/student/Documents").then((m) => ({ default: m.Documents })),
 );
@@ -504,6 +509,7 @@ export function AppRouter() {
 
           {/* Others */}
           <Route path="/student/resources"         element={<AnimatedRoute><StudentResources /></AnimatedRoute>} />
+          <Route path="/student/resource-progress" element={<AnimatedRoute><StudentResourceProgress /></AnimatedRoute>} />
           <Route path="/student/resources/:idOrSlug" element={<AnimatedRoute><StudentResourceDetail /></AnimatedRoute>} />
           <Route path="/student/documents"         element={<AnimatedRoute><StudentDocuments /></AnimatedRoute>} />
           <Route path="/student/ai"                element={<AnimatedRoute><StudentAi /></AnimatedRoute>} />
