@@ -42,7 +42,7 @@ public class SubmitConsultantUpgradeRequestCommandHandlerTests
             notifications ?? Substitute.For<INotificationDispatcher>(),
             NullLogger<SubmitConsultantUpgradeRequestCommandHandler>.Instance);
 
-    private static Guid SeedActiveStudent(ApplicationDbContext db)
+    private static Guid SeedActiveStudent(ApplicationDbContext db, bool withDocs = true)
     {
         var id = Guid.NewGuid();
         db.Users.Add(new ApplicationUser
@@ -54,6 +54,25 @@ public class SubmitConsultantUpgradeRequestCommandHandlerTests
             UserName = "student@scholarpath.local",
             AccountStatus = AccountStatus.Active,
         });
+        // GAP-1 / FR-ONB-08 — the upgrade handler now requires the same 3 onboarding
+        // verification documents a fresh Consultant onboarding does, so the happy-path
+        // fixtures seed them. Pass withDocs:false to exercise the missing-docs guard.
+        if (withDocs)
+        {
+            for (var i = 0; i < 3; i++)
+            {
+                db.Documents.Add(new Document
+                {
+                    Id = Guid.NewGuid(),
+                    OwnerUserId = id,
+                    FileName = $"verification-{i}.pdf",
+                    ContentType = "application/pdf",
+                    SizeBytes = 1024,
+                    StoragePath = $"documents/{id}/verification-{i}.pdf",
+                    Category = DocumentCategory.OnboardingDocument,
+                });
+            }
+        }
         return id;
     }
 
@@ -242,6 +261,22 @@ public class SubmitConsultantUpgradeRequestCommandHandlerTests
 
         await act.Should().ThrowAsync<ConflictException>()
             .WithMessage("*account must be active*");
+    }
+
+    [Fact]
+    public async Task Blocked_when_verification_documents_missing()
+    {
+        // GAP-1 / FR-ONB-08 — an active Student with all profile fields but NO
+        // onboarding verification documents must be rejected, matching the bar a
+        // fresh Consultant onboarding enforces.
+        using var db = CreateDb();
+        var userId = SeedActiveStudent(db, withDocs: false);
+        await db.SaveChangesAsync();
+
+        var act = () => Sut(db, userId, Admin("Student")).Handle(ValidCommand(), default);
+
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("*verification document*");
     }
 
     [Fact]

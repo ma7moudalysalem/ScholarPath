@@ -15,7 +15,7 @@ namespace ScholarPath.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/consultants")]
-[AllowAnonymous]
+[Authorize]
 public sealed class ConsultantsController : ControllerBase
 {
     private readonly ISender _sender;

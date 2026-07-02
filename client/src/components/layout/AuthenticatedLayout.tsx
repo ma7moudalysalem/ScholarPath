@@ -76,6 +76,9 @@ function ProfileMenu() {
   );
 
   const onSignOut = () => {
+    // SEC-11 — revoke the refresh token server-side before clearing locally.
+    const refreshToken = useAuthStore.getState().tokens?.refreshToken;
+    if (refreshToken) void authApi.logout(refreshToken).catch(() => {});
     clear();
     navigate("/");
   };
@@ -271,6 +274,9 @@ function SidebarContent({
   const navigate = useNavigate();
 
   const onSignOut = () => {
+    // SEC-11 — revoke the refresh token server-side before clearing locally.
+    const refreshToken = useAuthStore.getState().tokens?.refreshToken;
+    if (refreshToken) void authApi.logout(refreshToken).catch(() => {});
     clear();
     navigate("/");
     onNavigate?.();

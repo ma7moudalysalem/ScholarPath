@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useAuthStore } from "@/stores/authStore";
-import { postAuthPath } from "@/services/api/auth";
+import { authApi, postAuthPath } from "@/services/api/auth";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 /** Email address used for placeholder footer links until proper static pages ship. */
@@ -40,6 +40,11 @@ export function PublicLayout({ children }: { children: ReactNode }) {
   const homePath = user ? postAuthPath(user) : "/";
 
   const onSignOut = () => {
+    // SEC-11 — revoke the refresh token server-side so a leaked token can't be
+    // reused after logout. Fire-and-forget: a network failure must not block the
+    // local sign-out, which clears the session regardless.
+    const refreshToken = useAuthStore.getState().tokens?.refreshToken;
+    if (refreshToken) void authApi.logout(refreshToken).catch(() => {});
     clearAuth();
     setMobileOpen(false);
     navigate("/");

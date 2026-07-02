@@ -50,7 +50,19 @@ public sealed class RegisterCommandHandler(
         };
 
         db.Users.Add(user);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException)
+        {
+            // RACE-03 — two concurrent registrations for the same email both pass the
+            // AnyAsync pre-check above, then race to insert. The unique index on the
+            // normalized user name (== email) rejects the loser with a duplicate-key
+            // DbUpdateException; translate it to the same friendly 409 the pre-check
+            // returns instead of leaking a raw 500.
+            throw new ConflictException("An account with this email already exists.");
+        }
 
         // Send the email-verification link (FR-215). Best-effort — email is a side
         // channel; a delivery failure must not break registration.

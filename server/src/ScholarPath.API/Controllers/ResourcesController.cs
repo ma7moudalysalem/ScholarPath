@@ -34,7 +34,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
 
     /// <summary>Browse/search published resources.</summary>
     [HttpGet]
-    [AllowAnonymous]
+    [Authorize]
     [ProducesResponseType(typeof(PaginatedList<ResourceListItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Search([FromQuery] SearchResourcesQuery query, CancellationToken ct)
         => Ok(await mediator.Send(query, ct));
@@ -45,21 +45,21 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
     /// stay in sync.
     /// </summary>
     [HttpGet("categories")]
-    [AllowAnonymous]
+    [Authorize]
     [ProducesResponseType(typeof(IReadOnlyList<string>), StatusCodes.Status200OK)]
     public IActionResult Categories()
         => Ok(ResourceCategoryCatalog.Slugs);
 
     /// <summary>Featured resources for the homepage hub.</summary>
     [HttpGet("featured")]
-    [AllowAnonymous]
+    [Authorize]
     [ProducesResponseType(typeof(IReadOnlyList<ResourceListItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Featured(CancellationToken ct)
         => Ok(await mediator.Send(new GetFeaturedResourcesQuery(), ct));
 
     /// <summary>Full resource detail by id or slug.</summary>
     [HttpGet("{idOrSlug}")]
-    [AllowAnonymous]
+    [Authorize]
     [ProducesResponseType(typeof(ResourceDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByIdOrSlug(string idOrSlug, CancellationToken ct)
