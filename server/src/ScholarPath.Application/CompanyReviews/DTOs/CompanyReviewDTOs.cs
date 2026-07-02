@@ -1,6 +1,6 @@
-namespace ScholarPath.Application.CompanyReviews.DTOs;
+namespace ScholarPath.Application.ScholarshipProviderReviews.DTOs;
 
-public record CompanyReviewRow(
+public record ScholarshipProviderReviewRow(
     Guid ReviewId,
     Guid StudentId,
     string StudentName,
@@ -8,16 +8,16 @@ public record CompanyReviewRow(
     string? Comment,
     DateTimeOffset CreatedAt);
 
-public record CompanyRatingsSummaryDto(
-    Guid CompanyId,
+public record ScholarshipProviderRatingsSummaryDto(
+    Guid ScholarshipProviderId,
     double AverageRating,
     int TotalRatings,
-    IReadOnlyList<CompanyReviewRow> RecentReviews);
+    IReadOnlyList<ScholarshipProviderReviewRow> RecentReviews);
 
-// ─── "Reviews received" read model (shared Company + Consultant) ───────────────
+// ─── "Reviews received" read model (shared ScholarshipProvider + Consultant) ───────────────
 
 /// <summary>
-/// One review row as shown to the rated party (Company or Consultant) on their
+/// One review row as shown to the rated party (ScholarshipProvider or Consultant) on their
 /// own "Reviews received" page. The author name is masked
 /// (<see cref="Common.ReviewerNameMask"/>) so feedback stays semi-anonymous.
 /// </summary>

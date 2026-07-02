@@ -1,9 +1,9 @@
 using MediatR;
-using ScholarPath.Application.CompanyReviews.DTOs;
+using ScholarPath.Application.ScholarshipProviderReviews.DTOs;
 
-namespace ScholarPath.Application.CompanyReviews.Queries.GetCompanyRatings;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Queries.GetScholarshipProviderRatings;
 
-public sealed record GetCompanyRatingsQuery(
-    Guid CompanyId,
+public sealed record GetScholarshipProviderRatingsQuery(
+    Guid ScholarshipProviderId,
     int Page = 1,
-    int PageSize = 25) : IRequest<CompanyRatingsSummaryDto>;
+    int PageSize = 25) : IRequest<ScholarshipProviderRatingsSummaryDto>;

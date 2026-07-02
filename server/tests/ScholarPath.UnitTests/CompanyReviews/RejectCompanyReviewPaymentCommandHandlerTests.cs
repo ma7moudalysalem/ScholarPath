@@ -3,49 +3,49 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviews.Commands.RejectCompanyReviewPayment;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.RejectScholarshipProviderReviewPayment;
 using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
 using Xunit;
 
-namespace ScholarPath.UnitTests.CompanyReviews;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviews;
 
 /// <summary>
 /// PB-005 v1: a company rejection on an application with a held review fee
 /// must cancel the PaymentIntent — the student is never charged.
 /// </summary>
-public sealed class RejectCompanyReviewPaymentCommandHandlerTests : IDisposable
+public sealed class RejectScholarshipProviderReviewPaymentCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly IStripeService _stripe = Substitute.For<IStripeService>();
     private readonly INotificationDispatcher _notifications = Substitute.For<INotificationDispatcher>();
-    private readonly RejectCompanyReviewPaymentCommandHandler _handler;
+    private readonly RejectScholarshipProviderReviewPaymentCommandHandler _handler;
 
-    public RejectCompanyReviewPaymentCommandHandlerTests()
+    public RejectScholarshipProviderReviewPaymentCommandHandlerTests()
     {
         _db = new ApplicationDbContext(
             new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options);
 
-        _handler = new RejectCompanyReviewPaymentCommandHandler(
+        _handler = new RejectScholarshipProviderReviewPaymentCommandHandler(
             _db, _stripe, _notifications,
-            NullLogger<RejectCompanyReviewPaymentCommandHandler>.Instance);
+            NullLogger<RejectScholarshipProviderReviewPaymentCommandHandler>.Instance);
     }
 
     public void Dispose() => _db.Dispose();
 
     [Fact]
-    public async Task Cancels_held_CompanyReview_PaymentIntent_on_rejection()
+    public async Task Cancels_held_ScholarshipProviderReview_PaymentIntent_on_rejection()
     {
         var appId = Guid.NewGuid();
         var studentId = Guid.NewGuid();
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
-            Type = PaymentType.CompanyReview,
+            Type = PaymentType.ScholarshipProviderReview,
             Status = PaymentStatus.Held,
             AmountCents = 10_000,
             ProfitShareAmountCents = 1_000,
@@ -69,7 +69,7 @@ public sealed class RejectCompanyReviewPaymentCommandHandlerTests : IDisposable
             .Returns(new StripePaymentIntentResult("pi_reject", "canceled", null, null));
 
         var result = await _handler.Handle(
-            new RejectCompanyReviewPaymentCommand(appId), default);
+            new RejectScholarshipProviderReviewPaymentCommand(appId), default);
 
         result.Should().BeTrue();
         payment.Status.Should().Be(PaymentStatus.Cancelled);
@@ -85,7 +85,7 @@ public sealed class RejectCompanyReviewPaymentCommandHandlerTests : IDisposable
     public async Task Returns_false_when_no_held_payment_exists()
     {
         var result = await _handler.Handle(
-            new RejectCompanyReviewPaymentCommand(Guid.NewGuid()), default);
+            new RejectScholarshipProviderReviewPaymentCommand(Guid.NewGuid()), default);
 
         result.Should().BeFalse();
         await _stripe.DidNotReceiveWithAnyArgs()

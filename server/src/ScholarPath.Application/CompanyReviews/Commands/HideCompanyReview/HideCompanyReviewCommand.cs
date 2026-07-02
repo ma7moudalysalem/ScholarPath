@@ -9,7 +9,7 @@ using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
-namespace ScholarPath.Application.CompanyReviews.Commands.HideCompanyReview;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Commands.HideScholarshipProviderReview;
 
 // ─── Command ──────────────────────────────────────────────────────────────────
 
@@ -19,18 +19,18 @@ namespace ScholarPath.Application.CompanyReviews.Commands.HideCompanyReview;
 /// rating average and public review feed but is never deleted — the row and its
 /// moderation note are retained for audit.
 /// </summary>
-[Auditable(AuditAction.Moderated, "CompanyReview",
+[Auditable(AuditAction.Moderated, "ScholarshipProviderReview",
     TargetIdProperty = nameof(ReviewId),
     SummaryTemplate = "Set company review {ReviewId} hidden state to {Hide}")]
-public sealed record HideCompanyReviewCommand(
+public sealed record HideScholarshipProviderReviewCommand(
     Guid ReviewId, bool Hide, string? AdminNote) : IRequest<bool>;
 
 // ─── Validator ────────────────────────────────────────────────────────────────
 
-public sealed class HideCompanyReviewCommandValidator
-    : AbstractValidator<HideCompanyReviewCommand>
+public sealed class HideScholarshipProviderReviewCommandValidator
+    : AbstractValidator<HideScholarshipProviderReviewCommand>
 {
-    public HideCompanyReviewCommandValidator()
+    public HideScholarshipProviderReviewCommandValidator()
     {
         RuleFor(x => x.ReviewId).NotEmpty();
         RuleFor(x => x.AdminNote)
@@ -41,20 +41,20 @@ public sealed class HideCompanyReviewCommandValidator
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
-public sealed class HideCompanyReviewCommandHandler(
+public sealed class HideScholarshipProviderReviewCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
-    ILogger<HideCompanyReviewCommandHandler> logger)
-    : IRequestHandler<HideCompanyReviewCommand, bool>
+    ILogger<HideScholarshipProviderReviewCommandHandler> logger)
+    : IRequestHandler<HideScholarshipProviderReviewCommand, bool>
 {
-    public async Task<bool> Handle(HideCompanyReviewCommand request, CancellationToken ct)
+    public async Task<bool> Handle(HideScholarshipProviderReviewCommand request, CancellationToken ct)
     {
         if (!currentUser.IsInRole("Admin"))
             throw new ForbiddenAccessException("Only an administrator can moderate reviews.");
 
-        var review = await db.CompanyReviews
+        var review = await db.ScholarshipProviderReviews
             .FirstOrDefaultAsync(r => r.Id == request.ReviewId && !r.IsDeleted, ct)
-            ?? throw new NotFoundException(nameof(CompanyReview), request.ReviewId);
+            ?? throw new NotFoundException(nameof(ScholarshipProviderReview), request.ReviewId);
 
         review.IsHiddenByAdmin = request.Hide;
         review.AdminNote = string.IsNullOrWhiteSpace(request.AdminNote)
@@ -64,7 +64,7 @@ public sealed class HideCompanyReviewCommandHandler(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         logger.LogInformation(
-            "Company review {ReviewId} hidden state set to {Hide} by admin {AdminId}.",
+            "ScholarshipProvider review {ReviewId} hidden state set to {Hide} by admin {AdminId}.",
             review.Id, request.Hide, currentUser.UserId);
         return true;
     }

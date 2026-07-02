@@ -7,31 +7,31 @@ using ScholarPath.Application.Notifications;
 using ScholarPath.Application.Payments;
 using ScholarPath.Domain.Enums;
 
-namespace ScholarPath.Application.CompanyReviews.Commands.RejectCompanyReviewPayment;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Commands.RejectScholarshipProviderReviewPayment;
 
 [Auditable(AuditAction.Update, "Payment",
     TargetIdProperty = nameof(ApplicationId),
-    SummaryTemplate = "Cancelled CompanyReview payment hold for rejected application {ApplicationId}")]
-public sealed record RejectCompanyReviewPaymentCommand(
+    SummaryTemplate = "Cancelled ScholarshipProviderReview payment hold for rejected application {ApplicationId}")]
+public sealed record RejectScholarshipProviderReviewPaymentCommand(
     Guid ApplicationId) : IRequest<bool>;
 
 /// <summary>
-/// Cancels the held CompanyReview PaymentIntent when a company rejects an
+/// Cancels the held ScholarshipProviderReview PaymentIntent when a company rejects an
 /// application before any capture has occurred. No money changes hands. Used
 /// by <c>ApplicationStatusChangedEventHandler</c> on the Rejected transition.
 /// </summary>
-public sealed class RejectCompanyReviewPaymentCommandHandler(
+public sealed class RejectScholarshipProviderReviewPaymentCommandHandler(
     IApplicationDbContext db,
     IStripeService stripeService,
     INotificationDispatcher notifications,
-    ILogger<RejectCompanyReviewPaymentCommandHandler> logger)
-    : IRequestHandler<RejectCompanyReviewPaymentCommand, bool>
+    ILogger<RejectScholarshipProviderReviewPaymentCommandHandler> logger)
+    : IRequestHandler<RejectScholarshipProviderReviewPaymentCommand, bool>
 {
-    public async Task<bool> Handle(RejectCompanyReviewPaymentCommand request, CancellationToken ct)
+    public async Task<bool> Handle(RejectScholarshipProviderReviewPaymentCommand request, CancellationToken ct)
     {
         var payment = await db.Payments
             .FirstOrDefaultAsync(p =>
-                p.Type == PaymentType.CompanyReview
+                p.Type == PaymentType.ScholarshipProviderReview
                 && p.RelatedApplicationId == request.ApplicationId
                 && (p.Status == PaymentStatus.Held || p.Status == PaymentStatus.Pending),
                 ct);
@@ -41,7 +41,7 @@ public sealed class RejectCompanyReviewPaymentCommandHandler(
         if (payment is null)
         {
             logger.LogInformation(
-                "No held CompanyReview payment to cancel for rejected application {ApplicationId}.",
+                "No held ScholarshipProviderReview payment to cancel for rejected application {ApplicationId}.",
                 request.ApplicationId);
             return false;
         }
@@ -49,7 +49,7 @@ public sealed class RejectCompanyReviewPaymentCommandHandler(
         if (string.IsNullOrWhiteSpace(payment.StripePaymentIntentId))
         {
             logger.LogWarning(
-                "CompanyReview payment {PaymentId} has no Stripe PaymentIntent id; cannot cancel.",
+                "ScholarshipProviderReview payment {PaymentId} has no Stripe PaymentIntent id; cannot cancel.",
                 payment.Id);
             return false;
         }
@@ -75,7 +75,7 @@ public sealed class RejectCompanyReviewPaymentCommandHandler(
             {
                 await notifications.DispatchAsync(
                     application.StudentId,
-                    NotificationType.CompanyReviewRefunded,
+                    NotificationType.ScholarshipProviderReviewRefunded,
                     new NotificationParams { RefundKind = "Rejection" },
                     deepLink: null,
                     idempotencyKey: $"company-review-reject-notice:{payment.Id:N}",
@@ -87,7 +87,7 @@ public sealed class RejectCompanyReviewPaymentCommandHandler(
         catch (Exception ex)
         {
             logger.LogError(ex,
-                "Failed to cancel CompanyReview payment hold for rejected application {ApplicationId}",
+                "Failed to cancel ScholarshipProviderReview payment hold for rejected application {ApplicationId}",
                 request.ApplicationId);
             return false;
         }

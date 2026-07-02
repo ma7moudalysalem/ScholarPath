@@ -65,7 +65,7 @@ public sealed class UpdateProfileCommandHandlerTests
         return (id, user, profile);
     }
 
-    // ── CR-PROF-07: Company verification-sensitive fields ───────────────────
+    // ── CR-PROF-07: ScholarshipProvider verification-sensitive fields ───────────────────
 
     [Fact]
     public async Task Updating_a_verified_companys_legal_name_resets_verification_status()

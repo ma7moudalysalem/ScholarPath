@@ -1,0 +1,12 @@
+\contentsline {section}{\numberline {1}Notation}{1}{section.1}%
+\contentsline {section}{\numberline {2}How the EER constructs were mapped}{2}{section.2}%
+\contentsline {section}{\numberline {3}Relational schema diagrams}{2}{section.3}%
+\contentsline {section}{\numberline {4}Relation schemas (textual)}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Identity, Access \& Profile}{8}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Scholarships, Applications \& Documents}{9}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Consultant Booking, Payments \& Ratings}{10}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Community \& Chat}{11}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Resources Hub \& Notifications}{12}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}AI, Knowledge, Platform \& Cross-cutting}{12}{subsection.4.6}%
+\contentsline {section}{\numberline {5}Referential-integrity summary}{13}{section.5}%
+\contentsline {section}{\numberline {6}Exporting the authoritative SQL}{13}{section.6}%

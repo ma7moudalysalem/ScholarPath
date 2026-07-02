@@ -1,0 +1,416 @@
+' =====================================================================
+'  ScholarPath — UML class diagrams, split per subject area.
+'  Notation matches Section 9 (course UML deck): plain rectangle with THREE
+'  rows (name / attributes / operations) -- "hide circle" drops PlantUML's
+'  stereotype icon and empty members are kept so the three compartments always
+'  show; member style "name : Type" with visibility - private + public
+'  # protected; generalization = hollow triangle, aggregation = hollow diamond,
+'  composition = filled diamond, association = line with multiplicities + roles.
+'
+'  Coverage matches the live EF model (gap-analysis C1-C7 closed):
+'   * C1 — ApplicationUser inherits IdentityUser<Guid> + ISoftDeletable, NOT
+'          AuditableEntity (so the per-figure "all classes : AuditableEntity"
+'          caveat excludes it; see its stereotype).
+'   * C5/C6 — every entity in the area is drawn, incl. token/child/lookup tables
+'          and the UpgradeRequest children.
+'   * C7 — derived members are shown with a leading '/'.
+'  Base-type inheritance is shown ONCE in Class_Base_Types.
+' =====================================================================
+
+@startuml Class_Base_Types
+title Base entity types (domain classes inherit AuditableEntity; USERS is the exception)
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam ranksep 55
+hide circle
+abstract class BaseEntity {
+  -Id : Guid
+  +DomainEvents : IReadOnlyCollection<DomainEvent>
+  +RaiseDomainEvent(e) : void
+  +ClearDomainEvents() : void
+}
+abstract class AuditableEntity {
+  -CreatedAt : DateTimeOffset
+  -CreatedByUserId : Guid?
+  -UpdatedAt : DateTimeOffset?
+  -UpdatedByUserId : Guid?
+  -RowVersion : byte[]
+}
+interface ISoftDeletable {
+  +IsDeleted : bool
+  +DeletedAt : DateTimeOffset?
+  +DeletedByUserId : Guid?
+}
+class DomainEvent <<record>>
+class "IdentityUser<Guid>" as IdentityUser <<framework>>
+class ApplicationUser <<identity>>
+BaseEntity <|-- AuditableEntity
+BaseEntity ..> DomainEvent : raises
+IdentityUser <|-- ApplicationUser
+ApplicationUser ..|> ISoftDeletable
+note bottom of ApplicationUser
+  ApplicationUser does NOT inherit AuditableEntity.
+  It extends IdentityUser<Guid>, implements ISoftDeletable,
+  and carries a stripped audit triple (CreatedAt, UpdatedAt,
+  RowVersion) -- no CreatedByUserId / UpdatedByUserId.
+end note
+@enduml
+
+
+@startuml Class_Identity_Profile
+title Identity & Profile  (all classes : AuditableEntity, except ApplicationUser : IdentityUser<Guid>)
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+class ApplicationUser <<identity + ISoftDeletable>> {
+  -Email : string
+  -FirstName : string
+  -LastName : string
+  -AccountStatus : AccountStatus
+  -ActiveRole : string?
+  -IsOnboardingComplete : bool
+  -LastLoginAt : DateTimeOffset?
+  +/FullName : string
+}
+class ApplicationRole <<: IdentityRole<Guid>>> {
+  -Name : string
+  -Description : string
+}
+class UserProfile {
+  -Biography : string «enc»
+  -Gpa : decimal
+  -OrganizationLegalName : string
+  -SessionFeeUsd : decimal
+  -CompanyAverageRating : decimal
+  -StripeConnectStatus : string
+  -ProfileCompletenessPercent : int
+}
+class EducationEntry {
+  -InstitutionName : string
+  -Degree : string
+  -FieldOfStudy : string
+}
+class ExpertiseTag <<lookup>> {
+  -Slug : string
+  -NameEn : string
+  -Category : string
+}
+class RefreshToken {
+  -TokenHash : string
+  -ExpiresAt : DateTimeOffset
+  -IsRevoked : bool
+}
+class PasswordResetToken {
+  -TokenHash : string
+  -ExpiresAt : DateTimeOffset
+  -UsedAt : DateTimeOffset?
+}
+class LoginAttempt {
+  -Email : string
+  -Succeeded : bool
+  -OccurredAt : DateTimeOffset
+}
+class UpgradeRequest {
+  -Target : UpgradeTarget
+  -Status : UpgradeRequestStatus
+  -Reason : string
+}
+class UpgradeRequestFile {
+  -FileName : string
+  -BlobUrl : string
+}
+class UpgradeRequestLink {
+  -Label : string
+  -Url : string
+}
+ApplicationUser "1" -- "0..1" UserProfile : profile
+ApplicationUser "*" -- "*" ApplicationRole : roles
+UserProfile "1" *-- "*" EducationEntry : education
+ApplicationUser "1" -- "*" RefreshToken : issues
+ApplicationUser "1" -- "*" PasswordResetToken : resets
+ApplicationUser "1" -- "*" LoginAttempt : attempts
+ApplicationUser "1" -- "*" UpgradeRequest : requests
+UpgradeRequest "1" *-- "*" UpgradeRequestFile : files
+UpgradeRequest "1" *-- "*" UpgradeRequestLink : links
+@enduml
+
+
+@startuml Class_Scholarships_Applications
+title Scholarships, Applications & Documents  (all classes : AuditableEntity)
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+class Category {
+  -Slug : string
+  -NameEn : string
+}
+class Scholarship {
+  -Slug : string
+  -Status : ScholarshipStatus
+  -Mode : ListingMode
+  -Deadline : DateTimeOffset
+  -ReviewFeeUsd : decimal?
+}
+class ScholarshipChild {
+  -ChildType : string
+  -KeyEn : string
+  -ValueEn : string
+}
+class SavedScholarship {
+  -SavedAt : DateTimeOffset
+  -Note : string
+}
+class ApplicationTracker {
+  -Status : ApplicationStatus
+  -Mode : ApplicationMode
+  -PersonalNotes : string «enc»
+  +/IsActive : bool
+  +/IsReadOnly : bool
+}
+class ApplicationTrackerChild {
+  -ChildType : string
+  -Content : string
+}
+class Document {
+  -Category : DocumentCategory
+  -StoragePath : string
+}
+class CompanyReviewRequest {
+  -Status : CompanyReviewRequestStatus
+  -ReviewFeeUsdSnapshot : decimal
+}
+class CompanyReview {
+  -Rating : int
+  -IsHiddenByAdmin : bool
+}
+class CompanyReviewPayment <<legacy>> {
+  -Status : string
+  -StripePaymentIntentId : string
+}
+Category "0..1" -- "*" Scholarship : classifies
+Scholarship "1" *-- "*" ScholarshipChild : details
+Scholarship "1" -- "*" SavedScholarship : bookmarks
+Scholarship "0..1" -- "*" ApplicationTracker : receives
+ApplicationTracker "1" *-- "*" ApplicationTrackerChild : history
+ApplicationTracker "0..1" -- "0..*" Document : supportedBy
+ApplicationTracker "1" -- "0..1" CompanyReview : ratedBy
+Scholarship "1" -- "*" CompanyReviewRequest : under
+@enduml
+
+
+@startuml Class_Booking_Payments_Ratings
+title Booking, Payments & Ratings  (all classes : AuditableEntity)
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+class ConsultantAvailability {
+  -IsRecurring : bool
+  -IsActive : bool
+}
+class ConsultantBooking {
+  -ScheduledStartAt : DateTimeOffset
+  -PriceUsd : decimal
+  -Status : BookingStatus
+  -RecordingStartedAt : DateTimeOffset?
+  -NoShowMarkedAt : DateTimeOffset?
+  -StudentJoinedAt : DateTimeOffset?
+  -ConsultantJoinedAt : DateTimeOffset?
+}
+class Payment {
+  -Type : PaymentType
+  -Status : PaymentStatus
+  -AmountCents : long
+  -IdempotencyKey : string
+}
+class Payout {
+  -AmountCents : long
+  -Status : PayoutStatus
+  -IncludedPaymentIdsJson : string
+}
+class ConsultantReview {
+  -Rating : int
+  -IsHiddenByAdmin : bool
+}
+class SessionRecording {
+  -RecordingId : string
+  -StoragePath : string
+}
+class StripeWebhookEvent {
+  -StripeEventId : string
+  -EventType : string
+  -IsProcessed : bool
+}
+class ProfitShareConfig {
+  -PaymentType : PaymentType
+  -Percentage : decimal
+}
+class FinancialConfigRule {
+  -PaymentType : PaymentType
+  -Status : FinancialRuleStatus
+}
+ConsultantAvailability "0..1" -- "*" ConsultantBooking : reserves
+ConsultantBooking "1" -- "0..1" Payment : settledBy
+ConsultantBooking "1" -- "0..1" ConsultantReview : ratedBy
+ConsultantBooking "1" *-- "*" SessionRecording : recordedAs
+Payout "1" o-- "*" Payment : aggregates
+@enduml
+
+
+@startuml Class_Community_Chat
+title Community & Chat  (all classes : AuditableEntity)
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+class ForumCategory {
+  -Slug : string
+  -IsActive : bool
+}
+class ForumPost {
+  -Title : string
+  -ModerationStatus : PostModerationStatus
+  -UpvoteCount : int
+  -FlagCount : int
+}
+class ForumPostAttachment {
+  -FileName : string
+  -BlobUrl : string
+}
+class ForumVote {
+  -VoteType : VoteType
+}
+class ForumFlag {
+  -Reason : string
+  -IsValid : bool
+}
+class ForumBookmark {
+  -CreatedAt : DateTimeOffset
+}
+class ForumTag {
+  -Slug : string
+}
+class ForumPostTag <<composite PK>> {
+  -ForumPostId : Guid
+  -ForumTagId : Guid
+}
+class ChatConversation {
+  -LastMessageAt : DateTimeOffset
+}
+class ChatMessage {
+  -Body : string
+  -SentAt : DateTimeOffset
+}
+class UserBlock {
+  -Reason : string
+}
+ForumCategory "0..1" -- "*" ForumPost : groups
+ForumPost "0..1" -- "*" ForumPost : parent (reply)
+ForumPost "1" *-- "*" ForumPostAttachment : attaches
+ForumPost "1" -- "*" ForumVote : votes
+ForumPost "1" -- "*" ForumFlag : flags
+ForumPost "1" -- "*" ForumBookmark : bookmarks
+ForumPost "*" -- "*" ForumTag : tagged via ForumPostTag
+ChatConversation "1" *-- "*" ChatMessage : messages
+@enduml
+
+
+@startuml Class_Resources_Notifications
+title Resources Hub & Notifications  (all classes : AuditableEntity)
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+class Resource {
+  -Slug : string
+  -Type : ResourceType
+  -Status : ResourceStatus
+}
+class ResourceChild {
+  -TitleEn : string
+  -SortOrder : int
+}
+class ResourceBookmark {
+  -BookmarkedAt : DateTimeOffset
+}
+class ResourceProgress {
+  -ChaptersCompletedCount : int
+  -LastAccessedAt : DateTimeOffset
+}
+class ResourceProgressChild {
+  -IsCompleted : bool
+}
+class Notification {
+  -Type : NotificationType
+  -Channel : NotificationChannel
+  -IsRead : bool
+}
+class NotificationPreference {
+  -Type : NotificationType
+  -Channel : NotificationChannel
+  -IsEnabled : bool
+}
+Resource "1" *-- "*" ResourceChild : chapters
+Resource "1" -- "*" ResourceBookmark : savedBy
+Resource "1" -- "*" ResourceProgress : trackedIn
+ResourceProgress "1" *-- "*" ResourceProgressChild : perChapter
+@enduml
+
+
+@startuml Class_AI_Platform
+title AI, Knowledge, Platform & Cross-cutting  (all classes : AuditableEntity unless noted)
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+class AiInteraction {
+  -Feature : AiFeature
+  -Provider : AiProvider
+  -CostUsd : decimal
+}
+class RecommendationClickEvent <<: BaseEntity>> {
+  -Source : string
+  -ClickedAt : DateTimeOffset
+}
+class AiRedactionAuditSample <<: BaseEntity>> {
+  -Verdict : RedactionVerdict?
+  -SampledAt : DateTimeOffset
+}
+class KnowledgeDocument {
+  -SourceType : KnowledgeSourceType
+  -SourceKey : string
+  +/IsEmbedded : bool
+}
+class AuditLog <<: BaseEntity>> {
+  -Action : AuditAction
+  -TargetType : string
+  -TargetId : Guid? «polymorphic»
+}
+class UserDataRequest {
+  -Type : DataRequestType
+  -Status : DataRequestStatus
+}
+class SuccessStory {
+  -HeadlineEn : string
+  -IsApproved : bool
+  -IsFeatured : bool
+}
+class UserRiskFlag <<: BaseEntity>> {
+  -Score : decimal
+  -IsAtRisk : bool
+}
+class PlatformSetting {
+  -Key : string
+  -ValueType : PlatformSettingType
+}
+AiInteraction "1" -- "0..1" AiRedactionAuditSample : sampled
+AiInteraction "1" -- "*" RecommendationClickEvent : aiAttributed
+@enduml

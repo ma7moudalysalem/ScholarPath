@@ -1,0 +1,367 @@
+' =====================================================================
+'  ScholarPath — UML Class Diagrams (PlantUML)
+'  Two diagrams: (1) domain model, (2) ports & adapters.
+'  Render: plantuml.com  /  VS Code "PlantUML"  /  java -jar plantuml.jar
+' =====================================================================
+
+@startuml ScholarPath_Domain_Model
+title ScholarPath — Domain Model (UML class diagram)
+skinparam classAttributeIconSize 0
+hide circle
+skinparam linetype ortho
+
+abstract class BaseEntity {
+  +Guid Id
+  +IReadOnlyCollection<DomainEvent> DomainEvents
+  +RaiseDomainEvent(e) : void
+  +ClearDomainEvents() : void
+}
+abstract class AuditableEntity {
+  +DateTimeOffset CreatedAt
+  +Guid? CreatedByUserId
+  +DateTimeOffset? UpdatedAt
+  +Guid? UpdatedByUserId
+  +byte[]? RowVersion
+}
+interface ISoftDeletable {
+  +bool IsDeleted
+  +DateTimeOffset? DeletedAt
+  +Guid? DeletedByUserId
+}
+class "IdentityUser<Guid>" as IdentityUser <<ASP.NET Identity>>
+class "IdentityRole<Guid>" as IdentityRole <<ASP.NET Identity>>
+BaseEntity <|-- AuditableEntity
+
+package "Identity & Profile" {
+  class ApplicationUser {
+    +string Email
+    +string FirstName
+    +string LastName
+    +AccountStatus AccountStatus
+    +string? ActiveRole
+    +bool IsOnboardingComplete
+    +FullName() : string
+  }
+  class ApplicationRole {
+    +string Name
+  }
+  class UserProfile {
+    +decimal? Gpa
+    +decimal? SessionFeeUsd
+    +decimal? CompanyAverageRating
+    +StripeConnectStatus StripeConnectStatus
+    +int? ProfileCompletenessPercent
+  }
+  class EducationEntry {
+    +string InstitutionName
+    +string Degree
+  }
+  class UpgradeRequest {
+    +UpgradeTarget Target
+    +UpgradeRequestStatus Status
+  }
+}
+
+package "Scholarships & Applications" {
+  class Scholarship {
+    +string Slug
+    +ScholarshipStatus Status
+    +ListingMode Mode
+    +DateTimeOffset Deadline
+    +decimal? ReviewFeeUsd
+  }
+  class ApplicationTracker {
+    +ApplicationStatus Status
+    +ApplicationMode Mode
+    +IsActive() : bool
+    +IsReadOnly() : bool
+  }
+  class Document {
+    +DocumentCategory Category
+    +string StoragePath
+  }
+  class CompanyReviewRequest {
+    +CompanyReviewRequestStatus Status
+    +decimal ReviewFeeUsdSnapshot
+  }
+  class CompanyReview {
+    +int Rating
+    +bool IsHiddenByAdmin
+  }
+}
+
+package "Booking, Payments & Ratings" {
+  class ConsultantAvailability {
+    +bool IsRecurring
+    +bool IsActive
+  }
+  class ConsultantBooking {
+    +DateTimeOffset ScheduledStartAt
+    +decimal PriceUsd
+    +BookingStatus Status
+  }
+  class Payment {
+    +PaymentType Type
+    +PaymentStatus Status
+    +long AmountCents
+    +string IdempotencyKey
+  }
+  class Payout {
+    +long AmountCents
+    +PayoutStatus Status
+  }
+  class ConsultantReview {
+    +int Rating
+    +bool IsHiddenByAdmin
+  }
+  class SessionRecording {
+    +string RecordingId
+    +string StoragePath
+  }
+}
+
+package "Community, Chat & Resources" {
+  class ForumPost {
+    +string Title
+    +PostModerationStatus ModerationStatus
+    +int UpvoteCount
+    +int FlagCount
+  }
+  class ForumTag {
+    +string Slug
+  }
+  class ChatConversation
+  class ChatMessage {
+    +string Body
+  }
+  class Resource {
+    +string Slug
+    +ResourceType Type
+    +ResourceStatus Status
+  }
+}
+
+package "AI & Cross-cutting" {
+  class AiInteraction {
+    +AiFeature Feature
+    +AiProvider Provider
+    +decimal CostUsd
+  }
+  class KnowledgeDocument {
+    +KnowledgeSourceType SourceType
+    +byte[] Embedding
+  }
+  class Notification {
+    +NotificationType Type
+    +NotificationChannel Channel
+    +bool IsRead
+  }
+  class AuditLog {
+    +AuditAction Action
+    +string TargetType
+  }
+}
+
+' inheritance
+AuditableEntity <|-- UserProfile
+AuditableEntity <|-- EducationEntry
+AuditableEntity <|-- UpgradeRequest
+AuditableEntity <|-- Scholarship
+AuditableEntity <|-- ApplicationTracker
+AuditableEntity <|-- Document
+AuditableEntity <|-- CompanyReviewRequest
+AuditableEntity <|-- CompanyReview
+AuditableEntity <|-- ConsultantAvailability
+AuditableEntity <|-- ConsultantBooking
+AuditableEntity <|-- Payment
+AuditableEntity <|-- Payout
+AuditableEntity <|-- ConsultantReview
+AuditableEntity <|-- SessionRecording
+AuditableEntity <|-- ForumPost
+AuditableEntity <|-- ChatConversation
+AuditableEntity <|-- ChatMessage
+AuditableEntity <|-- Resource
+AuditableEntity <|-- AiInteraction
+AuditableEntity <|-- KnowledgeDocument
+AuditableEntity <|-- Notification
+IdentityUser <|-- ApplicationUser
+IdentityRole <|-- ApplicationRole
+ISoftDeletable <|.. ApplicationUser
+ISoftDeletable <|.. Scholarship
+ISoftDeletable <|.. ApplicationTracker
+ISoftDeletable <|.. ConsultantBooking
+
+' associations
+ApplicationUser "1" -- "0..1" UserProfile : profile >
+UserProfile "1" *-- "0..*" EducationEntry : education >
+ApplicationUser "1" -- "0..*" UpgradeRequest : requests >
+ApplicationUser "1" o-- "0..*" Scholarship : owns(company) >
+Scholarship "0..1" -- "0..*" ApplicationTracker : receives >
+ApplicationUser "1" -- "0..*" ApplicationTracker : submits(student) >
+ApplicationUser "1" -- "0..*" Document : owns >
+ApplicationTracker "0..1" -- "0..*" Document : supportedBy >
+ApplicationTracker "1" -- "0..1" CompanyReview : ratedBy >
+Scholarship "1" -- "0..*" CompanyReviewRequest : under >
+ApplicationUser "1" o-- "0..*" ConsultantAvailability : publishes >
+ApplicationUser "1" -- "0..*" ConsultantBooking : books(student) >
+ApplicationUser "1" -- "0..*" ConsultantBooking : conducts(consultant) >
+ConsultantAvailability "0..1" -- "0..*" ConsultantBooking : reserves >
+ConsultantBooking "1" -- "0..1" Payment : settledBy >
+ConsultantBooking "1" -- "0..1" ConsultantReview : ratedBy >
+ConsultantBooking "1" *-- "0..*" SessionRecording : recordedAs >
+Payout "1" o-- "0..*" Payment : aggregates >
+ForumPost "1" -- "0..*" ForumPost : replies >
+ForumPost "0..*" -- "0..*" ForumTag : tagged >
+ChatConversation "1" *-- "0..*" ChatMessage : messages >
+AiInteraction ..> KnowledgeDocument : cites (RAG, via MetadataJson — no FK)
+@enduml
+
+
+@startuml ScholarPath_Ports_Adapters
+title ScholarPath — Ports & Adapters (Clean Architecture seam)\nport (interface) <|.. adapter ; «dev stub» = configuration-selected fall-back
+skinparam classAttributeIconSize 0
+hide circle
+hide empty members
+left to right direction
+skinparam nodesep 6
+skinparam ranksep 90
+
+package "Application + Domain — Ports (interfaces)" as PORTS {
+  interface IApplicationDbContext
+  interface ITokenService
+  interface IPasswordHasher
+  interface ISsoService
+  interface IEmailVerificationService
+  interface IEmailChangeService
+  interface IStripeService
+  interface IMeetingService
+  interface IEmailService
+  interface IBlobStorageService
+  interface IFileScanService
+  interface IAiService
+  interface IEmbeddingService
+  interface IKnowledgeRetriever
+  interface IKnowledgeBaseIndexer
+  interface IDatasetProvider
+  interface IFieldEncryptionService
+  interface IFieldEncryptionKeyProvider
+  interface IJwtKeyProvider
+  interface IEventPublisher
+  interface IPowerBiService
+  interface INotificationDispatcher
+  interface IChatRealtimeNotifier
+  interface ICommunityRealtimeNotifier
+  interface IChatPresenceQuery
+  interface IAuditService
+  interface IUserAdministration
+  interface IAdminReadService
+  interface IConsultantReadService
+  interface IChatContactReadService
+  interface ICurrentUserService
+  interface IDateTimeService
+  interface "13 job ports (Hangfire)" as IJobs
+}
+
+package "Infrastructure — Adapters (« » = dev / config fall-back)" as ADAPTERS {
+  class ApplicationDbContext
+  class TokenService
+  class IdentityPasswordHasher
+  class SsoService
+  class StubSsoService <<dev>>
+  class EmailVerificationService
+  class EmailChangeService
+  class StripeService
+  class StubStripeService <<dev>>
+  class AzureCommunicationMeetingService
+  class StubMeetingService <<dev>>
+  class MailKitEmailService
+  class StubEmailService <<dev>>
+  class FileStorageService
+  class ClamAvFileScanService
+  class NoOpFileScanService <<dev>>
+  class AzureOpenAiService
+  class OpenAiService <<OpenAI direct>>
+  class LocalAiService <<offline>>
+  class AzureOpenAiEmbeddingService
+  class OpenAiEmbeddingService
+  class LocalEmbeddingService <<dev>>
+  class KnowledgeRetriever
+  class KnowledgeBaseIndexer
+  class EmbeddedDatasetProvider
+  class AesGcmFieldEncryptionService
+  class KeyVaultFieldEncryptionKeyProvider <<Key Vault>>
+  class LocalFieldEncryptionKeyProvider <<dev>>
+  class KeyVaultJwtKeyProvider <<Key Vault>>
+  class LocalJwtKeyProvider <<dev>>
+  class EventHubPublisher
+  class StubEventPublisher <<dev>>
+  class PowerBiService
+  class StubPowerBiService <<dev>>
+  class NotificationDispatcher
+  class ChatRealtimeNotifier
+  class CommunityRealtimeNotifier
+  class PresenceTracker
+  class AuditService
+  class UserAdministration
+  class AdminReadService
+  class ConsultantReadService
+  class ChatContactReadService
+  class CurrentUserService
+  class DateTimeService
+  class "13 job classes" as Jobs
+}
+
+IApplicationDbContext <|.. ApplicationDbContext
+ITokenService <|.. TokenService
+IPasswordHasher <|.. IdentityPasswordHasher
+ISsoService <|.. SsoService
+ISsoService <|.. StubSsoService
+IEmailVerificationService <|.. EmailVerificationService
+IEmailChangeService <|.. EmailChangeService
+IStripeService <|.. StripeService
+IStripeService <|.. StubStripeService
+IMeetingService <|.. AzureCommunicationMeetingService
+IMeetingService <|.. StubMeetingService
+IEmailService <|.. MailKitEmailService
+IEmailService <|.. StubEmailService
+IBlobStorageService <|.. FileStorageService
+IFileScanService <|.. ClamAvFileScanService
+IFileScanService <|.. NoOpFileScanService
+IAiService <|.. AzureOpenAiService
+IAiService <|.. OpenAiService
+IAiService <|.. LocalAiService
+IEmbeddingService <|.. AzureOpenAiEmbeddingService
+IEmbeddingService <|.. OpenAiEmbeddingService
+IEmbeddingService <|.. LocalEmbeddingService
+IKnowledgeRetriever <|.. KnowledgeRetriever
+IKnowledgeBaseIndexer <|.. KnowledgeBaseIndexer
+IDatasetProvider <|.. EmbeddedDatasetProvider
+IFieldEncryptionService <|.. AesGcmFieldEncryptionService
+IFieldEncryptionKeyProvider <|.. KeyVaultFieldEncryptionKeyProvider
+IFieldEncryptionKeyProvider <|.. LocalFieldEncryptionKeyProvider
+IJwtKeyProvider <|.. KeyVaultJwtKeyProvider
+IJwtKeyProvider <|.. LocalJwtKeyProvider
+IEventPublisher <|.. EventHubPublisher
+IEventPublisher <|.. StubEventPublisher
+IPowerBiService <|.. PowerBiService
+IPowerBiService <|.. StubPowerBiService
+INotificationDispatcher <|.. NotificationDispatcher
+IChatRealtimeNotifier <|.. ChatRealtimeNotifier
+ICommunityRealtimeNotifier <|.. CommunityRealtimeNotifier
+IChatPresenceQuery <|.. PresenceTracker
+IAuditService <|.. AuditService
+IUserAdministration <|.. UserAdministration
+IAdminReadService <|.. AdminReadService
+IConsultantReadService <|.. ConsultantReadService
+IChatContactReadService <|.. ChatContactReadService
+ICurrentUserService <|.. CurrentUserService
+IDateTimeService <|.. DateTimeService
+IJobs <|.. Jobs
+note bottom of Jobs
+  IBookingReminderJob · IScholarshipAutoCloseJob · IMeetingNoShowSweepJob ·
+  ISessionExpiryJob · ICompletionJob · IStripePayoutJob · IDataExportJob ·
+  IDataDeleteJob · IRedactionAuditSamplingJob · ICompanyReviewTimeoutRefundJob ·
+  IIntegrityCheckJob · INotificationDispatcherJob · IDeadlineReminderJob
+  (Infrastructure/Jobs; scheduled only when Hangfire:Enabled = true)
+end note
+@enduml

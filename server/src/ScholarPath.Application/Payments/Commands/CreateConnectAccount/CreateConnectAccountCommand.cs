@@ -68,7 +68,7 @@ public sealed class CreateConnectAccountCommandHandler(
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
         // Only payees (consultants and companies) onboard to receive payouts.
-        if (!currentUser.IsInRole("Consultant") && !currentUser.IsInRole("Company"))
+        if (!currentUser.IsInRole("Consultant") && !currentUser.IsInRole("ScholarshipProvider"))
             throw new ForbiddenAccessException(
                 "Only consultants and companies can onboard for payouts.");
 

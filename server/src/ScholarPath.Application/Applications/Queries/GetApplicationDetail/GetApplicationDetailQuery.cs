@@ -14,7 +14,7 @@ public sealed record ApplicationDetailDto(
     Guid? ScholarshipId,
     string ScholarshipTitleEn,
     string ScholarshipTitleAr,
-    string? CompanyName,
+    string? ScholarshipProviderName,
     ApplicationStatus Status,
     ApplicationMode Mode,
     string? FormDataJson,
@@ -30,7 +30,7 @@ public sealed record ApplicationDetailDto(
     DateTimeOffset? ReviewStartedAt,
     DateTimeOffset? DecisionAt,
     // Surfaced so the student UI can decide whether to gate "Submit" behind
-    // a CompanyReview payment confirmation. Null/0 = no fee required.
+    // a ScholarshipProviderReview payment confirmation. Null/0 = no fee required.
     decimal? ReviewFeeUsd);
 
 // ─── Query ────────────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ public sealed class GetApplicationDetailQueryHandler(
         var application = await db.Applications
             .AsNoTracking()
             .Include(a => a.Scholarship)
-                .ThenInclude(s => s!.OwnerCompany)
+                .ThenInclude(s => s!.OwnerScholarshipProvider)
             .FirstOrDefaultAsync(a => a.Id == request.ApplicationId && !a.IsDeleted, ct);
 
         if (application is null)
@@ -74,7 +74,7 @@ public sealed class GetApplicationDetailQueryHandler(
             application.ScholarshipId,
             scholarship?.TitleEn ?? application.ExternalTitle ?? "N/A",
             scholarship?.TitleAr ?? application.ExternalTitle ?? "غير محدد",
-            scholarship?.OwnerCompany?.FullName ?? application.ExternalProvider,
+            scholarship?.OwnerScholarshipProvider?.FullName ?? application.ExternalProvider,
             application.Status,
             application.Mode,
             application.FormDataJson,

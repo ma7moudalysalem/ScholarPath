@@ -29,7 +29,7 @@ public sealed class ProfitShareConfigResolverTests
 
     [Theory]
     [InlineData(PaymentType.ConsultantBooking)]
-    [InlineData(PaymentType.CompanyReview)]
+    [InlineData(PaymentType.ScholarshipProviderReview)]
     public async Task Falls_back_to_the_default_rate_when_no_config_exists(PaymentType type)
     {
         using var db = CreateDb();
@@ -63,13 +63,13 @@ public sealed class ProfitShareConfigResolverTests
         // EffectiveTo == null, would have missed this and used the default).
         using var db = CreateDb();
         db.ProfitShareConfigs.Add(Config(
-            PaymentType.CompanyReview, 0.18m,
+            PaymentType.ScholarshipProviderReview, 0.18m,
             DateTimeOffset.UtcNow.AddDays(-3),
             effectiveTo: DateTimeOffset.UtcNow.AddDays(3)));
         await db.SaveChangesAsync();
 
         var pct = await ProfitShareConfigResolver.ResolveActivePercentageAsync(
-            db, PaymentType.CompanyReview, default);
+            db, PaymentType.ScholarshipProviderReview, default);
 
         pct.Should().Be(0.18m);
     }
@@ -129,15 +129,15 @@ public sealed class ProfitShareConfigResolverTests
     {
         using var db = CreateDb();
         db.ProfitShareConfigs.Add(Config(
-            PaymentType.CompanyReview, 0.40m,
+            PaymentType.ScholarshipProviderReview, 0.40m,
             DateTimeOffset.UtcNow.AddDays(-1), effectiveTo: null));
         await db.SaveChangesAsync();
 
-        // ConsultantBooking has no config — it must not pick up the CompanyReview row.
+        // ConsultantBooking has no config — it must not pick up the ScholarshipProviderReview row.
         var booking = await ProfitShareConfigResolver.ResolveActivePercentageAsync(
             db, PaymentType.ConsultantBooking, default);
         var review = await ProfitShareConfigResolver.ResolveActivePercentageAsync(
-            db, PaymentType.CompanyReview, default);
+            db, PaymentType.ScholarshipProviderReview, default);
 
         booking.Should().Be(ProfitShareCalculator.DefaultPercentage(PaymentType.ConsultantBooking));
         review.Should().Be(0.40m);

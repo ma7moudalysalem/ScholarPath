@@ -1,0 +1,33 @@
+% ScholarPath — Data-Model REFERENCE poster (A0 portrait, vector) — full atlas
+\documentclass{article}
+\usepackage[paperwidth=841mm,paperheight=1189mm,margin=16mm]{geometry}
+\usepackage{graphicx}\graphicspath{{../img/}}
+\usepackage{xcolor}\definecolor{spblue}{HTML}{1F4E79}\definecolor{spteal}{HTML}{2C7A7B}
+\pagestyle{empty}\setlength{\parindent}{0pt}
+\newcommand{\cell}[2]{\begin{minipage}[t]{0.325\textwidth}\centering
+\includegraphics[width=\linewidth,height=188mm,keepaspectratio]{#1}\\[1.5mm]{\footnotesize\color{spblue}\bfseries #2}\end{minipage}}
+\newcommand{\rowgap}{\par\vspace{7mm}}
+\begin{document}
+\begin{center}
+{\color{spblue}\fontsize{56}{64}\selectfont\bfseries ScholarPath — Data-Model Atlas}\\[4mm]
+{\color{spteal}\fontsize{28}{34}\selectfont Conceptual ERD · Enhanced ER (Chen/Elmasri) · Relational Mapping}
+\end{center}
+\vspace{8mm}
+\cell{ScholarPath_ERD_Basic.pdf}{(1) Basic conceptual ERD}\hfill
+\cell{ScholarPath_EERD_Core.pdf}{(2) EERD — conceptual master (Chen)}\hfill
+\cell{eer-specialization.pdf}{(2) USER specialization (EER ISA)}\rowgap
+\cell{EERD_Identity_Profile.pdf}{EERD · Identity \& Profile}\hfill
+\cell{EERD_Scholarships_Applications.pdf}{EERD · Scholarships \& Applications}\hfill
+\cell{EERD_Booking_Payments_Ratings.pdf}{EERD · Booking, Payments \& Ratings}\rowgap
+\cell{EERD_Community_Chat.pdf}{EERD · Community \& Chat}\hfill
+\cell{EERD_Resources_Notifications.pdf}{EERD · Resources \& Notifications}\hfill
+\cell{EERD_AI_Knowledge_Platform.pdf}{EERD · AI, Knowledge \& Platform}\rowgap
+\cell{RelMap_Identity_Profile.pdf}{(3) Relations · Identity \& Profile}\hfill
+\cell{RelMap_Scholarships_Applications.pdf}{(3) Relations · Scholarships \& Apps}\hfill
+\cell{RelMap_Booking_Payments_Ratings.pdf}{(3) Relations · Booking \& Payments}\rowgap
+\cell{RelMap_Community_Chat.pdf}{(3) Relations · Community \& Chat}\hfill
+\cell{RelMap_Resources_Notifications.pdf}{(3) Relations · Resources \& Notif.}\hfill
+\cell{RelMap_AI_Platform.pdf}{(3) Relations · AI \& Platform}
+\vfill
+\begin{center}{\color{spblue!70}\normalsize 62 tables · code-derived from the live EF Core model \& Azure SQL schema}\end{center}
+\end{document}

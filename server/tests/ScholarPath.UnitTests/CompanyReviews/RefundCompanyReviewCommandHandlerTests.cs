@@ -8,32 +8,32 @@ using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
-using ScholarPath.Application.CompanyReviews.Commands.RefundCompanyReview;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.RefundScholarshipProviderReview;
 
-namespace ScholarPath.UnitTests.CompanyReviews;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviews;
 
 /// <summary>
-/// Verifies PB-005 v1 CompanyReview refund behaviour against the unified
-/// <see cref="Payment"/> table (the legacy <c>CompanyReviewPayment</c> table
+/// Verifies PB-005 v1 ScholarshipProviderReview refund behaviour against the unified
+/// <see cref="Payment"/> table (the legacy <c>ScholarshipProviderReviewPayment</c> table
 /// is no longer used for the active flow).
 /// </summary>
-public sealed class RefundCompanyReviewCommandHandlerTests : IDisposable
+public sealed class RefundScholarshipProviderReviewCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly IStripeService _stripe = Substitute.For<IStripeService>();
     private readonly INotificationDispatcher _notifications = Substitute.For<INotificationDispatcher>();
-    private readonly ILogger<RefundCompanyReviewCommandHandler> _logger =
-        Substitute.For<ILogger<RefundCompanyReviewCommandHandler>>();
-    private readonly RefundCompanyReviewCommandHandler _handler;
+    private readonly ILogger<RefundScholarshipProviderReviewCommandHandler> _logger =
+        Substitute.For<ILogger<RefundScholarshipProviderReviewCommandHandler>>();
+    private readonly RefundScholarshipProviderReviewCommandHandler _handler;
 
-    public RefundCompanyReviewCommandHandlerTests()
+    public RefundScholarshipProviderReviewCommandHandlerTests()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _db = new ApplicationDbContext(options);
 
-        _handler = new RefundCompanyReviewCommandHandler(
+        _handler = new RefundScholarshipProviderReviewCommandHandler(
             _db, _stripe, _notifications, _logger);
     }
 
@@ -44,7 +44,7 @@ public sealed class RefundCompanyReviewCommandHandlerTests : IDisposable
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
-            Type = PaymentType.CompanyReview,
+            Type = PaymentType.ScholarshipProviderReview,
             Status = PaymentStatus.Held,
             AmountCents = amountCents,
             Currency = "USD",
@@ -87,7 +87,7 @@ public sealed class RefundCompanyReviewCommandHandlerTests : IDisposable
                 payment.StripePaymentIntentId!, "canceled", null, null));
 
         var result = await _handler.Handle(
-            new RefundCompanyReviewCommand(appId, IsFullRefund: true), default);
+            new RefundScholarshipProviderReviewCommand(appId, IsFullRefund: true), default);
 
         result.Should().BeTrue();
         payment.Status.Should().Be(PaymentStatus.Cancelled);
@@ -118,7 +118,7 @@ public sealed class RefundCompanyReviewCommandHandlerTests : IDisposable
             .Returns(new StripeRefundResult("re_full", "succeeded", 10_000));
 
         var result = await _handler.Handle(
-            new RefundCompanyReviewCommand(appId, IsFullRefund: true), default);
+            new RefundScholarshipProviderReviewCommand(appId, IsFullRefund: true), default);
 
         result.Should().BeTrue();
         payment.Status.Should().Be(PaymentStatus.Refunded);
@@ -144,7 +144,7 @@ public sealed class RefundCompanyReviewCommandHandlerTests : IDisposable
             .Returns(new StripeRefundResult("re_half", "succeeded", 5_000));
 
         var result = await _handler.Handle(
-            new RefundCompanyReviewCommand(appId, IsFullRefund: false), default);
+            new RefundScholarshipProviderReviewCommand(appId, IsFullRefund: false), default);
 
         result.Should().BeTrue();
         payment.Status.Should().Be(PaymentStatus.PartiallyRefunded);
@@ -158,7 +158,7 @@ public sealed class RefundCompanyReviewCommandHandlerTests : IDisposable
     public async Task Returns_false_when_no_companyreview_payment_exists()
     {
         var result = await _handler.Handle(
-            new RefundCompanyReviewCommand(Guid.NewGuid(), IsFullRefund: true), default);
+            new RefundScholarshipProviderReviewCommand(Guid.NewGuid(), IsFullRefund: true), default);
 
         result.Should().BeFalse();
         await _stripe.DidNotReceiveWithAnyArgs()
@@ -188,7 +188,7 @@ public sealed class RefundCompanyReviewCommandHandlerTests : IDisposable
         await _db.SaveChangesAsync();
 
         var result = await _handler.Handle(
-            new RefundCompanyReviewCommand(appId, IsFullRefund: true), default);
+            new RefundScholarshipProviderReviewCommand(appId, IsFullRefund: true), default);
 
         result.Should().BeFalse();
         await _stripe.DidNotReceiveWithAnyArgs()

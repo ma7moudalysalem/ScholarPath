@@ -80,16 +80,16 @@ namespace ScholarPath.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Company,Admin,SuperAdmin")]
+        [Authorize(Roles = "ScholarshipProvider,Admin,SuperAdmin")]
         public async Task<ActionResult<Guid>> Create(CreateScholarshipCommand command)
         {
             return await mediator.Send(command);
         }
 
-        // Company edits one of its own listings — title/description/category/deadline only.
+        // ScholarshipProvider edits one of its own listings — title/description/category/deadline only.
         // FundingType and TargetLevel are create-only; the update command doesn't accept them.
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Company")]
+        [Authorize(Roles = "ScholarshipProvider")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -113,7 +113,7 @@ namespace ScholarPath.API.Controllers
 
         // Soft-delete (archive) — owning company or any Admin.
         [HttpDelete("{id:guid}")]
-        [Authorize(Roles = "Company,Admin,SuperAdmin")]
+        [Authorize(Roles = "ScholarshipProvider,Admin,SuperAdmin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -146,7 +146,7 @@ namespace ScholarPath.API.Controllers
 
         // PB-005: company configures the per-scholarship review fee.
         [HttpPost("{id:guid}/review-fee")]
-        [Authorize(Roles = "Company,Admin,SuperAdmin")]
+        [Authorize(Roles = "ScholarshipProvider,Admin,SuperAdmin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -157,9 +157,9 @@ namespace ScholarPath.API.Controllers
             return NoContent();
         }
 
-        // ── Company: my own scholarships ─────────────────────────────────────
+        // ── ScholarshipProvider: my own scholarships ─────────────────────────────────────
         [HttpGet("mine")]
-        [Authorize(Roles = "Company")]
+        [Authorize(Roles = "ScholarshipProvider")]
         [ProducesResponseType(typeof(IReadOnlyList<MyScholarshipDto>), StatusCodes.Status200OK)]
         public async Task<IActionResult> Mine(CancellationToken ct)
             => Ok(await mediator.Send(new GetMyScholarshipsQuery(), ct));

@@ -7,36 +7,36 @@ using ScholarPath.Application.FinancialConfig;
 using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
-namespace ScholarPath.Application.CompanyReviews.Commands.CaptureCompanyReviewPayment;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Commands.CaptureScholarshipProviderReviewPayment;
 
 [Auditable(AuditAction.PaymentCaptured, "Payment",
     TargetIdProperty = nameof(ApplicationId),
-    SummaryTemplate = "Captured CompanyReview payment for application {ApplicationId}")]
-public sealed record CaptureCompanyReviewPaymentCommand(
+    SummaryTemplate = "Captured ScholarshipProviderReview payment for application {ApplicationId}")]
+public sealed record CaptureScholarshipProviderReviewPaymentCommand(
     Guid ApplicationId) : IRequest<bool>;
 
 /// <summary>
-/// Captures the held CompanyReview PaymentIntent on the unified
+/// Captures the held ScholarshipProviderReview PaymentIntent on the unified
 /// <see cref="Domain.Entities.Payment"/> row identified by
-/// <c>Type == CompanyReview &amp;&amp; RelatedApplicationId == ApplicationId</c>.
+/// <c>Type == ScholarshipProviderReview &amp;&amp; RelatedApplicationId == ApplicationId</c>.
 /// Called when the company finalises the application review (Accepted).
 /// </summary>
-public sealed class CaptureCompanyReviewPaymentCommandHandler(
+public sealed class CaptureScholarshipProviderReviewPaymentCommandHandler(
     IApplicationDbContext db,
     IStripeService stripeService,
     INotificationDispatcher notifications,
-    ILogger<CaptureCompanyReviewPaymentCommandHandler> logger)
-    : IRequestHandler<CaptureCompanyReviewPaymentCommand, bool>
+    ILogger<CaptureScholarshipProviderReviewPaymentCommandHandler> logger)
+    : IRequestHandler<CaptureScholarshipProviderReviewPaymentCommand, bool>
 {
-    public async Task<bool> Handle(CaptureCompanyReviewPaymentCommand request, CancellationToken ct)
+    public async Task<bool> Handle(CaptureScholarshipProviderReviewPaymentCommand request, CancellationToken ct)
     {
-        // Look up the held CompanyReview Payment for this application. We accept
+        // Look up the held ScholarshipProviderReview Payment for this application. We accept
         // Held *or* Pending because the Stripe `amount_capturable_updated`
         // webhook may not have landed yet — the capture call itself proves the
         // intent is in `requires_capture`.
         var payment = await db.Payments
             .FirstOrDefaultAsync(p =>
-                p.Type == PaymentType.CompanyReview
+                p.Type == PaymentType.ScholarshipProviderReview
                 && p.RelatedApplicationId == request.ApplicationId
                 && (p.Status == PaymentStatus.Held || p.Status == PaymentStatus.Pending),
                 ct);
@@ -44,7 +44,7 @@ public sealed class CaptureCompanyReviewPaymentCommandHandler(
         if (payment is null)
         {
             logger.LogInformation(
-                "No held CompanyReview payment found for application {ApplicationId} — nothing to capture.",
+                "No held ScholarshipProviderReview payment found for application {ApplicationId} — nothing to capture.",
                 request.ApplicationId);
             return false;
         }
@@ -52,7 +52,7 @@ public sealed class CaptureCompanyReviewPaymentCommandHandler(
         if (string.IsNullOrWhiteSpace(payment.StripePaymentIntentId))
         {
             logger.LogWarning(
-                "CompanyReview payment {PaymentId} has no Stripe PaymentIntent id; cannot capture.",
+                "ScholarshipProviderReview payment {PaymentId} has no Stripe PaymentIntent id; cannot capture.",
                 payment.Id);
             return false;
         }
@@ -95,7 +95,7 @@ public sealed class CaptureCompanyReviewPaymentCommandHandler(
             {
                 await notifications.DispatchAsync(
                     payee,
-                    NotificationType.CompanyReviewPaymentSuccess,
+                    NotificationType.ScholarshipProviderReviewPaymentSuccess,
                     NotificationParams.Empty,
                     deepLink: null,
                     idempotencyKey: $"company-review-paid:{payment.Id:N}",
@@ -107,7 +107,7 @@ public sealed class CaptureCompanyReviewPaymentCommandHandler(
         catch (Exception ex)
         {
             logger.LogError(ex,
-                "Failed to capture CompanyReview payment for application {ApplicationId}",
+                "Failed to capture ScholarshipProviderReview payment for application {ApplicationId}",
                 request.ApplicationId);
             return false;
         }

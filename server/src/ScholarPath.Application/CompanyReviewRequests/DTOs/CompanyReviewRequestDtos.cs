@@ -1,13 +1,13 @@
 using ScholarPath.Domain.Enums;
 
-namespace ScholarPath.Application.CompanyReviewRequests.DTOs;
+namespace ScholarPath.Application.ScholarshipProviderReviewRequests.DTOs;
 
 /// <summary>
-/// Single-row view of a paid CompanyReview request. Shared by the Student and
-/// Company list/detail endpoints; the controller projection masks any
+/// Single-row view of a paid ScholarshipProviderReview request. Shared by the Student and
+/// ScholarshipProvider list/detail endpoints; the controller projection masks any
 /// audience-specific fields the recipient must not see.
 /// </summary>
-public sealed record CompanyReviewRequestDto
+public sealed record ScholarshipProviderReviewRequestDto
 {
     public Guid Id { get; init; }
     public Guid ScholarshipId { get; init; }
@@ -16,10 +16,10 @@ public sealed record CompanyReviewRequestDto
     public Guid StudentId { get; init; }
     public string? StudentName { get; init; }
 
-    public Guid CompanyId { get; init; }
-    public string? CompanyName { get; init; }
+    public Guid ScholarshipProviderId { get; init; }
+    public string? ScholarshipProviderName { get; init; }
 
-    public CompanyReviewRequestStatus Status { get; init; }
+    public ScholarshipProviderReviewRequestStatus Status { get; init; }
 
     public decimal ReviewFeeUsdSnapshot { get; init; }
     public string Currency { get; init; } = "USD";
@@ -49,6 +49,6 @@ public sealed record CompanyReviewRequestDto
     public long RefundedAmountCents { get; init; }
     public long RetainedAmountCents { get; init; }
     public long PlatformCommissionCents { get; init; }
-    public long CompanyShareCents { get; init; }
+    public long ScholarshipProviderShareCents { get; init; }
     public string? PaymentReference { get; init; }
 }

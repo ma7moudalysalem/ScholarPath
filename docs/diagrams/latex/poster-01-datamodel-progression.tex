@@ -1,0 +1,30 @@
+% ScholarPath — Data-Model Progression poster (A0 landscape, vector)
+% ERD  ->  EERD  ->  Relational Mapping
+\documentclass{article}
+\usepackage[paperwidth=1189mm,paperheight=841mm,margin=18mm]{geometry}
+\usepackage{graphicx}\graphicspath{{../img/}}
+\usepackage{xcolor}
+\definecolor{spblue}{HTML}{1F4E79}\definecolor{spteal}{HTML}{2C7A7B}\definecolor{spamber}{HTML}{B7791F}
+\usepackage{tikz}\usetikzlibrary{arrows.meta,positioning,fit,backgrounds}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\newcommand{\panel}[3]{\begin{tabular}{c}{\color{spblue}\fontsize{40}{46}\selectfont\bfseries #1}\\[10mm]\includegraphics[width=#3,height=560mm,keepaspectratio]{#2}\end{tabular}}
+\begin{document}
+\begin{center}
+{\color{spblue}\fontsize{72}{80}\selectfont\bfseries ScholarPath — Data Model}\\[6mm]
+{\color{spteal}\fontsize{40}{48}\selectfont From Conceptual ERD to Enhanced ER to Relational Schema}
+\end{center}
+\vspace{6mm}
+\begin{center}
+\begin{tikzpicture}[every node/.style={inner sep=0pt},
+   arr/.style={-{Stealth[length=22mm,width=18mm]},line width=10mm,spamber}]
+\node (p1) {\panel{1\enspace ERD}{ScholarPath_ERD_Basic.pdf}{330mm}};
+\node[right=55mm of p1] (p2) {\panel{2\enspace EERD}{ScholarPath_EERD_Core.pdf}{350mm}};
+\node[right=55mm of p2] (p3) {\panel{3\enspace Relations}{RelMap_Scholarships_Applications.pdf}{300mm}};
+\draw[arr] (p1.east) -- node[above,font=\bfseries\Large,color=spamber,yshift=4mm]{Enhance (EER)} node[below,font=\large,color=spblue,yshift=-3mm]{specialization · weak · derived}(p2.west);
+\draw[arr] (p2.east) -- node[above,font=\bfseries\Large,color=spamber,yshift=4mm]{Map (Elmasri 9-step)} node[below,font=\large,color=spblue,yshift=-3mm]{relations · keys · FKs}(p3.west);
+\end{tikzpicture}
+\end{center}
+\vfill
+\begin{center}{\color{spblue!70}\large ScholarPath graduation project — code-derived models (62 tables). Each stage is detailed in its own explainer PDF.}\end{center}
+\end{document}

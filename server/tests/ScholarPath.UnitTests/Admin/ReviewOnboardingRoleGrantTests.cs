@@ -43,7 +43,7 @@ public class ReviewOnboardingRoleGrantTests
     public async Task Approval_grants_the_requested_role_and_completes_onboarding()
     {
         using var db = CreateDb();
-        var userId = SeedPendingUser(db, "Company");
+        var userId = SeedPendingUser(db, "ScholarshipProvider");
         await db.SaveChangesAsync();
 
         var admin = Substitute.For<IUserAdministration>();
@@ -54,7 +54,7 @@ public class ReviewOnboardingRoleGrantTests
         await Sut(db, admin).Handle(
             new ReviewOnboardingCommand(userId, OnboardingDecision.Approve, null), default);
 
-        await admin.Received().AddRoleAsync(userId, "Company", Arg.Any<CancellationToken>());
+        await admin.Received().AddRoleAsync(userId, "ScholarshipProvider", Arg.Any<CancellationToken>());
         (await db.Users.FirstAsync(u => u.Id == userId)).IsOnboardingComplete.Should().BeTrue();
     }
 
@@ -84,7 +84,7 @@ public class ReviewOnboardingRoleGrantTests
     public async Task Rejection_persists_the_reviewer_notes_on_profile()
     {
         using var db = CreateDb();
-        var userId = SeedPendingUser(db, "Company");
+        var userId = SeedPendingUser(db, "ScholarshipProvider");
         db.UserProfiles.Add(new UserProfile { UserId = userId });
         await db.SaveChangesAsync();
 
@@ -108,7 +108,7 @@ public class ReviewOnboardingRoleGrantTests
     public async Task Approval_clears_any_stale_rejection_reason()
     {
         using var db = CreateDb();
-        var userId = SeedPendingUser(db, "Company");
+        var userId = SeedPendingUser(db, "ScholarshipProvider");
         db.UserProfiles.Add(new UserProfile
         {
             UserId = userId,

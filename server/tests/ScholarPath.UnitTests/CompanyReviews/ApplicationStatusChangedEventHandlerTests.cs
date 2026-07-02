@@ -2,14 +2,14 @@ using FluentAssertions;
 using MediatR;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
-using ScholarPath.Application.CompanyReviews.Commands.CaptureCompanyReviewPayment;
-using ScholarPath.Application.CompanyReviews.Commands.RejectCompanyReviewPayment;
-using ScholarPath.Application.CompanyReviews.EventHandlers;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.CaptureScholarshipProviderReviewPayment;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.RejectScholarshipProviderReviewPayment;
+using ScholarPath.Application.ScholarshipProviderReviews.EventHandlers;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Events;
 using Xunit;
 
-namespace ScholarPath.UnitTests.CompanyReviews;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviews;
 
 /// <summary>
 /// PB-005 v1: only an Accepted application captures the held review fee;
@@ -29,7 +29,7 @@ public sealed class ApplicationStatusChangedEventHandlerTests
     }
 
     [Fact]
-    public async Task Accepted_status_triggers_CaptureCompanyReviewPayment()
+    public async Task Accepted_status_triggers_CaptureScholarshipProviderReviewPayment()
     {
         var appId = Guid.NewGuid();
         var evt = new ApplicationStatusChangedEvent(
@@ -39,15 +39,15 @@ public sealed class ApplicationStatusChangedEventHandlerTests
         await _handler.Handle(evt, default);
 
         await _sender.Received(1).Send(
-            Arg.Is<CaptureCompanyReviewPaymentCommand>(c => c.ApplicationId == appId),
+            Arg.Is<CaptureScholarshipProviderReviewPaymentCommand>(c => c.ApplicationId == appId),
             Arg.Any<CancellationToken>());
         await _sender.DidNotReceive().Send(
-            Arg.Any<RejectCompanyReviewPaymentCommand>(),
+            Arg.Any<RejectScholarshipProviderReviewPaymentCommand>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task Rejected_status_triggers_RejectCompanyReviewPayment_not_capture()
+    public async Task Rejected_status_triggers_RejectScholarshipProviderReviewPayment_not_capture()
     {
         var appId = Guid.NewGuid();
         var evt = new ApplicationStatusChangedEvent(
@@ -57,10 +57,10 @@ public sealed class ApplicationStatusChangedEventHandlerTests
         await _handler.Handle(evt, default);
 
         await _sender.Received(1).Send(
-            Arg.Is<RejectCompanyReviewPaymentCommand>(c => c.ApplicationId == appId),
+            Arg.Is<RejectScholarshipProviderReviewPaymentCommand>(c => c.ApplicationId == appId),
             Arg.Any<CancellationToken>());
         await _sender.DidNotReceive().Send(
-            Arg.Any<CaptureCompanyReviewPaymentCommand>(),
+            Arg.Any<CaptureScholarshipProviderReviewPaymentCommand>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -79,10 +79,10 @@ public sealed class ApplicationStatusChangedEventHandlerTests
         await _handler.Handle(evt, default);
 
         await _sender.DidNotReceive().Send(
-            Arg.Any<CaptureCompanyReviewPaymentCommand>(),
+            Arg.Any<CaptureScholarshipProviderReviewPaymentCommand>(),
             Arg.Any<CancellationToken>());
         await _sender.DidNotReceive().Send(
-            Arg.Any<RejectCompanyReviewPaymentCommand>(),
+            Arg.Any<RejectScholarshipProviderReviewPaymentCommand>(),
             Arg.Any<CancellationToken>());
     }
 }

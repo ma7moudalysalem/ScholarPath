@@ -9,17 +9,17 @@ using ScholarPath.Application.Notifications;
 using ScholarPath.Application.Payments;
 using ScholarPath.Domain.Enums;
 
-namespace ScholarPath.Application.CompanyReviews.Commands.RefundCompanyReview;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Commands.RefundScholarshipProviderReview;
 
 [Auditable(AuditAction.PaymentRefunded, "Payment",
     TargetIdProperty = nameof(ApplicationId),
-    SummaryTemplate = "Refunded CompanyReview payment for application {ApplicationId} — full={IsFullRefund}")]
-public sealed record RefundCompanyReviewCommand(
+    SummaryTemplate = "Refunded ScholarshipProviderReview payment for application {ApplicationId} — full={IsFullRefund}")]
+public sealed record RefundScholarshipProviderReviewCommand(
     Guid ApplicationId,
     bool IsFullRefund) : IRequest<bool>;
 
 /// <summary>
-/// Refunds (full or 50%) the CompanyReview payment for an application. Works
+/// Refunds (full or 50%) the ScholarshipProviderReview payment for an application. Works
 /// off the unified <see cref="Domain.Entities.Payment"/> row, choosing the
 /// correct Stripe action based on the payment's current state:
 /// <list type="bullet">
@@ -27,18 +27,18 @@ public sealed record RefundCompanyReviewCommand(
 ///   <item>Captured — issue a full or 50% Stripe Refund.</item>
 /// </list>
 /// </summary>
-public sealed class RefundCompanyReviewCommandHandler(
+public sealed class RefundScholarshipProviderReviewCommandHandler(
     IApplicationDbContext db,
     IStripeService stripeService,
     INotificationDispatcher notifications,
-    ILogger<RefundCompanyReviewCommandHandler> logger)
-    : IRequestHandler<RefundCompanyReviewCommand, bool>
+    ILogger<RefundScholarshipProviderReviewCommandHandler> logger)
+    : IRequestHandler<RefundScholarshipProviderReviewCommand, bool>
 {
-    public async Task<bool> Handle(RefundCompanyReviewCommand request, CancellationToken ct)
+    public async Task<bool> Handle(RefundScholarshipProviderReviewCommand request, CancellationToken ct)
     {
         var payment = await db.Payments
             .FirstOrDefaultAsync(p =>
-                p.Type == PaymentType.CompanyReview
+                p.Type == PaymentType.ScholarshipProviderReview
                 && p.RelatedApplicationId == request.ApplicationId
                 && (p.Status == PaymentStatus.Held
                     || p.Status == PaymentStatus.Pending
@@ -49,7 +49,7 @@ public sealed class RefundCompanyReviewCommandHandler(
         if (payment is null)
         {
             logger.LogInformation(
-                "No refundable CompanyReview payment found for application {ApplicationId}.",
+                "No refundable ScholarshipProviderReview payment found for application {ApplicationId}.",
                 request.ApplicationId);
             return false;
         }
@@ -57,7 +57,7 @@ public sealed class RefundCompanyReviewCommandHandler(
         if (string.IsNullOrWhiteSpace(payment.StripePaymentIntentId))
         {
             logger.LogWarning(
-                "CompanyReview payment {PaymentId} has no Stripe PaymentIntent id; cannot refund.",
+                "ScholarshipProviderReview payment {PaymentId} has no Stripe PaymentIntent id; cannot refund.",
                 payment.Id);
             return false;
         }
@@ -147,7 +147,7 @@ public sealed class RefundCompanyReviewCommandHandler(
             {
                 await notifications.DispatchAsync(
                     application.StudentId,
-                    NotificationType.CompanyReviewRefunded,
+                    NotificationType.ScholarshipProviderReviewRefunded,
                     new NotificationParams { RefundKind = request.IsFullRefund ? "Full" : "Partial" },
                     deepLink: null,
                     idempotencyKey: $"company-review-refund-notice:{payment.Id:N}:{(request.IsFullRefund ? "full" : "partial")}",
@@ -163,7 +163,7 @@ public sealed class RefundCompanyReviewCommandHandler(
         catch (Exception ex)
         {
             logger.LogError(ex,
-                "Failed to refund CompanyReview payment for application {ApplicationId}",
+                "Failed to refund ScholarshipProviderReview payment for application {ApplicationId}",
                 request.ApplicationId);
             return false;
         }

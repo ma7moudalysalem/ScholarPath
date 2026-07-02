@@ -5,64 +5,64 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviewRequests.Common;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Common;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Application.Payments;
 
-namespace ScholarPath.Application.CompanyReviewRequests.Commands.Reject;
+namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Reject;
 
 /// <summary>
-/// Company-side reject of a Pending CompanyReviewRequest. Cancels the held
-/// Stripe PaymentIntent (no charge), flips the request to RejectedByCompany,
+/// ScholarshipProvider-side reject of a Pending ScholarshipProviderReviewRequest. Cancels the held
+/// Stripe PaymentIntent (no charge), flips the request to RejectedByScholarshipProvider,
 /// and notifies the Student.
 /// </summary>
-[Auditable(AuditAction.Rejected, "CompanyReviewRequest",
+[Auditable(AuditAction.Rejected, "ScholarshipProviderReviewRequest",
     TargetIdProperty = nameof(RequestId),
-    SummaryTemplate = "Company rejected CompanyReviewRequest {RequestId} — released hold")]
-public sealed record RejectCompanyReviewRequestCommand(
+    SummaryTemplate = "ScholarshipProvider rejected ScholarshipProviderReviewRequest {RequestId} — released hold")]
+public sealed record RejectScholarshipProviderReviewRequestCommand(
     Guid RequestId,
     string? Reason = null) : IRequest<bool>;
 
-public sealed class RejectCompanyReviewRequestCommandValidator
-    : AbstractValidator<RejectCompanyReviewRequestCommand>
+public sealed class RejectScholarshipProviderReviewRequestCommandValidator
+    : AbstractValidator<RejectScholarshipProviderReviewRequestCommand>
 {
-    public RejectCompanyReviewRequestCommandValidator()
+    public RejectScholarshipProviderReviewRequestCommandValidator()
     {
         RuleFor(x => x.RequestId).NotEmpty();
         RuleFor(x => x.Reason).MaximumLength(500);
     }
 }
 
-public sealed class RejectCompanyReviewRequestCommandHandler(
+public sealed class RejectScholarshipProviderReviewRequestCommandHandler(
     IApplicationDbContext db,
     IStripeService stripe,
     ICurrentUserService currentUser,
     INotificationDispatcher notifications,
-    ILogger<RejectCompanyReviewRequestCommandHandler> logger)
-    : IRequestHandler<RejectCompanyReviewRequestCommand, bool>
+    ILogger<RejectScholarshipProviderReviewRequestCommandHandler> logger)
+    : IRequestHandler<RejectScholarshipProviderReviewRequestCommand, bool>
 {
     public async Task<bool> Handle(
-        RejectCompanyReviewRequestCommand command,
+        RejectScholarshipProviderReviewRequestCommand command,
         CancellationToken ct)
     {
-        var entity = await db.CompanyReviewRequests
+        var entity = await db.ScholarshipProviderReviewRequests
             .Include(r => r.Payment)
             .Include(r => r.Scholarship)
             .Include(r => r.Student)
-            .Include(r => r.Company)
+            .Include(r => r.ScholarshipProvider)
             .FirstOrDefaultAsync(r => r.Id == command.RequestId, ct)
-            ?? throw new NotFoundException(nameof(Domain.Entities.CompanyReviewRequest), command.RequestId);
+            ?? throw new NotFoundException(nameof(Domain.Entities.ScholarshipProviderReviewRequest), command.RequestId);
 
-        if (entity.CompanyId != currentUser.UserId)
+        if (entity.ScholarshipProviderId != currentUser.UserId)
             throw new ForbiddenAccessException();
 
-        if (entity.Status == CompanyReviewRequestStatus.RejectedByCompany)
+        if (entity.Status == ScholarshipProviderReviewRequestStatus.RejectedByScholarshipProvider)
             return false;
 
-        if (entity.Status != CompanyReviewRequestStatus.Pending)
+        if (entity.Status != ScholarshipProviderReviewRequestStatus.Pending)
             throw new ConflictException(
-                $"Cannot reject a CompanyReviewRequest in status {entity.Status} — only Pending requests can be rejected by the Company.");
+                $"Cannot reject a ScholarshipProviderReviewRequest in status {entity.Status} — only Pending requests can be rejected by the ScholarshipProvider.");
 
         if (entity.Payment is not null && entity.Payment.StripePaymentIntentId is not null
             && entity.Payment.Status == PaymentStatus.Held)
@@ -74,10 +74,10 @@ public sealed class RejectCompanyReviewRequestCommandHandler(
 
             entity.Payment.Status = PaymentStatus.Cancelled;
             entity.Payment.RefundedAt = DateTimeOffset.UtcNow;
-            entity.Payment.RefundReason = command.Reason ?? "Rejected by Company — hold released";
+            entity.Payment.RefundReason = command.Reason ?? "Rejected by ScholarshipProvider — hold released";
         }
 
-        entity.Status = CompanyReviewRequestStatus.RejectedByCompany;
+        entity.Status = ScholarshipProviderReviewRequestStatus.RejectedByScholarshipProvider;
         entity.RejectedAt = DateTimeOffset.UtcNow;
         entity.RejectReason = command.Reason;
 
@@ -86,24 +86,24 @@ public sealed class RejectCompanyReviewRequestCommandHandler(
         await DispatchAsync(entity, ct);
 
         logger.LogInformation(
-            "CompanyReviewRequest {RequestId} rejected by Company → RejectedByCompany (hold released)",
+            "ScholarshipProviderReviewRequest {RequestId} rejected by ScholarshipProvider → RejectedByScholarshipProvider (hold released)",
             entity.Id);
 
         return true;
     }
 
     private async Task DispatchAsync(
-        Domain.Entities.CompanyReviewRequest entity,
+        Domain.Entities.ScholarshipProviderReviewRequest entity,
         CancellationToken ct)
     {
-        var paramsForStudent = CompanyReviewRequestNotificationFactory.Build(
+        var paramsForStudent = ScholarshipProviderReviewRequestNotificationFactory.Build(
             entity, entity.Payment,
             entity.Scholarship?.TitleEn, entity.Scholarship?.TitleAr,
-            counterpartyName: entity.Company is null
+            counterpartyName: entity.ScholarshipProvider is null
                 ? null
-                : ($"{entity.Company.FirstName} {entity.Company.LastName}".Trim()));
+                : ($"{entity.ScholarshipProvider.FirstName} {entity.ScholarshipProvider.LastName}".Trim()));
 
-        var paramsForCompany = CompanyReviewRequestNotificationFactory.Build(
+        var paramsForScholarshipProvider = ScholarshipProviderReviewRequestNotificationFactory.Build(
             entity, entity.Payment,
             entity.Scholarship?.TitleEn, entity.Scholarship?.TitleAr,
             counterpartyName: entity.Student is null
@@ -113,7 +113,7 @@ public sealed class RejectCompanyReviewRequestCommandHandler(
         await SafeNotificationDispatcher.TryDispatchAsync(
             notifications, logger,
             entity.StudentId,
-            NotificationType.CompanyReviewRequestPaymentHoldCancelled,
+            NotificationType.ScholarshipProviderReviewRequestPaymentHoldCancelled,
             paramsForStudent,
             deepLink: $"/student/review-requests/{entity.Id}",
             idempotencyKey: $"crr-rejected-student:{entity.Id:N}",
@@ -121,9 +121,9 @@ public sealed class RejectCompanyReviewRequestCommandHandler(
 
         await SafeNotificationDispatcher.TryDispatchAsync(
             notifications, logger,
-            entity.CompanyId,
-            NotificationType.CompanyReviewRequestPaymentHoldCancelled,
-            paramsForCompany,
+            entity.ScholarshipProviderId,
+            NotificationType.ScholarshipProviderReviewRequestPaymentHoldCancelled,
+            paramsForScholarshipProvider,
             deepLink: $"/company/review-requests/{entity.Id}",
             idempotencyKey: $"crr-rejected-company:{entity.Id:N}",
             ct);

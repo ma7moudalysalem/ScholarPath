@@ -1,7 +1,7 @@
 using MediatR;
 using ScholarPath.Application.Applications.DTOs;
 
-namespace ScholarPath.Application.Applications.Queries.GetCompanyApplicationDetails;
+namespace ScholarPath.Application.Applications.Queries.GetScholarshipProviderApplicationDetails;
 
-public sealed record GetCompanyApplicationDetailsQuery(
-    Guid ApplicationId) : IRequest<CompanyApplicationDetailsDto>;
+public sealed record GetScholarshipProviderApplicationDetailsQuery(
+    Guid ApplicationId) : IRequest<ScholarshipProviderApplicationDetailsDto>;

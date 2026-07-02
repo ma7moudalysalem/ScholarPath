@@ -1,5 +1,12 @@
 # ERD Mapping
 
+> ⛔ **DEPRECATED — do not use for the defense.** This file predates several
+> merged modules and is **superseded** by the code-derived diagrams under
+> [`docs/diagrams/`](diagrams/) — specifically
+> [`diagrams/01-EERD.md`](diagrams/01-EERD.md) and
+> [`diagrams/02-RELATIONAL-MAPPING.md`](diagrams/02-RELATIONAL-MAPPING.md).
+> Kept only for history; safe to delete.
+
 Entity → SQL table → keys → indexes → constraints.
 
 The **authoritative schema** is the EF migration at:

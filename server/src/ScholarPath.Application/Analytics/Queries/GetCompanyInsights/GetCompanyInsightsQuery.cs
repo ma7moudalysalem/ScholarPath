@@ -5,7 +5,7 @@ using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
-namespace ScholarPath.Application.Analytics.Queries.GetCompanyInsights;
+namespace ScholarPath.Application.Analytics.Queries.GetScholarshipProviderInsights;
 
 public record CountryBreakdownDto(
     string Country,
@@ -29,7 +29,7 @@ public record FunnelMonthDto(
     int Applied,
     int Accepted);
 
-public record CompanyInsightsDto(
+public record ScholarshipProviderInsightsDto(
     int TotalApplications,
     int SubmittedCount,
     int AcceptedCount,
@@ -48,26 +48,26 @@ public record CompanyInsightsDto(
 /// country and field, with a comparison delta vs the platform-wide acceptance
 /// rate. Authorisation: caller must be the owning company OR an admin.
 /// </summary>
-public record GetCompanyInsightsQuery(
-    Guid? CompanyId,
+public record GetScholarshipProviderInsightsQuery(
+    Guid? ScholarshipProviderId,
     DateOnly? From,
-    DateOnly? To) : IRequest<CompanyInsightsDto>;
+    DateOnly? To) : IRequest<ScholarshipProviderInsightsDto>;
 
-public sealed class GetCompanyInsightsQueryHandler(
+public sealed class GetScholarshipProviderInsightsQueryHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser)
-    : IRequestHandler<GetCompanyInsightsQuery, CompanyInsightsDto>
+    : IRequestHandler<GetScholarshipProviderInsightsQuery, ScholarshipProviderInsightsDto>
 {
-    public async Task<CompanyInsightsDto> Handle(
-        GetCompanyInsightsQuery request, CancellationToken ct)
+    public async Task<ScholarshipProviderInsightsDto> Handle(
+        GetScholarshipProviderInsightsQuery request, CancellationToken ct)
     {
         var userId = currentUser.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
         var isAdmin = currentUser.IsInRole("Admin") || currentUser.IsInRole("SuperAdmin");
 
-        // Admins may supply a CompanyId, owners default to themselves.
-        var companyId = request.CompanyId ?? userId;
+        // Admins may supply a ScholarshipProviderId, owners default to themselves.
+        var companyId = request.ScholarshipProviderId ?? userId;
         if (!isAdmin && companyId != userId)
             throw new ForbiddenAccessException("You may only view insights for your own company.");
 
@@ -80,12 +80,12 @@ public sealed class GetCompanyInsightsQueryHandler(
 
         // Pull all applications tied to scholarships owned by this company, in
         // the window. We fan out from Applications so we can join Scholarship
-        // (to filter by OwnerCompanyId and recover Category) and Student (to
+        // (to filter by OwnerScholarshipProviderId and recover Category) and Student (to
         // recover CountryOfResidence) in one go.
         var applications = await db.Applications
             .AsNoTracking()
             .Where(a => !a.IsDeleted && a.CreatedAt >= fromOffset && a.CreatedAt <= toOffset)
-            .Join(db.Scholarships.AsNoTracking().Where(s => s.OwnerCompanyId == companyId),
+            .Join(db.Scholarships.AsNoTracking().Where(s => s.OwnerScholarshipProviderId == companyId),
                 a => a.ScholarshipId, s => s.Id,
                 (a, s) => new { a, s })
             .Select(x => new
@@ -217,7 +217,7 @@ public sealed class GetCompanyInsightsQueryHandler(
         var scholarshipIds = applications.Select(a => a.ScholarshipId).Distinct().ToList();
         var ownedScholarships = await db.Scholarships
             .AsNoTracking()
-            .Where(s => s.OwnerCompanyId == companyId)
+            .Where(s => s.OwnerScholarshipProviderId == companyId)
             .Select(s => s.Id)
             .ToListAsync(ct);
         // Use OWNED set (broader than just scholarships that had apps) so a
@@ -278,7 +278,7 @@ public sealed class GetCompanyInsightsQueryHandler(
                 c?.Count ?? 0);
         }).ToList();
 
-        return new CompanyInsightsDto(
+        return new ScholarshipProviderInsightsDto(
             TotalApplications:       totalApplications,
             SubmittedCount:          submittedCount,
             AcceptedCount:           acceptedCount,

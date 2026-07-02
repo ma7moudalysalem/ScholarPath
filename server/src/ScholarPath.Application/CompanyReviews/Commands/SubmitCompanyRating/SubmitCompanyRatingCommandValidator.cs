@@ -1,10 +1,10 @@
 using FluentValidation;
 
-namespace ScholarPath.Application.CompanyReviews.Commands.SubmitCompanyRating;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Commands.SubmitScholarshipProviderRating;
 
-public sealed class SubmitCompanyRatingCommandValidator : AbstractValidator<SubmitCompanyRatingCommand>
+public sealed class SubmitScholarshipProviderRatingCommandValidator : AbstractValidator<SubmitScholarshipProviderRatingCommand>
 {
-    public SubmitCompanyRatingCommandValidator()
+    public SubmitScholarshipProviderRatingCommandValidator()
     {
         RuleFor(v => v.ApplicationId).NotEmpty();
         RuleFor(v => v.Rating).InclusiveBetween(1, 5).WithMessage("Rating must be between 1 and 5.");

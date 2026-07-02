@@ -1,0 +1,31 @@
+@startdot
+digraph G {
+  rankdir=BT; splines=polyline; nodesep=0.7; ranksep=1.1;
+  node [shape=plaintext];
+  Users [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="1" BGCOLOR="#dbe6ff"><B>Users</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD></TR></TABLE>>];
+  ForumCategories [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="2" BGCOLOR="#dbe6ff"><B>ForumCategories</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="Slug">Slug</TD></TR></TABLE>>];
+  ForumPosts [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="7" BGCOLOR="#dbe6ff"><B>ForumPosts</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="AuthorId" BGCOLOR="#fff7e6">AuthorId</TD><TD PORT="CategoryId" BGCOLOR="#fff7e6">CategoryId</TD><TD PORT="ParentPostId" BGCOLOR="#fff7e6">ParentPostId</TD><TD PORT="ModerationStatus">ModerationStatus</TD><TD PORT="UpvoteCount">UpvoteCount</TD><TD PORT="FlagCount">FlagCount</TD></TR></TABLE>>];
+  ForumVotes [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>ForumVotes</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ForumPostId" BGCOLOR="#fff7e6">ForumPostId</TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="VoteType">VoteType</TD></TR></TABLE>>];
+  ForumFlags [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>ForumFlags</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ForumPostId" BGCOLOR="#fff7e6">ForumPostId</TD><TD PORT="FlaggedByUserId" BGCOLOR="#fff7e6">FlaggedByUserId</TD><TD PORT="Reason">Reason</TD></TR></TABLE>>];
+  ForumBookmarks [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="3" BGCOLOR="#dbe6ff"><B>ForumBookmarks</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ForumPostId" BGCOLOR="#fff7e6">ForumPostId</TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD></TR></TABLE>>];
+  ForumTags [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="2" BGCOLOR="#dbe6ff"><B>ForumTags</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="Slug">Slug</TD></TR></TABLE>>];
+  ForumPostTags [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="2" BGCOLOR="#dbe6ff"><B>ForumPostTags</B></TD></TR><TR><TD PORT="ForumPostId" BGCOLOR="#fff7e6"><U>ForumPostId</U></TD><TD PORT="ForumTagId" BGCOLOR="#fff7e6"><U>ForumTagId</U></TD></TR></TABLE>>];
+  Conversations [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>Conversations</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ParticipantOneId" BGCOLOR="#fff7e6">ParticipantOneId</TD><TD PORT="ParticipantTwoId" BGCOLOR="#fff7e6">ParticipantTwoId</TD><TD PORT="LastMessageAt">LastMessageAt</TD></TR></TABLE>>];
+  Messages [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>Messages</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ConversationId" BGCOLOR="#fff7e6">ConversationId</TD><TD PORT="SenderId" BGCOLOR="#fff7e6">SenderId</TD><TD PORT="Body">Body</TD></TR></TABLE>>];
+  ForumPosts:AuthorId -> Users:Id;
+  ForumPosts:CategoryId -> ForumCategories:Id;
+  ForumPosts:ParentPostId -> ForumPosts:Id;
+  ForumVotes:ForumPostId -> ForumPosts:Id;
+  ForumVotes:UserId -> Users:Id [style=dashed];
+  ForumFlags:ForumPostId -> ForumPosts:Id;
+  ForumFlags:FlaggedByUserId -> Users:Id [style=dashed];
+  ForumBookmarks:ForumPostId -> ForumPosts:Id;
+  ForumBookmarks:UserId -> Users:Id [style=dashed];
+  ForumPostTags:ForumPostId -> ForumPosts:Id;
+  ForumPostTags:ForumTagId -> ForumTags:Id;
+  Conversations:ParticipantOneId -> Users:Id [style=dashed];
+  Conversations:ParticipantTwoId -> Users:Id [style=dashed];
+  Messages:ConversationId -> Conversations:Id;
+  Messages:SenderId -> Users:Id [style=dashed];
+}
+@enddot

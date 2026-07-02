@@ -3,14 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Applications.DTOs;
 using ScholarPath.Application.Common.Interfaces;
 
-namespace ScholarPath.Application.Applications.Queries.GetCompanyApplications;
+namespace ScholarPath.Application.Applications.Queries.GetScholarshipProviderApplications;
 
-public sealed class GetCompanyApplicationsQueryHandler(
+public sealed class GetScholarshipProviderApplicationsQueryHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser)
-    : IRequestHandler<GetCompanyApplicationsQuery, PagedResult<CompanyApplicationRow>>
+    : IRequestHandler<GetScholarshipProviderApplicationsQuery, PagedResult<ScholarshipProviderApplicationRow>>
 {
-    public async Task<PagedResult<CompanyApplicationRow>> Handle(GetCompanyApplicationsQuery request, CancellationToken ct)
+    public async Task<PagedResult<ScholarshipProviderApplicationRow>> Handle(GetScholarshipProviderApplicationsQuery request, CancellationToken ct)
     {
         var page = Math.Max(1, request.Page);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
@@ -19,7 +19,7 @@ public sealed class GetCompanyApplicationsQueryHandler(
             .AsNoTracking()
             .Include(a => a.Student)
             .Include(a => a.Scholarship)
-            .Where(a => a.Scholarship != null && a.Scholarship.OwnerCompanyId == currentUser.UserId);
+            .Where(a => a.Scholarship != null && a.Scholarship.OwnerScholarshipProviderId == currentUser.UserId);
 
         if (request.ScholarshipId.HasValue)
         {
@@ -37,7 +37,7 @@ public sealed class GetCompanyApplicationsQueryHandler(
             .OrderByDescending(a => a.SubmittedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(a => new CompanyApplicationRow(
+            .Select(a => new ScholarshipProviderApplicationRow(
                 a.Id,
                 a.StudentId,
                 a.Student != null ? a.Student.FullName : "Unknown",
@@ -49,6 +49,6 @@ public sealed class GetCompanyApplicationsQueryHandler(
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
-        return new PagedResult<CompanyApplicationRow>(rows, page, pageSize, total);
+        return new PagedResult<ScholarshipProviderApplicationRow>(rows, page, pageSize, total);
     }
 }

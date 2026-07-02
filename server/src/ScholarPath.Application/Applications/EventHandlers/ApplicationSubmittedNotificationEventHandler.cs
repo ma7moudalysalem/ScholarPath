@@ -23,11 +23,11 @@ public sealed class ApplicationSubmittedNotificationEventHandler(
         var scholarship = await db.Scholarships
             .AsNoTracking()
             .Where(s => s.Id == notification.ScholarshipId)
-            .Select(s => new { s.OwnerCompanyId, s.TitleEn, s.TitleAr })
+            .Select(s => new { s.OwnerScholarshipProviderId, s.TitleEn, s.TitleAr })
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
-        if (scholarship?.OwnerCompanyId is not { } companyId)
+        if (scholarship?.OwnerScholarshipProviderId is not { } companyId)
             return; // No owning company (external/admin listing) — nothing to notify.
 
         await notifications.DispatchAsync(

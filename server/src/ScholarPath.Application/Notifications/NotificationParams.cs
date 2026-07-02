@@ -27,7 +27,7 @@ public sealed record NotificationParams
     /// <summary>A pre-formatted money amount, e.g. "$45.00".</summary>
     public string? AmountText { get; init; }
 
-    /// <summary>Refund variant for CompanyReviewRefunded: "Full", "Partial", or "Timeout".</summary>
+    /// <summary>Refund variant for ScholarshipProviderReviewRefunded: "Full", "Partial", or "Timeout".</summary>
     public string? RefundKind { get; init; }
 
     /// <summary>Reminder variant for BookingReminder: "24h" or "1h" before the session starts.</summary>
@@ -48,7 +48,7 @@ public sealed record NotificationParams
     /// </summary>
     public string? Preview { get; init; }
 
-    // ── CompanyReview request lifecycle (PB-005) ────────────────────────────
+    // ── ScholarshipProviderReview request lifecycle (PB-005) ────────────────────────────
     // Pre-formatted, safe-to-render amounts and references for the paid
     // application-support flow. Every field is optional — a notification only
     // sets what it needs. None of these are PCI data: card numbers and full
@@ -69,8 +69,8 @@ public sealed record NotificationParams
     /// <summary>Platform commission share (10% of retained), pre-formatted with currency.</summary>
     public string? PlatformCommissionText { get; init; }
 
-    /// <summary>Company share (90% of retained), pre-formatted with currency.</summary>
-    public string? CompanyShareText { get; init; }
+    /// <summary>ScholarshipProvider share (90% of retained), pre-formatted with currency.</summary>
+    public string? ScholarshipProviderShareText { get; init; }
 
     /// <summary>Payment reference number for receipts and dashboards.</summary>
     public string? PaymentReference { get; init; }

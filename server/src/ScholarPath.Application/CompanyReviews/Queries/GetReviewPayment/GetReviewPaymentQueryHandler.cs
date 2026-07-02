@@ -2,7 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 
-namespace ScholarPath.Application.CompanyReviews.Queries.GetReviewPayment;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Queries.GetReviewPayment;
 
 public sealed class GetReviewPaymentQueryHandler(
     IApplicationDbContext db)
@@ -10,7 +10,7 @@ public sealed class GetReviewPaymentQueryHandler(
 {
     public async Task<ReviewPaymentDto?> Handle(GetReviewPaymentQuery request, CancellationToken ct)
     {
-        var payment = await db.CompanyReviewPayments
+        var payment = await db.ScholarshipProviderReviewPayments
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.ApplicationTrackerId == request.ApplicationId, ct);
 
@@ -19,7 +19,7 @@ public sealed class GetReviewPaymentQueryHandler(
         return new ReviewPaymentDto(
             payment.Id,
             payment.ApplicationTrackerId,
-            payment.CompanyId,
+            payment.ScholarshipProviderId,
             payment.AmountUsd,
             payment.Status,
             payment.CapturedAt,

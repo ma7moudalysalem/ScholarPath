@@ -5,77 +5,77 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviewRequests.Common;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Common;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
-namespace ScholarPath.Application.CompanyReviewRequests.Commands.Complete;
+namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Complete;
 
 /// <summary>
-/// Company-side mark-as-complete for a CompanyReviewRequest in UnderReview.
+/// ScholarshipProvider-side mark-as-complete for a ScholarshipProviderReviewRequest in UnderReview.
 /// Captured payment is retained (no refund by default — spec PART 5). The
 /// request moves UnderReview → Completed; the Closed state is reachable
 /// admin-side and is intentionally not part of this command.
 /// </summary>
-[Auditable(AuditAction.Update, "CompanyReviewRequest",
+[Auditable(AuditAction.Update, "ScholarshipProviderReviewRequest",
     TargetIdProperty = nameof(RequestId),
-    SummaryTemplate = "Company completed CompanyReviewRequest {RequestId}")]
-public sealed record CompleteCompanyReviewRequestCommand(Guid RequestId) : IRequest<bool>;
+    SummaryTemplate = "ScholarshipProvider completed ScholarshipProviderReviewRequest {RequestId}")]
+public sealed record CompleteScholarshipProviderReviewRequestCommand(Guid RequestId) : IRequest<bool>;
 
-public sealed class CompleteCompanyReviewRequestCommandValidator
-    : AbstractValidator<CompleteCompanyReviewRequestCommand>
+public sealed class CompleteScholarshipProviderReviewRequestCommandValidator
+    : AbstractValidator<CompleteScholarshipProviderReviewRequestCommand>
 {
-    public CompleteCompanyReviewRequestCommandValidator()
+    public CompleteScholarshipProviderReviewRequestCommandValidator()
     {
         RuleFor(x => x.RequestId).NotEmpty();
     }
 }
 
-public sealed class CompleteCompanyReviewRequestCommandHandler(
+public sealed class CompleteScholarshipProviderReviewRequestCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
     INotificationDispatcher notifications,
-    ILogger<CompleteCompanyReviewRequestCommandHandler> logger)
-    : IRequestHandler<CompleteCompanyReviewRequestCommand, bool>
+    ILogger<CompleteScholarshipProviderReviewRequestCommandHandler> logger)
+    : IRequestHandler<CompleteScholarshipProviderReviewRequestCommand, bool>
 {
     public async Task<bool> Handle(
-        CompleteCompanyReviewRequestCommand command,
+        CompleteScholarshipProviderReviewRequestCommand command,
         CancellationToken ct)
     {
-        var entity = await db.CompanyReviewRequests
+        var entity = await db.ScholarshipProviderReviewRequests
             .Include(r => r.Payment)
             .Include(r => r.Scholarship)
             .Include(r => r.Student)
-            .Include(r => r.Company)
+            .Include(r => r.ScholarshipProvider)
             .FirstOrDefaultAsync(r => r.Id == command.RequestId, ct)
-            ?? throw new NotFoundException(nameof(Domain.Entities.CompanyReviewRequest), command.RequestId);
+            ?? throw new NotFoundException(nameof(Domain.Entities.ScholarshipProviderReviewRequest), command.RequestId);
 
-        if (entity.CompanyId != currentUser.UserId)
+        if (entity.ScholarshipProviderId != currentUser.UserId)
             throw new ForbiddenAccessException();
 
-        if (entity.Status == CompanyReviewRequestStatus.Completed ||
-            entity.Status == CompanyReviewRequestStatus.Closed)
+        if (entity.Status == ScholarshipProviderReviewRequestStatus.Completed ||
+            entity.Status == ScholarshipProviderReviewRequestStatus.Closed)
         {
             return false;
         }
 
-        if (entity.Status != CompanyReviewRequestStatus.UnderReview)
+        if (entity.Status != ScholarshipProviderReviewRequestStatus.UnderReview)
             throw new ConflictException(
-                $"Cannot complete a CompanyReviewRequest in status {entity.Status} — only UnderReview requests can be completed.");
+                $"Cannot complete a ScholarshipProviderReviewRequest in status {entity.Status} — only UnderReview requests can be completed.");
 
-        entity.Status = CompanyReviewRequestStatus.Completed;
+        entity.Status = ScholarshipProviderReviewRequestStatus.Completed;
         entity.CompletedAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync(ct);
 
-        var paramsForStudent = CompanyReviewRequestNotificationFactory.Build(
+        var paramsForStudent = ScholarshipProviderReviewRequestNotificationFactory.Build(
             entity, entity.Payment,
             entity.Scholarship?.TitleEn, entity.Scholarship?.TitleAr,
-            counterpartyName: entity.Company is null
+            counterpartyName: entity.ScholarshipProvider is null
                 ? null
-                : ($"{entity.Company.FirstName} {entity.Company.LastName}".Trim()));
+                : ($"{entity.ScholarshipProvider.FirstName} {entity.ScholarshipProvider.LastName}".Trim()));
 
-        var paramsForCompany = CompanyReviewRequestNotificationFactory.Build(
+        var paramsForScholarshipProvider = ScholarshipProviderReviewRequestNotificationFactory.Build(
             entity, entity.Payment,
             entity.Scholarship?.TitleEn, entity.Scholarship?.TitleAr,
             counterpartyName: entity.Student is null
@@ -85,7 +85,7 @@ public sealed class CompleteCompanyReviewRequestCommandHandler(
         await SafeNotificationDispatcher.TryDispatchAsync(
             notifications, logger,
             entity.StudentId,
-            NotificationType.CompanyReviewRequestCompleted,
+            NotificationType.ScholarshipProviderReviewRequestCompleted,
             paramsForStudent,
             deepLink: $"/student/review-requests/{entity.Id}",
             idempotencyKey: $"crr-completed-student:{entity.Id:N}",
@@ -93,15 +93,15 @@ public sealed class CompleteCompanyReviewRequestCommandHandler(
 
         await SafeNotificationDispatcher.TryDispatchAsync(
             notifications, logger,
-            entity.CompanyId,
-            NotificationType.CompanyReviewRequestCompleted,
-            paramsForCompany,
+            entity.ScholarshipProviderId,
+            NotificationType.ScholarshipProviderReviewRequestCompleted,
+            paramsForScholarshipProvider,
             deepLink: $"/company/review-requests/{entity.Id}",
             idempotencyKey: $"crr-completed-company:{entity.Id:N}",
             ct);
 
         logger.LogInformation(
-            "CompanyReviewRequest {RequestId} marked Completed by Company.", entity.Id);
+            "ScholarshipProviderReviewRequest {RequestId} marked Completed by ScholarshipProvider.", entity.Id);
 
         return true;
     }

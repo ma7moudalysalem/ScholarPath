@@ -1,14 +1,14 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
-using ScholarPath.Application.CompanyReviews.Commands.CaptureCompanyReviewPayment;
-using ScholarPath.Application.CompanyReviews.Commands.RejectCompanyReviewPayment;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.CaptureScholarshipProviderReviewPayment;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.RejectScholarshipProviderReviewPayment;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Events;
 
-namespace ScholarPath.Application.CompanyReviews.EventHandlers;
+namespace ScholarPath.Application.ScholarshipProviderReviews.EventHandlers;
 
 /// <summary>
-/// Drives the CompanyReview payment outcome from the application's final status:
+/// Drives the ScholarshipProviderReview payment outcome from the application's final status:
 /// <list type="bullet">
 ///   <item>Accepted — capture the held PaymentIntent (company earns the fee).</item>
 ///   <item>Rejected — cancel the held PaymentIntent (no charge ever lands).</item>
@@ -27,18 +27,18 @@ public sealed class ApplicationStatusChangedEventHandler(
         {
             case ApplicationStatus.Accepted:
                 logger.LogInformation(
-                    "Application {ApplicationId} accepted — capturing CompanyReview payment.",
+                    "Application {ApplicationId} accepted — capturing ScholarshipProviderReview payment.",
                     notification.ApplicationId);
                 await sender.Send(
-                    new CaptureCompanyReviewPaymentCommand(notification.ApplicationId), ct);
+                    new CaptureScholarshipProviderReviewPaymentCommand(notification.ApplicationId), ct);
                 break;
 
             case ApplicationStatus.Rejected:
                 logger.LogInformation(
-                    "Application {ApplicationId} rejected — cancelling held CompanyReview payment.",
+                    "Application {ApplicationId} rejected — cancelling held ScholarshipProviderReview payment.",
                     notification.ApplicationId);
                 await sender.Send(
-                    new RejectCompanyReviewPaymentCommand(notification.ApplicationId), ct);
+                    new RejectScholarshipProviderReviewPaymentCommand(notification.ApplicationId), ct);
                 break;
         }
     }

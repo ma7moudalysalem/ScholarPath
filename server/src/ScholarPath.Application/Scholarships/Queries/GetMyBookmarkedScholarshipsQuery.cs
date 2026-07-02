@@ -83,8 +83,8 @@ public class GetMyBookmarkedScholarshipsQueryHandler(
                         : lang == "ar"
                             ? (scholarship.Category.NameAr ?? scholarship.Category.NameEn ?? "")
                             : (scholarship.Category.NameEn ?? scholarship.Category.NameAr ?? ""),
-                    OwnerCompanyName = scholarship.OwnerCompany != null
-                        ? scholarship.OwnerCompany.FirstName + " " + scholarship.OwnerCompany.LastName
+                    OwnerScholarshipProviderName = scholarship.OwnerScholarshipProvider != null
+                        ? scholarship.OwnerScholarshipProvider.FirstName + " " + scholarship.OwnerScholarshipProvider.LastName
                         : "Global Provider",
                     Deadline = scholarship.Deadline,
                     Status = scholarship.Status.ToString(),

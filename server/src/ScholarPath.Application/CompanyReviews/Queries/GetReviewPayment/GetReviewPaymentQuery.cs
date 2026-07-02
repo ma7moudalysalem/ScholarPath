@@ -1,12 +1,12 @@
 using MediatR;
 using ScholarPath.Domain.Enums;
 
-namespace ScholarPath.Application.CompanyReviews.Queries.GetReviewPayment;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Queries.GetReviewPayment;
 
 public record ReviewPaymentDto(
     Guid PaymentId,
     Guid ApplicationId,
-    Guid CompanyId,
+    Guid ScholarshipProviderId,
     decimal AmountUsd,
     PaymentStatus Status,
     DateTimeOffset? CapturedAt,

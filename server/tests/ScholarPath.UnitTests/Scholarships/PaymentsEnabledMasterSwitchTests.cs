@@ -4,13 +4,13 @@ using NSubstitute;
 using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviewRequests.Commands.Start;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Start;
 using ScholarPath.Application.Scholarships.Commands.ConfigureReviewFee;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
-using ScholarPath.UnitTests.CompanyReviewRequests;
+using ScholarPath.UnitTests.ScholarshipProviderReviewRequests;
 using Xunit;
 
 namespace ScholarPath.UnitTests.Scholarships;
@@ -45,8 +45,8 @@ public class PaymentsEnabledMasterSwitchTests
     [Fact]
     public async Task ConfigureReviewFee_forces_zero_when_master_payments_switch_is_off()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (scholarship, _, company) = CompanyReviewRequestTestFixtures
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (scholarship, _, company) = ScholarshipProviderReviewRequestTestFixtures
             .SeedParticipants(db, reviewFeeUsd: 50m);
         SeedSetting(db, PlatformSettingsKeys.PaymentsEnabled, value: false);
 
@@ -56,7 +56,7 @@ public class PaymentsEnabledMasterSwitchTests
         var sut = new ConfigureReviewFeeCommandHandler(
             db, currentUser, NullLogger<ConfigureReviewFeeCommandHandler>.Instance);
 
-        // Company sends a non-zero fee, but the master switch forces 0 silently.
+        // ScholarshipProvider sends a non-zero fee, but the master switch forces 0 silently.
         await sut.Handle(new ConfigureReviewFeeCommand(scholarship.Id, 120m), default);
 
         db.Scholarships.Single(s => s.Id == scholarship.Id)
@@ -67,8 +67,8 @@ public class PaymentsEnabledMasterSwitchTests
     public async Task ApplyNow_takes_free_path_when_master_switch_off_even_if_stored_fee_is_positive()
     {
         // Existing data: scholarship has fee=200 from before payments were turned off.
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (scholarship, student, _) = CompanyReviewRequestTestFixtures
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (scholarship, student, _) = ScholarshipProviderReviewRequestTestFixtures
             .SeedParticipants(db, reviewFeeUsd: 200m);
         SeedSetting(db, PlatformSettingsKeys.PaymentsEnabled, value: false);
 
@@ -76,12 +76,12 @@ public class PaymentsEnabledMasterSwitchTests
         currentUser.UserId.Returns(student.Id);
         var stripe = Substitute.For<IStripeService>();
 
-        var sut = new StartCompanyReviewRequestCommandHandler(
+        var sut = new StartScholarshipProviderReviewRequestCommandHandler(
             db, stripe, currentUser,
-            NullLogger<StartCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<StartScholarshipProviderReviewRequestCommandHandler>.Instance);
 
         var result = await sut.Handle(
-            new StartCompanyReviewRequestCommand(scholarship.Id), default);
+            new StartScholarshipProviderReviewRequestCommand(scholarship.Id), default);
 
         result.IsFree.Should().BeTrue();
         result.PaymentId.Should().BeNull();
@@ -93,7 +93,7 @@ public class PaymentsEnabledMasterSwitchTests
         await stripe.DidNotReceiveWithAnyArgs().CreatePaymentIntentAsync(
             default, default!, default!, default!, default!, default);
 
-        var entity = db.CompanyReviewRequests.Single();
+        var entity = db.ScholarshipProviderReviewRequests.Single();
         entity.PaymentId.Should().BeNull();
         entity.ReviewFeeUsdSnapshot.Should().Be(0m);
         db.Payments.Should().BeEmpty();
@@ -104,8 +104,8 @@ public class PaymentsEnabledMasterSwitchTests
     {
         // Sanity check: with master switch ON and a positive fee, the paid
         // flow runs as usual — the master switch only changes behaviour when off.
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (scholarship, student, _) = CompanyReviewRequestTestFixtures
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (scholarship, student, _) = ScholarshipProviderReviewRequestTestFixtures
             .SeedParticipants(db, reviewFeeUsd: 75m);
         SeedSetting(db, PlatformSettingsKeys.PaymentsEnabled, value: true);
 
@@ -119,12 +119,12 @@ public class PaymentsEnabledMasterSwitchTests
             .Returns(new StripePaymentIntentResult(
                 "pi_test", "requires_payment_method", "cs_test", null));
 
-        var sut = new StartCompanyReviewRequestCommandHandler(
+        var sut = new StartScholarshipProviderReviewRequestCommandHandler(
             db, stripe, currentUser,
-            NullLogger<StartCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<StartScholarshipProviderReviewRequestCommandHandler>.Instance);
 
         var result = await sut.Handle(
-            new StartCompanyReviewRequestCommand(scholarship.Id), default);
+            new StartScholarshipProviderReviewRequestCommand(scholarship.Id), default);
 
         result.IsFree.Should().BeFalse();
         result.AmountCents.Should().Be(7_500);
@@ -137,12 +137,12 @@ public class PaymentsEnabledMasterSwitchTests
     [Fact]
     public async Task ApplyNow_works_when_payments_off_and_stored_fee_is_null()
     {
-        // Legacy listing: the Company never configured a Review Service Fee
+        // Legacy listing: the ScholarshipProvider never configured a Review Service Fee
         // (ReviewFeeUsd is NULL on the row). When the master switch is OFF,
         // the platform treats every request as free, so this should NOT be
         // blocked by the "fee is not configured" guard.
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (scholarship, student, _) = CompanyReviewRequestTestFixtures
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (scholarship, student, _) = ScholarshipProviderReviewRequestTestFixtures
             .SeedParticipants(db, reviewFeeUsd: null);
         SeedSetting(db, PlatformSettingsKeys.PaymentsEnabled, value: false);
 
@@ -150,19 +150,19 @@ public class PaymentsEnabledMasterSwitchTests
         currentUser.UserId.Returns(student.Id);
         var stripe = Substitute.For<IStripeService>();
 
-        var sut = new StartCompanyReviewRequestCommandHandler(
+        var sut = new StartScholarshipProviderReviewRequestCommandHandler(
             db, stripe, currentUser,
-            NullLogger<StartCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<StartScholarshipProviderReviewRequestCommandHandler>.Instance);
 
         var result = await sut.Handle(
-            new StartCompanyReviewRequestCommand(scholarship.Id), default);
+            new StartScholarshipProviderReviewRequestCommand(scholarship.Id), default);
 
         result.IsFree.Should().BeTrue();
         result.PaymentId.Should().BeNull();
         result.AmountCents.Should().Be(0);
 
-        var entity = db.CompanyReviewRequests.Single();
-        entity.Status.Should().Be(CompanyReviewRequestStatus.Pending);
+        var entity = db.ScholarshipProviderReviewRequests.Single();
+        entity.Status.Should().Be(ScholarshipProviderReviewRequestStatus.Pending);
         entity.PaymentId.Should().BeNull();
     }
 
@@ -171,19 +171,19 @@ public class PaymentsEnabledMasterSwitchTests
     {
         // Inverse case: with payments ON, a missing fee remains a hard error —
         // the previous behaviour must not regress for paid-mode platforms.
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (scholarship, student, _) = CompanyReviewRequestTestFixtures
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (scholarship, student, _) = ScholarshipProviderReviewRequestTestFixtures
             .SeedParticipants(db, reviewFeeUsd: null);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(student.Id);
 
-        var sut = new StartCompanyReviewRequestCommandHandler(
+        var sut = new StartScholarshipProviderReviewRequestCommandHandler(
             db, Substitute.For<IStripeService>(), currentUser,
-            NullLogger<StartCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<StartScholarshipProviderReviewRequestCommandHandler>.Instance);
 
         var act = () => sut.Handle(
-            new StartCompanyReviewRequestCommand(scholarship.Id), default);
+            new StartScholarshipProviderReviewRequestCommand(scholarship.Id), default);
 
         await act.Should().ThrowAsync<ConflictException>()
             .WithMessage("*Review Service Fee*");

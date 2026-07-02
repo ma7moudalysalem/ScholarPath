@@ -1,22 +1,22 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ScholarPath.Application.CompanyReviews.Commands.HideCompanyReview;
-using ScholarPath.Application.CompanyReviews.Commands.SubmitCompanyRating;
-using ScholarPath.Application.CompanyReviews.DTOs;
-using ScholarPath.Application.CompanyReviews.Queries.GetCompanyRatings;
-using ScholarPath.Application.CompanyReviews.Queries.GetMyReceivedReviews;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.HideScholarshipProviderReview;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.SubmitScholarshipProviderRating;
+using ScholarPath.Application.ScholarshipProviderReviews.DTOs;
+using ScholarPath.Application.ScholarshipProviderReviews.Queries.GetScholarshipProviderRatings;
+using ScholarPath.Application.ScholarshipProviderReviews.Queries.GetMyReceivedReviews;
 
 namespace ScholarPath.API.Controllers;
 
 [ApiController]
 [Authorize]
 [Route("api/company-reviews")]
-public class CompanyReviewsController(IMediator mediator) : ControllerBase
+public class ScholarshipProviderReviewsController(IMediator mediator) : ControllerBase
 {
     [HttpPost]
     [Authorize(Roles = "Student")]
-    public async Task<IActionResult> SubmitCompanyRating([FromBody] SubmitCompanyRatingCommand command, CancellationToken ct)
+    public async Task<IActionResult> SubmitScholarshipProviderRating([FromBody] SubmitScholarshipProviderRatingCommand command, CancellationToken ct)
     {
         var reviewId = await mediator.Send(command, ct);
         return Ok(new { ReviewId = reviewId });
@@ -24,9 +24,9 @@ public class CompanyReviewsController(IMediator mediator) : ControllerBase
 
     [HttpGet("~/api/companies/{companyId:guid}/reviews")]
     [AllowAnonymous]
-    public async Task<IActionResult> GetCompanyRatings(Guid companyId, [FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
+    public async Task<IActionResult> GetScholarshipProviderRatings(Guid companyId, [FromQuery] int page = 1, [FromQuery] int pageSize = 25, CancellationToken ct = default)
     {
-        var query = new GetCompanyRatingsQuery(companyId, page, pageSize);
+        var query = new GetScholarshipProviderRatingsQuery(companyId, page, pageSize);
         var result = await mediator.Send(query, ct);
         return Ok(result);
     }
@@ -37,7 +37,7 @@ public class CompanyReviewsController(IMediator mediator) : ControllerBase
     /// aggregate average and count. Backs the company "Reviews received" page.
     /// </summary>
     [HttpGet("mine")]
-    [Authorize(Roles = "Company")]
+    [Authorize(Roles = "ScholarshipProvider")]
     [ProducesResponseType(typeof(ReceivedReviewsSummaryDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<ReceivedReviewsSummaryDto>> GetMyReceivedReviews(CancellationToken ct)
         => Ok(await mediator.Send(new GetMyReceivedReviewsQuery(), ct));
@@ -50,11 +50,11 @@ public class CompanyReviewsController(IMediator mediator) : ControllerBase
     [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ModerateCompanyReview(
+    public async Task<IActionResult> ModerateScholarshipProviderReview(
         Guid reviewId, [FromBody] ModerateReviewBody body, CancellationToken ct)
     {
         await mediator.Send(
-            new HideCompanyReviewCommand(reviewId, body.Hide, body.AdminNote), ct);
+            new HideScholarshipProviderReviewCommand(reviewId, body.Hide, body.AdminNote), ct);
         return NoContent();
     }
 }

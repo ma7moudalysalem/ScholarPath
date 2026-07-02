@@ -21,7 +21,7 @@ public static class PlatformSettingsKeys
     public const string PaymentsEnabled = "payments.enabled";
 
     /// <summary>
-    /// When <c>true</c>, a Company may set a scholarship's Review Service Fee
+    /// When <c>true</c>, a ScholarshipProvider may set a scholarship's Review Service Fee
     /// to 0 (the listing is free and the Apply Now flow skips Stripe). When
     /// <c>false</c>, validators reject 0 and require a positive fee.
     /// </summary>

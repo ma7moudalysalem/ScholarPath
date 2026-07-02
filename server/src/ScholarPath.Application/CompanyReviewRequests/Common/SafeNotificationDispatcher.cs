@@ -3,10 +3,10 @@ using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
-namespace ScholarPath.Application.CompanyReviewRequests.Common;
+namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Common;
 
 /// <summary>
-/// Email/in-app dispatch wrapper used by every CompanyReviewRequest handler.
+/// Email/in-app dispatch wrapper used by every ScholarshipProviderReviewRequest handler.
 /// Per spec PART 7: notification delivery failure must NOT block payment or
 /// request status updates. This helper swallows + logs dispatch errors so the
 /// caller can transition state first and notify after, without the transition

@@ -172,10 +172,10 @@ public sealed class DataExportJob(
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
-        var companyReviews = await db.CompanyReviews.AsNoTracking()
+        var companyReviews = await db.ScholarshipProviderReviews.AsNoTracking()
             .IgnoreQueryFilters()
             .Where(r => r.StudentId == userId)
-            .Select(r => new { r.Id, r.CompanyId, r.Rating, r.Comment, r.CreatedAt })
+            .Select(r => new { r.Id, r.ScholarshipProviderId, r.Rating, r.Comment, r.CreatedAt })
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
@@ -273,7 +273,7 @@ public sealed class DataExportJob(
             SavedScholarships = savedScholarships,
             Bookings = bookings,
             Availabilities = availabilities,
-            CompanyReviews = companyReviews,
+            ScholarshipProviderReviews = companyReviews,
             ConsultantReviews = consultantReviews,
             ForumPosts = forumPosts,
             ForumVotes = forumVotes,

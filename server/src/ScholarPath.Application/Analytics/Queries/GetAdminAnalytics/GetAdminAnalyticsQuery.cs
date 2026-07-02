@@ -106,14 +106,14 @@ public sealed class GetAdminAnalyticsQueryHandler(IApplicationDbContext db)
                 g.Count(p => p.RefundedAmountCents > 0)))
             .ToListAsync(ct);
 
-        // Finance — Company review payments
-        var reviewFin = await db.CompanyReviewPayments
+        // Finance — ScholarshipProvider review payments
+        var reviewFin = await db.ScholarshipProviderReviewPayments
             .AsNoTracking()
             .Where(p => p.CapturedAt != null && p.CapturedAt >= sinceOffset)
             .GroupBy(p => p.CapturedAt!.Value.Date)
             .Select(g => new FinanceDayDto(
                 DateOnly.FromDateTime(g.Key),
-                "CompanyReview",
+                "ScholarshipProviderReview",
                 g.Sum(p => p.AmountUsd),
                 g.Sum(p => p.ProfitShareAmountUsd),
                 g.Sum(p => p.PayeeAmountUsd),

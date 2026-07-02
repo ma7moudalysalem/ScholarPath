@@ -3,14 +3,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviewRequests.Commands.Cancel;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Cancel;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 using Xunit;
 
-namespace ScholarPath.UnitTests.CompanyReviewRequests;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviewRequests;
 
-public class CancelCompanyReviewRequestCommandHandlerTests
+public class CancelScholarshipProviderReviewRequestCommandHandlerTests
 {
     private static IStripeService StripeOk()
     {
@@ -32,25 +32,25 @@ public class CancelCompanyReviewRequestCommandHandlerTests
     [Fact]
     public async Task Cancel_from_pending_releases_hold_and_does_not_charge()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.Pending, amountCents: 10_000);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.Pending, amountCents: 10_000);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(request.StudentId);
         var stripe = StripeOk();
         var dispatcher = Substitute.For<INotificationDispatcher>();
 
-        var sut = new CancelCompanyReviewRequestCommandHandler(
+        var sut = new CancelScholarshipProviderReviewRequestCommandHandler(
             db, stripe, currentUser, dispatcher,
-            NullLogger<CancelCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<CancelScholarshipProviderReviewRequestCommandHandler>.Instance);
 
         var result = await sut.Handle(
-            new CancelCompanyReviewRequestCommand(request.Id, "Changed my mind"), default);
+            new CancelScholarshipProviderReviewRequestCommand(request.Id, "Changed my mind"), default);
 
         result.Should().BeTrue();
-        var updated = db.CompanyReviewRequests.Single();
-        updated.Status.Should().Be(CompanyReviewRequestStatus.CancelledByStudent);
+        var updated = db.ScholarshipProviderReviewRequests.Single();
+        updated.Status.Should().Be(ScholarshipProviderReviewRequestStatus.CancelledByStudent);
 
         var payment = db.Payments.Single();
         payment.Status.Should().Be(PaymentStatus.Cancelled);
@@ -64,7 +64,7 @@ public class CancelCompanyReviewRequestCommandHandlerTests
 
         await dispatcher.Received().DispatchAsync(
             request.StudentId,
-            NotificationType.CompanyReviewRequestPaymentHoldCancelled,
+            NotificationType.ScholarshipProviderReviewRequestPaymentHoldCancelled,
             Arg.Any<Application.Notifications.NotificationParams>(),
             Arg.Any<string>(), Arg.Any<string>(),
             Arg.Any<CancellationToken>());
@@ -73,26 +73,26 @@ public class CancelCompanyReviewRequestCommandHandlerTests
     [Fact]
     public async Task Cancel_from_under_review_applies_50pct_refund_and_relocks_split_from_retained()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
         // Gross 10,000c (=$100). 50% refund -> 5,000c retained. Commission 10%
-        // of retained = 500c; Company share 4,500c (spec PART 6).
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.UnderReview, amountCents: 10_000);
+        // of retained = 500c; ScholarshipProvider share 4,500c (spec PART 6).
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.UnderReview, amountCents: 10_000);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(request.StudentId);
         var stripe = StripeOk();
 
-        var sut = new CancelCompanyReviewRequestCommandHandler(
+        var sut = new CancelScholarshipProviderReviewRequestCommandHandler(
             db, stripe, currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<CancelCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<CancelScholarshipProviderReviewRequestCommandHandler>.Instance);
 
         var result = await sut.Handle(
-            new CancelCompanyReviewRequestCommand(request.Id), default);
+            new CancelScholarshipProviderReviewRequestCommand(request.Id), default);
 
         result.Should().BeTrue();
-        var updated = db.CompanyReviewRequests.Single();
-        updated.Status.Should().Be(CompanyReviewRequestStatus.CancelledByStudent);
+        var updated = db.ScholarshipProviderReviewRequests.Single();
+        updated.Status.Should().Be(ScholarshipProviderReviewRequestStatus.CancelledByStudent);
 
         var payment = db.Payments.Single();
         payment.Status.Should().Be(PaymentStatus.PartiallyRefunded);
@@ -105,54 +105,54 @@ public class CancelCompanyReviewRequestCommandHandlerTests
     [Fact]
     public async Task Cancel_after_completed_is_rejected()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.Completed);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.Completed);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(request.StudentId);
 
-        var sut = new CancelCompanyReviewRequestCommandHandler(
+        var sut = new CancelScholarshipProviderReviewRequestCommandHandler(
             db, StripeOk(), currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<CancelCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<CancelScholarshipProviderReviewRequestCommandHandler>.Instance);
 
-        var act = () => sut.Handle(new CancelCompanyReviewRequestCommand(request.Id), default);
+        var act = () => sut.Handle(new CancelScholarshipProviderReviewRequestCommand(request.Id), default);
         await act.Should().ThrowAsync<ConflictException>().WithMessage("*already completed*");
     }
 
     [Fact]
     public async Task Cancel_is_idempotent_on_already_cancelled_request()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.CancelledByStudent);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.CancelledByStudent);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(request.StudentId);
 
-        var sut = new CancelCompanyReviewRequestCommandHandler(
+        var sut = new CancelScholarshipProviderReviewRequestCommandHandler(
             db, StripeOk(), currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<CancelCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<CancelScholarshipProviderReviewRequestCommandHandler>.Instance);
 
-        var result = await sut.Handle(new CancelCompanyReviewRequestCommand(request.Id), default);
+        var result = await sut.Handle(new CancelScholarshipProviderReviewRequestCommand(request.Id), default);
         result.Should().BeFalse();
     }
 
     [Fact]
     public async Task Cancel_rejects_non_owning_student()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.Pending);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.Pending);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(Guid.NewGuid()); // another student
 
-        var sut = new CancelCompanyReviewRequestCommandHandler(
+        var sut = new CancelScholarshipProviderReviewRequestCommandHandler(
             db, StripeOk(), currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<CancelCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<CancelScholarshipProviderReviewRequestCommandHandler>.Instance);
 
-        var act = () => sut.Handle(new CancelCompanyReviewRequestCommand(request.Id), default);
+        var act = () => sut.Handle(new CancelScholarshipProviderReviewRequestCommand(request.Id), default);
         await act.Should().ThrowAsync<ForbiddenAccessException>();
     }
 
@@ -161,18 +161,18 @@ public class CancelCompanyReviewRequestCommandHandlerTests
     {
         // 999c gross — half-up rounding gives 500c refund + 499c retained,
         // re-summing exactly to gross. Commission = round(499 * 0.10) = 50c.
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.UnderReview, amountCents: 999);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.UnderReview, amountCents: 999);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(request.StudentId);
 
-        var sut = new CancelCompanyReviewRequestCommandHandler(
+        var sut = new CancelScholarshipProviderReviewRequestCommandHandler(
             db, StripeOk(), currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<CancelCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<CancelScholarshipProviderReviewRequestCommandHandler>.Instance);
 
-        await sut.Handle(new CancelCompanyReviewRequestCommand(request.Id), default);
+        await sut.Handle(new CancelScholarshipProviderReviewRequestCommand(request.Id), default);
 
         var payment = db.Payments.Single();
         payment.RefundedAmountCents.Should().Be(500);

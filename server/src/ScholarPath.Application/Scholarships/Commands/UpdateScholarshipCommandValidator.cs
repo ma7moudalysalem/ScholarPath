@@ -33,7 +33,7 @@ public class UpdateScholarshipCommandValidator : AbstractValidator<UpdateScholar
             .MaximumLength(4000);
 
         // Spec: deadline must still be at least 7 days out on update — the
-        // previous "just > now" rule let a Company shorten the deadline to
+        // previous "just > now" rule let a ScholarshipProvider shorten the deadline to
         // ~tomorrow after publication, bypassing the create-time 7-day rule.
         RuleFor(v => v.Deadline)
             .NotEmpty()

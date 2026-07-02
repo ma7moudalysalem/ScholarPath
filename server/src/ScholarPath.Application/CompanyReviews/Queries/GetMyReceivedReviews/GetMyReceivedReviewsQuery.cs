@@ -1,7 +1,7 @@
 using MediatR;
-using ScholarPath.Application.CompanyReviews.DTOs;
+using ScholarPath.Application.ScholarshipProviderReviews.DTOs;
 
-namespace ScholarPath.Application.CompanyReviews.Queries.GetMyReceivedReviews;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Queries.GetMyReceivedReviews;
 
 /// <summary>
 /// Returns the reviews the authenticated company has received — masked author

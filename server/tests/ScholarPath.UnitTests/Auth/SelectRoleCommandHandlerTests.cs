@@ -62,7 +62,7 @@ public class SelectRoleCommandHandlerTests
 
     /// <summary>
     /// Seeds the mandatory onboarding verification documents the handler now
-    /// requires before a Company/Consultant can enter the admin queue
+    /// requires before a ScholarshipProvider/Consultant can enter the admin queue
     /// (AUTH-CODE-02). Defaults to the maximum so callers can simply attach the
     /// required minimum for either role.
     /// </summary>
@@ -103,13 +103,13 @@ public class SelectRoleCommandHandlerTests
         await admin.Received().AddRoleAsync(userId, "Student", Arg.Any<CancellationToken>());
     }
 
-    private static OnboardingDetails ValidCompanyDetails() => new(
+    private static OnboardingDetails ValidScholarshipProviderDetails() => new(
         OrganizationLegalName: "Acme University",
         OrganizationWebsite: "https://acme.edu",
         OrganizationEmail: "admissions@acme.edu",
         OrganizationCountry: "Egypt",
-        CompanyType: "University",
-        CompanyDescription: "A research-led university.",
+        ScholarshipProviderType: "University",
+        ScholarshipProviderDescription: "A research-led university.",
         OrganizationRegistrationNumber: "ACME-1234",
         OrganizationTaxNumber: null,
         ContactPersonFullName: "Hala Mostafa",
@@ -132,28 +132,28 @@ public class SelectRoleCommandHandlerTests
         PortfolioUrl: null);
 
     [Fact]
-    public async Task Company_selection_enters_the_onboarding_queue()
+    public async Task ScholarshipProvider_selection_enters_the_onboarding_queue()
     {
         using var db = CreateDb();
         var userId = SeedUnassignedUser(db);
-        SeedOnboardingDocuments(db, userId, count: 2); // AUTH-CODE-02 — Company needs >= 2 docs.
+        SeedOnboardingDocuments(db, userId, count: 2); // AUTH-CODE-02 — ScholarshipProvider needs >= 2 docs.
         await db.SaveChangesAsync();
 
         var admin = Substitute.For<IUserAdministration>();
         admin.GetRolesAsync(userId, Arg.Any<CancellationToken>()).Returns(Array.Empty<string>());
 
         await Sut(db, userId, admin).Handle(
-            new SelectRoleCommand("Company", ValidCompanyDetails()), default);
+            new SelectRoleCommand("ScholarshipProvider", ValidScholarshipProviderDetails()), default);
 
         var user = await db.Users.Include(u => u.Profile).FirstAsync(u => u.Id == userId);
         user.AccountStatus.Should().Be(AccountStatus.PendingApproval);
-        user.ActiveRole.Should().Be("Company");
+        user.ActiveRole.Should().Be("ScholarshipProvider");
         user.IsOnboardingComplete.Should().BeFalse();
         user.Profile.Should().NotBeNull();
         user.Profile!.OrganizationLegalName.Should().Be("Acme University");
         user.Profile.OrganizationEmail.Should().Be("admissions@acme.edu");
         user.Profile.OrganizationCountry.Should().Be("Egypt");
-        user.Profile.CompanyType.Should().Be("University");
+        user.Profile.ScholarshipProviderType.Should().Be("University");
         user.Profile.ContactPersonFullName.Should().Be("Hala Mostafa");
         user.Profile.ContactPhoneNumber.Should().Be("+201234567890");
         await admin.DidNotReceive()
@@ -161,7 +161,7 @@ public class SelectRoleCommandHandlerTests
     }
 
     [Fact]
-    public async Task Company_submission_notifies_active_admins_with_onboarding_deep_link()
+    public async Task ScholarshipProvider_submission_notifies_active_admins_with_onboarding_deep_link()
     {
         using var db = CreateDb();
         var userId = SeedUnassignedUser(db);
@@ -184,7 +184,7 @@ public class SelectRoleCommandHandlerTests
         var notifications = Substitute.For<INotificationDispatcher>();
 
         await Sut(db, userId, admin, notifications).Handle(
-            new SelectRoleCommand("Company", ValidCompanyDetails()), default);
+            new SelectRoleCommand("ScholarshipProvider", ValidScholarshipProviderDetails()), default);
 
         await notifications.Received(1).DispatchAsync(
             adminId,
@@ -263,7 +263,7 @@ public class SelectRoleCommandHandlerTests
         var admin = Substitute.For<IUserAdministration>();
         admin.GetRolesAsync(userId, Arg.Any<CancellationToken>()).Returns(new[] { "Student" });
 
-        var act = () => Sut(db, userId, admin).Handle(new SelectRoleCommand("Company"), default);
+        var act = () => Sut(db, userId, admin).Handle(new SelectRoleCommand("ScholarshipProvider"), default);
 
         await act.Should().ThrowAsync<ConflictException>();
     }
@@ -283,16 +283,16 @@ public class SelectRoleCommandHandlerTests
     {
         var v = new SelectRoleCommandValidator();
 
-        // Bare Company role with no details — must fail.
-        v.Validate(new SelectRoleCommand("Company")).IsValid.Should().BeFalse();
+        // Bare ScholarshipProvider role with no details — must fail.
+        v.Validate(new SelectRoleCommand("ScholarshipProvider")).IsValid.Should().BeFalse();
 
         // Details with most fields missing — must fail.
-        var partial = new SelectRoleCommand("Company", new OnboardingDetails(
+        var partial = new SelectRoleCommand("ScholarshipProvider", new OnboardingDetails(
             OrganizationLegalName: "Acme"));
         v.Validate(partial).IsValid.Should().BeFalse();
 
-        // Full Company details — must pass.
-        v.Validate(new SelectRoleCommand("Company", ValidCompanyDetails())).IsValid.Should().BeTrue();
+        // Full ScholarshipProvider details — must pass.
+        v.Validate(new SelectRoleCommand("ScholarshipProvider", ValidScholarshipProviderDetails())).IsValid.Should().BeTrue();
     }
 
     [Fact]
@@ -314,8 +314,8 @@ public class SelectRoleCommandHandlerTests
     public void Validator_rejects_invalid_company_type()
     {
         var v = new SelectRoleCommandValidator();
-        var d = ValidCompanyDetails() with { CompanyType = "Bogus" };
-        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeFalse();
+        var d = ValidScholarshipProviderDetails() with { ScholarshipProviderType = "Bogus" };
+        v.Validate(new SelectRoleCommand("ScholarshipProvider", d)).IsValid.Should().BeFalse();
     }
 
     [Fact]
@@ -329,7 +329,7 @@ public class SelectRoleCommandHandlerTests
     // ── AUTH-CODE-02 — mandatory verification documents ──────────────────────
 
     [Fact]
-    public async Task Company_submission_blocked_when_no_verification_documents()
+    public async Task ScholarshipProvider_submission_blocked_when_no_verification_documents()
     {
         using var db = CreateDb();
         var userId = SeedUnassignedUser(db);
@@ -339,7 +339,7 @@ public class SelectRoleCommandHandlerTests
         admin.GetRolesAsync(userId, Arg.Any<CancellationToken>()).Returns(Array.Empty<string>());
 
         var act = () => Sut(db, userId, admin).Handle(
-            new SelectRoleCommand("Company", ValidCompanyDetails()), default);
+            new SelectRoleCommand("ScholarshipProvider", ValidScholarshipProviderDetails()), default);
 
         await act.Should().ThrowAsync<ConflictException>()
             .WithMessage("*verification document*");
@@ -369,27 +369,27 @@ public class SelectRoleCommandHandlerTests
     public void Validator_requires_tax_reason_when_not_tax_registered()
     {
         var v = new SelectRoleCommandValidator();
-        var d = ValidCompanyDetails() with { IsTaxRegistered = false, TaxNotApplicableReason = null };
-        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeFalse();
+        var d = ValidScholarshipProviderDetails() with { IsTaxRegistered = false, TaxNotApplicableReason = null };
+        v.Validate(new SelectRoleCommand("ScholarshipProvider", d)).IsValid.Should().BeFalse();
 
         var ok = d with { TaxNotApplicableReason = "Charity is not tax-registered in Egypt." };
-        v.Validate(new SelectRoleCommand("Company", ok)).IsValid.Should().BeTrue();
+        v.Validate(new SelectRoleCommand("ScholarshipProvider", ok)).IsValid.Should().BeTrue();
     }
 
     [Fact]
     public void Validator_requires_tax_number_when_tax_registered()
     {
         var v = new SelectRoleCommandValidator();
-        var d = ValidCompanyDetails() with { IsTaxRegistered = true, OrganizationTaxNumber = null };
-        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeFalse();
+        var d = ValidScholarshipProviderDetails() with { IsTaxRegistered = true, OrganizationTaxNumber = null };
+        v.Validate(new SelectRoleCommand("ScholarshipProvider", d)).IsValid.Should().BeFalse();
     }
 
     [Fact]
     public void Validator_requires_legal_reason_when_not_legally_registered()
     {
         var v = new SelectRoleCommandValidator();
-        var d = ValidCompanyDetails() with { IsLegallyRegistered = false, LegalRegistrationNotApplicableReason = null };
-        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeFalse();
+        var d = ValidScholarshipProviderDetails() with { IsLegallyRegistered = false, LegalRegistrationNotApplicableReason = null };
+        v.Validate(new SelectRoleCommand("ScholarshipProvider", d)).IsValid.Should().BeFalse();
     }
 
     // ── AUTH-CODE-04 — validator rule alignment ──────────────────────────────
@@ -398,8 +398,8 @@ public class SelectRoleCommandHandlerTests
     public void Validator_rejects_invalid_website_url()
     {
         var v = new SelectRoleCommandValidator();
-        var d = ValidCompanyDetails() with { OrganizationWebsite = "acme.edu" }; // missing scheme
-        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeFalse();
+        var d = ValidScholarshipProviderDetails() with { OrganizationWebsite = "acme.edu" }; // missing scheme
+        v.Validate(new SelectRoleCommand("ScholarshipProvider", d)).IsValid.Should().BeFalse();
     }
 
     [Fact]
@@ -407,8 +407,8 @@ public class SelectRoleCommandHandlerTests
     {
         var v = new SelectRoleCommandValidator();
         // 1500 chars: between the old 1000 cap (rejected before) and the new 2000 cap.
-        var d = ValidCompanyDetails() with { CompanyDescription = new string('A', 1500) };
-        v.Validate(new SelectRoleCommand("Company", d)).IsValid.Should().BeTrue();
+        var d = ValidScholarshipProviderDetails() with { ScholarshipProviderDescription = new string('A', 1500) };
+        v.Validate(new SelectRoleCommand("ScholarshipProvider", d)).IsValid.Should().BeTrue();
     }
 
     [Fact]

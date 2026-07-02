@@ -3,7 +3,7 @@ using NSubstitute;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviews.Commands.SubmitCompanyRating;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.SubmitScholarshipProviderRating;
 using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
@@ -12,40 +12,40 @@ using ScholarPath.Infrastructure.Persistence;
 using Xunit;
 using FluentAssertions;
 
-namespace ScholarPath.UnitTests.CompanyReviews;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviews;
 
-public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
+public sealed class SubmitScholarshipProviderRatingCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
     private readonly INotificationDispatcher _notif = Substitute.For<INotificationDispatcher>();
-    private readonly ILogger<SubmitCompanyRatingCommandHandler> _logger = Substitute.For<ILogger<SubmitCompanyRatingCommandHandler>>();
-    private readonly SubmitCompanyRatingCommandHandler _handler;
+    private readonly ILogger<SubmitScholarshipProviderRatingCommandHandler> _logger = Substitute.For<ILogger<SubmitScholarshipProviderRatingCommandHandler>>();
+    private readonly SubmitScholarshipProviderRatingCommandHandler _handler;
 
-    public SubmitCompanyRatingCommandHandlerTests()
+    public SubmitScholarshipProviderRatingCommandHandlerTests()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _db = new ApplicationDbContext(options);
 
-        _handler = new SubmitCompanyRatingCommandHandler(_db, _currentUser, _notif, _logger);
+        _handler = new SubmitScholarshipProviderRatingCommandHandler(_db, _currentUser, _notif, _logger);
     }
 
     // Seeds a scholarship (owned by a company) + an application for the student.
     // Also seeds the company's UserProfile so the recalc/low-rating path under
     // test can write the snapshot back; tests that need to assert the
-    // "profile-missing" warning path can pass seedCompanyProfile: false.
+    // "profile-missing" warning path can pass seedScholarshipProviderProfile: false.
     private async Task<(Guid appId, Guid companyId)> SeedApplicationAsync(
         Guid studentId,
         ApplicationStatus status,
-        bool seedCompanyProfile = true)
+        bool seedScholarshipProviderProfile = true)
     {
         var companyId = Guid.NewGuid();
         var scholarship = new Scholarship
         {
             Id = Guid.NewGuid(),
-            OwnerCompanyId = companyId,
+            OwnerScholarshipProviderId = companyId,
             TitleEn = "Test Scholarship",
             TitleAr = "منحة اختبار",
             DescriptionEn = "Description",
@@ -63,7 +63,7 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         };
         _db.Scholarships.Add(scholarship);
         _db.Applications.Add(app);
-        if (seedCompanyProfile)
+        if (seedScholarshipProviderProfile)
         {
             _db.UserProfiles.Add(new UserProfile { UserId = companyId });
         }
@@ -74,7 +74,7 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
     private async Task SeedExistingReviewAsync(
         Guid companyId, int rating, bool hidden = false)
     {
-        // Seeds a CompanyReview attributed to an arbitrary (unique) prior
+        // Seeds a ScholarshipProviderReview attributed to an arbitrary (unique) prior
         // application so the unique index on ApplicationTrackerId doesn't bite.
         var priorApp = new ApplicationTracker
         {
@@ -83,12 +83,12 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
             Status = ApplicationStatus.Accepted,
         };
         _db.Applications.Add(priorApp);
-        _db.CompanyReviews.Add(new CompanyReview
+        _db.ScholarshipProviderReviews.Add(new ScholarshipProviderReview
         {
             Id = Guid.NewGuid(),
             ApplicationTrackerId = priorApp.Id,
             StudentId = priorApp.StudentId,
-            CompanyId = companyId,
+            ScholarshipProviderId = companyId,
             Rating = rating,
             IsHiddenByAdmin = hidden,
         });
@@ -117,20 +117,20 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         _currentUser.UserId.Returns(studentId);
         var (appId, companyId) = await SeedApplicationAsync(studentId, ApplicationStatus.Accepted);
 
-        var command = new SubmitCompanyRatingCommand(appId, 5, "Great experience!");
+        var command = new SubmitScholarshipProviderRatingCommand(appId, 5, "Great experience!");
 
         var result = await _handler.Handle(command, CancellationToken.None);
 
         result.Should().NotBeEmpty();
-        var review = await _db.CompanyReviews.FirstOrDefaultAsync(r => r.Id == result);
+        var review = await _db.ScholarshipProviderReviews.FirstOrDefaultAsync(r => r.Id == result);
         review.Should().NotBeNull();
         review!.Rating.Should().Be(5);
         review.Comment.Should().Be("Great experience!");
-        review.CompanyId.Should().Be(companyId);
+        review.ScholarshipProviderId.Should().Be(companyId);
 
         await _notif.Received(1).DispatchAsync(
             companyId,
-            NotificationType.CompanyRatingReceived,
+            NotificationType.ScholarshipProviderRatingReceived,
             Arg.Any<NotificationParams>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
@@ -144,7 +144,7 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         _currentUser.UserId.Returns(studentId);
         var (appId, _) = await SeedApplicationAsync(studentId, ApplicationStatus.UnderReview);
 
-        var command = new SubmitCompanyRatingCommand(appId, 5, null);
+        var command = new SubmitScholarshipProviderRatingCommand(appId, 5, null);
 
         await _handler.Awaiting(h => h.Handle(command, CancellationToken.None))
             .Should().ThrowAsync<ConflictException>();
@@ -157,16 +157,16 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         _currentUser.UserId.Returns(studentId);
         var (appId, companyId) = await SeedApplicationAsync(studentId, ApplicationStatus.Accepted);
 
-        _db.CompanyReviews.Add(new CompanyReview
+        _db.ScholarshipProviderReviews.Add(new ScholarshipProviderReview
         {
             ApplicationTrackerId = appId,
             StudentId = studentId,
-            CompanyId = companyId,
+            ScholarshipProviderId = companyId,
             Rating = 4,
         });
         await _db.SaveChangesAsync();
 
-        var command = new SubmitCompanyRatingCommand(appId, 5, null);
+        var command = new SubmitScholarshipProviderRatingCommand(appId, 5, null);
 
         await _handler.Awaiting(h => h.Handle(command, CancellationToken.None))
             .Should().ThrowAsync<ConflictException>();
@@ -182,7 +182,7 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         var (appId, _) = await SeedApplicationAsync(studentId, ApplicationStatus.Accepted);
 
         var result = await _handler.Handle(
-            new SubmitCompanyRatingCommand(appId, 5, null), CancellationToken.None);
+            new SubmitScholarshipProviderRatingCommand(appId, 5, null), CancellationToken.None);
 
         result.Should().NotBeEmpty();
     }
@@ -195,7 +195,7 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         var (appId, _) = await SeedApplicationAsync(studentId, ApplicationStatus.Rejected);
 
         var result = await _handler.Handle(
-            new SubmitCompanyRatingCommand(appId, 3, null), CancellationToken.None);
+            new SubmitScholarshipProviderRatingCommand(appId, 3, null), CancellationToken.None);
 
         result.Should().NotBeEmpty();
     }
@@ -213,7 +213,7 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         var (appId, _) = await SeedApplicationAsync(studentId, status);
 
         await _handler.Awaiting(h => h.Handle(
-                new SubmitCompanyRatingCommand(appId, 5, null), CancellationToken.None))
+                new SubmitScholarshipProviderRatingCommand(appId, 5, null), CancellationToken.None))
             .Should().ThrowAsync<ConflictException>();
     }
 
@@ -226,28 +226,28 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         _currentUser.UserId.Returns(Guid.NewGuid());
 
         await _handler.Awaiting(h => h.Handle(
-                new SubmitCompanyRatingCommand(appId, 5, null), CancellationToken.None))
+                new SubmitScholarshipProviderRatingCommand(appId, 5, null), CancellationToken.None))
             .Should().ThrowAsync<ForbiddenAccessException>();
     }
 
-    // ── CompanyId resolution ────────────────────────────────────────────────
+    // ── ScholarshipProviderId resolution ────────────────────────────────────────────────
 
     [Fact]
-    public async Task Handle_CompanyId_IsResolvedFromScholarshipOwner_NotClientSupplied()
+    public async Task Handle_ScholarshipProviderId_IsResolvedFromScholarshipOwner_NotClientSupplied()
     {
         var studentId = Guid.NewGuid();
         _currentUser.UserId.Returns(studentId);
         var (appId, companyId) = await SeedApplicationAsync(studentId, ApplicationStatus.Accepted);
 
-        // The command shape has NO CompanyId field — proving that fact at
+        // The command shape has NO ScholarshipProviderId field — proving that fact at
         // compile time also satisfies the "server-side resolution" rule.
         // We additionally assert the persisted review carries the scholarship
         // owner's id, even though that id is not in the request body anywhere.
         var reviewId = await _handler.Handle(
-            new SubmitCompanyRatingCommand(appId, 5, null), CancellationToken.None);
+            new SubmitScholarshipProviderRatingCommand(appId, 5, null), CancellationToken.None);
 
-        var review = await _db.CompanyReviews.FirstAsync(r => r.Id == reviewId);
-        review.CompanyId.Should().Be(companyId);
+        var review = await _db.ScholarshipProviderReviews.FirstAsync(r => r.Id == reviewId);
+        review.ScholarshipProviderId.Should().Be(companyId);
     }
 
     // ── Snapshot recalculation ──────────────────────────────────────────────
@@ -263,12 +263,12 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         await SeedExistingReviewAsync(companyId, rating: 5);
 
         await _handler.Handle(
-            new SubmitCompanyRatingCommand(appId, 5, null), CancellationToken.None);
+            new SubmitScholarshipProviderRatingCommand(appId, 5, null), CancellationToken.None);
 
         var profile = await _db.UserProfiles.SingleAsync(p => p.UserId == companyId);
-        profile.CompanyReviewCount.Should().Be(3);
+        profile.ScholarshipProviderReviewCount.Should().Be(3);
         // (2 + 5 + 5) / 3 = 4.00
-        profile.CompanyAverageRating.Should().Be(4.00m);
+        profile.ScholarshipProviderAverageRating.Should().Be(4.00m);
     }
 
     [Fact]
@@ -282,17 +282,17 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         await SeedExistingReviewAsync(companyId, rating: 1, hidden: true);
 
         await _handler.Handle(
-            new SubmitCompanyRatingCommand(appId, 5, null), CancellationToken.None);
+            new SubmitScholarshipProviderRatingCommand(appId, 5, null), CancellationToken.None);
 
         var profile = await _db.UserProfiles.SingleAsync(p => p.UserId == companyId);
-        profile.CompanyReviewCount.Should().Be(1);
-        profile.CompanyAverageRating.Should().Be(5.00m);
+        profile.ScholarshipProviderReviewCount.Should().Be(1);
+        profile.ScholarshipProviderAverageRating.Should().Be(5.00m);
     }
 
     // ── Low-rating policy ───────────────────────────────────────────────────
 
     [Fact]
-    public async Task Handle_AverageBelowThreshold_FlagsCompanyForAdminReview()
+    public async Task Handle_AverageBelowThreshold_FlagsScholarshipProviderForAdminReview()
     {
         var studentId = Guid.NewGuid();
         _currentUser.UserId.Returns(studentId);
@@ -301,15 +301,15 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
 
         // Single 1-star drops avg to 1.00 (< 2.5).
         await _handler.Handle(
-            new SubmitCompanyRatingCommand(appId, 1, "Did not deliver"), CancellationToken.None);
+            new SubmitScholarshipProviderRatingCommand(appId, 1, "Did not deliver"), CancellationToken.None);
 
         var profile = await _db.UserProfiles.SingleAsync(p => p.UserId == companyId);
-        profile.CompanyLowRatingFlaggedAt.Should().NotBeNull();
-        profile.CompanyAverageRating.Should().Be(1.00m);
+        profile.ScholarshipProviderLowRatingFlaggedAt.Should().NotBeNull();
+        profile.ScholarshipProviderAverageRating.Should().Be(1.00m);
 
         await _notif.Received().DispatchAsync(
             Arg.Any<Guid>(),
-            NotificationType.CompanyLowRatingFlagged,
+            NotificationType.ScholarshipProviderLowRatingFlagged,
             Arg.Any<NotificationParams>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
@@ -328,15 +328,15 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         // must NOT flag. Seed a 2 + submit a 3 → avg 2.50.
         await SeedExistingReviewAsync(companyId, rating: 2);
         await _handler.Handle(
-            new SubmitCompanyRatingCommand(appId, 3, null), CancellationToken.None);
+            new SubmitScholarshipProviderRatingCommand(appId, 3, null), CancellationToken.None);
 
         var profile = await _db.UserProfiles.SingleAsync(p => p.UserId == companyId);
-        profile.CompanyLowRatingFlaggedAt.Should().BeNull();
-        profile.CompanyAverageRating.Should().Be(2.50m);
+        profile.ScholarshipProviderLowRatingFlaggedAt.Should().BeNull();
+        profile.ScholarshipProviderAverageRating.Should().Be(2.50m);
 
         await _notif.DidNotReceive().DispatchAsync(
             Arg.Any<Guid>(),
-            NotificationType.CompanyLowRatingFlagged,
+            NotificationType.ScholarshipProviderLowRatingFlagged,
             Arg.Any<NotificationParams>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
@@ -354,21 +354,21 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         // Pre-flag this company a week ago.
         var profile = await _db.UserProfiles.SingleAsync(p => p.UserId == companyId);
         var originalFlaggedAt = DateTimeOffset.UtcNow.AddDays(-7);
-        profile.CompanyLowRatingFlaggedAt = originalFlaggedAt;
+        profile.ScholarshipProviderLowRatingFlaggedAt = originalFlaggedAt;
         await _db.SaveChangesAsync();
 
         // Another sub-2.5 rating arrives.
         await _handler.Handle(
-            new SubmitCompanyRatingCommand(appId, 1, null), CancellationToken.None);
+            new SubmitScholarshipProviderRatingCommand(appId, 1, null), CancellationToken.None);
 
         var updated = await _db.UserProfiles.SingleAsync(p => p.UserId == companyId);
         // Sticky: original timestamp preserved.
-        updated.CompanyLowRatingFlaggedAt.Should().Be(originalFlaggedAt);
+        updated.ScholarshipProviderLowRatingFlaggedAt.Should().Be(originalFlaggedAt);
         // And we should NOT re-notify admins — the "firstFlagging" gate kept
         // dispatch from firing a second time.
         await _notif.DidNotReceive().DispatchAsync(
             Arg.Any<Guid>(),
-            NotificationType.CompanyLowRatingFlagged,
+            NotificationType.ScholarshipProviderLowRatingFlagged,
             Arg.Any<NotificationParams>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
@@ -376,7 +376,7 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_StillDispatchesCompanyRatingReceived_RegardlessOfThreshold()
+    public async Task Handle_StillDispatchesScholarshipProviderRatingReceived_RegardlessOfThreshold()
     {
         // Regression guard: PB-005R must not break the existing per-company
         // "you received a rating" notification.
@@ -385,11 +385,11 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         var (appId, companyId) = await SeedApplicationAsync(studentId, ApplicationStatus.Accepted);
 
         await _handler.Handle(
-            new SubmitCompanyRatingCommand(appId, 1, null), CancellationToken.None);
+            new SubmitScholarshipProviderRatingCommand(appId, 1, null), CancellationToken.None);
 
         await _notif.Received(1).DispatchAsync(
             companyId,
-            NotificationType.CompanyRatingReceived,
+            NotificationType.ScholarshipProviderRatingReceived,
             Arg.Any<NotificationParams>(),
             Arg.Any<string>(),
             Arg.Any<string>(),
@@ -416,7 +416,7 @@ public sealed class SubmitCompanyRatingCommandHandlerTests : IDisposable
         await _db.SaveChangesAsync();
 
         await _handler.Handle(
-            new SubmitCompanyRatingCommand(appId, 4, null), CancellationToken.None);
+            new SubmitScholarshipProviderRatingCommand(appId, 4, null), CancellationToken.None);
 
         var stillThere = await _db.SavedScholarships.FindAsync(bookmark.Id);
         stillThere.Should().NotBeNull();

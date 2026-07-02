@@ -25,7 +25,7 @@ public class Scholarship : AuditableEntity, ISoftDeletable
     public string Slug { get; set; } = default!;
 
     public Guid? CategoryId { get; set; }
-    public Guid? OwnerCompanyId { get; set; } // null for Admin-created external listings
+    public Guid? OwnerScholarshipProviderId { get; set; } // null for Admin-created external listings
     public Guid? CreatedByAdminId { get; set; }
 
     public ListingMode Mode { get; set; } = ListingMode.InApp;
@@ -53,14 +53,14 @@ public class Scholarship : AuditableEntity, ISoftDeletable
     public string? ApplicationFormSchemaJson { get; set; }
     public string? RequiredDocumentsJson { get; set; }
 
-    public decimal? ReviewFeeUsd { get; set; } // Company's charge for reviewing
+    public decimal? ReviewFeeUsd { get; set; } // ScholarshipProvider's charge for reviewing
 
     public bool IsDeleted { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public Guid? DeletedByUserId { get; set; }
 
     public Category? Category { get; set; }
-    public ApplicationUser? OwnerCompany { get; set; }
+    public ApplicationUser? OwnerScholarshipProvider { get; set; }
     public ICollection<ScholarshipChild> Children { get; } = [];
     public ICollection<SavedScholarship> Bookmarks { get; } = [];
     public ICollection<ApplicationTracker> Applications { get; } = [];

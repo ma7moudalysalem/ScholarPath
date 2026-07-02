@@ -1,0 +1,23 @@
+@startdot
+digraph G {
+  rankdir=BT; splines=polyline; nodesep=0.7; ranksep=1.1;
+  node [shape=plaintext];
+  Users [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="1" BGCOLOR="#dbe6ff"><B>Users</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD></TR></TABLE>>];
+  Resources [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="5" BGCOLOR="#dbe6ff"><B>Resources</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="AuthorUserId" BGCOLOR="#fff7e6">AuthorUserId</TD><TD PORT="Slug">Slug</TD><TD PORT="Type">Type</TD><TD PORT="Status">Status</TD></TR></TABLE>>];
+  ResourceChapters [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="3" BGCOLOR="#dbe6ff"><B>ResourceChapters</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ResourceId" BGCOLOR="#fff7e6">ResourceId</TD><TD PORT="SortOrder">SortOrder</TD></TR></TABLE>>];
+  ResourceBookmarks [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="3" BGCOLOR="#dbe6ff"><B>ResourceBookmarks</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ResourceId" BGCOLOR="#fff7e6">ResourceId</TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD></TR></TABLE>>];
+  ResourceProgress [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>ResourceProgress</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ResourceId" BGCOLOR="#fff7e6">ResourceId</TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="ChaptersCompletedCount">ChaptersCompletedCount</TD></TR></TABLE>>];
+  ResourceProgressChildren [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="3" BGCOLOR="#dbe6ff"><B>ResourceProgressChildren</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ResourceProgressId" BGCOLOR="#fff7e6">ResourceProgressId</TD><TD PORT="IsCompleted">IsCompleted</TD></TR></TABLE>>];
+  Notifications [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="5" BGCOLOR="#dbe6ff"><B>Notifications</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="RecipientUserId" BGCOLOR="#fff7e6">RecipientUserId</TD><TD PORT="Type">Type</TD><TD PORT="Channel">Channel</TD><TD PORT="IsRead">IsRead</TD></TR></TABLE>>];
+  NotificationPreferences [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="5" BGCOLOR="#dbe6ff"><B>NotificationPreferences</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="Type">Type</TD><TD PORT="Channel">Channel</TD><TD PORT="IsEnabled">IsEnabled</TD></TR></TABLE>>];
+  Resources:AuthorUserId -> Users:Id;
+  ResourceChapters:ResourceId -> Resources:Id;
+  ResourceBookmarks:ResourceId -> Resources:Id;
+  ResourceBookmarks:UserId -> Users:Id [style=dashed];
+  ResourceProgress:ResourceId -> Resources:Id;
+  ResourceProgress:UserId -> Users:Id [style=dashed];
+  ResourceProgressChildren:ResourceProgressId -> ResourceProgress:Id;
+  Notifications:RecipientUserId -> Users:Id [style=dashed];
+  NotificationPreferences:UserId -> Users:Id [style=dashed];
+}
+@enddot

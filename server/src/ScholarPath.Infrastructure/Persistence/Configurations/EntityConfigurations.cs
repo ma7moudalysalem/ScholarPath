@@ -106,8 +106,8 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
         b.Property(p => p.OrganizationCountry).HasMaxLength(80);
         b.Property(p => p.OrganizationRegistrationNumber).HasMaxLength(100);
         b.Property(p => p.OrganizationTaxNumber).HasMaxLength(100);
-        b.Property(p => p.CompanyType).HasMaxLength(40);
-        b.Property(p => p.CompanyDescription).HasMaxLength(1000);
+        b.Property(p => p.ScholarshipProviderType).HasMaxLength(40);
+        b.Property(p => p.ScholarshipProviderDescription).HasMaxLength(1000);
         b.Property(p => p.ContactPersonFullName).HasMaxLength(100);
         b.Property(p => p.ContactPersonPosition).HasMaxLength(100);
         b.Property(p => p.ContactPhoneNumber).HasMaxLength(40);
@@ -122,14 +122,14 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
         b.Property(p => p.FieldOfExpertise).HasMaxLength(200);
         b.Property(p => p.Gpa).HasPrecision(4, 2);
         b.Property(p => p.SessionFeeUsd).HasPrecision(10, 2);
-        // PB-005R: Company rating snapshot. Precision 3,2 fits 0.00..5.00.
-        b.Property(p => p.CompanyAverageRating).HasPrecision(3, 2);
+        // PB-005R: ScholarshipProvider rating snapshot. Precision 3,2 fits 0.00..5.00.
+        b.Property(p => p.ScholarshipProviderAverageRating).HasPrecision(3, 2);
         // Filtered index drives the admin low-rated-companies queue cheaply —
         // typical population is the whole users table, but only the small
         // flagged subset is selected.
-        b.HasIndex(p => p.CompanyLowRatingFlaggedAt)
-            .HasFilter("[CompanyLowRatingFlaggedAt] IS NOT NULL")
-            .HasDatabaseName("IX_UserProfiles_CompanyLowRatingFlagged");
+        b.HasIndex(p => p.ScholarshipProviderLowRatingFlaggedAt)
+            .HasFilter("[ScholarshipProviderLowRatingFlaggedAt] IS NOT NULL")
+            .HasDatabaseName("IX_UserProfiles_ScholarshipProviderLowRatingFlagged");
         b.Property(p => p.AcademicLevel).HasConversion<string>().HasMaxLength(32);
         b.Property(p => p.StripeConnectAccountId).HasMaxLength(256);
         b.Property(p => p.StripeConnectStatus).HasConversion<string>().HasMaxLength(24);
@@ -279,7 +279,7 @@ public sealed class ScholarshipConfiguration : IEntityTypeConfiguration<Scholars
         b.HasQueryFilter(s => !s.IsDeleted);
         b.HasOne(s => s.Category).WithMany(c => c.Scholarships).HasForeignKey(s => s.CategoryId)
             .OnDelete(DeleteBehavior.SetNull);
-        b.HasOne(s => s.OwnerCompany).WithMany().HasForeignKey(s => s.OwnerCompanyId)
+        b.HasOne(s => s.OwnerScholarshipProvider).WithMany().HasForeignKey(s => s.OwnerScholarshipProviderId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }
@@ -372,28 +372,28 @@ public sealed class ApplicationTrackerChildConfiguration : IEntityTypeConfigurat
 
 // ============================== Ratings + Bookings ==============================
 
-public sealed class CompanyReviewConfiguration : IEntityTypeConfiguration<CompanyReview>
+public sealed class ScholarshipProviderReviewConfiguration : IEntityTypeConfiguration<ScholarshipProviderReview>
 {
-    public void Configure(EntityTypeBuilder<CompanyReview> b)
+    public void Configure(EntityTypeBuilder<ScholarshipProviderReview> b)
     {
         b.Property(r => r.Comment).HasMaxLength(2000);
         b.Property(r => r.AdminNote).HasMaxLength(1000);
         b.Property(r => r.RowVersion).IsRowVersion();
-        b.HasIndex(r => new { r.CompanyId, r.IsHiddenByAdmin, r.IsDeleted });
+        b.HasIndex(r => new { r.ScholarshipProviderId, r.IsHiddenByAdmin, r.IsDeleted });
         b.HasIndex(r => r.ApplicationTrackerId).IsUnique();
         b.HasQueryFilter(r => !r.IsDeleted);
 
-        // Two FKs to Users (Student + Company) — explicit Restrict to avoid
+        // Two FKs to Users (Student + ScholarshipProvider) — explicit Restrict to avoid
         // SQL Server's multiple-cascade-paths error (1785).
         b.HasOne(r => r.Student).WithMany().HasForeignKey(r => r.StudentId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne(r => r.Company).WithMany().HasForeignKey(r => r.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.ScholarshipProvider).WithMany().HasForeignKey(r => r.ScholarshipProviderId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(r => r.ApplicationTracker).WithMany().HasForeignKey(r => r.ApplicationTrackerId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
-public sealed class CompanyReviewPaymentConfiguration : IEntityTypeConfiguration<CompanyReviewPayment>
+public sealed class ScholarshipProviderReviewPaymentConfiguration : IEntityTypeConfiguration<ScholarshipProviderReviewPayment>
 {
-    public void Configure(EntityTypeBuilder<CompanyReviewPayment> b)
+    public void Configure(EntityTypeBuilder<ScholarshipProviderReviewPayment> b)
     {
         b.Property(p => p.StripePaymentIntentId).IsRequired().HasMaxLength(256);
         b.Property(p => p.IdempotencyKey).IsRequired().HasMaxLength(128);
@@ -409,9 +409,9 @@ public sealed class CompanyReviewPaymentConfiguration : IEntityTypeConfiguration
     }
 }
 
-public sealed class CompanyReviewRequestConfiguration : IEntityTypeConfiguration<CompanyReviewRequest>
+public sealed class ScholarshipProviderReviewRequestConfiguration : IEntityTypeConfiguration<ScholarshipProviderReviewRequest>
 {
-    public void Configure(EntityTypeBuilder<CompanyReviewRequest> b)
+    public void Configure(EntityTypeBuilder<ScholarshipProviderReviewRequest> b)
     {
         b.Property(r => r.Status).HasConversion<string>().HasMaxLength(32);
         b.Property(r => r.Currency).HasMaxLength(8);
@@ -421,31 +421,31 @@ public sealed class CompanyReviewRequestConfiguration : IEntityTypeConfiguration
         b.Property(r => r.RowVersion).IsRowVersion();
 
         b.HasIndex(r => new { r.StudentId, r.Status });
-        b.HasIndex(r => new { r.CompanyId, r.Status });
+        b.HasIndex(r => new { r.ScholarshipProviderId, r.Status });
         b.HasIndex(r => r.ScholarshipId);
         b.HasIndex(r => r.PaymentId);
 
         // A student can have at most one live (non-terminal) request per
-        // scholarship. Cancelled / RejectedByCompany / Expired / Failed /
+        // scholarship. Cancelled / RejectedByScholarshipProvider / Expired / Failed /
         // Completed / Closed are all terminal and excluded from the filter.
         b.HasIndex(r => new { r.StudentId, r.ScholarshipId })
             .IsUnique()
             // SQL Server filtered indexes reject OR in the predicate ("Incorrect
             // syntax near the keyword 'OR'") but accept IN — use IN here.
             .HasFilter(
-                $"[Status] IN ('{nameof(CompanyReviewRequestStatus.Draft)}', " +
-                $"'{nameof(CompanyReviewRequestStatus.Submitted)}', " +
-                $"'{nameof(CompanyReviewRequestStatus.Pending)}', " +
-                $"'{nameof(CompanyReviewRequestStatus.UnderReview)}')")
-            .HasDatabaseName("UX_CompanyReviewRequests_Student_Scholarship_Active");
+                $"[Status] IN ('{nameof(ScholarshipProviderReviewRequestStatus.Draft)}', " +
+                $"'{nameof(ScholarshipProviderReviewRequestStatus.Submitted)}', " +
+                $"'{nameof(ScholarshipProviderReviewRequestStatus.Pending)}', " +
+                $"'{nameof(ScholarshipProviderReviewRequestStatus.UnderReview)}')")
+            .HasDatabaseName("UX_ScholarshipProviderReviewRequests_Student_Scholarship_Active");
 
         b.HasQueryFilter(r => !r.IsDeleted);
 
-        // Three FKs to Users (Student + Company) and one each to Scholarship
+        // Three FKs to Users (Student + ScholarshipProvider) and one each to Scholarship
         // and Payment — explicit Restrict to avoid SQL Server's
         // multiple-cascade-paths error (1785).
         b.HasOne(r => r.Student).WithMany().HasForeignKey(r => r.StudentId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne(r => r.Company).WithMany().HasForeignKey(r => r.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.ScholarshipProvider).WithMany().HasForeignKey(r => r.ScholarshipProviderId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(r => r.Scholarship).WithMany().HasForeignKey(r => r.ScholarshipId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne(r => r.Payment).WithMany().HasForeignKey(r => r.PaymentId).OnDelete(DeleteBehavior.SetNull);
     }

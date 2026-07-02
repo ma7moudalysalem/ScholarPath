@@ -7,14 +7,14 @@ using ScholarPath.Application.Scholarships.Commands.ConfigureReviewFee;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
-using ScholarPath.UnitTests.CompanyReviewRequests;
+using ScholarPath.UnitTests.ScholarshipProviderReviewRequests;
 using Xunit;
 
 namespace ScholarPath.UnitTests.Scholarships;
 
 /// <summary>
 /// The <c>payments.allowFreeScholarships</c> platform setting (PB-005R) lets an
-/// admin disable free in-app scholarships system-wide. When off, a Company
+/// admin disable free in-app scholarships system-wide. When off, a ScholarshipProvider
 /// cannot set the Review Service Fee to 0 — the validators still allow 0
 /// syntactically (the live policy may change between requests), so enforcement
 /// lives in the create / update / configure handlers.
@@ -40,8 +40,8 @@ public class AllowFreeScholarshipsSettingTests
     [Fact]
     public async Task ConfigureReviewFee_with_zero_succeeds_when_setting_is_enabled()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (scholarship, _, company) = CompanyReviewRequestTestFixtures
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (scholarship, _, company) = ScholarshipProviderReviewRequestTestFixtures
             .SeedParticipants(db, reviewFeeUsd: 50m);
         SeedSetting(db, allowed: true);
 
@@ -60,8 +60,8 @@ public class AllowFreeScholarshipsSettingTests
     [Fact]
     public async Task ConfigureReviewFee_with_zero_throws_when_setting_is_disabled()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (scholarship, _, company) = CompanyReviewRequestTestFixtures
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (scholarship, _, company) = ScholarshipProviderReviewRequestTestFixtures
             .SeedParticipants(db, reviewFeeUsd: 50m);
         SeedSetting(db, allowed: false);
 
@@ -85,8 +85,8 @@ public class AllowFreeScholarshipsSettingTests
     [Fact]
     public async Task ConfigureReviewFee_with_positive_value_is_unaffected_by_setting()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (scholarship, _, company) = CompanyReviewRequestTestFixtures
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (scholarship, _, company) = ScholarshipProviderReviewRequestTestFixtures
             .SeedParticipants(db, reviewFeeUsd: 50m);
         SeedSetting(db, allowed: false);
 
@@ -107,8 +107,8 @@ public class AllowFreeScholarshipsSettingTests
     {
         // Missing setting row → default is true (don't strand existing data
         // when an admin hasn't touched the new key yet).
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (scholarship, _, company) = CompanyReviewRequestTestFixtures
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (scholarship, _, company) = ScholarshipProviderReviewRequestTestFixtures
             .SeedParticipants(db, reviewFeeUsd: 50m);
 
         var currentUser = Substitute.For<ICurrentUserService>();

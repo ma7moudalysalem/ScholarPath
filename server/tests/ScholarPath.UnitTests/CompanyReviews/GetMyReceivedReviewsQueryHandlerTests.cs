@@ -2,14 +2,14 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using ScholarPath.Application.Common.Exceptions;
-using ScholarPath.Application.CompanyReviews.Queries.GetMyReceivedReviews;
+using ScholarPath.Application.ScholarshipProviderReviews.Queries.GetMyReceivedReviews;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
 using Xunit;
 
-namespace ScholarPath.UnitTests.CompanyReviews;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviews;
 
 public sealed class GetMyReceivedReviewsQueryHandlerTests : IDisposable
 {
@@ -56,12 +56,12 @@ public sealed class GetMyReceivedReviewsQueryHandlerTests : IDisposable
         bool hidden = false,
         bool deleted = false)
     {
-        _db.CompanyReviews.Add(new CompanyReview
+        _db.ScholarshipProviderReviews.Add(new ScholarshipProviderReview
         {
             Id = Guid.NewGuid(),
             ApplicationTrackerId = Guid.NewGuid(),
             StudentId = studentId,
-            CompanyId = companyId ?? _companyId,
+            ScholarshipProviderId = companyId ?? _companyId,
             Rating = rating,
             Comment = comment,
             CreatedAt = createdAt ?? DateTimeOffset.UtcNow,

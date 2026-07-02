@@ -1,0 +1,9 @@
+\contentsline {section}{\numberline {1}Notation}{1}{section.1}%
+\contentsline {section}{\numberline {2}Base entity types}{2}{section.2}%
+\contentsline {section}{\numberline {3}Identity \& Profile}{2}{section.3}%
+\contentsline {section}{\numberline {4}Scholarships, Applications \& Documents}{3}{section.4}%
+\contentsline {section}{\numberline {5}Booking, Payments \& Ratings}{4}{section.5}%
+\contentsline {section}{\numberline {6}Community \& Chat}{4}{section.6}%
+\contentsline {section}{\numberline {7}Resources Hub \& Notifications}{5}{section.7}%
+\contentsline {section}{\numberline {8}AI, Knowledge, Platform \& Cross-cutting}{5}{section.8}%
+\contentsline {section}{\numberline {9}Architecture --- ports \& adapters}{6}{section.9}%

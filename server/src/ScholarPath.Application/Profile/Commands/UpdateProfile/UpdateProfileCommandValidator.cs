@@ -111,7 +111,7 @@ public sealed class UpdateProfileCommandValidator : AbstractValidator<UpdateProf
             .WithMessage("GPA must be between 0 and the selected GPA scale.")
             .When(x => x.Fields.Gpa.HasValue && !string.IsNullOrWhiteSpace(x.Fields.GpaScale));
 
-        // ── Organization / Company (CR-PROF-07) ──────────────────────────────
+        // ── Organization / ScholarshipProvider (CR-PROF-07) ──────────────────────────────
         RuleFor(x => x.Fields.OrganizationLegalName)
             .NotEmpty().WithMessage("Organization legal name cannot be blank.")
             .MaximumLength(200)

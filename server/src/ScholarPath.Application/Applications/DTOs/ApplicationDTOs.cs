@@ -1,6 +1,6 @@
 namespace ScholarPath.Application.Applications.DTOs;
 
-public record CompanyApplicationRow(
+public record ScholarshipProviderApplicationRow(
     Guid ApplicationId,
     Guid StudentId,
     string StudentName,
@@ -9,7 +9,7 @@ public record CompanyApplicationRow(
     Domain.Enums.ApplicationStatus Status,
     DateTimeOffset? SubmittedAt);
 
-public record CompanyApplicationDetailsDto(
+public record ScholarshipProviderApplicationDetailsDto(
     Guid ApplicationId,
     Guid StudentId,
     string StudentName,

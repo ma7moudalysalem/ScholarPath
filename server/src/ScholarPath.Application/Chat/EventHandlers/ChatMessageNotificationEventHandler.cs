@@ -54,7 +54,7 @@ public sealed class ChatMessageNotificationEventHandler(
         var deepLink = recipientRole switch
         {
             "Consultant" => "/consultant/messages",
-            "Company"    => "/company/messages",
+            "ScholarshipProvider"    => "/company/messages",
             _            => "/student/messages",
         };
 

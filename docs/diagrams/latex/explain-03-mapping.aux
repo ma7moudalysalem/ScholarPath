@@ -1,0 +1,55 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Goal: turning the EERD into relations}{2}{section.1}\protected@file@percent }
+\gdef \LT@i {\LT@entry 
+    {1}{28.52101pt}\LT@entry 
+    {1}{88.82234pt}\LT@entry 
+    {1}{142.88284pt}\LT@entry 
+    {1}{153.95424pt}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}The mapping algorithm at a glance}{3}{section.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces The ER/EER-to-relational mapping algorithm, applied to ScholarPath.}}{3}{table.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:algo}{{1}{3}{The ER/EER-to-relational mapping algorithm, applied to ScholarPath}{table.caption.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Walking each construct with ScholarPath examples}{3}{section.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Step 1 --- Strong (regular) entities}{4}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Step 2 --- Weak entities and identifying cascades}{4}{subsection.3.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Step 3 --- 1:1 relationships}{4}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Step 4 --- 1:N relationships}{5}{subsection.3.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Step 5 --- M:N relationships (junction relations)}{5}{subsection.3.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Step 6 --- Multivalued attributes (the JSON deviation)}{5}{subsection.3.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.7}Step 7 --- N-ary relationships}{6}{subsection.3.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.8}Step 8 --- Specialization (single-table, Option C)}{6}{subsection.3.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4}The resulting relational schemas (six areas)}{7}{section.4}\protected@file@percent }
+\newlabel{sec:figures}{{4}{7}{The resulting relational schemas (six areas)}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Identity, Access \& Profile}{7}{subsection.4.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Relational mapping --- Identity, Access \& Profile. The \texttt  {Users}/\texttt  {UserProfiles} pair shows the single-table specialization (Step~8) plus the 1:1 link (Step~3); \texttt  {UserRoles} is the M:N junction (Step~5); \texttt  {Education\_Entries} is the cascading weak entity (Step~2).}}{8}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:identity}{{1}{8}{Relational mapping --- Identity, Access \& Profile. The \texttt {Users}/\texttt {UserProfiles} pair shows the single-table specialization (Step~8) plus the 1:1 link (Step~3); \texttt {UserRoles} is the M:N junction (Step~5); \texttt {Education\_Entries} is the cascading weak entity (Step~2)}{figure.caption.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Scholarships, Applications \& Documents}{8}{subsection.4.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Relational mapping --- Scholarships, Applications \& Documents, showing the n-ary \texttt  {CompanyReviewRequests} relation and the filtered-unique business rules.}}{9}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:scholarships}{{2}{9}{Relational mapping --- Scholarships, Applications \& Documents, showing the n-ary \texttt {CompanyReviewRequests} relation and the filtered-unique business rules}{figure.caption.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Consultant Booking, Payments \& Ratings}{9}{subsection.4.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Relational mapping --- Booking, Payments \& Ratings. \texttt  {Payments} and \texttt  {Payouts} carry \emph  {no} database foreign keys by design (loose references); the booking's \texttt  {(ConsultantId, ScheduledStartAt)} filtered-unique index prevents double-booking.}}{10}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:booking}{{3}{10}{Relational mapping --- Booking, Payments \& Ratings. \texttt {Payments} and \texttt {Payouts} carry \emph {no} database foreign keys by design (loose references); the booking's \texttt {(ConsultantId, ScheduledStartAt)} filtered-unique index prevents double-booking}{figure.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Community \& Chat}{10}{subsection.4.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Relational mapping --- Community \& Chat. \texttt  {ForumPostTags} is the true M:N junction; the \emph  {user} leg of votes/flags/bookmarks and the chat participant/sender legs are loose references.}}{11}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:community}{{4}{11}{Relational mapping --- Community \& Chat. \texttt {ForumPostTags} is the true M:N junction; the \emph {user} leg of votes/flags/bookmarks and the chat participant/sender legs are loose references}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}Resources Hub \& Notifications}{11}{subsection.4.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Relational mapping --- Resources Hub \& Notifications, showing the cascading chapter/progress children and the loose-referenced notification tables.}}{12}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:resources}{{5}{12}{Relational mapping --- Resources Hub \& Notifications, showing the cascading chapter/progress children and the loose-referenced notification tables}{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}AI, Knowledge Base \& Platform}{12}{subsection.4.6}\protected@file@percent }
+\gdef \LT@ii {\LT@entry 
+    {1}{68.59596pt}\LT@entry 
+    {1}{188.407pt}\LT@entry 
+    {1}{176.71652pt}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Relational mapping --- AI, Knowledge Base \& Platform. \texttt  {AuditLogs} and \texttt  {KnowledgeDocuments} use polymorphic soft references; \texttt  {UserRiskFlags} is a 1:1 analytics-fed relation.}}{13}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:ai}{{6}{13}{Relational mapping --- AI, Knowledge Base \& Platform. \texttt {AuditLogs} and \texttt {KnowledgeDocuments} use polymorphic soft references; \texttt {UserRiskFlags} is a 1:1 analytics-fed relation}{figure.caption.7}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Referential-integrity strategy}{14}{section.5}\protected@file@percent }
+\newlabel{sec:refint}{{5}{14}{Referential-integrity strategy}{section.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Delete-rule strategy across the schema.}}{14}{table.caption.8}\protected@file@percent }
+\newlabel{tab:refint}{{3}{14}{Delete-rule strategy across the schema}{table.caption.8}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Accuracy: model versus live database}{14}{section.6}\protected@file@percent }
+\newlabel{sec:accuracy}{{6}{14}{Accuracy: model versus live database}{section.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7}Closing}{15}{section.7}\protected@file@percent }
+\gdef \@abspage@last{15}

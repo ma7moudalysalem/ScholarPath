@@ -1,20 +1,20 @@
 using System.Linq.Expressions;
-using ScholarPath.Application.CompanyReviewRequests.DTOs;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.DTOs;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 
-namespace ScholarPath.Application.CompanyReviewRequests.Common;
+namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Common;
 
 /// <summary>
-/// One canonical projection from <see cref="CompanyReviewRequest"/> (joined to
+/// One canonical projection from <see cref="ScholarshipProviderReviewRequest"/> (joined to
 /// its <see cref="Scholarship"/>, <see cref="ApplicationUser"/>s, and paired
-/// <see cref="Payment"/>) to <see cref="CompanyReviewRequestDto"/>. Used by
+/// <see cref="Payment"/>) to <see cref="ScholarshipProviderReviewRequestDto"/>. Used by
 /// every list/detail query so dashboards always see the same money fields.
 /// </summary>
-public static class CompanyReviewRequestMapper
+public static class ScholarshipProviderReviewRequestMapper
 {
-    public static Expression<Func<CompanyReviewRequest, CompanyReviewRequestDto>> Projection => r =>
-        new CompanyReviewRequestDto
+    public static Expression<Func<ScholarshipProviderReviewRequest, ScholarshipProviderReviewRequestDto>> Projection => r =>
+        new ScholarshipProviderReviewRequestDto
         {
             Id = r.Id,
             ScholarshipId = r.ScholarshipId,
@@ -27,9 +27,9 @@ public static class CompanyReviewRequestMapper
                 ? (r.Student.FirstName + " " + r.Student.LastName).Trim()
                 : null,
 
-            CompanyId = r.CompanyId,
-            CompanyName = r.Company != null
-                ? (r.Company.FirstName + " " + r.Company.LastName).Trim()
+            ScholarshipProviderId = r.ScholarshipProviderId,
+            ScholarshipProviderName = r.ScholarshipProvider != null
+                ? (r.ScholarshipProvider.FirstName + " " + r.ScholarshipProvider.LastName).Trim()
                 : null,
 
             Status = r.Status,
@@ -64,7 +64,7 @@ public static class CompanyReviewRequestMapper
                 ? r.Payment.AmountCents - r.Payment.RefundedAmountCents
                 : 0,
             PlatformCommissionCents = r.Payment != null ? r.Payment.ProfitShareAmountCents : 0,
-            CompanyShareCents = r.Payment != null ? r.Payment.PayeeAmountCents : 0,
+            ScholarshipProviderShareCents = r.Payment != null ? r.Payment.PayeeAmountCents : 0,
             PaymentReference = r.Payment != null ? r.Payment.StripePaymentIntentId : null,
         };
 }

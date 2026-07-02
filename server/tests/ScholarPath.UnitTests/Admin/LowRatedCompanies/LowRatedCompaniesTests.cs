@@ -2,7 +2,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
-using ScholarPath.Application.Admin.Commands.ClearCompanyLowRatingFlag;
+using ScholarPath.Application.Admin.Commands.ClearScholarshipProviderLowRatingFlag;
 using ScholarPath.Application.Admin.Queries.GetLowRatedCompanies;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Domain.Entities;
@@ -24,7 +24,7 @@ public sealed class LowRatedCompaniesTests : IDisposable
             .Options);
     }
 
-    private async Task<Guid> SeedFlaggedCompanyAsync(
+    private async Task<Guid> SeedFlaggedScholarshipProviderAsync(
         decimal? avg, int count, DateTimeOffset flaggedAt, string firstName = "Acme")
     {
         var id = Guid.NewGuid();
@@ -38,21 +38,21 @@ public sealed class LowRatedCompaniesTests : IDisposable
             UserName = $"{firstName.ToLowerInvariant()}-{id:N}@example.com",
 #pragma warning restore CA1308
             AccountStatus = AccountStatus.Active,
-            ActiveRole = "Company",
+            ActiveRole = "ScholarshipProvider",
         });
         _db.UserProfiles.Add(new UserProfile
         {
             UserId = id,
             OrganizationLegalName = $"{firstName} LLC",
-            CompanyAverageRating = avg,
-            CompanyReviewCount = count,
-            CompanyLowRatingFlaggedAt = flaggedAt,
+            ScholarshipProviderAverageRating = avg,
+            ScholarshipProviderReviewCount = count,
+            ScholarshipProviderLowRatingFlaggedAt = flaggedAt,
         });
         await _db.SaveChangesAsync();
         return id;
     }
 
-    private async Task<Guid> SeedUnflaggedCompanyAsync()
+    private async Task<Guid> SeedUnflaggedScholarshipProviderAsync()
     {
         var id = Guid.NewGuid();
         _db.Users.Add(new ApplicationUser
@@ -63,14 +63,14 @@ public sealed class LowRatedCompaniesTests : IDisposable
             Email = $"healthy-{id:N}@example.com",
             UserName = $"healthy-{id:N}@example.com",
             AccountStatus = AccountStatus.Active,
-            ActiveRole = "Company",
+            ActiveRole = "ScholarshipProvider",
         });
         _db.UserProfiles.Add(new UserProfile
         {
             UserId = id,
-            CompanyAverageRating = 4.50m,
-            CompanyReviewCount = 8,
-            CompanyLowRatingFlaggedAt = null,
+            ScholarshipProviderAverageRating = 4.50m,
+            ScholarshipProviderReviewCount = 8,
+            ScholarshipProviderLowRatingFlaggedAt = null,
         });
         await _db.SaveChangesAsync();
         return id;
@@ -81,11 +81,11 @@ public sealed class LowRatedCompaniesTests : IDisposable
     [Fact]
     public async Task Query_returns_only_flagged_companies_newest_flag_first()
     {
-        var oldFlagId = await SeedFlaggedCompanyAsync(
+        var oldFlagId = await SeedFlaggedScholarshipProviderAsync(
             1.50m, 4, DateTimeOffset.UtcNow.AddDays(-3), "Older");
-        var newFlagId = await SeedFlaggedCompanyAsync(
+        var newFlagId = await SeedFlaggedScholarshipProviderAsync(
             2.10m, 5, DateTimeOffset.UtcNow.AddHours(-1), "Newer");
-        await SeedUnflaggedCompanyAsync();
+        await SeedUnflaggedScholarshipProviderAsync();
 
         var user = Substitute.For<ICurrentUserService>();
         user.UserId.Returns(Guid.NewGuid());
@@ -97,8 +97,8 @@ public sealed class LowRatedCompaniesTests : IDisposable
         page.Items.Should().HaveCount(2);
         page.Total.Should().Be(2);
         // Newest flag first.
-        page.Items[0].CompanyId.Should().Be(newFlagId);
-        page.Items[1].CompanyId.Should().Be(oldFlagId);
+        page.Items[0].ScholarshipProviderId.Should().Be(newFlagId);
+        page.Items[1].ScholarshipProviderId.Should().Be(oldFlagId);
         page.Items[0].AverageRating.Should().Be(2.10m);
         page.Items[0].ReviewCount.Should().Be(5);
         page.Items[0].OrganizationLegalName.Should().Be("Newer LLC");
@@ -108,7 +108,7 @@ public sealed class LowRatedCompaniesTests : IDisposable
     [Fact]
     public async Task Query_rejects_non_admin_caller()
     {
-        await SeedFlaggedCompanyAsync(1.5m, 3, DateTimeOffset.UtcNow);
+        await SeedFlaggedScholarshipProviderAsync(1.5m, 3, DateTimeOffset.UtcNow);
         var user = Substitute.For<ICurrentUserService>();
         user.IsInRole(Arg.Any<string>()).Returns(false);
 
@@ -123,7 +123,7 @@ public sealed class LowRatedCompaniesTests : IDisposable
     {
         for (int i = 0; i < 5; i++)
         {
-            await SeedFlaggedCompanyAsync(
+            await SeedFlaggedScholarshipProviderAsync(
                 1.0m, 1, DateTimeOffset.UtcNow.AddMinutes(-i), $"Co{i}");
         }
 
@@ -140,46 +140,46 @@ public sealed class LowRatedCompaniesTests : IDisposable
         page2.Items.Should().HaveCount(2);
         page1.Total.Should().Be(5);
         page2.Total.Should().Be(5);
-        page1.Items.Select(r => r.CompanyId).Should()
-            .NotIntersectWith(page2.Items.Select(r => r.CompanyId));
+        page1.Items.Select(r => r.ScholarshipProviderId).Should()
+            .NotIntersectWith(page2.Items.Select(r => r.ScholarshipProviderId));
     }
 
-    // ── ClearCompanyLowRatingFlagCommand ──────────────────────────────────────
+    // ── ClearScholarshipProviderLowRatingFlagCommand ──────────────────────────────────────
 
     [Fact]
     public async Task Clear_resets_flag_and_returns_true()
     {
-        var id = await SeedFlaggedCompanyAsync(1.5m, 3, DateTimeOffset.UtcNow);
+        var id = await SeedFlaggedScholarshipProviderAsync(1.5m, 3, DateTimeOffset.UtcNow);
         var user = Substitute.For<ICurrentUserService>();
         user.UserId.Returns(Guid.NewGuid());
         user.IsInRole("Admin").Returns(true);
 
-        var sut = new ClearCompanyLowRatingFlagCommandHandler(
-            _db, user, NullLogger<ClearCompanyLowRatingFlagCommandHandler>.Instance);
+        var sut = new ClearScholarshipProviderLowRatingFlagCommandHandler(
+            _db, user, NullLogger<ClearScholarshipProviderLowRatingFlagCommandHandler>.Instance);
 
         var result = await sut.Handle(
-            new ClearCompanyLowRatingFlagCommand(id), CancellationToken.None);
+            new ClearScholarshipProviderLowRatingFlagCommand(id), CancellationToken.None);
 
         result.Should().BeTrue();
         var profile = await _db.UserProfiles.SingleAsync(p => p.UserId == id);
-        profile.CompanyLowRatingFlaggedAt.Should().BeNull();
+        profile.ScholarshipProviderLowRatingFlaggedAt.Should().BeNull();
         // Snapshot fields are untouched.
-        profile.CompanyAverageRating.Should().Be(1.5m);
-        profile.CompanyReviewCount.Should().Be(3);
+        profile.ScholarshipProviderAverageRating.Should().Be(1.5m);
+        profile.ScholarshipProviderReviewCount.Should().Be(3);
     }
 
     [Fact]
     public async Task Clear_is_idempotent_when_already_cleared()
     {
-        var id = await SeedUnflaggedCompanyAsync();
+        var id = await SeedUnflaggedScholarshipProviderAsync();
         var user = Substitute.For<ICurrentUserService>();
         user.IsInRole("Admin").Returns(true);
 
-        var sut = new ClearCompanyLowRatingFlagCommandHandler(
-            _db, user, NullLogger<ClearCompanyLowRatingFlagCommandHandler>.Instance);
+        var sut = new ClearScholarshipProviderLowRatingFlagCommandHandler(
+            _db, user, NullLogger<ClearScholarshipProviderLowRatingFlagCommandHandler>.Instance);
 
         var result = await sut.Handle(
-            new ClearCompanyLowRatingFlagCommand(id), CancellationToken.None);
+            new ClearScholarshipProviderLowRatingFlagCommand(id), CancellationToken.None);
 
         result.Should().BeFalse();
     }
@@ -187,15 +187,15 @@ public sealed class LowRatedCompaniesTests : IDisposable
     [Fact]
     public async Task Clear_rejects_non_admin_caller()
     {
-        var id = await SeedFlaggedCompanyAsync(1.5m, 3, DateTimeOffset.UtcNow);
+        var id = await SeedFlaggedScholarshipProviderAsync(1.5m, 3, DateTimeOffset.UtcNow);
         var user = Substitute.For<ICurrentUserService>();
         user.IsInRole(Arg.Any<string>()).Returns(false);
 
-        var sut = new ClearCompanyLowRatingFlagCommandHandler(
-            _db, user, NullLogger<ClearCompanyLowRatingFlagCommandHandler>.Instance);
+        var sut = new ClearScholarshipProviderLowRatingFlagCommandHandler(
+            _db, user, NullLogger<ClearScholarshipProviderLowRatingFlagCommandHandler>.Instance);
 
         await Assert.ThrowsAsync<ForbiddenAccessException>(
-            () => sut.Handle(new ClearCompanyLowRatingFlagCommand(id), CancellationToken.None));
+            () => sut.Handle(new ClearScholarshipProviderLowRatingFlagCommand(id), CancellationToken.None));
     }
 
     [Fact]
@@ -203,19 +203,19 @@ public sealed class LowRatedCompaniesTests : IDisposable
     {
         var user = Substitute.For<ICurrentUserService>();
         user.IsInRole("Admin").Returns(true);
-        var sut = new ClearCompanyLowRatingFlagCommandHandler(
-            _db, user, NullLogger<ClearCompanyLowRatingFlagCommandHandler>.Instance);
+        var sut = new ClearScholarshipProviderLowRatingFlagCommandHandler(
+            _db, user, NullLogger<ClearScholarshipProviderLowRatingFlagCommandHandler>.Instance);
 
         await Assert.ThrowsAsync<NotFoundException>(
             () => sut.Handle(
-                new ClearCompanyLowRatingFlagCommand(Guid.NewGuid()), CancellationToken.None));
+                new ClearScholarshipProviderLowRatingFlagCommand(Guid.NewGuid()), CancellationToken.None));
     }
 
     [Fact]
     public void Validator_rejects_empty_company_id()
     {
-        var v = new ClearCompanyLowRatingFlagCommandValidator();
-        v.Validate(new ClearCompanyLowRatingFlagCommand(Guid.Empty))
+        var v = new ClearScholarshipProviderLowRatingFlagCommandValidator();
+        v.Validate(new ClearScholarshipProviderLowRatingFlagCommand(Guid.Empty))
             .IsValid.Should().BeFalse();
     }
 

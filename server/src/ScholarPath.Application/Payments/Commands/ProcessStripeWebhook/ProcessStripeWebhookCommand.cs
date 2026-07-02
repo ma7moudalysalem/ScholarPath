@@ -45,8 +45,8 @@ public sealed class ProcessStripeWebhookCommandHandler(
         db.StripeWebhookEvents.Add(webhookEvent);
 
         // A Stripe PaymentIntent belongs to exactly one of the two payment tables:
-        // consultant bookings use Payment, company reviews use CompanyReviewPayment.
-        var matchedReview = await ApplyToCompanyReviewPaymentAsync(request, ct);
+        // consultant bookings use Payment, company reviews use ScholarshipProviderReviewPayment.
+        var matchedReview = await ApplyToScholarshipProviderReviewPaymentAsync(request, ct);
         var matchedPayment = await ApplyToPaymentAsync(request, ct);
         var matchedConnect = await ApplyConnectOrPayoutAsync(request, ct);
 
@@ -74,12 +74,12 @@ public sealed class ProcessStripeWebhookCommandHandler(
 
     // PB-005 — company-review payments. Manual-capture intents move Pending -> Held;
     // a refund/cancel event drives the terminal state.
-    private async Task<bool> ApplyToCompanyReviewPaymentAsync(
+    private async Task<bool> ApplyToScholarshipProviderReviewPaymentAsync(
         ProcessStripeWebhookCommand request, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(request.PaymentIntentId)) return false;
 
-        var payment = await db.CompanyReviewPayments
+        var payment = await db.ScholarshipProviderReviewPayments
             .FirstOrDefaultAsync(p => p.StripePaymentIntentId == request.PaymentIntentId, ct);
         if (payment is null) return false;
 
@@ -91,7 +91,7 @@ public sealed class ProcessStripeWebhookCommandHandler(
                 {
                     payment.Status = PaymentStatus.Held;
                     logger.LogInformation(
-                        "CompanyReviewPayment {IntentId} -> Held via webhook.", request.PaymentIntentId);
+                        "ScholarshipProviderReviewPayment {IntentId} -> Held via webhook.", request.PaymentIntentId);
                 }
                 break;
 
@@ -100,7 +100,7 @@ public sealed class ProcessStripeWebhookCommandHandler(
                 {
                     payment.Status = PaymentStatus.Failed;
                     logger.LogWarning(
-                        "CompanyReviewPayment {IntentId} -> Failed via webhook.", request.PaymentIntentId);
+                        "ScholarshipProviderReviewPayment {IntentId} -> Failed via webhook.", request.PaymentIntentId);
                 }
                 break;
 
@@ -114,7 +114,7 @@ public sealed class ProcessStripeWebhookCommandHandler(
             case "charge.refunded":
                 payment.Status = PaymentStatus.Refunded;
                 logger.LogInformation(
-                    "CompanyReviewPayment {IntentId} -> Refunded via webhook.", request.PaymentIntentId);
+                    "ScholarshipProviderReviewPayment {IntentId} -> Refunded via webhook.", request.PaymentIntentId);
                 break;
         }
 

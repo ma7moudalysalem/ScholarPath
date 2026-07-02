@@ -3,14 +3,14 @@ using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
 
-namespace ScholarPath.UnitTests.CompanyReviewRequests;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviewRequests;
 
 /// <summary>
-/// Shared fixture builders for the CompanyReviewRequest handler tests so each
+/// Shared fixture builders for the ScholarshipProviderReviewRequest handler tests so each
 /// test only declares what it actually cares about (status, payment state,
 /// amount). Keeps the per-test seeding noise down.
 /// </summary>
-internal static class CompanyReviewRequestTestFixtures
+internal static class ScholarshipProviderReviewRequestTestFixtures
 {
     public static ApplicationDbContext CreateDb() =>
         new(new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -47,7 +47,7 @@ internal static class CompanyReviewRequestTestFixtures
             Mode = ListingMode.InApp,
             Status = ScholarshipStatus.Open,
             Deadline = DateTimeOffset.UtcNow.AddDays(30),
-            OwnerCompanyId = company.Id,
+            OwnerScholarshipProviderId = company.Id,
             FundingType = FundingType.FullyFunded,
             TargetLevel = AcademicLevel.Undergrad,
             Currency = "USD",
@@ -61,14 +61,14 @@ internal static class CompanyReviewRequestTestFixtures
     }
 
     /// <summary>
-    /// Seeds a CompanyReviewRequest already in the given status with a paired
+    /// Seeds a ScholarshipProviderReviewRequest already in the given status with a paired
     /// Payment row in the matching state. Each status maps to the Payment
     /// state the production state machine would have placed it in.
     /// </summary>
-    public static (CompanyReviewRequest request, Payment payment)
+    public static (ScholarshipProviderReviewRequest request, Payment payment)
         SeedRequestWithPayment(
             ApplicationDbContext db,
-            CompanyReviewRequestStatus status,
+            ScholarshipProviderReviewRequestStatus status,
             long amountCents = 10_000,
             long refundedCents = 0,
             Guid? studentIdOverride = null,
@@ -87,26 +87,26 @@ internal static class CompanyReviewRequestTestFixtures
 
         var paymentStatus = status switch
         {
-            CompanyReviewRequestStatus.Draft => PaymentStatus.Pending,
-            CompanyReviewRequestStatus.Submitted => PaymentStatus.Pending,
-            CompanyReviewRequestStatus.Pending => PaymentStatus.Held,
-            CompanyReviewRequestStatus.UnderReview => PaymentStatus.Captured,
-            CompanyReviewRequestStatus.Completed => PaymentStatus.Captured,
-            CompanyReviewRequestStatus.Closed => PaymentStatus.Captured,
-            CompanyReviewRequestStatus.Cancelled => PaymentStatus.Cancelled,
-            CompanyReviewRequestStatus.CancelledByStudent => refundedCents > 0
+            ScholarshipProviderReviewRequestStatus.Draft => PaymentStatus.Pending,
+            ScholarshipProviderReviewRequestStatus.Submitted => PaymentStatus.Pending,
+            ScholarshipProviderReviewRequestStatus.Pending => PaymentStatus.Held,
+            ScholarshipProviderReviewRequestStatus.UnderReview => PaymentStatus.Captured,
+            ScholarshipProviderReviewRequestStatus.Completed => PaymentStatus.Captured,
+            ScholarshipProviderReviewRequestStatus.Closed => PaymentStatus.Captured,
+            ScholarshipProviderReviewRequestStatus.Cancelled => PaymentStatus.Cancelled,
+            ScholarshipProviderReviewRequestStatus.CancelledByStudent => refundedCents > 0
                 ? PaymentStatus.PartiallyRefunded
                 : PaymentStatus.Cancelled,
-            CompanyReviewRequestStatus.RejectedByCompany => PaymentStatus.Cancelled,
-            CompanyReviewRequestStatus.Expired => PaymentStatus.Cancelled,
-            CompanyReviewRequestStatus.Failed => PaymentStatus.Failed,
+            ScholarshipProviderReviewRequestStatus.RejectedByScholarshipProvider => PaymentStatus.Cancelled,
+            ScholarshipProviderReviewRequestStatus.Expired => PaymentStatus.Cancelled,
+            ScholarshipProviderReviewRequestStatus.Failed => PaymentStatus.Failed,
             _ => PaymentStatus.Pending,
         };
 
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
-            Type = PaymentType.CompanyReview,
+            Type = PaymentType.ScholarshipProviderReview,
             Status = paymentStatus,
             AmountCents = amountCents,
             Currency = "USD",
@@ -123,24 +123,24 @@ internal static class CompanyReviewRequestTestFixtures
             HeldAt = paymentStatus == PaymentStatus.Held ? DateTimeOffset.UtcNow : null,
         };
 
-        var request = new CompanyReviewRequest
+        var request = new ScholarshipProviderReviewRequest
         {
             Id = Guid.NewGuid(),
             StudentId = student.Id,
-            CompanyId = company.Id,
+            ScholarshipProviderId = company.Id,
             ScholarshipId = scholarship.Id,
             PaymentId = payment.Id,
             Status = status,
             ReviewFeeUsdSnapshot = amountCents / 100m,
             Currency = "USD",
-            SubmittedAt = status >= CompanyReviewRequestStatus.Submitted
+            SubmittedAt = status >= ScholarshipProviderReviewRequestStatus.Submitted
                 ? DateTimeOffset.UtcNow : null,
-            AcceptedAt = status >= CompanyReviewRequestStatus.UnderReview
+            AcceptedAt = status >= ScholarshipProviderReviewRequestStatus.UnderReview
                 ? DateTimeOffset.UtcNow : null,
         };
 
         db.Payments.Add(payment);
-        db.CompanyReviewRequests.Add(request);
+        db.ScholarshipProviderReviewRequests.Add(request);
         db.SaveChanges();
         return (request, payment);
     }

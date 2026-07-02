@@ -86,7 +86,7 @@ public static partial class DbSeeder
         var consultants = await db.Users.CountAsync(
             u => u.ActiveRole == "Consultant" && u.Email!.EndsWith(GenUserDomain), ct).ConfigureAwait(false);
         var companies = await db.Users.CountAsync(
-            u => u.ActiveRole == "Company" && u.Email!.EndsWith(GenUserDomain), ct).ConfigureAwait(false);
+            u => u.ActiveRole == "ScholarshipProvider" && u.Email!.EndsWith(GenUserDomain), ct).ConfigureAwait(false);
 
         if (students >= targetStudents && consultants >= targetConsultants && companies >= targetCompanies)
         {
@@ -101,7 +101,7 @@ public static partial class DbSeeder
             students, targetStudents, rng, profiles, logger, ct).ConfigureAwait(false);
         made += await GenerateRoleUsersAsync(db, userManager, "Consultant", "consultant", "Consult123!",
             consultants, targetConsultants, rng, profiles, logger, ct).ConfigureAwait(false);
-        made += await GenerateRoleUsersAsync(db, userManager, "Company", "company", "Company123!",
+        made += await GenerateRoleUsersAsync(db, userManager, "ScholarshipProvider", "company", "ScholarshipProvider123!",
             companies, targetCompanies, rng, profiles, logger, ct).ConfigureAwait(false);
 
         if (profiles.Count > 0)
@@ -183,7 +183,7 @@ public static partial class DbSeeder
                 p.ConsultantVerifiedAt = now.AddDays(-rng.Next(20, 320));
                 break;
 
-            case "Company":
+            case "ScholarshipProvider":
                 p.Biography = "An organisation funding scholarships and reviewing student applications on ScholarPath.";
                 p.OrganizationLegalName = $"{u.FirstName} {u.LastName} Education";
                 p.OrganizationVerificationStatus = "Verified";

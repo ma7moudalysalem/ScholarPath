@@ -1,27 +1,27 @@
 using FluentAssertions;
-using ScholarPath.Application.CompanyReviewRequests.Common;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Common;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using Xunit;
 
-namespace ScholarPath.UnitTests.CompanyReviewRequests;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviewRequests;
 
 /// <summary>
-/// The notification factory turns a CompanyReviewRequest + Payment pair into
+/// The notification factory turns a ScholarshipProviderReviewRequest + Payment pair into
 /// the structured parameters every notification template renders. Money
 /// fields render as "0.00 USD" by default — for free requests (no Payment
 /// row, snapshot fee = 0) we surface "Free" instead so recipients don't read
 /// a transaction that never happened.
 /// </summary>
-public class CompanyReviewRequestNotificationFactoryTests
+public class ScholarshipProviderReviewRequestNotificationFactoryTests
 {
-    private static CompanyReviewRequest BaseRequest(decimal feeSnapshot, string currency = "USD") => new()
+    private static ScholarshipProviderReviewRequest BaseRequest(decimal feeSnapshot, string currency = "USD") => new()
     {
         Id = Guid.NewGuid(),
         ScholarshipId = Guid.NewGuid(),
         StudentId = Guid.NewGuid(),
-        CompanyId = Guid.NewGuid(),
-        Status = CompanyReviewRequestStatus.Pending,
+        ScholarshipProviderId = Guid.NewGuid(),
+        Status = ScholarshipProviderReviewRequestStatus.Pending,
         ReviewFeeUsdSnapshot = feeSnapshot,
         Currency = currency,
         SubmittedAt = DateTimeOffset.UtcNow,
@@ -32,7 +32,7 @@ public class CompanyReviewRequestNotificationFactoryTests
     {
         var request = BaseRequest(feeSnapshot: 0m);
 
-        var p = CompanyReviewRequestNotificationFactory.Build(
+        var p = ScholarshipProviderReviewRequestNotificationFactory.Build(
             request,
             payment: null,
             scholarshipTitleEn: "Test scholarship",
@@ -44,7 +44,7 @@ public class CompanyReviewRequestNotificationFactoryTests
         p.CapturedAmountText.Should().Be("Free");
         p.RetainedAmountText.Should().Be("Free");
         p.PlatformCommissionText.Should().Be("Free");
-        p.CompanyShareText.Should().Be("Free");
+        p.ScholarshipProviderShareText.Should().Be("Free");
         // Refund is null when nothing has been refunded — same as before.
         p.RefundAmountText.Should().BeNull();
     }
@@ -56,7 +56,7 @@ public class CompanyReviewRequestNotificationFactoryTests
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
-            Type = PaymentType.CompanyReview,
+            Type = PaymentType.ScholarshipProviderReview,
             Status = PaymentStatus.Held,
             AmountCents = 15_000,
             Currency = "USD",
@@ -64,17 +64,17 @@ public class CompanyReviewRequestNotificationFactoryTests
             PayeeAmountCents = 13_500,
             RefundedAmountCents = 0,
             PayerUserId = request.StudentId,
-            PayeeUserId = request.CompanyId,
+            PayeeUserId = request.ScholarshipProviderId,
             StripePaymentIntentId = "pi_held",
         };
 
-        var p = CompanyReviewRequestNotificationFactory.Build(
+        var p = ScholarshipProviderReviewRequestNotificationFactory.Build(
             request, payment, "EN", "AR", "Counterparty");
 
         p.AmountText.Should().Be("150.00 USD");
         p.HeldAmountText.Should().Be("150.00 USD");
         p.PlatformCommissionText.Should().Be("15.00 USD");
-        p.CompanyShareText.Should().Be("135.00 USD");
+        p.ScholarshipProviderShareText.Should().Be("135.00 USD");
         p.AmountText.Should().NotBe("Free");
     }
 }

@@ -2,15 +2,15 @@ using System.Globalization;
 using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 
-namespace ScholarPath.Application.CompanyReviewRequests.Common;
+namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Common;
 
 /// <summary>
-/// Builds <see cref="NotificationParams"/> for the CompanyReview request
+/// Builds <see cref="NotificationParams"/> for the ScholarshipProviderReview request
 /// lifecycle. Centralises the safe-data formatting (no PCI fields, pre-formatted
 /// money/timestamp strings) so every handler queues notifications with the same
 /// shape and both channels (in-app and email) render the same numbers.
 /// </summary>
-internal static class CompanyReviewRequestNotificationFactory
+internal static class ScholarshipProviderReviewRequestNotificationFactory
 {
     /// <summary>
     /// Placeholder used in every amount field when a request is free (no
@@ -21,7 +21,7 @@ internal static class CompanyReviewRequestNotificationFactory
     public const string FreeAmountToken = "Free";
 
     public static NotificationParams Build(
-        CompanyReviewRequest request,
+        ScholarshipProviderReviewRequest request,
         Payment? payment,
         string? scholarshipTitleEn,
         string? scholarshipTitleAr,
@@ -66,7 +66,7 @@ internal static class CompanyReviewRequestNotificationFactory
             PlatformCommissionText = payment is not null
                 ? FormatCents(payment.ProfitShareAmountCents, currency)
                 : (isFree ? FreeAmountToken : null),
-            CompanyShareText = payment is not null
+            ScholarshipProviderShareText = payment is not null
                 ? FormatCents(payment.PayeeAmountCents, currency)
                 : (isFree ? FreeAmountToken : null),
             AmountText = isFree ? FreeAmountToken : FormatCents(amountCents, currency),

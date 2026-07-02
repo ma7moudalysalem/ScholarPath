@@ -28,7 +28,7 @@ namespace ScholarPath.Infrastructure.Persistence.Seed;
 public static partial class DbSeeder
 {
     public static readonly string[] SeededRoles =
-        ["Admin", "Student", "Company", "Consultant", "Unassigned"];
+        ["Admin", "Student", "ScholarshipProvider", "Consultant", "Unassigned"];
 
     public static async Task SeedAsync(
         ApplicationDbContext db,
@@ -65,7 +65,7 @@ public static partial class DbSeeder
         // 2) Demo users (the original four — login credentials documented in the README)
         await EnsureUserAsync(userManager, "admin@scholarpath.local", "Admin123!", "Admin", "User", "Admin", logger);
         await EnsureUserAsync(userManager, "student@scholarpath.local", "Student123!", "Alaa", "Mostafa", "Student", logger);
-        await EnsureUserAsync(userManager, "company@scholarpath.local", "Company123!", "Global Scholars", "Org", "Company", logger);
+        await EnsureUserAsync(userManager, "company@scholarpath.local", "ScholarshipProvider123!", "Global Scholars", "Org", "ScholarshipProvider", logger);
         await EnsureUserAsync(userManager, "consultant@scholarpath.local", "Consult123!", "Hana", "Farouk", "Consultant", logger);
 
         // 3) Scholarship categories (bilingual)
@@ -97,7 +97,7 @@ public static partial class DbSeeder
                 },
                 new ProfitShareConfig
                 {
-                    PaymentType = PaymentType.CompanyReview,
+                    PaymentType = PaymentType.ScholarshipProviderReview,
                     Percentage = 0.15m,
                     EffectiveFrom = DateTimeOffset.UtcNow,
                     SetByAdminId = adminId,
@@ -219,7 +219,7 @@ public static partial class DbSeeder
                 CreatedAt = DateTimeOffset.UtcNow,
             },
             // PB-005R: lets the admin disable free in-app scholarship listings
-            // platform-wide. When off, a Company creating or updating an in-app
+            // platform-wide. When off, a ScholarshipProvider creating or updating an in-app
             // scholarship must set a Review Service Fee > 0.
             new PlatformSetting
             {

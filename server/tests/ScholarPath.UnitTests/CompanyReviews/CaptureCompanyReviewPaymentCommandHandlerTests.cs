@@ -3,48 +3,48 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviews.Commands.CaptureCompanyReviewPayment;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.CaptureScholarshipProviderReviewPayment;
 using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
 using Xunit;
 
-namespace ScholarPath.UnitTests.CompanyReviews;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviews;
 
 /// <summary>
-/// PB-005 v1: CompanyReview capture must operate on the unified <see cref="Payment"/>
+/// PB-005 v1: ScholarshipProviderReview capture must operate on the unified <see cref="Payment"/>
 /// table and reset the platform/payee split using the rule in force at capture time.
 /// </summary>
-public sealed class CaptureCompanyReviewPaymentCommandHandlerTests : IDisposable
+public sealed class CaptureScholarshipProviderReviewPaymentCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly IStripeService _stripe = Substitute.For<IStripeService>();
     private readonly INotificationDispatcher _notifications = Substitute.For<INotificationDispatcher>();
-    private readonly CaptureCompanyReviewPaymentCommandHandler _handler;
+    private readonly CaptureScholarshipProviderReviewPaymentCommandHandler _handler;
 
-    public CaptureCompanyReviewPaymentCommandHandlerTests()
+    public CaptureScholarshipProviderReviewPaymentCommandHandlerTests()
     {
         _db = new ApplicationDbContext(
             new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options);
 
-        _handler = new CaptureCompanyReviewPaymentCommandHandler(
+        _handler = new CaptureScholarshipProviderReviewPaymentCommandHandler(
             _db, _stripe, _notifications,
-            NullLogger<CaptureCompanyReviewPaymentCommandHandler>.Instance);
+            NullLogger<CaptureScholarshipProviderReviewPaymentCommandHandler>.Instance);
     }
 
     public void Dispose() => _db.Dispose();
 
     [Fact]
-    public async Task Captures_Held_CompanyReview_payment_and_locks_in_v1_split()
+    public async Task Captures_Held_ScholarshipProviderReview_payment_and_locks_in_v1_split()
     {
         var appId = Guid.NewGuid();
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
-            Type = PaymentType.CompanyReview,
+            Type = PaymentType.ScholarshipProviderReview,
             Status = PaymentStatus.Held,
             AmountCents = 10_000,
             // Pre-capture snapshot from intent-creation — handler should overwrite.
@@ -64,7 +64,7 @@ public sealed class CaptureCompanyReviewPaymentCommandHandlerTests : IDisposable
                 "pi_test", null, Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new StripePaymentIntentResult("pi_test", "succeeded", null, "ch_test"));
 
-        var result = await _handler.Handle(new CaptureCompanyReviewPaymentCommand(appId), default);
+        var result = await _handler.Handle(new CaptureScholarshipProviderReviewPaymentCommand(appId), default);
 
         result.Should().BeTrue();
         payment.Status.Should().Be(PaymentStatus.Captured);
@@ -76,10 +76,10 @@ public sealed class CaptureCompanyReviewPaymentCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Returns_false_when_no_held_CompanyReview_payment_exists()
+    public async Task Returns_false_when_no_held_ScholarshipProviderReview_payment_exists()
     {
         var result = await _handler.Handle(
-            new CaptureCompanyReviewPaymentCommand(Guid.NewGuid()), default);
+            new CaptureScholarshipProviderReviewPaymentCommand(Guid.NewGuid()), default);
 
         result.Should().BeFalse();
         await _stripe.DidNotReceiveWithAnyArgs()
@@ -104,7 +104,7 @@ public sealed class CaptureCompanyReviewPaymentCommandHandlerTests : IDisposable
         });
         await _db.SaveChangesAsync();
 
-        var result = await _handler.Handle(new CaptureCompanyReviewPaymentCommand(appId), default);
+        var result = await _handler.Handle(new CaptureScholarshipProviderReviewPaymentCommand(appId), default);
 
         result.Should().BeFalse();
         await _stripe.DidNotReceiveWithAnyArgs()
@@ -118,7 +118,7 @@ public sealed class CaptureCompanyReviewPaymentCommandHandlerTests : IDisposable
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
-            Type = PaymentType.CompanyReview,
+            Type = PaymentType.ScholarshipProviderReview,
             Status = PaymentStatus.Held,
             AmountCents = 5_000,
             Currency = "USD",
@@ -134,7 +134,7 @@ public sealed class CaptureCompanyReviewPaymentCommandHandlerTests : IDisposable
                 "pi_x", null, Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new StripePaymentIntentResult("pi_x", "requires_action", null, null));
 
-        var result = await _handler.Handle(new CaptureCompanyReviewPaymentCommand(appId), default);
+        var result = await _handler.Handle(new CaptureScholarshipProviderReviewPaymentCommand(appId), default);
 
         result.Should().BeFalse();
         payment.Status.Should().Be(PaymentStatus.Held);

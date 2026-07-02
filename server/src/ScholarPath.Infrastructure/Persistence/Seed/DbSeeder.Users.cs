@@ -28,7 +28,7 @@ public static partial class DbSeeder
         public ApplicationUser PrimaryStudent => Students[0];
 
         /// <summary>The demo <c>company@scholarpath.local</c> account.</summary>
-        public ApplicationUser PrimaryCompany => Companies[0];
+        public ApplicationUser PrimaryScholarshipProvider => Companies[0];
 
         /// <summary>The demo <c>consultant@scholarpath.local</c> account.</summary>
         public ApplicationUser PrimaryConsultant => Consultants[0];
@@ -67,10 +67,10 @@ public static partial class DbSeeder
         // --- companies (one suspended for the moderation demo) -----------
         var companies = new List<ApplicationUser>
         {
-            await EnsureUserAsync(userManager, "company@scholarpath.local", "Company123!", "Global Scholars", "Org", "Company", AccountStatus.Active, "GB", logger),
-            await EnsureUserAsync(userManager, "futurefund@scholarpath.local", "Company123!", "FutureFund", "Foundation", "Company", AccountStatus.Active, "US", logger),
-            await EnsureUserAsync(userManager, "nilebridge@scholarpath.local", "Company123!", "Nile Bridge", "Education", "Company", AccountStatus.Active, "EG", logger),
-            await EnsureUserAsync(userManager, "pendingco@scholarpath.local", "Company123!", "Horizon Grants", "Pending", "Company", AccountStatus.PendingApproval, "DE", logger),
+            await EnsureUserAsync(userManager, "company@scholarpath.local", "ScholarshipProvider123!", "Global Scholars", "Org", "ScholarshipProvider", AccountStatus.Active, "GB", logger),
+            await EnsureUserAsync(userManager, "futurefund@scholarpath.local", "ScholarshipProvider123!", "FutureFund", "Foundation", "ScholarshipProvider", AccountStatus.Active, "US", logger),
+            await EnsureUserAsync(userManager, "nilebridge@scholarpath.local", "ScholarshipProvider123!", "Nile Bridge", "Education", "ScholarshipProvider", AccountStatus.Active, "EG", logger),
+            await EnsureUserAsync(userManager, "pendingco@scholarpath.local", "ScholarshipProvider123!", "Horizon Grants", "Pending", "ScholarshipProvider", AccountStatus.PendingApproval, "DE", logger),
         };
 
         // --- consultants (the marketplace) -------------------------------
@@ -102,7 +102,7 @@ public static partial class DbSeeder
     /// <summary>
     /// Seeds the project team's own demo accounts — one account per role for
     /// every team member, so each can sign in and exercise every role
-    /// (Student, Company, Consultant, Admin). Emails follow
+    /// (Student, ScholarshipProvider, Consultant, Admin). Emails follow
     /// <c>{role}.{name}@scholarpath.local</c>; the password is the standard
     /// demo password for that role. Idempotent — re-running creates nothing
     /// that already exists.
@@ -127,7 +127,7 @@ public static partial class DbSeeder
         var roles = new[]
         {
             ("Student", "student", "Student123!"),
-            ("Company", "company", "Company123!"),
+            ("ScholarshipProvider", "company", "ScholarshipProvider123!"),
             ("Consultant", "consultant", "Consult123!"),
             ("Admin", "admin", "Admin123!"),
         };
@@ -193,7 +193,7 @@ public static partial class DbSeeder
                 p.PreferredFieldsJson = """["Computer Science","Data Science"]""";
                 break;
 
-            case "Company":
+            case "ScholarshipProvider":
                 p.OrganizationLegalName = $"{user.FirstName} Education Org";
                 p.OrganizationVerificationStatus = "Verified";
                 p.OrganizationVerifiedAt = now.AddDays(-20);
@@ -345,7 +345,7 @@ public static partial class DbSeeder
             return p;
         }
 
-        // Company profiles — organisation detail.
+        // ScholarshipProvider profiles — organisation detail.
         var companyIndex = IndexOf(users.Companies, u.Id);
         if (companyIndex >= 0)
         {
@@ -470,7 +470,7 @@ public static partial class DbSeeder
         {
             map[en] = ar;
         }
-        foreach (var role in new[] { "Student", "Company", "Consultant", "Admin" })
+        foreach (var role in new[] { "Student", "ScholarshipProvider", "Consultant", "Admin" })
         {
             map[$"ScholarPath project team member — {role} demo account."]
                 = $"عضو فريق مشروع ScholarPath — حساب تجريبي بدور {role}.";

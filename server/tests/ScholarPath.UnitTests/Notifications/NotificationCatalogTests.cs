@@ -26,7 +26,7 @@ public class NotificationCatalogTests
     [InlineData("Timeout")]
     public void Renders_a_non_empty_review_refund_message_per_variant(string kind)
     {
-        var content = _catalog.Render(NotificationType.CompanyReviewRefunded,
+        var content = _catalog.Render(NotificationType.ScholarshipProviderReviewRefunded,
             new NotificationParams { RefundKind = kind });
 
         content.TitleEn.Should().NotBeNullOrEmpty();
@@ -37,9 +37,9 @@ public class NotificationCatalogTests
     [Fact]
     public void Partial_and_full_refund_messages_differ()
     {
-        var partial = _catalog.Render(NotificationType.CompanyReviewRefunded,
+        var partial = _catalog.Render(NotificationType.ScholarshipProviderReviewRefunded,
             new NotificationParams { RefundKind = "Partial" });
-        var full = _catalog.Render(NotificationType.CompanyReviewRefunded,
+        var full = _catalog.Render(NotificationType.ScholarshipProviderReviewRefunded,
             new NotificationParams { RefundKind = "Full" });
 
         partial.BodyEn.Should().NotBe(full.BodyEn);
@@ -70,9 +70,9 @@ public class NotificationCatalogTests
     public void Renders_onboarding_submitted_with_applicant_name_and_role()
     {
         var content = _catalog.Render(NotificationType.OnboardingSubmitted,
-            new NotificationParams { CounterpartyName = "Acme University", StatusText = "Company" });
+            new NotificationParams { CounterpartyName = "Acme University", StatusText = "ScholarshipProvider" });
 
-        content.BodyEn.Should().Contain("Acme University").And.Contain("Company");
+        content.BodyEn.Should().Contain("Acme University").And.Contain("ScholarshipProvider");
         content.TitleAr.Should().NotBeNullOrEmpty();
         content.BodyAr.Should().NotBeNullOrEmpty();
     }

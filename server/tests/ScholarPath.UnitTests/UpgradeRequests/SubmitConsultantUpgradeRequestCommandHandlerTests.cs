@@ -153,8 +153,8 @@ public class SubmitConsultantUpgradeRequestCommandHandlerTests
         var userId = SeedActiveStudent(db);
         await db.SaveChangesAsync();
 
-        // Mock returns Company role; user is not a Student.
-        var act = () => Sut(db, userId, Admin("Company")).Handle(ValidCommand(), default);
+        // Mock returns ScholarshipProvider role; user is not a Student.
+        var act = () => Sut(db, userId, Admin("ScholarshipProvider")).Handle(ValidCommand(), default);
 
         await act.Should().ThrowAsync<ForbiddenAccessException>()
             .WithMessage("*Student*");

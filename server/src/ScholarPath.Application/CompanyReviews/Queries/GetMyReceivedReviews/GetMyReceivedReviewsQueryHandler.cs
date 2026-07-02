@@ -3,10 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviews.DTOs;
+using ScholarPath.Application.ScholarshipProviderReviews.DTOs;
 using ScholarPath.Domain.Interfaces;
 
-namespace ScholarPath.Application.CompanyReviews.Queries.GetMyReceivedReviews;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Queries.GetMyReceivedReviews;
 
 public sealed class GetMyReceivedReviewsQueryHandler(
     IApplicationDbContext db,
@@ -21,9 +21,9 @@ public sealed class GetMyReceivedReviewsQueryHandler(
 
         // Visible reviews only: an admin-hidden or soft-deleted row must never
         // surface on the company's own page nor count toward the average.
-        var baseQuery = db.CompanyReviews
+        var baseQuery = db.ScholarshipProviderReviews
             .AsNoTracking()
-            .Where(r => r.CompanyId == companyId
+            .Where(r => r.ScholarshipProviderId == companyId
                         && !r.IsHiddenByAdmin
                         && !r.IsDeleted);
 

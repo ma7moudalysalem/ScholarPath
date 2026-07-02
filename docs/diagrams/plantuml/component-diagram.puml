@@ -1,0 +1,93 @@
+' =====================================================================
+'  ScholarPath — UML Component & Deployment diagram.
+'  Clean-Architecture monolith on Azure. Gap-analysis D1-D9 closed:
+'   D1 Hangfire annotated «optional» (feature-flagged)
+'   D2 SsoService -> Google + Microsoft OAuth shown
+'   D3 key-provider ports split (field-encryption & JWT via their own providers)
+'   D4 OpenAI-direct AI/embedding provider shown
+'   D5 recommendations annotated as Local-AI driven
+'   D6 email config switch (SMTP / dev stub)
+'   D7 Power BI = embed tokens only (no reverse-ETL implemented in this codebase)
+'   D8 ASP.NET Identity surfaced inside the API
+'   D9 IMemoryCache shown («planned: Redis»)
+' =====================================================================
+@startuml ScholarPath_Components
+title ScholarPath — component & deployment diagram
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam linetype ortho
+skinparam ranksep 50
+skinparam nodesep 35
+skinparam component {
+  BackgroundColor #F7F8FC
+  BorderColor #3F4A5A
+}
+
+node "Azure Static Web Apps" as SWA {
+  [React 19 SPA] as SPA
+}
+
+node "Azure App Service (Linux) — monolith" as APPSVC {
+  [Web API\n(controllers + Stripe webhook receiver)] as API
+  [ASP.NET Core Identity\n+ JWT Bearer] as IDN
+  [SignalR Hubs\nChat · Notification · Community] as HUBS
+  [Hangfire Jobs\n«optional · Hangfire:Enabled»] as JOBS #FFFDE0
+  [Application\n(CQRS + ports + AiCostGate)] as APP
+  [Domain\n(entities · enums · events)] as DOM
+  [Infrastructure\n(adapters implementing ports)] as INF
+  [IMemoryCache\n«planned: Redis»] as CACHE #FFFDE0
+}
+
+cloud "Azure data, AI & messaging" as AZ {
+  database "Azure SQL" as SQL
+  [Azure OpenAI\n(gpt-4o-mini + embeddings)] as AOAI
+  [Azure Comm. Services\n(video + recording)] as ACS
+  database "Blob Storage" as BLOB
+  [Key Vault] as KV
+  [Event Hub] as EH
+  [Power BI] as PBI
+}
+[OpenAI direct\n(chat + embeddings)] as OAI
+[Stripe\n(PaymentIntents · Connect)] as STRIPE
+[SMTP mail / dev stub] as SMTP
+[ClamAV] as CLAM
+[Google OAuth] as GOOG
+[Microsoft OAuth] as MSFT
+
+' client -> server
+SPA --> API   : HTTPS / REST + JWT
+SPA ..> HUBS  : WebSocket
+API --> IDN
+
+' inward (Clean Architecture) dependencies
+API  --> APP
+HUBS --> APP
+JOBS --> APP
+APP  --> DOM
+INF  ..> APP  : implements ports
+INF  --> DOM
+APP  --> CACHE
+
+' infrastructure -> external systems
+INF --> SQL
+INF --> AOAI   : chat + embeddings
+INF --> OAI    : alt provider (Ai:Provider)
+INF --> ACS
+INF --> BLOB   : Storage:Provider
+INF --> CLAM   : FileScanning:Enabled
+INF --> KV     : field-key + JWT-key providers
+INF --> EH
+INF --> SMTP   : Email:Provider
+INF --> STRIPE : create / capture / refund
+INF --> GOOG   : SSO
+INF --> MSFT   : SSO
+STRIPE --> API : webhook
+EH  --> PBI
+PBI --> API    : embed tokens
+
+note bottom of INF
+  Recommendations are produced by the deterministic LocalAiService
+  (offline metadata scoring + RAG); Azure/OpenAI back the chat & Q&A only.
+  Key Vault is reached via IFieldEncryptionKeyProvider and IJwtKeyProvider.
+end note
+@enduml

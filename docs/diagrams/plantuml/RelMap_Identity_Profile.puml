@@ -1,0 +1,23 @@
+@startdot
+digraph G {
+  rankdir=BT; splines=polyline; nodesep=0.7; ranksep=1.1;
+  node [shape=plaintext];
+  Users [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="7" BGCOLOR="#dbe6ff"><B>Users</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="Email">Email</TD><TD PORT="FirstName">FirstName</TD><TD PORT="LastName">LastName</TD><TD PORT="AccountStatus">AccountStatus</TD><TD PORT="ActiveRole">ActiveRole</TD><TD PORT="IsDeleted">IsDeleted</TD></TR></TABLE>>];
+  Roles [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="2" BGCOLOR="#dbe6ff"><B>Roles</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="Name">Name</TD></TR></TABLE>>];
+  UserRoles [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="2" BGCOLOR="#dbe6ff"><B>UserRoles</B></TD></TR><TR><TD PORT="UserId" BGCOLOR="#fff7e6"><U>UserId</U></TD><TD PORT="RoleId" BGCOLOR="#fff7e6"><U>RoleId</U></TD></TR></TABLE>>];
+  UserProfiles [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="8" BGCOLOR="#dbe6ff"><B>UserProfiles</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="Gpa">Gpa</TD><TD PORT="AcademicLevel">AcademicLevel</TD><TD PORT="SessionFeeUsd">SessionFeeUsd</TD><TD PORT="CompanyAverageRating">CompanyAverageRating</TD><TD PORT="StripeConnectStatus">StripeConnectStatus</TD><TD PORT="ProfileCompletenessPercent">ProfileCompletenessPercent</TD></TR></TABLE>>];
+  EducationEntries [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>EducationEntries</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UserProfileId" BGCOLOR="#fff7e6">UserProfileId</TD><TD PORT="InstitutionName">InstitutionName</TD><TD PORT="Degree">Degree</TD></TR></TABLE>>];
+  RefreshTokens [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="5" BGCOLOR="#dbe6ff"><B>RefreshTokens</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="TokenHash">TokenHash</TD><TD PORT="ExpiresAt">ExpiresAt</TD><TD PORT="IsRevoked">IsRevoked</TD></TR></TABLE>>];
+  PasswordResetTokens [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>PasswordResetTokens</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="TokenHash">TokenHash</TD><TD PORT="UsedAt">UsedAt</TD></TR></TABLE>>];
+  UpgradeRequests [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>UpgradeRequests</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="Target">Target</TD><TD PORT="Status">Status</TD></TR></TABLE>>];
+  UpgradeRequestFiles [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="3" BGCOLOR="#dbe6ff"><B>UpgradeRequestFiles</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UpgradeRequestId" BGCOLOR="#fff7e6">UpgradeRequestId</TD><TD PORT="BlobUrl">BlobUrl</TD></TR></TABLE>>];
+  UserRoles:UserId -> Users:Id;
+  UserRoles:RoleId -> Roles:Id;
+  UserProfiles:UserId -> Users:Id;
+  EducationEntries:UserProfileId -> UserProfiles:Id;
+  RefreshTokens:UserId -> Users:Id;
+  PasswordResetTokens:UserId -> Users:Id;
+  UpgradeRequests:UserId -> Users:Id;
+  UpgradeRequestFiles:UpgradeRequestId -> UpgradeRequests:Id;
+}
+@enddot

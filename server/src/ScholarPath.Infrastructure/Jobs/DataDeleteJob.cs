@@ -263,7 +263,7 @@ public sealed class DataDeleteJob(
         }
 
         // ── Reviews — free-text comments ────────────────────────────────────
-        var companyReviews = await db.CompanyReviews
+        var companyReviews = await db.ScholarshipProviderReviews
             .IgnoreQueryFilters()
             .Where(r => r.StudentId == userId)
             .ToListAsync(ct)

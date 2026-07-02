@@ -16,7 +16,7 @@ namespace ScholarPath.UnitTests.Payments;
 /// <summary>
 /// PB-005 / PB-013: every payment intent must be created with manual capture
 /// so the counterparty (consultant or company) actually has to accept before
-/// the student is charged. PayeeUserId for a CompanyReview intent is resolved
+/// the student is charged. PayeeUserId for a ScholarshipProviderReview intent is resolved
 /// server-side from the scholarship's owning company.
 /// </summary>
 public class CreatePaymentIntentCommandHandlerTests
@@ -66,7 +66,7 @@ public class CreatePaymentIntentCommandHandlerTests
     }
 
     [Fact]
-    public async Task CompanyReview_intent_is_created_with_manual_capture_not_automatic()
+    public async Task ScholarshipProviderReview_intent_is_created_with_manual_capture_not_automatic()
     {
         using var db = CreateDb();
         var companyId = Guid.NewGuid();
@@ -81,7 +81,7 @@ public class CreatePaymentIntentCommandHandlerTests
             DescriptionEn = "d",
             DescriptionAr = "د",
             Deadline = DateTimeOffset.UtcNow.AddDays(30),
-            OwnerCompanyId = companyId,
+            OwnerScholarshipProviderId = companyId,
             ReviewFeeUsd = 50m,
         });
         db.Applications.Add(new ApplicationTracker
@@ -106,7 +106,7 @@ public class CreatePaymentIntentCommandHandlerTests
 
         await handler.Handle(
             new CreatePaymentIntentCommand(
-                PaymentType.CompanyReview,
+                PaymentType.ScholarshipProviderReview,
                 AmountCents: 5_000,
                 Currency: "USD",
                 PayeeUserId: null,
@@ -123,13 +123,13 @@ public class CreatePaymentIntentCommandHandlerTests
         // (null) PayeeUserId supplied in the command.
         var stored = await db.Payments.SingleAsync();
         stored.PayeeUserId.Should().Be(companyId);
-        stored.Type.Should().Be(PaymentType.CompanyReview);
+        stored.Type.Should().Be(PaymentType.ScholarshipProviderReview);
         stored.RelatedApplicationId.Should().Be(appId);
         stored.Status.Should().Be(PaymentStatus.Pending);
     }
 
     [Fact]
-    public async Task CompanyReview_throws_when_scholarship_has_no_owning_company()
+    public async Task ScholarshipProviderReview_throws_when_scholarship_has_no_owning_company()
     {
         using var db = CreateDb();
         var appId = Guid.NewGuid();
@@ -141,7 +141,7 @@ public class CreatePaymentIntentCommandHandlerTests
             Slug = $"s-{Guid.NewGuid():N}",
             DescriptionEn = "d", DescriptionAr = "د",
             Deadline = DateTimeOffset.UtcNow.AddDays(30),
-            OwnerCompanyId = null, // admin-created, no company
+            OwnerScholarshipProviderId = null, // admin-created, no company
         });
         db.Applications.Add(new ApplicationTracker
         {
@@ -159,7 +159,7 @@ public class CreatePaymentIntentCommandHandlerTests
 
         var act = () => handler.Handle(
             new CreatePaymentIntentCommand(
-                PaymentType.CompanyReview,
+                PaymentType.ScholarshipProviderReview,
                 AmountCents: 1_000,
                 Currency: "USD",
                 PayeeUserId: null,
@@ -173,12 +173,12 @@ public class CreatePaymentIntentCommandHandlerTests
     }
 
     [Fact]
-    public void Validator_requires_RelatedApplicationId_for_CompanyReview()
+    public void Validator_requires_RelatedApplicationId_for_ScholarshipProviderReview()
     {
         var validator = new CreatePaymentIntentCommandValidator();
 
         var result = validator.Validate(new CreatePaymentIntentCommand(
-            PaymentType.CompanyReview, 100, "USD", null,
+            PaymentType.ScholarshipProviderReview, 100, "USD", null,
             RelatedBookingId: null,
             RelatedApplicationId: null));
 

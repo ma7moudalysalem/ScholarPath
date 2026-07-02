@@ -8,16 +8,16 @@ using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
-namespace ScholarPath.Application.CompanyReviews.Commands.SubmitCompanyRating;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Commands.SubmitScholarshipProviderRating;
 
-public sealed class SubmitCompanyRatingCommandHandler(
+public sealed class SubmitScholarshipProviderRatingCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
     INotificationDispatcher notifications,
-    ILogger<SubmitCompanyRatingCommandHandler> logger)
-    : IRequestHandler<SubmitCompanyRatingCommand, Guid>
+    ILogger<SubmitScholarshipProviderRatingCommandHandler> logger)
+    : IRequestHandler<SubmitScholarshipProviderRatingCommand, Guid>
 {
-    public async Task<Guid> Handle(SubmitCompanyRatingCommand request, CancellationToken ct)
+    public async Task<Guid> Handle(SubmitScholarshipProviderRatingCommand request, CancellationToken ct)
     {
         var application = await db.Applications
             .Include(a => a.Scholarship)
@@ -35,11 +35,11 @@ public sealed class SubmitCompanyRatingCommandHandler(
         }
 
         // Resolve the rated company server-side from the scholarship owner —
-        // never trust a client-supplied CompanyId (defamation vector).
-        var companyId = application.Scholarship?.OwnerCompanyId
+        // never trust a client-supplied ScholarshipProviderId (defamation vector).
+        var companyId = application.Scholarship?.OwnerScholarshipProviderId
             ?? throw new ConflictException("This application is not linked to a company.");
 
-        var existingReview = await db.CompanyReviews
+        var existingReview = await db.ScholarshipProviderReviews
             .AnyAsync(r => r.ApplicationTrackerId == request.ApplicationId, ct);
 
         if (existingReview)
@@ -47,21 +47,21 @@ public sealed class SubmitCompanyRatingCommandHandler(
             throw new ConflictException("A review has already been submitted for this application.");
         }
 
-        var review = new CompanyReview
+        var review = new ScholarshipProviderReview
         {
             ApplicationTrackerId = request.ApplicationId,
             StudentId = application.StudentId,
-            CompanyId = companyId,
+            ScholarshipProviderId = companyId,
             Rating = request.Rating,
             Comment = request.Comment
         };
 
-        db.CompanyReviews.Add(review);
+        db.ScholarshipProviderReviews.Add(review);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         await notifications.DispatchAsync(
             companyId,
-            NotificationType.CompanyRatingReceived,
+            NotificationType.ScholarshipProviderRatingReceived,
             new NotificationParams { Count = request.Rating },
             null,
             null,
@@ -74,7 +74,7 @@ public sealed class SubmitCompanyRatingCommandHandler(
         // the next computed average.
         await RecalculateAndFlagLowRatingAsync(companyId, ct);
 
-        logger.LogInformation("Student {StudentId} submitted a {Rating}-star rating for company {CompanyId}",
+        logger.LogInformation("Student {StudentId} submitted a {Rating}-star rating for company {ScholarshipProviderId}",
             currentUser.UserId, request.Rating, companyId);
 
         return review.Id;
@@ -83,11 +83,11 @@ public sealed class SubmitCompanyRatingCommandHandler(
     private async Task RecalculateAndFlagLowRatingAsync(Guid companyId, CancellationToken ct)
     {
         // Aggregate over visible reviews only. Soft-deleted rows are already
-        // filtered by the CompanyReview global query filter; the explicit
+        // filtered by the ScholarshipProviderReview global query filter; the explicit
         // !IsHiddenByAdmin keeps admin-moderated rows out of the average.
-        var visibleReviews = db.CompanyReviews
+        var visibleReviews = db.ScholarshipProviderReviews
             .AsNoTracking()
-            .Where(r => r.CompanyId == companyId && !r.IsHiddenByAdmin);
+            .Where(r => r.ScholarshipProviderId == companyId && !r.IsHiddenByAdmin);
 
         var reviewCount = await visibleReviews.CountAsync(ct);
         // Math.Round on the decimal average — server-side aggregation already
@@ -110,25 +110,25 @@ public sealed class SubmitCompanyRatingCommandHandler(
             // data-integrity surprise rather than a normal path. Log and
             // exit — the review is already saved, no point throwing now.
             logger.LogWarning(
-                "UserProfile not found for company {CompanyId} — rating snapshot was not updated.",
+                "UserProfile not found for company {ScholarshipProviderId} — rating snapshot was not updated.",
                 companyId);
             return;
         }
 
-        profile.CompanyAverageRating = averageRating;
-        profile.CompanyReviewCount = reviewCount;
+        profile.ScholarshipProviderAverageRating = averageRating;
+        profile.ScholarshipProviderReviewCount = reviewCount;
 
         var shouldFlag = averageRating is { } avg
-            && reviewCount >= CompanyRatingThresholds.MinimumReviewsForFlagging
-            && avg < CompanyRatingThresholds.LowRatingThreshold;
+            && reviewCount >= ScholarshipProviderRatingThresholds.MinimumReviewsForFlagging
+            && avg < ScholarshipProviderRatingThresholds.LowRatingThreshold;
 
         // Sticky flag: don't overwrite an existing FlaggedAt timestamp on
         // subsequent sub-2.5 ratings. The original flag-time is what the
         // admin queue surfaces; it's cleared only by an admin action.
-        var firstFlagging = shouldFlag && profile.CompanyLowRatingFlaggedAt is null;
+        var firstFlagging = shouldFlag && profile.ScholarshipProviderLowRatingFlaggedAt is null;
         if (firstFlagging)
         {
-            profile.CompanyLowRatingFlaggedAt = DateTimeOffset.UtcNow;
+            profile.ScholarshipProviderLowRatingFlaggedAt = DateTimeOffset.UtcNow;
         }
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
@@ -156,7 +156,7 @@ public sealed class SubmitCompanyRatingCommandHandler(
 
             if (adminIds.Count == 0) return;
 
-            // Resolve a human-readable Company name (best-effort — fall back to
+            // Resolve a human-readable ScholarshipProvider name (best-effort — fall back to
             // a placeholder so a profile without FirstName/LastName doesn't
             // throw inside the notification template).
             var companyName = await db.Users
@@ -185,7 +185,7 @@ public sealed class SubmitCompanyRatingCommandHandler(
                 {
                     await notifications.DispatchAsync(
                         adminId,
-                        NotificationType.CompanyLowRatingFlagged,
+                        NotificationType.ScholarshipProviderLowRatingFlagged,
                         parameters,
                         deepLink: $"/admin/low-rated-companies",
                         idempotencyKey: idempotencyKey,
@@ -196,13 +196,13 @@ public sealed class SubmitCompanyRatingCommandHandler(
                     // Notification dispatch must not roll back the rating
                     // submission or the snapshot update; log and continue.
                     logger.LogWarning(ex,
-                        "Failed to dispatch CompanyLowRatingFlagged to admin {AdminId} for company {CompanyId}.",
+                        "Failed to dispatch ScholarshipProviderLowRatingFlagged to admin {AdminId} for company {ScholarshipProviderId}.",
                         adminId, companyId);
                 }
             }
 
             logger.LogInformation(
-                "Flagged company {CompanyId} for low rating: avg={Avg} count={Count}, notified {AdminCount} admins.",
+                "Flagged company {ScholarshipProviderId} for low rating: avg={Avg} count={Count}, notified {AdminCount} admins.",
                 companyId, averageRating, reviewCount, adminIds.Count);
         }
         catch (Exception ex)
@@ -211,7 +211,7 @@ public sealed class SubmitCompanyRatingCommandHandler(
             // already saved; log and move on — the admin queue page still
             // shows the flagged company on next load.
             logger.LogWarning(ex,
-                "Could not resolve admin recipients for CompanyLowRatingFlagged on company {CompanyId}.",
+                "Could not resolve admin recipients for ScholarshipProviderLowRatingFlagged on company {ScholarshipProviderId}.",
                 companyId);
         }
     }

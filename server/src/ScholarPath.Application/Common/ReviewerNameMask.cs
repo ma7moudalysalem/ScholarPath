@@ -2,7 +2,7 @@ namespace ScholarPath.Application.Common;
 
 /// <summary>
 /// Masks a reviewer's name for the "reviews received" surfaces shown to the
-/// rated party (a Company or Consultant). Reviews are semi-anonymous: the rated
+/// rated party (a ScholarshipProvider or Consultant). Reviews are semi-anonymous: the rated
 /// party sees who is broadly behind the feedback without the full identity,
 /// which discourages retaliation and keeps the rating channel candid.
 ///

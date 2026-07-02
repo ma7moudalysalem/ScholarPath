@@ -1,12 +1,12 @@
 using FluentAssertions;
-using ScholarPath.Application.CompanyReviews.Commands.SubmitCompanyRating;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.SubmitScholarshipProviderRating;
 using Xunit;
 
-namespace ScholarPath.UnitTests.CompanyReviews;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviews;
 
-public sealed class SubmitCompanyRatingCommandValidatorTests
+public sealed class SubmitScholarshipProviderRatingCommandValidatorTests
 {
-    private readonly SubmitCompanyRatingCommandValidator _v = new();
+    private readonly SubmitScholarshipProviderRatingCommandValidator _v = new();
 
     [Theory]
     [InlineData(1)]
@@ -14,7 +14,7 @@ public sealed class SubmitCompanyRatingCommandValidatorTests
     [InlineData(5)]
     public void Rating_in_range_is_valid(int rating)
     {
-        _v.Validate(new SubmitCompanyRatingCommand(Guid.NewGuid(), rating, null))
+        _v.Validate(new SubmitScholarshipProviderRatingCommand(Guid.NewGuid(), rating, null))
             .IsValid.Should().BeTrue();
     }
 
@@ -25,35 +25,35 @@ public sealed class SubmitCompanyRatingCommandValidatorTests
     [InlineData(100)]
     public void Rating_out_of_range_is_invalid(int rating)
     {
-        _v.Validate(new SubmitCompanyRatingCommand(Guid.NewGuid(), rating, null))
+        _v.Validate(new SubmitScholarshipProviderRatingCommand(Guid.NewGuid(), rating, null))
             .IsValid.Should().BeFalse();
     }
 
     [Fact]
     public void Empty_application_id_is_invalid()
     {
-        _v.Validate(new SubmitCompanyRatingCommand(Guid.Empty, 5, null))
+        _v.Validate(new SubmitScholarshipProviderRatingCommand(Guid.Empty, 5, null))
             .IsValid.Should().BeFalse();
     }
 
     [Fact]
     public void Null_comment_is_allowed()
     {
-        _v.Validate(new SubmitCompanyRatingCommand(Guid.NewGuid(), 5, null))
+        _v.Validate(new SubmitScholarshipProviderRatingCommand(Guid.NewGuid(), 5, null))
             .IsValid.Should().BeTrue();
     }
 
     [Fact]
     public void Comment_at_max_length_is_allowed()
     {
-        _v.Validate(new SubmitCompanyRatingCommand(Guid.NewGuid(), 5, new string('x', 1000)))
+        _v.Validate(new SubmitScholarshipProviderRatingCommand(Guid.NewGuid(), 5, new string('x', 1000)))
             .IsValid.Should().BeTrue();
     }
 
     [Fact]
     public void Comment_over_max_length_is_invalid()
     {
-        _v.Validate(new SubmitCompanyRatingCommand(Guid.NewGuid(), 5, new string('x', 1001)))
+        _v.Validate(new SubmitScholarshipProviderRatingCommand(Guid.NewGuid(), 5, new string('x', 1001)))
             .IsValid.Should().BeFalse();
     }
 }

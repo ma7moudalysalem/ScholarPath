@@ -72,7 +72,7 @@ public class CreateResourceCommandHandlerTests
             new ResourceChapterInput("Ch2 en", "Ch2 ar", "c2 en", "c2 ar", 1, 8),
         };
 
-        var resourceId = await Sut(db, User(Guid.NewGuid(), "Company")).Handle(Cmd(chapters), default);
+        var resourceId = await Sut(db, User(Guid.NewGuid(), "ScholarshipProvider")).Handle(Cmd(chapters), default);
 
         var saved = await db.ResourceChapters
             .Where(c => c.ResourceId == resourceId)

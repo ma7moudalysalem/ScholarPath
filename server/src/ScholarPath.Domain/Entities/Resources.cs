@@ -16,7 +16,7 @@ public class Resource : AuditableEntity, ISoftDeletable
     public string? CoverImageUrl { get; set; }
 
     public Guid AuthorUserId { get; set; }
-    public string AuthorRole { get; set; } = default!; // Admin, Company, Consultant
+    public string AuthorRole { get; set; } = default!; // Admin, ScholarshipProvider, Consultant
     public ResourceType Type { get; set; } = ResourceType.Article;
     public ResourceStatus Status { get; set; } = ResourceStatus.Draft;
 

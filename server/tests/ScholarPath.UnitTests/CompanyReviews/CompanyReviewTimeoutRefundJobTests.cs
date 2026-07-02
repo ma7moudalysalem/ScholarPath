@@ -10,29 +10,29 @@ using ScholarPath.Infrastructure.Jobs;
 using ScholarPath.Infrastructure.Persistence;
 using Xunit;
 
-namespace ScholarPath.UnitTests.CompanyReviews;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviews;
 
 /// <summary>
-/// PB-005 v1: the timeout job refunds CompanyReview payments on the unified
+/// PB-005 v1: the timeout job refunds ScholarshipProviderReview payments on the unified
 /// <see cref="Payment"/> table when the company misses the 14-day review
 /// window after the scholarship deadline.
 /// </summary>
-public sealed class CompanyReviewTimeoutRefundJobTests : IDisposable
+public sealed class ScholarshipProviderReviewTimeoutRefundJobTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
     private readonly IStripeService _stripe = Substitute.For<IStripeService>();
     private readonly INotificationDispatcher _notifications = Substitute.For<INotificationDispatcher>();
-    private readonly CompanyReviewTimeoutRefundJob _job;
+    private readonly ScholarshipProviderReviewTimeoutRefundJob _job;
 
-    public CompanyReviewTimeoutRefundJobTests()
+    public ScholarshipProviderReviewTimeoutRefundJobTests()
     {
         _db = new ApplicationDbContext(
             new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
                 .Options);
-        _job = new CompanyReviewTimeoutRefundJob(
+        _job = new ScholarshipProviderReviewTimeoutRefundJob(
             _db, _stripe, _notifications,
-            NullLogger<CompanyReviewTimeoutRefundJob>.Instance);
+            NullLogger<ScholarshipProviderReviewTimeoutRefundJob>.Instance);
     }
 
     public void Dispose() => _db.Dispose();
@@ -50,7 +50,7 @@ public sealed class CompanyReviewTimeoutRefundJobTests : IDisposable
             Slug = $"s-{Guid.NewGuid():N}",
             DescriptionEn = "d", DescriptionAr = "د",
             Deadline = DateTimeOffset.UtcNow.AddDays(-30),
-            OwnerCompanyId = Guid.NewGuid(),
+            OwnerScholarshipProviderId = Guid.NewGuid(),
         });
         var app = new ApplicationTracker
         {
@@ -63,7 +63,7 @@ public sealed class CompanyReviewTimeoutRefundJobTests : IDisposable
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
-            Type = PaymentType.CompanyReview,
+            Type = PaymentType.ScholarshipProviderReview,
             Status = status,
             AmountCents = amountCents,
             ProfitShareAmountCents = amountCents / 10,
@@ -143,7 +143,7 @@ public sealed class CompanyReviewTimeoutRefundJobTests : IDisposable
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
-            Type = PaymentType.CompanyReview,
+            Type = PaymentType.ScholarshipProviderReview,
             Status = PaymentStatus.Held,
             AmountCents = 5_000,
             Currency = "USD",

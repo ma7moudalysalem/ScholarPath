@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Admin.Commands.ApproveOnboarding;
 using ScholarPath.Application.Admin.Commands.ChangeUserRole;
-using ScholarPath.Application.Admin.Commands.ClearCompanyLowRatingFlag;
+using ScholarPath.Application.Admin.Commands.ClearScholarshipProviderLowRatingFlag;
 using ScholarPath.Application.Admin.Queries.GetLowRatedCompanies;
 using ScholarPath.Application.Admin.Commands.ReinstateBookingIntake;
 using ScholarPath.Application.Admin.Commands.ReviewUpgradeRequest;
@@ -168,7 +168,7 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
     /// "reviewed, no action needed" clear-flag write.
     /// </summary>
     [HttpGet("low-rated-companies")]
-    [ProducesResponseType(typeof(PagedResult<LowRatedCompanyRow>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<LowRatedScholarshipProviderRow>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetLowRatedCompanies(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
@@ -183,17 +183,17 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
     [HttpPost("companies/{companyId:guid}/clear-low-rating-flag")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ClearCompanyLowRatingFlag(
+    public async Task<IActionResult> ClearScholarshipProviderLowRatingFlag(
         Guid companyId, CancellationToken ct)
     {
         await mediator
-            .Send(new ClearCompanyLowRatingFlagCommand(companyId), ct)
+            .Send(new ClearScholarshipProviderLowRatingFlagCommand(companyId), ct)
             .ConfigureAwait(false);
         return NoContent();
     }
 
     /// <summary>
-    /// Lists the verification documents a Company / Consultant uploaded for their
+    /// Lists the verification documents a ScholarshipProvider / Consultant uploaded for their
     /// onboarding request, so the reviewer can inspect them before deciding.
     /// </summary>
     [HttpGet("onboarding-queue/{userId:guid}/documents")]

@@ -3,19 +3,19 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ScholarPath.Application.Common.Exceptions;
-using ScholarPath.Application.CompanyReviews.Commands.HideCompanyReview;
+using ScholarPath.Application.ScholarshipProviderReviews.Commands.HideScholarshipProviderReview;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
 using Xunit;
 
-namespace ScholarPath.UnitTests.CompanyReviews;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviews;
 
-public sealed class HideCompanyReviewCommandHandlerTests : IDisposable
+public sealed class HideScholarshipProviderReviewCommandHandlerTests : IDisposable
 {
     private readonly ApplicationDbContext _db;
 
-    public HideCompanyReviewCommandHandlerTests()
+    public HideScholarshipProviderReviewCommandHandlerTests()
         => _db = new ApplicationDbContext(
             new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -29,22 +29,22 @@ public sealed class HideCompanyReviewCommandHandlerTests : IDisposable
         return u;
     }
 
-    private HideCompanyReviewCommandHandler Sut(ICurrentUserService user)
-        => new(_db, user, NullLogger<HideCompanyReviewCommandHandler>.Instance);
+    private HideScholarshipProviderReviewCommandHandler Sut(ICurrentUserService user)
+        => new(_db, user, NullLogger<HideScholarshipProviderReviewCommandHandler>.Instance);
 
-    private async Task<CompanyReview> SeedReviewAsync(bool hidden = false)
+    private async Task<ScholarshipProviderReview> SeedReviewAsync(bool hidden = false)
     {
-        var review = new CompanyReview
+        var review = new ScholarshipProviderReview
         {
             Id = Guid.NewGuid(),
             ApplicationTrackerId = Guid.NewGuid(),
             StudentId = Guid.NewGuid(),
-            CompanyId = Guid.NewGuid(),
+            ScholarshipProviderId = Guid.NewGuid(),
             Rating = 2,
             Comment = "Disappointing.",
             IsHiddenByAdmin = hidden,
         };
-        _db.CompanyReviews.Add(review);
+        _db.ScholarshipProviderReviews.Add(review);
         await _db.SaveChangesAsync();
         return review;
     }
@@ -55,9 +55,9 @@ public sealed class HideCompanyReviewCommandHandlerTests : IDisposable
         var review = await SeedReviewAsync();
 
         await Sut(User("Admin")).Handle(
-            new HideCompanyReviewCommand(review.Id, true, "Abusive language."), default);
+            new HideScholarshipProviderReviewCommand(review.Id, true, "Abusive language."), default);
 
-        var updated = await _db.CompanyReviews.FindAsync(review.Id);
+        var updated = await _db.ScholarshipProviderReviews.FindAsync(review.Id);
         updated!.IsHiddenByAdmin.Should().BeTrue();
         updated.AdminNote.Should().Be("Abusive language.");
     }
@@ -68,9 +68,9 @@ public sealed class HideCompanyReviewCommandHandlerTests : IDisposable
         var review = await SeedReviewAsync(hidden: true);
 
         await Sut(User("Admin")).Handle(
-            new HideCompanyReviewCommand(review.Id, false, null), default);
+            new HideScholarshipProviderReviewCommand(review.Id, false, null), default);
 
-        var updated = await _db.CompanyReviews.FindAsync(review.Id);
+        var updated = await _db.ScholarshipProviderReviews.FindAsync(review.Id);
         updated!.IsHiddenByAdmin.Should().BeFalse();
         updated.AdminNote.Should().BeNull();
     }
@@ -81,9 +81,9 @@ public sealed class HideCompanyReviewCommandHandlerTests : IDisposable
         var review = await SeedReviewAsync();
 
         await Sut(User("Admin")).Handle(
-            new HideCompanyReviewCommand(review.Id, true, "   "), default);
+            new HideScholarshipProviderReviewCommand(review.Id, true, "   "), default);
 
-        (await _db.CompanyReviews.FindAsync(review.Id))!.AdminNote.Should().BeNull();
+        (await _db.ScholarshipProviderReviews.FindAsync(review.Id))!.AdminNote.Should().BeNull();
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class HideCompanyReviewCommandHandlerTests : IDisposable
         var review = await SeedReviewAsync();
 
         var act = () => Sut(User("Student")).Handle(
-            new HideCompanyReviewCommand(review.Id, true, null), default);
+            new HideScholarshipProviderReviewCommand(review.Id, true, null), default);
 
         await act.Should().ThrowAsync<ForbiddenAccessException>();
     }
@@ -101,7 +101,7 @@ public sealed class HideCompanyReviewCommandHandlerTests : IDisposable
     public async Task Handle_UnknownReview_ThrowsNotFound()
     {
         var act = () => Sut(User("Admin")).Handle(
-            new HideCompanyReviewCommand(Guid.NewGuid(), true, null), default);
+            new HideScholarshipProviderReviewCommand(Guid.NewGuid(), true, null), default);
 
         await act.Should().ThrowAsync<NotFoundException>();
     }
@@ -114,7 +114,7 @@ public sealed class HideCompanyReviewCommandHandlerTests : IDisposable
         await _db.SaveChangesAsync();
 
         var act = () => Sut(User("Admin")).Handle(
-            new HideCompanyReviewCommand(review.Id, true, null), default);
+            new HideScholarshipProviderReviewCommand(review.Id, true, null), default);
 
         await act.Should().ThrowAsync<NotFoundException>();
     }

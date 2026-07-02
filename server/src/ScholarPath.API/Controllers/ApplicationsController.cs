@@ -10,8 +10,8 @@ using ScholarPath.Application.Applications.Commands.SubmitApplication;
 using ScholarPath.Application.Applications.Commands.UpdateExternalStatus;
 using ScholarPath.Application.Applications.Commands.WithdrawApplication;
 using ScholarPath.Application.Applications.Queries.GetApplicationDetail;
-using ScholarPath.Application.Applications.Queries.GetCompanyApplicationDetails;
-using ScholarPath.Application.Applications.Queries.GetCompanyApplications;
+using ScholarPath.Application.Applications.Queries.GetScholarshipProviderApplicationDetails;
+using ScholarPath.Application.Applications.Queries.GetScholarshipProviderApplications;
 using ScholarPath.Application.Applications.Queries.GetMyApplications;
 
 namespace ScholarPath.API.Controllers;
@@ -19,7 +19,7 @@ namespace ScholarPath.API.Controllers;
 /// <summary>
 /// Scholarship applications — student write-side (PB-004) and the company-side
 /// review flow (PB-005). Authorization is applied per endpoint because the
-/// controller mixes Student and Company actions.
+/// controller mixes Student and ScholarshipProvider actions.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -150,11 +150,11 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
         return NoContent();
     }
 
-    // ─── Company review-side (PB-005) ────────────────────────────────────────
+    // ─── ScholarshipProvider review-side (PB-005) ────────────────────────────────────────
 
     [HttpGet("company")]
-    [Authorize(Roles = "Company")]
-    public async Task<IActionResult> GetCompanyApplications(
+    [Authorize(Roles = "ScholarshipProvider")]
+    public async Task<IActionResult> GetScholarshipProviderApplications(
         [FromQuery] Guid? scholarshipId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
@@ -162,20 +162,20 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
         CancellationToken ct = default)
     {
         var result = await mediator.Send(
-            new GetCompanyApplicationsQuery(scholarshipId, page, pageSize, status), ct);
+            new GetScholarshipProviderApplicationsQuery(scholarshipId, page, pageSize, status), ct);
         return Ok(result);
     }
 
     [HttpGet("company/{id:guid}")]
-    [Authorize(Roles = "Company")]
-    public async Task<IActionResult> GetCompanyApplicationDetails(Guid id, CancellationToken ct)
+    [Authorize(Roles = "ScholarshipProvider")]
+    public async Task<IActionResult> GetScholarshipProviderApplicationDetails(Guid id, CancellationToken ct)
     {
-        var result = await mediator.Send(new GetCompanyApplicationDetailsQuery(id), ct);
+        var result = await mediator.Send(new GetScholarshipProviderApplicationDetailsQuery(id), ct);
         return Ok(result);
     }
 
     [HttpPost("{id:guid}/review")]
-    [Authorize(Roles = "Company")]
+    [Authorize(Roles = "ScholarshipProvider")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

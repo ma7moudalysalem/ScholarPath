@@ -5,64 +5,64 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviewRequests.Common;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Common;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Application.Payments;
 
-namespace ScholarPath.Application.CompanyReviewRequests.Commands.Expire;
+namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Expire;
 
 /// <summary>
-/// Marks a Pending CompanyReviewRequest as Expired (the Company didn't respond
-/// before <see cref="Domain.Entities.CompanyReviewRequest.PendingExpiresAt"/>).
+/// Marks a Pending ScholarshipProviderReviewRequest as Expired (the ScholarshipProvider didn't respond
+/// before <see cref="Domain.Entities.ScholarshipProviderReviewRequest.PendingExpiresAt"/>).
 /// Cancels the held PaymentIntent — no charge. Designed to be invoked from a
 /// background sweep job; admin-only when called interactively.
 /// </summary>
-[Auditable(AuditAction.Update, "CompanyReviewRequest",
+[Auditable(AuditAction.Update, "ScholarshipProviderReviewRequest",
     TargetIdProperty = nameof(RequestId),
-    SummaryTemplate = "Expired CompanyReviewRequest {RequestId}")]
-public sealed record ExpireCompanyReviewRequestCommand(
+    SummaryTemplate = "Expired ScholarshipProviderReviewRequest {RequestId}")]
+public sealed record ExpireScholarshipProviderReviewRequestCommand(
     Guid RequestId,
     bool SkipOwnerCheck = false) : IRequest<bool>;
 
-public sealed class ExpireCompanyReviewRequestCommandValidator
-    : AbstractValidator<ExpireCompanyReviewRequestCommand>
+public sealed class ExpireScholarshipProviderReviewRequestCommandValidator
+    : AbstractValidator<ExpireScholarshipProviderReviewRequestCommand>
 {
-    public ExpireCompanyReviewRequestCommandValidator()
+    public ExpireScholarshipProviderReviewRequestCommandValidator()
     {
         RuleFor(x => x.RequestId).NotEmpty();
     }
 }
 
-public sealed class ExpireCompanyReviewRequestCommandHandler(
+public sealed class ExpireScholarshipProviderReviewRequestCommandHandler(
     IApplicationDbContext db,
     IStripeService stripe,
     ICurrentUserService currentUser,
     INotificationDispatcher notifications,
-    ILogger<ExpireCompanyReviewRequestCommandHandler> logger)
-    : IRequestHandler<ExpireCompanyReviewRequestCommand, bool>
+    ILogger<ExpireScholarshipProviderReviewRequestCommandHandler> logger)
+    : IRequestHandler<ExpireScholarshipProviderReviewRequestCommand, bool>
 {
     public async Task<bool> Handle(
-        ExpireCompanyReviewRequestCommand command,
+        ExpireScholarshipProviderReviewRequestCommand command,
         CancellationToken ct)
     {
         if (!command.SkipOwnerCheck && !currentUser.IsInRole("Admin"))
             throw new ForbiddenAccessException("Only an administrator can manually expire a request.");
 
-        var entity = await db.CompanyReviewRequests
+        var entity = await db.ScholarshipProviderReviewRequests
             .Include(r => r.Payment)
             .Include(r => r.Scholarship)
             .Include(r => r.Student)
-            .Include(r => r.Company)
+            .Include(r => r.ScholarshipProvider)
             .FirstOrDefaultAsync(r => r.Id == command.RequestId, ct)
-            ?? throw new NotFoundException(nameof(Domain.Entities.CompanyReviewRequest), command.RequestId);
+            ?? throw new NotFoundException(nameof(Domain.Entities.ScholarshipProviderReviewRequest), command.RequestId);
 
-        if (entity.Status == CompanyReviewRequestStatus.Expired)
+        if (entity.Status == ScholarshipProviderReviewRequestStatus.Expired)
             return false;
 
-        if (entity.Status != CompanyReviewRequestStatus.Pending)
+        if (entity.Status != ScholarshipProviderReviewRequestStatus.Pending)
             throw new ConflictException(
-                $"Cannot expire a CompanyReviewRequest in status {entity.Status} — only Pending requests expire.");
+                $"Cannot expire a ScholarshipProviderReviewRequest in status {entity.Status} — only Pending requests expire.");
 
         if (entity.Payment is not null && entity.Payment.StripePaymentIntentId is not null
             && entity.Payment.Status == PaymentStatus.Held)
@@ -74,22 +74,22 @@ public sealed class ExpireCompanyReviewRequestCommandHandler(
 
             entity.Payment.Status = PaymentStatus.Cancelled;
             entity.Payment.RefundedAt = DateTimeOffset.UtcNow;
-            entity.Payment.RefundReason = "Expired — Company did not respond in time; hold released";
+            entity.Payment.RefundReason = "Expired — ScholarshipProvider did not respond in time; hold released";
         }
 
-        entity.Status = CompanyReviewRequestStatus.Expired;
+        entity.Status = ScholarshipProviderReviewRequestStatus.Expired;
         entity.ExpiredAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync(ct);
 
-        var paramsForStudent = CompanyReviewRequestNotificationFactory.Build(
+        var paramsForStudent = ScholarshipProviderReviewRequestNotificationFactory.Build(
             entity, entity.Payment,
             entity.Scholarship?.TitleEn, entity.Scholarship?.TitleAr,
-            counterpartyName: entity.Company is null
+            counterpartyName: entity.ScholarshipProvider is null
                 ? null
-                : ($"{entity.Company.FirstName} {entity.Company.LastName}".Trim()));
+                : ($"{entity.ScholarshipProvider.FirstName} {entity.ScholarshipProvider.LastName}".Trim()));
 
-        var paramsForCompany = CompanyReviewRequestNotificationFactory.Build(
+        var paramsForScholarshipProvider = ScholarshipProviderReviewRequestNotificationFactory.Build(
             entity, entity.Payment,
             entity.Scholarship?.TitleEn, entity.Scholarship?.TitleAr,
             counterpartyName: entity.Student is null
@@ -99,7 +99,7 @@ public sealed class ExpireCompanyReviewRequestCommandHandler(
         await SafeNotificationDispatcher.TryDispatchAsync(
             notifications, logger,
             entity.StudentId,
-            NotificationType.CompanyReviewRequestPaymentHoldCancelled,
+            NotificationType.ScholarshipProviderReviewRequestPaymentHoldCancelled,
             paramsForStudent,
             deepLink: $"/student/review-requests/{entity.Id}",
             idempotencyKey: $"crr-expired-student:{entity.Id:N}",
@@ -107,15 +107,15 @@ public sealed class ExpireCompanyReviewRequestCommandHandler(
 
         await SafeNotificationDispatcher.TryDispatchAsync(
             notifications, logger,
-            entity.CompanyId,
-            NotificationType.CompanyReviewRequestPaymentHoldCancelled,
-            paramsForCompany,
+            entity.ScholarshipProviderId,
+            NotificationType.ScholarshipProviderReviewRequestPaymentHoldCancelled,
+            paramsForScholarshipProvider,
             deepLink: $"/company/review-requests/{entity.Id}",
             idempotencyKey: $"crr-expired-company:{entity.Id:N}",
             ct);
 
         logger.LogInformation(
-            "CompanyReviewRequest {RequestId} expired (hold released, no charge).", entity.Id);
+            "ScholarshipProviderReviewRequest {RequestId} expired (hold released, no charge).", entity.Id);
 
         return true;
     }

@@ -2,11 +2,11 @@ using ScholarPath.Domain.Common;
 
 namespace ScholarPath.Domain.Entities;
 
-public class CompanyReview : AuditableEntity, ISoftDeletable
+public class ScholarshipProviderReview : AuditableEntity, ISoftDeletable
 {
     public Guid ApplicationTrackerId { get; set; } // one review per finalized application
     public Guid StudentId { get; set; }
-    public Guid CompanyId { get; set; }
+    public Guid ScholarshipProviderId { get; set; }
     public int Rating { get; set; } // 1..5
     public string? Comment { get; set; }
     public bool IsHiddenByAdmin { get; set; }
@@ -18,13 +18,13 @@ public class CompanyReview : AuditableEntity, ISoftDeletable
 
     public ApplicationTracker? ApplicationTracker { get; set; }
     public ApplicationUser? Student { get; set; }
-    public ApplicationUser? Company { get; set; }
+    public ApplicationUser? ScholarshipProvider { get; set; }
 }
 
-public class CompanyReviewPayment : AuditableEntity
+public class ScholarshipProviderReviewPayment : AuditableEntity
 {
     public Guid ApplicationTrackerId { get; set; }
-    public Guid CompanyId { get; set; }
+    public Guid ScholarshipProviderId { get; set; }
     public decimal AmountUsd { get; set; }
     public decimal ProfitShareAmountUsd { get; set; }
     public decimal PayeeAmountUsd { get; set; }

@@ -32,7 +32,7 @@ public record AdminRevenueDto(
 
 /// <summary>
 /// Admin revenue report (PB-015 reports) — aggregates gross / profit-share /
-/// payee-net / refund totals across Payments and CompanyReviewPayments in a
+/// payee-net / refund totals across Payments and ScholarshipProviderReviewPayments in a
 /// caller-supplied date window. Returns a monthly breakdown, the top 5 earning
 /// consultants, and a month-over-month growth percentage computed against the
 /// equivalent prior period.
@@ -78,8 +78,8 @@ public sealed class GetAdminRevenueQueryHandler(IApplicationDbContext db)
             })
             .FirstOrDefaultAsync(ct);
 
-        // ── Company review payments (captured within window) ───────────────────
-        var reviewTotals = await db.CompanyReviewPayments
+        // ── ScholarshipProvider review payments (captured within window) ───────────────────
+        var reviewTotals = await db.ScholarshipProviderReviewPayments
             .AsNoTracking()
             .Where(p => p.CapturedAt != null
                 && p.CapturedAt >= fromOffset
@@ -115,7 +115,7 @@ public sealed class GetAdminRevenueQueryHandler(IApplicationDbContext db)
                 && p.CapturedAt <= priorToOffset)
             .SumAsync(p => (decimal?)p.AmountCents, ct) ?? 0m;
         priorBookingGross /= 100m;
-        var priorReviewGross = await db.CompanyReviewPayments
+        var priorReviewGross = await db.ScholarshipProviderReviewPayments
             .AsNoTracking()
             .Where(p => p.CapturedAt != null
                 && p.CapturedAt >= priorFromOffset
@@ -148,7 +148,7 @@ public sealed class GetAdminRevenueQueryHandler(IApplicationDbContext db)
             })
             .ToListAsync(ct);
 
-        var reviewByMonth = await db.CompanyReviewPayments
+        var reviewByMonth = await db.ScholarshipProviderReviewPayments
             .AsNoTracking()
             .Where(p => p.CapturedAt != null
                 && p.CapturedAt >= fromOffset

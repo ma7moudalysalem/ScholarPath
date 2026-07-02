@@ -13,10 +13,10 @@ public static partial class DbSeeder
     ///   <item><see cref="Payment"/> rows covering EVERY <see cref="PaymentStatus"/>
     ///   (Pending / Held / Captured / Refunded / PartiallyRefunded / Failed /
     ///   Cancelled / Disputed) across BOTH <see cref="PaymentType"/>s
-    ///   (ConsultantBooking, CompanyReview).</item>
+    ///   (ConsultantBooking, ScholarshipProviderReview).</item>
     ///   <item><see cref="Payout"/> rows covering EVERY <see cref="PayoutStatus"/>
     ///   (Pending / InTransit / Paid / Failed).</item>
-    ///   <item><see cref="CompanyReview"/> + <see cref="CompanyReviewPayment"/>
+    ///   <item><see cref="ScholarshipProviderReview"/> + <see cref="ScholarshipProviderReviewPayment"/>
     ///   on finalised applications.</item>
     /// </list>
     /// Amounts are in cents. The 10% / 15% profit-share split is applied so the
@@ -67,7 +67,7 @@ public static partial class DbSeeder
             var profit = amountCents * 15 / 100; // 15% company-review profit share
             var p = new Payment
             {
-                Type = PaymentType.CompanyReview,
+                Type = PaymentType.ScholarshipProviderReview,
                 Status = status,
                 AmountCents = amountCents,
                 Currency = "USD",
@@ -269,25 +269,25 @@ public static partial class DbSeeder
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         // ---- company reviews + their payments ---------------------------
-        // A CompanyReview is keyed 1:1 to a finalised application (unique index).
-        var reviews = new List<CompanyReview>();
-        var reviewPayments = new List<CompanyReviewPayment>();
+        // A ScholarshipProviderReview is keyed 1:1 to a finalised application (unique index).
+        var reviews = new List<ScholarshipProviderReview>();
+        var reviewPayments = new List<ScholarshipProviderReviewPayment>();
         if (finalApps.Count > 0)
         {
             var app0 = finalApps[0];
-            reviews.Add(new CompanyReview
+            reviews.Add(new ScholarshipProviderReview
             {
                 ApplicationTrackerId = app0.Id,
                 StudentId = app0.StudentId,
-                CompanyId = users.Companies[0].Id,
+                ScholarshipProviderId = users.Companies[0].Id,
                 Rating = 5,
                 Comment = "The company was responsive and the decision came through quickly. Highly recommended.",
                 CreatedAt = now.AddDays(-18),
             });
-            reviewPayments.Add(new CompanyReviewPayment
+            reviewPayments.Add(new ScholarshipProviderReviewPayment
             {
                 ApplicationTrackerId = app0.Id,
-                CompanyId = users.Companies[0].Id,
+                ScholarshipProviderId = users.Companies[0].Id,
                 AmountUsd = 25m,
                 ProfitShareAmountUsd = 3.75m,
                 PayeeAmountUsd = 21.25m,
@@ -301,21 +301,21 @@ public static partial class DbSeeder
         if (finalApps.Count > 1)
         {
             var app1 = finalApps[1];
-            reviews.Add(new CompanyReview
+            reviews.Add(new ScholarshipProviderReview
             {
                 ApplicationTrackerId = app1.Id,
                 StudentId = app1.StudentId,
-                CompanyId = users.Companies[1].Id,
+                ScholarshipProviderId = users.Companies[1].Id,
                 Rating = 2,
                 Comment = "The rejection feedback was vague. Hidden by an admin pending a content check.",
                 IsHiddenByAdmin = true,
                 AdminNote = "Temporarily hidden while we verify the claim.",
                 CreatedAt = now.AddDays(-13),
             });
-            reviewPayments.Add(new CompanyReviewPayment
+            reviewPayments.Add(new ScholarshipProviderReviewPayment
             {
                 ApplicationTrackerId = app1.Id,
-                CompanyId = users.Companies[1].Id,
+                ScholarshipProviderId = users.Companies[1].Id,
                 AmountUsd = 30m,
                 ProfitShareAmountUsd = 4.5m,
                 PayeeAmountUsd = 25.5m,
@@ -330,8 +330,8 @@ public static partial class DbSeeder
 
         if (reviews.Count > 0)
         {
-            db.CompanyReviews.AddRange(reviews);
-            db.CompanyReviewPayments.AddRange(reviewPayments);
+            db.ScholarshipProviderReviews.AddRange(reviews);
+            db.ScholarshipProviderReviewPayments.AddRange(reviewPayments);
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
         }
 

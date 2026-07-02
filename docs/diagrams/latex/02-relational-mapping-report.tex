@@ -1,0 +1,409 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{graphicx}
+\graphicspath{{../img/}}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+\setlist{nosep,leftmargin=1.4em}
+\pagestyle{fancy}\fancyhf{}
+\lhead{\small ScholarPath --- Relational Mapping}\rhead{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\captionsetup{font=small,labelfont=bf}
+\newcommand{\diagram}[2]{\begin{figure}[H]\centering\includegraphics[width=\textwidth,height=0.8\textheight,keepaspectratio]{#1}\caption{#2}\end{figure}}
+
+\title{\textbf{ScholarPath --- Relational Mapping}\\[2pt]
+\large From the EER model to relations (Elmasri \& Navathe algorithm)}
+\author{ScholarPath Graduation Project}
+\date{\today}
+
+\begin{document}
+\maketitle\thispagestyle{fancy}
+
+\begin{abstract}\noindent
+This report maps the conceptual EER model (see the companion \emph{EERD} report)
+to a relational schema by applying the Elmasri \& Navathe ER/EER-to-relational
+algorithm, then reconciles the result with the live Entity Framework Core model
+snapshot so that it matches the \textbf{actual deployed Azure SQL schema}. Every
+relation is listed with its primary key, foreign keys and delete rules.
+\end{abstract}
+
+\tableofcontents\bigskip
+
+\section{Notation}
+\begin{itemize}
+  \item The \textbf{primary key} of each relation is its first attribute; all PKs
+        are \texttt{Guid} (\texttt{uniqueidentifier}) unless noted. Junction
+        relations use a \emph{composite} PK.
+  \item \texttt{FK} lines under each relation give the foreign key, its target,
+        and its delete rule: \textbf{Cascade}, \textbf{Restrict} or \textbf{SetNull}.
+  \item \texttt{(soft)} marks a \emph{loose reference} --- a \texttt{Guid} column
+        that points at another relation but has \emph{no} \texttt{FOREIGN KEY}
+        constraint (integrity enforced in application code).
+  \item \texttt{*UK} = unique index; \texttt{FUK} = filtered (partial) unique index;
+        \texttt{enc} = encrypted column; \texttt{cents} = money stored as an integer.
+  \item \texttt{\{audit\}} abbreviates the audit columns \texttt{CreatedAt,
+        CreatedByUserId, UpdatedAt, UpdatedByUserId, RowVersion};
+        \texttt{\{softdel\}} abbreviates \texttt{IsDeleted, DeletedAt, DeletedByUserId}.
+\end{itemize}
+
+\section{How the EER constructs were mapped}
+\begin{longtable}{@{}p{0.5cm}p{3.2cm}p{6.0cm}p{4.7cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Construct} & \textbf{Rule applied} & \textbf{Example here}\\
+\midrule\endhead
+1 & Regular entity & one relation; choose PK & \texttt{USERS}, \texttt{SCHOLARSHIPS}, \texttt{BOOKINGS}\\
+2 & Weak entity & relation incl. owner PK as part of FK & \texttt{EDUCATION\_ENTRIES}, \texttt{*\_CHILDREN}, \texttt{*\_FILES}\\
+3 & 1:1 relationship & FK (+\,*UK) on the total-participation side & \texttt{USERS}--\texttt{USER\_PROFILES}; \texttt{BOOKINGS}--\texttt{CONSULTANT\_REVIEWS}\\
+4 & 1:N relationship & FK on the N-side & \texttt{SCHOLARSHIPS}$\rightarrow$\texttt{APPLICATIONS}\\
+5 & M:N relationship & new relation, composite PK of two FKs & \texttt{USER\_ROLES}, \texttt{FORUM\_POST\_TAGS}\\
+6 & Multivalued attribute & separate relation \emph{or} JSON column & \texttt{*Json} columns; \texttt{SCHOLARSHIP\_CHILDREN}\\
+7 & N-ary relationship & relation with a FK to each participant & \texttt{COMPANY\_REVIEW\_REQUESTS}\\
+8 & Specialization (EER) & single relation + type discriminator & USER ISA \{Student,Company,Consultant,Admin\}\\
+9 & Union / category & --- & not used\\
+\bottomrule
+\end{longtable}
+\noindent\textbf{Deviation from step 6.} Multivalued attributes (preferred
+countries, post tags, payout payment-ids) are stored as JSON string columns
+except where querying/ordering was needed (community tags became the real
+\texttt{FORUM\_TAGS} + \texttt{FORUM\_POST\_TAGS} M:N). This denormalisation is
+recorded so the mapping matches the deployed schema.
+
+\section{Relational schema diagrams}
+Following Elmasri \& Navathe's relational-schema notation (Fig.~9.2), each
+relation is a box: the relation name sits in the header, and its attributes
+are drawn as a row of cells with the primary key \underline{underlined} and
+foreign-key cells shaded. A \textbf{directed arrow} runs from every
+foreign-key cell to the exact primary-key cell it references, with the
+arrowhead resting on the referenced key. A \textbf{solid} arrow is a
+database-enforced FK; a \textbf{dashed} arrow (columns marked \texttt{soft})
+is an application-enforced loose reference with no FK constraint. Arrows are
+routed orthogonally through a left-hand channel so that each one starts and
+ends on the correct cell without overlapping its neighbours.
+
+\diagram{RelMap_Identity_Profile.png}{Relational schema --- Identity \& Profile.}
+\diagram{RelMap_Scholarships_Applications.png}{Relational schema --- Scholarships, Applications \& Documents.}
+\diagram{RelMap_Booking_Payments_Ratings.png}{Relational schema --- Booking, Payments \& Ratings.}
+\diagram{RelMap_Community_Chat.png}{Relational schema --- Community \& Chat.}
+\diagram{RelMap_Resources_Notifications.png}{Relational schema --- Resources Hub \& Notifications.}
+\diagram{RelMap_AI_Platform.png}{Relational schema --- AI, Knowledge, Platform \& Cross-cutting.}
+
+\section{Relation schemas (textual)}
+
+\subsection{Identity, Access \& Profile}
+{\footnotesize\begin{verbatim}
+USERS( Id, Email*UK, NormalizedEmail*UK, FirstName, LastName, PasswordHash,
+       SecurityStamp, EmailConfirmed, PhoneNumber, LockoutEnd, LockoutEnabled,
+       AccessFailedCount, ProfileImageUrl, AccountStatus, ActiveRole,
+       IsOnboardingComplete, PreferredLanguage, CountryOfResidence,
+       LastLoginAt, {audit-thin}, {softdel} )
+  -- {audit-thin} = CreatedAt, UpdatedAt, RowVersion ONLY.  USERS does NOT carry
+  -- CreatedByUserId / UpdatedByUserId: ApplicationUser inherits IdentityUser<Guid>,
+  -- not AuditableEntity.  Standard Identity child tables: UserClaims, UserLogins,
+  -- UserTokens, RoleClaims.
+
+ROLES( Id, Name, NormalizedName*UK, Description, CreatedAt )
+
+USER_ROLES( UserId, RoleId )                      -- M:N junction (step 5)
+    PK = (UserId, RoleId)
+    FK UserId -> USERS(Id) [Cascade];  FK RoleId -> ROLES(Id) [Cascade]
+( UserClaims / UserLogins / UserTokens / RoleClaims : standard Identity tables )
+
+USER_PROFILES( Id, UserId*UK, Biography(enc), DateOfBirth, Nationality,
+       AcademicLevel, FieldOfStudy, Gpa, GpaScale, PreferredCountriesJson,
+       OrganizationLegalName, OrganizationVerificationStatus, IsTaxRegistered,
+       CompanyAverageRating, CompanyReviewCount, CompanyLowRatingFlaggedAt,
+       SessionFeeUsd, SessionDurationMinutes, ExpertiseTagsJson, LanguagesJson,
+       StripeConnectAccountId, StripeConnectStatus, ProfileCompletenessPercent,
+       {audit} )
+    FK UserId -> USERS(Id) [Cascade]              -- 1:1 (the *UK enforces it)
+    -- ~50 columns total: the extended onboarding set is elided here
+    -- (BiographyAr, LinkedInUrl, WebsiteUrl, Timezone, CurrentInstitution,
+    --  PreferredFieldsJson, Organization* x8, CompanyType/Description,
+    --  ContactPerson* x3, ProfessionalTitle, HighestDegree, FieldOfExpertise,
+    --  YearsOfExperience, PortfolioUrl, *VerifiedAt, *RejectedAt ...).
+    -- Filtered index IX_UserProfiles_CompanyLowRatingFlagged
+    --   WHERE [CompanyLowRatingFlaggedAt] IS NOT NULL                 (R7)
+
+EDUCATION_ENTRIES( Id, UserProfileId, InstitutionName, Degree, FieldOfStudy,
+       StartDate, EndDate, Gpa, Description, {audit} )      -- weak (step 2)
+    FK UserProfileId -> USER_PROFILES(Id) [Cascade]
+
+EXPERTISE_TAGS( Id, Slug*UK, NameEn, NameAr, Category )     -- lookup, no FK
+
+REFRESH_TOKENS( Id, UserId, TokenHash*UK, ExpiresAt, IsRevoked, RevokedAt,
+       ReplacedByTokenId(soft), IpAddress, UserAgent, {audit} )
+    FK UserId -> USERS(Id) [Cascade]
+
+LOGIN_ATTEMPTS( Id, Email, UserId(soft), Succeeded, FailureReason, OccurredAt,
+       IpAddress, UserAgent )
+
+PASSWORD_RESET_TOKENS( Id, UserId, TokenHash*UK, ExpiresAt, UsedAt, {audit} )
+    FK UserId -> USERS(Id) [Cascade]
+
+UPGRADE_REQUESTS( Id, UserId(soft), Target, Status, Reason, ReviewerNotes,
+       ReviewedByAdminId(soft), ReviewedAt, {audit}, {softdel} )
+
+UPGRADE_REQUEST_FILES( Id, UpgradeRequestId, FileName, BlobUrl, SizeBytes,
+       ContentType, UploadedAt )                            -- weak (step 2)
+    FK UpgradeRequestId -> UPGRADE_REQUESTS(Id) [Cascade]
+
+UPGRADE_REQUEST_LINKS( Id, UpgradeRequestId, Label, Url )   -- weak (step 2)
+    FK UpgradeRequestId -> UPGRADE_REQUESTS(Id) [Cascade]
+\end{verbatim}}
+
+\subsection{Scholarships, Applications \& Documents}
+{\footnotesize\begin{verbatim}
+CATEGORIES( Id, Slug*UK, NameEn, NameAr, DescriptionEn, DescriptionAr,
+       IconKey, DisplayOrder, {audit} )
+
+SCHOLARSHIPS( Id, CategoryId, OwnerCompanyId, CreatedByAdminId(soft), Slug*UK,
+       TitleEn, TitleAr, DescriptionEn, DescriptionAr, Mode,
+       ExternalApplicationUrl, Status, Deadline, OpenedAt, ArchivedAt,
+       IsFeatured, FeaturedOrder, FundingType, FundingAmountUsd, Currency,
+       TargetLevel, TargetCountriesJson, FieldsOfStudyJson, TagsJson,
+       ApplicationFormSchemaJson, RequiredDocumentsJson, ReviewFeeUsd,
+       {audit}, {softdel} )
+    FK CategoryId     -> CATEGORIES(Id) [SetNull]
+    FK OwnerCompanyId -> USERS(Id)      [SetNull]   -- null = admin / external
+
+SCHOLARSHIP_CHILDREN( Id, ScholarshipId(soft), ChildType, KeyEn, KeyAr,
+       ValueEn, ValueAr, SortOrder )      -- weak EAV row; parent link is loose
+
+SAVED_SCHOLARSHIPS( Id, UserId(soft), ScholarshipId(soft), SavedAt, Note )
+    *UK (UserId, ScholarshipId)            -- M:N bookmark; uniqueness only
+
+APPLICATIONS( Id, StudentId, ScholarshipId, Mode, Status, FormDataJson,
+       AttachedDocumentsJson, ExternalTrackingUrl, ExternalReferenceId,
+       ExternalTitle, ExternalProvider, Deadline, SubmittedAt, WithdrawnAt,
+       ReviewStartedAt, DecisionAt, DecisionReason, NextReminderAt,
+       PersonalNotes(enc), {audit}, {softdel} )
+    FK StudentId     -> USERS(Id)        [Restrict]
+    FK ScholarshipId -> SCHOLARSHIPS(Id) [Restrict]    -- null = external tracker
+    FUK (StudentId, ScholarshipId) WHERE ScholarshipId IS NOT NULL
+        AND Status NOT IN ('Withdrawn','Rejected','Accepted')   -- FR-057
+
+APPLICATION_CHILDREN( Id, ApplicationTrackerId(soft), ChildType, Title, Content,
+       MetadataJson, OccurredAt, ActorUserId(soft), SortOrder )
+
+DOCUMENTS( Id, OwnerUserId, ApplicationTrackerId, FileName, ContentType,
+       SizeBytes, StoragePath, Category, UploadedAt, {audit}, {softdel} )
+    FK OwnerUserId          -> USERS(Id)        [Restrict]
+    FK ApplicationTrackerId -> APPLICATIONS(Id) [SetNull]
+
+COMPANY_REVIEW_REQUESTS( Id, StudentId, CompanyId, ScholarshipId,
+       ApplicationTrackerId(soft), PaymentId, Status, ReviewFeeUsdSnapshot,
+       Currency, SubmittedAt, AcceptedAt, RejectedAt, CompletedAt, ClosedAt,
+       CancelledAt, ExpiredAt, PendingExpiresAt, CancelReason, RejectReason,
+       {audit}, {softdel} )                          -- N-ary (step 7)
+    -- Status enum = 11 values: Draft, Submitted, Pending, UnderReview,
+    --   Completed, Closed, Cancelled, Failed, CancelledByStudent,
+    --   RejectedByCompany, Expired.                                   (R5)
+    FK StudentId     -> USERS(Id)        [Restrict]
+    FK CompanyId     -> USERS(Id)        [Restrict]
+    FK ScholarshipId -> SCHOLARSHIPS(Id) [Restrict]
+    FK PaymentId     -> PAYMENTS(Id)     [SetNull]
+    FUK (StudentId, ScholarshipId)
+        WHERE Status IN ('Draft','Submitted','Pending','UnderReview')
+
+COMPANY_REVIEWS( Id, ApplicationTrackerId*UK, StudentId, CompanyId, Rating,
+       Comment, IsHiddenByAdmin, AdminNote, {audit}, {softdel} )   -- 1:1
+    FK ApplicationTrackerId -> APPLICATIONS(Id) [Restrict]  -- one per application
+    FK StudentId -> USERS(Id) [Restrict];  FK CompanyId -> USERS(Id) [Restrict]
+
+-- legacy table, still in the schema (superseded by COMPANY_REVIEW_REQUESTS+PAYMENTS):
+COMPANY_REVIEW_PAYMENTS( Id, ApplicationTrackerId, CompanyId, AmountUsd,
+       ProfitShareAmountUsd, PayeeAmountUsd, StripePaymentIntentId*UK,
+       IdempotencyKey*UK, Status, CapturedAt, RefundedAmountUsd,
+       RefundReason, {audit} )                                       -- (R1)
+\end{verbatim}}
+
+\subsection{Consultant Booking, Payments \& Ratings}
+{\footnotesize\begin{verbatim}
+AVAILABILITIES( Id, ConsultantId, DayOfWeek, StartTime, EndTime,
+       SpecificStartAt, SpecificEndAt, Timezone, IsRecurring, IsActive,
+       {audit}, {softdel} )
+    FK ConsultantId -> USERS(Id) [Restrict]
+
+BOOKINGS( Id, StudentId, ConsultantId, AvailabilityId, PaymentId,
+       ScheduledStartAt, ScheduledEndAt, DurationMinutes, PriceUsd, StudentNotes,
+       MeetingRoomId, RecordingStartedAt, RecordingId,            -- PB-006
+       Status, RequestedAt, ConfirmedAt, RejectedAt,
+       ExpiredAt, CancelledAt, CompletedAt, CancellationReason,
+       CancelledByUserId(soft), StripePaymentIntentId, IsNoShowStudent,
+       IsNoShowConsultant, NoShowMarkedAt,
+       StudentJoinedAt, ConsultantJoinedAt,                       -- FR-217 attendance
+       {audit}, {softdel} )
+    FK StudentId      -> USERS(Id)          [Restrict]
+    FK ConsultantId   -> USERS(Id)          [Restrict]
+    FK AvailabilityId -> AVAILABILITIES(Id) [SetNull]
+    FK PaymentId      -> PAYMENTS(Id)       [SetNull]
+    FUK (ConsultantId, ScheduledStartAt) WHERE Status IN ('Requested','Confirmed')
+
+PAYMENTS( Id, PayerUserId(soft), PayeeUserId(soft), RelatedBookingId(soft),
+       RelatedApplicationId(soft), PayoutId(soft), Type, Status,
+       AmountCents(cents), Currency, ProfitShareAmountCents(cents),
+       PayeeAmountCents(cents), RefundedAmountCents(cents), StripePaymentIntentId,
+       StripeChargeId, IdempotencyKey*UK, HeldAt, CapturedAt, RefundedAt,
+       RefundReason, FailureReason, {audit}, {softdel} )
+    -- NO database FKs by design (audit-decoupled)
+
+PAYOUTS( Id, PayeeUserId(soft), AmountCents(cents), Currency, Status,
+       StripePayoutId, StripeConnectAccountId, InitiatedAt, PaidAt,
+       FailureReason, IncludedPaymentIdsJson, {audit} )
+
+CONSULTANT_REVIEWS( Id, BookingId*UK, StudentId, ConsultantId, Rating, Comment,
+       IsHiddenByAdmin, AdminNote, {audit}, {softdel} )          -- 1:1
+    FK BookingId -> BOOKINGS(Id) [Restrict]        -- one review per booking
+    FK StudentId -> USERS(Id) [Restrict];  FK ConsultantId -> USERS(Id) [Restrict]
+
+SESSION_RECORDINGS( Id, BookingId, RecordingId, StoragePath, ContentType,
+       SizeBytes, RecordedAt, {audit}, {softdel} )
+    FK BookingId -> BOOKINGS(Id) [Restrict]
+
+STRIPE_WEBHOOK_EVENTS( Id, StripeEventId*UK, IsProcessed, ReceivedAt, ... )
+PROFIT_SHARE_CONFIGS( Id, PaymentType, Percentage, EffectiveFrom, EffectiveTo,
+       SetByAdminId(soft), {audit} )            -- FUK one active per PaymentType
+FINANCIAL_CONFIG_RULES( Id, PaymentType, FeeKind, ..., Status,
+       SetByAdminId(soft), {audit} )            -- FUK one active per PaymentType
+\end{verbatim}}
+
+\subsection{Community \& Chat}
+{\footnotesize\begin{verbatim}
+FORUM_CATEGORIES( Id, Slug*UK, NameEn, NameAr, DisplayOrder, IsActive, {audit} )
+
+FORUM_POSTS( Id, AuthorId, CategoryId, ParentPostId, Title, BodyMarkdown,
+       ModerationStatus, UpvoteCount, DownvoteCount, FlagCount, ReplyCount,
+       IsAutoHidden, AutoHiddenAt, ModeratedByAdminId(soft), ModeratedAt,
+       ModerationNote, {audit}, {softdel} )
+    FK AuthorId     -> USERS(Id)            [Restrict]
+    FK CategoryId   -> FORUM_CATEGORIES(Id) [SetNull]
+    FK ParentPostId -> FORUM_POSTS(Id)      [Restrict]   -- self; null = root
+
+FORUM_POST_ATTACHMENTS( Id, ForumPostId, FileName, BlobUrl, ContentType, SizeBytes )
+    FK ForumPostId -> FORUM_POSTS(Id) [Cascade]
+FORUM_VOTES( Id, ForumPostId, UserId(soft), VoteType, VotedAt )
+    FK ForumPostId -> FORUM_POSTS(Id) [Cascade];  *UK (ForumPostId, UserId)
+FORUM_FLAGS( Id, ForumPostId, FlaggedByUserId(soft), Reason, FlaggedAt, IsValid )
+    FK ForumPostId -> FORUM_POSTS(Id) [Cascade];  *UK (ForumPostId, FlaggedByUserId)
+FORUM_BOOKMARKS( Id, ForumPostId, UserId(soft), CreatedAt )
+    FK ForumPostId -> FORUM_POSTS(Id) [Cascade];  *UK (ForumPostId, UserId)
+FORUM_TAGS( Id, Name, Slug*UK, CreatedAt )
+FORUM_POST_TAGS( ForumPostId, ForumTagId )            -- M:N junction (step 5)
+    PK = (ForumPostId, ForumTagId)
+    FK ForumPostId -> FORUM_POSTS(Id) [Cascade];  FK ForumTagId -> FORUM_TAGS(Id) [Cascade]
+
+CONVERSATIONS( Id, ParticipantOneId(soft), ParticipantTwoId(soft), LastMessageAt,
+       LastMessageId(soft), IsArchivedForParticipantOne,
+       IsArchivedForParticipantTwo, {audit} )
+    *UK (ParticipantOneId, ParticipantTwoId)          -- one DM channel per pair
+MESSAGES( Id, ConversationId, SenderId(soft), Body, SentAt, ReadAt,
+       {audit}, {softdel} )
+    FK ConversationId -> CONVERSATIONS(Id) [Cascade]
+USER_BLOCKS( Id, BlockerId(soft), BlockedUserId(soft), BlockedAt, Reason )
+    *UK (BlockerId, BlockedUserId)
+\end{verbatim}}
+
+\subsection{Resources Hub \& Notifications}
+{\footnotesize\begin{verbatim}
+RESOURCES( Id, AuthorUserId, Slug*UK, TitleEn, TitleAr, DescriptionEn,
+       DescriptionAr, ContentMarkdownEn, ContentMarkdownAr, ExternalLinkUrl,
+       CoverImageUrl, AuthorRole, Type, Status, CategorySlug, TagsJson,
+       IsFeatured, FeaturedOrder, PublishedAt, ReviewedAt,
+       ReviewedByAdminId(soft), RejectionReason, {audit}, {softdel} )
+    FK AuthorUserId -> USERS(Id)
+RESOURCE_CHAPTERS( Id, ResourceId, TitleEn, TitleAr, ContentMarkdownEn,
+       ContentMarkdownAr, SortOrder, EstimatedReadMinutes )       -- weak
+    FK ResourceId -> RESOURCES(Id) [Cascade]
+RESOURCE_BOOKMARKS( Id, ResourceId, UserId(soft), BookmarkedAt )
+    FK ResourceId -> RESOURCES(Id) [Cascade];  *UK (UserId, ResourceId)
+RESOURCE_PROGRESS( Id, ResourceId, UserId(soft), ChaptersCompletedCount,
+       LastAccessedAt, {audit} )
+    FK ResourceId -> RESOURCES(Id) [Cascade];  *UK (UserId, ResourceId)
+RESOURCE_PROGRESS_CHILDREN( Id, ResourceProgressId, ResourceChildId(soft),
+       IsCompleted, CompletedAt )
+    FK ResourceProgressId -> RESOURCE_PROGRESS(Id) [Cascade]
+    *UK (ResourceProgressId, ResourceChildId)
+
+NOTIFICATIONS( Id, RecipientUserId(soft), Type, Channel, TitleEn, TitleAr,
+       BodyEn, BodyAr, DeepLink, MetadataJson, IsRead, ReadAt, Priority,
+       IdempotencyKey, DispatchedAt, DispatchSucceeded, DispatchError,
+       {audit}, {softdel} )
+NOTIFICATION_PREFERENCES( Id, UserId(soft), Type, Channel, IsEnabled, {audit} )
+    *UK (UserId, Type, Channel)
+\end{verbatim}}
+
+\subsection{AI, Knowledge, Platform \& Cross-cutting}
+{\footnotesize\begin{verbatim}
+AI_INTERACTIONS( Id, UserId(soft), Feature, Provider, ModelName, SessionId,
+       PromptText, ResponseText, PromptTokens, CompletionTokens, CostUsd,
+       MetadataJson, StartedAt, CompletedAt, ErrorMessage, {audit} )
+RECOMMENDATION_CLICK_EVENTS( Id, UserId, ScholarshipId, AiInteractionId,
+       ClickedAt, Source )
+    FK UserId -> USERS(Id) [Restrict];  FK ScholarshipId -> SCHOLARSHIPS(Id) [Restrict]
+    FK AiInteractionId -> AI_INTERACTIONS(Id) [SetNull]
+AI_REDACTION_AUDIT_SAMPLES( Id, AiInteractionId*UK, UserId, ReviewerUserId,
+       RedactedPrompt, SampledAt, Verdict, ReviewedAt )           -- 1:1
+    FK AiInteractionId -> AI_INTERACTIONS(Id) [Restrict]
+    FK UserId -> USERS(Id) [Restrict];  FK ReviewerUserId -> USERS(Id) [Restrict]
+KNOWLEDGE_DOCUMENTS( Id, SourceType, SourceId(soft, polymorphic), SourceKey,
+       TitleEn, TitleAr, ContentEn, ContentAr, ContentHash, Embedding,
+       EmbeddingDimensions, EmbeddingModel, IndexedAt, MetadataJson, {audit} )
+    *UK (SourceType, SourceKey)
+PLATFORM_SETTINGS( Id, Key*UK, Value, ValueType, DescriptionEn, DescriptionAr,
+       Category, UpdatedByAdminId(soft), {audit} )
+AUDIT_LOGS( Id, ActorUserId(soft), Action, TargetType, TargetId(soft,polymorphic),
+       BeforeJson, AfterJson, IpAddress, UserAgent, OccurredAt, CorrelationId,
+       Summary )
+USER_DATA_REQUESTS( Id, UserId(soft), Type, Status, RequestedAt,
+       ScheduledProcessAt, CompletedAt, CancelledAt, DownloadUrl,
+       DownloadExpiresAt, FailureReason, {audit} )
+SUCCESS_STORIES( Id, StudentId(soft, nullable), AuthorDisplayName, AuthorImageUrl,
+       HeadlineEn, HeadlineAr, BodyEn, BodyAr, ScholarshipNameEn, ScholarshipNameAr,
+       CountryCode, IsApproved, IsFeatured, FeaturedOrder, {audit}, {softdel} )
+USER_RISK_FLAGS( Id, UserId*UK, Score, IsAtRisk, Reason, ComputedAt,
+       SourceRefreshId(soft) )                                   -- 1:1
+    FK UserId -> USERS(Id) [Cascade]               -- one flag row per user
+\end{verbatim}}
+
+\section{Referential-integrity summary}
+\begin{longtable}{@{}p{2.6cm}p{6.2cm}p{5.6cm}@{}}
+\toprule
+\textbf{Delete rule} & \textbf{Used for} & \textbf{Why}\\
+\midrule\endhead
+Cascade & profile, education, tokens, upgrade files/links, forum
+attachments / votes / flags / bookmarks / post-tags, messages, resource
+chapters / bookmarks / progress, user-risk-flag & child has no meaning without
+its parent\\
+Restrict & applications, documents, bookings, all reviews, recordings,
+recommendation clicks, redaction samples, every FK into \texttt{USERS} & protect
+history; also avoids SQL Server multiple-cascade-paths (error 1785)\\
+SetNull & scholarship$\rightarrow$category / owner, document$\rightarrow$application,
+booking$\rightarrow$availability / payment, request$\rightarrow$payment,
+post$\rightarrow$category & keep the row, orphan the optional link\\
+none (loose) & payments, payouts, notifications, votes / flags / bookmarks'
+\emph{user}, chat participants / sender, audit actor + target, AI userId,
+knowledge sourceId, settings / requests / stories user & decouple high-volume /
+audit / analytics rows so deletes \& anonymisation never cascade-break\\
+\bottomrule
+\end{longtable}
+
+\section{Exporting the authoritative SQL}
+The relation schemas above can be regenerated as real DDL straight from the EF
+Core migrations:
+{\footnotesize\begin{verbatim}
+cd server
+dotnet ef migrations script ^
+  --project src/ScholarPath.Infrastructure ^
+  --startup-project src/ScholarPath.API > ../docs/diagrams/schema.sql
+\end{verbatim}}
+\end{document}

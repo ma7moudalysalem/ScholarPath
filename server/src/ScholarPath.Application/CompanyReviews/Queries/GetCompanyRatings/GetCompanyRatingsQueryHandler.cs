@@ -1,22 +1,22 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviews.DTOs;
+using ScholarPath.Application.ScholarshipProviderReviews.DTOs;
 
-namespace ScholarPath.Application.CompanyReviews.Queries.GetCompanyRatings;
+namespace ScholarPath.Application.ScholarshipProviderReviews.Queries.GetScholarshipProviderRatings;
 
-public sealed class GetCompanyRatingsQueryHandler(
+public sealed class GetScholarshipProviderRatingsQueryHandler(
     IApplicationDbContext db)
-    : IRequestHandler<GetCompanyRatingsQuery, CompanyRatingsSummaryDto>
+    : IRequestHandler<GetScholarshipProviderRatingsQuery, ScholarshipProviderRatingsSummaryDto>
 {
-    public async Task<CompanyRatingsSummaryDto> Handle(GetCompanyRatingsQuery request, CancellationToken ct)
+    public async Task<ScholarshipProviderRatingsSummaryDto> Handle(GetScholarshipProviderRatingsQuery request, CancellationToken ct)
     {
         var page = Math.Max(1, request.Page);
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
-        var baseQuery = db.CompanyReviews
+        var baseQuery = db.ScholarshipProviderReviews
             .AsNoTracking()
-            .Where(r => r.CompanyId == request.CompanyId && !r.IsHiddenByAdmin);
+            .Where(r => r.ScholarshipProviderId == request.ScholarshipProviderId && !r.IsHiddenByAdmin);
 
         var total = await baseQuery.CountAsync(ct).ConfigureAwait(false);
         
@@ -31,7 +31,7 @@ public sealed class GetCompanyRatingsQueryHandler(
             .OrderByDescending(r => r.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(r => new CompanyReviewRow(
+            .Select(r => new ScholarshipProviderReviewRow(
                 r.Id,
                 r.StudentId,
                 r.Student != null ? r.Student.FullName : "Unknown",
@@ -41,8 +41,8 @@ public sealed class GetCompanyRatingsQueryHandler(
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
-        return new CompanyRatingsSummaryDto(
-            request.CompanyId,
+        return new ScholarshipProviderRatingsSummaryDto(
+            request.ScholarshipProviderId,
             Math.Round(averageRating, 1),
             total,
             reviews);

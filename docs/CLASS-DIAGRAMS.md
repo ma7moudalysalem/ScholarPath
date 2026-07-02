@@ -1,5 +1,10 @@
 # Class Diagrams (UML)
 
+> ⛔ **DEPRECATED — do not use for the defense.** This file predates several
+> merged modules and is **superseded** by the code-derived diagram under
+> [`docs/diagrams/03-CLASS-DIAGRAMS.md`](diagrams/03-CLASS-DIAGRAMS.md).
+> Kept only for history; safe to delete.
+
 Six class diagrams covering the key architectural groupings. Rendered natively by GitHub via Mermaid `classDiagram`.
 
 ## 1. Clean Architecture — project references

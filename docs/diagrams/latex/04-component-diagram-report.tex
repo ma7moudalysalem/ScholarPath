@@ -1,0 +1,111 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{graphicx}
+\graphicspath{{../img/}}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+\captionsetup{font=small,labelfont=bf}
+\setlist{nosep,leftmargin=1.4em}
+\pagestyle{fancy}\fancyhf{}
+\lhead{\small ScholarPath --- Component Diagram}\rhead{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\newcommand{\diagram}[2]{%
+  \begin{figure}[H]\centering
+  \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{#1}%
+  \caption{#2}\end{figure}}
+
+\title{\textbf{ScholarPath --- Component Diagram (UML)}\\[2pt]
+\large System structure and external integrations (Sommerville notation)}
+\author{ScholarPath Graduation Project}
+\date{\today}
+
+\begin{document}
+\maketitle\thispagestyle{fancy}
+
+\begin{abstract}\noindent
+This report describes the runtime structure of ScholarPath as a UML component
+diagram in the style of Sommerville. ScholarPath is a Clean Architecture
+monolith (\texttt{API} $\rightarrow$ \texttt{Application} $\rightarrow$
+\texttt{Domain}; \texttt{Infrastructure} $\rightarrow$ \texttt{Application}/\texttt{Domain})
+with a separate React single-page-application client and a set of external
+Azure / third-party services.
+\end{abstract}
+
+\tableofcontents\bigskip
+
+\section{Notation}
+\begin{itemize}
+  \item A \textbf{component} is a box (here, a deployable assembly or external
+        service). Components are grouped by their \emph{deployment node}
+        (Azure Static Web Apps, Azure App Service, external services).
+  \item A \textbf{provided interface} is drawn as a lollipop ($\circ\!\!-$);
+        a \textbf{required interface} as a socket ($-\!\!\subset$). In the source
+        these are the application \emph{ports} and the infrastructure
+        \emph{adapters} that provide them.
+  \item A \textbf{dependency} (arrow) means one component uses another.
+        Clean-Architecture dependencies point \emph{inward}.
+\end{itemize}
+
+\section{The component diagram}
+\diagram{ScholarPath_Components.pdf}{ScholarPath components, interfaces and external integrations.}
+
+\section{Component responsibilities}
+\begin{longtable}{@{}p{3.5cm}p{6.4cm}p{4.3cm}@{}}
+\toprule
+\textbf{Component} & \textbf{Provided interface (offers)} & \textbf{Requires}\\
+\midrule\endhead
+React SPA & the user-facing web app & API (REST), SignalR hubs\\
+\texttt{ScholarPath.API} & HTTP/REST endpoints, JWT auth, Stripe webhook receiver & Application (MediatR)\\
+SignalR Hubs & realtime push (chat, notifications, community) & Application\\
+Hangfire Jobs & scheduled work (reminders, scholarship auto-close, no-show sweep, session-expiry) & Application\\
+\texttt{ScholarPath.Application} & use-cases (commands/queries) and \emph{ports} & Domain\\
+\texttt{ScholarPath.Domain} & entities, enums, domain events (the enterprise model) & nothing (innermost)\\
+\texttt{ScholarPath.Infrastructure} & \emph{adapters} that implement every port & Application, Domain, all external services\\
+\bottomrule
+\end{longtable}
+
+\section{External integrations}
+Each external system is reached through one port and its production adapter
+(development uses \texttt{Local*}/\texttt{Stub*} fall-backs selected by configuration,
+e.g. \texttt{Ai\_\_Provider}).
+\begin{longtable}{@{}p{3.6cm}p{4.7cm}p{5.6cm}@{}}
+\toprule
+\textbf{Port} & \textbf{Adapter} & \textbf{External system}\\
+\midrule\endhead
+\texttt{IApplicationDbContext} & \texttt{ApplicationDbContext} (EF Core) & Azure SQL\\
+\texttt{IAiService} & \texttt{AzureOpenAiService} & Azure OpenAI (gpt-4o-mini)\\
+\texttt{IEmbeddingService} & \texttt{AzureOpenAiEmbeddingService} & Azure OpenAI (text-embedding-3-small)\\
+\texttt{IStripeService} & \texttt{StripeService} & Stripe (PaymentIntents, Connect, webhooks)\\
+\texttt{IMeetingService} & \texttt{AzureCommunicationMeetingService} & Azure Communication Services (video + recording)\\
+\texttt{IEmailService} & \texttt{MailKitEmailService} & SMTP mail server\\
+(file storage) & \texttt{FileStorageService} & Azure Blob Storage\\
+\texttt{IFileScanService} & \texttt{ClamAvFileScanService} & ClamAV daemon\\
+\texttt{IFieldEncryptionService} & \texttt{AesGcmFieldEncryptionService} (+ Key Vault) & Azure Key Vault\\
+(JWT signing) & \texttt{KeyVaultJwtKeyProvider} & Azure Key Vault\\
+\texttt{IEventPublisher} & \texttt{EventHubPublisher} & Azure Event Hub $\rightarrow$ Power BI\\
+\texttt{IPowerBiService} & \texttt{PowerBiService} & Power BI (embed + churn-risk reverse-ETL)\\
+\bottomrule
+\end{longtable}
+
+\section{Notable data flows}
+\begin{itemize}
+  \item \textbf{Auth + API:} the React SPA calls the API over HTTPS with a JWT,
+        and subscribes to the SignalR hubs over WebSocket for realtime updates.
+  \item \textbf{Payments:} the Infrastructure layer creates / captures / refunds
+        Stripe PaymentIntents; Stripe calls \emph{back} into the API via a webhook,
+        which is verified and recorded idempotently.
+  \item \textbf{Analytics (reverse-ETL):} domain events are published to Azure
+        Event Hub and consumed by Power BI; a daily Power BI dataflow writes
+        churn-risk scores back into the \texttt{UserRiskFlags} table in Azure SQL.
+\end{itemize}
+\end{document}

@@ -11,7 +11,7 @@ using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
-namespace ScholarPath.Application.CompanyReviewRequests.Commands.Start;
+namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Start;
 
 // ─── Result ───────────────────────────────────────────────────────────────────
 
@@ -20,7 +20,7 @@ namespace ScholarPath.Application.CompanyReviewRequests.Commands.Start;
 /// <para>
 /// For paid scholarships (fee &gt; 0): the frontend uses <see cref="ClientSecret"/>
 /// with Stripe Elements to authorise the card (manual capture) and then calls
-/// <see cref="ScholarPath.Application.CompanyReviewRequests.Commands.ConfirmHold.ConfirmCompanyReviewRequestHoldCommand"/>
+/// <see cref="ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.ConfirmHold.ConfirmScholarshipProviderReviewRequestHoldCommand"/>
 /// to flip the request from Submitted to Pending.
 /// </para>
 /// <para>
@@ -31,7 +31,7 @@ namespace ScholarPath.Application.CompanyReviewRequests.Commands.Start;
 /// to infer it from a missing client secret.
 /// </para>
 /// </summary>
-public sealed record StartCompanyReviewRequestResult(
+public sealed record StartScholarshipProviderReviewRequestResult(
     Guid RequestId,
     bool IsFree,
     Guid? PaymentId,
@@ -44,23 +44,23 @@ public sealed record StartCompanyReviewRequestResult(
 
 /// <summary>
 /// Student-initiated Apply Now (PB-005 final business rule). The Student pays
-/// the Company for application-support / document-review; ScholarPath takes
-/// 10% commission from the final retained captured payment, Company receives
+/// the ScholarshipProvider for application-support / document-review; ScholarPath takes
+/// 10% commission from the final retained captured payment, ScholarshipProvider receives
 /// 90% — calculated at capture (and re-calculated on partial refund) via
 /// <see cref="FinancialRuleResolver"/>.
 /// </summary>
-[Auditable(AuditAction.Create, "CompanyReviewRequest",
-    SummaryTemplate = "Started CompanyReview request for scholarship {ScholarshipId}")]
-public sealed record StartCompanyReviewRequestCommand(
+[Auditable(AuditAction.Create, "ScholarshipProviderReviewRequest",
+    SummaryTemplate = "Started ScholarshipProviderReview request for scholarship {ScholarshipId}")]
+public sealed record StartScholarshipProviderReviewRequestCommand(
     Guid ScholarshipId,
-    Guid? ApplicationTrackerId = null) : IRequest<StartCompanyReviewRequestResult>;
+    Guid? ApplicationTrackerId = null) : IRequest<StartScholarshipProviderReviewRequestResult>;
 
 // ─── Validator ────────────────────────────────────────────────────────────────
 
-public sealed class StartCompanyReviewRequestCommandValidator
-    : AbstractValidator<StartCompanyReviewRequestCommand>
+public sealed class StartScholarshipProviderReviewRequestCommandValidator
+    : AbstractValidator<StartScholarshipProviderReviewRequestCommand>
 {
-    public StartCompanyReviewRequestCommandValidator()
+    public StartScholarshipProviderReviewRequestCommandValidator()
     {
         RuleFor(x => x.ScholarshipId)
             .NotEmpty()
@@ -70,17 +70,17 @@ public sealed class StartCompanyReviewRequestCommandValidator
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 
-public sealed class StartCompanyReviewRequestCommandHandler(
+public sealed class StartScholarshipProviderReviewRequestCommandHandler(
     IApplicationDbContext db,
     IStripeService stripe,
     ICurrentUserService currentUser,
-    ILogger<StartCompanyReviewRequestCommandHandler> logger)
-    : IRequestHandler<StartCompanyReviewRequestCommand, StartCompanyReviewRequestResult>
+    ILogger<StartScholarshipProviderReviewRequestCommandHandler> logger)
+    : IRequestHandler<StartScholarshipProviderReviewRequestCommand, StartScholarshipProviderReviewRequestResult>
 {
     private const int PendingTtlDays = 7;
 
-    public async Task<StartCompanyReviewRequestResult> Handle(
-        StartCompanyReviewRequestCommand request,
+    public async Task<StartScholarshipProviderReviewRequestResult> Handle(
+        StartScholarshipProviderReviewRequestCommand request,
         CancellationToken ct)
     {
         var studentId = currentUser.UserId
@@ -97,11 +97,11 @@ public sealed class StartCompanyReviewRequestCommandHandler(
         if (scholarship.Status != ScholarshipStatus.Open)
             throw new ConflictException("This scholarship is not currently open for applications.");
 
-        if (scholarship.OwnerCompanyId is null)
-            throw new ConflictException("This scholarship has no Company owner — Apply Now is not available.");
+        if (scholarship.OwnerScholarshipProviderId is null)
+            throw new ConflictException("This scholarship has no ScholarshipProvider owner — Apply Now is not available.");
 
-        if (scholarship.OwnerCompanyId == studentId)
-            throw new ConflictException("A Company cannot start a paid review request for its own scholarship.");
+        if (scholarship.OwnerScholarshipProviderId == studentId)
+            throw new ConflictException("A ScholarshipProvider cannot start a paid review request for its own scholarship.");
 
         // Master switch: when payments are off, treat every request as free
         // regardless of the stored fee — money never moves on this platform
@@ -125,28 +125,28 @@ public sealed class StartCompanyReviewRequestCommandHandler(
             fee = storedFee;
         }
 
-        var companyId = scholarship.OwnerCompanyId.Value;
+        var companyId = scholarship.OwnerScholarshipProviderId.Value;
         var currency = scholarship.Currency ?? "USD";
         var amountCents = (long)Math.Round(fee * 100m, MidpointRounding.AwayFromZero);
         var isFree = amountCents == 0;
 
         // ── Idempotency: re-use an in-flight request for the same student/scholarship ─
-        var existing = await db.CompanyReviewRequests
+        var existing = await db.ScholarshipProviderReviewRequests
             .Include(r => r.Payment)
             .FirstOrDefaultAsync(r =>
                 r.StudentId == studentId &&
                 r.ScholarshipId == request.ScholarshipId &&
-                (r.Status == CompanyReviewRequestStatus.Draft ||
-                 r.Status == CompanyReviewRequestStatus.Submitted ||
-                 r.Status == CompanyReviewRequestStatus.Pending ||
-                 r.Status == CompanyReviewRequestStatus.UnderReview), ct);
+                (r.Status == ScholarshipProviderReviewRequestStatus.Draft ||
+                 r.Status == ScholarshipProviderReviewRequestStatus.Submitted ||
+                 r.Status == ScholarshipProviderReviewRequestStatus.Pending ||
+                 r.Status == ScholarshipProviderReviewRequestStatus.UnderReview), ct);
 
-        if (existing is { Status: CompanyReviewRequestStatus.Submitted, Payment.StripePaymentIntentId: { } pid })
+        if (existing is { Status: ScholarshipProviderReviewRequestStatus.Submitted, Payment.StripePaymentIntentId: { } pid })
         {
             logger.LogInformation(
-                "Re-using existing in-flight CompanyReviewRequest {Id} for student {Student}.",
+                "Re-using existing in-flight ScholarshipProviderReviewRequest {Id} for student {Student}.",
                 existing.Id, studentId);
-            return new StartCompanyReviewRequestResult(
+            return new StartScholarshipProviderReviewRequestResult(
                 existing.Id,
                 IsFree: false,
                 existing.Payment!.Id,
@@ -159,12 +159,12 @@ public sealed class StartCompanyReviewRequestCommandHandler(
         // Free request idempotency: a previous free attempt already in Pending
         // is the terminal "submitted" state for free — re-use it instead of
         // throwing, so the Apply Now button is naturally idempotent.
-        if (existing is { Status: CompanyReviewRequestStatus.Pending, PaymentId: null })
+        if (existing is { Status: ScholarshipProviderReviewRequestStatus.Pending, PaymentId: null })
         {
             logger.LogInformation(
-                "Re-using existing free CompanyReviewRequest {Id} for student {Student}.",
+                "Re-using existing free ScholarshipProviderReviewRequest {Id} for student {Student}.",
                 existing.Id, studentId);
-            return new StartCompanyReviewRequestResult(
+            return new StartScholarshipProviderReviewRequestResult(
                 existing.Id,
                 IsFree: true,
                 PaymentId: null,
@@ -183,29 +183,29 @@ public sealed class StartCompanyReviewRequestCommandHandler(
         {
             var freeRequestId = Guid.NewGuid();
             var now = DateTimeOffset.UtcNow;
-            var freeEntity = new CompanyReviewRequest
+            var freeEntity = new ScholarshipProviderReviewRequest
             {
                 Id = freeRequestId,
                 StudentId = studentId,
-                CompanyId = companyId,
+                ScholarshipProviderId = companyId,
                 ScholarshipId = scholarship.Id,
                 ApplicationTrackerId = request.ApplicationTrackerId,
                 PaymentId = null,
-                Status = CompanyReviewRequestStatus.Pending,
+                Status = ScholarshipProviderReviewRequestStatus.Pending,
                 ReviewFeeUsdSnapshot = 0m,
                 Currency = currency.ToUpperInvariant(),
                 SubmittedAt = now,
                 PendingExpiresAt = now.AddDays(PendingTtlDays),
             };
 
-            db.CompanyReviewRequests.Add(freeEntity);
+            db.ScholarshipProviderReviewRequests.Add(freeEntity);
             await db.SaveChangesAsync(ct);
 
             logger.LogInformation(
-                "Created FREE CompanyReviewRequest {RequestId} student={Student} scholarship={Scholarship}.",
+                "Created FREE ScholarshipProviderReviewRequest {RequestId} student={Student} scholarship={Scholarship}.",
                 freeEntity.Id, studentId, scholarship.Id);
 
-            return new StartCompanyReviewRequestResult(
+            return new StartScholarshipProviderReviewRequestResult(
                 freeEntity.Id,
                 IsFree: true,
                 PaymentId: null,
@@ -216,8 +216,8 @@ public sealed class StartCompanyReviewRequestCommandHandler(
         }
 
         // ── Create Stripe PaymentIntent in MANUAL-capture mode ──────────────
-        // CompanyReview is authorize-then-capture-on-accept (spec PART 4).
-        // Note: the generic CreatePaymentIntentCommand defaults CompanyReview
+        // ScholarshipProviderReview is authorize-then-capture-on-accept (spec PART 4).
+        // Note: the generic CreatePaymentIntentCommand defaults ScholarshipProviderReview
         // to "automatic" capture for the legacy single-shot review fee. The
         // PB-005 paid-support flow ALWAYS holds first, so we call Stripe
         // directly with the manual capture method and create the Payment row
@@ -226,7 +226,7 @@ public sealed class StartCompanyReviewRequestCommandHandler(
         var idempotencyKey = $"crr-start:{studentId:N}:{request.ScholarshipId:N}";
 
         var split = await FinancialRuleResolver
-            .ResolvePaymentSplitAsync(db, PaymentType.CompanyReview, amountCents, ct);
+            .ResolvePaymentSplitAsync(db, PaymentType.ScholarshipProviderReview, amountCents, ct);
 
         var stripeResult = await stripe.CreatePaymentIntentAsync(
             amountCents: amountCents,
@@ -255,7 +255,7 @@ public sealed class StartCompanyReviewRequestCommandHandler(
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
-            Type = PaymentType.CompanyReview,
+            Type = PaymentType.ScholarshipProviderReview,
             Status = PaymentStatus.Pending,
             AmountCents = amountCents,
             Currency = currency.ToUpperInvariant(),
@@ -270,15 +270,15 @@ public sealed class StartCompanyReviewRequestCommandHandler(
             RelatedApplicationId = request.ApplicationTrackerId,
         };
 
-        var entity = new CompanyReviewRequest
+        var entity = new ScholarshipProviderReviewRequest
         {
             Id = requestId,
             StudentId = studentId,
-            CompanyId = companyId,
+            ScholarshipProviderId = companyId,
             ScholarshipId = scholarship.Id,
             ApplicationTrackerId = request.ApplicationTrackerId,
             PaymentId = payment.Id,
-            Status = CompanyReviewRequestStatus.Submitted,
+            Status = ScholarshipProviderReviewRequestStatus.Submitted,
             ReviewFeeUsdSnapshot = fee,
             Currency = currency.ToUpperInvariant(),
             SubmittedAt = DateTimeOffset.UtcNow,
@@ -288,14 +288,14 @@ public sealed class StartCompanyReviewRequestCommandHandler(
         };
 
         db.Payments.Add(payment);
-        db.CompanyReviewRequests.Add(entity);
+        db.ScholarshipProviderReviewRequests.Add(entity);
         await db.SaveChangesAsync(ct);
 
         logger.LogInformation(
-            "Created CompanyReviewRequest {RequestId} payment={PaymentId} amount={Amount}c intent={Intent}",
+            "Created ScholarshipProviderReviewRequest {RequestId} payment={PaymentId} amount={Amount}c intent={Intent}",
             entity.Id, payment.Id, payment.AmountCents, stripeResult.Id);
 
-        return new StartCompanyReviewRequestResult(
+        return new StartScholarshipProviderReviewRequestResult(
             entity.Id,
             IsFree: false,
             payment.Id,

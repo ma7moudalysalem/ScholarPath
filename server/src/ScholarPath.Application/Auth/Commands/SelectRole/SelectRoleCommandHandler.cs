@@ -26,14 +26,14 @@ public sealed class SelectRoleCommandHandler(
     // upload at least this many supporting verification documents (Category =
     // OnboardingDocument) before they reach the admin queue. The SRS lists the
     // document keys that should be covered:
-    //   Company   → CompanyLegalRegistration, CompanyRepresentativeProof,
-    //               CompanyTaxCertificate (when tax-registered)
+    //   ScholarshipProvider   → ScholarshipProviderLegalRegistration, ScholarshipProviderRepresentativeProof,
+    //               ScholarshipProviderTaxCertificate (when tax-registered)
     //   Consultant→ ConsultantIdentityProof, ConsultantDegreeCertificate,
     //               ConsultantCvResume
     // The wizard is responsible for guiding the user through which documents to
     // upload; the backend enforces a defensive minimum count so an admin never
     // sees an empty queue entry.
-    private const int CompanyMinDocs = 2;
+    private const int ScholarshipProviderMinDocs = 2;
     private const int ConsultantMinDocs = 3;
 
     public async Task<AuthTokensDto> Handle(SelectRoleCommand request, CancellationToken ct)
@@ -69,7 +69,7 @@ public sealed class SelectRoleCommandHandler(
                             && d.Category == DocumentCategory.OnboardingDocument)
                 .CountAsync(ct).ConfigureAwait(false);
 
-            var requiredDocs = request.Role == "Company" ? CompanyMinDocs : ConsultantMinDocs;
+            var requiredDocs = request.Role == "ScholarshipProvider" ? ScholarshipProviderMinDocs : ConsultantMinDocs;
             if (onboardingDocCount < requiredDocs)
             {
                 var missing = requiredDocs - onboardingDocCount;
@@ -78,7 +78,7 @@ public sealed class SelectRoleCommandHandler(
                     + $"{missing} more required.");
             }
 
-            // Company / Consultant must be vetted — park them in the onboarding queue.
+            // ScholarshipProvider / Consultant must be vetted — park them in the onboarding queue.
             // ActiveRole carries the requested role (the queue surfaces it); the Identity
             // role itself is granted by ReviewOnboardingCommandHandler on approval.
             user.ActiveRole = request.Role;
@@ -102,14 +102,14 @@ public sealed class SelectRoleCommandHandler(
                     user.Profile = newProfile;
                 }
 
-                if (request.Role == "Company")
+                if (request.Role == "ScholarshipProvider")
                 {
                     user.Profile.OrganizationLegalName = details.OrganizationLegalName;
                     user.Profile.OrganizationWebsite = details.OrganizationWebsite;
                     user.Profile.OrganizationEmail = details.OrganizationEmail;
                     user.Profile.OrganizationCountry = details.OrganizationCountry;
-                    user.Profile.CompanyType = details.CompanyType;
-                    user.Profile.CompanyDescription = details.CompanyDescription;
+                    user.Profile.ScholarshipProviderType = details.ScholarshipProviderType;
+                    user.Profile.ScholarshipProviderDescription = details.ScholarshipProviderDescription;
                     user.Profile.OrganizationRegistrationNumber = details.OrganizationRegistrationNumber;
                     user.Profile.OrganizationTaxNumber = details.OrganizationTaxNumber;
                     user.Profile.ContactPersonFullName = details.ContactPersonFullName;
@@ -173,7 +173,7 @@ public sealed class SelectRoleCommandHandler(
 
         await db.SaveChangesAsync(ct);
 
-        // Company/Consultant just landed in the onboarding queue — let the admins
+        // ScholarshipProvider/Consultant just landed in the onboarding queue — let the admins
         // know there's something to review. Best-effort: never break role selection.
         if (user.AccountStatus == AccountStatus.PendingApproval)
         {

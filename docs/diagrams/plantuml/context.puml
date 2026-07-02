@@ -1,0 +1,33 @@
+' =====================================================================
+'  ScholarPath — Subject-area context (clean hub view)
+'  Everything radiates from USERS. Areas listed in report order (§4–§9).
+' =====================================================================
+@startuml ScholarPath_Context
+title ScholarPath — subject-area context
+skinparam linetype ortho
+skinparam shadowing false
+skinparam rectangle {
+  BackgroundColor #F7F8FC
+  BorderColor #4B5563
+  roundCorner 10
+  FontSize 13
+}
+left to right direction
+
+rectangle "USERS\n(Student / Company / Consultant / Admin)" as U #D6E4FF
+
+rectangle "§4  Identity & Profile\nUserProfile, Education, RefreshToken, UpgradeRequest" as S4
+rectangle "§5  Scholarships, Applications & Documents\nScholarship, Application, Document, CompanyReview" as S5
+rectangle "§6  Booking, Payments & Ratings\nAvailability, Booking, Payment, Payout, ConsultantReview, Recording" as S6
+rectangle "§7  Community & Chat\nForumPost, Vote, Flag, Tag, Conversation, Message" as S7
+rectangle "§8  Resources & Notifications\nResource, Chapter, Progress, Notification, Preference" as S8
+rectangle "§9  AI, Knowledge & Platform\nAiInteraction, KnowledgeDoc, AuditLog, Setting, RiskFlag" as S9
+
+U --- S4
+U --- S5
+U --- S6
+U --- S7
+U --- S8
+U --- S9
+S5 ..> S6 : paid review
+@enduml

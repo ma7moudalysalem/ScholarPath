@@ -8,12 +8,12 @@ using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
-namespace ScholarPath.Application.Admin.Commands.ClearCompanyLowRatingFlag;
+namespace ScholarPath.Application.Admin.Commands.ClearScholarshipProviderLowRatingFlag;
 
 /// <summary>
 /// Admin's "reviewed, no further action" exit from the low-rated companies
-/// queue. Clears <c>UserProfile.CompanyLowRatingFlaggedAt</c> back to null so
-/// the row disappears from <c>GetLowRatedCompaniesQuery</c>. The Company's
+/// queue. Clears <c>UserProfile.ScholarshipProviderLowRatingFlaggedAt</c> back to null so
+/// the row disappears from <c>GetLowRatedCompaniesQuery</c>. The ScholarshipProvider's
 /// rating snapshot (average + count) is left untouched — only the flag is
 /// cleared. Distinct from suspension, which uses the existing
 /// <c>SetUserStatusCommand</c>.
@@ -21,28 +21,28 @@ namespace ScholarPath.Application.Admin.Commands.ClearCompanyLowRatingFlag;
 /// Idempotent: returns false if the company isn't currently flagged.
 /// </summary>
 [Auditable(AuditAction.Update, "UserProfile",
-    TargetIdProperty = nameof(CompanyId),
-    SummaryTemplate = "Admin cleared low-rating flag on company {CompanyId}")]
-public sealed record ClearCompanyLowRatingFlagCommand(Guid CompanyId)
+    TargetIdProperty = nameof(ScholarshipProviderId),
+    SummaryTemplate = "Admin cleared low-rating flag on company {ScholarshipProviderId}")]
+public sealed record ClearScholarshipProviderLowRatingFlagCommand(Guid ScholarshipProviderId)
     : IRequest<bool>;
 
-public sealed class ClearCompanyLowRatingFlagCommandValidator
-    : AbstractValidator<ClearCompanyLowRatingFlagCommand>
+public sealed class ClearScholarshipProviderLowRatingFlagCommandValidator
+    : AbstractValidator<ClearScholarshipProviderLowRatingFlagCommand>
 {
-    public ClearCompanyLowRatingFlagCommandValidator()
+    public ClearScholarshipProviderLowRatingFlagCommandValidator()
     {
-        RuleFor(x => x.CompanyId).NotEmpty();
+        RuleFor(x => x.ScholarshipProviderId).NotEmpty();
     }
 }
 
-public sealed class ClearCompanyLowRatingFlagCommandHandler(
+public sealed class ClearScholarshipProviderLowRatingFlagCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
-    ILogger<ClearCompanyLowRatingFlagCommandHandler> logger)
-    : IRequestHandler<ClearCompanyLowRatingFlagCommand, bool>
+    ILogger<ClearScholarshipProviderLowRatingFlagCommandHandler> logger)
+    : IRequestHandler<ClearScholarshipProviderLowRatingFlagCommand, bool>
 {
     public async Task<bool> Handle(
-        ClearCompanyLowRatingFlagCommand command, CancellationToken ct)
+        ClearScholarshipProviderLowRatingFlagCommand command, CancellationToken ct)
     {
         if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
         {
@@ -51,21 +51,21 @@ public sealed class ClearCompanyLowRatingFlagCommandHandler(
         }
 
         var profile = await db.UserProfiles
-            .FirstOrDefaultAsync(p => p.UserId == command.CompanyId, ct)
-            ?? throw new NotFoundException(nameof(Domain.Entities.UserProfile), command.CompanyId);
+            .FirstOrDefaultAsync(p => p.UserId == command.ScholarshipProviderId, ct)
+            ?? throw new NotFoundException(nameof(Domain.Entities.UserProfile), command.ScholarshipProviderId);
 
-        if (profile.CompanyLowRatingFlaggedAt is null)
+        if (profile.ScholarshipProviderLowRatingFlaggedAt is null)
         {
             // Already cleared — idempotent.
             return false;
         }
 
-        profile.CompanyLowRatingFlaggedAt = null;
+        profile.ScholarshipProviderLowRatingFlaggedAt = null;
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         logger.LogInformation(
-            "Admin {AdminId} cleared low-rating flag on company {CompanyId}.",
-            currentUser.UserId, command.CompanyId);
+            "Admin {AdminId} cleared low-rating flag on company {ScholarshipProviderId}.",
+            currentUser.UserId, command.ScholarshipProviderId);
 
         return true;
     }

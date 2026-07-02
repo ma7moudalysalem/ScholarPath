@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="888" height="697" viewBox="0 0 888 697" font-family="Times New Roman,serif">
+<rect width="100%" height="100%" fill="white"/>
+<path d="M 251.9 172.0 V 180.0 H 14.0 V 51.7 H 179.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="180.0,51.7 172.0,47.7 172.0,55.7" fill="black"/>
+<path d="M 342.3 172.0 V 187.0 H 26.0 V 54.3 H 179.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="180.0,54.3 172.0,50.3 172.0,58.3" fill="black"/>
+<path d="M 450.0 172.0 V 194.0 H 38.0 V 259.0 H 179.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="180.0,259.0 172.0,255.0 172.0,263.0" fill="black"/>
+<path d="M 547.4 172.0 V 201.0 H 50.0 V 358.0 H 179.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="180.0,358.0 172.0,354.0 172.0,362.0" fill="black"/>
+<path d="M 262.2 271.0 V 279.0 H 62.0 V 57.0 H 179.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="180.0,57.0 172.0,53.0 172.0,61.0" fill="black"/>
+<path d="M 258.8 370.0 V 378.0 H 74.0 V 59.7 H 179.0" fill="none" stroke="black" stroke-width="1.1" stroke-dasharray="5,3"/>
+<polygon points="180.0,59.7 172.0,55.7 172.0,63.7" fill="black"/>
+<path d="M 352.7 370.0 V 385.0 H 86.0 V 62.3 H 179.0" fill="none" stroke="black" stroke-width="1.1" stroke-dasharray="5,3"/>
+<polygon points="180.0,62.3 172.0,58.3 172.0,66.3" fill="black"/>
+<path d="M 436.2 370.0 V 392.0 H 98.0 V 457.0 H 179.0" fill="none" stroke="black" stroke-width="1.1" stroke-dasharray="5,3"/>
+<polygon points="180.0,457.0 172.0,453.0 172.0,461.0" fill="black"/>
+<path d="M 258.8 469.0 V 477.0 H 110.0 V 65.0 H 179.0" fill="none" stroke="black" stroke-width="1.1" stroke-dasharray="5,3"/>
+<polygon points="180.0,65.0 172.0,61.0 172.0,69.0" fill="black"/>
+<path d="M 251.9 568.0 V 576.0 H 122.0 V 156.0 H 179.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="180.0,156.0 172.0,152.0 172.0,160.0" fill="black"/>
+<path d="M 331.9 568.0 V 583.0 H 134.0 V 67.7 H 179.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="180.0,67.7 172.0,63.7 172.0,71.7" fill="black"/>
+<path d="M 422.4 568.0 V 590.0 H 146.0 V 70.3 H 179.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="180.0,70.3 172.0,66.3 172.0,74.3" fill="black"/>
+<path d="M 251.9 667.0 V 675.0 H 158.0 V 164.0 H 179.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="180.0,164.0 172.0,160.0 172.0,168.0" fill="black"/>
+<rect x="180.0" y="26.0" width="31.8" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="195.9" y="42.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">Users</text>
+<rect x="180.0" y="49.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="195.9" y="66.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="180.0" y="125.0" width="668.4" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="514.2" y="141.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">Bookings</text>
+<rect x="180.0" y="148.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="195.9" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="211.8" y="148.0" width="80.1" height="24" fill="#fff7e6" stroke="black"/>
+<text x="251.9" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">StudentId</text>
+<rect x="291.9" y="148.0" width="100.8" height="24" fill="#fff7e6" stroke="black"/>
+<text x="342.3" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">ConsultantId</text>
+<rect x="392.7" y="148.0" width="114.6" height="24" fill="#fff7e6" stroke="black"/>
+<text x="450.0" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">AvailabilityId</text>
+<rect x="507.3" y="148.0" width="80.1" height="24" fill="#fff7e6" stroke="black"/>
+<text x="547.4" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">PaymentId</text>
+<rect x="587.4" y="148.0" width="128.4" height="24" fill="white" stroke="black"/>
+<text x="651.6" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">ScheduledStartAt</text>
+<rect x="715.8" y="148.0" width="73.2" height="24" fill="white" stroke="black"/>
+<text x="752.4" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">PriceUsd</text>
+<rect x="789.0" y="148.0" width="59.4" height="24" fill="white" stroke="black"/>
+<text x="818.7" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Status</text>
+<rect x="180.0" y="224.0" width="299.7" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="329.9" y="240.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">Availabilities</text>
+<rect x="180.0" y="247.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="195.9" y="264.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="211.8" y="247.0" width="100.8" height="24" fill="#fff7e6" stroke="black"/>
+<text x="262.2" y="264.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">ConsultantId</text>
+<rect x="312.6" y="247.0" width="93.9" height="24" fill="white" stroke="black"/>
+<text x="359.6" y="264.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">IsRecurring</text>
+<rect x="406.5" y="247.0" width="73.2" height="24" fill="white" stroke="black"/>
+<text x="443.1" y="264.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">IsActive</text>
+<rect x="180.0" y="323.0" width="606.3" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="483.2" y="339.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">Payments</text>
+<rect x="180.0" y="346.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="195.9" y="363.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="211.8" y="346.0" width="93.9" height="24" fill="#fff7e6" stroke="black"/>
+<text x="258.8" y="363.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">PayerUserId</text>
+<rect x="305.7" y="346.0" width="93.9" height="24" fill="#fff7e6" stroke="black"/>
+<text x="352.7" y="363.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">PayeeUserId</text>
+<rect x="399.6" y="346.0" width="73.2" height="24" fill="#fff7e6" stroke="black"/>
+<text x="436.2" y="363.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">PayoutId</text>
+<rect x="472.8" y="346.0" width="45.6" height="24" fill="white" stroke="black"/>
+<text x="495.6" y="363.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Type</text>
+<rect x="518.4" y="346.0" width="59.4" height="24" fill="white" stroke="black"/>
+<text x="548.1" y="363.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Status</text>
+<rect x="577.8" y="346.0" width="93.9" height="24" fill="white" stroke="black"/>
+<text x="624.8" y="363.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">AmountCents</text>
+<rect x="671.7" y="346.0" width="114.6" height="24" fill="white" stroke="black"/>
+<text x="729.0" y="363.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">IdempotencyKey</text>
+<rect x="180.0" y="422.0" width="279.0" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="319.5" y="438.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">Payouts</text>
+<rect x="180.0" y="445.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="195.9" y="462.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="211.8" y="445.0" width="93.9" height="24" fill="#fff7e6" stroke="black"/>
+<text x="258.8" y="462.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">PayeeUserId</text>
+<rect x="305.7" y="445.0" width="93.9" height="24" fill="white" stroke="black"/>
+<text x="352.7" y="462.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">AmountCents</text>
+<rect x="399.6" y="445.0" width="59.4" height="24" fill="white" stroke="black"/>
+<text x="429.3" y="462.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Status</text>
+<rect x="180.0" y="521.0" width="352.2" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="356.1" y="537.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">ConsultantReviews</text>
+<rect x="180.0" y="544.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="195.9" y="561.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="211.8" y="544.0" width="80.1" height="24" fill="#fff7e6" stroke="black"/>
+<text x="251.9" y="561.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">BookingId</text>
+<rect x="291.9" y="544.0" width="80.1" height="24" fill="#fff7e6" stroke="black"/>
+<text x="331.9" y="561.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">StudentId</text>
+<rect x="372.0" y="544.0" width="100.8" height="24" fill="#fff7e6" stroke="black"/>
+<text x="422.4" y="561.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">ConsultantId</text>
+<rect x="472.8" y="544.0" width="59.4" height="24" fill="white" stroke="black"/>
+<text x="502.5" y="561.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Rating</text>
+<rect x="180.0" y="620.0" width="299.7" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="329.9" y="636.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">SessionRecordings</text>
+<rect x="180.0" y="643.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="195.9" y="660.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="211.8" y="643.0" width="80.1" height="24" fill="#fff7e6" stroke="black"/>
+<text x="251.9" y="660.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">BookingId</text>
+<rect x="291.9" y="643.0" width="93.9" height="24" fill="white" stroke="black"/>
+<text x="338.8" y="660.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">RecordingId</text>
+<rect x="385.8" y="643.0" width="93.9" height="24" fill="white" stroke="black"/>
+<text x="432.7" y="660.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">StoragePath</text>
+</svg>

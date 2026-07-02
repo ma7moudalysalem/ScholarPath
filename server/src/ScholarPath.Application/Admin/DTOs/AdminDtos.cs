@@ -39,13 +39,13 @@ public sealed record OnboardingRequestRow(
     AccountStatus AccountStatus,
     DateTimeOffset CreatedAt,
     string? RequestedRole,
-    // ── Company profile snapshot ────────────────────────────────────────────
+    // ── ScholarshipProvider profile snapshot ────────────────────────────────────────────
     string? OrganizationLegalName,
     string? OrganizationWebsite,
     string? OrganizationEmail,
     string? OrganizationCountry,
-    string? CompanyType,
-    string? CompanyDescription,
+    string? ScholarshipProviderType,
+    string? ScholarshipProviderDescription,
     string? OrganizationRegistrationNumber,
     string? OrganizationTaxNumber,
     string? ContactPersonFullName,

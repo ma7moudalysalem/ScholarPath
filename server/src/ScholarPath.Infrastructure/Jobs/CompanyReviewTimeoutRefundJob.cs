@@ -9,7 +9,7 @@ using ScholarPath.Infrastructure.Persistence;
 
 namespace ScholarPath.Infrastructure.Jobs;
 
-public interface ICompanyReviewTimeoutRefundJob
+public interface IScholarshipProviderReviewTimeoutRefundJob
 {
     Task RunAsync(CancellationToken ct);
 }
@@ -24,11 +24,11 @@ public interface ICompanyReviewTimeoutRefundJob
 ///   <item>Captured — issue a full Stripe Refund.</item>
 /// </list>
 /// </summary>
-public sealed class CompanyReviewTimeoutRefundJob(
+public sealed class ScholarshipProviderReviewTimeoutRefundJob(
     ApplicationDbContext db,
     IStripeService stripeService,
     INotificationDispatcher notifications,
-    ILogger<CompanyReviewTimeoutRefundJob> logger) : ICompanyReviewTimeoutRefundJob
+    ILogger<ScholarshipProviderReviewTimeoutRefundJob> logger) : IScholarshipProviderReviewTimeoutRefundJob
 {
     public async Task RunAsync(CancellationToken ct)
     {
@@ -55,7 +55,7 @@ public sealed class CompanyReviewTimeoutRefundJob(
         {
             var payment = await db.Payments
                 .FirstOrDefaultAsync(p =>
-                    p.Type == PaymentType.CompanyReview
+                    p.Type == PaymentType.ScholarshipProviderReview
                     && p.RelatedApplicationId == app.Id
                     && (p.Status == PaymentStatus.Held
                         || p.Status == PaymentStatus.Pending
@@ -79,7 +79,7 @@ public sealed class CompanyReviewTimeoutRefundJob(
                     payment.RefundedAmountCents = 0;
                     payment.ProfitShareAmountCents = 0;
                     payment.PayeeAmountCents = 0;
-                    payment.RefundReason = "Company failed to review within 14 days after deadline";
+                    payment.RefundReason = "ScholarshipProvider failed to review within 14 days after deadline";
                 }
                 else
                 {
@@ -104,7 +104,7 @@ public sealed class CompanyReviewTimeoutRefundJob(
 
                     payment.RefundedAmountCents += refundResult.AmountCents;
                     payment.RefundedAt = now;
-                    payment.RefundReason = "Company failed to review within 14 days after deadline";
+                    payment.RefundReason = "ScholarshipProvider failed to review within 14 days after deadline";
                     payment.Status = payment.RefundedAmountCents >= payment.AmountCents
                         ? PaymentStatus.Refunded
                         : PaymentStatus.PartiallyRefunded;
@@ -117,7 +117,7 @@ public sealed class CompanyReviewTimeoutRefundJob(
 
                 await notifications.DispatchAsync(
                     app.StudentId,
-                    NotificationType.CompanyReviewRefunded,
+                    NotificationType.ScholarshipProviderReviewRefunded,
                     new NotificationParams { RefundKind = "Timeout" },
                     deepLink: null,
                     idempotencyKey: $"company-review-timeout-refund-notice:{payment.Id:N}",
@@ -135,7 +135,7 @@ public sealed class CompanyReviewTimeoutRefundJob(
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         logger.LogInformation(
-            "CompanyReviewTimeoutRefundJob — scanned {Scanned} expired applications, refunded {Refunded}.",
+            "ScholarshipProviderReviewTimeoutRefundJob — scanned {Scanned} expired applications, refunded {Refunded}.",
             expiredApplications.Count, refunded);
     }
 }

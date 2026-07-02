@@ -2,35 +2,35 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviewRequests.Common;
-using ScholarPath.Application.CompanyReviewRequests.DTOs;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Common;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.DTOs;
 using ScholarPath.Domain.Interfaces;
 
-namespace ScholarPath.Application.CompanyReviewRequests.Queries.GetById;
+namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Queries.GetById;
 
-public sealed record GetCompanyReviewRequestByIdQuery(Guid Id)
-    : IRequest<CompanyReviewRequestDto>;
+public sealed record GetScholarshipProviderReviewRequestByIdQuery(Guid Id)
+    : IRequest<ScholarshipProviderReviewRequestDto>;
 
-public sealed class GetCompanyReviewRequestByIdQueryHandler(
+public sealed class GetScholarshipProviderReviewRequestByIdQueryHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser)
-    : IRequestHandler<GetCompanyReviewRequestByIdQuery, CompanyReviewRequestDto>
+    : IRequestHandler<GetScholarshipProviderReviewRequestByIdQuery, ScholarshipProviderReviewRequestDto>
 {
-    public async Task<CompanyReviewRequestDto> Handle(
-        GetCompanyReviewRequestByIdQuery request, CancellationToken ct)
+    public async Task<ScholarshipProviderReviewRequestDto> Handle(
+        GetScholarshipProviderReviewRequestByIdQuery request, CancellationToken ct)
     {
-        var dto = await db.CompanyReviewRequests
+        var dto = await db.ScholarshipProviderReviewRequests
             .AsNoTracking()
             .Where(r => r.Id == request.Id)
-            .Select(CompanyReviewRequestMapper.Projection)
+            .Select(ScholarshipProviderReviewRequestMapper.Projection)
             .FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException(nameof(Domain.Entities.CompanyReviewRequest), request.Id);
+            ?? throw new NotFoundException(nameof(Domain.Entities.ScholarshipProviderReviewRequest), request.Id);
 
         // Authorization — the participants and admins are the only legitimate
-        // readers. A Company seeing another Company's payment numbers would be
+        // readers. A ScholarshipProvider seeing another ScholarshipProvider's payment numbers would be
         // a confidentiality break.
         if (currentUser.UserId != dto.StudentId
-            && currentUser.UserId != dto.CompanyId
+            && currentUser.UserId != dto.ScholarshipProviderId
             && !currentUser.IsInRole("Admin"))
         {
             throw new ForbiddenAccessException();

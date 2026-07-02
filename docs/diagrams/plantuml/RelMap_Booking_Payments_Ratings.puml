@@ -1,0 +1,26 @@
+@startdot
+digraph G {
+  rankdir=BT; splines=polyline; nodesep=0.7; ranksep=1.1;
+  node [shape=plaintext];
+  Users [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="1" BGCOLOR="#dbe6ff"><B>Users</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD></TR></TABLE>>];
+  Availabilities [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>Availabilities</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ConsultantId" BGCOLOR="#fff7e6">ConsultantId</TD><TD PORT="IsRecurring">IsRecurring</TD><TD PORT="IsActive">IsActive</TD></TR></TABLE>>];
+  Bookings [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="8" BGCOLOR="#dbe6ff"><B>Bookings</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="StudentId" BGCOLOR="#fff7e6">StudentId</TD><TD PORT="ConsultantId" BGCOLOR="#fff7e6">ConsultantId</TD><TD PORT="AvailabilityId" BGCOLOR="#fff7e6">AvailabilityId</TD><TD PORT="PaymentId" BGCOLOR="#fff7e6">PaymentId</TD><TD PORT="ScheduledStartAt">ScheduledStartAt</TD><TD PORT="PriceUsd">PriceUsd</TD><TD PORT="Status">Status</TD></TR></TABLE>>];
+  Payments [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="8" BGCOLOR="#dbe6ff"><B>Payments</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="PayerUserId" BGCOLOR="#fff7e6">PayerUserId</TD><TD PORT="PayeeUserId" BGCOLOR="#fff7e6">PayeeUserId</TD><TD PORT="PayoutId" BGCOLOR="#fff7e6">PayoutId</TD><TD PORT="Type">Type</TD><TD PORT="Status">Status</TD><TD PORT="AmountCents">AmountCents</TD><TD PORT="IdempotencyKey">IdempotencyKey</TD></TR></TABLE>>];
+  Payouts [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>Payouts</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="PayeeUserId" BGCOLOR="#fff7e6">PayeeUserId</TD><TD PORT="AmountCents">AmountCents</TD><TD PORT="Status">Status</TD></TR></TABLE>>];
+  ConsultantReviews [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="5" BGCOLOR="#dbe6ff"><B>ConsultantReviews</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="BookingId" BGCOLOR="#fff7e6">BookingId</TD><TD PORT="StudentId" BGCOLOR="#fff7e6">StudentId</TD><TD PORT="ConsultantId" BGCOLOR="#fff7e6">ConsultantId</TD><TD PORT="Rating">Rating</TD></TR></TABLE>>];
+  SessionRecordings [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>SessionRecordings</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="BookingId" BGCOLOR="#fff7e6">BookingId</TD><TD PORT="RecordingId">RecordingId</TD><TD PORT="StoragePath">StoragePath</TD></TR></TABLE>>];
+  Availabilities:ConsultantId -> Users:Id;
+  Bookings:StudentId -> Users:Id;
+  Bookings:ConsultantId -> Users:Id;
+  Bookings:AvailabilityId -> Availabilities:Id;
+  Bookings:PaymentId -> Payments:Id;
+  Payments:PayerUserId -> Users:Id [style=dashed];
+  Payments:PayeeUserId -> Users:Id [style=dashed];
+  Payments:PayoutId -> Payouts:Id [style=dashed];
+  Payouts:PayeeUserId -> Users:Id [style=dashed];
+  ConsultantReviews:BookingId -> Bookings:Id;
+  ConsultantReviews:StudentId -> Users:Id;
+  ConsultantReviews:ConsultantId -> Users:Id;
+  SessionRecordings:BookingId -> Bookings:Id;
+}
+@enddot

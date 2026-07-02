@@ -41,7 +41,7 @@ public sealed class GetMyScholarshipsQueryHandler(
 
         return await db.Scholarships
             .AsNoTracking()
-            .Where(s => s.OwnerCompanyId == companyId && !s.IsDeleted)
+            .Where(s => s.OwnerScholarshipProviderId == companyId && !s.IsDeleted)
             .OrderByDescending(s => s.CreatedAt)
             .Select(s => new MyScholarshipDto(
                 s.Id,

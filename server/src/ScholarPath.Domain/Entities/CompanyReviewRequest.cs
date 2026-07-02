@@ -5,22 +5,22 @@ namespace ScholarPath.Domain.Entities;
 
 /// <summary>
 /// A paid application-support / document-review request raised by a Student
-/// against a Company-owned scholarship (PB-005 "Apply Now" flow).
+/// against a ScholarshipProvider-owned scholarship (PB-005 "Apply Now" flow).
 ///
 /// Pairs 1:1 with a <see cref="Payment"/> row of type
-/// <see cref="PaymentType.CompanyReview"/>: the request drives the lifecycle
+/// <see cref="PaymentType.ScholarshipProviderReview"/>: the request drives the lifecycle
 /// (Draft → Submitted → Pending → UnderReview → Completed → Closed plus the
 /// cancel / reject / expire branches), the Payment row carries the money.
 ///
 /// The <see cref="ReviewFeeUsdSnapshot"/> column is a point-in-time copy of
-/// <see cref="Scholarship.ReviewFeeUsd"/> taken at submission. If the Company
+/// <see cref="Scholarship.ReviewFeeUsd"/> taken at submission. If the ScholarshipProvider
 /// later edits the scholarship's review fee, in-flight requests still settle
 /// at the price the Student saw and authorised.
 /// </summary>
-public class CompanyReviewRequest : AuditableEntity, ISoftDeletable
+public class ScholarshipProviderReviewRequest : AuditableEntity, ISoftDeletable
 {
     public Guid StudentId { get; set; }
-    public Guid CompanyId { get; set; }
+    public Guid ScholarshipProviderId { get; set; }
     public Guid ScholarshipId { get; set; }
 
     /// <summary>
@@ -34,12 +34,12 @@ public class CompanyReviewRequest : AuditableEntity, ISoftDeletable
     /// <summary>
     /// FK to the underlying <see cref="Payment"/> row. Null only in the brief
     /// window between Draft and Submitted (no payment intent has been created
-    /// yet); always set once <see cref="CompanyReviewRequestStatus.Submitted"/>.
+    /// yet); always set once <see cref="ScholarshipProviderReviewRequestStatus.Submitted"/>.
     /// </summary>
     public Guid? PaymentId { get; set; }
 
-    public CompanyReviewRequestStatus Status { get; set; }
-        = CompanyReviewRequestStatus.Draft;
+    public ScholarshipProviderReviewRequestStatus Status { get; set; }
+        = ScholarshipProviderReviewRequestStatus.Draft;
 
     /// <summary>Snapshot of <see cref="Scholarship.ReviewFeeUsd"/> at submission time.</summary>
     public decimal ReviewFeeUsdSnapshot { get; set; }
@@ -69,7 +69,7 @@ public class CompanyReviewRequest : AuditableEntity, ISoftDeletable
     public Guid? DeletedByUserId { get; set; }
 
     public ApplicationUser? Student { get; set; }
-    public ApplicationUser? Company { get; set; }
+    public ApplicationUser? ScholarshipProvider { get; set; }
     public Scholarship? Scholarship { get; set; }
     public Payment? Payment { get; set; }
 }

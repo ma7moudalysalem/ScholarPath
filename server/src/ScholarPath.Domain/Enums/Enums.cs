@@ -11,7 +11,7 @@ public enum AccountStatus
 
 public enum UpgradeTarget
 {
-    Company = 1,
+    ScholarshipProvider = 1,
     Consultant = 2,
 }
 
@@ -94,28 +94,28 @@ public enum BookingStatus
 public enum PaymentType
 {
     ConsultantBooking = 0,
-    CompanyReview = 1,
+    ScholarshipProviderReview = 1,
 }
 
 /// <summary>
 /// Lifecycle of a paid application-support / document-review request raised by a
-/// Student against a Company-owned scholarship (PB-005 "Apply Now" flow). The
+/// Student against a ScholarshipProvider-owned scholarship (PB-005 "Apply Now" flow). The
 /// state machine is intentionally distinct from <see cref="ApplicationStatus"/>
-/// — an Application is the catalog-tracking entity, a CompanyReviewRequest is
-/// the paid engagement with its associated <see cref="PaymentType.CompanyReview"/>
+/// — an Application is the catalog-tracking entity, a ScholarshipProviderReviewRequest is
+/// the paid engagement with its associated <see cref="PaymentType.ScholarshipProviderReview"/>
 /// payment row.
 ///
 /// Allowed transitions:
 ///   Draft        → Submitted
 ///   Submitted    → Pending | Cancelled | Failed
-///   Pending      → UnderReview | CancelledByStudent | RejectedByCompany | Expired
+///   Pending      → UnderReview | CancelledByStudent | RejectedByScholarshipProvider | Expired
 ///   UnderReview  → Completed | CancelledByStudent
 ///   Completed    → Closed
 ///
-/// Explicitly NOT modelled here: Disputed and CompanyFailure refund cases — the
+/// Explicitly NOT modelled here: Disputed and ScholarshipProviderFailure refund cases — the
 /// platform does not support those for this flow.
 /// </summary>
-public enum CompanyReviewRequestStatus
+public enum ScholarshipProviderReviewRequestStatus
 {
     Draft = 0,
     Submitted = 1,
@@ -126,7 +126,7 @@ public enum CompanyReviewRequestStatus
     Cancelled = 6,
     Failed = 7,
     CancelledByStudent = 8,
-    RejectedByCompany = 9,
+    RejectedByScholarshipProvider = 9,
     Expired = 10,
 }
 
@@ -189,21 +189,21 @@ public enum NotificationType
     ApplicationWithdrawn = 103,
     ApplicationDraftReminder = 104,
 
-    // Company review + payment (PB-005)
-    CompanyRatingReceived = 110,
-    CompanyReviewPaymentSuccess = 111,
-    CompanyReviewRefunded = 112,
+    // ScholarshipProvider review + payment (PB-005)
+    ScholarshipProviderRatingReceived = 110,
+    ScholarshipProviderReviewPaymentSuccess = 111,
+    ScholarshipProviderReviewRefunded = 112,
 
-    // Company review REQUEST lifecycle (PB-005 Apply Now → paid support flow).
+    // ScholarshipProvider review REQUEST lifecycle (PB-005 Apply Now → paid support flow).
     // Each event carries the financial breakdown (held / captured / refunded,
     // platform commission, company share) via NotificationParams so both
     // in-app and email channels render the same numbers.
-    CompanyReviewRequestPaymentHeld = 113,
-    CompanyReviewRequestPaymentCaptured = 114,
-    CompanyReviewRequestPaymentHoldCancelled = 115,
-    CompanyReviewRequestPartiallyRefunded = 116,
-    CompanyReviewRequestCompleted = 117,
-    CompanyReviewRequestIncoming = 118,
+    ScholarshipProviderReviewRequestPaymentHeld = 113,
+    ScholarshipProviderReviewRequestPaymentCaptured = 114,
+    ScholarshipProviderReviewRequestPaymentHoldCancelled = 115,
+    ScholarshipProviderReviewRequestPartiallyRefunded = 116,
+    ScholarshipProviderReviewRequestCompleted = 117,
+    ScholarshipProviderReviewRequestIncoming = 118,
 
     // Consultant booking (PB-006)
     BookingRequested = 200,
@@ -231,13 +231,13 @@ public enum NotificationType
     UpgradeRequestApproved = 402,
     UpgradeRequestRejected = 403,
     AdminApprovalRequired = 404,
-    // Admin-inbound: a Company/Consultant applicant has reached the onboarding queue.
+    // Admin-inbound: a ScholarshipProvider/Consultant applicant has reached the onboarding queue.
     OnboardingSubmitted = 405,
     // Admin-inbound: a Student has submitted a consultant upgrade request.
     UpgradeRequestSubmitted = 406,
-    // Admin-inbound: a Company's average rating dropped below the low-rating
+    // Admin-inbound: a ScholarshipProvider's average rating dropped below the low-rating
     // threshold and needs admin review (PB-005R).
-    CompanyLowRatingFlagged = 407,
+    ScholarshipProviderLowRatingFlagged = 407,
 
     // Community (PB-007)
     ReplyOnYourPost = 500,
@@ -420,7 +420,7 @@ public enum DocumentCategory
 
     /// <summary>
     /// A verification document (business registration, professional credential)
-    /// a Company or Consultant uploads to support their onboarding request.
+    /// a ScholarshipProvider or Consultant uploads to support their onboarding request.
     /// </summary>
     OnboardingDocument = 10,
 }

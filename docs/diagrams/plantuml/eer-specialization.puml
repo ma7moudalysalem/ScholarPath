@@ -1,0 +1,84 @@
+@startdot
+' =====================================================================
+'  ScholarPath - USER specialization in Elmasri & Navathe EER notation
+'  (Fundamentals of Database Systems, Fig. 4.1 / 8.4):
+'     rectangle      = entity type
+'     oval           = attribute   (underlined oval = key attribute)
+'     circle 'o'     = OVERLAPPING specialization ('d' would be disjoint)
+'     line to circle = participation of the superclass:
+'                        double line = total, single line = partial
+'     subset symbol on each subclass link = "IS-A" the superclass
+' =====================================================================
+digraph EER {
+  rankdir=TB;
+  bgcolor=white;
+  nodesep=0.28; ranksep=0.55;
+  node [fontname="Times New Roman", fontsize=13, color=black];
+  edge [fontname="Times New Roman", fontsize=12, dir=none, color=black];
+
+  ' ---- USER superclass and its attribute ovals (Id is the key) ----
+  USER [shape=box, style=filled, fillcolor="#dbe6ff"];
+  u_id    [shape=ellipse, label=<<U>Id</U>>];
+  u_email [shape=ellipse, label="Email"];
+  u_acct  [shape=ellipse, label="AccountStatus"];
+  u_role  [shape=ellipse, label="ActiveRole"];
+  { rank=same; u_id; u_email; u_acct; u_role; }
+  u_id -> USER; u_email -> USER; u_acct -> USER; u_role -> USER;
+
+  ' ---- specialization circle: 'o' = overlapping ----
+  ' single line USER--circle  =>  PARTIAL (an Unassigned user has no subclass yet)
+  oc [shape=circle, width=0.42, fixedsize=true, label="o"];
+  USER -> oc;
+
+  ' ---- subclasses; each link carries the subset symbol ----
+  STUDENT    [shape=box, style=filled, fillcolor="#e8f5e9"];
+  COMPANY    [shape=box, style=filled, fillcolor="#e8f5e9"];
+  CONSULTANT [shape=box, style=filled, fillcolor="#e8f5e9"];
+  ADMIN      [shape=box, style=filled, fillcolor="#e8f5e9"];
+  { rank=same; STUDENT; COMPANY; CONSULTANT; ADMIN; }
+  ' subset symbol sits ON each line (the line passes through the glyph),
+  ' as in Elmasri -- not floated beside it like an edge label.
+  isa1 [shape=plaintext, margin=0, label=<&#8834;>, fontsize=16];
+  isa2 [shape=plaintext, margin=0, label=<&#8834;>, fontsize=16];
+  isa3 [shape=plaintext, margin=0, label=<&#8834;>, fontsize=16];
+  isa4 [shape=plaintext, margin=0, label=<&#8834;>, fontsize=16];
+  { rank=same; isa1; isa2; isa3; isa4; }
+  ' headclip/tailclip=false make both segments run to the marker's centre, so
+  ' the line is CONTINUOUS and the subset glyph sits on top of it (not in a gap).
+  oc -> isa1 [headclip=false]; isa1 -> STUDENT    [tailclip=false];
+  oc -> isa2 [headclip=false]; isa2 -> COMPANY    [tailclip=false];
+  oc -> isa3 [headclip=false]; isa3 -> CONSULTANT [tailclip=false];
+  oc -> isa4 [headclip=false]; isa4 -> ADMIN      [tailclip=false];
+
+  ' ---- subclass-specific attribute ovals ----
+  st1 [shape=ellipse, label="AcademicLevel"];
+  st2 [shape=ellipse, label="Gpa"];
+  st3 [shape=ellipse, label="FieldOfStudy"];
+  st4 [shape=ellipse, label="PreferredCountries"];
+  STUDENT -> st1; STUDENT -> st2; STUDENT -> st3; STUDENT -> st4;
+
+  co1 [shape=ellipse, label="OrganizationLegalName"];
+  co2 [shape=ellipse, label="VerificationStatus"];
+  co3 [shape=ellipse, label="CompanyType"];
+  COMPANY -> co1; COMPANY -> co2; COMPANY -> co3;
+
+  cn1 [shape=ellipse, label="SessionFeeUsd"];
+  cn2 [shape=ellipse, label="ExpertiseTags"];
+  cn3 [shape=ellipse, label="Languages"];
+  cn4 [shape=ellipse, label="StripeConnectStatus"];
+  CONSULTANT -> cn1; CONSULTANT -> cn2; CONSULTANT -> cn3; CONSULTANT -> cn4;
+
+  ad1 [shape=ellipse, style=dashed, label="(none specific)"];
+  ADMIN -> ad1;
+
+  ' ---- notation legend ----
+  legend [shape=plaintext, label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" BGCOLOR="#fff7e6">
+    <TR><TD><B>EER specialization</B></TD></TR>
+    <TR><TD ALIGN="LEFT">circle <B>o</B> = overlapping (a user may hold several roles)</TD></TR>
+    <TR><TD ALIGN="LEFT">single line = partial participation (Unassigned user has no subclass yet)</TD></TR>
+    <TR><TD ALIGN="LEFT">double line = total participation</TD></TR>
+    <TR><TD ALIGN="LEFT">&#8834; = subset symbol: each subclass IS-A USER</TD></TR>
+    </TABLE>>];
+}
+@enddot

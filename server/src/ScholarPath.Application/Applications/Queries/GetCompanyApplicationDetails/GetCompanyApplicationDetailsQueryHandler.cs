@@ -4,14 +4,14 @@ using ScholarPath.Application.Applications.DTOs;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 
-namespace ScholarPath.Application.Applications.Queries.GetCompanyApplicationDetails;
+namespace ScholarPath.Application.Applications.Queries.GetScholarshipProviderApplicationDetails;
 
-public sealed class GetCompanyApplicationDetailsQueryHandler(
+public sealed class GetScholarshipProviderApplicationDetailsQueryHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser)
-    : IRequestHandler<GetCompanyApplicationDetailsQuery, CompanyApplicationDetailsDto>
+    : IRequestHandler<GetScholarshipProviderApplicationDetailsQuery, ScholarshipProviderApplicationDetailsDto>
 {
-    public async Task<CompanyApplicationDetailsDto> Handle(GetCompanyApplicationDetailsQuery request, CancellationToken ct)
+    public async Task<ScholarshipProviderApplicationDetailsDto> Handle(GetScholarshipProviderApplicationDetailsQuery request, CancellationToken ct)
     {
         var application = await db.Applications
             .AsNoTracking()
@@ -21,16 +21,16 @@ public sealed class GetCompanyApplicationDetailsQueryHandler(
             ?? throw new NotFoundException(nameof(Domain.Entities.ApplicationTracker), request.ApplicationId);
 
         // Verify company owns the scholarship
-        if (application.Scholarship == null || application.Scholarship.OwnerCompanyId != currentUser.UserId)
+        if (application.Scholarship == null || application.Scholarship.OwnerScholarshipProviderId != currentUser.UserId)
         {
             throw new ForbiddenAccessException();
         }
 
-        return new CompanyApplicationDetailsDto(
+        return new ScholarshipProviderApplicationDetailsDto(
             application.Id,
             application.StudentId,
             application.Student?.FullName ?? "Unknown",
-            // Company-side queries always operate on platform scholarships; the
+            // ScholarshipProvider-side queries always operate on platform scholarships; the
             // guard above guarantees Scholarship is non-null, so ScholarshipId is set.
             application.ScholarshipId!.Value,
             application.Scholarship.TitleEn,

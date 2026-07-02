@@ -58,9 +58,9 @@ public class ApplicationDbContext(
     public DbSet<ApplicationTrackerChild> ApplicationChildren => Set<ApplicationTrackerChild>();
 
     // Reviews
-    public DbSet<CompanyReview> CompanyReviews => Set<CompanyReview>();
-    public DbSet<CompanyReviewPayment> CompanyReviewPayments => Set<CompanyReviewPayment>();
-    public DbSet<CompanyReviewRequest> CompanyReviewRequests => Set<CompanyReviewRequest>();
+    public DbSet<ScholarshipProviderReview> ScholarshipProviderReviews => Set<ScholarshipProviderReview>();
+    public DbSet<ScholarshipProviderReviewPayment> ScholarshipProviderReviewPayments => Set<ScholarshipProviderReviewPayment>();
+    public DbSet<ScholarshipProviderReviewRequest> ScholarshipProviderReviewRequests => Set<ScholarshipProviderReviewRequest>();
     public DbSet<ConsultantReview> ConsultantReviews => Set<ConsultantReview>();
 
     // Bookings

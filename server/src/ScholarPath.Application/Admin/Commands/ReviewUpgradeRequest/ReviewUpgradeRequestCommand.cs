@@ -11,7 +11,7 @@ public enum UpgradeDecision
 }
 
 /// <summary>
-/// Admin decision on an upgrade request (Student → Company or Student → Consultant).
+/// Admin decision on an upgrade request (Student → ScholarshipProvider or Student → Consultant).
 /// Approving grants the target role + flips AccountStatus to Active; rejecting stores
 /// the reviewer notes for the user-facing rejection screen.
 /// </summary>

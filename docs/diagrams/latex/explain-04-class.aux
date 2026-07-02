@@ -1,0 +1,48 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\@writefile{toc}{\contentsline {section}{\numberline {1}From the Relational Schema to the Object Model}{2}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Why a class diagram?}{2}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}UML notation legend}{2}{subsection.1.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces UML class-diagram notation used throughout this document.}}{2}{table.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:legend}{{1}{2}{UML class-diagram notation used throughout this document}{table.caption.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}The Domain Foundation: Inheritance and the Soft-Delete Contract}{3}{section.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}\texttt  {BaseEntity} $\rightarrow $ \texttt  {AuditableEntity}}{3}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.2}The \texttt  {ISoftDeletable} interface}{3}{subsection.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.3}The special case: \texttt  {ApplicationUser} extends ASP.NET Identity}{3}{subsection.2.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}The Domain Model, Cluster by Cluster}{4}{section.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces ScholarPath full UML domain model: base types, identity, and every business cluster with their associations.}}{4}{figure.caption.2}\protected@file@percent }
+\newlabel{fig:domain}{{1}{4}{ScholarPath full UML domain model: base types, identity, and every business cluster with their associations}{figure.caption.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Base types}{4}{subsection.3.1}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces The inheritance foundation: \texttt  {BaseEntity} $\rightarrow $ \texttt  {AuditableEntity}, the \texttt  {ISoftDeletable} interface, and the ASP.NET Identity bases.}}{4}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:base}{{2}{4}{The inheritance foundation: \texttt {BaseEntity} $\rightarrow $ \texttt {AuditableEntity}, the \texttt {ISoftDeletable} interface, and the ASP.NET Identity bases}{figure.caption.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Identity \& Profile}{5}{subsection.3.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Identity and profile cluster: \texttt  {ApplicationUser}, \texttt  {ApplicationRole}, \texttt  {UserProfile}, and \texttt  {EducationEntry}.}}{5}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:identity}{{3}{5}{Identity and profile cluster: \texttt {ApplicationUser}, \texttt {ApplicationRole}, \texttt {UserProfile}, and \texttt {EducationEntry}}{figure.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Scholarships \& Applications}{6}{subsection.3.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Scholarships and applications cluster: \texttt  {Scholarship}, \texttt  {ApplicationTracker}, \texttt  {Document}, and the company-review path.}}{6}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:scholar}{{4}{6}{Scholarships and applications cluster: \texttt {Scholarship}, \texttt {ApplicationTracker}, \texttt {Document}, and the company-review path}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Booking, Payments \& Ratings}{7}{subsection.3.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Consultant booking, payments, payouts, ratings, and session recordings.}}{7}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:booking}{{5}{7}{Consultant booking, payments, payouts, ratings, and session recordings}{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Community \& Chat}{8}{subsection.3.5}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Community forum (posts, votes, flags, tags) and direct chat (conversations and messages).}}{8}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:community}{{6}{8}{Community forum (posts, votes, flags, tags) and direct chat (conversations and messages)}{figure.caption.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Resources \& Notifications}{8}{subsection.3.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Learning resources (with their chapters and per-user progress) and the notification entity.}}{8}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:resources}{{7}{8}{Learning resources (with their chapters and per-user progress) and the notification entity}{figure.caption.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.7}AI Platform}{9}{subsection.3.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces AI platform entities: \texttt  {AiInteraction} usage records and the \texttt  {KnowledgeDocument} RAG corpus.}}{9}{figure.caption.9}\protected@file@percent }
+\newlabel{fig:ai}{{8}{9}{AI platform entities: \texttt {AiInteraction} usage records and the \texttt {KnowledgeDocument} RAG corpus}{figure.caption.9}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Clean Architecture: The Ports-and-Adapters Seam}{9}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Ports defined by the Application layer}{9}{subsection.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Adapters provided by the Infrastructure layer}{9}{subsection.4.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Ports (Application interfaces) realized by Infrastructure adapters, selected by configuration; every port has a production adapter and a dev stub/local fallback.}}{10}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:ports}{{9}{10}{Ports (Application interfaces) realized by Infrastructure adapters, selected by configuration; every port has a production adapter and a dev stub/local fallback}{figure.caption.10}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Ports and their realizing adapters (production and dev fallback).}}{11}{table.caption.11}\protected@file@percent }
+\newlabel{tab:adapters}{{2}{11}{Ports and their realizing adapters (production and dev fallback)}{table.caption.11}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}{\ignorespaces Realization of the AI port by three interchangeable adapters.}}{11}{lstlisting.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {5}Conclusion}{11}{section.5}\protected@file@percent }
+\gdef \@abspage@last{11}

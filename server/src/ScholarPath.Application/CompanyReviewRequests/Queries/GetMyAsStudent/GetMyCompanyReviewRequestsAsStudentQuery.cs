@@ -2,36 +2,36 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviewRequests.Common;
-using ScholarPath.Application.CompanyReviewRequests.DTOs;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Common;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.DTOs;
 using ScholarPath.Domain.Interfaces;
 
-namespace ScholarPath.Application.CompanyReviewRequests.Queries.GetMyAsStudent;
+namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Queries.GetMyAsStudent;
 
 /// <summary>
-/// Lists CompanyReviewRequests raised BY the authenticated Student, newest
+/// Lists ScholarshipProviderReviewRequests raised BY the authenticated Student, newest
 /// first. Drives the student "My review requests" page.
 /// </summary>
-public sealed record GetMyCompanyReviewRequestsAsStudentQuery()
-    : IRequest<IReadOnlyList<CompanyReviewRequestDto>>;
+public sealed record GetMyScholarshipProviderReviewRequestsAsStudentQuery()
+    : IRequest<IReadOnlyList<ScholarshipProviderReviewRequestDto>>;
 
-public sealed class GetMyCompanyReviewRequestsAsStudentQueryHandler(
+public sealed class GetMyScholarshipProviderReviewRequestsAsStudentQueryHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser)
-    : IRequestHandler<GetMyCompanyReviewRequestsAsStudentQuery,
-                      IReadOnlyList<CompanyReviewRequestDto>>
+    : IRequestHandler<GetMyScholarshipProviderReviewRequestsAsStudentQuery,
+                      IReadOnlyList<ScholarshipProviderReviewRequestDto>>
 {
-    public async Task<IReadOnlyList<CompanyReviewRequestDto>> Handle(
-        GetMyCompanyReviewRequestsAsStudentQuery request, CancellationToken ct)
+    public async Task<IReadOnlyList<ScholarshipProviderReviewRequestDto>> Handle(
+        GetMyScholarshipProviderReviewRequestsAsStudentQuery request, CancellationToken ct)
     {
         var studentId = currentUser.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
-        return await db.CompanyReviewRequests
+        return await db.ScholarshipProviderReviewRequests
             .AsNoTracking()
             .Where(r => r.StudentId == studentId)
             .OrderByDescending(r => r.CreatedAt)
-            .Select(CompanyReviewRequestMapper.Projection)
+            .Select(ScholarshipProviderReviewRequestMapper.Projection)
             .ToListAsync(ct);
     }
 }

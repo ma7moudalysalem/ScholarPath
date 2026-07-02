@@ -1,0 +1,20 @@
+\contentsline {section}{\numberline {1}Introduction to the ScholarPath System}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}The four actors}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Main subject areas}{2}{subsection.1.2}%
+\contentsline {section}{\numberline {2}What an ERD Is}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Entities and entity types}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Attributes}{3}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Keys}{3}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Relationships}{3}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Cardinality ratios: 1, N and M}{3}{subsection.2.5}%
+\contentsline {section}{\numberline {3}The Basic Conceptual ERD}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}The core entities}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}The relationships and their cardinalities}{5}{subsection.3.2}%
+\contentsline {section}{\numberline {4}Subject-Area Context}{6}{section.4}%
+\contentsline {section}{\numberline {5}Limitations of the Plain ERD}{7}{section.5}%
+\contentsline {subsection}{\numberline {5.1}USER is one flat entity --- role is just an attribute}{7}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}No specialization (no ISA hierarchy)}{7}{subsection.5.2}%
+\contentsline {subsection}{\numberline {5.3}No weak entities}{7}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}No multivalued or derived attributes}{7}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}No distinction between enforced and loose references}{8}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}Why this matters --- the bridge to Part 2}{8}{subsection.5.6}%

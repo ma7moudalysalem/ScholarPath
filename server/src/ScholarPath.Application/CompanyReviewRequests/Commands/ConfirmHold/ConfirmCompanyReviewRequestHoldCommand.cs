@@ -5,15 +5,15 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviewRequests.Common;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Common;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
-namespace ScholarPath.Application.CompanyReviewRequests.Commands.ConfirmHold;
+namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.ConfirmHold;
 
 /// <summary>
 /// Confirms that Stripe has successfully authorised the card hold for a
-/// Submitted CompanyReviewRequest, flipping the request to Pending and the
+/// Submitted ScholarshipProviderReviewRequest, flipping the request to Pending and the
 /// Payment to Held. Dispatches the "payment held" notification to both
 /// parties.
 ///
@@ -22,93 +22,93 @@ namespace ScholarPath.Application.CompanyReviewRequests.Commands.ConfirmHold;
 ///      manual-capture confirmation.
 ///   2. The Stripe webhook handler (out of scope for this branch) — same
 ///      handler, called system-side; the role check is skipped via
-///      <see cref="ConfirmCompanyReviewRequestHoldCommand.SkipOwnerCheck"/>.
+///      <see cref="ConfirmScholarshipProviderReviewRequestHoldCommand.SkipOwnerCheck"/>.
 ///
 /// Idempotent — re-confirming a Pending request is a no-op.
 /// </summary>
-[Auditable(AuditAction.Update, "CompanyReviewRequest",
+[Auditable(AuditAction.Update, "ScholarshipProviderReviewRequest",
     TargetIdProperty = nameof(RequestId),
-    SummaryTemplate = "Confirmed payment hold for CompanyReviewRequest {RequestId}")]
-public sealed record ConfirmCompanyReviewRequestHoldCommand(
+    SummaryTemplate = "Confirmed payment hold for ScholarshipProviderReviewRequest {RequestId}")]
+public sealed record ConfirmScholarshipProviderReviewRequestHoldCommand(
     Guid RequestId,
     bool SkipOwnerCheck = false) : IRequest<bool>;
 
-public sealed class ConfirmCompanyReviewRequestHoldCommandValidator
-    : AbstractValidator<ConfirmCompanyReviewRequestHoldCommand>
+public sealed class ConfirmScholarshipProviderReviewRequestHoldCommandValidator
+    : AbstractValidator<ConfirmScholarshipProviderReviewRequestHoldCommand>
 {
-    public ConfirmCompanyReviewRequestHoldCommandValidator()
+    public ConfirmScholarshipProviderReviewRequestHoldCommandValidator()
     {
         RuleFor(x => x.RequestId).NotEmpty();
     }
 }
 
-public sealed class ConfirmCompanyReviewRequestHoldCommandHandler(
+public sealed class ConfirmScholarshipProviderReviewRequestHoldCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
     INotificationDispatcher notifications,
-    ILogger<ConfirmCompanyReviewRequestHoldCommandHandler> logger)
-    : IRequestHandler<ConfirmCompanyReviewRequestHoldCommand, bool>
+    ILogger<ConfirmScholarshipProviderReviewRequestHoldCommandHandler> logger)
+    : IRequestHandler<ConfirmScholarshipProviderReviewRequestHoldCommand, bool>
 {
     public async Task<bool> Handle(
-        ConfirmCompanyReviewRequestHoldCommand command,
+        ConfirmScholarshipProviderReviewRequestHoldCommand command,
         CancellationToken ct)
     {
-        var entity = await db.CompanyReviewRequests
+        var entity = await db.ScholarshipProviderReviewRequests
             .Include(r => r.Payment)
             .Include(r => r.Scholarship)
             .Include(r => r.Student)
-            .Include(r => r.Company)
+            .Include(r => r.ScholarshipProvider)
             .FirstOrDefaultAsync(r => r.Id == command.RequestId, ct)
-            ?? throw new NotFoundException(nameof(Domain.Entities.CompanyReviewRequest), command.RequestId);
+            ?? throw new NotFoundException(nameof(Domain.Entities.ScholarshipProviderReviewRequest), command.RequestId);
 
         if (!command.SkipOwnerCheck && entity.StudentId != currentUser.UserId)
             throw new ForbiddenAccessException();
 
         // Idempotent: already Pending or further along.
-        if (entity.Status == CompanyReviewRequestStatus.Pending ||
-            entity.Status == CompanyReviewRequestStatus.UnderReview ||
-            entity.Status == CompanyReviewRequestStatus.Completed ||
-            entity.Status == CompanyReviewRequestStatus.Closed)
+        if (entity.Status == ScholarshipProviderReviewRequestStatus.Pending ||
+            entity.Status == ScholarshipProviderReviewRequestStatus.UnderReview ||
+            entity.Status == ScholarshipProviderReviewRequestStatus.Completed ||
+            entity.Status == ScholarshipProviderReviewRequestStatus.Closed)
         {
             return false;
         }
 
-        if (entity.Status != CompanyReviewRequestStatus.Submitted)
+        if (entity.Status != ScholarshipProviderReviewRequestStatus.Submitted)
             throw new ConflictException(
                 $"Cannot confirm hold from status {entity.Status} — only Submitted requests can move to Pending.");
 
         if (entity.Payment is null)
             throw new ConflictException(
-                "CompanyReviewRequest has no associated Payment row.");
+                "ScholarshipProviderReviewRequest has no associated Payment row.");
 
         entity.Payment.Status = PaymentStatus.Held;
         entity.Payment.HeldAt = DateTimeOffset.UtcNow;
 
-        entity.Status = CompanyReviewRequestStatus.Pending;
+        entity.Status = ScholarshipProviderReviewRequestStatus.Pending;
 
         await db.SaveChangesAsync(ct);
 
         await DispatchHeldNotificationsAsync(entity, ct);
 
         logger.LogInformation(
-            "CompanyReviewRequest {RequestId} confirmed Held → Pending (payment={PaymentId})",
+            "ScholarshipProviderReviewRequest {RequestId} confirmed Held → Pending (payment={PaymentId})",
             entity.Id, entity.Payment.Id);
 
         return true;
     }
 
     private async Task DispatchHeldNotificationsAsync(
-        Domain.Entities.CompanyReviewRequest entity,
+        Domain.Entities.ScholarshipProviderReviewRequest entity,
         CancellationToken ct)
     {
-        var paramsForStudent = CompanyReviewRequestNotificationFactory.Build(
+        var paramsForStudent = ScholarshipProviderReviewRequestNotificationFactory.Build(
             entity, entity.Payment,
             entity.Scholarship?.TitleEn, entity.Scholarship?.TitleAr,
-            counterpartyName: entity.Company is null
+            counterpartyName: entity.ScholarshipProvider is null
                 ? null
-                : ($"{entity.Company.FirstName} {entity.Company.LastName}".Trim()));
+                : ($"{entity.ScholarshipProvider.FirstName} {entity.ScholarshipProvider.LastName}".Trim()));
 
-        var paramsForCompany = CompanyReviewRequestNotificationFactory.Build(
+        var paramsForScholarshipProvider = ScholarshipProviderReviewRequestNotificationFactory.Build(
             entity, entity.Payment,
             entity.Scholarship?.TitleEn, entity.Scholarship?.TitleAr,
             counterpartyName: entity.Student is null
@@ -118,7 +118,7 @@ public sealed class ConfirmCompanyReviewRequestHoldCommandHandler(
         await SafeNotificationDispatcher.TryDispatchAsync(
             notifications, logger,
             entity.StudentId,
-            NotificationType.CompanyReviewRequestPaymentHeld,
+            NotificationType.ScholarshipProviderReviewRequestPaymentHeld,
             paramsForStudent,
             deepLink: $"/student/review-requests/{entity.Id}",
             idempotencyKey: $"crr-held-student:{entity.Id:N}",
@@ -126,9 +126,9 @@ public sealed class ConfirmCompanyReviewRequestHoldCommandHandler(
 
         await SafeNotificationDispatcher.TryDispatchAsync(
             notifications, logger,
-            entity.CompanyId,
-            NotificationType.CompanyReviewRequestIncoming,
-            paramsForCompany,
+            entity.ScholarshipProviderId,
+            NotificationType.ScholarshipProviderReviewRequestIncoming,
+            paramsForScholarshipProvider,
             deepLink: $"/company/review-requests/{entity.Id}",
             idempotencyKey: $"crr-held-company:{entity.Id:N}",
             ct);

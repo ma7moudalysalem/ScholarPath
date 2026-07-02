@@ -325,7 +325,7 @@ public static class DependencyInjection
         services.AddScoped<IDataExportJob, DataExportJob>();
         services.AddScoped<IDataDeleteJob, DataDeleteJob>();
         services.AddScoped<IRedactionAuditSamplingJob, RedactionAuditSamplingJob>();
-        services.AddScoped<ICompanyReviewTimeoutRefundJob, CompanyReviewTimeoutRefundJob>();
+        services.AddScoped<IScholarshipProviderReviewTimeoutRefundJob, ScholarshipProviderReviewTimeoutRefundJob>();
         services.AddScoped<IScholarshipAutoCloseJob, ScholarshipAutoCloseJob>();
 
         // Memory cache (Redis swap handled at deploy time)

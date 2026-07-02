@@ -2,22 +2,22 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviewRequests.Commands.Accept;
-using ScholarPath.Application.CompanyReviewRequests.Commands.Cancel;
-using ScholarPath.Application.CompanyReviewRequests.Commands.Complete;
-using ScholarPath.Application.CompanyReviewRequests.Commands.ConfirmHold;
-using ScholarPath.Application.CompanyReviewRequests.Commands.Expire;
-using ScholarPath.Application.CompanyReviewRequests.Commands.Reject;
-using ScholarPath.Application.CompanyReviewRequests.Commands.Start;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Accept;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Cancel;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Complete;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.ConfirmHold;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Expire;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Reject;
+using ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Start;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 using Xunit;
 
-namespace ScholarPath.UnitTests.CompanyReviewRequests;
+namespace ScholarPath.UnitTests.ScholarshipProviderReviewRequests;
 
 /// <summary>
-/// Regression guard for the bookmark/CompanyReviewRequest independence rule:
+/// Regression guard for the bookmark/ScholarshipProviderReviewRequest independence rule:
 /// bookmark state must change ONLY through the explicit BookmarkToggleCommand,
 /// never as a side-effect of starting, confirming, accepting, rejecting,
 /// cancelling, completing, or expiring a paid review request.
@@ -79,7 +79,7 @@ public class BookmarkIndependenceTests
     {
         var row = db.SavedScholarships.SingleOrDefault(s => s.Id == bookmarkId);
         row.Should().NotBeNull(
-            "the bookmark must not be deleted by any CompanyReviewRequest state transition");
+            "the bookmark must not be deleted by any ScholarshipProviderReviewRequest state transition");
         row!.Note.Should().Be("Saved before Apply Now",
             "no handler should mutate bookmark fields");
     }
@@ -87,18 +87,18 @@ public class BookmarkIndependenceTests
     [Fact]
     public async Task Start_does_not_touch_bookmarks()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (scholarship, student, _) = CompanyReviewRequestTestFixtures.SeedParticipants(db);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (scholarship, student, _) = ScholarshipProviderReviewRequestTestFixtures.SeedParticipants(db);
         var bookmark = SeedBookmark(db, student.Id, scholarship.Id);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(student.Id);
 
-        var sut = new StartCompanyReviewRequestCommandHandler(
+        var sut = new StartScholarshipProviderReviewRequestCommandHandler(
             db, MakeStripeOk(), currentUser,
-            NullLogger<StartCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<StartScholarshipProviderReviewRequestCommandHandler>.Instance);
 
-        await sut.Handle(new StartCompanyReviewRequestCommand(scholarship.Id), default);
+        await sut.Handle(new StartScholarshipProviderReviewRequestCommand(scholarship.Id), default);
 
         AssertBookmarkUnchanged(db, bookmark.Id);
         db.SavedScholarships.Count().Should().Be(1,
@@ -108,19 +108,19 @@ public class BookmarkIndependenceTests
     [Fact]
     public async Task ConfirmHold_does_not_touch_bookmarks()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.Submitted);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.Submitted);
         var bookmark = SeedBookmark(db, request.StudentId, request.ScholarshipId);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(request.StudentId);
 
-        var sut = new ConfirmCompanyReviewRequestHoldCommandHandler(
+        var sut = new ConfirmScholarshipProviderReviewRequestHoldCommandHandler(
             db, currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<ConfirmCompanyReviewRequestHoldCommandHandler>.Instance);
+            NullLogger<ConfirmScholarshipProviderReviewRequestHoldCommandHandler>.Instance);
 
-        await sut.Handle(new ConfirmCompanyReviewRequestHoldCommand(request.Id), default);
+        await sut.Handle(new ConfirmScholarshipProviderReviewRequestHoldCommand(request.Id), default);
 
         AssertBookmarkUnchanged(db, bookmark.Id);
     }
@@ -128,19 +128,19 @@ public class BookmarkIndependenceTests
     [Fact]
     public async Task Accept_does_not_touch_bookmarks()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.Pending);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.Pending);
         var bookmark = SeedBookmark(db, request.StudentId, request.ScholarshipId);
 
         var currentUser = Substitute.For<ICurrentUserService>();
-        currentUser.UserId.Returns(request.CompanyId);
+        currentUser.UserId.Returns(request.ScholarshipProviderId);
 
-        var sut = new AcceptCompanyReviewRequestCommandHandler(
+        var sut = new AcceptScholarshipProviderReviewRequestCommandHandler(
             db, MakeStripeOk(), currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<AcceptCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<AcceptScholarshipProviderReviewRequestCommandHandler>.Instance);
 
-        await sut.Handle(new AcceptCompanyReviewRequestCommand(request.Id), default);
+        await sut.Handle(new AcceptScholarshipProviderReviewRequestCommand(request.Id), default);
 
         AssertBookmarkUnchanged(db, bookmark.Id);
     }
@@ -148,19 +148,19 @@ public class BookmarkIndependenceTests
     [Fact]
     public async Task Reject_does_not_touch_bookmarks()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.Pending);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.Pending);
         var bookmark = SeedBookmark(db, request.StudentId, request.ScholarshipId);
 
         var currentUser = Substitute.For<ICurrentUserService>();
-        currentUser.UserId.Returns(request.CompanyId);
+        currentUser.UserId.Returns(request.ScholarshipProviderId);
 
-        var sut = new RejectCompanyReviewRequestCommandHandler(
+        var sut = new RejectScholarshipProviderReviewRequestCommandHandler(
             db, MakeStripeOk(), currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<RejectCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<RejectScholarshipProviderReviewRequestCommandHandler>.Instance);
 
-        await sut.Handle(new RejectCompanyReviewRequestCommand(request.Id, "Not a fit"), default);
+        await sut.Handle(new RejectScholarshipProviderReviewRequestCommand(request.Id, "Not a fit"), default);
 
         AssertBookmarkUnchanged(db, bookmark.Id);
     }
@@ -168,19 +168,19 @@ public class BookmarkIndependenceTests
     [Fact]
     public async Task Cancel_from_pending_does_not_touch_bookmarks()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.Pending);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.Pending);
         var bookmark = SeedBookmark(db, request.StudentId, request.ScholarshipId);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(request.StudentId);
 
-        var sut = new CancelCompanyReviewRequestCommandHandler(
+        var sut = new CancelScholarshipProviderReviewRequestCommandHandler(
             db, MakeStripeOk(), currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<CancelCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<CancelScholarshipProviderReviewRequestCommandHandler>.Instance);
 
-        await sut.Handle(new CancelCompanyReviewRequestCommand(request.Id), default);
+        await sut.Handle(new CancelScholarshipProviderReviewRequestCommand(request.Id), default);
 
         AssertBookmarkUnchanged(db, bookmark.Id);
     }
@@ -188,19 +188,19 @@ public class BookmarkIndependenceTests
     [Fact]
     public async Task Cancel_from_under_review_with_50pct_refund_does_not_touch_bookmarks()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.UnderReview, amountCents: 10_000);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.UnderReview, amountCents: 10_000);
         var bookmark = SeedBookmark(db, request.StudentId, request.ScholarshipId);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(request.StudentId);
 
-        var sut = new CancelCompanyReviewRequestCommandHandler(
+        var sut = new CancelScholarshipProviderReviewRequestCommandHandler(
             db, MakeStripeOk(), currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<CancelCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<CancelScholarshipProviderReviewRequestCommandHandler>.Instance);
 
-        await sut.Handle(new CancelCompanyReviewRequestCommand(request.Id), default);
+        await sut.Handle(new CancelScholarshipProviderReviewRequestCommand(request.Id), default);
 
         AssertBookmarkUnchanged(db, bookmark.Id);
     }
@@ -208,19 +208,19 @@ public class BookmarkIndependenceTests
     [Fact]
     public async Task Complete_does_not_touch_bookmarks()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.UnderReview);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.UnderReview);
         var bookmark = SeedBookmark(db, request.StudentId, request.ScholarshipId);
 
         var currentUser = Substitute.For<ICurrentUserService>();
-        currentUser.UserId.Returns(request.CompanyId);
+        currentUser.UserId.Returns(request.ScholarshipProviderId);
 
-        var sut = new CompleteCompanyReviewRequestCommandHandler(
+        var sut = new CompleteScholarshipProviderReviewRequestCommandHandler(
             db, currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<CompleteCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<CompleteScholarshipProviderReviewRequestCommandHandler>.Instance);
 
-        await sut.Handle(new CompleteCompanyReviewRequestCommand(request.Id), default);
+        await sut.Handle(new CompleteScholarshipProviderReviewRequestCommand(request.Id), default);
 
         AssertBookmarkUnchanged(db, bookmark.Id);
     }
@@ -228,20 +228,20 @@ public class BookmarkIndependenceTests
     [Fact]
     public async Task Expire_does_not_touch_bookmarks()
     {
-        using var db = CompanyReviewRequestTestFixtures.CreateDb();
-        var (request, _) = CompanyReviewRequestTestFixtures
-            .SeedRequestWithPayment(db, CompanyReviewRequestStatus.Pending);
+        using var db = ScholarshipProviderReviewRequestTestFixtures.CreateDb();
+        var (request, _) = ScholarshipProviderReviewRequestTestFixtures
+            .SeedRequestWithPayment(db, ScholarshipProviderReviewRequestStatus.Pending);
         var bookmark = SeedBookmark(db, request.StudentId, request.ScholarshipId);
 
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.UserId.Returns(Guid.NewGuid());
         currentUser.IsInRole("Admin").Returns(true);
 
-        var sut = new ExpireCompanyReviewRequestCommandHandler(
+        var sut = new ExpireScholarshipProviderReviewRequestCommandHandler(
             db, MakeStripeOk(), currentUser, Substitute.For<INotificationDispatcher>(),
-            NullLogger<ExpireCompanyReviewRequestCommandHandler>.Instance);
+            NullLogger<ExpireScholarshipProviderReviewRequestCommandHandler>.Instance);
 
-        await sut.Handle(new ExpireCompanyReviewRequestCommand(request.Id), default);
+        await sut.Handle(new ExpireScholarshipProviderReviewRequestCommand(request.Id), default);
 
         AssertBookmarkUnchanged(db, bookmark.Id);
     }
