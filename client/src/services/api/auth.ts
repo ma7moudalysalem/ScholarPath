@@ -23,15 +23,15 @@ export interface LoginRequest {
   rememberMe: boolean;
 }
 
-/** Onboarding profile details for a Company / Consultant — mirrors OnboardingDetails. */
+/** Onboarding profile details for a ScholarshipProvider / Consultant — mirrors OnboardingDetails. */
 export interface OnboardingDetails {
-  // ── Company ─────────────────────────────────────────────────────────────
+  // ── ScholarshipProvider ─────────────────────────────────────────────────────────────
   organizationLegalName?: string | null;
   organizationWebsite?: string | null;
   organizationEmail?: string | null;
   organizationCountry?: string | null;
-  companyType?: string | null;
-  companyDescription?: string | null;
+  scholarshipProviderType?: string | null;
+  scholarshipProviderDescription?: string | null;
   organizationRegistrationNumber?: string | null;
   organizationTaxNumber?: string | null;
   contactPersonFullName?: string | null;
@@ -99,10 +99,10 @@ export const authApi = {
   },
   /**
    * One-time first-role selection for a newly-registered (Unassigned) account.
-   * Company / Consultant also pass their onboarding profile details.
+   * ScholarshipProvider / Consultant also pass their onboarding profile details.
    */
   async selectRole(
-    role: "Student" | "Company" | "Consultant",
+    role: "Student" | "ScholarshipProvider" | "Consultant",
     details?: OnboardingDetails,
   ): Promise<AuthTokensResponse> {
     const { data } = await apiClient.post<AuthTokensResponse>("/api/auth/select-role", {
@@ -151,7 +151,7 @@ export function postAuthPath(user: CurrentUser): string {
   switch (user.activeRole) {
     case "Student":
       return "/student";
-    case "Company":
+    case "ScholarshipProvider":
       return "/company";
     case "Consultant":
       return "/consultant";

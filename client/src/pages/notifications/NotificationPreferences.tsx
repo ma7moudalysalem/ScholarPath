@@ -126,7 +126,7 @@ function groupOf(type: string): string {
   if (/^Resource/i.test(type)) return "Resources";
   if (/^Chat/i.test(type)) return "Chat";
   if (/^Broadcast/i.test(type)) return "Broadcast";
-  if (/^Company/i.test(type)) return "Payments";
+  if (/^ScholarshipProvider/i.test(type)) return "Payments";
   return "Other";
 }
 

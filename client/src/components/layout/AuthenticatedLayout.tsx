@@ -44,7 +44,7 @@ import { notificationsApi, UNREAD_COUNT_QUERY_KEY } from "@/services/api/notific
 import { cn } from "@/lib/utils";
 import { userPhotoUrl } from "@/lib/userPhoto";
 
-const SWITCHABLE_ROLES = ["Student", "Consultant", "Company", "Admin"] as const;
+const SWITCHABLE_ROLES = ["Student", "Consultant", "ScholarshipProvider", "Admin"] as const;
 
 function ProfileMenu() {
   const { t, i18n } = useTranslation(["common", "nav"]);
@@ -229,7 +229,7 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/student/messages", key: "student.messages", icon: MessageSquare },
     { to: "/student/analytics", key: "student.analytics", icon: BarChart2 },
   ],
-  Company: [
+  ScholarshipProvider: [
     { to: "/company", key: "company.dashboard", icon: LayoutDashboard },
     { to: "/company/scholarships", key: "company.scholarships", icon: Search },
     { to: "/company/applications-review", key: "company.applicationsReview", icon: ListChecks },

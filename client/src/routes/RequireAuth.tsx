@@ -15,7 +15,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 /** Where to send a user who lacks the role a route requires — their own home. */
 const ROLE_HOME: Record<string, string> = {
   Student: "/student",
-  Company: "/company",
+  ScholarshipProvider: "/company",
   Consultant: "/consultant",
   Admin: "/admin",
   SuperAdmin: "/admin",

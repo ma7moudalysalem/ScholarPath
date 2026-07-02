@@ -5,19 +5,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import {
-  companyReviewRequestsApi,
+  scholarshipProviderReviewRequestsApi,
   isRequestCancellableByStudent,
   refundsHalfOnCancel,
   TERMINAL_REQUEST_STATUSES,
-  type CompanyReviewRequestDto,
-  type CompanyReviewRequestStatus,
-} from "@/services/api/companyReviewRequests";
+  type ScholarshipProviderReviewRequestDto,
+  type ScholarshipProviderReviewRequestStatus,
+} from "@/services/api/scholarshipProviderReviewRequests";
 import { apiErrorMessage } from "@/services/api/client";
 import { formatMoneyCents } from "@/services/api/payments";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 /**
- * Student-facing list of paid CompanyReview support requests. Shows the
+ * Student-facing list of paid ScholarshipProviderReview support requests. Shows the
  * request status, the payment numbers (held / captured / refunded /
  * retained), and a Cancel action whose semantics depend on the current
  * status (no-charge while Pending, 50% refund while UnderReview).
@@ -32,19 +32,19 @@ export function StudentReviewRequests() {
   // the held/captured/refunded breakdown collapses to a single fee row.
   const paymentsEnabled = usePaymentsEnabled();
 
-  const query = useQuery<CompanyReviewRequestDto[]>({
-    queryKey: ["companyReviewRequests", "mine", "student"],
-    queryFn: () => companyReviewRequestsApi.listMineAsStudent(),
+  const query = useQuery<ScholarshipProviderReviewRequestDto[]>({
+    queryKey: ["scholarshipProviderReviewRequests", "mine", "student"],
+    queryFn: () => scholarshipProviderReviewRequestsApi.listMineAsStudent(),
   });
 
   const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
 
   const cancelMut = useMutation({
-    mutationFn: (id: string) => companyReviewRequestsApi.cancel(id),
+    mutationFn: (id: string) => scholarshipProviderReviewRequestsApi.cancel(id),
     onSuccess: () => {
       toast.success(t("payments:reviewRequest.cancelSuccess"));
       void queryClient.invalidateQueries({
-        queryKey: ["companyReviewRequests", "mine", "student"],
+        queryKey: ["scholarshipProviderReviewRequests", "mine", "student"],
       });
     },
     onError: (err) =>
@@ -96,7 +96,7 @@ export function StudentReviewRequests() {
                   {req.scholarshipTitle}
                 </Link>
                 <p className="mt-1 text-xs text-text-tertiary">
-                  {req.companyName ?? t("payments:reviewRequest.unknownCompany")}
+                  {req.scholarshipProviderName ?? t("payments:reviewRequest.unknownScholarshipProvider")}
                 </p>
               </div>
               <StatusBadge status={req.status} />
@@ -210,9 +210,9 @@ function Stat({
   );
 }
 
-function StatusBadge({ status }: { status: CompanyReviewRequestStatus }) {
+function StatusBadge({ status }: { status: ScholarshipProviderReviewRequestStatus }) {
   const { t } = useTranslation(["payments"]);
-  const cls: Record<CompanyReviewRequestStatus, string> = {
+  const cls: Record<ScholarshipProviderReviewRequestStatus, string> = {
     Draft: "badge-neutral",
     Submitted: "badge-brand",
     Pending: "badge-brand",
@@ -222,7 +222,7 @@ function StatusBadge({ status }: { status: CompanyReviewRequestStatus }) {
     Cancelled: "badge-neutral",
     Failed: "badge-danger",
     CancelledByStudent: "badge-neutral",
-    RejectedByCompany: "badge-danger",
+    RejectedByScholarshipProvider: "badge-danger",
     Expired: "badge-neutral",
   };
   return (

@@ -23,7 +23,7 @@ export interface ScholarshipListItem {
   fundingType: FundingType;
   targetLevel: AcademicLevel;
   categoryName?: string | null;
-  ownerCompanyName?: string | null;
+  ownerScholarshipProviderName?: string | null;
   isFeatured: boolean;
   status: ScholarshipStatus;
   /** Eligible academic fields — empty means any field is accepted. */
@@ -41,13 +41,13 @@ export interface ScholarshipDetail extends ScholarshipListItem {
   /** Raw category id — populated by the server so the company edit form
    *  pre-selects the dropdown instead of starting empty. */
   categoryId?: string | null;
-  /** Per-scholarship Review Service Fee (PB-005). Null until the Company
+  /** Per-scholarship Review Service Fee (PB-005). Null until the ScholarshipProvider
    *  configures one; when null the Apply Now button must be disabled and a
    *  clear message shown. */
   reviewFeeUsd?: number | null;
-  /** Owner Company id — exposed so the UI can disable Apply Now when the
-   *  signed-in user IS the owning Company (no self-apply). */
-  ownerCompanyId?: string | null;
+  /** Owner ScholarshipProvider id — exposed so the UI can disable Apply Now when the
+   *  signed-in user IS the owning ScholarshipProvider (no self-apply). */
+  ownerScholarshipProviderId?: string | null;
 }
 
 /**
@@ -175,7 +175,7 @@ interface ScholarshipWireDto {
   title: string;
   description: string;
   categoryName: string | null;
-  ownerCompanyName: string | null;
+  ownerScholarshipProviderName: string | null;
   status: ScholarshipStatus;
   fundingType: FundingType;
   targetLevel: AcademicLevel;
@@ -210,7 +210,7 @@ interface ScholarshipDetailWireDto extends ScholarshipWireDto {
   descriptionAr?: string | null;
   categoryId?: string | null;
   reviewFeeUsd?: number | null;
-  ownerCompanyId?: string | null;
+  ownerScholarshipProviderId?: string | null;
 }
 
 /** Server PaginatedList<T>. */
@@ -248,7 +248,7 @@ function toListItem(dto: ScholarshipWireDto): ScholarshipListItem {
     fundingType: dto.fundingType,
     targetLevel: dto.targetLevel,
     categoryName: dto.categoryName,
-    ownerCompanyName: dto.ownerCompanyName,
+    ownerScholarshipProviderName: dto.ownerScholarshipProviderName,
     isFeatured: dto.isFeatured,
     status: dto.status,
     fieldsOfStudy: dto.fieldsOfStudy ?? [],
@@ -288,7 +288,7 @@ function toDetail(dto: ScholarshipDetailWireDto): ScholarshipDetail {
     descriptionAr: dto.descriptionAr ?? base.descriptionAr,
     categoryId: dto.categoryId,
     reviewFeeUsd: dto.reviewFeeUsd ?? null,
-    ownerCompanyId: dto.ownerCompanyId ?? null,
+    ownerScholarshipProviderId: dto.ownerScholarshipProviderId ?? null,
     mode: dto.mode,
     externalUrl: dto.externalApplicationUrl,
     eligibilityCriteria: dto.eligibilityRequirements,
@@ -386,7 +386,7 @@ export const scholarshipsApi = {
     return data.map(toListItem);
   },
 
-  // ── Company: own scholarships ────────────────────────────────────────────────
+  // ── ScholarshipProvider: own scholarships ────────────────────────────────────────────────
 
   /** The authenticated company's own scholarships, newest first. */
   async getMine(): Promise<MyScholarship[]> {
@@ -419,7 +419,7 @@ export const scholarshipsApi = {
     await apiClient.post(`/api/scholarships/${id}/reject`, { reason });
   },
 
-  // ── Company CRUD ─────────────────────────────────────────────────────────────
+  // ── ScholarshipProvider CRUD ─────────────────────────────────────────────────────────────
 
   /** Categories list for the create/edit form's dropdown. Public endpoint. */
   async getCategories(): Promise<ScholarshipCategory[]> {
@@ -429,7 +429,7 @@ export const scholarshipsApi = {
     return data;
   },
 
-  /** Company-only: create a new scholarship listing. */
+  /** ScholarshipProvider-only: create a new scholarship listing. */
   async createScholarship(
     input: CreateScholarshipInput,
   ): Promise<{ id: string }> {
@@ -437,7 +437,7 @@ export const scholarshipsApi = {
     return { id: data };
   },
 
-  /** Company-only: edit one of the caller's own scholarship listings. */
+  /** ScholarshipProvider-only: edit one of the caller's own scholarship listings. */
   async updateScholarship(
     id: string,
     input: UpdateScholarshipInput,
@@ -445,7 +445,7 @@ export const scholarshipsApi = {
     await apiClient.put(`/api/scholarships/${id}`, input);
   },
 
-  /** Company / Admin: soft-delete (archive) a scholarship listing. */
+  /** ScholarshipProvider / Admin: soft-delete (archive) a scholarship listing. */
   async archiveScholarship(id: string): Promise<void> {
     await apiClient.delete(`/api/scholarships/${id}`);
   },

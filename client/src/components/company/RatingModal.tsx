@@ -8,17 +8,17 @@ interface RatingModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   applicationId: string;
-  companyId: string;
-  companyName: string;
-  onSubmitRating: (applicationId: string, companyId: string, rating: number, comment: string) => Promise<void>;
+  scholarshipProviderId: string;
+  scholarshipProviderName: string;
+  onSubmitRating: (applicationId: string, scholarshipProviderId: string, rating: number, comment: string) => Promise<void>;
 }
 
 export function RatingModal({
   isOpen,
   onOpenChange,
   applicationId,
-  companyId,
-  companyName,
+  scholarshipProviderId,
+  scholarshipProviderName,
   onSubmitRating,
 }: RatingModalProps) {
   const { t } = useTranslation('company');
@@ -36,7 +36,7 @@ export function RatingModal({
 
     try {
       setIsSubmitting(true);
-      await onSubmitRating(applicationId, companyId, rating, comment);
+      await onSubmitRating(applicationId, scholarshipProviderId, rating, comment);
       toast.success(t('reviews.submitSuccess'));
       onOpenChange(false);
     } catch {
@@ -53,7 +53,7 @@ export function RatingModal({
         <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-bg-elevated p-6 shadow-2xl">
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-xl font-semibold text-text-primary">
-              {t('reviews.rateCompanyTitle', { company: companyName })}
+              {t('reviews.rateScholarshipProviderTitle', { company: scholarshipProviderName })}
             </Dialog.Title>
             <Dialog.Close className="text-text-tertiary hover:text-text-secondary transition-colors">
               <X size={20} />
@@ -61,7 +61,7 @@ export function RatingModal({
           </div>
 
           <Dialog.Description className="mb-6 text-sm text-text-secondary">
-            {t('reviews.rateCompanyDescription')}
+            {t('reviews.rateScholarshipProviderDescription')}
           </Dialog.Description>
 
           <form onSubmit={handleSubmit} className="space-y-6">

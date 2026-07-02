@@ -2,7 +2,7 @@
  * Format a date as a localized relative time string ("2 hours ago").
  *
  * Returns an empty string when the input is falsy or unparseable — defensive
- * because the Company / Consultant dashboards iterate over API rows where
+ * because the ScholarshipProvider / Consultant dashboards iterate over API rows where
  * optional timestamp fields (createdAt, sentAt, lastReviewedAt, etc.) can
  * legitimately be null. Crashing the whole dashboard for a missing date on
  * one row would erase the entire page.

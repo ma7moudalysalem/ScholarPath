@@ -2,7 +2,7 @@
   "title": "My Applications",
   "subtitle": "Track and manage your scholarship applications in one place.",
   "addExternal": "Add External",
-  "companyFallback": "Company",
+  "scholarshipProviderFallback": "ScholarshipProvider",
   "stats": {
     "total": "Total",
     "active": "Active",
@@ -64,7 +64,7 @@
     "success": "External application added.",
     "error": "Could not add the application. Please try again."
   },
-  "companyReview": {
+  "scholarshipProviderReview": {
     "title": "Review Applications",
     "subtitle": "Manage and review incoming scholarship applications.",
     "searchPlaceholder": "Search students or scholarships...",

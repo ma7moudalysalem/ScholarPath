@@ -59,7 +59,7 @@
   "roles": {
     "Student": "طالب",
     "Consultant": "مستشار",
-    "Company": "شركة",
+    "ScholarshipProvider": "شركة",
     "Admin": "مشرف",
     "SuperAdmin": "مشرف عام",
     "Unassigned": "غير مُعيّن"

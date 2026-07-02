@@ -6,22 +6,22 @@ import { usePaymentsEnabled } from '@/hooks/usePlatformStatus';
 interface SubmitConfirmationProps {
   applicationId: string;
   scholarshipTitle: string;
-  companyName: string;
+  scholarshipProviderName: string;
   reviewFeeUsd: number;
   onPaymentSuccess: () => void;
   onCancel: () => void;
 }
 
 /**
- * CompanyReview fee confirmation modal. Hosts the StripeCheckout widget
- * configured for the CompanyReview manual-capture flow: the student
+ * ScholarshipProviderReview fee confirmation modal. Hosts the StripeCheckout widget
+ * configured for the ScholarshipProviderReview manual-capture flow: the student
  * authorizes a hold now and the company captures it when the review is
  * accepted. (PB-005 v1.)
  */
 export function ApplicationSubmitConfirmation({
   applicationId,
   scholarshipTitle,
-  companyName,
+  scholarshipProviderName,
   reviewFeeUsd,
   onPaymentSuccess,
   onCancel,
@@ -63,7 +63,7 @@ export function ApplicationSubmitConfirmation({
               <div className="space-y-1">
                 <p className="font-medium">{t('submit.escrowNoticeTitle')}</p>
                 <p className="text-brand-600">
-                  {t('submit.escrowNoticeDesc', { company: companyName })}
+                  {t('submit.escrowNoticeDesc', { company: scholarshipProviderName })}
                 </p>
               </div>
             </div>
@@ -86,7 +86,7 @@ export function ApplicationSubmitConfirmation({
                 {t('submit.paymentDetails')}
               </p>
               <StripeCheckout
-                paymentType="CompanyReview"
+                paymentType="ScholarshipProviderReview"
                 applicationId={applicationId}
                 amountCents={Math.round(reviewFeeUsd * 100)}
                 currency="USD"

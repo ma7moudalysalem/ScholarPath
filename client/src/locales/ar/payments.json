@@ -20,7 +20,7 @@
   },
   "paymentType": {
     "ConsultantBooking": "حجز استشاري",
-    "CompanyReview": "مراجعة شركة"
+    "ScholarshipProviderReview": "مراجعة شركة"
   },
   "payoutStatus": {
     "Pending": "قيد الانتظار",
@@ -211,9 +211,9 @@
     "studentTitle": "طلبات المراجعة الخاصة بي",
     "studentSubtitle": "طلبات دعم التقديم المدفوعة التي أرسلتها للشركات. تحتفظ سكولر باث بالمبلغ على بطاقتك ولا تخصمه إلا بعد قبول الشركة للطلب.",
     "studentEmpty": "لم تبدأ أي طلب مراجعة مدفوع بعد.",
-    "companyTitle": "طلبات المراجعة الواردة",
-    "companySubtitle": "اقبل لخصم المبلغ المحجوز وبدء الخدمة. ارفض للإفراج عن الحجز دون خصم.",
-    "companyEmpty": "لا توجد طلبات مراجعة واردة بعد.",
+    "scholarshipProviderTitle": "طلبات المراجعة الواردة",
+    "scholarshipProviderSubtitle": "اقبل لخصم المبلغ المحجوز وبدء الخدمة. ارفض للإفراج عن الحجز دون خصم.",
+    "scholarshipProviderEmpty": "لا توجد طلبات مراجعة واردة بعد.",
     "fee": "رسوم المراجعة",
     "held": "محجوز",
     "captured": "مُحصَّل",
@@ -222,7 +222,7 @@
     "commission": "عمولة المنصة (10٪)",
     "share": "حصتك (90٪)",
     "reference": "المرجع",
-    "unknownCompany": "شركة غير معروفة",
+    "unknownScholarshipProvider": "شركة غير معروفة",
     "unknownStudent": "طالب غير معروف",
     "cancel": "إلغاء الطلب",
     "cancelWithRefund": "إلغاء (استرداد 50٪)",
@@ -246,7 +246,7 @@
       "Cancelled": "مُلغى",
       "Failed": "فشل الدفع",
       "CancelledByStudent": "ألغى الطالب",
-      "RejectedByCompany": "رفضت الشركة",
+      "RejectedByScholarshipProvider": "رفضت الشركة",
       "Expired": "منتهي الصلاحية"
     }
   }

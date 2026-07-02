@@ -20,7 +20,7 @@
   },
   "paymentType": {
     "ConsultantBooking": "Consultant booking",
-    "CompanyReview": "Company review"
+    "ScholarshipProviderReview": "ScholarshipProvider review"
   },
   "payoutStatus": {
     "Pending": "Pending",
@@ -211,9 +211,9 @@
     "studentTitle": "My review requests",
     "studentSubtitle": "Paid application-support requests you've sent to companies. ScholarPath authorises your card up-front and only captures the fee once the company accepts.",
     "studentEmpty": "You haven't started any paid review requests yet.",
-    "companyTitle": "Incoming review requests",
-    "companySubtitle": "Accept to capture the held payment and start the service. Reject to release the hold without charging the student.",
-    "companyEmpty": "No incoming review requests yet.",
+    "scholarshipProviderTitle": "Incoming review requests",
+    "scholarshipProviderSubtitle": "Accept to capture the held payment and start the service. Reject to release the hold without charging the student.",
+    "scholarshipProviderEmpty": "No incoming review requests yet.",
     "fee": "Review fee",
     "held": "Held",
     "captured": "Captured",
@@ -222,7 +222,7 @@
     "commission": "Platform commission (10%)",
     "share": "Your share (90%)",
     "reference": "Reference",
-    "unknownCompany": "Unknown company",
+    "unknownScholarshipProvider": "Unknown company",
     "unknownStudent": "Unknown student",
     "cancel": "Cancel request",
     "cancelWithRefund": "Cancel (50% refund)",
@@ -246,7 +246,7 @@
       "Cancelled": "Cancelled",
       "Failed": "Payment failed",
       "CancelledByStudent": "Cancelled by student",
-      "RejectedByCompany": "Rejected by company",
+      "RejectedByScholarshipProvider": "Rejected by company",
       "Expired": "Expired"
     }
   }

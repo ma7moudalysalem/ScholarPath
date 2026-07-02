@@ -31,15 +31,15 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-/** Renders the submitted onboarding profile snapshot — Company or Consultant. */
+/** Renders the submitted onboarding profile snapshot — ScholarshipProvider or Consultant. */
 function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
   const { t, i18n } = useTranslation(["admin"]);
-  const isCompany = row.requestedRole === "Company";
+  const isScholarshipProvider = row.requestedRole === "ScholarshipProvider";
   const isConsultant = row.requestedRole === "Consultant";
 
   return (
     <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
-      {isCompany && (
+      {isScholarshipProvider && (
         <>
           <Row label={t("admin:onboarding.profile.legalName")} value={row.organizationLegalName} />
           <Row label={t("admin:onboarding.profile.website")} value={
@@ -50,16 +50,16 @@ function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
           } />
           <Row label={t("admin:onboarding.profile.orgEmail")} value={row.organizationEmail} />
           <Row label={t("admin:onboarding.profile.country")} value={row.organizationCountry} />
-          <Row label={t("admin:onboarding.profile.companyType")} value={row.companyType} />
+          <Row label={t("admin:onboarding.profile.scholarshipProviderType")} value={row.scholarshipProviderType} />
           <Row label={t("admin:onboarding.profile.registrationNumber")} value={row.organizationRegistrationNumber} />
           <Row label={t("admin:onboarding.profile.taxNumber")} value={row.organizationTaxNumber} />
           <Row label={t("admin:onboarding.profile.contactName")} value={row.contactPersonFullName} />
           <Row label={t("admin:onboarding.profile.contactPosition")} value={row.contactPersonPosition} />
           <Row label={t("admin:onboarding.profile.phone")} value={row.contactPhoneNumber} />
-          {row.companyDescription && (
+          {row.scholarshipProviderDescription && (
             <div className="sm:col-span-2 lg:col-span-3">
               <Row label={t("admin:onboarding.profile.description")} value={
-                <p className="whitespace-pre-wrap">{row.companyDescription}</p>
+                <p className="whitespace-pre-wrap">{row.scholarshipProviderDescription}</p>
               } />
             </div>
           )}

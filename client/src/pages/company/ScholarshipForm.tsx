@@ -71,7 +71,7 @@ function makeSchema(t: TFunction) {
   const tooLong = t("errors:validate.tooLong");
   const englishOnly = t("errors:validate.englishOnly");
   const arabicOnly = t("errors:validate.arabicOnly");
-  const deadlineMsg = t("moderation:companyScholarships.form.deadlineHint");
+  const deadlineMsg = t("moderation:scholarshipProviderScholarships.form.deadlineHint");
 
   // Single schema — funding type and target level are always validated, but
   // only sent to the server in create mode. In edit mode the form keeps them
@@ -106,8 +106,8 @@ function makeSchema(t: TFunction) {
     // check before the range rules run.
     reviewFeeUsd: z
       .number({ error: required })
-      .gte(0, t("moderation:companyScholarships.form.reviewFeeMin"))
-      .lte(500, t("moderation:companyScholarships.form.reviewFeeMax")),
+      .gte(0, t("moderation:scholarshipProviderScholarships.form.reviewFeeMin"))
+      .lte(500, t("moderation:scholarshipProviderScholarships.form.reviewFeeMax")),
     requiredDocuments: z.array(z.string()).optional(),
   });
 }
@@ -127,7 +127,7 @@ export function ScholarshipForm() {
   const queryClient = useQueryClient();
   // Master payments switch. When off, the Review Service Fee input is hidden
   // and the form auto-submits 0 — the server enforces the same rule, but the
-  // UI is gated here so the Company isn't shown a price field they can't use.
+  // UI is gated here so the ScholarshipProvider isn't shown a price field they can't use.
   const paymentsEnabled = usePaymentsEnabled();
 
   const schema = useMemo(() => makeSchema(t), [t]);
@@ -145,7 +145,7 @@ export function ScholarshipForm() {
       targetLevel: "Undergrad",
       fieldsOfStudy: [],
       requiredDocuments: [],
-      // Sensible default so a Company can submit quickly. When the platform's
+      // Sensible default so a ScholarshipProvider can submit quickly. When the platform's
       // master payments switch is off, the form auto-populates 0 and hides the
       // input below — validation still catches negative / >500 / >2dp.
       reviewFeeUsd: paymentsEnabled ? 50 : 0,
@@ -196,7 +196,7 @@ export function ScholarshipForm() {
     mutationFn: (input: CreateScholarshipInput) =>
       scholarshipsApi.createScholarship(input),
     onSuccess: () => {
-      toast.success(t("moderation:companyScholarships.form.createSuccess"));
+      toast.success(t("moderation:scholarshipProviderScholarships.form.createSuccess"));
       void queryClient.invalidateQueries({
         queryKey: ["company", "scholarships", "mine"],
       });
@@ -204,7 +204,7 @@ export function ScholarshipForm() {
     },
     onError: (err) =>
       toast.error(
-        apiErrorMessage(err, t("moderation:companyScholarships.form.error")),
+        apiErrorMessage(err, t("moderation:scholarshipProviderScholarships.form.error")),
       ),
   });
 
@@ -212,7 +212,7 @@ export function ScholarshipForm() {
     mutationFn: ({ id, input }: { id: string; input: UpdateScholarshipInput }) =>
       scholarshipsApi.updateScholarship(id, input),
     onSuccess: () => {
-      toast.success(t("moderation:companyScholarships.form.updateSuccess"));
+      toast.success(t("moderation:scholarshipProviderScholarships.form.updateSuccess"));
       void queryClient.invalidateQueries({
         queryKey: ["company", "scholarships", "mine"],
       });
@@ -223,7 +223,7 @@ export function ScholarshipForm() {
     },
     onError: (err) =>
       toast.error(
-        apiErrorMessage(err, t("moderation:companyScholarships.form.error")),
+        apiErrorMessage(err, t("moderation:scholarshipProviderScholarships.form.error")),
       ),
   });
 
@@ -280,20 +280,20 @@ export function ScholarshipForm() {
       <div className="mb-6 flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
           {mode === "edit"
-            ? t("moderation:companyScholarships.form.titleEdit")
-            : t("moderation:companyScholarships.form.titleCreate")}
+            ? t("moderation:scholarshipProviderScholarships.form.titleEdit")
+            : t("moderation:scholarshipProviderScholarships.form.titleCreate")}
         </h1>
         <Link
           to={returnPath}
           className="text-sm text-text-secondary hover:text-text-primary hover:underline"
         >
-          {t("moderation:companyScholarships.form.back")}
+          {t("moderation:scholarshipProviderScholarships.form.back")}
         </Link>
       </div>
 
       {isLoadingDetail && (
         <div className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 text-sm text-text-tertiary">
-          {t("moderation:companyScholarships.loading")}
+          {t("moderation:scholarshipProviderScholarships.loading")}
         </div>
       )}
 
@@ -303,19 +303,19 @@ export function ScholarshipForm() {
           className="space-y-5 rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-sm sm:p-8"
         >
           {mode === "create" && (
-            // Company-created listings now flow into the admin moderation
+            // ScholarshipProvider-created listings now flow into the admin moderation
             // queue (Status=UnderReview) and become Open only after Approve.
             // Surface that expectation up-front so the company doesn't wonder
             // why students can't immediately find the listing.
             <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
-              {t("moderation:companyScholarships.form.reviewNotice")}
+              {t("moderation:scholarshipProviderScholarships.form.reviewNotice")}
             </div>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               id="titleEn"
-              label={t("moderation:companyScholarships.form.titleEn")}
+              label={t("moderation:scholarshipProviderScholarships.form.titleEn")}
               error={errors.titleEn?.message}
             >
               <input
@@ -328,7 +328,7 @@ export function ScholarshipForm() {
             </Field>
             <Field
               id="titleAr"
-              label={t("moderation:companyScholarships.form.titleAr")}
+              label={t("moderation:scholarshipProviderScholarships.form.titleAr")}
               error={errors.titleAr?.message}
             >
               <input
@@ -344,7 +344,7 @@ export function ScholarshipForm() {
 
           <Field
             id="descriptionEn"
-            label={t("moderation:companyScholarships.form.descriptionEn")}
+            label={t("moderation:scholarshipProviderScholarships.form.descriptionEn")}
             error={errors.descriptionEn?.message}
           >
             <textarea
@@ -357,7 +357,7 @@ export function ScholarshipForm() {
 
           <Field
             id="descriptionAr"
-            label={t("moderation:companyScholarships.form.descriptionAr")}
+            label={t("moderation:scholarshipProviderScholarships.form.descriptionAr")}
             error={errors.descriptionAr?.message}
           >
             <textarea
@@ -371,7 +371,7 @@ export function ScholarshipForm() {
 
           <Field
             id="categoryId"
-            label={t("moderation:companyScholarships.form.category")}
+            label={t("moderation:scholarshipProviderScholarships.form.category")}
             error={errors.categoryId?.message}
           >
             <select
@@ -382,8 +382,8 @@ export function ScholarshipForm() {
             >
               <option value="">
                 {categoriesQuery.isLoading
-                  ? t("moderation:companyScholarships.form.categoryLoading")
-                  : t("moderation:companyScholarships.form.categoryPlaceholder")}
+                  ? t("moderation:scholarshipProviderScholarships.form.categoryLoading")
+                  : t("moderation:scholarshipProviderScholarships.form.categoryPlaceholder")}
               </option>
               {categoriesQuery.data?.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -395,8 +395,8 @@ export function ScholarshipForm() {
 
           <Field
             id="deadline"
-            label={t("moderation:companyScholarships.form.deadline")}
-            hint={t("moderation:companyScholarships.form.deadlineHint")}
+            label={t("moderation:scholarshipProviderScholarships.form.deadline")}
+            hint={t("moderation:scholarshipProviderScholarships.form.deadlineHint")}
             error={errors.deadline?.message}
           >
             {/* Controller wraps the custom DatePicker so react-hook-form can
@@ -418,8 +418,8 @@ export function ScholarshipForm() {
 
           <Field
             id="fieldsOfStudy"
-            label={t("moderation:companyScholarships.form.fieldsOfStudy")}
-            hint={t("moderation:companyScholarships.form.fieldsOfStudyHint")}
+            label={t("moderation:scholarshipProviderScholarships.form.fieldsOfStudy")}
+            hint={t("moderation:scholarshipProviderScholarships.form.fieldsOfStudyHint")}
           >
             <Controller
               control={form.control}
@@ -457,8 +457,8 @@ export function ScholarshipForm() {
 
           <Field
             id="requiredDocuments"
-            label={t("moderation:companyScholarships.form.requiredDocs")}
-            hint={t("moderation:companyScholarships.form.requiredDocsHint")}
+            label={t("moderation:scholarshipProviderScholarships.form.requiredDocs")}
+            hint={t("moderation:scholarshipProviderScholarships.form.requiredDocsHint")}
           >
             <Controller
               control={form.control}
@@ -467,10 +467,10 @@ export function ScholarshipForm() {
                 <RequiredDocsEditor
                   value={field.value ?? []}
                   onChange={field.onChange}
-                  addLabel={t("moderation:companyScholarships.form.requiredDocsAdd")}
-                  placeholder={t("moderation:companyScholarships.form.requiredDocsPlaceholder")}
-                  emptyLabel={t("moderation:companyScholarships.form.requiredDocsEmpty")}
-                  removeLabel={(doc) => t("moderation:companyScholarships.form.requiredDocsRemove", { doc })}
+                  addLabel={t("moderation:scholarshipProviderScholarships.form.requiredDocsAdd")}
+                  placeholder={t("moderation:scholarshipProviderScholarships.form.requiredDocsPlaceholder")}
+                  emptyLabel={t("moderation:scholarshipProviderScholarships.form.requiredDocsEmpty")}
+                  removeLabel={(doc) => t("moderation:scholarshipProviderScholarships.form.requiredDocsRemove", { doc })}
                 />
               )}
             />
@@ -479,8 +479,8 @@ export function ScholarshipForm() {
           {paymentsEnabled ? (
             <Field
               id="reviewFeeUsd"
-              label={t("moderation:companyScholarships.form.reviewFee")}
-              hint={t("moderation:companyScholarships.form.reviewFeeHint")}
+              label={t("moderation:scholarshipProviderScholarships.form.reviewFee")}
+              hint={t("moderation:scholarshipProviderScholarships.form.reviewFeeHint")}
               error={errors.reviewFeeUsd?.message}
             >
               {/* Stored as a number so the zod schema's gte(0) / lte(500) rules
@@ -509,9 +509,9 @@ export function ScholarshipForm() {
             </Field>
           ) : (
             // Payments disabled platform-wide — the input is hidden and the
-            // form submits 0 by default. A small notice tells the Company why.
+            // form submits 0 by default. A small notice tells the ScholarshipProvider why.
             <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
-              {t("moderation:companyScholarships.form.paymentsDisabledNotice")}
+              {t("moderation:scholarshipProviderScholarships.form.paymentsDisabledNotice")}
             </div>
           )}
 
@@ -519,7 +519,7 @@ export function ScholarshipForm() {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 id="fundingType"
-                label={t("moderation:companyScholarships.form.fundingType")}
+                label={t("moderation:scholarshipProviderScholarships.form.fundingType")}
                 error={errors.fundingType?.message}
               >
                 <select
@@ -529,14 +529,14 @@ export function ScholarshipForm() {
                 >
                   {FUNDING_TYPES.map((v) => (
                     <option key={v} value={v}>
-                      {t(`moderation:companyScholarships.form.fundingTypeOptions.${v}`)}
+                      {t(`moderation:scholarshipProviderScholarships.form.fundingTypeOptions.${v}`)}
                     </option>
                   ))}
                 </select>
               </Field>
               <Field
                 id="targetLevel"
-                label={t("moderation:companyScholarships.form.targetLevel")}
+                label={t("moderation:scholarshipProviderScholarships.form.targetLevel")}
                 error={errors.targetLevel?.message}
               >
                 <select
@@ -546,7 +546,7 @@ export function ScholarshipForm() {
                 >
                   {ACADEMIC_LEVELS.map((v) => (
                     <option key={v} value={v}>
-                      {t(`moderation:companyScholarships.form.targetLevelOptions.${v}`)}
+                      {t(`moderation:scholarshipProviderScholarships.form.targetLevelOptions.${v}`)}
                     </option>
                   ))}
                 </select>
@@ -559,7 +559,7 @@ export function ScholarshipForm() {
               to={returnPath}
               className="inline-flex h-11 items-center justify-center rounded-lg border border-border-default bg-bg-subtle px-5 text-sm font-medium text-text-primary transition hover:border-border-strong hover:bg-bg-elevated"
             >
-              {t("moderation:companyScholarships.form.cancel")}
+              {t("moderation:scholarshipProviderScholarships.form.cancel")}
             </Link>
             <button
               type="submit"
@@ -570,10 +570,10 @@ export function ScholarshipForm() {
                 <Loader2 className="size-4 animate-spin" aria-hidden />
               )}
               {isSubmitting
-                ? t("moderation:companyScholarships.form.submitting")
+                ? t("moderation:scholarshipProviderScholarships.form.submitting")
                 : mode === "edit"
-                  ? t("moderation:companyScholarships.form.submitEdit")
-                  : t("moderation:companyScholarships.form.submitCreate")}
+                  ? t("moderation:scholarshipProviderScholarships.form.submitEdit")
+                  : t("moderation:scholarshipProviderScholarships.form.submitCreate")}
             </button>
           </div>
         </form>

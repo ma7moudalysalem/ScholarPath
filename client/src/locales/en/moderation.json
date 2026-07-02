@@ -103,7 +103,7 @@
     "InApp": "In-app",
     "External": "External"
   },
-  "companyScholarships": {
+  "scholarshipProviderScholarships": {
     "title": "My scholarships",
     "subtitle": "Every scholarship listing your organisation has created.",
     "loading": "Loading scholarships…",

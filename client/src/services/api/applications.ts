@@ -18,8 +18,8 @@ export interface StudentApplicationRow {
   /** Null when the tracker is a purely off-platform scholarship (no catalogue link). */
   scholarshipId: string | null;
   scholarshipTitle: string;
-  companyId: string | null;
-  companyName: string | null;
+  scholarshipProviderId: string | null;
+  scholarshipProviderName: string | null;
   status: ApplicationStatus;
   mode: "InApp" | "External";
   updatedAt: string;
@@ -51,13 +51,13 @@ export interface CreateExternalApplicationRequest {
 }
 
 /**
- * Mirrors the server's `CompanyApplicationRow` record (camelCase on the wire).
+ * Mirrors the server's `ScholarshipProviderApplicationRow` record (camelCase on the wire).
  * The server returns `applicationId` + `submittedAt`; the latter is nullable
  * because drafts have no submission date yet. There is no `studentEmail` /
  * `createdAt` on this DTO — earlier shapes referenced them but they never
  * existed in the wire payload.
  */
-export interface CompanyApplicationRow {
+export interface ScholarshipProviderApplicationRow {
   applicationId: string;
   studentId: string;
   studentName: string;
@@ -72,7 +72,7 @@ export interface ApplicationDetail {
   scholarshipId: string | null;
   scholarshipTitleEn: string;
   scholarshipTitleAr: string;
-  companyName: string | null;
+  scholarshipProviderName: string | null;
   status: ApplicationStatus;
   mode: "InApp" | "External";
   formDataJson: string | null;
@@ -88,7 +88,7 @@ export interface ApplicationDetail {
   reviewStartedAt: string | null;
   decisionAt: string | null;
   /**
-   * CompanyReview fee in USD. Null/0 = no review fee, submit directly;
+   * ScholarshipProviderReview fee in USD. Null/0 = no review fee, submit directly;
    * > 0 = the submit flow must first collect a manual-capture payment held
    * in escrow until the company finalises the review (PB-005 v1).
    */
@@ -129,24 +129,24 @@ export const applicationsApi = {
     return data;
   },
 
-  async submitReview(applicationId: string, companyId: string, rating: number, comment: string): Promise<void> {
+  async submitReview(applicationId: string, scholarshipProviderId: string, rating: number, comment: string): Promise<void> {
     await apiClient.post(`/api/company-reviews`, {
       applicationId,
-      companyId,
+      scholarshipProviderId,
       rating,
       comment,
     });
   },
 
-  async getCompanyApplications(scholarshipId?: string, page = 1, pageSize = 25, status?: ApplicationStatus): Promise<PagedResult<CompanyApplicationRow>> {
-    const { data } = await apiClient.get<PagedResult<CompanyApplicationRow>>("/api/applications/company", {
+  async getScholarshipProviderApplications(scholarshipId?: string, page = 1, pageSize = 25, status?: ApplicationStatus): Promise<PagedResult<ScholarshipProviderApplicationRow>> {
+    const { data } = await apiClient.get<PagedResult<ScholarshipProviderApplicationRow>>("/api/applications/company", {
       params: { scholarshipId, page, pageSize, status },
     });
     return data;
   },
 
-  async getCompanyApplicationDetails(id: string): Promise<CompanyApplicationRow> {
-    const { data } = await apiClient.get<CompanyApplicationRow>(`/api/applications/company/${id}`);
+  async getScholarshipProviderApplicationDetails(id: string): Promise<ScholarshipProviderApplicationRow> {
+    const { data } = await apiClient.get<ScholarshipProviderApplicationRow>(`/api/applications/company/${id}`);
     return data;
   },
 

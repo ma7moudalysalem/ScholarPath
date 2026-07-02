@@ -26,15 +26,15 @@ import { documentsApi } from "@/services/api/documents";
 import { useAuthStore } from "@/stores/authStore";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
-type RoleKey = "Student" | "Company" | "Consultant";
+type RoleKey = "Student" | "ScholarshipProvider" | "Consultant";
 
 const ROLES: { key: RoleKey; i18n: string; icon: typeof GraduationCap }[] = [
   { key: "Student", i18n: "student", icon: GraduationCap },
-  { key: "Company", i18n: "company", icon: Building2 },
+  { key: "ScholarshipProvider", i18n: "company", icon: Building2 },
   { key: "Consultant", i18n: "consultant", icon: Users },
 ];
 
-const COMPANY_TYPES = ["University", "NGO", "Company", "Foundation", "Government", "Other"] as const;
+const COMPANY_TYPES = ["University", "NGO", "Corporation", "Foundation", "Government", "Other"] as const;
 // AUTH-CODE-04 — canonical session-duration list shared with the Profile module.
 // Backend mirror: SelectRoleCommandValidator.AllowedSessionDurations.
 const SESSION_DURATIONS = [30, 45, 60, 90, 120] as const;
@@ -97,7 +97,7 @@ function Labeled({
 }
 
 /**
- * Awaiting-review screen for a Company / Consultant. Beyond the status message
+ * Awaiting-review screen for a ScholarshipProvider / Consultant. Beyond the status message
  * it lets the applicant upload supporting verification documents (registration
  * certificate, credentials) for the admin reviewer — UAT TC-001/002.
  */
@@ -208,18 +208,18 @@ function PendingReview() {
   );
 }
 
-// ── Company onboarding form ────────────────────────────────────────────────
+// ── ScholarshipProvider onboarding form ────────────────────────────────────────────────
 // AUTH-CODE-03 — applicability is a tri-state on the wire: null = "not asked",
 // true = "yes, registered", false = "no, with a reason". The form uses
 // "" | "yes" | "no" for the radio selection and maps to bool/null on submit.
 type Applicability = "" | "yes" | "no";
 
-interface CompanyFormState {
+interface ScholarshipProviderFormState {
   legalName: string;
   website: string;
   email: string;
   country: string;
-  companyType: string;
+  scholarshipProviderType: string;
   description: string;
   registrationNumber: string;
   taxNumber: string;
@@ -233,13 +233,13 @@ interface CompanyFormState {
   taxNotApplicableReason: string;
 }
 
-function emptyCompany(): CompanyFormState {
+function emptyScholarshipProvider(): ScholarshipProviderFormState {
   return {
     legalName: "",
     website: "",
     email: "",
     country: "",
-    companyType: "",
+    scholarshipProviderType: "",
     description: "",
     registrationNumber: "",
     taxNumber: "",
@@ -253,7 +253,7 @@ function emptyCompany(): CompanyFormState {
   };
 }
 
-function validateCompany(c: CompanyFormState): Record<string, string> {
+function validateScholarshipProvider(c: ScholarshipProviderFormState): Record<string, string> {
   const errs: Record<string, string> = {};
   if (!c.legalName.trim()) errs.legalName = "Required";
   else if (c.legalName.length > 200) errs.legalName = "Max 200 characters";
@@ -263,7 +263,7 @@ function validateCompany(c: CompanyFormState): Record<string, string> {
   if (!c.email.trim()) errs.email = "Required";
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) errs.email = "Must be a valid email";
   if (!c.country.trim()) errs.country = "Required";
-  if (!c.companyType) errs.companyType = "Required";
+  if (!c.scholarshipProviderType) errs.scholarshipProviderType = "Required";
   if (!c.description.trim()) errs.description = "Required";
   // AUTH-CODE-04 — description max is 2000 (was 1000).
   else if (c.description.length > 2000) errs.description = "Max 2000 characters";
@@ -402,15 +402,15 @@ export function OnboardingWizard() {
   const paymentsEnabled = usePaymentsEnabled();
 
   const [step, setStep] = useState<"role" | "details">("role");
-  const [detailsRole, setDetailsRole] = useState<"Company" | "Consultant">("Company");
+  const [detailsRole, setDetailsRole] = useState<"ScholarshipProvider" | "Consultant">("ScholarshipProvider");
   const [submitting, setSubmitting] = useState(false);
 
-  const [company, setCompany] = useState<CompanyFormState>(emptyCompany);
-  const [companyErrors, setCompanyErrors] = useState<Record<string, string>>({});
+  const [company, setScholarshipProvider] = useState<ScholarshipProviderFormState>(emptyScholarshipProvider);
+  const [scholarshipProviderErrors, setScholarshipProviderErrors] = useState<Record<string, string>>({});
   const [consultant, setConsultant] = useState<ConsultantFormState>(emptyConsultant);
   const [consultantErrors, setConsultantErrors] = useState<Record<string, string>>({});
 
-  // A Company/Consultant who already chose their role is awaiting admin review.
+  // A ScholarshipProvider/Consultant who already chose their role is awaiting admin review.
   if (user?.accountStatus === "PendingApproval") {
     return <PendingReview />;
   }
@@ -444,20 +444,20 @@ export function OnboardingWizard() {
 
   function submitDetails(e: React.FormEvent) {
     e.preventDefault();
-    if (detailsRole === "Company") {
-      const errs = validateCompany(company);
-      setCompanyErrors(errs);
+    if (detailsRole === "ScholarshipProvider") {
+      const errs = validateScholarshipProvider(company);
+      setScholarshipProviderErrors(errs);
       if (Object.keys(errs).length > 0) {
         toast.error(t("auth:onboarding.details.required"));
         return;
       }
-      void submitRole("Company", {
+      void submitRole("ScholarshipProvider", {
         organizationLegalName: company.legalName.trim(),
         organizationWebsite: company.website.trim(),
         organizationEmail: company.email.trim(),
         organizationCountry: company.country.trim(),
-        companyType: company.companyType,
-        companyDescription: company.description.trim(),
+        scholarshipProviderType: company.scholarshipProviderType,
+        scholarshipProviderDescription: company.description.trim(),
         organizationRegistrationNumber: company.registrationNumber.trim() || null,
         organizationTaxNumber: company.taxNumber.trim() || null,
         contactPersonFullName: company.contactName.trim(),
@@ -513,9 +513,9 @@ export function OnboardingWizard() {
   // (ProgressBar component is declared at module scope below to satisfy
   // react-hooks/static-components — components must not be created on each render.)
 
-  // ── Step 2 — Company / Consultant profile details ──────────────────────────
+  // ── Step 2 — ScholarshipProvider / Consultant profile details ──────────────────────────
   if (step === "details") {
-    const isCompany = detailsRole === "Company";
+    const isScholarshipProvider = detailsRole === "ScholarshipProvider";
     return (
       <section className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
         <ProgressBar current={2} detailsLabel={t("auth:onboarding.documents.title", "Details")} />
@@ -538,22 +538,22 @@ export function OnboardingWizard() {
           <div className="card-premium p-6 sm:p-8">
             <h1 className="mb-2 text-3xl font-bold tracking-tight">
               {t(
-                isCompany
-                  ? "auth:onboarding.details.companyHeading"
+                isScholarshipProvider
+                  ? "auth:onboarding.details.scholarshipProviderHeading"
                   : "auth:onboarding.details.consultantHeading",
               )}
             </h1>
             <p className="mb-8 text-text-secondary">
               {t(
-                isCompany
-                  ? "auth:onboarding.details.companySubtitle"
+                isScholarshipProvider
+                  ? "auth:onboarding.details.scholarshipProviderSubtitle"
                   : "auth:onboarding.details.consultantSubtitle",
               )}
             </p>
 
             <form onSubmit={submitDetails} className="space-y-6" noValidate>
-              {isCompany ? (
-                <CompanyForm value={company} onChange={setCompany} errors={companyErrors} />
+              {isScholarshipProvider ? (
+                <ScholarshipProviderForm value={company} onChange={setScholarshipProvider} errors={scholarshipProviderErrors} />
               ) : (
                 <ConsultantForm value={consultant} onChange={setConsultant} errors={consultantErrors} />
               )}
@@ -703,17 +703,17 @@ function ApplicabilityField({
   );
 }
 
-function CompanyForm({
+function ScholarshipProviderForm({
   value,
   onChange,
   errors,
 }: {
-  value: CompanyFormState;
-  onChange: (v: CompanyFormState) => void;
+  value: ScholarshipProviderFormState;
+  onChange: (v: ScholarshipProviderFormState) => void;
   errors: Record<string, string>;
 }) {
   const { t } = useTranslation(["auth"]);
-  const set = <K extends keyof CompanyFormState>(k: K, v: CompanyFormState[K]) =>
+  const set = <K extends keyof ScholarshipProviderFormState>(k: K, v: ScholarshipProviderFormState[K]) =>
     onChange({ ...value, [k]: v });
   // `optional` was used by the previous registration/tax inputs, kept here to
   // preserve the legacy hint helper in case the form is extended.
@@ -737,12 +737,12 @@ function CompanyForm({
         <input className={`h-11 ${fieldClass}`} value={value.country}
           onChange={(e) => set("country", e.target.value)} maxLength={80} />
       </Labeled>
-      <Labeled label={t("auth:onboarding.company.companyType")} required error={errors.companyType}>
-        <select className={`h-11 ${fieldClass}`} value={value.companyType}
-          onChange={(e) => set("companyType", e.target.value)}>
+      <Labeled label={t("auth:onboarding.company.scholarshipProviderType")} required error={errors.scholarshipProviderType}>
+        <select className={`h-11 ${fieldClass}`} value={value.scholarshipProviderType}
+          onChange={(e) => set("scholarshipProviderType", e.target.value)}>
           <option value="">—</option>
           {COMPANY_TYPES.map((ct) => (
-            <option key={ct} value={ct}>{t(`auth:onboarding.companyTypes.${ct}`)}</option>
+            <option key={ct} value={ct}>{t(`auth:onboarding.scholarshipProviderTypes.${ct}`)}</option>
           ))}
         </select>
       </Labeled>

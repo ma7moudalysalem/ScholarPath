@@ -51,7 +51,7 @@ export const queryKeys = {
     availability: (id: string) => ["consultants", "availability", id] as const,
   },
   reviews: {
-    companyMine: ["reviews", "company", "mine"] as const,
+    scholarshipProviderMine: ["reviews", "company", "mine"] as const,
     consultantMine: ["reviews", "consultant", "mine"] as const,
   },
   notifications: {

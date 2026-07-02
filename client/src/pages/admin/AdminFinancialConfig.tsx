@@ -16,7 +16,7 @@ import {
 import type { PaymentType } from "@/services/api/payments";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
-const PAYMENT_TYPES: PaymentType[] = ["ConsultantBooking", "CompanyReview"];
+const PAYMENT_TYPES: PaymentType[] = ["ConsultantBooking", "ScholarshipProviderReview"];
 const FEE_KINDS: FeeKind[] = ["Percentage", "FixedAmount"];
 const STATUSES: FinancialRuleStatus[] = ["Draft", "Active", "Archived"];
 

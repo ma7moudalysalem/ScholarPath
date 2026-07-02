@@ -54,8 +54,8 @@ export interface PromptDialogProps {
  * <PromptDialog
  *   open={open}
  *   onOpenChange={setOpen}
- *   title={t("companyReview.decision.rejectPrompt.title")}
- *   inputLabel={t("companyReview.decision.rejectPrompt.label")}
+ *   title={t("scholarshipProviderReview.decision.rejectPrompt.title")}
+ *   inputLabel={t("scholarshipProviderReview.decision.rejectPrompt.label")}
  *   inputMultiline
  *   variant="destructive"
  *   loading={rejectMut.isPending}

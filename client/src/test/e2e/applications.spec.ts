@@ -53,19 +53,19 @@ test.describe("PB-004 T-021: full apply → company review → accept lifecycle"
     const scholarshipHeading = await studentPage.getByRole("heading", { level: 1 }).textContent();
     await studentCtx.close();
 
-    // --- Company: review and accept ---
-    const companyCtx = await browser.newContext();
-    const companyPage = await companyCtx.newPage();
-    await loginAs(companyPage, creds.company.email, creds.company.password);
-    await companyPage.goto("/company/applications-review");
+    // --- ScholarshipProvider: review and accept ---
+    const scholarshipProviderCtx = await browser.newContext();
+    const scholarshipProviderPage = await scholarshipProviderCtx.newPage();
+    await loginAs(scholarshipProviderPage, creds.company.email, creds.company.password);
+    await scholarshipProviderPage.goto("/company/applications-review");
 
     // Find the application in the queue and open it
-    const appRow = companyPage.getByText(scholarshipHeading ?? "").first();
+    const appRow = scholarshipProviderPage.getByText(scholarshipHeading ?? "").first();
     await expect(appRow).toBeVisible({ timeout: 10_000 });
-    await companyPage.getByRole("button", { name: /review/i }).first().click();
-    await companyPage.getByRole("button", { name: /accept|approve/i }).click();
-    await expect(companyPage.getByText(/accepted|approved/i)).toBeVisible({ timeout: 8_000 });
-    await companyCtx.close();
+    await scholarshipProviderPage.getByRole("button", { name: /review/i }).first().click();
+    await scholarshipProviderPage.getByRole("button", { name: /accept|approve/i }).click();
+    await expect(scholarshipProviderPage.getByText(/accepted|approved/i)).toBeVisible({ timeout: 8_000 });
+    await scholarshipProviderCtx.close();
 
     // --- Student: verify Accepted badge ---
     const studentCtx2 = await browser.newContext();

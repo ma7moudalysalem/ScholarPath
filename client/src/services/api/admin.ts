@@ -6,7 +6,7 @@ export type { PagedResult };
 
 // ─── enums (mirroring server) ────────────────────────────────────────────
 export type AccountStatus = "Unassigned" | "PendingApproval" | "Active" | "Suspended" | "Deactivated";
-export type UpgradeTarget = "Company" | "Consultant";
+export type UpgradeTarget = "ScholarshipProvider" | "Consultant";
 export type UpgradeRequestStatus = "Pending" | "Approved" | "Rejected" | "Cancelled";
 export type ApplicationStatus =
   | "Draft"
@@ -99,13 +99,13 @@ export interface OnboardingRequestRow {
   accountStatus: AccountStatus;
   createdAt: string;
   requestedRole: string | null;
-  // Company snapshot
+  // ScholarshipProvider snapshot
   organizationLegalName: string | null;
   organizationWebsite: string | null;
   organizationEmail: string | null;
   organizationCountry: string | null;
-  companyType: string | null;
-  companyDescription: string | null;
+  scholarshipProviderType: string | null;
+  scholarshipProviderDescription: string | null;
   organizationRegistrationNumber: string | null;
   organizationTaxNumber: string | null;
   contactPersonFullName: string | null;
@@ -138,15 +138,15 @@ export interface UpgradeRequestRow {
 }
 
 /**
- * PB-005R: a Company currently flagged in the low-rating admin queue.
+ * PB-005R: a ScholarshipProvider currently flagged in the low-rating admin queue.
  * `averageRating` is the snapshot at flag time; `reviewCount` and
  * `accountStatus` are live. `flaggedAt` is sticky — the queue is sorted
  * by it, newest first.
  */
-export interface LowRatedCompanyRow {
-  companyId: string;
+export interface LowRatedScholarshipProviderRow {
+  scholarshipProviderId: string;
   email: string;
-  companyName: string;
+  scholarshipProviderName: string;
   organizationLegalName: string | null;
   accountStatus: AccountStatus;
   averageRating: number | null;
@@ -374,16 +374,16 @@ export const adminApi = {
   async getLowRatedCompanies(
     page = 1,
     pageSize = 25,
-  ): Promise<PagedResult<LowRatedCompanyRow>> {
-    const { data } = await apiClient.get<PagedResult<LowRatedCompanyRow>>(
+  ): Promise<PagedResult<LowRatedScholarshipProviderRow>> {
+    const { data } = await apiClient.get<PagedResult<LowRatedScholarshipProviderRow>>(
       "/api/admin/low-rated-companies",
       { params: { page, pageSize } },
     );
     return data;
   },
-  async clearCompanyLowRatingFlag(companyId: string): Promise<void> {
+  async clearScholarshipProviderLowRatingFlag(scholarshipProviderId: string): Promise<void> {
     await apiClient.post(
-      `/api/admin/companies/${companyId}/clear-low-rating-flag`,
+      `/api/admin/companies/${scholarshipProviderId}/clear-low-rating-flag`,
     );
   },
 

@@ -24,8 +24,8 @@ export interface ReceivedReviewsSummary {
 }
 
 export const reviewsApi = {
-  /** Reviews received by the authenticated company. Requires the Company role. */
-  async companyMine(): Promise<ReceivedReviewsSummary> {
+  /** Reviews received by the authenticated company. Requires the ScholarshipProvider role. */
+  async scholarshipProviderMine(): Promise<ReceivedReviewsSummary> {
     const { data } = await apiClient.get<ReceivedReviewsSummary>(
       "/api/company-reviews/mine",
     );
