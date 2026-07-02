@@ -33,7 +33,7 @@ INSERT INTO @tables VALUES
     ('dbo', 'Scholarships'),         -- PB-003 catalog
     ('dbo', 'SavedScholarships'),    -- PB-003 bookmarks (CTR denominator)
     ('dbo', 'ApplicationTrackers'),  -- PB-004 applications (the big one)
-    ('dbo', 'CompanyReviews'),       -- PB-005 ratings
+    ('dbo', 'ScholarshipProviderReviews'),       -- PB-005 ratings
     ('dbo', 'ConsultantBookings'),   -- PB-006 bookings
     ('dbo', 'Payments'),             -- PB-013 payments (revenue truth)
     ('dbo', 'Payouts'),              -- PB-013 consultant payouts

@@ -9,7 +9,7 @@ Power BI RLS role mapping:
   Admin/SuperAdmin → roles=[]  (no filter)
   Consultant       → roles=['ConsultantScope']
   Student          → roles=['StudentScope']
-  Company          → roles=['CompanyScope']
+  ScholarshipProvider          → roles=['ScholarshipProviderScope']
 
 Prerequisites:
   pip install requests
@@ -68,10 +68,10 @@ CASES = [
         "expect_roles":  ["StudentScope"],
     },
     {
-        "label":         "Company (forbidden on ConsultantSelfAnalytics)",
+        "label":         "ScholarshipProvider (forbidden on ConsultantSelfAnalytics)",
         "token_env":     "E2E_COMPANY_TOKEN",
         "report_type":   "ConsultantSelfAnalytics",
-        "expect_status": 403,  # Company role is not allowed to access consultant reports
+        "expect_status": 403,  # ScholarshipProvider role is not allowed to access consultant reports
         "expect_config": None,
     },
 ]

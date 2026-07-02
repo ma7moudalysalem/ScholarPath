@@ -38,7 +38,7 @@ USING (VALUES
     ('dbo_Scholarships'),
     ('dbo_SavedScholarships'),
     ('dbo_ApplicationTrackers'),
-    ('dbo_CompanyReviews'),
+    ('dbo_ScholarshipProviderReviews'),
     ('dbo_ConsultantBookings'),
     ('dbo_Payments'),
     ('dbo_Payouts'),

@@ -27,7 +27,7 @@ vars:
     - Scholarships
     - SavedScholarships
     - ApplicationTrackers
-    - CompanyReviews
+    - ScholarshipProviderReviews
     - ConsultantBookings
     - Payments
     - Payouts
