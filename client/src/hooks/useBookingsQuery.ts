@@ -31,7 +31,7 @@ export function useConsultantBookingsQuery() {
   });
 }
 
-/** All bookings platform-wide — admin / company only. */
+/** All bookings platform-wide — admin only. */
 export function useAllBookingsQuery() {
   return useQuery<BookingListItem[]>({
     queryKey: queryKeys.bookings.admin,

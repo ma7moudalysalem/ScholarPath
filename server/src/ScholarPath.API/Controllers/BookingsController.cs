@@ -40,10 +40,10 @@ public sealed class BookingsController : ControllerBase
     // ─── Read / query endpoints ───────────────────────────────────────────────
 
     /// <summary>
-    /// Lists all bookings platform-wide — admin and company users only.
+    /// Lists all bookings platform-wide — admin users only.
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = "Admin,SuperAdmin,Company")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(typeof(IReadOnlyList<BookingListItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<BookingListItemDto>>> GetAllBookings(
         CancellationToken cancellationToken)
