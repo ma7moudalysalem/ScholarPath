@@ -29,7 +29,8 @@
     "resources": "مواردي",
     "insights": "التحليلات",
     "reviews": "التقييمات",
-    "bookings": "الحجوزات"
+    "bookings": "الحجوزات",
+    "messages": "الرسائل"
   },
   "consultant": {
     "dashboard": "لوحة التحكم",
@@ -39,7 +40,8 @@
     "resources": "مواردي",
     "analytics": "تحليلاتي",
     "earningsTrend": "اتجاه الأرباح",
-    "reviews": "التقييمات"
+    "reviews": "التقييمات",
+    "messages": "الرسائل"
   },
   "admin": {
     "dashboard": "لوحة التحكم",

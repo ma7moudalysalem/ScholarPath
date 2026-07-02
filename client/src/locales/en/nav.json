@@ -29,7 +29,8 @@
     "resources": "My resources",
     "insights": "Insights",
     "reviews": "Reviews",
-    "bookings": "Bookings"
+    "bookings": "Bookings",
+    "messages": "Messages"
   },
   "consultant": {
     "dashboard": "Dashboard",
@@ -39,7 +40,8 @@
     "resources": "My resources",
     "analytics": "My Analytics",
     "earningsTrend": "Earnings trend",
-    "reviews": "Reviews"
+    "reviews": "Reviews",
+    "messages": "Messages"
   },
   "admin": {
     "dashboard": "Dashboard",
