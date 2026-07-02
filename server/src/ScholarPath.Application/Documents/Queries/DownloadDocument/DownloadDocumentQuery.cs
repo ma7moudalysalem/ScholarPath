@@ -37,7 +37,7 @@ public sealed class DownloadDocumentQueryHandler(
         {
             // A company reviewer may download documents that are attached to an
             // application submitted against one of their own scholarships.
-            var isCompanyReviewer = currentUser.IsInRole("Company")
+            var isScholarshipProviderReviewer = currentUser.IsInRole("ScholarshipProvider")
                 && document.ApplicationTrackerId.HasValue
                 && await db.Applications
                     .AsNoTracking()
@@ -45,11 +45,11 @@ public sealed class DownloadDocumentQueryHandler(
                     .AnyAsync(
                         a => a.Id == document.ApplicationTrackerId.Value
                           && a.Scholarship != null
-                          && a.Scholarship.OwnerCompanyId == userId,
+                          && a.Scholarship.OwnerScholarshipProviderId == userId,
                         ct)
                     .ConfigureAwait(false);
 
-            if (!isCompanyReviewer)
+            if (!isScholarshipProviderReviewer)
                 throw new ForbiddenAccessException("You can only download your own documents.");
         }
 
