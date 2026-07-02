@@ -164,7 +164,7 @@ export const bookingsApi = {
     return data;
   },
 
-  /** All bookings platform-wide — admin / company only. */
+  /** All bookings platform-wide — admin only. */
   async getAll(): Promise<BookingListItem[]> {
     const { data } = await apiClient.get<BookingListItem[]>("/api/bookings");
     return data;
