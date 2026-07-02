@@ -1,5 +1,5 @@
 using MediatR;
-using ScholarPath.Application.CompanyReviews.DTOs;
+using ScholarPath.Application.ScholarshipProviderReviews.DTOs;
 
 namespace ScholarPath.Application.ConsultantBookings.Queries.GetMyReceivedReviews;
 
@@ -9,7 +9,7 @@ namespace ScholarPath.Application.ConsultantBookings.Queries.GetMyReceivedReview
 /// plus an aggregate average and count. The consultant is resolved from the
 /// current user; no id is accepted from the client.
 ///
-/// Reuses <see cref="ReceivedReviewsSummaryDto"/> (declared in the CompanyReviews
+/// Reuses <see cref="ReceivedReviewsSummaryDto"/> (declared in the ScholarshipProviderReviews
 /// DTOs) because the company and consultant "reviews received" surfaces share an
 /// identical shape — one wire contract, one client component.
 /// </summary>

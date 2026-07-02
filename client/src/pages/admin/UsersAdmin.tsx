@@ -22,10 +22,10 @@ const STATUSES: AccountStatus[] = ["Unassigned", "PendingApproval", "Active", "S
 // Real, seeded roles only. "Moderator" was never seeded into AspNetRoles (no
 // user can hold it, no [Authorize] uses it), so listing it just produced an
 // empty filter — drop it.
-const ROLES = ["Student", "Company", "Consultant", "Admin"];
+const ROLES = ["Student", "ScholarshipProvider", "Consultant", "Admin"];
 // Roles an admin can grant/revoke from the user table (e.g. to give a
 // freshly-registered SSO user who never picked a role their Student role).
-const ASSIGNABLE_ROLES = ["Student", "Consultant", "Company", "Admin"];
+const ASSIGNABLE_ROLES = ["Student", "Consultant", "ScholarshipProvider", "Admin"];
 
 function statusBadgeClass(s: AccountStatus): string {
   switch (s) {

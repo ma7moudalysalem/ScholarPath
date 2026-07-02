@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Analytics.Queries.GetAdminAnalytics;
 using ScholarPath.Application.Analytics.Queries.GetAdminRevenue;
-using ScholarPath.Application.Analytics.Queries.GetCompanyInsights;
+using ScholarPath.Application.Analytics.Queries.GetScholarshipProviderInsights;
 using ScholarPath.Application.Analytics.Queries.GetConsultantEarningsTrend;
 using ScholarPath.Application.Analytics.Queries.GetConsultantKpis;
 using ScholarPath.Application.Analytics.Queries.GetPowerBiEmbedToken;
@@ -108,7 +108,7 @@ public sealed class AnalyticsController(IMediator mediator) : ControllerBase
 
     /// <summary>
     /// Admin revenue report — gross / profit-share / payee-net / refunded
-    /// totals aggregated from Payments and CompanyReviewPayments in the
+    /// totals aggregated from Payments and ScholarshipProviderReviewPayments in the
     /// supplied window, with monthly breakdown, top consultants, and a
     /// month-over-month growth percentage vs the equivalent prior period.
     /// </summary>
@@ -129,21 +129,21 @@ public sealed class AnalyticsController(IMediator mediator) : ControllerBase
     /// <summary>
     /// Provider application insights — pipeline, country/field breakdown,
     /// top scholarships, and a monthly view→apply→accept funnel for the
-    /// supplied company. The caller must own the company (Company role) or
+    /// supplied company. The caller must own the company (ScholarshipProvider role) or
     /// be an admin. Omit <paramref name="companyId"/> to default to the
     /// caller's own user-id.
     /// </summary>
     [HttpGet("company/insights")]
-    [Authorize(Roles = "Company,Admin,SuperAdmin")]
-    [ProducesResponseType(typeof(CompanyInsightsDto), StatusCodes.Status200OK)]
+    [Authorize(Roles = "ScholarshipProvider,Admin,SuperAdmin")]
+    [ProducesResponseType(typeof(ScholarshipProviderInsightsDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> GetCompanyInsights(
+    public async Task<IActionResult> GetScholarshipProviderInsights(
         [FromQuery] Guid? companyId = null,
         [FromQuery] DateOnly? from = null,
         [FromQuery] DateOnly? to = null,
         CancellationToken ct = default)
     {
-        var result = await mediator.Send(new GetCompanyInsightsQuery(companyId, from, to), ct)
+        var result = await mediator.Send(new GetScholarshipProviderInsightsQuery(companyId, from, to), ct)
             .ConfigureAwait(false);
         return Ok(result);
     }

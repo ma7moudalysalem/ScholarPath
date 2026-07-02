@@ -2,7 +2,7 @@ import { apiClient } from "@/services/api/client";
 
 // ─── enums (mirroring server; the API serialises enums as strings) ───────────
 
-export type PaymentType = "ConsultantBooking" | "CompanyReview";
+export type PaymentType = "ConsultantBooking" | "ScholarshipProviderReview";
 
 export type PaymentStatus =
   | "Pending"

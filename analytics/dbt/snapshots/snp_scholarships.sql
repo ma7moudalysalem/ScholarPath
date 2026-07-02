@@ -16,7 +16,7 @@
         title_en,
         title_ar,
         category_id,
-        owner_company_id,
+        owner_scholarship_provider_id,
         funding_type,
         funding_amount_usd,
         target_level,

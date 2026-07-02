@@ -33,7 +33,7 @@ public sealed class ExternalIntentCommandHandlerTests : IDisposable
         var scholarship = new Scholarship
         {
             Id = Guid.NewGuid(),
-            OwnerCompanyId = Guid.NewGuid(),
+            OwnerScholarshipProviderId = Guid.NewGuid(),
             TitleEn = "External Scholarship",
             TitleAr = "منحة خارجية",
             DescriptionEn = "Description",

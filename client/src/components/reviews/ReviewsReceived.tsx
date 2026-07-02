@@ -23,7 +23,7 @@ function initial(name: string): string {
 }
 
 /**
- * Shared "Reviews received" surface for the Company and Consultant portals.
+ * Shared "Reviews received" surface for the ScholarshipProvider and Consultant portals.
  * Both roles receive an identical wire shape (`ReceivedReviewsSummary`), so the
  * page chrome — header with average stars + total count, loading skeleton,
  * empty state, error state, and the review-card list — lives here once. RTL is

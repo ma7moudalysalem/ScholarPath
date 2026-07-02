@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
-using ScholarPath.Application.CompanyReviews.DTOs;
+using ScholarPath.Application.ScholarshipProviderReviews.DTOs;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Queries.GetMyReceivedReviews;

@@ -25,7 +25,7 @@ const STATUSES: PaymentStatus[] = [
   "Cancelled",
   "Disputed",
 ];
-const TYPES: PaymentType[] = ["ConsultantBooking", "CompanyReview"];
+const TYPES: PaymentType[] = ["ConsultantBooking", "ScholarshipProviderReview"];
 const PAGE_SIZE = 20;
 
 function statusBadgeClass(s: PaymentStatus): string {

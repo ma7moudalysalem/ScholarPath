@@ -15,8 +15,8 @@
     "noComment": "لم يتم تقديم تعليق."
   },
   "reviews": {
-    "rateCompanyTitle": "تقييم {{company}}",
-    "rateCompanyDescription": "كيف كانت تجربتك في التقديم لهذه الشركة؟ ملاحظاتك تساعد الطلاب الآخرين.",
+    "rateScholarshipProviderTitle": "تقييم {{company}}",
+    "rateScholarshipProviderDescription": "كيف كانت تجربتك في التقديم لهذه الشركة؟ ملاحظاتك تساعد الطلاب الآخرين.",
     "commentLabel": "تعليق المراجعة",
     "optional": "اختياري",
     "commentPlaceholder": "شارك أفكارك حول عملية التقديم...",

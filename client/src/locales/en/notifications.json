@@ -81,9 +81,9 @@
       "ApplicationDeadlineApproaching": "Application deadline approaching",
       "ApplicationWithdrawn": "Application withdrawn",
       "ApplicationDraftReminder": "Draft application reminder",
-      "CompanyRatingReceived": "Company rating received",
-      "CompanyReviewPaymentSuccess": "Review payment received",
-      "CompanyReviewRefunded": "Review payment refunded",
+      "ScholarshipProviderRatingReceived": "ScholarshipProvider rating received",
+      "ScholarshipProviderReviewPaymentSuccess": "Review payment received",
+      "ScholarshipProviderReviewRefunded": "Review payment refunded",
       "BookingRequested": "Booking requested",
       "BookingConfirmed": "Booking confirmed",
       "BookingRejected": "Booking rejected",
@@ -114,13 +114,13 @@
       "OnboardingSubmitted": "Onboarding request submitted",
       "UpgradeRequestSubmitted": "Role upgrade request submitted",
       "ContentReported": "Content reported",
-      "CompanyReviewRequestIncoming": "New paid review request",
-      "CompanyReviewRequestPaymentHeld": "Review payment held",
-      "CompanyReviewRequestPaymentCaptured": "Review payment captured",
-      "CompanyReviewRequestPaymentHoldCancelled": "Review payment hold released",
-      "CompanyReviewRequestPartiallyRefunded": "Review partially refunded",
-      "CompanyReviewRequestCompleted": "Review completed",
-      "CompanyLowRatingFlagged": "Company flagged for low rating"
+      "ScholarshipProviderReviewRequestIncoming": "New paid review request",
+      "ScholarshipProviderReviewRequestPaymentHeld": "Review payment held",
+      "ScholarshipProviderReviewRequestPaymentCaptured": "Review payment captured",
+      "ScholarshipProviderReviewRequestPaymentHoldCancelled": "Review payment hold released",
+      "ScholarshipProviderReviewRequestPartiallyRefunded": "Review partially refunded",
+      "ScholarshipProviderReviewRequestCompleted": "Review completed",
+      "ScholarshipProviderLowRatingFlagged": "ScholarshipProvider flagged for low rating"
     }
   }
 }

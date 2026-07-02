@@ -1,0 +1,157 @@
+' =====================================================================
+'  ScholarPath — BASIC conceptual ERD (Chen / Elmasri notation)
+'  The PRE-enhancement starting point used in the ERD→EERD→Mapping story.
+'  Deliberately PLAIN: USER is one flat entity (role is just an attribute,
+'  NOT yet a specialization), no weak entities, no multivalued/derived
+'  attributes, no FK-vs-loose distinction. The EERD (eerd-chen-core.puml)
+'  then ENHANCES this model.
+'     rectangle = entity   diamond = relationship   oval = attribute
+'     underlined = key     1 / N / M = cardinality ratio
+' =====================================================================
+@startchen ScholarPath_ERD_Basic
+
+entity USER {
+  Id <<key>>
+  Email
+  Name
+  Role
+}
+entity CATEGORY {
+  Id <<key>>
+  Name
+}
+entity SCHOLARSHIP {
+  Id <<key>>
+  Title
+  Deadline
+  Status
+}
+entity APPLICATION {
+  Id <<key>>
+  Status
+  SubmittedAt
+}
+entity DOCUMENT {
+  Id <<key>>
+  Category
+}
+entity COMPANY_REVIEW {
+  Id <<key>>
+  Rating
+}
+entity AVAILABILITY {
+  Id <<key>>
+  IsActive
+}
+entity BOOKING {
+  Id <<key>>
+  ScheduledStartAt
+  Status
+}
+entity PAYMENT {
+  Id <<key>>
+  Amount
+  Status
+}
+entity CONSULTANT_REVIEW {
+  Id <<key>>
+  Rating
+}
+entity FORUM_POST {
+  Id <<key>>
+  Title
+  Status
+}
+entity CONVERSATION {
+  Id <<key>>
+}
+entity MESSAGE {
+  Id <<key>>
+  Body
+}
+entity RESOURCE {
+  Id <<key>>
+  Title
+  Type
+}
+entity NOTIFICATION {
+  Id <<key>>
+  Type
+  IsRead
+}
+
+relationship OWNS {
+}
+relationship CLASSIFIES {
+}
+relationship SUBMITS {
+}
+relationship FOR_SCH {
+}
+relationship SUPPORTS {
+}
+relationship OWNS_DOC {
+}
+relationship RATED_APP {
+}
+relationship PUBLISHES {
+}
+relationship BOOKS {
+}
+relationship CONDUCTS {
+}
+relationship FOR_SLOT {
+}
+relationship SETTLED_BY {
+}
+relationship RATED_BKG {
+}
+relationship AUTHORS_POST {
+}
+relationship PARTICIPATES {
+}
+relationship CONTAINS {
+}
+relationship AUTHORS_RES {
+}
+relationship RECEIVES {
+}
+
+USER -1- OWNS
+OWNS -N- SCHOLARSHIP
+CATEGORY -1- CLASSIFIES
+CLASSIFIES -N- SCHOLARSHIP
+USER -1- SUBMITS
+SUBMITS -N- APPLICATION
+SCHOLARSHIP -1- FOR_SCH
+FOR_SCH -N- APPLICATION
+APPLICATION -1- SUPPORTS
+SUPPORTS -N- DOCUMENT
+USER -1- OWNS_DOC
+OWNS_DOC -N- DOCUMENT
+APPLICATION -1- RATED_APP
+RATED_APP -1- COMPANY_REVIEW
+USER -1- PUBLISHES
+PUBLISHES -N- AVAILABILITY
+USER -1- BOOKS
+BOOKS -N- BOOKING
+USER -1- CONDUCTS
+CONDUCTS -N- BOOKING
+AVAILABILITY -1- FOR_SLOT
+FOR_SLOT -N- BOOKING
+BOOKING -1- SETTLED_BY
+SETTLED_BY -1- PAYMENT
+BOOKING -1- RATED_BKG
+RATED_BKG -1- CONSULTANT_REVIEW
+USER -1- AUTHORS_POST
+AUTHORS_POST -N- FORUM_POST
+USER -N- PARTICIPATES
+PARTICIPATES -N- CONVERSATION
+CONVERSATION -1- CONTAINS
+CONTAINS -N- MESSAGE
+USER -1- AUTHORS_RES
+AUTHORS_RES -N- RESOURCE
+USER -1- RECEIVES
+RECEIVES -N- NOTIFICATION
+
+@endchen

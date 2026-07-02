@@ -7,7 +7,7 @@ import { ar } from "date-fns/locale";
 import { profitShareApi, type ProfitShareConfigDto } from "@/services/api/profitShare";
 import type { PaymentType } from "@/services/api/payments";
 
-const TYPES: PaymentType[] = ["ConsultantBooking", "CompanyReview"];
+const TYPES: PaymentType[] = ["ConsultantBooking", "ScholarshipProviderReview"];
 
 export function AdminProfitShare() {
   const { t, i18n } = useTranslation(["payments", "common"]);

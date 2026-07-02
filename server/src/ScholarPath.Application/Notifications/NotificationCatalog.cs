@@ -40,44 +40,44 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"You have an unsubmitted draft application for \"{p.TitleEn ?? "a scholarship"}\" — complete and submit it before the deadline.",
             $"لديك طلب مسودة لم يُرسَل للمنحة \"{p.TitleAr ?? "إحدى المنح"}\" — أكمله وأرسله قبل الموعد النهائي."),
 
-        NotificationType.CompanyReviewPaymentSuccess => new(
+        NotificationType.ScholarshipProviderReviewPaymentSuccess => new(
             "Review fee paid", "تم دفع رسوم المراجعة",
             "Your scholarship review-fee payment was successful.",
             "تم دفع رسوم مراجعة المنحة بنجاح."),
 
-        NotificationType.CompanyReviewRefunded => RenderReviewRefund(p),
+        NotificationType.ScholarshipProviderReviewRefunded => RenderReviewRefund(p),
 
-        NotificationType.CompanyReviewRequestPaymentHeld => new(
+        NotificationType.ScholarshipProviderReviewRequestPaymentHeld => new(
             "Review fee on hold", "تم حجز رسوم المراجعة",
-            $"Your card was authorised for {p.HeldAmountText ?? "the review fee"} on \"{p.ScholarshipNameEn ?? "the scholarship"}\" — the amount is held but not captured. The Company will be charged only if they accept your request. Reference: {p.PaymentReference ?? "—"}.",
+            $"Your card was authorised for {p.HeldAmountText ?? "the review fee"} on \"{p.ScholarshipNameEn ?? "the scholarship"}\" — the amount is held but not captured. The ScholarshipProvider will be charged only if they accept your request. Reference: {p.PaymentReference ?? "—"}.",
             $"تم حجز مبلغ {p.HeldAmountText ?? "رسوم المراجعة"} على بطاقتك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" — لن يُخصم المبلغ ما لم تقبل الشركة الطلب. المرجع: {p.PaymentReference ?? "—"}."),
 
-        NotificationType.CompanyReviewRequestPaymentCaptured => new(
+        NotificationType.ScholarshipProviderReviewRequestPaymentCaptured => new(
             "Review fee charged", "تم خصم رسوم المراجعة",
-            $"The Company accepted your request — {p.CapturedAmountText ?? "the review fee"} was captured from your card for \"{p.ScholarshipNameEn ?? "the scholarship"}\". Reference: {p.PaymentReference ?? "—"}.",
+            $"The ScholarshipProvider accepted your request — {p.CapturedAmountText ?? "the review fee"} was captured from your card for \"{p.ScholarshipNameEn ?? "the scholarship"}\". Reference: {p.PaymentReference ?? "—"}.",
             $"قبلت الشركة طلبك — تم خصم {p.CapturedAmountText ?? "رسوم المراجعة"} من بطاقتك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\". المرجع: {p.PaymentReference ?? "—"}."),
 
-        NotificationType.CompanyReviewRequestPaymentHoldCancelled => new(
+        NotificationType.ScholarshipProviderReviewRequestPaymentHoldCancelled => new(
             "Review fee hold released", "تم الإفراج عن حجز رسوم المراجعة",
             $"Your request for \"{p.ScholarshipNameEn ?? "the scholarship"}\" was {p.RequestStatusText ?? "closed"} — the {p.HeldAmountText ?? "card hold"} was released and nothing was captured. Reference: {p.PaymentReference ?? "—"}.",
             $"تم {p.RequestStatusText ?? "إغلاق"} طلبك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" — أُفرج عن حجز {p.HeldAmountText ?? "البطاقة"} ولم يُخصم أي مبلغ. المرجع: {p.PaymentReference ?? "—"}."),
 
-        NotificationType.CompanyReviewRequestPartiallyRefunded => new(
+        NotificationType.ScholarshipProviderReviewRequestPartiallyRefunded => new(
             "50% review fee refunded", "تم استرداد 50% من رسوم المراجعة",
             $"Your cancellation of \"{p.ScholarshipNameEn ?? "the scholarship"}\" request was processed — {p.RefundAmountText ?? "50%"} refunded, {p.RetainedAmountText ?? "the remainder"} retained. Reference: {p.PaymentReference ?? "—"}.",
             $"تمت معالجة إلغائك لطلب \"{p.ScholarshipNameAr ?? "المنحة"}\" — تم استرداد {p.RefundAmountText ?? "50%"} والاحتفاظ بـ {p.RetainedAmountText ?? "النصف المتبقي"}. المرجع: {p.PaymentReference ?? "—"}."),
 
-        NotificationType.CompanyReviewRequestCompleted => new(
+        NotificationType.ScholarshipProviderReviewRequestCompleted => new(
             "Application support service completed", "اكتملت خدمة دعم الطلب",
-            $"The Company marked your support service for \"{p.ScholarshipNameEn ?? "the scholarship"}\" as completed. Reference: {p.PaymentReference ?? "—"}.",
+            $"The ScholarshipProvider marked your support service for \"{p.ScholarshipNameEn ?? "the scholarship"}\" as completed. Reference: {p.PaymentReference ?? "—"}.",
             $"وضعت الشركة خدمة دعم طلبك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" كمكتملة. المرجع: {p.PaymentReference ?? "—"}."),
 
-        NotificationType.CompanyReviewRequestIncoming => new(
+        NotificationType.ScholarshipProviderReviewRequestIncoming => new(
             "New paid review request", "طلب مراجعة مدفوع جديد",
             $"{p.CounterpartyName ?? "A student"} submitted a paid review request for \"{p.ScholarshipNameEn ?? "your scholarship"}\". Hold: {p.HeldAmountText ?? "—"}. Accept to capture and start the service. Reference: {p.PaymentReference ?? "—"}.",
             $"قدّم {p.CounterpartyName ?? "أحد الطلاب"} طلب مراجعة مدفوع للمنحة \"{p.ScholarshipNameAr ?? "الخاصة بك"}\". الحجز: {p.HeldAmountText ?? "—"}. اقبل الطلب لخصم المبلغ وبدء الخدمة. المرجع: {p.PaymentReference ?? "—"}."),
 
-        NotificationType.CompanyRatingReceived => new(
+        NotificationType.ScholarshipProviderRatingReceived => new(
             "New company rating", "تقييم جديد للشركة",
             $"You received a {p.Count ?? 0}-star company rating.",
             $"حصلت على تقييم للشركة بـ {p.Count ?? 0} نجوم."),
@@ -207,11 +207,11 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"{p.CounterpartyName ?? "A student"} submitted a {p.StatusText ?? "consultant"} upgrade request for review.",
             $"قدّم {p.CounterpartyName ?? "أحد الطلاب"} طلب ترقية إلى {p.StatusText ?? "مستشار"} للمراجعة."),
 
-        // Admin-inbound: a Company's average rating fell below the low-rating
+        // Admin-inbound: a ScholarshipProvider's average rating fell below the low-rating
         // threshold (PB-005R). AmountText carries the formatted average and
         // Count carries the number of visible reviews behind that average.
-        NotificationType.CompanyLowRatingFlagged => new(
-            "Company flagged for low rating", "تم تنبيه على شركة بسبب تقييم منخفض",
+        NotificationType.ScholarshipProviderLowRatingFlagged => new(
+            "ScholarshipProvider flagged for low rating", "تم تنبيه على شركة بسبب تقييم منخفض",
             $"{p.CounterpartyName ?? "A company"} dropped to an average rating of {p.AmountText ?? "below threshold"} over {p.Count ?? 0} review(s). Review and decide whether to suspend the account.",
             $"انخفض متوسط تقييم {p.CounterpartyName ?? "إحدى الشركات"} إلى {p.AmountText ?? "أقل من الحد"} عبر {p.Count ?? 0} تقييم. راجِع الحساب وقرّر ما إذا كان يجب إيقافه."),
 

@@ -43,7 +43,7 @@ public sealed class ReviewUpgradeRequestCommandHandler(
 
             var targetRole = req.Target switch
             {
-                UpgradeTarget.Company => "Company",
+                UpgradeTarget.ScholarshipProvider => "ScholarshipProvider",
                 UpgradeTarget.Consultant => "Consultant",
                 _ => throw new ConflictException($"Unknown upgrade target {req.Target}."),
             };

@@ -53,7 +53,7 @@ function safeRedirect(raw: string | null): string | null {
  */
 const ROLE_PREFIX_OWNERS: Readonly<Record<string, readonly string[]>> = {
   "/student":    ["Student"],
-  "/company":    ["Company"],
+  "/company":    ["ScholarshipProvider"],
   "/consultant": ["Consultant"],
   "/admin":      ["Admin", "SuperAdmin"],
 };

@@ -36,7 +36,7 @@ public class LogRecommendationClickTests
             TitleEn = "Test",
             TitleAr = "اختبار",
             Slug = "test-" + sId.ToString("N")[..8],
-            OwnerCompanyId = Guid.NewGuid(),
+            OwnerScholarshipProviderId = Guid.NewGuid(),
             Status = ScholarshipStatus.Open,
             FundingType = FundingType.FullyFunded,
             TargetLevel = AcademicLevel.Masters,

@@ -11,17 +11,17 @@ namespace ScholarPath.Application.Admin.Queries.GetLowRatedCompanies;
 /// <summary>
 /// Admin queue: companies whose average rating fell below the low-rating
 /// threshold and have not yet been triaged (PB-005R). One row per still-flagged
-/// company, newest flag first. Resolved into <see cref="LowRatedCompanyRow"/>s
+/// company, newest flag first. Resolved into <see cref="LowRatedScholarshipProviderRow"/>s
 /// the admin page can render without further joins.
 /// </summary>
 public sealed record GetLowRatedCompaniesQuery(
     int Page = 1,
-    int PageSize = 25) : IRequest<PagedResult<LowRatedCompanyRow>>;
+    int PageSize = 25) : IRequest<PagedResult<LowRatedScholarshipProviderRow>>;
 
-public sealed record LowRatedCompanyRow(
-    Guid CompanyId,
+public sealed record LowRatedScholarshipProviderRow(
+    Guid ScholarshipProviderId,
     string Email,
-    string CompanyName,
+    string ScholarshipProviderName,
     string? OrganizationLegalName,
     AccountStatus AccountStatus,
     decimal? AverageRating,
@@ -32,9 +32,9 @@ public sealed record LowRatedCompanyRow(
 public sealed class GetLowRatedCompaniesQueryHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser)
-    : IRequestHandler<GetLowRatedCompaniesQuery, PagedResult<LowRatedCompanyRow>>
+    : IRequestHandler<GetLowRatedCompaniesQuery, PagedResult<LowRatedScholarshipProviderRow>>
 {
-    public async Task<PagedResult<LowRatedCompanyRow>> Handle(
+    public async Task<PagedResult<LowRatedScholarshipProviderRow>> Handle(
         GetLowRatedCompaniesQuery request, CancellationToken ct)
     {
         if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
@@ -46,38 +46,38 @@ public sealed class GetLowRatedCompaniesQueryHandler(
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
         // Join Users → UserProfiles. The filtered index on
-        // UserProfile.CompanyLowRatingFlaggedAt keeps the scan small even on a
+        // UserProfile.ScholarshipProviderLowRatingFlaggedAt keeps the scan small even on a
         // large user base.
         var flaggedQuery =
             from u in db.Users.AsNoTracking()
             join p in db.UserProfiles.AsNoTracking() on u.Id equals p.UserId
-            where p.CompanyLowRatingFlaggedAt != null
+            where p.ScholarshipProviderLowRatingFlaggedAt != null
             select new { User = u, Profile = p };
 
         var total = await flaggedQuery.CountAsync(ct).ConfigureAwait(false);
 
         var rows = await flaggedQuery
-            .OrderByDescending(x => x.Profile.CompanyLowRatingFlaggedAt)
+            .OrderByDescending(x => x.Profile.ScholarshipProviderLowRatingFlaggedAt)
             .ThenBy(x => x.User.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(x => new LowRatedCompanyRow(
+            .Select(x => new LowRatedScholarshipProviderRow(
                 x.User.Id,
                 x.User.Email ?? string.Empty,
                 (x.User.FirstName + " " + x.User.LastName).Trim(),
                 x.Profile.OrganizationLegalName,
                 x.User.AccountStatus,
-                x.Profile.CompanyAverageRating,
-                x.Profile.CompanyReviewCount,
-                x.Profile.CompanyLowRatingFlaggedAt!.Value,
-                db.CompanyReviews
-                    .Where(r => r.CompanyId == x.User.Id && !r.IsHiddenByAdmin)
+                x.Profile.ScholarshipProviderAverageRating,
+                x.Profile.ScholarshipProviderReviewCount,
+                x.Profile.ScholarshipProviderLowRatingFlaggedAt!.Value,
+                db.ScholarshipProviderReviews
+                    .Where(r => r.ScholarshipProviderId == x.User.Id && !r.IsHiddenByAdmin)
                     .OrderByDescending(r => r.CreatedAt)
                     .Select(r => (DateTimeOffset?)r.CreatedAt)
                     .FirstOrDefault()))
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
-        return new PagedResult<LowRatedCompanyRow>(rows, page, pageSize, total);
+        return new PagedResult<LowRatedScholarshipProviderRow>(rows, page, pageSize, total);
     }
 }

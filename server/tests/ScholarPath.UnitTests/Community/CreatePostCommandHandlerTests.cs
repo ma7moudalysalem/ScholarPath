@@ -40,9 +40,9 @@ public sealed class CreatePostCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Company_cannot_create_post()
+    public async Task ScholarshipProvider_cannot_create_post()
     {
-        _h.AsCompany();
+        _h.AsScholarshipProvider();
         var handler = new CreatePostCommandHandler(_h.Db, _h.CurrentUser);
 
         var act = () => handler.Handle(

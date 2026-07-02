@@ -23,7 +23,7 @@ public sealed class ReviewApplicationCommandHandler(
             .FirstOrDefaultAsync(a => a.Id == request.ApplicationId, ct)
             ?? throw new NotFoundException(nameof(Domain.Entities.ApplicationTracker), request.ApplicationId);
 
-        if (application.Scholarship == null || application.Scholarship.OwnerCompanyId != currentUser.UserId)
+        if (application.Scholarship == null || application.Scholarship.OwnerScholarshipProviderId != currentUser.UserId)
         {
             throw new ForbiddenAccessException();
         }
@@ -60,7 +60,7 @@ public sealed class ReviewApplicationCommandHandler(
 
 
 
-        logger.LogInformation("Company {CompanyId} reviewed application {ApplicationId} as {Status}",
+        logger.LogInformation("ScholarshipProvider {ScholarshipProviderId} reviewed application {ApplicationId} as {Status}",
             currentUser.UserId, application.Id, request.Status);
 
         return true;

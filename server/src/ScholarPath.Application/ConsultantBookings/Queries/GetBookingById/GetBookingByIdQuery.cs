@@ -81,7 +81,7 @@ public sealed class GetBookingByIdQueryHandler(
         var isParticipant = booking.StudentId == userId || booking.ConsultantId == userId;
         var isAdmin = currentUser.IsInRole("Admin")
             || currentUser.IsInRole("SuperAdmin")
-            || currentUser.IsInRole("Company");
+            || currentUser.IsInRole("ScholarshipProvider");
 
         if (!isParticipant && !isAdmin)
         {

@@ -13,7 +13,7 @@ import enAdmin from "@/locales/en/admin.json";
 import enAi from "@/locales/en/ai.json";
 import enScholarships from "@/locales/en/scholarships.json";
 import enApplications from "@/locales/en/applications.json";
-import enCompany from "@/locales/en/company.json";
+import enScholarshipProvider from "@/locales/en/company.json";
 import enProfile from "@/locales/en/profile.json";
 import enNotifications from "@/locales/en/notifications.json";
 import enDashboard from "@/locales/en/dashboard.json";
@@ -41,7 +41,7 @@ import arAdmin from "@/locales/ar/admin.json";
 import arAi from "@/locales/ar/ai.json";
 import arScholarships from "@/locales/ar/scholarships.json";
 import arApplications from "@/locales/ar/applications.json";
-import arCompany from "@/locales/ar/company.json";
+import arScholarshipProvider from "@/locales/ar/company.json";
 import arProfile from "@/locales/ar/profile.json";
 import arNotifications from "@/locales/ar/notifications.json";
 import arDashboard from "@/locales/ar/dashboard.json";
@@ -125,7 +125,7 @@ void i18n
         ai: enAi,
         scholarships: enScholarships,
         applications: enApplications,
-        company: enCompany,
+        company: enScholarshipProvider,
         profile: enProfile,
         notifications: enNotifications,
         dashboard: enDashboard,
@@ -154,7 +154,7 @@ void i18n
         ai: arAi,
         scholarships: arScholarships,
         applications: arApplications,
-        company: arCompany,
+        company: arScholarshipProvider,
         profile: arProfile,
         notifications: arNotifications,
         dashboard: arDashboard,

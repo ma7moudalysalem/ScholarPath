@@ -15,7 +15,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { companyReviewsApi } from '@/services/api/companyReviews';
+import { scholarshipProviderReviewsApi } from '@/services/api/scholarshipProviderReviews';
 import { scholarshipsApi } from '@/services/api/scholarships';
 import { applicationsApi } from '@/services/api/applications';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -30,7 +30,7 @@ import {
 } from '@/components/dashboard/primitives';
 import { formatRelativeTime } from '@/components/dashboard/utils';
 
-export interface CompanyReviewRow {
+export interface ScholarshipProviderReviewRow {
   reviewId: string;
   studentId: string;
   studentName: string;
@@ -39,11 +39,11 @@ export interface CompanyReviewRow {
   createdAt: string;
 }
 
-export interface CompanyRatingsSummaryDto {
-  companyId: string;
+export interface ScholarshipProviderRatingsSummaryDto {
+  scholarshipProviderId: string;
   averageRating: number;
   totalRatings: number;
-  recentReviews: CompanyReviewRow[];
+  recentReviews: ScholarshipProviderReviewRow[];
 }
 
 // Status buckets shown in the "Applications by status" breakdown, in order.
@@ -56,14 +56,14 @@ function greetingKey(): 'morning' | 'afternoon' | 'evening' {
   return 'evening';
 }
 
-export function CompanyDashboard() {
+export function ScholarshipProviderDashboard() {
   const { t, i18n } = useTranslation(['company', 'dashboard', 'applications']);
   const user = useAuthStore((state) => state.user);
   const firstName = user?.firstName ?? '';
 
   const { data: ratings, isLoading: ratingsLoading } = useQuery({
     queryKey: ['company', 'ratings', user?.id],
-    queryFn: () => companyReviewsApi.getCompanyRatings(user!.id),
+    queryFn: () => scholarshipProviderReviewsApi.getScholarshipProviderRatings(user!.id),
     enabled: !!user?.id,
   });
 
@@ -75,7 +75,7 @@ export function CompanyDashboard() {
 
   const { data: applicationsPage } = useQuery({
     queryKey: ['applications', 'company', 'all'],
-    queryFn: () => applicationsApi.getCompanyApplications(undefined, 1, 50),
+    queryFn: () => applicationsApi.getScholarshipProviderApplications(undefined, 1, 50),
     staleTime: 60_000,
   });
 
@@ -98,7 +98,7 @@ export function CompanyDashboard() {
     const counts = new Map<string, number>();
     for (const a of apps) counts.set(a.status, (counts.get(a.status) ?? 0) + 1);
     return COMPANY_STATUS_ORDER.map((s) => ({
-      label: t(`applications:companyReview.status.${s}`, { defaultValue: s }),
+      label: t(`applications:scholarshipProviderReview.status.${s}`, { defaultValue: s }),
       count: counts.get(s) ?? 0,
     })).filter((x) => x.count > 0);
   }, [apps, t]);

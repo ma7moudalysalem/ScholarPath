@@ -6,7 +6,7 @@ namespace ScholarPath.Application.Payments;
 /// <summary>
 /// Shared Stripe operations used by both payment subsystems — the cents-based
 /// <see cref="Domain.Entities.Payment"/> flow and the USD-based
-/// <see cref="Domain.Entities.CompanyReviewPayment"/> flow.
+/// <see cref="Domain.Entities.ScholarshipProviderReviewPayment"/> flow.
 /// </summary>
 public static class StripePaymentOperations
 {

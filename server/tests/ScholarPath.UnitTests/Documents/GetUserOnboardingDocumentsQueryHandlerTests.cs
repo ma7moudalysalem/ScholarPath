@@ -9,7 +9,7 @@ using Xunit;
 namespace ScholarPath.UnitTests.Documents;
 
 /// <summary>
-/// The admin onboarding reviewer lists a Company / Consultant's uploaded
+/// The admin onboarding reviewer lists a ScholarshipProvider / Consultant's uploaded
 /// verification documents before approving the request (UAT TC-001/002).
 /// </summary>
 public sealed class GetUserOnboardingDocumentsQueryHandlerTests

@@ -8,7 +8,7 @@ import { paymentsApi, type PaymentType } from "@/services/api/payments";
 interface StripeCheckoutProps {
   /**
    * Which payment kind this checkout authorises. ConsultantBooking and
-   * CompanyReview both use manual-capture intents; the capture happens
+   * ScholarshipProviderReview both use manual-capture intents; the capture happens
    * server-side when the consultant accepts the booking or the company
    * accepts the application review. Defaults to ConsultantBooking for
    * legacy callers that pre-date the dual-flow rework.
@@ -16,7 +16,7 @@ interface StripeCheckoutProps {
   paymentType?: PaymentType;
   /** Consultant booking id — required when paymentType is ConsultantBooking. */
   bookingId?: string;
-  /** Application id — required when paymentType is CompanyReview. */
+  /** Application id — required when paymentType is ScholarshipProviderReview. */
   applicationId?: string;
   amountCents: number;
   currency?: string;
@@ -75,14 +75,14 @@ export function StripeCheckout({
   const relatedBookingId =
     paymentType === "ConsultantBooking" ? bookingId ?? null : null;
   const relatedApplicationId =
-    paymentType === "CompanyReview" ? applicationId ?? null : null;
+    paymentType === "ScholarshipProviderReview" ? applicationId ?? null : null;
 
   const propsError = !configured
     ? null
     : paymentType === "ConsultantBooking" && !relatedBookingId && !presetClientSecret
       ? "Missing bookingId for ConsultantBooking checkout."
-      : paymentType === "CompanyReview" && !relatedApplicationId && !presetClientSecret
-        ? "Missing applicationId for CompanyReview checkout."
+      : paymentType === "ScholarshipProviderReview" && !relatedApplicationId && !presetClientSecret
+        ? "Missing applicationId for ScholarshipProviderReview checkout."
         : null;
 
   useEffect(() => {
@@ -147,7 +147,7 @@ export function StripeCheckout({
 
   const resolvedReturnPath =
     returnUrlPath
-    ?? (paymentType === "CompanyReview" && applicationId
+    ?? (paymentType === "ScholarshipProviderReview" && applicationId
       ? `/student/applications/${applicationId}`
       : `/student/bookings/${bookingId ?? ""}`);
 

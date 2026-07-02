@@ -5,10 +5,10 @@ import { reviewsApi, type ReceivedReviewsSummary } from "@/services/api/reviews"
 // ── "Reviews received" queries ────────────────────────────────────────────────
 
 /** Reviews received by the authenticated company (aggregate + list). */
-export function useCompanyReceivedReviewsQuery() {
+export function useScholarshipProviderReceivedReviewsQuery() {
   return useQuery<ReceivedReviewsSummary>({
-    queryKey: queryKeys.reviews.companyMine,
-    queryFn: () => reviewsApi.companyMine(),
+    queryKey: queryKeys.reviews.scholarshipProviderMine,
+    queryFn: () => reviewsApi.scholarshipProviderMine(),
     staleTime: 60_000,
   });
 }

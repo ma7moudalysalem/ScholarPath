@@ -1,0 +1,10 @@
+\contentsline {section}{\numberline {1}Notation legend}{1}{section.1}%
+\contentsline {section}{\numberline {2}The USER specialization (the ``Enhanced'' part)}{2}{section.2}%
+\contentsline {section}{\numberline {3}Subject-area context}{3}{section.3}%
+\contentsline {section}{\numberline {4}Identity, Access \& Profile}{3}{section.4}%
+\contentsline {section}{\numberline {5}Scholarships, Applications \& Documents}{4}{section.5}%
+\contentsline {section}{\numberline {6}Consultant Booking, Payments \& Ratings}{5}{section.6}%
+\contentsline {section}{\numberline {7}Community \& Chat}{6}{section.7}%
+\contentsline {section}{\numberline {8}Resources Hub \& Notifications}{7}{section.8}%
+\contentsline {section}{\numberline {9}AI, Knowledge Base, Platform \& Cross-cutting}{8}{section.9}%
+\contentsline {section}{\numberline {A}Consolidated conceptual EERD}{9}{appendix.A}%

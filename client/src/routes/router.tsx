@@ -107,46 +107,46 @@ const StudentMessages = lazy(() =>
   import("@/pages/chat/Chat").then((m) => ({ default: m.Chat })),
 );
 
-// PB-005: paid CompanyReview support requests
+// PB-005: paid ScholarshipProviderReview support requests
 const StudentReviewRequests = lazy(() =>
   import("@/pages/student/StudentReviewRequests").then((m) => ({
     default: m.StudentReviewRequests,
   })),
 );
-const CompanyReviewRequestsPage = lazy(() =>
-  import("@/pages/company/CompanyReviewRequests").then((m) => ({
-    default: m.CompanyReviewRequests,
+const ScholarshipProviderReviewRequestsPage = lazy(() =>
+  import("@/pages/company/ScholarshipProviderReviewRequests").then((m) => ({
+    default: m.ScholarshipProviderReviewRequests,
   })),
 );
 
-// Company
-const CompanyDashboard = lazy(() =>
-  import("@/pages/company/Dashboard").then((m) => ({ default: m.CompanyDashboard })),
+// ScholarshipProvider
+const ScholarshipProviderDashboard = lazy(() =>
+  import("@/pages/company/Dashboard").then((m) => ({ default: m.ScholarshipProviderDashboard })),
 );
-const CompanyScholarships = lazy(() =>
-  import("@/pages/company/CompanyScholarships").then((m) => ({
-    default: m.CompanyScholarships,
+const ScholarshipProviderScholarships = lazy(() =>
+  import("@/pages/company/ScholarshipProviderScholarships").then((m) => ({
+    default: m.ScholarshipProviderScholarships,
   })),
 );
-const CompanyScholarshipForm = lazy(() =>
+const ScholarshipProviderScholarshipForm = lazy(() =>
   import("@/pages/company/ScholarshipForm").then((m) => ({
     default: m.ScholarshipForm,
   })),
 );
-const CompanyApplicationsReview = lazy(() =>
+const ScholarshipProviderApplicationsReview = lazy(() =>
   import("@/pages/company/ApplicationsReview").then((m) => ({ default: m.ApplicationsReview })),
 );
-const CompanyBilling = lazy(() =>
-  import("@/pages/company/CompanyBilling").then((m) => ({ default: m.CompanyBilling })),
+const ScholarshipProviderBilling = lazy(() =>
+  import("@/pages/company/ScholarshipProviderBilling").then((m) => ({ default: m.ScholarshipProviderBilling })),
 );
-const CompanyInsights = lazy(() =>
-  import("@/pages/company/CompanyInsights").then((m) => ({ default: m.CompanyInsights })),
+const ScholarshipProviderInsights = lazy(() =>
+  import("@/pages/company/ScholarshipProviderInsights").then((m) => ({ default: m.ScholarshipProviderInsights })),
 );
-const CompanyReviews = lazy(() =>
-  import("@/pages/company/CompanyReviews").then((m) => ({ default: m.CompanyReviews })),
+const ScholarshipProviderReviews = lazy(() =>
+  import("@/pages/company/ScholarshipProviderReviews").then((m) => ({ default: m.ScholarshipProviderReviews })),
 );
-const CompanyBookings = lazy(() =>
-  import("@/pages/company/CompanyBookings").then((m) => ({ default: m.CompanyBookings })),
+const ScholarshipProviderBookings = lazy(() =>
+  import("@/pages/company/ScholarshipProviderBookings").then((m) => ({ default: m.ScholarshipProviderBookings })),
 );
 
 // Consultant
@@ -466,7 +466,7 @@ export function AppRouter() {
           <Route path="/student/applications"      element={<AnimatedRoute><StudentApplications /></AnimatedRoute>} />
           <Route path="/student/applications/:id"  element={<AnimatedRoute><StudentApplicationDetail /></AnimatedRoute>} />
 
-          {/* PB-005: paid CompanyReview support requests */}
+          {/* PB-005: paid ScholarshipProviderReview support requests */}
           <Route
             path="/student/review-requests"
             element={
@@ -509,11 +509,11 @@ export function AppRouter() {
           <Route path="/student/ai"                element={<AnimatedRoute><StudentAi /></AnimatedRoute>} />
           <Route path="/student/analytics"         element={<AnimatedRoute><StudentAnalytics /></AnimatedRoute>} />
 
-          {/* PB-009: Author resource management (Consultant, Company, Admin) */}
+          {/* PB-009: Author resource management (Consultant, ScholarshipProvider, Admin) */}
           <Route
             path="/author/resources"
             element={
-              <RequireRole roles={["Consultant", "Company", "Admin", "SuperAdmin"]}>
+              <RequireRole roles={["Consultant", "ScholarshipProvider", "Admin", "SuperAdmin"]}>
                 <AnimatedRoute>
                   <AuthorMyResources />
                 </AnimatedRoute>
@@ -523,7 +523,7 @@ export function AppRouter() {
           <Route
             path="/author/resources/new"
             element={
-              <RequireRole roles={["Consultant", "Company", "Admin", "SuperAdmin"]}>
+              <RequireRole roles={["Consultant", "ScholarshipProvider", "Admin", "SuperAdmin"]}>
                 <AnimatedRoute>
                   <AuthorResourceEditor />
                 </AnimatedRoute>
@@ -533,7 +533,7 @@ export function AppRouter() {
           <Route
             path="/author/resources/:id/edit"
             element={
-              <RequireRole roles={["Consultant", "Company", "Admin", "SuperAdmin"]}>
+              <RequireRole roles={["Consultant", "ScholarshipProvider", "Admin", "SuperAdmin"]}>
                 <AnimatedRoute>
                   <AuthorResourceEditor />
                 </AnimatedRoute>
@@ -544,9 +544,9 @@ export function AppRouter() {
           <Route
             path="/company"
             element={
-              <RequireRole roles={["Company"]}>
+              <RequireRole roles={["ScholarshipProvider"]}>
                 <AnimatedRoute>
-                  <CompanyDashboard />
+                  <ScholarshipProviderDashboard />
                 </AnimatedRoute>
               </RequireRole>
             }
@@ -554,9 +554,9 @@ export function AppRouter() {
           <Route
             path="/company/scholarships"
             element={
-              <RequireRole roles={["Company"]}>
+              <RequireRole roles={["ScholarshipProvider"]}>
                 <AnimatedRoute>
-                  <CompanyScholarships />
+                  <ScholarshipProviderScholarships />
                 </AnimatedRoute>
               </RequireRole>
             }
@@ -564,9 +564,9 @@ export function AppRouter() {
           <Route
             path="/company/scholarships/new"
             element={
-              <RequireRole roles={["Company"]}>
+              <RequireRole roles={["ScholarshipProvider"]}>
                 <AnimatedRoute>
-                  <CompanyScholarshipForm />
+                  <ScholarshipProviderScholarshipForm />
                 </AnimatedRoute>
               </RequireRole>
             }
@@ -574,9 +574,9 @@ export function AppRouter() {
           <Route
             path="/company/scholarships/:id/edit"
             element={
-              <RequireRole roles={["Company"]}>
+              <RequireRole roles={["ScholarshipProvider"]}>
                 <AnimatedRoute>
-                  <CompanyScholarshipForm />
+                  <ScholarshipProviderScholarshipForm />
                 </AnimatedRoute>
               </RequireRole>
             }
@@ -584,9 +584,9 @@ export function AppRouter() {
           <Route
             path="/company/review-requests"
             element={
-              <RequireRole roles={["Company"]}>
+              <RequireRole roles={["ScholarshipProvider"]}>
                 <AnimatedRoute>
-                  <CompanyReviewRequestsPage />
+                  <ScholarshipProviderReviewRequestsPage />
                 </AnimatedRoute>
               </RequireRole>
             }
@@ -594,9 +594,9 @@ export function AppRouter() {
           <Route
             path="/company/applications-review"
             element={
-              <RequireRole roles={["Company"]}>
+              <RequireRole roles={["ScholarshipProvider"]}>
                 <AnimatedRoute>
-                  <CompanyApplicationsReview />
+                  <ScholarshipProviderApplicationsReview />
                 </AnimatedRoute>
               </RequireRole>
             }
@@ -604,9 +604,9 @@ export function AppRouter() {
           <Route
             path="/company/billing"
             element={
-              <RequireRole roles={["Company"]}>
+              <RequireRole roles={["ScholarshipProvider"]}>
                 <AnimatedRoute>
-                  <CompanyBilling />
+                  <ScholarshipProviderBilling />
                 </AnimatedRoute>
               </RequireRole>
             }
@@ -614,9 +614,9 @@ export function AppRouter() {
           <Route
             path="/company/insights"
             element={
-              <RequireRole roles={["Company"]}>
+              <RequireRole roles={["ScholarshipProvider"]}>
                 <AnimatedRoute>
-                  <CompanyInsights />
+                  <ScholarshipProviderInsights />
                 </AnimatedRoute>
               </RequireRole>
             }
@@ -624,9 +624,9 @@ export function AppRouter() {
           <Route
             path="/company/reviews"
             element={
-              <RequireRole roles={["Company"]}>
+              <RequireRole roles={["ScholarshipProvider"]}>
                 <AnimatedRoute>
-                  <CompanyReviews />
+                  <ScholarshipProviderReviews />
                 </AnimatedRoute>
               </RequireRole>
             }
@@ -634,9 +634,9 @@ export function AppRouter() {
           <Route
             path="/company/bookings"
             element={
-              <RequireRole roles={["Company"]}>
+              <RequireRole roles={["ScholarshipProvider"]}>
                 <AnimatedRoute>
-                  <CompanyBookings />
+                  <ScholarshipProviderBookings />
                 </AnimatedRoute>
               </RequireRole>
             }
@@ -747,7 +747,7 @@ export function AppRouter() {
           <Route path="/admin/knowledge-base"   element={<AnimatedRoute><AdminKnowledgeBase /></AnimatedRoute>} />
           <Route path="/admin/redaction-audit"  element={<AnimatedRoute><AdminRedactionAudit /></AnimatedRoute>} />
           <Route path="/admin/scholarships"          element={<AnimatedRoute><AdminScholarships /></AnimatedRoute>} />
-          <Route path="/admin/scholarships/new"      element={<AnimatedRoute><CompanyScholarshipForm /></AnimatedRoute>} />
+          <Route path="/admin/scholarships/new"      element={<AnimatedRoute><ScholarshipProviderScholarshipForm /></AnimatedRoute>} />
           <Route path="/admin/featured-scholarships" element={<AnimatedRoute><AdminFeaturedScholarships /></AnimatedRoute>} />
           <Route path="/admin/articles"         element={<AnimatedRoute><AdminArticles /></AnimatedRoute>} />
           <Route path="/admin/community"        element={<AnimatedRoute><AdminCommunity /></AnimatedRoute>} />

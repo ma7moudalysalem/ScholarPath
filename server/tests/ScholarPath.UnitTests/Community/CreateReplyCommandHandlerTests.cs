@@ -39,10 +39,10 @@ public sealed class CreateReplyCommandHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Company_cannot_reply()
+    public async Task ScholarshipProvider_cannot_reply()
     {
         var root = await _h.SeedPostAsync(_h.StudentA);
-        _h.AsCompany();
+        _h.AsScholarshipProvider();
         var handler = new CreateReplyCommandHandler(_h.Db, _h.CurrentUser);
 
         await Assert.ThrowsAsync<ForbiddenAccessException>(() =>

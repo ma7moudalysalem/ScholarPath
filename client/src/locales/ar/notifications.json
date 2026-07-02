@@ -81,9 +81,9 @@
       "ApplicationDeadlineApproaching": "اقتراب الموعد النهائي للطلب",
       "ApplicationWithdrawn": "تم سحب الطلب",
       "ApplicationDraftReminder": "تذكير بمسودة الطلب",
-      "CompanyRatingReceived": "تم استلام تقييم الشركة",
-      "CompanyReviewPaymentSuccess": "تم استلام دفعة المراجعة",
-      "CompanyReviewRefunded": "تم استرداد دفعة المراجعة",
+      "ScholarshipProviderRatingReceived": "تم استلام تقييم الشركة",
+      "ScholarshipProviderReviewPaymentSuccess": "تم استلام دفعة المراجعة",
+      "ScholarshipProviderReviewRefunded": "تم استرداد دفعة المراجعة",
       "BookingRequested": "تم طلب حجز",
       "BookingConfirmed": "تم تأكيد الحجز",
       "BookingRejected": "تم رفض الحجز",
@@ -114,13 +114,13 @@
       "OnboardingSubmitted": "تم إرسال طلب التأهيل",
       "UpgradeRequestSubmitted": "تم إرسال طلب ترقية الدور",
       "ContentReported": "تم الإبلاغ عن محتوى",
-      "CompanyReviewRequestIncoming": "طلب مراجعة مدفوع جديد",
-      "CompanyReviewRequestPaymentHeld": "تم حجز دفعة المراجعة",
-      "CompanyReviewRequestPaymentCaptured": "تم تحصيل دفعة المراجعة",
-      "CompanyReviewRequestPaymentHoldCancelled": "تم تحرير حجز دفعة المراجعة",
-      "CompanyReviewRequestPartiallyRefunded": "استرداد جزئي لدفعة المراجعة",
-      "CompanyReviewRequestCompleted": "اكتملت المراجعة",
-      "CompanyLowRatingFlagged": "تم وضع علامة على الشركة لتقييم منخفض"
+      "ScholarshipProviderReviewRequestIncoming": "طلب مراجعة مدفوع جديد",
+      "ScholarshipProviderReviewRequestPaymentHeld": "تم حجز دفعة المراجعة",
+      "ScholarshipProviderReviewRequestPaymentCaptured": "تم تحصيل دفعة المراجعة",
+      "ScholarshipProviderReviewRequestPaymentHoldCancelled": "تم تحرير حجز دفعة المراجعة",
+      "ScholarshipProviderReviewRequestPartiallyRefunded": "استرداد جزئي لدفعة المراجعة",
+      "ScholarshipProviderReviewRequestCompleted": "اكتملت المراجعة",
+      "ScholarshipProviderLowRatingFlagged": "تم وضع علامة على الشركة لتقييم منخفض"
     }
   }
 }

@@ -111,7 +111,7 @@ export function ApplicationCard({ application }: ApplicationCardProps) {
       <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-1.5 text-xs text-text-secondary">
           <Building2 size={13} className="shrink-0" />
-          <span className="truncate">{application.companyName || t("companyFallback")}</span>
+          <span className="truncate">{application.scholarshipProviderName || t("scholarshipProviderFallback")}</span>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-text-tertiary">
           <Calendar size={13} className="shrink-0" />

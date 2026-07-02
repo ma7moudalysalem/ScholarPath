@@ -44,7 +44,7 @@ import { cn } from "@/lib/utils";
 import { COUNTRIES, countryLabel } from "@/lib/countryLabel";
 import { ConsultantUpgradeModal } from "@/components/profile/ConsultantUpgradeModal";
 
-const SWITCHABLE_ROLES = ["Student", "Consultant", "Company", "Admin"] as const;
+const SWITCHABLE_ROLES = ["Student", "Consultant", "ScholarshipProvider", "Admin"] as const;
 
 const PROFILE_KEY = ["profile", "me"] as const;
 
@@ -1029,7 +1029,7 @@ export function Profile() {
         icon: <GraduationCap aria-hidden className="size-4" />,
       });
     }
-    if (activeRole === "Company") {
+    if (activeRole === "ScholarshipProvider") {
       items.push({
         id: "organization",
         label: t("profile:sections.organization"),
@@ -1350,9 +1350,9 @@ export function Profile() {
             </FieldRow>
             {/*
               Date of Birth and Nationality are individual-only fields. A
-              Company account has no DOB and no nationality (it has an
+              ScholarshipProvider account has no DOB and no nationality (it has an
               organization country, a tax number, etc — already covered by
-              the role-specific Company section). Admins don't either. Hide
+              the role-specific ScholarshipProvider section). Admins don't either. Hide
               both rows for those roles so the form stops asking a business
               for a date of birth.
             */}
@@ -1619,7 +1619,7 @@ export function Profile() {
           )}
 
           {/* Organization — companies */}
-          {activeRole === "Company" && (
+          {activeRole === "ScholarshipProvider" && (
             <SectionCard
               id="organization"
               icon={<Briefcase aria-hidden className="size-5" />}

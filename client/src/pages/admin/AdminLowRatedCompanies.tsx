@@ -7,7 +7,7 @@ import { ar } from "date-fns/locale";
 import { AlertTriangle, Check, ShieldOff, Star } from "lucide-react";
 import {
   adminApi,
-  type LowRatedCompanyRow,
+  type LowRatedScholarshipProviderRow,
   type PagedResult,
 } from "@/services/api/admin";
 import { apiErrorMessage } from "@/services/api/client";
@@ -28,7 +28,7 @@ export function AdminLowRatedCompanies() {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
 
-  const { data, isLoading, isError } = useQuery<PagedResult<LowRatedCompanyRow>>({
+  const { data, isLoading, isError } = useQuery<PagedResult<LowRatedScholarshipProviderRow>>({
     queryKey: ["admin", "low-rated-companies", page],
     queryFn: () => adminApi.getLowRatedCompanies(page),
     placeholderData: keepPreviousData,
@@ -38,7 +38,7 @@ export function AdminLowRatedCompanies() {
     queryClient.invalidateQueries({ queryKey: ["admin", "low-rated-companies"] });
 
   const clearMut = useMutation({
-    mutationFn: (companyId: string) => adminApi.clearCompanyLowRatingFlag(companyId),
+    mutationFn: (scholarshipProviderId: string) => adminApi.clearScholarshipProviderLowRatingFlag(scholarshipProviderId),
     onSuccess: () => {
       toast.success(t("admin:lowRatedCompanies.clearedToast"));
       void invalidate();
@@ -47,8 +47,8 @@ export function AdminLowRatedCompanies() {
   });
 
   const suspendMut = useMutation({
-    mutationFn: (companyId: string) =>
-      adminApi.setUserStatus(companyId, {
+    mutationFn: (scholarshipProviderId: string) =>
+      adminApi.setUserStatus(scholarshipProviderId, {
         status: "Suspended",
         reason: t("admin:lowRatedCompanies.suspendReason"),
       }),
@@ -103,13 +103,13 @@ export function AdminLowRatedCompanies() {
           const busy = clearMut.isPending || suspendMut.isPending;
           return (
             <li
-              key={row.companyId}
+              key={row.scholarshipProviderId}
               className="rounded-2xl border border-border-subtle bg-bg-elevated p-5 shadow-xs"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-base font-semibold text-text-primary">
-                    {row.organizationLegalName ?? row.companyName}
+                    {row.organizationLegalName ?? row.scholarshipProviderName}
                   </p>
                   <p className="mt-0.5 text-xs text-text-tertiary">{row.email}</p>
                 </div>
@@ -152,7 +152,7 @@ export function AdminLowRatedCompanies() {
               <div className="mt-3 flex flex-wrap justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => clearMut.mutate(row.companyId)}
+                  onClick={() => clearMut.mutate(row.scholarshipProviderId)}
                   disabled={busy}
                   className="inline-flex items-center gap-1.5 rounded-md border border-success-200 bg-success-50 px-3 py-1.5 text-xs font-medium text-success-700 hover:bg-success-100 disabled:opacity-50"
                 >
@@ -163,7 +163,7 @@ export function AdminLowRatedCompanies() {
                   type="button"
                   onClick={() => {
                     if (!window.confirm(t("admin:lowRatedCompanies.suspendConfirm"))) return;
-                    suspendMut.mutate(row.companyId);
+                    suspendMut.mutate(row.scholarshipProviderId);
                   }}
                   disabled={busy || row.accountStatus === "Suspended"}
                   className="inline-flex items-center gap-1.5 rounded-md border border-danger-200 bg-bg-canvas px-3 py-1.5 text-xs font-medium text-danger-500 hover:bg-danger-50 disabled:opacity-50"

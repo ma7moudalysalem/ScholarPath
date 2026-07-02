@@ -26,7 +26,7 @@ sources:
       - name: dbo_SavedScholarships
       - name: dbo_ApplicationTrackers
         description: "Applications — feeds fct_application (lifecycle-event grain)."
-      - name: dbo_CompanyReviews
+      - name: dbo_ScholarshipProviderReviews
       - name: dbo_ConsultantBookings
       - name: dbo_Payments
         description: "Payments — source of revenue truth. One row per payment intent."

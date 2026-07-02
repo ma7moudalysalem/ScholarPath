@@ -103,7 +103,7 @@
     "InApp": "داخل التطبيق",
     "External": "خارجي"
   },
-  "companyScholarships": {
+  "scholarshipProviderScholarships": {
     "title": "منحي الدراسية",
     "subtitle": "كل إعلانات المنح الدراسية التي أنشأتها مؤسستك.",
     "loading": "جارٍ تحميل المنح…",

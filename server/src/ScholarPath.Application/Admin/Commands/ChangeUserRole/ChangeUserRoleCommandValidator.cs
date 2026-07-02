@@ -6,7 +6,7 @@ public sealed class ChangeUserRoleCommandValidator : AbstractValidator<ChangeUse
 {
     private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Student", "Company", "Consultant", "Admin", "SuperAdmin", "Moderator",
+        "Student", "ScholarshipProvider", "Consultant", "Admin", "SuperAdmin", "Moderator",
     };
 
     public ChangeUserRoleCommandValidator()
@@ -16,6 +16,6 @@ public sealed class ChangeUserRoleCommandValidator : AbstractValidator<ChangeUse
         RuleFor(x => x.Role)
             .NotEmpty()
             .Must(r => AllowedRoles.Contains(r))
-            .WithMessage("Role must be one of: Student, Company, Consultant, Admin, SuperAdmin, Moderator.");
+            .WithMessage("Role must be one of: Student, ScholarshipProvider, Consultant, Admin, SuperAdmin, Moderator.");
     }
 }

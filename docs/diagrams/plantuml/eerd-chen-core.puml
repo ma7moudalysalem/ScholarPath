@@ -1,0 +1,208 @@
+' =====================================================================
+'  ScholarPath — Conceptual EERD (Chen / Elmasri notation)
+'  Follows Elmasri & Navathe Fig. 3.14:
+'     rectangle=entity  diamond=relationship  oval=attribute
+'     underlined=key  double oval <<multi>>=multivalued
+'     dashed oval <<derived>>=derived
+'     double line (=)=TOTAL participation  single line (-)=partial
+'     1 / N = cardinality ratio
+'  Consolidated overview; per-area detail is in eerd-chen-clusters.puml.
+' =====================================================================
+@startchen ScholarPath_EERD_Core
+
+entity USER {
+  Id <<key>>
+  Email
+  AccountStatus
+  ActiveRole
+}
+entity USER_PROFILE {
+  Id <<key>>
+  Gpa
+  PreferredCountries <<multi>>
+  CompanyAverageRating <<derived>>
+  ProfileCompletenessPercent <<derived>>
+}
+entity ROLE {
+  Id <<key>>
+  Name
+}
+entity CATEGORY {
+  Id <<key>>
+  Slug
+}
+entity SCHOLARSHIP {
+  Id <<key>>
+  Slug
+  Status
+  Deadline
+  ReviewFeeUsd
+}
+entity APPLICATION {
+  Id <<key>>
+  Status
+  Mode
+}
+entity DOCUMENT {
+  Id <<key>>
+  Category
+}
+entity COMPANY_REVIEW_REQUEST {
+  Id <<key>>
+  Status
+}
+entity AVAILABILITY {
+  Id <<key>>
+  IsActive
+}
+entity BOOKING {
+  Id <<key>>
+  ScheduledStartAt
+  Status
+}
+entity PAYMENT {
+  Id <<key>>
+  Type
+  Status
+  AmountCents
+}
+entity CONSULTANT_REVIEW {
+  Id <<key>>
+  Rating
+}
+entity COMPANY_REVIEW {
+  Id <<key>>
+  Rating
+}
+entity FORUM_POST {
+  Id <<key>>
+  ModerationStatus
+  UpvoteCount <<derived>>
+}
+entity CONVERSATION {
+  Id <<key>>
+}
+entity MESSAGE {
+  Id <<key>>
+  Body
+}
+entity RESOURCE {
+  Id <<key>>
+  Slug
+  Status
+}
+entity NOTIFICATION {
+  Id <<key>>
+  Type
+  IsRead
+}
+entity AI_INTERACTION {
+  Id <<key>>
+  Feature
+  CostUsd <<derived>>
+}
+
+relationship HAS_PROFILE {
+}
+relationship HAS_ROLE {
+}
+relationship CLASSIFIES {
+}
+relationship OWNS {
+}
+relationship SUBMITS {
+}
+relationship FOR_SCH {
+}
+relationship OWNS_DOC {
+}
+relationship SUPPORTS {
+}
+relationship RAISES {
+}
+relationship FULFILS {
+}
+relationship UNDER {
+}
+relationship REQ_PAYMENT {
+}
+relationship PUBLISHES {
+}
+relationship BOOKS {
+}
+relationship CONDUCTS {
+}
+relationship RESERVES {
+}
+relationship BOOK_PAYMENT {
+}
+relationship RATED_C {
+}
+relationship RATED_CO {
+}
+relationship AUTHORS_POST {
+}
+relationship PARTICIPATES {
+}
+relationship CONTAINS {
+}
+relationship AUTHORS_RES {
+}
+relationship RECEIVES {
+}
+relationship INVOKES {
+}
+
+' ---------- Edges: = total participation, - partial ----------
+USER -1- HAS_PROFILE
+HAS_PROFILE =1= USER_PROFILE
+USER -N- HAS_ROLE
+HAS_ROLE -N- ROLE
+CATEGORY -1- CLASSIFIES
+CLASSIFIES -N- SCHOLARSHIP
+USER -1- OWNS
+OWNS -N- SCHOLARSHIP
+USER -1- SUBMITS
+SUBMITS =N= APPLICATION
+APPLICATION -N- FOR_SCH
+FOR_SCH -1- SCHOLARSHIP
+USER -1- OWNS_DOC
+OWNS_DOC =N= DOCUMENT
+APPLICATION -1- SUPPORTS
+SUPPORTS -N- DOCUMENT
+USER -1- RAISES
+RAISES =N= COMPANY_REVIEW_REQUEST
+USER -1- FULFILS
+FULFILS =N= COMPANY_REVIEW_REQUEST
+SCHOLARSHIP -1- UNDER
+UNDER =N= COMPANY_REVIEW_REQUEST
+COMPANY_REVIEW_REQUEST -1- REQ_PAYMENT
+REQ_PAYMENT -1- PAYMENT
+USER -1- PUBLISHES
+PUBLISHES =N= AVAILABILITY
+USER -1- BOOKS
+BOOKS =N= BOOKING
+USER -1- CONDUCTS
+CONDUCTS =N= BOOKING
+AVAILABILITY -1- RESERVES
+RESERVES -N- BOOKING
+BOOKING -1- BOOK_PAYMENT
+BOOK_PAYMENT -1- PAYMENT
+BOOKING -1- RATED_C
+RATED_C -1- CONSULTANT_REVIEW
+APPLICATION -1- RATED_CO
+RATED_CO -1- COMPANY_REVIEW
+USER -1- AUTHORS_POST
+AUTHORS_POST =N= FORUM_POST
+USER -N- PARTICIPATES
+PARTICIPATES -N- CONVERSATION
+CONVERSATION -1- CONTAINS
+CONTAINS =N= MESSAGE
+USER -1- AUTHORS_RES
+AUTHORS_RES =N= RESOURCE
+USER -1- RECEIVES
+RECEIVES =N= NOTIFICATION
+USER -1- INVOKES
+INVOKES =N= AI_INTERACTION
+
+@endchen

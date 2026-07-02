@@ -2,7 +2,7 @@
   "title": "طلباتي",
   "subtitle": "تتبع وإدارة طلبات المنح الدراسية الخاصة بك في مكان واحد.",
   "addExternal": "إضافة طلب خارجي",
-  "companyFallback": "شركة",
+  "scholarshipProviderFallback": "شركة",
   "stats": {
     "total": "الإجمالي",
     "active": "نشطة",
@@ -64,7 +64,7 @@
     "success": "تمت إضافة الطلب الخارجي.",
     "error": "تعذّر إضافة الطلب. يرجى المحاولة مرة أخرى."
   },
-  "companyReview": {
+  "scholarshipProviderReview": {
     "title": "مراجعة الطلبات",
     "subtitle": "إدارة ومراجعة طلبات المنح الواردة.",
     "searchPlaceholder": "ابحث عن طلاب أو منح…",

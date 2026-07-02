@@ -1,0 +1,19 @@
+\contentsline {section}{\numberline {1}From the Relational Schema to the Object Model}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Why a class diagram?}{2}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}UML notation legend}{2}{subsection.1.2}%
+\contentsline {section}{\numberline {2}The Domain Foundation: Inheritance and the Soft-Delete Contract}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}\texttt {BaseEntity} $\rightarrow $ \texttt {AuditableEntity}}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}The \texttt {ISoftDeletable} interface}{3}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}The special case: \texttt {ApplicationUser} extends ASP.NET Identity}{3}{subsection.2.3}%
+\contentsline {section}{\numberline {3}The Domain Model, Cluster by Cluster}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Base types}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Identity \& Profile}{5}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Scholarships \& Applications}{6}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Booking, Payments \& Ratings}{7}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Community \& Chat}{8}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Resources \& Notifications}{8}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}AI Platform}{9}{subsection.3.7}%
+\contentsline {section}{\numberline {4}Clean Architecture: The Ports-and-Adapters Seam}{9}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Ports defined by the Application layer}{9}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Adapters provided by the Infrastructure layer}{9}{subsection.4.2}%
+\contentsline {section}{\numberline {5}Conclusion}{11}{section.5}%

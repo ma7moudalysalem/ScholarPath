@@ -1,6 +1,6 @@
 namespace ScholarPath.Application.Applications.DTOs;
 
-public record CompanyApplicationRow(
+public record ScholarshipProviderApplicationRow(
     Guid ApplicationId,
     Guid StudentId,
     string StudentName,
@@ -10,13 +10,13 @@ public record CompanyApplicationRow(
     DateTimeOffset? SubmittedAt);
 
 /// <summary>A document attached to an application, visible to the company reviewer.</summary>
-public record CompanyDocumentInfo(
+public record ScholarshipProviderDocumentInfo(
     Guid Id,
     string FileName,
     string ContentType,
     long SizeBytes);
 
-public record CompanyApplicationDetailsDto(
+public record ScholarshipProviderApplicationDetailsDto(
     Guid ApplicationId,
     Guid StudentId,
     string StudentName,
@@ -26,6 +26,6 @@ public record CompanyApplicationDetailsDto(
     DateTimeOffset? SubmittedAt,
     string? FormDataJson,
     string? AttachedDocumentsJson,
-    IReadOnlyList<CompanyDocumentInfo> Documents);
+    IReadOnlyList<ScholarshipProviderDocumentInfo> Documents);
 
 public record PagedResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int TotalCount);

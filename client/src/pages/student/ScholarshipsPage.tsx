@@ -177,9 +177,9 @@ function ScholarshipCard({
 
           {/* Provider + level row */}
           <div className="mt-1 flex items-center gap-2 text-xs text-text-tertiary">
-            {scholarship.ownerCompanyName && (
+            {scholarship.ownerScholarshipProviderName && (
               <>
-                <span className="truncate">{scholarship.ownerCompanyName}</span>
+                <span className="truncate">{scholarship.ownerScholarshipProviderName}</span>
                 <span aria-hidden>·</span>
               </>
             )}

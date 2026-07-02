@@ -167,7 +167,7 @@ public static partial class DbSeeder
             // Onboarding / admin notification
             N(s1, NotificationType.UpgradeRequestApproved, NotificationChannel.InApp,
                 "Upgrade request approved", "تمت الموافقة على طلب الترقية",
-                "Your request to become a Company has been approved.", "تمت الموافقة على طلبك لتصبح شركة.",
+                "Your request to become a ScholarshipProvider has been approved.", "تمت الموافقة على طلبك لتصبح شركة.",
                 isRead: true, priority: 2, ageDays: 20, deepLink: "/profile"),
 
             // Resource notification
@@ -186,7 +186,7 @@ public static partial class DbSeeder
         db.Notifications.AddRange(notifications);
 
         // --- notification preferences for the primary demo users --------
-        var prefUsers = new[] { users.PrimaryStudent.Id, users.PrimaryCompany.Id, users.PrimaryConsultant.Id };
+        var prefUsers = new[] { users.PrimaryStudent.Id, users.PrimaryScholarshipProvider.Id, users.PrimaryConsultant.Id };
         var prefTypes = new[]
         {
             NotificationType.ApplicationStatusChanged,

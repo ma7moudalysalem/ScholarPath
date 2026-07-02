@@ -1,0 +1,21 @@
+\contentsline {section}{\numberline {1}Goal: turning the EERD into relations}{2}{section.1}%
+\contentsline {section}{\numberline {2}The mapping algorithm at a glance}{3}{section.2}%
+\contentsline {section}{\numberline {3}Walking each construct with ScholarPath examples}{3}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Step 1 --- Strong (regular) entities}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Step 2 --- Weak entities and identifying cascades}{4}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Step 3 --- 1:1 relationships}{4}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}Step 4 --- 1:N relationships}{5}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Step 5 --- M:N relationships (junction relations)}{5}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Step 6 --- Multivalued attributes (the JSON deviation)}{5}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}Step 7 --- N-ary relationships}{6}{subsection.3.7}%
+\contentsline {subsection}{\numberline {3.8}Step 8 --- Specialization (single-table, Option C)}{6}{subsection.3.8}%
+\contentsline {section}{\numberline {4}The resulting relational schemas (six areas)}{7}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Identity, Access \& Profile}{7}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Scholarships, Applications \& Documents}{8}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Consultant Booking, Payments \& Ratings}{9}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Community \& Chat}{10}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Resources Hub \& Notifications}{11}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.6}AI, Knowledge Base \& Platform}{12}{subsection.4.6}%
+\contentsline {section}{\numberline {5}Referential-integrity strategy}{14}{section.5}%
+\contentsline {section}{\numberline {6}Accuracy: model versus live database}{14}{section.6}%
+\contentsline {section}{\numberline {7}Closing}{15}{section.7}%

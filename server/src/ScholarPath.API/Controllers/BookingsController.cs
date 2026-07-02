@@ -21,7 +21,7 @@ using ScholarPath.Application.ConsultantBookings.Queries.GetAllBookings;
 using ScholarPath.Application.ConsultantBookings.Queries.GetMyAvailability;
 using ScholarPath.Application.ConsultantBookings.Queries.GetMyBookings;
 using ScholarPath.Application.ConsultantBookings.Queries.GetMyReceivedReviews;
-using ScholarPath.Application.CompanyReviews.DTOs;
+using ScholarPath.Application.ScholarshipProviderReviews.DTOs;
 
 namespace ScholarPath.API.Controllers;
 
@@ -43,7 +43,7 @@ public sealed class BookingsController : ControllerBase
     /// Lists all bookings platform-wide — admin and company users only.
     /// </summary>
     [HttpGet]
-    [Authorize(Roles = "Admin,SuperAdmin,Company")]
+    [Authorize(Roles = "Admin,SuperAdmin,ScholarshipProvider")]
     [ProducesResponseType(typeof(IReadOnlyList<BookingListItemDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<BookingListItemDto>>> GetAllBookings(
         CancellationToken cancellationToken)

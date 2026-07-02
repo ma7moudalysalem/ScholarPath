@@ -58,8 +58,8 @@ export function Applications() {
   const [isAddExternalOpen, setIsAddExternalOpen] = useState(false);
   const [selectedAppForReview, setSelectedAppForReview] = useState<{
     id: string;
-    companyId: string;
-    companyName: string;
+    scholarshipProviderId: string;
+    scholarshipProviderName: string;
   } | null>(null);
 
   const { data: applications = [], isLoading } = useQuery({
@@ -102,11 +102,11 @@ export function Applications() {
 
       if (variables.status === "Accepted" || variables.status === "Rejected") {
         const app = applications.find((a) => a.applicationId === variables.id);
-        if (app && app.companyId) {
+        if (app && app.scholarshipProviderId) {
           setSelectedAppForReview({
             id: app.applicationId,
-            companyId: app.companyId,
-            companyName: app.companyName || t("companyFallback"),
+            scholarshipProviderId: app.scholarshipProviderId,
+            scholarshipProviderName: app.scholarshipProviderName || t("scholarshipProviderFallback"),
           });
         }
       }
@@ -122,11 +122,11 @@ export function Applications() {
 
   const handleSubmitRating = async (
     applicationId: string,
-    companyId: string,
+    scholarshipProviderId: string,
     rating: number,
     comment: string,
   ) => {
-    await applicationsApi.submitReview(applicationId, companyId, rating, comment);
+    await applicationsApi.submitReview(applicationId, scholarshipProviderId, rating, comment);
   };
 
   return (
@@ -227,8 +227,8 @@ export function Applications() {
           isOpen={!!selectedAppForReview}
           onOpenChange={(open) => !open && setSelectedAppForReview(null)}
           applicationId={selectedAppForReview.id}
-          companyId={selectedAppForReview.companyId}
-          companyName={selectedAppForReview.companyName}
+          scholarshipProviderId={selectedAppForReview.scholarshipProviderId}
+          scholarshipProviderName={selectedAppForReview.scholarshipProviderName}
           onSubmitRating={handleSubmitRating}
         />
       )}

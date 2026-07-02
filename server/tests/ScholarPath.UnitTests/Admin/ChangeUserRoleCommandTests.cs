@@ -27,12 +27,12 @@ public class ChangeUserRoleCommandTests
     public async Task Remove_role_delegates_to_admin()
     {
         var uid = Guid.NewGuid();
-        _admin.RemoveRoleAsync(uid, "Company", Arg.Any<CancellationToken>()).Returns(true);
+        _admin.RemoveRoleAsync(uid, "ScholarshipProvider", Arg.Any<CancellationToken>()).Returns(true);
 
         var sut = new ChangeUserRoleCommandHandler(_admin, _log);
-        await sut.Handle(new ChangeUserRoleCommand(uid, "Company", RoleOp.Remove), default);
+        await sut.Handle(new ChangeUserRoleCommand(uid, "ScholarshipProvider", RoleOp.Remove), default);
 
-        await _admin.Received(1).RemoveRoleAsync(uid, "Company", Arg.Any<CancellationToken>());
+        await _admin.Received(1).RemoveRoleAsync(uid, "ScholarshipProvider", Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public class ChangeUserRoleCommandValidatorTests
 
     [Theory]
     [InlineData("Student")]
-    [InlineData("Company")]
+    [InlineData("ScholarshipProvider")]
     [InlineData("Consultant")]
     [InlineData("Admin")]
     [InlineData("SuperAdmin")]

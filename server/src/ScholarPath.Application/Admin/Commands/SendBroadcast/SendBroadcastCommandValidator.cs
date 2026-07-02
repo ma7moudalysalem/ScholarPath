@@ -6,7 +6,7 @@ public sealed class SendBroadcastCommandValidator : AbstractValidator<SendBroadc
 {
     private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Student", "Company", "Consultant", "Admin", "SuperAdmin", "Moderator",
+        "Student", "ScholarshipProvider", "Consultant", "Admin", "SuperAdmin", "Moderator",
     };
 
     public SendBroadcastCommandValidator()

@@ -11,7 +11,7 @@ export type AccountStatus =
   | "Suspended"
   | "Deactivated";
 
-export type Role = "Admin" | "Student" | "Company" | "Consultant" | "Unassigned";
+export type Role = "Admin" | "Student" | "ScholarshipProvider" | "Consultant" | "Unassigned";
 
 export type FundingType =
   | "FullyFunded"
@@ -48,7 +48,7 @@ export type BookingStatus =
   | "NoShowStudent"
   | "NoShowConsultant";
 
-export type PaymentType = "ConsultantBooking" | "CompanyReview";
+export type PaymentType = "ConsultantBooking" | "ScholarshipProviderReview";
 
 export type PaymentStatus =
   | "Pending"

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { CheckCircle, XCircle, Eye, Clock, Search, Filter, Download, FileText, Loader2 } from "lucide-react";
 import {
   applicationsApi,
-  type CompanyApplicationRow,
+  type ScholarshipProviderApplicationRow,
   type ApplicationStatus,
 } from "@/services/api/applications";
 import { documentsApi } from "@/services/api/documents";
@@ -21,12 +21,12 @@ export function ApplicationsReview() {
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">("all");
   // Row whose details are open in the view drawer.
-  const [viewTarget, setViewTarget] = useState<CompanyApplicationRow | null>(null);
+  const [viewTarget, setViewTarget] = useState<ScholarshipProviderApplicationRow | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["company", "applications", statusFilter],
     queryFn: () =>
-      applicationsApi.getCompanyApplications(
+      applicationsApi.getScholarshipProviderApplications(
         undefined,
         1,
         100,
@@ -57,11 +57,11 @@ export function ApplicationsReview() {
     }) => applicationsApi.reviewApplication(id, status, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company", "applications"] });
-      toast.success(t("companyReview.decision.success"));
+      toast.success(t("scholarshipProviderReview.decision.success"));
       setDecisionTarget(null);
     },
     onError: (err) => {
-      toast.error(apiErrorMessage(err, t("companyReview.decision.error")));
+      toast.error(apiErrorMessage(err, t("scholarshipProviderReview.decision.error")));
       setDecisionTarget(null);
     },
   });
@@ -83,7 +83,7 @@ export function ApplicationsReview() {
   const needle = searchTerm.toLowerCase();
   const filteredApps = needle
     ? applications.filter(
-        (app: CompanyApplicationRow) =>
+        (app: ScholarshipProviderApplicationRow) =>
           app.studentName.toLowerCase().includes(needle) ||
           app.scholarshipTitle.toLowerCase().includes(needle),
       )
@@ -98,10 +98,10 @@ export function ApplicationsReview() {
     <div className="mx-auto max-w-7xl p-6">
       <div className="mb-8">
         <h1 className="text-2xl font-bold tracking-tight text-text-primary">
-          {t("companyReview.title")}
+          {t("scholarshipProviderReview.title")}
         </h1>
         <p className="text-sm text-text-secondary">
-          {t("companyReview.subtitle")}
+          {t("scholarshipProviderReview.subtitle")}
         </p>
       </div>
 
@@ -113,7 +113,7 @@ export function ApplicationsReview() {
           />
           <input
             type="text"
-            placeholder={t("companyReview.searchPlaceholder")}
+            placeholder={t("scholarshipProviderReview.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full rounded-lg border border-border-subtle bg-bg-elevated py-2 ps-10 pe-4 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-100"
@@ -131,7 +131,7 @@ export function ApplicationsReview() {
           }`}
         >
           <Filter size={18} />
-          <span>{t("companyReview.filters")}</span>
+          <span>{t("scholarshipProviderReview.filters")}</span>
           {statusFilter !== "all" && (
             <span className="rounded-full bg-brand-500 px-1.5 text-[10px] font-bold text-white">1</span>
           )}
@@ -152,8 +152,8 @@ export function ApplicationsReview() {
               }`}
             >
               {s === "all"
-                ? t("companyReview.filterAll", "All")
-                : t(`companyReview.status.${s}`, { defaultValue: s })}
+                ? t("scholarshipProviderReview.filterAll", "All")
+                : t(`scholarshipProviderReview.status.${s}`, { defaultValue: s })}
             </button>
           ))}
         </div>
@@ -164,12 +164,12 @@ export function ApplicationsReview() {
           <table className="w-full text-start text-sm">
             <thead className="bg-bg-muted text-xs font-semibold uppercase text-text-tertiary">
               <tr>
-                <th className="px-6 py-4">{t("companyReview.table.student")}</th>
-                <th className="px-6 py-4">{t("companyReview.table.scholarship")}</th>
-                <th className="px-6 py-4">{t("companyReview.table.status")}</th>
-                <th className="px-6 py-4">{t("companyReview.table.submitted")}</th>
+                <th className="px-6 py-4">{t("scholarshipProviderReview.table.student")}</th>
+                <th className="px-6 py-4">{t("scholarshipProviderReview.table.scholarship")}</th>
+                <th className="px-6 py-4">{t("scholarshipProviderReview.table.status")}</th>
+                <th className="px-6 py-4">{t("scholarshipProviderReview.table.submitted")}</th>
                 <th className="px-6 py-4 text-end">
-                  {t("companyReview.table.actions")}
+                  {t("scholarshipProviderReview.table.actions")}
                 </th>
               </tr>
             </thead>
@@ -185,12 +185,12 @@ export function ApplicationsReview() {
               ) : filteredApps.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-text-secondary">
-                    {t("companyReview.empty")}
+                    {t("scholarshipProviderReview.empty")}
                   </td>
                 </tr>
               ) : (
-                filteredApps.map((app: CompanyApplicationRow) => {
-                  // The CompanyApplicationRow DTO uses `applicationId` and
+                filteredApps.map((app: ScholarshipProviderApplicationRow) => {
+                  // The ScholarshipProviderApplicationRow DTO uses `applicationId` and
                   // `submittedAt` (nullable when the row is still a draft) —
                   // earlier callers referenced `app.id` / `app.createdAt`
                   // which don't exist on the shape, so `new Date(undefined)`
@@ -227,7 +227,7 @@ export function ApplicationsReview() {
                         {isActionable ? (
                           <Clock size={12} className="me-1" />
                         ) : null}
-                        {t(`companyReview.status.${app.status}`, { defaultValue: app.status })}
+                        {t(`scholarshipProviderReview.status.${app.status}`, { defaultValue: app.status })}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-text-tertiary">
@@ -239,8 +239,8 @@ export function ApplicationsReview() {
                           type="button"
                           onClick={() => setViewTarget(app)}
                           className="p-1.5 text-text-tertiary transition-colors hover:text-brand-600"
-                          aria-label={t("companyReview.actions.view")}
-                          title={t("companyReview.actions.view")}
+                          aria-label={t("scholarshipProviderReview.actions.view")}
+                          title={t("scholarshipProviderReview.actions.view")}
                         >
                           <Eye size={18} />
                         </button>
@@ -250,7 +250,7 @@ export function ApplicationsReview() {
                               type="button"
                               onClick={() => handleDecisionClick(app.applicationId, "Accepted")}
                               className="p-1.5 text-text-tertiary transition-colors hover:text-success-600"
-                              title={t("companyReview.actions.accept")}
+                              title={t("scholarshipProviderReview.actions.accept")}
                             >
                               <CheckCircle size={18} />
                             </button>
@@ -258,7 +258,7 @@ export function ApplicationsReview() {
                               type="button"
                               onClick={() => handleDecisionClick(app.applicationId, "Rejected")}
                               className="p-1.5 text-text-tertiary transition-colors hover:text-danger-500"
-                              title={t("companyReview.actions.reject")}
+                              title={t("scholarshipProviderReview.actions.reject")}
                             >
                               <XCircle size={18} />
                             </button>
@@ -282,20 +282,20 @@ export function ApplicationsReview() {
         }}
         title={
           decisionTarget?.status === "Rejected"
-            ? t("companyReview.decision.rejectTitle")
-            : t("companyReview.decision.acceptTitle")
+            ? t("scholarshipProviderReview.decision.rejectTitle")
+            : t("scholarshipProviderReview.decision.acceptTitle")
         }
         inputLabel={
           decisionTarget?.status === "Rejected"
-            ? t("companyReview.decision.rejectPrompt")
-            : t("companyReview.decision.acceptPrompt")
+            ? t("scholarshipProviderReview.decision.rejectPrompt")
+            : t("scholarshipProviderReview.decision.acceptPrompt")
         }
         inputMultiline
         variant={decisionTarget?.status === "Rejected" ? "destructive" : "default"}
         confirmLabel={
           decisionTarget?.status === "Rejected"
-            ? t("companyReview.actions.reject")
-            : t("companyReview.actions.accept")
+            ? t("scholarshipProviderReview.actions.reject")
+            : t("scholarshipProviderReview.actions.accept")
         }
         loading={reviewMutation.isPending}
         onConfirm={submitDecision}
@@ -333,7 +333,7 @@ function ApplicationDetailModal({
   onClose,
   onDecision,
 }: {
-  row: CompanyApplicationRow;
+  row: ScholarshipProviderApplicationRow;
   lang: string;
   t: ReturnType<typeof useTranslation<"applications">>["t"];
   onClose: () => void;
@@ -341,7 +341,7 @@ function ApplicationDetailModal({
 }) {
   const { data: details, isLoading } = useQuery({
     queryKey: ["company", "application", "detail", row.applicationId],
-    queryFn: () => applicationsApi.getCompanyApplicationDetails(row.applicationId),
+    queryFn: () => applicationsApi.getScholarshipProviderApplicationDetails(row.applicationId),
   });
 
   const handleDownload = async (docId: string, fileName: string) => {
@@ -388,13 +388,13 @@ function ApplicationDetailModal({
         {/* Header */}
         <div className="flex items-start justify-between gap-4 border-b border-border-subtle p-6 pb-4">
           <h2 className="text-lg font-bold text-text-primary">
-            {t("companyReview.detail.title", "Application details")}
+            {t("scholarshipProviderReview.detail.title", "Application details")}
           </h2>
           <button
             type="button"
             onClick={onClose}
             className="rounded-md p-1 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary"
-            aria-label={t("companyReview.detail.close", "Close")}
+            aria-label={t("scholarshipProviderReview.detail.close", "Close")}
           >
             <XCircle size={20} />
           </button>
@@ -405,21 +405,21 @@ function ApplicationDetailModal({
           {/* Summary */}
           <dl className="space-y-3 text-sm">
             <div className="flex flex-col gap-0.5">
-              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.student")}</dt>
+              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("scholarshipProviderReview.table.student")}</dt>
               <dd className="font-medium text-text-primary">{row.studentName}</dd>
             </div>
             <div className="flex flex-col gap-0.5">
-              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.scholarship")}</dt>
+              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("scholarshipProviderReview.table.scholarship")}</dt>
               <dd className="text-text-primary">{row.scholarshipTitle}</dd>
             </div>
             <div className="flex flex-col gap-0.5">
-              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.status")}</dt>
+              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("scholarshipProviderReview.table.status")}</dt>
               <dd className="text-text-primary">
-                {t(`companyReview.status.${row.status}`, { defaultValue: row.status })}
+                {t(`scholarshipProviderReview.status.${row.status}`, { defaultValue: row.status })}
               </dd>
             </div>
             <div className="flex flex-col gap-0.5">
-              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("companyReview.table.submitted")}</dt>
+              <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("scholarshipProviderReview.table.submitted")}</dt>
               <dd className="text-text-primary">
                 {row.submittedAt ? new Date(row.submittedAt).toLocaleDateString(lang) : "—"}
               </dd>
@@ -436,7 +436,7 @@ function ApplicationDetailModal({
           {!isLoading && formEntries.length > 0 && (
             <div>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
-                {t("companyReview.detail.formAnswers", "Form answers")}
+                {t("scholarshipProviderReview.detail.formAnswers", "Form answers")}
               </h3>
               <dl className="space-y-2 rounded-lg border border-border-subtle bg-bg-canvas p-3 text-sm">
                 {formEntries.map(([key, value]) => (
@@ -453,7 +453,7 @@ function ApplicationDetailModal({
           {!isLoading && details && details.documents.length > 0 && (
             <div>
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
-                {t("companyReview.detail.documents", "Documents")}
+                {t("scholarshipProviderReview.detail.documents", "Documents")}
               </h3>
               <ul className="space-y-2">
                 {details.documents.map((doc) => (
@@ -467,7 +467,7 @@ function ApplicationDetailModal({
                     <button
                       type="button"
                       onClick={() => void handleDownload(doc.id, doc.fileName)}
-                      title={t("companyReview.detail.download", "Download")}
+                      title={t("scholarshipProviderReview.detail.download", "Download")}
                       className="rounded-md p-1.5 text-text-tertiary transition hover:bg-bg-subtle hover:text-brand-600"
                     >
                       <Download size={15} />
@@ -481,7 +481,7 @@ function ApplicationDetailModal({
           {/* No documents hint */}
           {!isLoading && details && details.documents.length === 0 && !details.formDataJson && (
             <p className="text-sm text-text-tertiary">
-              {t("companyReview.detail.noContent", "No form answers or documents were submitted.")}
+              {t("scholarshipProviderReview.detail.noContent", "No form answers or documents were submitted.")}
             </p>
           )}
         </div>
@@ -494,14 +494,14 @@ function ApplicationDetailModal({
               onClick={() => onDecision(row.applicationId, "Rejected")}
               className="rounded-lg border border-danger-200 px-3 py-1.5 text-sm font-medium text-danger-600 transition hover:border-danger-400 hover:bg-danger-50"
             >
-              {t("companyReview.actions.reject")}
+              {t("scholarshipProviderReview.actions.reject")}
             </button>
             <button
               type="button"
               onClick={() => onDecision(row.applicationId, "Accepted")}
               className="rounded-lg bg-success-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-success-600"
             >
-              {t("companyReview.actions.accept")}
+              {t("scholarshipProviderReview.actions.accept")}
             </button>
           </div>
         )}

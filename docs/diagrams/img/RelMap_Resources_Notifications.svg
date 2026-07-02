@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="796" viewBox="0 0 520 796" font-family="Times New Roman,serif">
+<rect width="100%" height="100%" fill="white"/>
+<path d="M 214.2 172.0 V 180.0 H 14.0 V 53.0 H 131.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="132.0,53.0 124.0,49.0 124.0,57.0" fill="black"/>
+<path d="M 207.3 271.0 V 279.0 H 26.0 V 154.0 H 131.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="132.0,154.0 124.0,150.0 124.0,158.0" fill="black"/>
+<path d="M 280.5 271.0 V 286.0 H 38.0 V 57.0 H 131.0" fill="none" stroke="black" stroke-width="1.1" stroke-dasharray="5,3"/>
+<polygon points="132.0,57.0 124.0,53.0 124.0,61.0" fill="black"/>
+<path d="M 207.3 370.0 V 378.0 H 50.0 V 160.0 H 131.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="132.0,160.0 124.0,156.0 124.0,164.0" fill="black"/>
+<path d="M 207.3 469.0 V 477.0 H 62.0 V 166.0 H 131.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="132.0,166.0 124.0,162.0 124.0,170.0" fill="black"/>
+<path d="M 280.5 469.0 V 484.0 H 74.0 V 61.0 H 131.0" fill="none" stroke="black" stroke-width="1.1" stroke-dasharray="5,3"/>
+<polygon points="132.0,61.0 124.0,57.0 124.0,65.0" fill="black"/>
+<path d="M 234.9 568.0 V 576.0 H 86.0 V 259.0 H 131.0" fill="none" stroke="black" stroke-width="1.1"/>
+<polygon points="132.0,259.0 124.0,255.0 124.0,263.0" fill="black"/>
+<path d="M 224.6 667.0 V 675.0 H 98.0 V 65.0 H 131.0" fill="none" stroke="black" stroke-width="1.1" stroke-dasharray="5,3"/>
+<polygon points="132.0,65.0 124.0,61.0 124.0,69.0" fill="black"/>
+<path d="M 193.5 766.0 V 774.0 H 110.0 V 69.0 H 131.0" fill="none" stroke="black" stroke-width="1.1" stroke-dasharray="5,3"/>
+<polygon points="132.0,69.0 124.0,65.0 124.0,73.0" fill="black"/>
+<rect x="132.0" y="26.0" width="31.8" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="147.9" y="42.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">Users</text>
+<rect x="132.0" y="49.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="147.9" y="66.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="132.0" y="125.0" width="283.2" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="273.6" y="141.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">Resources</text>
+<rect x="132.0" y="148.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="147.9" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="163.8" y="148.0" width="100.8" height="24" fill="#fff7e6" stroke="black"/>
+<text x="214.2" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">AuthorUserId</text>
+<rect x="264.6" y="148.0" width="45.6" height="24" fill="white" stroke="black"/>
+<text x="287.4" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Slug</text>
+<rect x="310.2" y="148.0" width="45.6" height="24" fill="white" stroke="black"/>
+<text x="333.0" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Type</text>
+<rect x="355.8" y="148.0" width="59.4" height="24" fill="white" stroke="black"/>
+<text x="385.5" y="165.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Status</text>
+<rect x="132.0" y="224.0" width="348.0" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="306.0" y="240.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">ResourceProgress</text>
+<rect x="132.0" y="247.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="147.9" y="264.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="163.8" y="247.0" width="87.0" height="24" fill="#fff7e6" stroke="black"/>
+<text x="207.3" y="264.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">ResourceId</text>
+<rect x="250.8" y="247.0" width="59.4" height="24" fill="#fff7e6" stroke="black"/>
+<text x="280.5" y="264.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">UserId</text>
+<rect x="310.2" y="247.0" width="169.8" height="24" fill="white" stroke="black"/>
+<text x="395.1" y="264.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">ChaptersCompletedCount</text>
+<rect x="132.0" y="323.0" width="198.9" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="231.4" y="339.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">ResourceChapters</text>
+<rect x="132.0" y="346.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="147.9" y="363.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="163.8" y="346.0" width="87.0" height="24" fill="#fff7e6" stroke="black"/>
+<text x="207.3" y="363.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">ResourceId</text>
+<rect x="250.8" y="346.0" width="80.1" height="24" fill="white" stroke="black"/>
+<text x="290.9" y="363.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">SortOrder</text>
+<rect x="132.0" y="422.0" width="178.2" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="221.1" y="438.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">ResourceBookmarks</text>
+<rect x="132.0" y="445.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="147.9" y="462.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="163.8" y="445.0" width="87.0" height="24" fill="#fff7e6" stroke="black"/>
+<text x="207.3" y="462.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">ResourceId</text>
+<rect x="250.8" y="445.0" width="59.4" height="24" fill="#fff7e6" stroke="black"/>
+<text x="280.5" y="462.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">UserId</text>
+<rect x="132.0" y="521.0" width="267.9" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="265.9" y="537.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">ResourceProgressChildren</text>
+<rect x="132.0" y="544.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="147.9" y="561.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="163.8" y="544.0" width="142.2" height="24" fill="#fff7e6" stroke="black"/>
+<text x="234.9" y="561.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">ResourceProgressId</text>
+<rect x="306.0" y="544.0" width="93.9" height="24" fill="white" stroke="black"/>
+<text x="352.9" y="561.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">IsCompleted</text>
+<rect x="132.0" y="620.0" width="324.6" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="294.3" y="636.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">Notifications</text>
+<rect x="132.0" y="643.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="147.9" y="660.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="163.8" y="643.0" width="121.5" height="24" fill="#fff7e6" stroke="black"/>
+<text x="224.6" y="660.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">RecipientUserId</text>
+<rect x="285.3" y="643.0" width="45.6" height="24" fill="white" stroke="black"/>
+<text x="308.1" y="660.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Type</text>
+<rect x="330.9" y="643.0" width="66.3" height="24" fill="white" stroke="black"/>
+<text x="364.1" y="660.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Channel</text>
+<rect x="397.2" y="643.0" width="59.4" height="24" fill="white" stroke="black"/>
+<text x="426.9" y="660.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">IsRead</text>
+<rect x="132.0" y="719.0" width="283.2" height="23" fill="#dbe6ff" stroke="black"/>
+<text x="273.6" y="735.0" text-anchor="middle" font-family="Times New Roman,serif" font-weight="bold" font-size="13">NotificationPreferences</text>
+<rect x="132.0" y="742.0" width="31.8" height="24" fill="white" stroke="black"/>
+<text x="147.9" y="759.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13" text-decoration="underline">Id</text>
+<rect x="163.8" y="742.0" width="59.4" height="24" fill="#fff7e6" stroke="black"/>
+<text x="193.5" y="759.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">UserId</text>
+<rect x="223.2" y="742.0" width="45.6" height="24" fill="white" stroke="black"/>
+<text x="246.0" y="759.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Type</text>
+<rect x="268.8" y="742.0" width="66.3" height="24" fill="white" stroke="black"/>
+<text x="302.0" y="759.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">Channel</text>
+<rect x="335.1" y="742.0" width="80.1" height="24" fill="white" stroke="black"/>
+<text x="375.2" y="759.0" text-anchor="middle" font-family="Times New Roman,serif" font-size="13">IsEnabled</text>
+</svg>

@@ -170,7 +170,7 @@ export const resourcesApi = {
 
   // ── Author CRUD ────────────────────────────────────────────────────────────
 
-  /** Create a new resource (Consultant / Company / Admin only). Returns the new id. */
+  /** Create a new resource (Consultant / ScholarshipProvider / Admin only). Returns the new id. */
   async create(input: CreateResourceInput): Promise<string> {
     const { data } = await apiClient.post<string>("/api/resources", input);
     return data;

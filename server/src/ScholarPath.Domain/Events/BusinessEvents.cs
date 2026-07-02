@@ -3,7 +3,7 @@ using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Domain.Events;
 
-public record ScholarshipPublishedEvent(Guid ScholarshipId, Guid? OwnerCompanyId) : DomainEvent;
+public record ScholarshipPublishedEvent(Guid ScholarshipId, Guid? OwnerScholarshipProviderId) : DomainEvent;
 public record ScholarshipArchivedEvent(Guid ScholarshipId) : DomainEvent;
 public record ScholarshipFeaturedEvent(Guid ScholarshipId, int FeaturedOrder) : DomainEvent;
 
@@ -19,7 +19,7 @@ public record BookingCancelledEvent(Guid BookingId, Guid StudentId, Guid Consult
 public record BookingCompletedEvent(Guid BookingId, Guid StudentId, Guid ConsultantId) : DomainEvent;
 public record BookingRescheduledEvent(Guid BookingId, Guid StudentId, Guid ConsultantId, Guid RescheduledByUserId, DateTimeOffset NewStartAt, DateTimeOffset NewEndAt) : DomainEvent;
 
-public record CompanyRatingSubmittedEvent(Guid CompanyReviewId, Guid CompanyId, Guid StudentId, int Rating) : DomainEvent;
+public record ScholarshipProviderRatingSubmittedEvent(Guid ScholarshipProviderReviewId, Guid ScholarshipProviderId, Guid StudentId, int Rating) : DomainEvent;
 public record ConsultantRatingSubmittedEvent(Guid ConsultantReviewId, Guid ConsultantId, Guid StudentId, int Rating) : DomainEvent;
 
 public record PaymentCapturedEvent(Guid PaymentId, PaymentType Type, long AmountCents, Guid PayerUserId, Guid? PayeeUserId) : DomainEvent;

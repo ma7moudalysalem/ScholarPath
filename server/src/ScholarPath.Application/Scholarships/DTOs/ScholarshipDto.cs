@@ -10,7 +10,7 @@ namespace ScholarPath.Application.Scholarships.DTOs
         public string Title { get; init; } = default!;
         public string Description { get; init; } = default!;
         public string CategoryName { get; init; } = default!;
-        public string? OwnerCompanyName { get; init; }
+        public string? OwnerScholarshipProviderName { get; init; }
         public string Status { get; init; } = default!;
         public string FundingType { get; init; } = default!;
         public string TargetLevel { get; init; } = default!;
@@ -44,18 +44,18 @@ namespace ScholarPath.Application.Scholarships.DTOs
         /// <summary>
         /// Per-scholarship Review Service Fee (PB-005). Students see this on the
         /// Scholarship Details page before they Apply Now; it is the gross amount
-        /// charged for the paid application-support flow. Null when the Company
+        /// charged for the paid application-support flow. Null when the ScholarshipProvider
         /// has not configured a fee yet — in that case the detail page must
         /// disable Apply Now and surface a clear message.
         /// </summary>
         public decimal? ReviewFeeUsd { get; init; }
 
         /// <summary>
-        /// Owner Company user-id, exposed so the frontend can prevent a Company
+        /// Owner ScholarshipProvider user-id, exposed so the frontend can prevent a ScholarshipProvider
         /// from "applying" to its own scholarship and so it can address the
         /// payment intent to the right payee.
         /// </summary>
-        public Guid? OwnerCompanyId { get; init; }
+        public Guid? OwnerScholarshipProviderId { get; init; }
     }
 
     public record ScholarshipChildDto(string ChildType, string Key, string? Value, int SortOrder);

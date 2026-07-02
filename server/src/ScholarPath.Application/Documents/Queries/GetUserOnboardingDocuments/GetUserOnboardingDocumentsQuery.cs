@@ -6,7 +6,7 @@ using ScholarPath.Domain.Enums;
 namespace ScholarPath.Application.Documents.Queries.GetUserOnboardingDocuments;
 
 /// <summary>
-/// Lists the verification documents a Company or Consultant uploaded in support
+/// Lists the verification documents a ScholarshipProvider or Consultant uploaded in support
 /// of their onboarding request, newest first. Used by the admin onboarding-queue
 /// reviewer; <c>AdminController</c> restricts the caller to Admin / SuperAdmin.
 /// </summary>

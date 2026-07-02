@@ -53,13 +53,13 @@
     "switcher": "Role",
     "student": "Student",
     "consultant": "Consultant",
-    "company": "Company",
+    "company": "ScholarshipProvider",
     "admin": "Admin"
   },
   "roles": {
     "Student": "Student",
     "Consultant": "Consultant",
-    "Company": "Company",
+    "ScholarshipProvider": "ScholarshipProvider",
     "Admin": "Admin",
     "SuperAdmin": "Super Admin",
     "Unassigned": "Unassigned"

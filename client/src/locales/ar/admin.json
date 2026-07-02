@@ -116,7 +116,7 @@
       "website": "الموقع الإلكتروني",
       "orgEmail": "البريد الإلكتروني",
       "country": "الدولة",
-      "companyType": "نوع الشركة",
+      "scholarshipProviderType": "نوع الشركة",
       "registrationNumber": "رقم السجل",
       "taxNumber": "الرقم الضريبي",
       "contactName": "اسم جهة الاتصال",
@@ -154,7 +154,7 @@
       "all": "الكل"
     },
     "target": {
-      "Company": "شركة",
+      "ScholarshipProvider": "شركة",
       "Consultant": "مستشار"
     },
     "status": {

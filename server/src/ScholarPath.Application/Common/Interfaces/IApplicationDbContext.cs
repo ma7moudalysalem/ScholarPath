@@ -34,9 +34,9 @@ public interface IApplicationDbContext
     DbSet<ApplicationTracker> Applications { get; }
     DbSet<ApplicationTrackerChild> ApplicationChildren { get; }
 
-    DbSet<CompanyReview> CompanyReviews { get; }
-    DbSet<CompanyReviewPayment> CompanyReviewPayments { get; }
-    DbSet<CompanyReviewRequest> CompanyReviewRequests { get; }
+    DbSet<ScholarshipProviderReview> ScholarshipProviderReviews { get; }
+    DbSet<ScholarshipProviderReviewPayment> ScholarshipProviderReviewPayments { get; }
+    DbSet<ScholarshipProviderReviewRequest> ScholarshipProviderReviewRequests { get; }
     DbSet<ConsultantReview> ConsultantReviews { get; }
 
     DbSet<ConsultantAvailability> Availabilities { get; }

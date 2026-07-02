@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ScholarPath — رحلة الموديل: ERD → EERD → Mapping → Class</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/3.31.0/tabler-icons.min.css">
+<style>
+:root{
+  --surface-2:#ffffff; --surface-1:#f7f7f4; --surface-0:#faf9f5;
+  --text-primary:#1f1e1c; --text-secondary:#5f5e5a; --text-muted:#8a8980;
+  --border:#e7e6e0; --border-strong:#d6d4ca;
+  --bg-accent:#e6f1fb; --text-accent:#185fa5; --border-accent:#85b7eb;
+  --radius:8px; --maxw:860px;
+  --font:'Anthropic Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans Arabic',sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --surface-2:#211f1b; --surface-1:#1a1916; --surface-0:#141310;
+  --text-primary:#ecebe4; --text-secondary:#b4b2a8; --text-muted:#8a8980;
+  --border:#33322c; --border-strong:#45443c;
+  --bg-accent:#14304a; --text-accent:#85b7eb; --border-accent:#2f5d86;
+}}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--surface-0);color:var(--text-primary);font-family:var(--font);line-height:1.75}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:2.2rem 1.25rem 4rem}
+header h1{font-size:24px;font-weight:500;margin:0 0 .35rem}
+header p{font-size:15px;color:var(--text-secondary);margin:0}
+.card{background:var(--surface-2);border:.5px solid var(--border);border-radius:12px;padding:1.1rem 1.25rem;margin-top:1.4rem}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin:1.4rem 0 .2rem}
+.step{border:.5px solid var(--border);border-radius:var(--radius);padding:7px 15px;font:inherit;font-size:13px;cursor:pointer;background:transparent;color:var(--text-secondary);transition:all .12s}
+.step:hover{background:var(--surface-1)}
+.step[aria-current="step"]{background:var(--bg-accent);color:var(--text-accent);border-color:var(--border-accent)}
+.panel svg{display:block;width:100%;height:auto}
+.cap{font-size:14.5px;color:var(--text-secondary);margin:.9rem 0 0}
+.cap code,.detail code{background:var(--surface-1);border:.5px solid var(--border);border-radius:5px;padding:1px 5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9em;color:var(--text-primary)}
+.detail{display:none;margin-top:.9rem;padding:.9rem 1.05rem;background:var(--surface-1);border:.5px solid var(--border);border-radius:var(--radius);font-size:14.5px;color:var(--text-secondary)}
+.detail ul{margin:.4rem 0;padding-inline-start:1.3rem}
+.detail li{margin:.25rem 0}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:1.3rem;border-top:.5px solid var(--border);padding-top:1rem}
+button.act{border:.5px solid var(--border-strong);border-radius:var(--radius);padding:7px 15px;font:inherit;font-size:13px;cursor:pointer;background:transparent;color:var(--text-primary);transition:all .12s}
+button.act:hover{background:var(--surface-1)}
+.lbl{font-size:13px;color:var(--text-muted)}
+.t{font-size:14px;fill:var(--text-primary)}
+.ts{font-size:12px;fill:var(--text-secondary)}
+.th{font-size:14px;font-weight:500;fill:var(--text-primary)}
+.c-blue rect,.c-blue circle,.c-blue ellipse{fill:#e6f1fb;stroke:#185fa5;stroke-width:1.5px}
+.c-teal rect,.c-teal circle,.c-teal ellipse{fill:#e1f5ee;stroke:#0f6e56;stroke-width:1.5px}
+.c-amber rect,.c-amber circle,.c-amber ellipse{fill:#faeeda;stroke:#854f0b;stroke-width:1.5px}
+.c-gray rect,.c-gray circle,.c-gray ellipse{fill:#f1efe8;stroke:#5f5e5a;stroke-width:1.5px}
+.c-blue text{fill:#0c447c}.c-teal text{fill:#085041}.c-amber text{fill:#633806}.c-gray text{fill:#2c2c2a}
+.legend{font-size:13px;color:var(--text-muted);margin-top:1.6rem;display:flex;gap:18px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>ScholarPath — رحلة الموديل</h1>
+  <p>من الـ ERD الأساسي → EERD (تحسين) → Relational Mapping → Class diagram. المثال الجاري هو الكيان <code style="font-family:ui-monospace,monospace">USER</code>.</p>
+</header>
+
+<div class="nav" id="nav">
+  <button class="step">1 · ERD</button>
+  <button class="step">2 · EERD</button>
+  <button class="step">3 · Mapping</button>
+  <button class="step">4 · Class</button>
+</div>
+
+<div class="card">
+  <div class="panel" dir="ltr">
+    <svg viewBox="0 0 680 230" role="img"><title>Basic ERD of USER</title><desc>USER as one flat entity with attribute ovals Id, Email, Name, Role.</desc>
+      <line x1="198" y1="70" x2="292" y2="104" stroke="#888780" stroke-width="1.5"/>
+      <line x1="482" y1="70" x2="388" y2="104" stroke="#888780" stroke-width="1.5"/>
+      <line x1="198" y1="172" x2="292" y2="136" stroke="#888780" stroke-width="1.5"/>
+      <line x1="482" y1="172" x2="388" y2="136" stroke="#888780" stroke-width="1.5"/>
+      <g class="c-gray"><ellipse cx="150" cy="60" rx="52" ry="20"/><text class="ts" x="150" y="60" text-anchor="middle" dominant-baseline="central" text-decoration="underline">Id</text></g>
+      <g class="c-gray"><ellipse cx="530" cy="60" rx="52" ry="20"/><text class="ts" x="530" y="60" text-anchor="middle" dominant-baseline="central">Email</text></g>
+      <g class="c-gray"><ellipse cx="150" cy="182" rx="52" ry="20"/><text class="ts" x="150" y="182" text-anchor="middle" dominant-baseline="central">Name</text></g>
+      <g class="c-gray"><ellipse cx="530" cy="182" rx="52" ry="20"/><text class="ts" x="530" y="182" text-anchor="middle" dominant-baseline="central">Role</text></g>
+      <g class="c-blue"><rect x="285" y="96" width="110" height="48" rx="4"/><text class="th" x="340" y="120" text-anchor="middle" dominant-baseline="central">USER</text></g>
+    </svg>
+  </div>
+  <p class="cap">ERD — النموذج المفاهيمي الأساسي. الـ<code>USER</code> كيان واحد مسطّح، والدور (<code>Role</code>) مجرّد attribute. مفيش تخصّص ولا كيانات ضعيفة.</p>
+  <div class="detail">
+    بنرسم العالم كـ<strong>كيانات</strong> (مستطيلات) + <strong>علاقات</strong> (معيّنات) + <strong>attributes</strong> (بيضاوي، والمفتاح مُسطّر).
+    <ul>
+      <li>هنا <code>USER</code> كيان واحد، والأنواع المختلفة من المستخدمين مش متمايزة.</li>
+      <li>كافي للفهم العام، لكنه مش بيعبّر إن لكل دور بيانات مختلفة → ده اللي بنحلّه في الخطوة الجاية.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card">
+  <div class="panel" dir="ltr">
+    <svg viewBox="0 0 680 300" role="img"><title>EERD specialization of USER</title><desc>USER superclass with overlapping specialization circle to STUDENT, COMPANY, CONSULTANT, ADMIN.</desc>
+      <line x1="340" y1="88" x2="340" y2="106" stroke="#888780" stroke-width="1.5"/>
+      <line x1="340" y1="136" x2="110" y2="200" stroke="#888780" stroke-width="1.5"/>
+      <line x1="340" y1="136" x2="260" y2="200" stroke="#888780" stroke-width="1.5"/>
+      <line x1="340" y1="136" x2="410" y2="200" stroke="#888780" stroke-width="1.5"/>
+      <line x1="340" y1="136" x2="560" y2="200" stroke="#888780" stroke-width="1.5"/>
+      <g class="c-blue"><rect x="285" y="44" width="110" height="44" rx="4"/><text class="th" x="340" y="66" text-anchor="middle" dominant-baseline="central">USER</text></g>
+      <g class="c-amber"><circle cx="340" cy="120" r="16"/><text class="th" x="340" y="120" text-anchor="middle" dominant-baseline="central">o</text></g>
+      <g class="c-teal"><rect x="50" y="200" width="120" height="64" rx="4"/><text class="th" x="110" y="224" text-anchor="middle" dominant-baseline="central">STUDENT</text><text class="ts" x="110" y="246" text-anchor="middle" dominant-baseline="central">Gpa · level</text></g>
+      <g class="c-teal"><rect x="200" y="200" width="120" height="64" rx="4"/><text class="th" x="260" y="224" text-anchor="middle" dominant-baseline="central">COMPANY</text><text class="ts" x="260" y="246" text-anchor="middle" dominant-baseline="central">Org · rating</text></g>
+      <g class="c-teal"><rect x="350" y="200" width="120" height="64" rx="4"/><text class="th" x="410" y="224" text-anchor="middle" dominant-baseline="central">CONSULTANT</text><text class="ts" x="410" y="246" text-anchor="middle" dominant-baseline="central">Fee · tags</text></g>
+      <g class="c-teal"><rect x="500" y="200" width="120" height="64" rx="4"/><text class="th" x="560" y="224" text-anchor="middle" dominant-baseline="central">ADMIN</text><text class="ts" x="560" y="246" text-anchor="middle" dominant-baseline="central">operator</text></g>
+    </svg>
+  </div>
+  <p class="cap">EERD — التحسين: الـ<code>USER</code> اتخصّص لأربع أدوار عبر ISA. الدائرة <code>o</code> = <strong>overlapping</strong>، والمشاركة <strong>partial</strong>.</p>
+  <div class="detail">
+    ده قلب الموضوع — بنطبّق أدوات الـEER:
+    <ul>
+      <li><strong>Specialization / ISA:</strong> <code>USER</code> بيتقسّم لـ <code>Student / Company / Consultant / Admin</code>.</li>
+      <li><strong>الدائرة <code>o</code> = overlapping:</strong> المستخدم ممكن يحمل أكتر من دور (Student يترقّى لـConsultant ويفضل الاتنين).</li>
+      <li><strong>Partial:</strong> المستخدم الجديد (<code>Unassigned</code>) لسه مش أي نوع.</li>
+      <li>وبنضيف كمان <strong>weak entities</strong> (سجلات التعليم/الـchildren)، <strong>multivalued</strong> (الدول المفضّلة JSON)، و<strong>derived</strong> (التقييم المتوسط، عدّاد التصويت).</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card">
+  <div class="panel" dir="ltr">
+    <svg viewBox="0 0 680 292" role="img"><title>Relational mapping</title><desc>Single Users table and single UserProfiles table with nullable role columns, linked by a foreign key.</desc>
+      <defs><marker id="ar3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+      <line x1="400" y1="118" x2="266" y2="118" stroke="#888780" stroke-width="1.5" marker-end="url(#ar3)"/>
+      <rect x="60" y="102" width="200" height="104" fill="var(--surface-1)" stroke="var(--border)" stroke-width="1"/>
+      <rect x="400" y="102" width="220" height="150" fill="var(--surface-1)" stroke="var(--border)" stroke-width="1"/>
+      <g class="c-blue"><rect x="60" y="70" width="200" height="32" rx="4"/><text class="th" x="160" y="86" text-anchor="middle" dominant-baseline="central">Users</text></g>
+      <text class="ts" x="74" y="118" dominant-baseline="central" text-decoration="underline">Id (PK)</text>
+      <text class="ts" x="74" y="142" dominant-baseline="central">Email</text>
+      <text class="ts" x="74" y="166" dominant-baseline="central">AccountStatus</text>
+      <text class="ts" x="74" y="190" dominant-baseline="central">ActiveRole</text>
+      <g class="c-teal"><rect x="400" y="70" width="220" height="32" rx="4"/><text class="th" x="510" y="86" text-anchor="middle" dominant-baseline="central">UserProfiles</text></g>
+      <text class="ts" x="414" y="118" dominant-baseline="central">UserId (FK · UK)</text>
+      <text class="ts" x="414" y="146" dominant-baseline="central">student: Gpa?</text>
+      <text class="ts" x="414" y="174" dominant-baseline="central">consultant: SessionFeeUsd?</text>
+      <text class="ts" x="414" y="202" dominant-baseline="central">company: OrgLegalName?</text>
+      <text class="ts" x="414" y="230" dominant-baseline="central">inapplicable role &#8594; NULL</text>
+    </svg>
+  </div>
+  <p class="cap">Mapping — تحويل التخصّص لجداول بخوارزمية Elmasri. <strong>Option C (single-table)</strong>.</p>
+  <div class="detail">
+    التخصّص لازم يبقى جداول علائقية. اخترنا <strong>Option C (single-table)</strong>:
+    <ul>
+      <li>جدول <code>Users</code> واحد للأب.</li>
+      <li>جدول وصل <code>UserRoles</code> (M:N) للأدوار.</li>
+      <li>جدول <code>UserProfiles</code> <strong>واحد</strong> بيلمّ أعمدة كل الأدوار — واللي مش بينطبق على دورك يبقى <code>NULL</code> (بدل جدول لكل نوع).</li>
+    </ul>
+  </div>
+</div>
+
+<div class="card">
+  <div class="panel" dir="ltr">
+    <svg viewBox="0 0 680 250" role="img"><title>UML class model</title><desc>ApplicationUser extends IdentityUser of Guid; associated with UserProfile holding nullable role fields.</desc>
+      <defs><marker id="tri4" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="13" markerHeight="13" orient="auto-start-reverse"><path d="M1 1 L11 6 L1 11 Z" fill="var(--surface-2)" stroke="#888780" stroke-width="1"/></marker></defs>
+      <line x1="255" y1="165" x2="320" y2="92" stroke="#888780" stroke-width="1.5" marker-end="url(#tri4)"/>
+      <line x1="310" y1="193" x2="380" y2="193" stroke="#888780" stroke-width="1.5"/>
+      <text class="ts" x="345" y="182" text-anchor="middle" dominant-baseline="central">1 — 0..1</text>
+      <g class="c-gray"><rect x="240" y="44" width="200" height="46" rx="4"/><text class="th" x="340" y="62" text-anchor="middle" dominant-baseline="central">IdentityUser&lt;Guid&gt;</text><text class="ts" x="340" y="80" text-anchor="middle" dominant-baseline="central">ASP.NET Identity</text></g>
+      <g class="c-blue"><rect x="110" y="165" width="200" height="56" rx="4"/><text class="th" x="210" y="185" text-anchor="middle" dominant-baseline="central">ApplicationUser</text><text class="ts" x="210" y="205" text-anchor="middle" dominant-baseline="central">Email · AccountStatus</text></g>
+      <g class="c-teal"><rect x="380" y="165" width="230" height="56" rx="4"/><text class="th" x="495" y="185" text-anchor="middle" dominant-baseline="central">UserProfile</text><text class="ts" x="495" y="205" text-anchor="middle" dominant-baseline="central">Gpa? · SessionFeeUsd?</text></g>
+    </svg>
+  </div>
+  <p class="cap">Class — نفس الموديل بالـOOP. <code>ApplicationUser</code> بيورث <code>IdentityUser&lt;Guid&gt;</code> (مش <code>BaseEntity</code>).</p>
+  <div class="detail">
+    أخيرًا نعبّر عنه ككلاسات C#:
+    <ul>
+      <li><code>ApplicationUser</code> بيورث <code>IdentityUser&lt;Guid&gt;</code> (مش <code>BaseEntity</code> — نقطة مهمة).</li>
+      <li>الـ<code>UserProfile</code> (علاقة 1 : 0..1) بيحمل حقول الأدوار الـnullable.</li>
+      <li>وده بيركب فوق الـ<strong>Clean Architecture</strong> (ports &amp; adapters): الـApplication بيعرّف الواجهات، والـInfrastructure بيقدّم التطبيقات.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="foot">
+  <button class="act" id="prev"><i class="ti ti-arrow-right" aria-hidden="true"></i> السابق</button>
+  <span class="lbl" id="lbl">الخطوة 1 من 4</span>
+  <button class="act" id="more">تفاصيل أكتر <i class="ti ti-chevron-down" aria-hidden="true"></i></button>
+  <button class="act" id="next">التالي <i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+</div>
+
+<div class="legend">
+  <span><span class="dot" style="background:#e6f1fb;border-color:#185fa5"></span> كيان / Users</span>
+  <span><span class="dot" style="background:#e1f5ee;border-color:#0f6e56"></span> أدوار / Profile</span>
+  <span><span class="dot" style="background:#faeeda;border-color:#854f0b"></span> تخصّص (o = overlapping)</span>
+  <span><span class="dot" style="background:#f1efe8;border-color:#5f5e5a"></span> attribute / parent</span>
+</div>
+</div>
+
+<script>
+(function(){
+  var panels=[].slice.call(document.querySelectorAll('.card'));
+  var btns=[].slice.call(document.querySelectorAll('.step'));
+  var lbl=document.getElementById('lbl');
+  var moreBtn=document.getElementById('more');
+  var i=0,n=panels.length;
+  function show(k){
+    i=k<0?0:(k>n-1?n-1:k);
+    panels.forEach(function(p,j){p.style.display=j===i?'block':'none';});
+    btns.forEach(function(b,j){b.setAttribute('aria-current',j===i?'step':'false');});
+    lbl.textContent='الخطوة '+(i+1)+' من '+n;
+    syncMore();
+  }
+  function syncMore(){
+    var d=panels[i].querySelector('.detail');
+    var open=d&&d.style.display==='block';
+    moreBtn.innerHTML=(open?'إخفاء التفاصيل ':'تفاصيل أكتر ')+'<i class="ti ti-chevron-'+(open?'up':'down')+'" aria-hidden="true"></i>';
+  }
+  btns.forEach(function(b,j){b.addEventListener('click',function(){show(j);});});
+  document.getElementById('prev').addEventListener('click',function(){show(i-1);});
+  document.getElementById('next').addEventListener('click',function(){show(i+1);});
+  moreBtn.addEventListener('click',function(){
+    var d=panels[i].querySelector('.detail');
+    d.style.display=(d.style.display==='block')?'none':'block';
+    syncMore();
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowLeft')show(i+1); else if(e.key==='ArrowRight')show(i-1);
+  });
+  show(0);
+})();
+</script>
+</body>
+</html>

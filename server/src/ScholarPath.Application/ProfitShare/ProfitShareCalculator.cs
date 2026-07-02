@@ -16,7 +16,7 @@ public static class ProfitShareCalculator
     /// </summary>
     public static decimal DefaultPercentage(PaymentType type) => type switch
     {
-        PaymentType.CompanyReview => 0.10m,
+        PaymentType.ScholarshipProviderReview => 0.10m,
         _ => 0.10m,
     };
 

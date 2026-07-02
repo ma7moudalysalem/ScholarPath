@@ -175,7 +175,7 @@ public static partial class DbSeeder
                 DescriptionAr = descAr,
                 Slug = slug,
                 CategoryId = category.Id,
-                OwnerCompanyId = owner,
+                OwnerScholarshipProviderId = owner,
                 CreatedByAdminId = adminCurated ? adminId : null,
                 Mode = mode,
                 // Generated scholarships use a Google search URL so the

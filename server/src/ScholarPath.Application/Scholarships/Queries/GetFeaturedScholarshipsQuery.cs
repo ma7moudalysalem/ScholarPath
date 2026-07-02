@@ -49,8 +49,8 @@ public class GetFeaturedScholarshipsQueryHandler(IApplicationDbContext db, ICurr
                 Title = lang == "ar" ? (s.TitleAr ?? s.TitleEn) : (s.TitleEn ?? s.TitleAr),
                 Description = lang == "ar" ? s.DescriptionAr : s.DescriptionEn,
                 CategoryName = lang == "ar" ? s.Category!.NameAr : s.Category!.NameEn,
-                OwnerCompanyName = s.OwnerCompany != null
-                    ? s.OwnerCompany.FirstName + " " + s.OwnerCompany.LastName
+                OwnerScholarshipProviderName = s.OwnerScholarshipProvider != null
+                    ? s.OwnerScholarshipProvider.FirstName + " " + s.OwnerScholarshipProvider.LastName
                     : "Global Provider",
                 Deadline = s.Deadline,
                 Status = s.Status.ToString(),

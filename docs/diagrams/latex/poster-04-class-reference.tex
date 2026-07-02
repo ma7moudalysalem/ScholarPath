@@ -1,0 +1,27 @@
+% ScholarPath — Class diagrams REFERENCE poster (A0 portrait, vector) — full atlas
+\documentclass{article}
+\usepackage[paperwidth=841mm,paperheight=1189mm,margin=16mm]{geometry}
+\usepackage{graphicx}\graphicspath{{../img/}}
+\usepackage{xcolor}\definecolor{spblue}{HTML}{1F4E79}\definecolor{spteal}{HTML}{2C7A7B}
+\pagestyle{empty}\setlength{\parindent}{0pt}
+\newcommand{\cell}[2]{\begin{minipage}[t]{0.325\textwidth}\centering
+\includegraphics[width=\linewidth,height=300mm,keepaspectratio]{#1}\\[1.5mm]{\footnotesize\color{spblue}\bfseries #2}\end{minipage}}
+\newcommand{\rowgap}{\par\vspace{9mm}}
+\begin{document}
+\begin{center}
+{\color{spblue}\fontsize{56}{64}\selectfont\bfseries ScholarPath — Class Diagram Atlas}\\[4mm]
+{\color{spteal}\fontsize{28}{34}\selectfont UML domain model, per-subject-area classes, and the ports/adapters seam}
+\end{center}
+\vspace{8mm}
+\cell{ScholarPath_Domain_Model.pdf}{Domain model (overview)}\hfill
+\cell{ScholarPath_Ports_Adapters.pdf}{Ports \& Adapters (Clean Arch.)}\hfill
+\cell{Class_Base_Types.pdf}{Base types \& interfaces}\rowgap
+\cell{Class_Identity_Profile.pdf}{Identity \& Profile}\hfill
+\cell{Class_Scholarships_Applications.pdf}{Scholarships \& Applications}\hfill
+\cell{Class_Booking_Payments_Ratings.pdf}{Booking, Payments \& Ratings}\rowgap
+\cell{Class_Community_Chat.pdf}{Community \& Chat}\hfill
+\cell{Class_Resources_Notifications.pdf}{Resources \& Notifications}\hfill
+\cell{Class_AI_Platform.pdf}{AI \& Platform}
+\vfill
+\begin{center}{\color{spblue!70}\normalsize UML (Sommerville) · grounded in the C\# Domain entities and Application/Infrastructure interfaces}\end{center}
+\end{document}

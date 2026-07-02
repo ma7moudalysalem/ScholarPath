@@ -1,0 +1,561 @@
+' =====================================================================
+'  ScholarPath — Per-subject-area EERD in Chen / Elmasri notation.
+'  Notation (Elmasri & Navathe Fig. 3.14):
+'     rectangle = entity      diamond = relationship
+'     oval = attribute        underlined oval = key
+'     double oval <<multi>>   = multivalued attribute
+'     dashed oval <<derived>> = derived attribute
+'     double line (=)         = TOTAL participation   (single line - = partial)
+'     1 / N                   = cardinality ratio
+'  All entities are STRONG (each owns a surrogate Id); existence dependence of
+'  detail rows is shown by TOTAL participation, not by weak-entity boxes.
+'  Coverage matches the live EF model (gap-analysis E3/E4/E5 closed): every
+'  persistent entity in its subject area appears here.
+' =====================================================================
+
+@startchen EERD_Identity_Profile
+entity USER {
+  Id <<key>>
+  Email
+  AccountStatus
+  ActiveRole
+}
+entity USER_PROFILE {
+  Id <<key>>
+  Gpa
+  PreferredCountries <<multi>>
+  ExpertiseTags <<multi>>
+  CompanyAverageRating <<derived>>
+  ProfileCompletenessPercent <<derived>>
+}
+entity ROLE {
+  Id <<key>>
+  Name
+}
+entity EDUCATION_ENTRY {
+  Id <<key>>
+  InstitutionName
+  Degree
+}
+entity EXPERTISE_TAG {
+  Id <<key>>
+  Slug
+  Category
+}
+entity REFRESH_TOKEN {
+  Id <<key>>
+  TokenHash
+}
+entity PASSWORD_RESET_TOKEN {
+  Id <<key>>
+  TokenHash
+}
+entity LOGIN_ATTEMPT {
+  Id <<key>>
+  Email
+  Succeeded
+}
+entity UPGRADE_REQUEST {
+  Id <<key>>
+  Target
+  Status
+}
+entity UPGRADE_REQUEST_FILE {
+  Id <<key>>
+  BlobUrl
+}
+entity UPGRADE_REQUEST_LINK {
+  Id <<key>>
+  Url
+}
+relationship HAS_PROFILE {
+}
+relationship HAS_ROLE {
+}
+relationship HAS_EDU {
+}
+relationship ISSUES {
+}
+relationship RESETS {
+}
+relationship ATTEMPTS {
+}
+relationship REQUESTS_UPG {
+}
+relationship HAS_FILE {
+}
+relationship HAS_LINK {
+}
+USER -1- HAS_PROFILE
+HAS_PROFILE =1= USER_PROFILE
+USER -N- HAS_ROLE
+HAS_ROLE -N- ROLE
+USER_PROFILE -1- HAS_EDU
+HAS_EDU =N= EDUCATION_ENTRY
+USER -1- ISSUES
+ISSUES =N= REFRESH_TOKEN
+USER -1- RESETS
+RESETS =N= PASSWORD_RESET_TOKEN
+USER -1- ATTEMPTS
+ATTEMPTS -N- LOGIN_ATTEMPT
+USER -1- REQUESTS_UPG
+REQUESTS_UPG =N= UPGRADE_REQUEST
+UPGRADE_REQUEST -1- HAS_FILE
+HAS_FILE =N= UPGRADE_REQUEST_FILE
+UPGRADE_REQUEST -1- HAS_LINK
+HAS_LINK =N= UPGRADE_REQUEST_LINK
+@endchen
+
+
+@startchen EERD_Scholarships_Applications
+entity USER {
+  Id <<key>>
+  Email
+}
+entity CATEGORY {
+  Id <<key>>
+  Slug
+}
+entity SCHOLARSHIP {
+  Id <<key>>
+  Slug
+  Status
+  Deadline
+  ReviewFeeUsd
+}
+entity SCHOLARSHIP_CHILD {
+  Id <<key>>
+  ChildType
+}
+entity SAVED_SCHOLARSHIP {
+  Id <<key>>
+  SavedAt
+}
+entity APPLICATION {
+  Id <<key>>
+  Status
+  Mode
+}
+entity APPLICATION_CHILD {
+  Id <<key>>
+  ChildType
+}
+entity DOCUMENT {
+  Id <<key>>
+  Category
+}
+entity COMPANY_REVIEW_REQUEST {
+  Id <<key>>
+  Status
+}
+entity COMPANY_REVIEW {
+  Id <<key>>
+  Rating
+}
+entity COMPANY_REVIEW_PAYMENT {
+  Id <<key>>
+  Status
+}
+entity PAYMENT {
+  Id <<key>>
+  Status
+  AmountCents
+}
+relationship CLASSIFIES {
+}
+relationship OWNS {
+}
+relationship HAS_DETAIL {
+}
+relationship SAVES {
+}
+relationship SAVES_SCH {
+}
+relationship SUBMITS {
+}
+relationship FOR_SCH {
+}
+relationship HAS_HISTORY {
+}
+relationship OWNS_DOC {
+}
+relationship SUPPORTS {
+}
+relationship RAISES {
+}
+relationship UNDER {
+}
+relationship SETTLES {
+}
+relationship RATED_BY {
+}
+relationship LEGACY_PAY {
+}
+CATEGORY -1- CLASSIFIES
+CLASSIFIES -N- SCHOLARSHIP
+USER -1- OWNS
+OWNS -N- SCHOLARSHIP
+SCHOLARSHIP -1- HAS_DETAIL
+HAS_DETAIL =N= SCHOLARSHIP_CHILD
+USER -1- SAVES
+SAVES -N- SAVED_SCHOLARSHIP
+SCHOLARSHIP -1- SAVES_SCH
+SAVES_SCH -N- SAVED_SCHOLARSHIP
+USER -1- SUBMITS
+SUBMITS =N= APPLICATION
+APPLICATION -N- FOR_SCH
+FOR_SCH -1- SCHOLARSHIP
+APPLICATION -1- HAS_HISTORY
+HAS_HISTORY =N= APPLICATION_CHILD
+USER -1- OWNS_DOC
+OWNS_DOC =N= DOCUMENT
+APPLICATION -1- SUPPORTS
+SUPPORTS -N- DOCUMENT
+USER -1- RAISES
+RAISES =N= COMPANY_REVIEW_REQUEST
+SCHOLARSHIP -1- UNDER
+UNDER =N= COMPANY_REVIEW_REQUEST
+PAYMENT -1- SETTLES
+SETTLES -1- COMPANY_REVIEW_REQUEST
+APPLICATION -1- RATED_BY
+RATED_BY -1- COMPANY_REVIEW
+APPLICATION -1- LEGACY_PAY
+LEGACY_PAY -N- COMPANY_REVIEW_PAYMENT
+@endchen
+
+
+@startchen EERD_Booking_Payments_Ratings
+entity USER {
+  Id <<key>>
+  Email
+}
+entity AVAILABILITY {
+  Id <<key>>
+  IsActive
+}
+entity BOOKING {
+  Id <<key>>
+  ScheduledStartAt
+  Status
+  PriceUsd
+}
+entity PAYMENT {
+  Id <<key>>
+  Type
+  Status
+  AmountCents
+}
+entity PAYOUT {
+  Id <<key>>
+  Status
+  AmountCents
+}
+entity CONSULTANT_REVIEW {
+  Id <<key>>
+  Rating
+}
+entity SESSION_RECORDING {
+  Id <<key>>
+  RecordingId
+}
+entity STRIPE_WEBHOOK_EVENT {
+  Id <<key>>
+  StripeEventId
+  IsProcessed
+}
+entity PROFIT_SHARE_CONFIG {
+  Id <<key>>
+  PaymentType
+  Percentage
+}
+entity FINANCIAL_CONFIG_RULE {
+  Id <<key>>
+  PaymentType
+  Status
+}
+relationship PUBLISHES {
+}
+relationship BOOKS {
+}
+relationship CONDUCTS {
+}
+relationship RESERVES {
+}
+relationship SETTLED_BY {
+}
+relationship RATED_BY {
+}
+relationship RECORDED_AS {
+}
+relationship AGGREGATES {
+}
+USER -1- PUBLISHES
+PUBLISHES =N= AVAILABILITY
+USER -1- BOOKS
+BOOKS =N= BOOKING
+USER -1- CONDUCTS
+CONDUCTS =N= BOOKING
+AVAILABILITY -1- RESERVES
+RESERVES -N- BOOKING
+BOOKING -1- SETTLED_BY
+SETTLED_BY -1- PAYMENT
+BOOKING -1- RATED_BY
+RATED_BY -1- CONSULTANT_REVIEW
+BOOKING -1- RECORDED_AS
+RECORDED_AS =N= SESSION_RECORDING
+PAYOUT -1- AGGREGATES
+AGGREGATES -N- PAYMENT
+@endchen
+
+
+@startchen EERD_Community_Chat
+entity USER {
+  Id <<key>>
+  Email
+}
+entity FORUM_CATEGORY {
+  Id <<key>>
+  Slug
+}
+entity FORUM_POST {
+  Id <<key>>
+  ModerationStatus
+  UpvoteCount <<derived>>
+  FlagCount <<derived>>
+}
+entity FORUM_POST_ATTACHMENT {
+  Id <<key>>
+  BlobUrl
+}
+entity FORUM_VOTE {
+  Id <<key>>
+  VoteType
+}
+entity FORUM_FLAG {
+  Id <<key>>
+  Reason
+}
+entity FORUM_BOOKMARK {
+  Id <<key>>
+}
+entity FORUM_TAG {
+  Id <<key>>
+  Slug
+}
+entity FORUM_POST_TAG {
+  Id <<key>>
+}
+entity CONVERSATION {
+  Id <<key>>
+}
+entity MESSAGE {
+  Id <<key>>
+  Body
+}
+entity USER_BLOCK {
+  Id <<key>>
+  Reason
+}
+relationship GROUPS {
+}
+relationship AUTHORS {
+}
+relationship REPLIES {
+}
+relationship ATTACHES {
+}
+relationship RECEIVES_VOTE {
+}
+relationship RECEIVES_FLAG {
+}
+relationship SAVED_IN {
+}
+relationship TAGGED {
+}
+relationship TAGS {
+}
+relationship PARTICIPATES {
+}
+relationship CONTAINS {
+}
+relationship BLOCKS {
+}
+FORUM_CATEGORY -1- GROUPS
+GROUPS -N- FORUM_POST
+USER -1- AUTHORS
+AUTHORS =N= FORUM_POST
+FORUM_POST -1- REPLIES
+REPLIES -N- FORUM_POST
+FORUM_POST -1- ATTACHES
+ATTACHES =N= FORUM_POST_ATTACHMENT
+FORUM_POST -1- RECEIVES_VOTE
+RECEIVES_VOTE =N= FORUM_VOTE
+FORUM_POST -1- RECEIVES_FLAG
+RECEIVES_FLAG =N= FORUM_FLAG
+FORUM_POST -1- SAVED_IN
+SAVED_IN =N= FORUM_BOOKMARK
+FORUM_POST -1- TAGGED
+TAGGED =N= FORUM_POST_TAG
+FORUM_TAG -1- TAGS
+TAGS =N= FORUM_POST_TAG
+USER -N- PARTICIPATES
+PARTICIPATES -N- CONVERSATION
+CONVERSATION -1- CONTAINS
+CONTAINS =N= MESSAGE
+USER -N- BLOCKS
+BLOCKS -N- USER_BLOCK
+@endchen
+
+
+@startchen EERD_Resources_Notifications
+entity USER {
+  Id <<key>>
+  Email
+}
+entity RESOURCE {
+  Id <<key>>
+  Slug
+  Status
+}
+entity RESOURCE_CHAPTER {
+  Id <<key>>
+  SortOrder
+}
+entity RESOURCE_BOOKMARK {
+  Id <<key>>
+}
+entity RESOURCE_PROGRESS {
+  Id <<key>>
+  ChaptersCompletedCount <<derived>>
+}
+entity RESOURCE_PROGRESS_CHILD {
+  Id <<key>>
+  IsCompleted
+}
+entity NOTIFICATION {
+  Id <<key>>
+  Type
+  IsRead
+}
+entity NOTIFICATION_PREFERENCE {
+  Id <<key>>
+  IsEnabled
+}
+relationship AUTHORS {
+}
+relationship SPLIT_INTO {
+}
+relationship SAVED_IN {
+}
+relationship TRACKED_IN {
+}
+relationship PER_CHAPTER {
+}
+relationship RECEIVES {
+}
+relationship CONFIGURES {
+}
+USER -1- AUTHORS
+AUTHORS =N= RESOURCE
+RESOURCE -1- SPLIT_INTO
+SPLIT_INTO =N= RESOURCE_CHAPTER
+RESOURCE -1- SAVED_IN
+SAVED_IN =N= RESOURCE_BOOKMARK
+RESOURCE -1- TRACKED_IN
+TRACKED_IN =N= RESOURCE_PROGRESS
+RESOURCE_PROGRESS -1- PER_CHAPTER
+PER_CHAPTER =N= RESOURCE_PROGRESS_CHILD
+USER -1- RECEIVES
+RECEIVES =N= NOTIFICATION
+USER -1- CONFIGURES
+CONFIGURES =N= NOTIFICATION_PREFERENCE
+@endchen
+
+
+@startchen EERD_AI_Knowledge_Platform
+entity USER {
+  Id <<key>>
+  Email
+}
+entity SCHOLARSHIP {
+  Id <<key>>
+  Slug
+}
+entity AI_INTERACTION {
+  Id <<key>>
+  Feature
+  CostUsd <<derived>>
+}
+entity RECOMMENDATION_CLICK_EVENT {
+  Id <<key>>
+  Source
+}
+entity AI_REDACTION_AUDIT_SAMPLE {
+  Id <<key>>
+  Verdict
+}
+entity USER_RISK_FLAG {
+  Id <<key>>
+  Score <<derived>>
+}
+entity AUDIT_LOG {
+  Id <<key>>
+  Action
+}
+entity KNOWLEDGE_DOCUMENT {
+  Id <<key>>
+  SourceType
+}
+entity PLATFORM_SETTING {
+  Id <<key>>
+  SettingKey
+}
+entity USER_DATA_REQUEST {
+  Id <<key>>
+  Type
+}
+entity SUCCESS_STORY {
+  Id <<key>>
+  IsApproved
+}
+relationship INVOKES {
+}
+relationship CLICKS {
+}
+relationship CLICKED {
+}
+relationship FROM_AI {
+}
+relationship SAMPLED {
+}
+relationship SUBJECT_OF {
+}
+relationship SCORED {
+}
+relationship ACTOR_OF {
+}
+relationship RAISES {
+}
+relationship STARS_IN {
+}
+USER -1- INVOKES
+INVOKES =N= AI_INTERACTION
+USER -1- CLICKS
+CLICKS =N= RECOMMENDATION_CLICK_EVENT
+SCHOLARSHIP -1- CLICKED
+CLICKED =N= RECOMMENDATION_CLICK_EVENT
+AI_INTERACTION -1- FROM_AI
+FROM_AI -N- RECOMMENDATION_CLICK_EVENT
+AI_INTERACTION -1- SAMPLED
+SAMPLED -1- AI_REDACTION_AUDIT_SAMPLE
+USER -1- SUBJECT_OF
+SUBJECT_OF =N= AI_REDACTION_AUDIT_SAMPLE
+USER -1- SCORED
+SCORED =1= USER_RISK_FLAG
+USER -1- ACTOR_OF
+ACTOR_OF -N- AUDIT_LOG
+USER -1- RAISES
+RAISES =N= USER_DATA_REQUEST
+USER -1- STARS_IN
+STARS_IN -N- SUCCESS_STORY
+@endchen

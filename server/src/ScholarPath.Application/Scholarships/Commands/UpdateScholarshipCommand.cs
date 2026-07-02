@@ -46,7 +46,7 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
 
         if (entity == null) throw new NotFoundException(nameof(Scholarship), request.Id);
 
-        if (entity.OwnerCompanyId != user.UserId)
+        if (entity.OwnerScholarshipProviderId != user.UserId)
             throw new ForbiddenAccessException();
 
         if (entity.Applications.Any() && entity.CategoryId != request.CategoryId)
@@ -79,7 +79,7 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
                 throw new ConflictException("Review Service Fee cannot exceed $500.");
 
             // Master switch: when payments are disabled platform-wide, force
-            // the fee to 0 silently regardless of what the Company sent.
+            // the fee to 0 silently regardless of what the ScholarshipProvider sent.
             var paymentsEnabled = await PlatformSettingsReader.GetBooleanAsync(
                 db, PlatformSettingsKeys.PaymentsEnabled, defaultValue: true, ct);
             if (!paymentsEnabled)

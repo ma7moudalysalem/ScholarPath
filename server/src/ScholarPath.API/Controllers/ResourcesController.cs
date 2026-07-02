@@ -71,7 +71,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
     // ── Author CRUD ───────────────────────────────────────────────────────────
 
     [HttpPost]
-    [Authorize(Roles = "Consultant,Company,Admin,SuperAdmin")]
+    [Authorize(Roles = "Consultant,ScholarshipProvider,Admin,SuperAdmin")]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Create([FromBody] CreateResourceCommand command, CancellationToken ct)
@@ -81,7 +81,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "Consultant,Company,Admin,SuperAdmin")]
+    [Authorize(Roles = "Consultant,ScholarshipProvider,Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(
@@ -93,7 +93,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
 
     /// <summary>Submits a draft for review (or publishes directly if the caller is an admin).</summary>
     [HttpPost("{id:guid}/submit")]
-    [Authorize(Roles = "Consultant,Company,Admin,SuperAdmin")]
+    [Authorize(Roles = "Consultant,ScholarshipProvider,Admin,SuperAdmin")]
     [ProducesResponseType(typeof(ResourceStatus), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Submit(Guid id, CancellationToken ct)
@@ -101,7 +101,7 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
 
     /// <summary>The caller's own resources, any status.</summary>
     [HttpGet("mine")]
-    [Authorize(Roles = "Consultant,Company,Admin,SuperAdmin")]
+    [Authorize(Roles = "Consultant,ScholarshipProvider,Admin,SuperAdmin")]
     [ProducesResponseType(typeof(IReadOnlyList<ResourceListItemDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Mine(CancellationToken ct)
         => Ok(await mediator.Send(new GetMyResourcesQuery(), ct));

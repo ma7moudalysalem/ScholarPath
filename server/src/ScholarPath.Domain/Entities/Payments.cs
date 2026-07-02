@@ -16,7 +16,7 @@ public class Payment : AuditableEntity, ISoftDeletable
     public long RefundedAmountCents { get; set; }
 
     public Guid PayerUserId { get; set; }
-    public Guid? PayeeUserId { get; set; } // Consultant or Company
+    public Guid? PayeeUserId { get; set; } // Consultant or ScholarshipProvider
 
     // Stripe identifiers
     public string? StripePaymentIntentId { get; set; }

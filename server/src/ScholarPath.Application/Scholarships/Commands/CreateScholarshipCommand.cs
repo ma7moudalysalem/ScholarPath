@@ -39,7 +39,7 @@ public record CreateScholarshipCommand : IRequest<Guid>
     /// <summary>
     /// Per-scholarship Review Service Fee in USD (PB-005). Required for in-app
     /// listings — drives the gross amount the Student authorises when they
-    /// click Apply Now and creates the paid CompanyReview support flow.
+    /// click Apply Now and creates the paid ScholarshipProviderReview support flow.
     /// </summary>
     public decimal? ReviewFeeUsd { get; init; }
 
@@ -117,16 +117,16 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
         var isAdmin = user.IsInRole("Admin") || user.IsInRole("SuperAdmin");
-        if (!isAdmin && !user.IsInRole("Company"))
-            throw new ForbiddenAccessException("Only a Company, Admin, or SuperAdmin account can create scholarship listings.");
+        if (!isAdmin && !user.IsInRole("ScholarshipProvider"))
+            throw new ForbiddenAccessException("Only a ScholarshipProvider, Admin, or SuperAdmin account can create scholarship listings.");
 
         // Admins create platform scholarships (no company owner); they go
         // straight to Open and do not need moderation approval.
-        Guid? ownerCompanyId = isAdmin ? null : callerId;
+        Guid? ownerScholarshipProviderId = isAdmin ? null : callerId;
 
         // Settings gates:
         //   1. Master switch — when payments are disabled platform-wide, force
-        //      the fee to 0 silently. The Company's input is ignored on
+        //      the fee to 0 silently. The ScholarshipProvider's input is ignored on
         //      purpose so flows don't surprise the user with an error.
         //   2. Allow-free toggle — only checked when payments ARE enabled.
         var paymentsEnabled = await PlatformSettingsReader.GetBooleanAsync(
@@ -171,13 +171,13 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             ReviewFeeUsd = request.Mode == ListingMode.InApp
                 ? effectiveFee
                 : null,
-            // Company-created listings start in the moderation queue and become
+            // ScholarshipProvider-created listings start in the moderation queue and become
             // Open after an admin Approve. Admin-created listings (platform
             // scholarships) skip moderation and open immediately — the admin IS
             // the moderator.
             Status = isAdmin ? ScholarshipStatus.Open : ScholarshipStatus.UnderReview,
             OpenedAt = isAdmin ? DateTimeOffset.UtcNow : null,
-            OwnerCompanyId = ownerCompanyId,
+            OwnerScholarshipProviderId = ownerScholarshipProviderId,
             // Slug is REQUIRED + UNIQUE on the schema — generate from the
             // English title with a short Guid suffix so two scholarships sharing
             // the same name (very common) never collide on insert.
@@ -210,7 +210,7 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
     private static string GenerateSlug(string titleEn, string titleAr)
     {
         // Prefer the English title when present; fall back to the Arabic one so
-        // a Company that left TitleEn blank wouldn't have the request 500 here
+        // a ScholarshipProvider that left TitleEn blank wouldn't have the request 500 here
         // (the validator already rejects both-empty, but be defensive).
         var source = !string.IsNullOrWhiteSpace(titleEn) ? titleEn : titleAr;
         if (string.IsNullOrWhiteSpace(source)) source = "scholarship";

@@ -1,0 +1,30 @@
+@startdot
+digraph G {
+  rankdir=BT; splines=polyline; nodesep=0.7; ranksep=1.1;
+  node [shape=plaintext];
+  Users [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="1" BGCOLOR="#dbe6ff"><B>Users</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD></TR></TABLE>>];
+  Categories [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="3" BGCOLOR="#dbe6ff"><B>Categories</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="Slug">Slug</TD><TD PORT="NameEn">NameEn</TD></TR></TABLE>>];
+  Scholarships [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="8" BGCOLOR="#dbe6ff"><B>Scholarships</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="CategoryId" BGCOLOR="#fff7e6">CategoryId</TD><TD PORT="OwnerCompanyId" BGCOLOR="#fff7e6">OwnerCompanyId</TD><TD PORT="Slug">Slug</TD><TD PORT="Mode">Mode</TD><TD PORT="Status">Status</TD><TD PORT="Deadline">Deadline</TD><TD PORT="ReviewFeeUsd">ReviewFeeUsd</TD></TR></TABLE>>];
+  SavedScholarships [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>SavedScholarships</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="ScholarshipId" BGCOLOR="#fff7e6">ScholarshipId</TD><TD PORT="SavedAt">SavedAt</TD></TR></TABLE>>];
+  Applications [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="6" BGCOLOR="#dbe6ff"><B>Applications</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="StudentId" BGCOLOR="#fff7e6">StudentId</TD><TD PORT="ScholarshipId" BGCOLOR="#fff7e6">ScholarshipId</TD><TD PORT="Mode">Mode</TD><TD PORT="Status">Status</TD><TD PORT="SubmittedAt">SubmittedAt</TD></TR></TABLE>>];
+  Documents [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="5" BGCOLOR="#dbe6ff"><B>Documents</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="OwnerUserId" BGCOLOR="#fff7e6">OwnerUserId</TD><TD PORT="ApplicationTrackerId" BGCOLOR="#fff7e6">ApplicationTrackerId</TD><TD PORT="Category">Category</TD><TD PORT="StoragePath">StoragePath</TD></TR></TABLE>>];
+  CompanyReviewRequests [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="7" BGCOLOR="#dbe6ff"><B>CompanyReviewRequests</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="StudentId" BGCOLOR="#fff7e6">StudentId</TD><TD PORT="CompanyId" BGCOLOR="#fff7e6">CompanyId</TD><TD PORT="ScholarshipId" BGCOLOR="#fff7e6">ScholarshipId</TD><TD PORT="PaymentId" BGCOLOR="#fff7e6">PaymentId</TD><TD PORT="Status">Status</TD><TD PORT="ReviewFeeUsdSnapshot">ReviewFeeUsdSnapshot</TD></TR></TABLE>>];
+  CompanyReviews [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="5" BGCOLOR="#dbe6ff"><B>CompanyReviews</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ApplicationTrackerId" BGCOLOR="#fff7e6">ApplicationTrackerId</TD><TD PORT="StudentId" BGCOLOR="#fff7e6">StudentId</TD><TD PORT="CompanyId" BGCOLOR="#fff7e6">CompanyId</TD><TD PORT="Rating">Rating</TD></TR></TABLE>>];
+  Payments [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="1" BGCOLOR="#dbe6ff"><B>Payments</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD></TR></TABLE>>];
+  Scholarships:CategoryId -> Categories:Id;
+  Scholarships:OwnerCompanyId -> Users:Id;
+  SavedScholarships:UserId -> Users:Id [style=dashed];
+  SavedScholarships:ScholarshipId -> Scholarships:Id;
+  Applications:StudentId -> Users:Id;
+  Applications:ScholarshipId -> Scholarships:Id;
+  Documents:OwnerUserId -> Users:Id;
+  Documents:ApplicationTrackerId -> Applications:Id;
+  CompanyReviewRequests:StudentId -> Users:Id;
+  CompanyReviewRequests:CompanyId -> Users:Id;
+  CompanyReviewRequests:ScholarshipId -> Scholarships:Id;
+  CompanyReviewRequests:PaymentId -> Payments:Id;
+  CompanyReviews:ApplicationTrackerId -> Applications:Id;
+  CompanyReviews:StudentId -> Users:Id;
+  CompanyReviews:CompanyId -> Users:Id;
+}
+@enddot

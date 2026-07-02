@@ -111,10 +111,10 @@ public class DataDeleteJobTests
             ResponseText = "private response",
             MetadataJson = "{\"x\":1}",
         });
-        db.CompanyReviews.Add(new CompanyReview
+        db.ScholarshipProviderReviews.Add(new ScholarshipProviderReview
         {
             StudentId = userId,
-            CompanyId = Guid.NewGuid(),
+            ScholarshipProviderId = Guid.NewGuid(),
             ApplicationTrackerId = Guid.NewGuid(),
             Rating = 4,
             Comment = "personal opinion text",
@@ -205,7 +205,7 @@ public class DataDeleteJobTests
         ai.MetadataJson.Should().BeNull();
 
         // Reviews
-        var review = await db.CompanyReviews.IgnoreQueryFilters().FirstAsync(r => r.StudentId == userId);
+        var review = await db.ScholarshipProviderReviews.IgnoreQueryFilters().FirstAsync(r => r.StudentId == userId);
         review.Comment.Should().BeNull();
 
         // Application tracker

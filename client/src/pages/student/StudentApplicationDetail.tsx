@@ -187,9 +187,9 @@ export function StudentApplicationDetail() {
           <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
             {scholarshipTitle}
           </h1>
-          {data.companyName && (
+          {data.scholarshipProviderName && (
             <p className="mt-1 text-sm text-text-secondary">
-              {t("moderation:appDetail.company")}: {data.companyName}
+              {t("moderation:appDetail.company")}: {data.scholarshipProviderName}
             </p>
           )}
         </div>
@@ -488,7 +488,7 @@ function DraftApplicationForm({
       toast.error(apiErrorMessage(err, t("moderation:appDetail.form.saveError"))),
   });
 
-  // CompanyReview fee gating (PB-005 v1). When the scholarship configures a
+  // ScholarshipProviderReview fee gating (PB-005 v1). When the scholarship configures a
   // review fee the student must first authorise a manual-capture hold; only
   // after Stripe confirms the authorization do we transition the application
   // to Pending. For free scholarships the flow is unchanged.
@@ -848,7 +848,7 @@ function DraftApplicationForm({
         <ReviewFeePaymentModal
           applicationId={application.id}
           scholarshipTitle={application.scholarshipTitleEn}
-          companyName={application.companyName ?? ""}
+          scholarshipProviderName={application.scholarshipProviderName ?? ""}
           reviewFeeUsd={reviewFeeUsd}
           onPaymentSuccess={() => submitMut.mutate()}
           onCancel={() => setShowPaymentModal(false)}
@@ -858,21 +858,21 @@ function DraftApplicationForm({
   );
 }
 
-// ── CompanyReview fee payment modal ──────────────────────────────────────────
+// ── ScholarshipProviderReview fee payment modal ──────────────────────────────────────────
 // Wraps ApplicationSubmitConfirmation in a backdrop so it can render inline
 // from the submit button without needing its own route.
 
 function ReviewFeePaymentModal({
   applicationId,
   scholarshipTitle,
-  companyName,
+  scholarshipProviderName,
   reviewFeeUsd,
   onPaymentSuccess,
   onCancel,
 }: {
   applicationId: string;
   scholarshipTitle: string;
-  companyName: string;
+  scholarshipProviderName: string;
   reviewFeeUsd: number;
   onPaymentSuccess: () => void;
   onCancel: () => void;
@@ -887,7 +887,7 @@ function ReviewFeePaymentModal({
         <ApplicationSubmitConfirmation
           applicationId={applicationId}
           scholarshipTitle={scholarshipTitle}
-          companyName={companyName}
+          scholarshipProviderName={scholarshipProviderName}
           reviewFeeUsd={reviewFeeUsd}
           onPaymentSuccess={onPaymentSuccess}
           onCancel={onCancel}

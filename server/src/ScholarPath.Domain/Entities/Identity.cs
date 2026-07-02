@@ -99,7 +99,7 @@ public class UserProfile : AuditableEntity
     public string? PreferredCountriesJson { get; set; }
     public string? PreferredFieldsJson { get; set; }
 
-    // Company fields
+    // ScholarshipProvider fields
     public string? OrganizationLegalName { get; set; }
     public string? OrganizationRegistrationNumber { get; set; }
     public string? OrganizationWebsite { get; set; }
@@ -110,32 +110,32 @@ public class UserProfile : AuditableEntity
     public string? OrganizationEmail { get; set; }
     public string? OrganizationCountry { get; set; }
     public string? OrganizationTaxNumber { get; set; }
-    public string? CompanyType { get; set; }
-    public string? CompanyDescription { get; set; }
+    public string? ScholarshipProviderType { get; set; }
+    public string? ScholarshipProviderDescription { get; set; }
     public string? ContactPersonFullName { get; set; }
     public string? ContactPersonPosition { get; set; }
     public string? ContactPhoneNumber { get; set; }
 
-    // ── Company rating snapshot (PB-005R low-rating policy) ───────────────────
-    // Recalculated from CompanyReviews on every new submission. Snapshotted on
+    // ── ScholarshipProvider rating snapshot (PB-005R low-rating policy) ───────────────────
+    // Recalculated from ScholarshipProviderReviews on every new submission. Snapshotted on
     // UserProfile so dashboards + the admin low-rated queue don't re-aggregate
     // the whole reviews table on every page load.
     //
-    //   CompanyAverageRating     null when the company has no visible reviews
+    //   ScholarshipProviderAverageRating     null when the company has no visible reviews
     //                            yet; otherwise the live average over reviews
     //                            that are neither soft-deleted nor admin-hidden.
-    //   CompanyReviewCount       count of the same visible reviews.
-    //   CompanyLowRatingFlaggedAt set when the average dipped below 2.5 after a
+    //   ScholarshipProviderReviewCount       count of the same visible reviews.
+    //   ScholarshipProviderLowRatingFlaggedAt set when the average dipped below 2.5 after a
     //                            submission. Sticky: only an admin clears it
-    //                            (via ClearCompanyLowRatingFlag or by
+    //                            (via ClearScholarshipProviderLowRatingFlag or by
     //                            suspending the account). Subsequent sub-2.5
     //                            submissions do not overwrite the original
     //                            flagged-at timestamp.
-    public decimal? CompanyAverageRating { get; set; }
-    public int CompanyReviewCount { get; set; }
-    public DateTimeOffset? CompanyLowRatingFlaggedAt { get; set; }
+    public decimal? ScholarshipProviderAverageRating { get; set; }
+    public int ScholarshipProviderReviewCount { get; set; }
+    public DateTimeOffset? ScholarshipProviderLowRatingFlaggedAt { get; set; }
 
-    // Conditional applicability flags (FR-ONB-03 — SRS): a Company that is not
+    // Conditional applicability flags (FR-ONB-03 — SRS): a ScholarshipProvider that is not
     // tax-registered or not legally registered (e.g. a not-yet-incorporated
     // initiative) must supply a reason, in which case the corresponding numbers
     // / documents become optional.

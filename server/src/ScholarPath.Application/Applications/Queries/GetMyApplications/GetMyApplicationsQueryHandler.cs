@@ -17,7 +17,7 @@ public sealed class GetMyApplicationsQueryHandler(
         var applications = await db.Applications
             .AsNoTracking()
             .Include(a => a.Scholarship)
-                .ThenInclude(s => s!.OwnerCompany)
+                .ThenInclude(s => s!.OwnerScholarshipProvider)
             .Where(a => a.StudentId == studentId && !a.IsDeleted)
             .OrderByDescending(a => a.UpdatedAt ?? a.CreatedAt)
             .Select(a => new StudentApplicationRow(
@@ -30,9 +30,9 @@ public sealed class GetMyApplicationsQueryHandler(
                     : (lang == "ar"
                         ? (a.Scholarship.TitleAr ?? a.Scholarship.TitleEn)
                         : (a.Scholarship.TitleEn ?? a.Scholarship.TitleAr)),
-                a.Scholarship != null ? a.Scholarship.OwnerCompanyId : (Guid?)null,
-                a.Scholarship != null && a.Scholarship.OwnerCompany != null
-                    ? a.Scholarship.OwnerCompany.FullName
+                a.Scholarship != null ? a.Scholarship.OwnerScholarshipProviderId : (Guid?)null,
+                a.Scholarship != null && a.Scholarship.OwnerScholarshipProvider != null
+                    ? a.Scholarship.OwnerScholarshipProvider.FullName
                     : a.ExternalProvider,
                 a.Status,
                 a.Mode,

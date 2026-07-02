@@ -27,7 +27,7 @@ import {
   useScholarshipDetailQuery,
   useToggleBookmarkMutation,
 } from "@/hooks/useScholarshipsQuery";
-import { companyReviewRequestsApi } from "@/services/api/companyReviewRequests";
+import { scholarshipProviderReviewRequestsApi } from "@/services/api/scholarshipProviderReviewRequests";
 import { applicationsApi } from "@/services/api/applications";
 import { ApiError, apiErrorMessage } from "@/services/api/client";
 import { profileApi, type UserProfile } from "@/services/api/profile";
@@ -106,16 +106,16 @@ export function ScholarshipDetail() {
       profileQuery.data.fieldOfStudy.trim().length === 0
     : false;
 
-  // Apply Now: for company-owned scholarships uses the PB-005 CompanyReview
-  // paid flow; for platform/admin scholarships (no ownerCompanyId) falls back
+  // Apply Now: for company-owned scholarships uses the PB-005 ScholarshipProviderReview
+  // paid flow; for platform/admin scholarships (no ownerScholarshipProviderId) falls back
   // to a direct free application (StartApplicationCommand).
   const applyMut = useMutation({
     mutationFn: async (scholarshipId: string) => {
-      if (!data?.ownerCompanyId) {
+      if (!data?.ownerScholarshipProviderId) {
         const res = await applicationsApi.start(scholarshipId);
         return { type: "direct" as const, applicationId: res.applicationId };
       }
-      const res = await companyReviewRequestsApi.start(scholarshipId);
+      const res = await scholarshipProviderReviewRequestsApi.start(scholarshipId);
       return { type: "review" as const, ...res };
     },
     onSuccess: (result) => {
@@ -202,7 +202,7 @@ export function ScholarshipDetail() {
   const isClosed     = daysLeft < 0;
   const isExternal   = data.mode === "ExternalUrl" && !!data.externalUrl;
   // PB-005: an in-app scholarship is "ready to apply" when the Review Service
-  // Fee is set — including the explicit 0 (free) case. Null means the Company
+  // Fee is set — including the explicit 0 (free) case. Null means the ScholarshipProvider
   // hasn't configured a fee yet, so Apply Now stays disabled with a clear
   // message instead of bubbling a generic server error.
   //
@@ -281,9 +281,9 @@ export function ScholarshipDetail() {
 
         {/* Hero body — sits below the banner */}
         <div className="bg-bg-elevated px-6 pb-6 pt-10">
-          {data.ownerCompanyName && (
+          {data.ownerScholarshipProviderName && (
             <p className="text-xs font-semibold uppercase tracking-wider text-text-tertiary">
-              {data.ownerCompanyName}
+              {data.ownerScholarshipProviderName}
             </p>
           )}
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl">

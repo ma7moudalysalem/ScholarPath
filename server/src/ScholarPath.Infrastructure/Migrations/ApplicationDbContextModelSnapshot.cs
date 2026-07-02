@@ -794,262 +794,6 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.ToTable("Messages");
                 });
 
-            modelBuilder.Entity("ScholarPath.Domain.Entities.CompanyReview", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("AdminNote")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<Guid>("ApplicationTrackerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Comment")
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("DeletedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsHiddenByAdmin")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("StudentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("UpdatedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApplicationTrackerId")
-                        .IsUnique();
-
-                    b.HasIndex("StudentId");
-
-                    b.HasIndex("CompanyId", "IsHiddenByAdmin", "IsDeleted");
-
-                    b.ToTable("CompanyReviews");
-                });
-
-            modelBuilder.Entity("ScholarPath.Domain.Entities.CompanyReviewPayment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("AmountUsd")
-                        .HasPrecision(14, 2)
-                        .HasColumnType("decimal(14,2)");
-
-                    b.Property<Guid>("ApplicationTrackerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("CapturedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("IdempotencyKey")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<decimal>("PayeeAmountUsd")
-                        .HasPrecision(14, 2)
-                        .HasColumnType("decimal(14,2)");
-
-                    b.Property<decimal>("ProfitShareAmountUsd")
-                        .HasPrecision(14, 2)
-                        .HasColumnType("decimal(14,2)");
-
-                    b.Property<string>("RefundReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<decimal?>("RefundedAmountUsd")
-                        .HasPrecision(14, 2)
-                        .HasColumnType("decimal(14,2)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<string>("StripePaymentIntentId")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("UpdatedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique();
-
-                    b.HasIndex("StripePaymentIntentId")
-                        .IsUnique();
-
-                    b.ToTable("CompanyReviewPayments");
-                });
-
-            modelBuilder.Entity("ScholarPath.Domain.Entities.CompanyReviewRequest", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("AcceptedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("ApplicationTrackerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CancelReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTimeOffset?>("CancelledAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("ClosedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("CompletedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("CreatedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasMaxLength(8)
-                        .HasColumnType("nvarchar(8)");
-
-                    b.Property<DateTimeOffset?>("DeletedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("DeletedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("ExpiredAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid?>("PaymentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("PendingExpiresAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("RejectReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTimeOffset?>("RejectedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<decimal>("ReviewFeeUsdSnapshot")
-                        .HasPrecision(10, 2)
-                        .HasColumnType("decimal(10,2)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<Guid>("ScholarshipId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("nvarchar(32)");
-
-                    b.Property<Guid>("StudentId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTimeOffset?>("SubmittedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<Guid?>("UpdatedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PaymentId");
-
-                    b.HasIndex("ScholarshipId");
-
-                    b.HasIndex("CompanyId", "Status");
-
-                    b.HasIndex("StudentId", "ScholarshipId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_CompanyReviewRequests_Student_Scholarship_Active")
-                        .HasFilter("[Status] IN ('Draft', 'Submitted', 'Pending', 'UnderReview')");
-
-                    b.HasIndex("StudentId", "Status");
-
-                    b.ToTable("CompanyReviewRequests");
-                });
-
             modelBuilder.Entity("ScholarPath.Domain.Entities.ConsultantAvailability", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3006,7 +2750,7 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("OpenedAt")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<Guid?>("OwnerCompanyId")
+                    b.Property<Guid?>("OwnerScholarshipProviderId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("RequiredDocumentsJson")
@@ -3068,7 +2812,7 @@ namespace ScholarPath.Infrastructure.Migrations
 
                     b.HasIndex("Mode");
 
-                    b.HasIndex("OwnerCompanyId");
+                    b.HasIndex("OwnerScholarshipProviderId");
 
                     b.HasIndex("Slug")
                         .IsUnique();
@@ -3119,6 +2863,262 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasIndex("ScholarshipId", "ChildType");
 
                     b.ToTable("ScholarshipChildren");
+                });
+
+            modelBuilder.Entity("ScholarPath.Domain.Entities.ScholarshipProviderReview", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("ApplicationTrackerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHiddenByAdmin")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("ScholarshipProviderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationTrackerId")
+                        .IsUnique();
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("ScholarshipProviderId", "IsHiddenByAdmin", "IsDeleted");
+
+                    b.ToTable("ScholarshipProviderReviews");
+                });
+
+            modelBuilder.Entity("ScholarPath.Domain.Entities.ScholarshipProviderReviewPayment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AmountUsd")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<Guid>("ApplicationTrackerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("CapturedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<decimal>("PayeeAmountUsd")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<decimal>("ProfitShareAmountUsd")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<string>("RefundReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("RefundedAmountUsd")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("decimal(14,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("ScholarshipProviderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("StripePaymentIntentId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("StripePaymentIntentId")
+                        .IsUnique();
+
+                    b.ToTable("ScholarshipProviderReviewPayments");
+                });
+
+            modelBuilder.Entity("ScholarPath.Domain.Entities.ScholarshipProviderReviewRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("ApplicationTrackerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("nvarchar(8)");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ExpiredAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("PendingExpiresAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("RejectReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset?>("RejectedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("ReviewFeeUsdSnapshot")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("ScholarshipId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ScholarshipProviderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentId");
+
+                    b.HasIndex("ScholarshipId");
+
+                    b.HasIndex("ScholarshipProviderId", "Status");
+
+                    b.HasIndex("StudentId", "ScholarshipId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ScholarshipProviderReviewRequests_Student_Scholarship_Active")
+                        .HasFilter("[Status] IN ('Draft', 'Submitted', 'Pending', 'UnderReview')");
+
+                    b.HasIndex("StudentId", "Status");
+
+                    b.ToTable("ScholarshipProviderReviewRequests");
                 });
 
             modelBuilder.Entity("ScholarPath.Domain.Entities.SessionRecording", b =>
@@ -3565,24 +3565,6 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.Property<DateTimeOffset?>("BookingIntakeSuspendedAt")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<decimal?>("CompanyAverageRating")
-                        .HasPrecision(3, 2)
-                        .HasColumnType("decimal(3,2)");
-
-                    b.Property<string>("CompanyDescription")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTimeOffset?>("CompanyLowRatingFlaggedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<int>("CompanyReviewCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("CompanyType")
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
                     b.Property<DateTimeOffset?>("ConsultantVerifiedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -3713,6 +3695,24 @@ namespace ScholarPath.Infrastructure.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<decimal?>("ScholarshipProviderAverageRating")
+                        .HasPrecision(3, 2)
+                        .HasColumnType("decimal(3,2)");
+
+                    b.Property<string>("ScholarshipProviderDescription")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTimeOffset?>("ScholarshipProviderLowRatingFlaggedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("ScholarshipProviderReviewCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ScholarshipProviderType")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
                     b.Property<int?>("SessionDurationMinutes")
                         .HasColumnType("int");
 
@@ -3758,9 +3758,9 @@ namespace ScholarPath.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CompanyLowRatingFlaggedAt")
-                        .HasDatabaseName("IX_UserProfiles_CompanyLowRatingFlagged")
-                        .HasFilter("[CompanyLowRatingFlaggedAt] IS NOT NULL");
+                    b.HasIndex("ScholarshipProviderLowRatingFlaggedAt")
+                        .HasDatabaseName("IX_UserProfiles_ScholarshipProviderLowRatingFlagged")
+                        .HasFilter("[ScholarshipProviderLowRatingFlaggedAt] IS NOT NULL");
 
                     b.HasIndex("UserId")
                         .IsUnique();
@@ -3917,67 +3917,6 @@ namespace ScholarPath.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Conversation");
-                });
-
-            modelBuilder.Entity("ScholarPath.Domain.Entities.CompanyReview", b =>
-                {
-                    b.HasOne("ScholarPath.Domain.Entities.ApplicationTracker", "ApplicationTracker")
-                        .WithMany()
-                        .HasForeignKey("ApplicationTrackerId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Company")
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Student")
-                        .WithMany()
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ApplicationTracker");
-
-                    b.Navigation("Company");
-
-                    b.Navigation("Student");
-                });
-
-            modelBuilder.Entity("ScholarPath.Domain.Entities.CompanyReviewRequest", b =>
-                {
-                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Company")
-                        .WithMany()
-                        .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ScholarPath.Domain.Entities.Payment", "Payment")
-                        .WithMany()
-                        .HasForeignKey("PaymentId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("ScholarPath.Domain.Entities.Scholarship", "Scholarship")
-                        .WithMany()
-                        .HasForeignKey("ScholarshipId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Student")
-                        .WithMany()
-                        .HasForeignKey("StudentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Company");
-
-                    b.Navigation("Payment");
-
-                    b.Navigation("Scholarship");
-
-                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("ScholarPath.Domain.Entities.ConsultantAvailability", b =>
@@ -4278,14 +4217,14 @@ namespace ScholarPath.Infrastructure.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "OwnerCompany")
+                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "OwnerScholarshipProvider")
                         .WithMany()
-                        .HasForeignKey("OwnerCompanyId")
+                        .HasForeignKey("OwnerScholarshipProviderId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Category");
 
-                    b.Navigation("OwnerCompany");
+                    b.Navigation("OwnerScholarshipProvider");
                 });
 
             modelBuilder.Entity("ScholarPath.Domain.Entities.ScholarshipChild", b =>
@@ -4295,6 +4234,67 @@ namespace ScholarPath.Infrastructure.Migrations
                         .HasForeignKey("ScholarshipId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ScholarPath.Domain.Entities.ScholarshipProviderReview", b =>
+                {
+                    b.HasOne("ScholarPath.Domain.Entities.ApplicationTracker", "ApplicationTracker")
+                        .WithMany()
+                        .HasForeignKey("ApplicationTrackerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "ScholarshipProvider")
+                        .WithMany()
+                        .HasForeignKey("ScholarshipProviderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationTracker");
+
+                    b.Navigation("ScholarshipProvider");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("ScholarPath.Domain.Entities.ScholarshipProviderReviewRequest", b =>
+                {
+                    b.HasOne("ScholarPath.Domain.Entities.Payment", "Payment")
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ScholarPath.Domain.Entities.Scholarship", "Scholarship")
+                        .WithMany()
+                        .HasForeignKey("ScholarshipId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "ScholarshipProvider")
+                        .WithMany()
+                        .HasForeignKey("ScholarshipProviderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ScholarPath.Domain.Entities.ApplicationUser", "Student")
+                        .WithMany()
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Payment");
+
+                    b.Navigation("Scholarship");
+
+                    b.Navigation("ScholarshipProvider");
+
+                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("ScholarPath.Domain.Entities.SessionRecording", b =>

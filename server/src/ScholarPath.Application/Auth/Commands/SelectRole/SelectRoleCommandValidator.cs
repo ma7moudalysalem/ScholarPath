@@ -4,10 +4,10 @@ namespace ScholarPath.Application.Auth.Commands.SelectRole;
 
 public sealed class SelectRoleCommandValidator : AbstractValidator<SelectRoleCommand>
 {
-    // Allowed Company Type values — kept as a string set so we don't ripple a new enum
+    // Allowed ScholarshipProvider Type values — kept as a string set so we don't ripple a new enum
     // through migrations and the snapshot. The frontend mirrors this list.
-    private static readonly string[] AllowedCompanyTypes =
-        ["University", "NGO", "Company", "Foundation", "Government", "Other"];
+    private static readonly string[] AllowedScholarshipProviderTypes =
+        ["University", "NGO", "Corporation", "Foundation", "Government", "Other"];
 
     /// <summary>
     /// Canonical list of allowed consultant session durations (minutes). Shared
@@ -19,16 +19,16 @@ public sealed class SelectRoleCommandValidator : AbstractValidator<SelectRoleCom
     public SelectRoleCommandValidator()
     {
         RuleFor(x => x.Role)
-            .Must(r => r is "Student" or "Company" or "Consultant")
-            .WithMessage("Role must be Student, Company, or Consultant.");
+            .Must(r => r is "Student" or "ScholarshipProvider" or "Consultant")
+            .WithMessage("Role must be Student, ScholarshipProvider, or Consultant.");
 
-        // Company / Consultant must supply their onboarding details.
+        // ScholarshipProvider / Consultant must supply their onboarding details.
         RuleFor(x => x.Details)
             .NotNull()
-            .When(x => x.Role is "Company" or "Consultant")
+            .When(x => x.Role is "ScholarshipProvider" or "Consultant")
             .WithMessage("Onboarding details are required for this role.");
 
-        When(x => x.Details is not null && x.Role == "Company", () =>
+        When(x => x.Details is not null && x.Role == "ScholarshipProvider", () =>
         {
             RuleFor(x => x.Details!.OrganizationLegalName)
                 .NotEmpty().MaximumLength(200)
@@ -47,14 +47,14 @@ public sealed class SelectRoleCommandValidator : AbstractValidator<SelectRoleCom
             RuleFor(x => x.Details!.OrganizationCountry)
                 .NotEmpty().MaximumLength(80)
                 .WithMessage("Country is required.");
-            RuleFor(x => x.Details!.CompanyType)
+            RuleFor(x => x.Details!.ScholarshipProviderType)
                 .NotEmpty()
-                .Must(t => t is not null && AllowedCompanyTypes.Contains(t))
-                .WithMessage("Company type must be one of: University, NGO, Company, Foundation, Government, Other.");
+                .Must(t => t is not null && AllowedScholarshipProviderTypes.Contains(t))
+                .WithMessage("ScholarshipProvider type must be one of: University, NGO, ScholarshipProvider, Foundation, Government, Other.");
             // AUTH-CODE-04: SRS says 2000 characters (was 1000 in code).
-            RuleFor(x => x.Details!.CompanyDescription)
+            RuleFor(x => x.Details!.ScholarshipProviderDescription)
                 .NotEmpty().MaximumLength(2000)
-                .WithMessage("Company description is required (max 2000 characters).");
+                .WithMessage("ScholarshipProvider description is required (max 2000 characters).");
             RuleFor(x => x.Details!.ContactPersonFullName)
                 .NotEmpty().MaximumLength(100)
                 .WithMessage("Contact person full name is required.");
@@ -70,7 +70,7 @@ public sealed class SelectRoleCommandValidator : AbstractValidator<SelectRoleCom
             RuleFor(x => x.Details!.OrganizationTaxNumber)
                 .MaximumLength(100);
 
-            // AUTH-CODE-03: conditional applicability — if the Company says they
+            // AUTH-CODE-03: conditional applicability — if the ScholarshipProvider says they
             // are NOT tax-registered, they owe an explanation. Same for legal
             // registration. If they ARE registered, the number must be present.
             RuleFor(x => x.Details!.TaxNotApplicableReason)

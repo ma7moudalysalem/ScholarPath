@@ -1,0 +1,524 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------- packages ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{fancyhdr}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+
+% ---------- palette ----------
+\definecolor{spInk}{HTML}{1F2A44}      % near-black ink
+\definecolor{spPrimary}{HTML}{2A4D9B}  % indigo
+\definecolor{spAccent}{HTML}{0E7C7B}   % teal
+\definecolor{spHow}{HTML}{1565C0}      % blue
+\definecolor{spWhy}{HTML}{2E7D32}      % green
+\definecolor{spSec}{HTML}{B23A00}      % burnt orange (security)
+\definecolor{spQA}{HTML}{5E35B1}       % purple (Q&A)
+\definecolor{spGrayBg}{HTML}{F4F6FB}
+\definecolor{spRule}{HTML}{C9D2E8}
+
+\hypersetup{colorlinks=true,linkcolor=spPrimary,urlcolor=spAccent}
+
+% ---------- section styling ----------
+\titleformat{\section}{\Large\bfseries\color{spPrimary}}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\large\bfseries\color{spAccent}}{\thesubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{14pt}{6pt}
+
+% ---------- header / footer ----------
+\pagestyle{fancy}\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[L]{\small\color{spPrimary}\textbf{ScholarPath}}
+\fancyhead[R]{\small\color{spInk}Technical Architecture \& Security Brief}
+\fancyfoot[C]{\small\thepage}
+
+% ---------- colored callout boxes ----------
+\newtcolorbox{howbox}{breakable,colback=spHow!4,colframe=spHow!75!black,
+  boxrule=0.7pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,
+  fonttitle=\bfseries\color{white},colbacktitle=spHow!85!black,title=How it works}
+\newtcolorbox{whybox}{breakable,colback=spWhy!4,colframe=spWhy!70!black,
+  boxrule=0.7pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,
+  fonttitle=\bfseries\color{white},colbacktitle=spWhy!75!black,title=Why we did it this way}
+\newtcolorbox{secbox}{breakable,colback=spSec!5,colframe=spSec!75!black,
+  boxrule=0.7pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,
+  fonttitle=\bfseries\color{white},colbacktitle=spSec!80!black,title=Security rationale}
+\newtcolorbox{qabox}{breakable,colback=spQA!4,colframe=spQA!70!black,
+  boxrule=0.7pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,
+  fonttitle=\bfseries\color{white},colbacktitle=spQA!75!black,title=Likely question}
+
+% ---------- code listing style ----------
+\lstset{basicstyle=\ttfamily\small,backgroundcolor=\color{spGrayBg},
+  frame=single,rulecolor=\color{spRule},breaklines=true,
+  keywordstyle=\color{spPrimary}\bfseries,commentstyle=\color{spAccent}\itshape,
+  columns=fullflexible,showstringspaces=false,xleftmargin=4pt,framexleftmargin=2pt}
+
+\newcommand{\code}[1]{\texttt{\textcolor{spInk}{#1}}}
+\setlist{nosep,leftmargin=1.4em,topsep=2pt}
+
+% ====================================================================
+\begin{document}
+
+% ---------- title block ----------
+\begin{tcolorbox}[colback=spPrimary,colframe=spPrimary,arc=4pt,boxrule=0pt]
+  \color{white}
+  {\Huge\bfseries ScholarPath}\\[2pt]
+  {\LARGE Technical Architecture \& Security Brief}\\[6pt]
+  {\normalsize A walkthrough of the architecture, the request pipeline (CQRS),
+  data integrity, and the security-critical features --- encryption, file
+  uploads \& scanning, PII handling, live meetings, AI/RAG, and the
+  booking--payment money flow. Every mechanism below is taken from the live
+  codebase, not a plan.}
+\end{tcolorbox}
+
+\vspace{4pt}
+{\small\color{spInk}\textbf{Scope:} .NET 10 Clean-Architecture monolith $\cdot$
+React 19 SPA $\cdot$ Azure $\cdot$ $\approx$55 entities $\cdot$ $\approx$33 ports /
+$\approx$46 adapters $\cdot$ bilingual EN/AR.}
+
+\vspace{2pt}\hrule height 0.4pt\vspace{6pt}
+{\small\tableofcontents}
+\vspace{4pt}\hrule height 0.4pt
+
+% ====================================================================
+\section{Architecture --- the foundation}
+
+ScholarPath is a \textbf{Clean-Architecture} monolith. Dependencies always point
+\emph{inward}; the inner layers know nothing about the outer ones.
+
+\begin{center}\small\ttfamily
+API \ $\rightarrow$ \ Application \ $\rightarrow$ \ Domain \qquad
+Infrastructure \ $\rightarrow$ \ (implements Application \& Domain ports)
+\end{center}
+
+\begin{itemize}
+\item \textbf{Domain} --- entities, enums, domain events, and two domain ports
+  (\code{ICurrentUserService}, \code{IDateTimeService}). No framework dependency.
+\item \textbf{Application} --- use-cases as \textbf{CQRS} commands/queries (MediatR),
+  FluentValidation validators, AutoMapper profiles, the AI cost gate, and the
+  $\approx$33 \textbf{ports} (interfaces) the outside world must satisfy.
+\item \textbf{Infrastructure} --- the $\approx$46 \textbf{adapters} implementing
+  those ports: EF Core, Stripe, Azure OpenAI, ACS, Blob, Key Vault, Event Hub,
+  SignalR, Hangfire jobs.
+\item \textbf{API} --- controllers + Stripe webhook receiver, ASP.NET Identity +
+  JWT, three SignalR hubs.
+\end{itemize}
+
+\begin{whybox}
+The \emph{ports \& adapters} seam is the most important decision in the system.
+It makes the code (a)~\textbf{testable} --- swap a real service for a stub;
+(b)~\textbf{portable} --- swap a provider by \emph{configuration}, with no code
+change (\code{Ai:Provider}, \code{Storage:Provider}, \code{Email:Provider},
+\code{Acs:ConnectionString}, \code{FileScanning:Enabled}, \code{Hangfire:Enabled});
+and (c)~keeps business rules independent of Azure.
+\end{whybox}
+
+% ====================================================================
+\section{CQRS \& the request pipeline}
+
+Every use-case is a \textbf{command} (writes/mutations) or a \textbf{query}
+(reads), dispatched through \textbf{MediatR}. This is CQRS: the read path and the
+write path are separate request types with separate handlers and validators.
+
+\subsection{The behavior pipeline (order matters)}
+Every request passes through four \emph{pipeline behaviors} before reaching its
+handler. They are registered --- and therefore execute --- in this exact order
+(outermost first):
+
+\begin{lstlisting}
+cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));      // 1 outermost
+cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));   // 2
+cfg.AddOpenBehavior(typeof(PerformanceBehavior<,>));  // 3
+cfg.AddOpenBehavior(typeof(AuditBehavior<,>));        // 4 closest to handler
+\end{lstlisting}
+
+\begin{enumerate}
+\item \textbf{Logging} (outermost) --- wraps everything, so it records the request
+  even if validation rejects it.
+\item \textbf{Validation} --- runs all FluentValidation validators for the request
+  and short-circuits with a 400 before any work happens. Placed early on purpose:
+  no point timing or auditing a request that is structurally invalid.
+\item \textbf{Performance} --- times the handler and flags slow requests.
+\item \textbf{Audit} (innermost) --- records the actual business action right
+  around the handler, where the request is known-valid.
+\end{enumerate}
+
+\begin{whybox}
+Ordering is deliberate: \textbf{Logging} must see every request; \textbf{Validation}
+must reject bad input \emph{before} we spend time or write audit rows;
+\textbf{Audit} must sit closest to the handler so it only records actions that
+actually executed. Validators, AutoMapper profiles, and the refund calculator are
+auto-discovered from the assembly, so adding a feature needs no DI wiring.
+\end{whybox}
+
+% ====================================================================
+\section{Data integrity \& ``non-appearance'' (soft delete)}
+
+\subsection{Soft delete --- how a row ``disappears'' without being destroyed}
+Sensitive/business rows are never hard-deleted. They implement
+\code{ISoftDeletable} (\code{IsDeleted, DeletedAt, DeletedByUserId}); ``deleting''
+flips \code{IsDeleted = true}. To make those rows vanish from the whole
+application automatically, each such entity has an EF Core \textbf{global query
+filter}:
+
+\begin{lstlisting}
+b.HasQueryFilter(x => !x.IsDeleted);   // applied on ~15 entities
+\end{lstlisting}
+
+\begin{howbox}
+Once the filter is on an entity, \emph{every} LINQ query EF generates for it gets
+an implicit \code{WHERE IsDeleted = 0}. A developer cannot forget to add it ---
+soft-deleted rows simply never appear in any query, join, or count, unless code
+explicitly opts out with \code{IgnoreQueryFilters()} (used only by admin/GDPR
+tooling). 15 entities carry this filter today.
+\end{howbox}
+
+\begin{whybox}
+Hard deletes would cascade-break history (reviews, payments, audit trails) and
+make ``who deleted what, when'' impossible. Soft delete keeps referential history
+intact, supports an undo/restore path, and --- combined with the audit log ---
+gives full traceability. It is also the safe default for a platform that must
+honor data-retention and dispute rules.
+\end{whybox}
+
+\subsection{The \code{SaveChangesAsync} interceptor (one place, many guarantees)}
+The \code{DbContext} overrides \code{SaveChangesAsync} to enforce four
+cross-cutting rules in a single choke point:
+
+\begin{itemize}
+\item \textbf{Audit stamping} --- sets \code{CreatedAt} on new auditable rows and
+  \code{UpdatedAt} on every modification (seeders keep intentional back-dates).
+\item \textbf{Domain events after commit} --- domain events are dispatched
+  \emph{only after} the transaction is durably persisted, so a side effect never
+  fires for a change that rolled back.
+\item \textbf{Conflict translation} --- a unique-index violation (SQL 2601/2627) is
+  caught and re-thrown as a friendly \code{ConflictException} (e.g.\ ``that slot
+  was just booked'') instead of a raw 500.
+\item \textbf{Global cascade safety} --- every FK pointing at \code{ApplicationUser}
+  is swept to \code{DeleteBehavior.Restrict}, avoiding SQL Server's
+  multiple-cascade-path error and protecting user history.
+\end{itemize}
+
+\subsection{Other integrity controls}
+\begin{itemize}
+\item \textbf{Optimistic concurrency} --- \code{RowVersion} on auditable entities
+  prevents lost updates.
+\item \textbf{Idempotency keys} --- \code{Payment.IdempotencyKey} and
+  \code{Notification.IdempotencyKey} make money and messaging exactly-once under
+  retries; Stripe webhooks dedupe on \code{StripeWebhookEvent.StripeEventId}.
+\item \textbf{Filtered unique indexes} encode real invariants in the database:
+  one \emph{active} application per student per scholarship (FR-057), one
+  \emph{active} booking per consultant per slot, one \emph{active} financial
+  config per type.
+\end{itemize}
+
+% ====================================================================
+\section{The security model (defense in depth)}
+
+Independent, layered controls so no single failure is catastrophic:
+
+\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{>{\bfseries\color{spPrimary}}p{3.0cm}p{11.5cm}}
+\toprule
+Layer & Control \\ \midrule
+Transport & HTTPS everywhere; JWT bearer on the API; authenticated SignalR hubs \\
+Identity & ASP.NET Core Identity --- hashed passwords, lockout, email confirmation \\
+Tokens & Short-lived access JWT + \emph{rotating} refresh tokens, stored \emph{hashed} \\
+Authorization & Role-based (Student/Company/Consultant/Admin) + per-resource ownership \\
+Secrets \& keys & Azure \textbf{Key Vault} key providers (field-encryption key, JWT signing key) \\
+Data at rest & \textbf{AES-256-GCM} field encryption on sensitive columns \\
+Uploads & \textbf{Scan-before-store} with ClamAV, \textbf{fail-closed} \\
+Privacy / PII & Prompt redaction before AI; loose references; GDPR export/delete \\
+Integrity & Idempotency keys, filtered unique indexes, \code{RowVersion} \\
+Auditability & Append-only \code{AuditLog} (before/after JSON); per-call \code{AiInteraction} log \\
+Soft delete & Global query filters hide deleted rows from every query \\
+\bottomrule
+\end{longtable}
+
+% ====================================================================
+\section{Encryption at rest (AES-256-GCM)}
+Port \code{IFieldEncryptionService} $\rightarrow$ \code{AesGcmFieldEncryptionService},
+wired onto chosen PII columns (e.g.\ a profile \code{Biography}, an application's
+\code{PersonalNotes}) through an EF Core value converter --- plaintext in C\#,
+ciphertext in the database.
+
+\begin{howbox}
+AES-256-GCM is an \emph{authenticated} (AEAD) cipher: 256-bit key, a fresh random
+12-byte nonce per encryption, and a 16-byte authentication tag. The stored value
+is a self-describing envelope
+\code{enc:v1:} + Base64(\,nonce $\Vert$ tag $\Vert$ ciphertext\,).
+On decrypt the tag is verified --- a flipped bit, a truncation, or the wrong key
+makes decryption \emph{throw}, not return garbage. The random nonce means the same
+plaintext encrypts to different ciphertext each time.
+\end{howbox}
+
+\begin{itemize}
+\item \textbf{Versioned} (\code{v1}): a future key rotation introduces \code{v2}
+  while still decrypting old \code{v1} rows.
+\item \textbf{Safe rollout}: a value without the prefix (legacy plaintext) is
+  returned unchanged and re-encrypted on its next write --- zero downtime.
+\item \textbf{Key} comes from \code{IFieldEncryptionKeyProvider} (Key Vault in prod,
+  local in dev) and must be exactly 32 bytes (checked at start-up).
+\end{itemize}
+
+\begin{secbox}
+GCM gives confidentiality \emph{and} integrity in one pass; a plain cipher would
+protect secrecy but not detect tampering. The key never lives in source or config.
+This protects the value end-to-end --- even a DB backup or a DBA sees only
+ciphertext for those columns (which transparent DB-level encryption alone cannot
+guarantee once a query returns a row).
+\end{secbox}
+
+\subsection{Key management}
+Two independent providers, each with a prod + dev adapter:
+\code{IFieldEncryptionKeyProvider} (KeyVault / Local) for the AES key, and
+\code{IJwtKeyProvider} (KeyVault / Local-PEM) for the JWT signing key. Surfacing
+the signing key behind its own port is what makes \textbf{key rotation} an
+operations action, not a redeploy.
+
+% ====================================================================
+\section{Authentication \& authorization}
+\begin{itemize}
+\item \textbf{ASP.NET Core Identity} --- \code{ApplicationUser : IdentityUser<Guid>};
+  passwords hashed by \code{IdentityPasswordHasher}; lockout; email confirmation.
+\item \textbf{Tokens} --- \code{TokenService} issues a short-lived access JWT plus a
+  refresh token; refresh tokens are \emph{rotated} on use, individually/globally
+  revocable, and stored \emph{hashed} (\code{RefreshToken.TokenHash}). Same hashing
+  for \code{PasswordResetToken} --- a DB leak yields no usable token.
+\item \textbf{SSO} --- \code{SsoService} exchanges OAuth codes with Google and
+  Microsoft.
+\item \textbf{Authorization} --- role-based (the overlapping Student/Company/
+  Consultant/Admin specialization via the \code{UserRoles} join) plus per-resource
+  ownership checks in handlers.
+\end{itemize}
+
+% ====================================================================
+\section{File upload pipeline}
+Port \code{IBlobStorageService} $\rightarrow$ \code{FileStorageService}: one
+interface, two providers chosen by \code{Storage:Provider} --- \code{Local}
+(disk, dev) or \code{AzureBlob} (Azure Storage). Objects use an opaque,
+provider-tagged path \code{provider:container/key}, where \code{key} is
+GUID-prefixed so same-named uploads never collide; Azure containers are created
+\code{PublicAccessType.None} --- never public, downloads always go through the
+authenticated API.
+
+\begin{howbox}
+\textbf{Scan before store.} The upload handler runs the file through the malware
+scanner \emph{while it is still an in-memory stream}; \emph{only a Clean verdict is
+persisted}. This guards the document vault (application attachments, upgrade
+files, forum attachments, session recordings).
+\end{howbox}
+
+% ====================================================================
+\section{Malware scanning (ClamAV, fail-closed)}
+Port \code{IFileScanService} $\rightarrow$ \code{ClamAvFileScanService}: bytes are
+streamed to a ClamAV \code{clamd} daemon over INSTREAM (via \code{nClam}) before
+storage. Verdicts: \textbf{Clean} (proceed; stream rewound so the same bytes are
+stored), \textbf{Infected} (rejected; signature logged), \textbf{ScanUnavailable}
+(rejected).
+
+\begin{secbox}
+\textbf{Fail-closed.} Any daemon unreachability, timeout, or error maps to
+\code{ScanUnavailable} and the upload is \textbf{rejected} --- an unscanned file is
+never stored. (Feature-flagged by \code{FileScanning:Enabled}; \code{NoOpFileScanService}
+in dev.) Scanning the stream first, fail-closed, removes the window in which a
+malicious file could be reachable.
+\end{secbox}
+
+% ====================================================================
+\section{PII handling}
+PII protection is layered across the AI path, the data model, and the lifecycle.
+
+\begin{howbox}
+\textbf{Prompt redaction before persistence \emph{and} before any provider.} In
+the chatbot handler the user's message passes through \code{RedactPii()} first:
+emails $\rightarrow$ \code{[redacted-email]}, 13--19-digit runs (cards)
+$\rightarrow$ \code{[redacted-card]}, 10+-digit runs (phones) $\rightarrow$
+\code{[redacted-phone]}. The \emph{redacted} text is what we store
+(\code{AiInteraction.PromptText}) and what we send to OpenAI --- the raw message
+never leaves the process. (Regex order matters: email, then card, then the most
+permissive phone pattern last.)
+\end{howbox}
+
+\begin{itemize}
+\item \textbf{Personalization without contact PII} --- the student-profile block
+  injected for tailored answers carries only academic facts (nationality, level,
+  field, GPA, preferred countries), never email/phone.
+\item \textbf{Per-user AI memory} --- replayed history is filtered to the requesting
+  user, so a leaked \code{SessionId} cannot leak another user's transcript.
+\item \textbf{Redaction QA} --- \code{AiRedactionAuditSample} stores periodic samples
+  of redacted prompts for human review (a sampling job) --- we can prove the
+  redactor works.
+\item \textbf{Loose references} --- high-volume / audit / analytics tables (payments,
+  notifications, votes, chat, audit log, AI interactions) hold the user
+  \code{Guid} with \emph{no FK constraint}, so a user can be deleted or anonymized
+  \emph{without} cascade-breaking history.
+\item \textbf{GDPR} --- \code{UserDataRequest} drives export and delete
+  (\code{DataExportJob}, \code{DataDeleteJob}); sensitive free-text is encrypted at
+  rest; profile fields are role-gated in the UI.
+\end{itemize}
+
+% ====================================================================
+\section{Live meetings (Azure Communication Services)}
+Port \code{IMeetingService} $\rightarrow$ \code{AzureCommunicationMeetingService}
+(selected when \code{Acs:ConnectionString} is set; \code{StubMeetingService} in dev).
+
+\begin{howbox}
+A booking's ``room'' is an \textbf{ACS group-call id (a GUID)} --- no server-side
+room object. On join, the API mints a \textbf{short-lived, VoIP-scoped access
+token per user} from ACS Identity (\code{CreateUserAndTokenAsync}, with an
+expiry), handed only to the two booking participants through the authorized join
+endpoint. \textbf{Recording} uses ACS Call Automation
+(\code{StartRecordingAsync} $\rightarrow$ \code{RecordingId};
+\code{DownloadRecordingAsync} streams it), persisted as a \code{SessionRecording}
++ Blob object.
+\end{howbox}
+
+\textbf{Attendance \& no-shows:} the booking records \code{RecordingStartedAt}
+(PB-006) and \code{StudentJoinedAt}\,/\,\code{ConsultantJoinedAt} (FR-217); the
+\code{MeetingNoShowSweepJob} marks \code{NoShowMarkedAt} and drives the
+no-show/refund logic.
+
+\begin{secbox}
+A video token is a bearer credential. Minting one \emph{per participant}, scoped
+to VoIP and expiring, means a leaked token is useless after the session and cannot
+be replayed for another call.
+\end{secbox}
+
+% ====================================================================
+\section{The AI subsystem}
+Port \code{IAiService} has \textbf{three interchangeable adapters} chosen by
+\code{Ai:Provider}: \code{AzureOpenAiService}, \code{OpenAiService} (OpenAI direct),
+\code{LocalAiService} (deterministic, offline). Embeddings mirror this. Three
+operations: \code{Recommend()}, \code{CheckEligibility()}, \code{Ask()}.
+
+\begin{itemize}
+\item \textbf{Recommendations are not an LLM call} --- they are produced by the
+  deterministic \code{LocalAiService}, scoring scholarships against the student
+  profile + metadata (+ RAG), returning the top-N (default 5). The LLM backs
+  \emph{chat / Q\&A}.
+\item \textbf{Chat (\code{Ask})} carries session memory (last 20 turns,
+  user-scoped), an injected profile system-turn for personalization, RAG
+  grounding, and returns the answer + a disclaimer + the \emph{sources} used.
+\end{itemize}
+
+\begin{secbox}
+\textbf{Cost control --- \code{AiCostGate}.} Before \emph{every} AI call we enforce a
+rolling 24-hour per-user budget (\code{DailyUserCostLimitUsd}, default \$1.00): we
+sum the user's \code{AiInteraction.CostUsd} over 24h and reject the call if this
+one would exceed the cap. Every call is logged (provider, model, tokens, cost, and
+a metadata blob of RAG sources) --- full spend observability. What keeps the bill
+bounded: the per-user gate \emph{and} the fact that the high-frequency feature
+(recommendations) is local, not an LLM call.
+\end{secbox}
+
+% ====================================================================
+\section{RAG --- Retrieval-Augmented Generation}
+\begin{howbox}
+\textbf{Index} --- \code{KnowledgeBaseIndexer} turns scholarships, resources,
+consultants and top community posts into \code{KnowledgeDocument} rows (bilingual
+content, a \code{ContentHash}, and an embedding \code{byte[]} tagged with the model
+name + dimensions; \code{SourceType+SourceKey} unique, so re-indexing upserts).
+\textbf{Retrieve} --- \code{KnowledgeRetriever} embeds the query, ranks the corpus
+by \textbf{cosine similarity} and returns the \textbf{top-K}, considering only
+documents embedded with the \emph{currently active} model (vectors from another
+model live in a different space).
+\end{howbox}
+
+\begin{whybox}
+The corpus is a few hundred rows, so an in-memory similarity scan per query is
+more than fast enough --- we deliberately avoid operating a separate vector
+database. Which documents grounded each answer is recorded in
+\code{AiInteraction.MetadataJson} and surfaced as ``sources'', giving a RAG audit
+trail and reducing hallucination.
+\end{whybox}
+
+% ====================================================================
+\section{Booking \& the payment money flow}
+Paid consultant sessions use an \textbf{authorize-then-capture (escrow-style)}
+model on Stripe, so the student's money is \emph{held} but not taken until the
+consultant accepts. Port \code{IStripeService} $\rightarrow$ \code{StripeService}
+(real) / \code{StubStripeService} (dev).
+
+\subsection{Lifecycle (step by step)}
+\begin{enumerate}
+\item \textbf{Book \& authorize} --- the student requests a slot; we create a Stripe
+  \code{PaymentIntent} with \textbf{manual capture} and \code{PaymentMethodTypes =
+  [card]}. The card is \emph{authorized} (funds held), not charged. A \code{Payment}
+  row is created with an \code{IdempotencyKey} (the same key is sent to Stripe, so a
+  retry never double-charges). Amounts are integer \textbf{cents}.
+\item \textbf{Accept $\rightarrow$ capture} --- when the consultant accepts, we
+  \textbf{capture} the held intent (\code{CapturePaymentIntentAsync}). A capture on
+  an un-authorized intent is surfaced as a clean 422 (``finish payment first''),
+  not a 500.
+\item \textbf{Reject / expire $\rightarrow$ release} --- the hold is cancelled
+  (\code{CancelPaymentIntentAsync}); the student is never charged.
+\item \textbf{No-show / cancellation $\rightarrow$ refund} --- a
+  \code{RefundCalculatorService} computes the owed amount per policy, then
+  \code{RefundPaymentAsync} issues a full/partial refund. \code{MeetingNoShowSweepJob}
+  triggers this automatically.
+\item \textbf{Payout to consultant} --- consultants onboard a \textbf{Stripe Connect
+  Express} account (\code{CreateConnectAccountAsync} + onboarding link). The
+  \code{StripePayoutJob} pays out their net via \code{CreatePayoutAsync} (idempotent),
+  recording a \code{Payout} row that aggregates the included payment ids.
+\end{enumerate}
+
+\subsection{Profit-share split}
+Each \code{Payment} stores \code{AmountCents}, \code{ProfitShareAmountCents}
+(platform fee) and \code{PayeeAmountCents} (consultant net). The split percentages
+come from \code{ProfitShareConfig} / \code{FinancialConfigRule}, each protected by a
+\textbf{filtered unique index} that enforces exactly one \emph{active} rule per
+payment type (PB-014 / FR-170) --- so fees are configurable and versioned over
+time without ambiguity.
+
+\subsection{Webhook reconciliation}
+\code{StripeService.ParseWebhook} \textbf{verifies the Stripe signature} and
+extracts the typed event (PaymentIntent, Charge, Account, Payout, Dispute). The
+handler reconciles the matching \code{Payment} by intent id, and dedupes on
+\code{StripeWebhookEvent.StripeEventId} so a re-delivered event is processed once.
+
+\begin{secbox}
+Three independent guarantees protect the money path: \textbf{idempotency keys}
+(no double-charge / double-payout on retries), \textbf{manual capture} (funds are
+only taken when the service is actually committed), and \textbf{signed webhooks +
+event dedupe} (no spoofed or replayed payment events). Card details never touch
+our servers --- the browser talks to Stripe directly via the client secret; we
+only ever see the intent id.
+\end{secbox}
+
+\begin{qabox}
+``Where is the money between booking and the session?'' --- It is \emph{authorized
+and held} on the student's card via a manual-capture PaymentIntent. We capture it
+only when the consultant accepts; if they reject or the slot expires we release the
+hold; if there's a qualifying no-show/cancellation the RefundCalculatorService
+decides the refund. Net earnings reach the consultant through a Stripe Connect
+payout.
+\end{qabox}
+
+% ====================================================================
+\section{Cross-cutting engineering (quick hits)}
+\begin{itemize}
+\item \textbf{Audit log} --- \code{AuditService} writes append-only \code{AuditLog}
+  rows (before/after JSON, polymorphic target).
+\item \textbf{Real-time} --- three SignalR hubs (Chat, Notification, Community).
+\item \textbf{Background jobs} --- 13 Hangfire jobs (reminders, scholarship
+  auto-close, no-show sweep, payouts, GDPR export/delete, redaction sampling,
+  integrity checks), \emph{feature-flagged} via \code{Hangfire:Enabled}.
+\item \textbf{Bilingual} EN/AR with RTL throughout.
+\item \textbf{Documentation rigor} --- EERD, Relational-Mapping, Class and Component
+  reports, each gap-analyzed against the live code and corrected.
+\end{itemize}
+
+\vspace{6pt}\hrule height 0.4pt\vspace{4pt}
+{\small\itshape\color{spInk} All mechanisms above are implemented in
+\code{server/src/...} and verified against the source for this brief.}
+
+\end{document}

@@ -87,12 +87,12 @@ public sealed class FinancialRuleResolverTests
     {
         using var db = CreateDb();
         db.FinancialConfigRules.Add(Rule(
-            PaymentType.CompanyReview, FeeKind.FixedAmount, null, 300,
+            PaymentType.ScholarshipProviderReview, FeeKind.FixedAmount, null, 300,
             0.10m, FinancialRuleStatus.Active));
         await db.SaveChangesAsync();
 
         var split = await FinancialRuleResolver.ResolvePaymentSplitAsync(
-            db, PaymentType.CompanyReview, 10_000, default);
+            db, PaymentType.ScholarshipProviderReview, 10_000, default);
 
         // $3.00 fee (300) + 10% profit-share (1000) = 1300 platform, 8700 payee.
         split.PlatformTakeCents.Should().Be(1_300);
@@ -139,12 +139,12 @@ public sealed class FinancialRuleResolverTests
     {
         using var db = CreateDb();
         db.FinancialConfigRules.Add(Rule(
-            PaymentType.CompanyReview, FeeKind.Percentage, 0.05m, null,
+            PaymentType.ScholarshipProviderReview, FeeKind.Percentage, 0.05m, null,
             0.10m, FinancialRuleStatus.Active));
         await db.SaveChangesAsync();
 
         var review = await FinancialRuleResolver.ResolvePaymentSplitAsync(
-            db, PaymentType.CompanyReview, 10_000, default);
+            db, PaymentType.ScholarshipProviderReview, 10_000, default);
         var booking = await FinancialRuleResolver.ResolvePaymentSplitAsync(
             db, PaymentType.ConsultantBooking, 10_000, default);
 

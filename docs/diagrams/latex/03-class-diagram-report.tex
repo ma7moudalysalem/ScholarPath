@@ -1,0 +1,176 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=2.4cm]{geometry}
+\usepackage{graphicx}
+\graphicspath{{../img/}}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+\captionsetup{font=small,labelfont=bf}
+\setlist{nosep,leftmargin=1.4em}
+\pagestyle{fancy}\fancyhf{}
+\lhead{\small ScholarPath --- Class Diagrams}\rhead{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\newcommand{\diagram}[2]{%
+  \begin{figure}[H]\centering
+  \includegraphics[width=\textwidth,height=0.66\textheight,keepaspectratio]{#1}%
+  \caption{#2}\end{figure}}
+
+\title{\textbf{ScholarPath --- Class Diagrams (UML)}\\[2pt]
+\large Domain model and architecture (Sommerville notation)}
+\author{ScholarPath Graduation Project}
+\date{\today}
+
+\begin{document}
+\maketitle\thispagestyle{fancy}
+
+\begin{abstract}\noindent
+This report presents the ScholarPath domain model as UML class diagrams in the
+style of Sommerville (\emph{Software Engineering}, 9th ed.). To keep every figure
+legible, the model is split by subject area; a separate diagram shows the base
+type hierarchy, and a final ``ports \& adapters'' diagram captures the Clean
+Architecture seam between the application and infrastructure layers. Classes,
+attributes and key operations are taken directly from
+\texttt{ScholarPath.Domain/Entities} and the application interfaces.
+\end{abstract}
+
+\tableofcontents\bigskip
+
+\section{Notation}
+\begin{itemize}
+  \item A \textbf{class} is a box with name / attributes / operations.
+        \texttt{<<abstract>>} marks an abstract class; \texttt{<<interface>>} an interface.
+  \item \textbf{Generalization} (inheritance) is a hollow triangle pointing at the
+        parent ($\triangleleft$, drawn \texttt{Base <|-- Derived}).
+  \item \textbf{Realization} (a class implements an interface) is a dashed hollow
+        triangle (\texttt{Interface <|.. Class}).
+  \item \textbf{Composition} (filled diamond) means the part cannot exist without
+        the whole; \textbf{aggregation} (hollow diamond) means it can.
+  \item \textbf{Associations} carry role names and multiplicities
+        ($1$, $0..1$, $*$).
+\end{itemize}
+
+\section{Base entity types}
+Almost every persistent class inherits \texttt{AuditableEntity} (itself a
+\texttt{BaseEntity}); classes that support soft delete also implement
+\texttt{ISoftDeletable}. To avoid drawing this inheritance on every figure, the
+hierarchy is shown once here and implied thereafter.
+\diagram{Class_Base_Types.pdf}{Base entity types and the domain-event mechanism.}
+
+\section{Identity \& Profile}
+\diagram{Class_Identity_Profile.pdf}{Identity \& Profile classes.}
+\noindent\textbf{Inheritance note.} Unlike every other persistent class,
+\texttt{ApplicationUser} does \emph{not} inherit \texttt{AuditableEntity}: it
+extends \texttt{IdentityUser<Guid>} and implements \texttt{ISoftDeletable}, and
+therefore carries only a \emph{stripped} audit triple
+(\texttt{CreatedAt, UpdatedAt, RowVersion}) --- it has no
+\texttt{CreatedByUserId}\,/\,\texttt{UpdatedByUserId}. \texttt{ApplicationRole}
+extends \texttt{IdentityRole<Guid>}.
+\par\noindent\texttt{ApplicationUser} owns a single \texttt{UserProfile} (which
+composes \texttt{EducationEntry} rows), holds many \texttt{ApplicationRole}s via
+the \texttt{UserRoles} junction, issues \texttt{RefreshToken}/
+\texttt{PasswordResetToken} rows, and may raise \texttt{UpgradeRequest}s
+(which compose \texttt{UpgradeRequestFile}/\texttt{UpgradeRequestLink}).
+\texttt{ExpertiseTag} is a lookup table. \texttt{/FullName} is a derived property.
+
+\section{Scholarships, Applications \& Documents}
+\diagram{Class_Scholarships_Applications.pdf}{Scholarships, Applications \& Documents classes.}
+\noindent A \texttt{Scholarship} (optionally classified by a \texttt{Category})
+receives many \texttt{ApplicationTracker}s. An application can be backed by a
+\texttt{Document} and finalised by exactly one \texttt{CompanyReview}.
+\texttt{CompanyReviewRequest} models the paid-support engagement.
+\texttt{ApplicationTracker.IsActive} / \texttt{IsReadOnly} are computed guards that
+encode the application state machine.
+
+\section{Booking, Payments \& Ratings}
+\diagram{Class_Booking_Payments_Ratings.pdf}{Booking, Payments \& Ratings classes.}
+\noindent A \texttt{ConsultantBooking} reserves a \texttt{ConsultantAvailability},
+is settled by one \texttt{Payment}, may be rated by one \texttt{ConsultantReview},
+and is composed of \texttt{SessionRecording}s. A \texttt{Payout} aggregates many
+\texttt{Payment}s. Monetary amounts are integer \emph{cents}.
+
+\section{Community \& Chat}
+\diagram{Class_Community_Chat.pdf}{Community \& Chat classes.}
+\noindent \texttt{ForumPost} is self-referencing (threaded replies), composes
+\texttt{ForumPostAttachment}s, receives \texttt{ForumVote}/\texttt{ForumFlag}/
+\texttt{ForumBookmark} rows, and is tagged many-to-many with \texttt{ForumTag} via
+\texttt{ForumPostTag}. \texttt{ChatConversation} composes \texttt{ChatMessage}s;
+\texttt{UserBlock} records a directed block between two users.
+
+\section{Resources Hub \& Notifications}
+\diagram{Class_Resources_Notifications.pdf}{Resources Hub \& Notifications classes.}
+\noindent A \texttt{Resource} is split into \texttt{ResourceChild} chapters and is
+saved/tracked through \texttt{ResourceBookmark} and \texttt{ResourceProgress}
+(itself composing \texttt{ResourceProgressChild}). \texttt{Notification} delivery
+preferences live in \texttt{NotificationPreference}.
+
+\section{AI, Knowledge, Platform \& Cross-cutting}
+\diagram{Class_AI_Platform.pdf}{AI, Knowledge, Platform \& Cross-cutting classes.}
+\noindent \texttt{AiInteraction} may be sampled by an
+\texttt{AiRedactionAuditSample} and attributed to many
+\texttt{RecommendationClickEvent}s; \texttt{KnowledgeDocument} backs the RAG
+pipeline. \texttt{AuditLog}, \texttt{UserDataRequest}, \texttt{UserRiskFlag},
+\texttt{SuccessStory} and \texttt{PlatformSetting} are the cross-cutting tables;
+those marked \texttt{: BaseEntity} are intentionally \emph{not} auditable
+(append-only / analytics rows).
+
+\section{Architecture --- ports \& adapters}
+The application layer defines \textbf{ports} (interfaces); the infrastructure
+layer provides \textbf{adapters} (implementations), chosen at start-up by
+dependency injection / configuration. This seam is why the platform can swap a
+development stub for a real Azure service without touching application code.
+\diagram{ScholarPath_Ports_Adapters.pdf}{Ports (interfaces) and their infrastructure adapters.}
+
+\begin{longtable}{@{}p{4.3cm}p{6.8cm}p{3.4cm}@{}}
+\toprule
+\textbf{Port (interface)} & \textbf{Production adapter} & \textbf{External system}\\
+\midrule\endhead
+\texttt{IApplicationDbContext} & \texttt{ApplicationDbContext} (EF Core) & Azure SQL\\
+\texttt{ITokenService} & \texttt{TokenService} (JWT signer) & ---\\
+\texttt{IPasswordHasher} & \texttt{IdentityPasswordHasher} & ---\\
+\texttt{ISsoService} & \texttt{SsoService} / \emph{StubSsoService} & Google + Microsoft OAuth\\
+\texttt{IEmailVerificationService} & \texttt{EmailVerificationService} & ---\\
+\texttt{IEmailChangeService} & \texttt{EmailChangeService} & ---\\
+\texttt{IStripeService} & \texttt{StripeService} / \emph{StubStripeService} & Stripe\\
+\texttt{IMeetingService} & \texttt{AzureCommunicationMeetingService} / \emph{StubMeetingService} & Azure Comm. Svcs\\
+\texttt{IEmailService} & \texttt{MailKitEmailService} / \emph{StubEmailService} & SMTP\\
+\texttt{IBlobStorageService} & \texttt{FileStorageService} & Azure Blob / local\\
+\texttt{IFileScanService} & \texttt{ClamAvFileScanService} / \emph{NoOpFileScanService} & ClamAV\\
+\texttt{IAiService} & \texttt{AzureOpenAiService} / \texttt{OpenAiService} / \emph{LocalAiService} & Azure OpenAI \emph{or} OpenAI direct\\
+\texttt{IEmbeddingService} & \texttt{AzureOpenAiEmbeddingService} / \texttt{OpenAiEmbeddingService} / \emph{LocalEmbeddingService} & Azure OpenAI \emph{or} OpenAI direct\\
+\texttt{IKnowledgeRetriever} & \texttt{KnowledgeRetriever} & (RAG read)\\
+\texttt{IKnowledgeBaseIndexer} & \texttt{KnowledgeBaseIndexer} & (RAG write)\\
+\texttt{IDatasetProvider} & \texttt{EmbeddedDatasetProvider} & (bundled corpora)\\
+\texttt{IFieldEncryptionService} & \texttt{AesGcmFieldEncryptionService} & ---\\
+\texttt{IFieldEncryptionKeyProvider} & \texttt{KeyVault\dots} / \emph{Local\dots} & Azure Key Vault\\
+\texttt{IJwtKeyProvider} & \texttt{KeyVaultJwtKeyProvider} / \emph{Local\dots} & Azure Key Vault\\
+\texttt{IEventPublisher} & \texttt{EventHubPublisher} / \emph{StubEventPublisher} & Azure Event Hub\\
+\texttt{IPowerBiService} & \texttt{PowerBiService} / \emph{StubPowerBiService} & Power BI\\
+\texttt{INotificationDispatcher} & \texttt{NotificationDispatcher} & in-app + email + SignalR\\
+\texttt{IChatRealtimeNotifier} & \texttt{ChatRealtimeNotifier} & SignalR ChatHub\\
+\texttt{ICommunityRealtimeNotifier} & \texttt{CommunityRealtimeNotifier} & SignalR CommunityHub\\
+\texttt{IChatPresenceQuery} & \texttt{PresenceTracker} & (in-memory)\\
+\texttt{IAuditService} & \texttt{AuditService} & ---\\
+\texttt{IUserAdministration} & \texttt{UserAdministration} & ---\\
+\texttt{IAdminReadService} & \texttt{AdminReadService} & ---\\
+\texttt{IConsultantReadService} & \texttt{ConsultantReadService} & ---\\
+\texttt{IChatContactReadService} & \texttt{ChatContactReadService} & ---\\
+\texttt{ICurrentUserService} & \texttt{CurrentUserService} & (HttpContext)\\
+\texttt{IDateTimeService} & \texttt{DateTimeService} & ---\\
+\textit{13 job ports} & \textit{13 job classes (Infrastructure/Jobs)} & Hangfire (when enabled)\\
+\bottomrule
+\end{longtable}
+\noindent Adapters shown in \emph{italics} are the development / configuration
+fall-backs (\texttt{Stub*}, \texttt{NoOp*}, \texttt{Local*}) selected when the
+corresponding cloud service is not configured. The AI and embedding ports each
+have \emph{three} adapters: Azure OpenAI, OpenAI-direct, and an offline local
+implementation, chosen by the \texttt{Ai:Provider} setting.
+\end{document}

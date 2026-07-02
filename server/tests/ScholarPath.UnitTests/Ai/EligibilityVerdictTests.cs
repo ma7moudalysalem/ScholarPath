@@ -46,7 +46,7 @@ public sealed class EligibilityVerdictTests : IDisposable
         var scholarship = new Scholarship
         {
             Id = Guid.NewGuid(),
-            OwnerCompanyId = Guid.NewGuid(),
+            OwnerScholarshipProviderId = Guid.NewGuid(),
             TitleEn = "Test Scholarship",
             TitleAr = "منحة اختبار",
             DescriptionEn = "Description",

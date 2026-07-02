@@ -79,12 +79,12 @@ public class SetProfitShareConfigCommandHandlerTests
     public async Task Is_a_no_op_when_percentage_is_unchanged()
     {
         using var db = CreateDb();
-        var existing = ActiveConfig(PaymentType.CompanyReview, 0.15m);
+        var existing = ActiveConfig(PaymentType.ScholarshipProviderReview, 0.15m);
         db.ProfitShareConfigs.Add(existing);
         await db.SaveChangesAsync();
 
         var result = await Sut(db, Admin()).Handle(
-            new SetProfitShareConfigCommand(PaymentType.CompanyReview, 0.15m), default);
+            new SetProfitShareConfigCommand(PaymentType.ScholarshipProviderReview, 0.15m), default);
 
         result.Id.Should().Be(existing.Id);
         db.ProfitShareConfigs.Count().Should().Be(1);

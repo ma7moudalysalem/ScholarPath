@@ -23,7 +23,7 @@ namespace ScholarPath.Application.Scholarships.Queries
                 .AsNoTracking()
                 .Include(s => s.Category)
                 .Include(s => s.Children)
-                .Include(s => s.OwnerCompany)
+                .Include(s => s.OwnerScholarshipProvider)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, ct);
 
             if (entity == null) throw new NotFoundException(nameof(Scholarship), request.Id);
@@ -42,8 +42,8 @@ namespace ScholarPath.Application.Scholarships.Queries
                 CategoryName = lang == "ar"
                     ? (entity.Category?.NameAr ?? entity.Category?.NameEn ?? "")
                     : (entity.Category?.NameEn ?? entity.Category?.NameAr ?? ""),
-                OwnerCompanyName = entity.OwnerCompany != null
-                    ? entity.OwnerCompany.FirstName + " " + entity.OwnerCompany.LastName
+                OwnerScholarshipProviderName = entity.OwnerScholarshipProvider != null
+                    ? entity.OwnerScholarshipProvider.FirstName + " " + entity.OwnerScholarshipProvider.LastName
                     : "Global Provider",
                 Status = entity.Status.ToString(),
                 FundingType = entity.FundingType.ToString(),
@@ -73,7 +73,7 @@ namespace ScholarPath.Application.Scholarships.Queries
 
                 // Review Service Fee surfaced for the Student Apply Now flow.
                 ReviewFeeUsd = entity.ReviewFeeUsd,
-                OwnerCompanyId = entity.OwnerCompanyId,
+                OwnerScholarshipProviderId = entity.OwnerScholarshipProviderId,
 
                 Children = entity.Children
                     .OrderBy(c => c.SortOrder)

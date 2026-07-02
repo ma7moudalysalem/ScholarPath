@@ -68,7 +68,7 @@ export interface AdminRevenueDto {
   topConsultants: TopConsultantDto[];
 }
 
-// ── Reports — Company Insights ──────────────────────────────────────────────
+// ── Reports — ScholarshipProvider Insights ──────────────────────────────────────────────
 
 export interface CountryBreakdownDto {
   country: string;
@@ -96,7 +96,7 @@ export interface FunnelMonthDto {
   accepted: number;
 }
 
-export interface CompanyInsightsDto {
+export interface ScholarshipProviderInsightsDto {
   totalApplications: number;
   submittedCount: number;
   acceptedCount: number;
@@ -185,16 +185,16 @@ export const analyticsApi = {
   },
 
   /** Provider application insights — pipeline + breakdowns by country/field/scholarship. */
-  getCompanyInsights: async (
+  getScholarshipProviderInsights: async (
     range?: DateRange,
-    companyId?: string,
-  ): Promise<CompanyInsightsDto> => {
+    scholarshipProviderId?: string,
+  ): Promise<ScholarshipProviderInsightsDto> => {
     const params: string[] = [];
     if (range?.from) params.push(`from=${encodeURIComponent(range.from)}`);
     if (range?.to) params.push(`to=${encodeURIComponent(range.to)}`);
-    if (companyId) params.push(`companyId=${encodeURIComponent(companyId)}`);
+    if (scholarshipProviderId) params.push(`scholarshipProviderId=${encodeURIComponent(scholarshipProviderId)}`);
     const qs = params.length ? `?${params.join("&")}` : "";
-    const { data } = await apiClient.get<CompanyInsightsDto>(`/api/analytics/company/insights${qs}`);
+    const { data } = await apiClient.get<ScholarshipProviderInsightsDto>(`/api/analytics/company/insights${qs}`);
     return data;
   },
 

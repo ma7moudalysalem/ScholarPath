@@ -116,7 +116,7 @@
       "website": "Website",
       "orgEmail": "Email",
       "country": "Country",
-      "companyType": "Type",
+      "scholarshipProviderType": "Type",
       "registrationNumber": "Registration #",
       "taxNumber": "Tax #",
       "contactName": "Contact name",
@@ -154,7 +154,7 @@
       "all": "All"
     },
     "target": {
-      "Company": "Company",
+      "ScholarshipProvider": "ScholarshipProvider",
       "Consultant": "Consultant"
     },
     "status": {
@@ -397,8 +397,8 @@
     "clear": "Clear flag",
     "clearedToast": "Flag cleared — company removed from the queue.",
     "suspend": "Suspend account",
-    "suspendConfirm": "Suspend this Company account? They will lose access to restricted Company actions.",
-    "suspendReason": "Company average rating below 2.5",
-    "suspendedToast": "Company suspended."
+    "suspendConfirm": "Suspend this ScholarshipProvider account? They will lose access to restricted ScholarshipProvider actions.",
+    "suspendReason": "ScholarshipProvider average rating below 2.5",
+    "suspendedToast": "ScholarshipProvider suspended."
   }
 }

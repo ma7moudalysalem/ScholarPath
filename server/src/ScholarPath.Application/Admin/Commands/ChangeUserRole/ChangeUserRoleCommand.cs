@@ -12,7 +12,7 @@ public enum RoleOp
 
 /// <summary>
 /// Admin adds or removes a role from a user. Scoped to the six roles the
-/// platform defines (Student / Company / Consultant / Admin / SuperAdmin / Moderator).
+/// platform defines (Student / ScholarshipProvider / Consultant / Admin / SuperAdmin / Moderator).
 /// Anything outside that whitelist is rejected by the validator.
 /// </summary>
 [Auditable(AuditAction.Update, "User",

@@ -89,7 +89,7 @@ public sealed class PaymentsController(IMediator mediator) : ControllerBase
     /// returns a fresh onboarding link. Available to consultants and companies.
     /// </summary>
     [HttpPost("connect/onboard")]
-    [Authorize(Roles = "Consultant,Company")]
+    [Authorize(Roles = "Consultant,ScholarshipProvider")]
     [ProducesResponseType(typeof(CreateConnectAccountResult), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<CreateConnectAccountResult>> Onboard(
@@ -144,7 +144,7 @@ public sealed class PaymentsController(IMediator mediator) : ControllerBase
     /// Returns the authenticated payee's own payouts (consultants and companies).
     /// </summary>
     [HttpGet("payouts")]
-    [Authorize(Roles = "Consultant,Company")]
+    [Authorize(Roles = "Consultant,ScholarshipProvider")]
     [ProducesResponseType(typeof(IReadOnlyList<PayoutDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<PayoutDto>>> GetMyPayouts(CancellationToken ct)
     {

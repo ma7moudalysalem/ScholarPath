@@ -6,7 +6,7 @@
     "cancelAndReturn": "Cancel and Return"
   },
   "dashboard": {
-    "title": "Company Ratings",
+    "title": "ScholarshipProvider Ratings",
     "subtitle": "View feedback from students whose applications you reviewed.",
     "basedOn": "Based on {{count}} ratings",
     "recentReviews": "Recent Reviews",
@@ -15,8 +15,8 @@
     "noComment": "No comment provided."
   },
   "reviews": {
-    "rateCompanyTitle": "Rate {{company}}",
-    "rateCompanyDescription": "How was your experience applying to this company? Your feedback helps other students.",
+    "rateScholarshipProviderTitle": "Rate {{company}}",
+    "rateScholarshipProviderDescription": "How was your experience applying to this company? Your feedback helps other students.",
     "commentLabel": "Review Comment",
     "optional": "Optional",
     "commentPlaceholder": "Share your thoughts about the application process...",

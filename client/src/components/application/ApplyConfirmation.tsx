@@ -4,7 +4,7 @@ import { usePaymentsEnabled } from '@/hooks/usePlatformStatus';
 
 interface ApplyConfirmationProps {
   scholarshipTitle: string;
-  companyName: string;
+  scholarshipProviderName: string;
   reviewFeeUsd: number;
   onConfirm: () => void;
   onCancel: () => void;
@@ -13,7 +13,7 @@ interface ApplyConfirmationProps {
 
 export function ApplyConfirmation({
   scholarshipTitle,
-  companyName,
+  scholarshipProviderName,
   reviewFeeUsd,
   onConfirm,
   onCancel,
@@ -53,7 +53,7 @@ export function ApplyConfirmation({
               {t('submit.escrowNoticeTitle')}
             </h4>
             <p className="text-xs text-text-secondary mt-1 leading-relaxed">
-              {t('submit.escrowNoticeDesc', { company: companyName })}
+              {t('submit.escrowNoticeDesc', { company: scholarshipProviderName })}
             </p>
           </div>
         </div>

@@ -96,10 +96,10 @@ public class DataExportJobTests
             PromptText = "my private prompt",
             ResponseText = "the answer",
         });
-        db.CompanyReviews.Add(new CompanyReview
+        db.ScholarshipProviderReviews.Add(new ScholarshipProviderReview
         {
             StudentId = userId,
-            CompanyId = Guid.NewGuid(),
+            ScholarshipProviderId = Guid.NewGuid(),
             ApplicationTrackerId = Guid.NewGuid(),
             Rating = 5,
             Comment = "great company",

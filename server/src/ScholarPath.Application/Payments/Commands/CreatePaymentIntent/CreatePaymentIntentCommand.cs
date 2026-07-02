@@ -59,8 +59,8 @@ public sealed class CreatePaymentIntentCommandValidator
 
         RuleFor(x => x.RelatedApplicationId)
             .NotEmpty()
-            .When(x => x.Type == PaymentType.CompanyReview)
-            .WithMessage("RelatedApplicationId is required for CompanyReview payments.");
+            .When(x => x.Type == PaymentType.ScholarshipProviderReview)
+            .WithMessage("RelatedApplicationId is required for ScholarshipProviderReview payments.");
     }
 }
 
@@ -93,21 +93,21 @@ public sealed class CreatePaymentIntentCommandHandler(
         //    (company review escrow).
         const string captureMethod = "manual";
 
-        // 2b. For CompanyReview, resolve PayeeUserId server-side from the
+        // 2b. For ScholarshipProviderReview, resolve PayeeUserId server-side from the
         //     scholarship's owning company — never trust a client-supplied id
         //     to choose who gets paid.
         Guid? payeeUserId = request.PayeeUserId;
-        if (request.Type == PaymentType.CompanyReview)
+        if (request.Type == PaymentType.ScholarshipProviderReview)
         {
             var resolved = await db.Applications
                 .Where(a => a.Id == request.RelatedApplicationId)
-                .Select(a => a.Scholarship!.OwnerCompanyId)
+                .Select(a => a.Scholarship!.OwnerScholarshipProviderId)
                 .FirstOrDefaultAsync(ct);
 
             if (resolved is null)
             {
                 throw new ConflictException(
-                    "Cannot create a CompanyReview payment for an application whose scholarship has no owning company.");
+                    "Cannot create a ScholarshipProviderReview payment for an application whose scholarship has no owning company.");
             }
 
             payeeUserId = resolved;

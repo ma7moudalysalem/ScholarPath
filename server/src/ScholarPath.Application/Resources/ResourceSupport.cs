@@ -69,7 +69,7 @@ public static class ResourceAuthors
 {
     public static string? RoleOf(ICurrentUserService user) =>
         user.IsInRole("Admin") ? "Admin"
-        : user.IsInRole("Company") ? "Company"
+        : user.IsInRole("ScholarshipProvider") ? "ScholarshipProvider"
         : user.IsInRole("Consultant") ? "Consultant"
         : null;
 }

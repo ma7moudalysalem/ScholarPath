@@ -1,0 +1,26 @@
+@startdot
+digraph G {
+  rankdir=BT; splines=polyline; nodesep=0.7; ranksep=1.1;
+  node [shape=plaintext];
+  Users [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="1" BGCOLOR="#dbe6ff"><B>Users</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD></TR></TABLE>>];
+  Scholarships [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="1" BGCOLOR="#dbe6ff"><B>Scholarships</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD></TR></TABLE>>];
+  AiInteractions [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="5" BGCOLOR="#dbe6ff"><B>AiInteractions</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="Feature">Feature</TD><TD PORT="Provider">Provider</TD><TD PORT="CostUsd">CostUsd</TD></TR></TABLE>>];
+  RecommendationClickEvents [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="5" BGCOLOR="#dbe6ff"><B>RecommendationClickEvents</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="ScholarshipId" BGCOLOR="#fff7e6">ScholarshipId</TD><TD PORT="AiInteractionId" BGCOLOR="#fff7e6">AiInteractionId</TD><TD PORT="Source">Source</TD></TR></TABLE>>];
+  AiRedactionAuditSamples [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="5" BGCOLOR="#dbe6ff"><B>AiRedactionAuditSamples</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="AiInteractionId" BGCOLOR="#fff7e6">AiInteractionId</TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="ReviewerUserId" BGCOLOR="#fff7e6">ReviewerUserId</TD><TD PORT="Verdict">Verdict</TD></TR></TABLE>>];
+  UserRiskFlags [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>UserRiskFlags</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="Score">Score</TD><TD PORT="IsAtRisk">IsAtRisk</TD></TR></TABLE>>];
+  AuditLogs [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="5" BGCOLOR="#dbe6ff"><B>AuditLogs</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="ActorUserId" BGCOLOR="#fff7e6">ActorUserId</TD><TD PORT="Action">Action</TD><TD PORT="TargetType">TargetType</TD><TD PORT="TargetId">TargetId</TD></TR></TABLE>>];
+  KnowledgeDocuments [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>KnowledgeDocuments</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="SourceType">SourceType</TD><TD PORT="SourceId">SourceId</TD><TD PORT="SourceKey">SourceKey</TD></TR></TABLE>>];
+  PlatformSettings [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="3" BGCOLOR="#dbe6ff"><B>PlatformSettings</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="Key">Key</TD><TD PORT="ValueType">ValueType</TD></TR></TABLE>>];
+  UserDataRequests [label=<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR><TD COLSPAN="4" BGCOLOR="#dbe6ff"><B>UserDataRequests</B></TD></TR><TR><TD PORT="Id"><U>Id</U></TD><TD PORT="UserId" BGCOLOR="#fff7e6">UserId</TD><TD PORT="Type">Type</TD><TD PORT="Status">Status</TD></TR></TABLE>>];
+  AiInteractions:UserId -> Users:Id [style=dashed];
+  RecommendationClickEvents:UserId -> Users:Id;
+  RecommendationClickEvents:ScholarshipId -> Scholarships:Id;
+  RecommendationClickEvents:AiInteractionId -> AiInteractions:Id;
+  AiRedactionAuditSamples:AiInteractionId -> AiInteractions:Id;
+  AiRedactionAuditSamples:UserId -> Users:Id;
+  AiRedactionAuditSamples:ReviewerUserId -> Users:Id;
+  UserRiskFlags:UserId -> Users:Id;
+  AuditLogs:ActorUserId -> Users:Id [style=dashed];
+  UserDataRequests:UserId -> Users:Id [style=dashed];
+}
+@enddot

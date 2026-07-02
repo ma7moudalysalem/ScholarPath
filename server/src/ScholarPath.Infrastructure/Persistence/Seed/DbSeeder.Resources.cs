@@ -41,7 +41,7 @@ public static partial class DbSeeder
         var admin = users.PrimaryAdmin.Id;
 
         // Authors rotate across admin / consultants / companies so the
-        // "by Admin" / "by Consultant" / "by Company" filters in the hub
+        // "by Admin" / "by Consultant" / "by ScholarshipProvider" filters in the hub
         // all have results. The catalogue covers the full editorial surface:
         // 9 articles, 6 guides, 6 videos and 5 checklists at Published
         // status, plus one Draft, one Hidden and one Removed for moderation
@@ -207,7 +207,7 @@ public static partial class DbSeeder
                 ContentMarkdownEn = ResourceBodies.FinAidEn,
                 ContentMarkdownAr = ResourceBodies.FinAidAr,
                 AuthorUserId = users.Companies[1].Id,
-                AuthorRole = "Company",
+                AuthorRole = "ScholarshipProvider",
                 Type = ResourceType.Article,
                 Status = ResourceStatus.Published,
                 CategorySlug = "finance",
@@ -289,7 +289,7 @@ public static partial class DbSeeder
                 ContentMarkdownEn = ResourceBodies.DocumentGuideEn,
                 ContentMarkdownAr = ResourceBodies.DocumentGuideAr,
                 AuthorUserId = users.Companies[0].Id,
-                AuthorRole = "Company",
+                AuthorRole = "ScholarshipProvider",
                 Type = ResourceType.Guide,
                 Status = ResourceStatus.Published,
                 CategorySlug = "applications",
@@ -309,7 +309,7 @@ public static partial class DbSeeder
                 ContentMarkdownEn = ResourceBodies.FundingGuideEn,
                 ContentMarkdownAr = ResourceBodies.FundingGuideAr,
                 AuthorUserId = users.Companies[1].Id,
-                AuthorRole = "Company",
+                AuthorRole = "ScholarshipProvider",
                 Type = ResourceType.Guide,
                 Status = ResourceStatus.Published,
                 CategorySlug = "finance",
@@ -452,7 +452,7 @@ public static partial class DbSeeder
                 ContentMarkdownAr = ResourceBodies.PanelGermanyAr,
                 ExternalLinkUrl = "https://www.youtube.com/results?search_query=studying+in+germany+as+international+student",
                 AuthorUserId = users.Companies[0].Id,
-                AuthorRole = "Company",
+                AuthorRole = "ScholarshipProvider",
                 Type = ResourceType.VideoLink,
                 Status = ResourceStatus.Published,
                 CategorySlug = "life-abroad",
@@ -473,7 +473,7 @@ public static partial class DbSeeder
                 ContentMarkdownAr = ResourceBodies.WebinarFundingAr,
                 ExternalLinkUrl = "https://www.youtube.com/results?search_query=how+to+fund+masters+degree+scholarships",
                 AuthorUserId = users.Companies[1].Id,
-                AuthorRole = "Company",
+                AuthorRole = "ScholarshipProvider",
                 Type = ResourceType.VideoLink,
                 Status = ResourceStatus.Published,
                 CategorySlug = "finance",
@@ -515,7 +515,7 @@ public static partial class DbSeeder
                 ContentMarkdownEn = ResourceBodies.PreSubmitChecklistEn,
                 ContentMarkdownAr = ResourceBodies.PreSubmitChecklistAr,
                 AuthorUserId = users.Companies[0].Id,
-                AuthorRole = "Company",
+                AuthorRole = "ScholarshipProvider",
                 Type = ResourceType.Checklist,
                 Status = ResourceStatus.Published,
                 CategorySlug = "applications",
@@ -617,7 +617,7 @@ public static partial class DbSeeder
                 ContentMarkdownEn = "# Draft\nDestination comparison coming soon.",
                 ContentMarkdownAr = "# مسودة\nمقارنة الوجهات قريباً.",
                 AuthorUserId = users.Companies[1].Id,
-                AuthorRole = "Company",
+                AuthorRole = "ScholarshipProvider",
                 Type = ResourceType.Article,
                 Status = ResourceStatus.Draft,
                 CategorySlug = "planning",
@@ -656,7 +656,7 @@ public static partial class DbSeeder
                 ContentMarkdownEn = "# Removed\nThis resource violated the content policy.",
                 ContentMarkdownAr = "# تمت الإزالة\nخالف هذا المحتوى سياسة المحتوى.",
                 AuthorUserId = users.Companies[2].Id,
-                AuthorRole = "Company",
+                AuthorRole = "ScholarshipProvider",
                 Type = ResourceType.Article,
                 Status = ResourceStatus.Removed,
                 CategorySlug = "misc",

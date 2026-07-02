@@ -22,7 +22,7 @@ internal sealed class CommunityTestHarness : IDisposable
     public ApplicationUser StudentA { get; } = NewUser("Student", "Student A");
     public ApplicationUser StudentB { get; } = NewUser("Student", "Student B");
     public ApplicationUser Consultant { get; } = NewUser("Consultant", "Consultant");
-    public ApplicationUser Company { get; } = NewUser("Company", "Company");
+    public ApplicationUser ScholarshipProvider { get; } = NewUser("ScholarshipProvider", "ScholarshipProvider");
     public ApplicationUser Admin { get; } = NewUser("Admin", "Admin");
 
     public ForumCategory Category { get; } = new()
@@ -45,7 +45,7 @@ internal sealed class CommunityTestHarness : IDisposable
             .UseInMemoryDatabase(dbName)
             .Options;
         Db = new ApplicationDbContext(_options);
-        Db.Users.AddRange(StudentA, StudentB, Consultant, Company, Admin);
+        Db.Users.AddRange(StudentA, StudentB, Consultant, ScholarshipProvider, Admin);
         Db.ForumCategories.Add(Category);
         Db.SaveChanges();
         Db.ChangeTracker.Clear();
@@ -76,12 +76,12 @@ internal sealed class CommunityTestHarness : IDisposable
         CurrentUser.Roles.Returns(new[] { "Consultant" });
     }
 
-    public void AsCompany()
+    public void AsScholarshipProvider()
     {
         ResetRoleStubs();
-        CurrentUser.UserId.Returns(Company.Id);
-        CurrentUser.IsInRole("Company").Returns(true);
-        CurrentUser.Roles.Returns(new[] { "Company" });
+        CurrentUser.UserId.Returns(ScholarshipProvider.Id);
+        CurrentUser.IsInRole("ScholarshipProvider").Returns(true);
+        CurrentUser.Roles.Returns(new[] { "ScholarshipProvider" });
     }
 
     public void AsAdmin()

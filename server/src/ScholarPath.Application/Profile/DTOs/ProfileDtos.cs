@@ -1,6 +1,6 @@
 namespace ScholarPath.Application.Profile.DTOs;
 
-/// <summary>Role-agnostic profile view — Student / Company / Consultant fields are flat.</summary>
+/// <summary>Role-agnostic profile view — Student / ScholarshipProvider / Consultant fields are flat.</summary>
 public sealed record UserProfileDto(
     Guid UserId,
     string Email,

@@ -1,0 +1,24 @@
+% ScholarPath — Class / Architecture OVERVIEW poster (A0 portrait, vector)
+\documentclass{article}
+\usepackage[paperwidth=841mm,paperheight=1189mm,margin=18mm]{geometry}
+\usepackage{graphicx}\graphicspath{{../img/}}
+\usepackage{xcolor}\definecolor{spblue}{HTML}{1F4E79}\definecolor{spteal}{HTML}{2C7A7B}
+\pagestyle{empty}\setlength{\parindent}{0pt}
+\begin{document}
+\begin{center}
+{\color{spblue}\fontsize{60}{68}\selectfont\bfseries ScholarPath — Object Model \& Architecture}\\[4mm]
+{\color{spteal}\fontsize{30}{36}\selectfont UML Domain Model (Clean Architecture) and the Ports \& Adapters seam}
+\end{center}
+\vspace{10mm}
+\begin{center}
+{\color{spblue}\fontsize{34}{40}\selectfont\bfseries 1\enspace Domain Model}\\[6mm]
+\includegraphics[width=\textwidth,height=560mm,keepaspectratio]{ScholarPath_Domain_Model.pdf}
+\end{center}
+\vfill
+\begin{center}
+{\color{spblue}\fontsize{34}{40}\selectfont\bfseries 2\enspace Ports \& Adapters (Clean Architecture)}\\[6mm]
+\includegraphics[width=\textwidth,height=430mm,keepaspectratio]{ScholarPath_Ports_Adapters.pdf}
+\end{center}
+\vfill
+\begin{center}{\color{spblue!70}\normalsize Entities derive from BaseEntity/AuditableEntity (ApplicationUser extends IdentityUser$\langle$Guid$\rangle$); Application declares ports, Infrastructure provides config-selected adapters.}\end{center}
+\end{document}

@@ -110,7 +110,7 @@ public class DomainEventPublishingHandlerTests
             publisher, NullLogger<PaymentCapturedStreamHandler>.Instance);
 
         var evt = new PaymentCapturedEvent(
-            Guid.NewGuid(), PaymentType.CompanyReview, 1000, Guid.NewGuid(), PayeeUserId: null);
+            Guid.NewGuid(), PaymentType.ScholarshipProviderReview, 1000, Guid.NewGuid(), PayeeUserId: null);
 
         await handler.Handle(evt, CancellationToken.None);
 
