@@ -24,7 +24,7 @@ namespace ScholarPath.API.Controllers;
 [ApiController]
 [Route("api/auth")]
 [Produces("application/json")]
-public sealed class AuthController(IMediator mediator, ISsoService ssoService) : ControllerBase
+public sealed class AuthController(IMediator mediator, ISsoService ssoService, ISsoStateStore ssoStateStore) : ControllerBase
 {
     /// <summary>Register a new account (Unassigned status) and return the initial token pair.</summary>
     [HttpPost("register")]
@@ -184,24 +184,45 @@ public sealed class AuthController(IMediator mediator, ISsoService ssoService) :
     [HttpGet("google/authorize")]
     [ProducesResponseType(StatusCodes.Status302Found)]
     public IActionResult GoogleAuthorize([FromQuery] string redirectUri)
-        => Redirect(ssoService.BuildGoogleAuthorizeUrl(redirectUri, Guid.NewGuid().ToString("N")));
+        => Redirect(ssoService.BuildGoogleAuthorizeUrl(redirectUri, IssueSsoState()));
 
     [HttpGet("google/callback")]
     [ProducesResponseType(typeof(AuthTokensDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AuthTokensDto>> GoogleCallback(
-        [FromQuery] string code, [FromQuery] string redirectUri, CancellationToken ct)
-        => Ok(await mediator.Send(new SsoLoginCommand("Google", code, redirectUri), ct));
+        [FromQuery] string code, [FromQuery] string redirectUri, [FromQuery] string? state, CancellationToken ct)
+    {
+        if (!ValidateSsoState(state)) return BadRequest("Invalid or expired SSO state.");
+        return Ok(await mediator.Send(new SsoLoginCommand("Google", code, redirectUri), ct));
+    }
 
     [HttpGet("microsoft/authorize")]
     [ProducesResponseType(StatusCodes.Status302Found)]
     public IActionResult MicrosoftAuthorize([FromQuery] string redirectUri)
-        => Redirect(ssoService.BuildMicrosoftAuthorizeUrl(redirectUri, Guid.NewGuid().ToString("N")));
+        => Redirect(ssoService.BuildMicrosoftAuthorizeUrl(redirectUri, IssueSsoState()));
 
     [HttpGet("microsoft/callback")]
     [ProducesResponseType(typeof(AuthTokensDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AuthTokensDto>> MicrosoftCallback(
-        [FromQuery] string code, [FromQuery] string redirectUri, CancellationToken ct)
-        => Ok(await mediator.Send(new SsoLoginCommand("Microsoft", code, redirectUri), ct));
+        [FromQuery] string code, [FromQuery] string redirectUri, [FromQuery] string? state, CancellationToken ct)
+    {
+        if (!ValidateSsoState(state)) return BadRequest("Invalid or expired SSO state.");
+        return Ok(await mediator.Send(new SsoLoginCommand("Microsoft", code, redirectUri), ct));
+    }
+
+    // SEC-06 / GAP-2 — issue a single-use CSPRNG `state` nonce and remember it
+    // server-side so the matching callback can prove the handshake it completes is
+    // the one this server started (anti-CSRF / anti account-linking).
+    private string IssueSsoState()
+    {
+        var state = System.Security.Cryptography.RandomNumberGenerator.GetHexString(32);
+        ssoStateStore.Store(state);
+        return state;
+    }
+
+    private bool ValidateSsoState(string? state)
+        => !string.IsNullOrWhiteSpace(state) && ssoStateStore.Consume(state);
 
     private string? ClientIp() => HttpContext.Connection.RemoteIpAddress?.ToString();
 

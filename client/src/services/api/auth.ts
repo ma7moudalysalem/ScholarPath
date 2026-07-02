@@ -122,10 +122,12 @@ export const authApi = {
     const value = sessionStorage.getItem(SSO_PROVIDER_KEY);
     return value === "google" || value === "microsoft" ? value : null;
   },
-  async completeSso(provider: SsoProvider, code: string): Promise<AuthTokensResponse> {
+  async completeSso(provider: SsoProvider, code: string, state: string): Promise<AuthTokensResponse> {
     sessionStorage.removeItem(SSO_PROVIDER_KEY);
+    // SEC-06 / GAP-2 — forward the `state` nonce the provider echoed back so the
+    // server can validate the OAuth handshake it started.
     const { data } = await apiClient.get<AuthTokensResponse>(`/api/auth/${provider}/callback`, {
-      params: { code, redirectUri: ssoRedirectUri() },
+      params: { code, redirectUri: ssoRedirectUri(), state },
     });
     return data;
   },
