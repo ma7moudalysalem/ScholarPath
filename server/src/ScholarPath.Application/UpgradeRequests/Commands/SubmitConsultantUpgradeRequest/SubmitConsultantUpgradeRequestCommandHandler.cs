@@ -73,6 +73,25 @@ public sealed class SubmitConsultantUpgradeRequestCommandHandler(
                 "You already have a pending consultant upgrade request.");
         }
 
+        // GAP-1 / FR-ONB-08 — a Student-initiated consultant upgrade must clear the
+        // SAME document bar as a fresh Consultant onboarding (ConsultantIdentityProof,
+        // ConsultantDegreeCertificate, ConsultantCvResume). SelectRoleCommandHandler
+        // enforces this for first-time onboarding; the upgrade path previously enforced
+        // only the profile fields, letting a request reach the admin queue with no
+        // supporting documents. Mirror the defensive minimum-count check here.
+        const int RequiredConsultantDocs = 3;
+        var onboardingDocCount = await db.Documents
+            .Where(d => d.OwnerUserId == userId
+                        && d.Category == DocumentCategory.OnboardingDocument)
+            .CountAsync(ct).ConfigureAwait(false);
+        if (onboardingDocCount < RequiredConsultantDocs)
+        {
+            var missing = RequiredConsultantDocs - onboardingDocCount;
+            throw new ConflictException(
+                $"Upload {RequiredConsultantDocs} verification document(s) before requesting a consultant upgrade — "
+                + $"{missing} more required.");
+        }
+
         // Stamp the submitted consultant fields on the profile so the admin
         // reviews a complete picture. Student-only fields (AcademicLevel,
         // FieldOfStudy, …) are not touched.

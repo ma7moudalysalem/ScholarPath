@@ -25,14 +25,14 @@ public class CommunityController(IMediator mediator) : ControllerBase
     // ── Public reads ───────────────────────────────────────────────────────────
 
     [HttpGet("categories")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> GetCategories(CancellationToken ct)
     {
         return Ok(await mediator.Send(new GetCategoriesQuery(), ct));
     }
 
     [HttpGet("posts")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> GetPosts(
         [FromQuery] Guid? categoryId,
         [FromQuery] string? query,
@@ -46,7 +46,7 @@ public class CommunityController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("posts/{id:guid}")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> GetPostDetails(Guid id, CancellationToken ct)
     {
         return Ok(await mediator.Send(new GetPostDetailsQuery(id), ct));
