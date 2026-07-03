@@ -87,6 +87,15 @@ namespace ScholarPath.Infrastructure.Migrations
             migrationBuilder.Sql("EXEC sp_rename N'FK_CompanyReviews_Users_CompanyId', N'FK_ScholarshipProviderReviews_Users_ScholarshipProviderId';");
             migrationBuilder.Sql("EXEC sp_rename N'FK_CompanyReviews_Users_StudentId', N'FK_ScholarshipProviderReviews_Users_StudentId';");
 
+            // Widen columns that must hold the longer "ScholarshipProvider*" enum
+            // strings BEFORE rewriting their values. UpgradeRequests.Target is
+            // nvarchar(16) but "ScholarshipProvider" is 19 chars, which would
+            // otherwise truncate and fail the migration.
+            migrationBuilder.AlterColumn<string>(
+                name: "Target", table: "UpgradeRequests",
+                type: "nvarchar(32)", maxLength: 32, nullable: false,
+                oldClrType: typeof(string), oldType: "nvarchar(16)", oldMaxLength: 16);
+
             // ── Persisted string values (role name, enum values, provider org-type) ───
             migrationBuilder.Sql("UPDATE [Roles] SET [Name] = 'ScholarshipProvider', [NormalizedName] = 'SCHOLARSHIPPROVIDER' WHERE [Name] = 'Company';");
             migrationBuilder.Sql("UPDATE [Users] SET [ActiveRole] = 'ScholarshipProvider' WHERE [ActiveRole] = 'Company';");
@@ -105,6 +114,10 @@ namespace ScholarPath.Infrastructure.Migrations
             migrationBuilder.Sql("UPDATE [UserProfiles] SET [ScholarshipProviderType] = 'Company' WHERE [ScholarshipProviderType] = 'Corporation';");
             migrationBuilder.Sql("UPDATE [ScholarshipProviderReviewRequests] SET [Status] = 'RejectedByCompany' WHERE [Status] = 'RejectedByScholarshipProvider';");
             migrationBuilder.Sql("UPDATE [UpgradeRequests] SET [Target] = 'Company' WHERE [Target] = 'ScholarshipProvider';");
+            migrationBuilder.AlterColumn<string>(
+                name: "Target", table: "UpgradeRequests",
+                type: "nvarchar(16)", maxLength: 16, nullable: false,
+                oldClrType: typeof(string), oldType: "nvarchar(32)", oldMaxLength: 32);
             migrationBuilder.Sql("UPDATE [Payments] SET [Type] = 'CompanyReview' WHERE [Type] = 'ScholarshipProviderReview';");
             migrationBuilder.Sql("UPDATE [Resources] SET [AuthorRole] = 'Company' WHERE [AuthorRole] = 'ScholarshipProvider';");
             migrationBuilder.Sql("UPDATE [Users] SET [ActiveRole] = 'Company' WHERE [ActiveRole] = 'ScholarshipProvider';");

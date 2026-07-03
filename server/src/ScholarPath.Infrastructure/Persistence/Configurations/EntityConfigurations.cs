@@ -199,7 +199,8 @@ public sealed class UpgradeRequestConfiguration : IEntityTypeConfiguration<Upgra
 {
     public void Configure(EntityTypeBuilder<UpgradeRequest> b)
     {
-        b.Property(r => r.Target).HasConversion<string>().HasMaxLength(16);
+        // 32 not 16: must hold the "ScholarshipProvider" upgrade target (19 chars).
+        b.Property(r => r.Target).HasConversion<string>().HasMaxLength(32);
         b.Property(r => r.Status).HasConversion<string>().HasMaxLength(16);
         b.Property(r => r.Reason).HasMaxLength(2000);
         b.Property(r => r.ReviewerNotes).HasMaxLength(2000);
