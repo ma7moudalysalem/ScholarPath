@@ -36,10 +36,6 @@
     <PackageReference Include="Serilog.Sinks.File" />
     <PackageReference Include="Serilog.Enrichers.Environment" />
     <PackageReference Include="Serilog.Enrichers.Thread" />
-    <PackageReference Include="Serilog.Sinks.ApplicationInsights" />
-  </ItemGroup>
-  <ItemGroup Label="Observability — Application Insights (prod error visibility)">
-    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
   </ItemGroup>
 
 </Project>

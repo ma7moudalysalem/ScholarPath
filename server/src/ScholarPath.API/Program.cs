@@ -2,7 +2,6 @@ using System.Text.Json.Serialization;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Hangfire.SqlServer;
-using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -27,35 +26,13 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ─── Application Insights (prod error visibility) ────────────────────────────
-// On Linux App Service there is no codeless auto-instrumentation, so the app
-// must send telemetry itself. This reads APPLICATIONINSIGHTS_CONNECTION_STRING
-// from configuration and starts collecting requests, dependencies and
-// exceptions; it is a no-op when no connection string is set (local/dev).
-builder.Services.AddApplicationInsightsTelemetry();
-
 // ─── Serilog ─────────────────────────────────────────────────────────────────
 builder.Host.UseSerilog((ctx, sp, config) =>
-{
     config.ReadFrom.Configuration(ctx.Configuration)
           .ReadFrom.Services(sp)
           .Enrich.FromLogContext()
           .Enrich.WithEnvironmentName()
-          .Enrich.WithThreadId();
-
-    // Ship logs — including the exceptions ExceptionHandlerMiddleware catches and
-    // logs via ILogger — to Application Insights. Serilog replaces the default
-    // logging providers, so the App Insights SDK's own ILogger provider never
-    // sees these; this sink is what makes handled exceptions visible in prod.
-    var aiConnectionString = ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]
-        ?? ctx.Configuration["ApplicationInsights:ConnectionString"];
-    if (!string.IsNullOrWhiteSpace(aiConnectionString))
-    {
-        var telemetryConfig = TelemetryConfiguration.CreateDefault();
-        telemetryConfig.ConnectionString = aiConnectionString;
-        config.WriteTo.ApplicationInsights(telemetryConfig, TelemetryConverter.Traces);
-    }
-});
+          .Enrich.WithThreadId());
 
 // ─── Controllers + JSON ──────────────────────────────────────────────────────
 builder.Services
