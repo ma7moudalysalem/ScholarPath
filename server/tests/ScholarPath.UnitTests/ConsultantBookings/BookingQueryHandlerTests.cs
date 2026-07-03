@@ -278,6 +278,25 @@ public sealed class BookingQueryHandlerTests : IDisposable
         await act.Should().ThrowAsync<ForbiddenAccessException>();
     }
 
+    // SEC-04: a ScholarshipProvider is not a booking participant (the entity has no
+    // provider FK) and must no longer read arbitrary booking detail — payment
+    // amounts, refund reason, Stripe intent id, student notes/email.
+    [Fact]
+    public async Task GetBookingById_ThrowsForbidden_WhenCallerIsScholarshipProviderNotAParticipant()
+    {
+        var booking = SeedBooking(BookingStatus.Requested, DateTimeOffset.UtcNow.AddDays(2));
+
+        _currentUser.UserId.Returns(Guid.NewGuid());     // neither student nor consultant
+        _currentUser.IsInRole(Arg.Any<string>()).Returns(false);
+        _currentUser.IsInRole("ScholarshipProvider").Returns(true);
+        var handler = new GetBookingByIdQueryHandler(_db, _currentUser);
+
+        var act = () => handler.Handle(
+            new GetBookingByIdQuery(booking.Id), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ForbiddenAccessException>();
+    }
+
     [Fact]
     public async Task GetBookingById_ThrowsNotFound_WhenBookingDoesNotExist()
     {

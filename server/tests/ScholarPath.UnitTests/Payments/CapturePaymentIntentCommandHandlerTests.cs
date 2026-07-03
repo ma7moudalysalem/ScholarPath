@@ -7,6 +7,7 @@ using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Payments.Commands.CapturePaymentIntent;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
 using Xunit;
 
@@ -30,13 +31,22 @@ public class CapturePaymentIntentCommandHandlerTests
         PayerUserId = Guid.NewGuid(),
     };
 
+    // SEC-01: capture is now admin-gated, so the handler needs an admin caller to
+    // reach the existing behaviour these tests assert.
+    private static ICurrentUserService AdminUser()
+    {
+        var u = Substitute.For<ICurrentUserService>();
+        u.IsInRole("Admin").Returns(true);
+        return u;
+    }
+
     [Fact]
     public async Task Returns_false_when_no_held_payment_found()
     {
        using var db = CreateDb();
         var stripe = Substitute.For<IStripeService>();
         var sut = new CapturePaymentIntentCommandHandler(
-            db, stripe, NullLogger<CapturePaymentIntentCommandHandler>.Instance);
+            db, stripe, AdminUser(), NullLogger<CapturePaymentIntentCommandHandler>.Instance);
 
         var result = await sut.Handle(
             new CapturePaymentIntentCommand(Guid.NewGuid()), default);
@@ -62,7 +72,7 @@ public class CapturePaymentIntentCommandHandlerTests
                 payment.StripePaymentIntentId!, "succeeded", null, "ch_123"));
 
         var sut = new CapturePaymentIntentCommandHandler(
-            db, stripe, NullLogger<CapturePaymentIntentCommandHandler>.Instance);
+            db, stripe, AdminUser(), NullLogger<CapturePaymentIntentCommandHandler>.Instance);
 
         var result = await sut.Handle(
             new CapturePaymentIntentCommand(payment.Id), default);
@@ -90,7 +100,7 @@ public class CapturePaymentIntentCommandHandlerTests
                 payment.StripePaymentIntentId!, "requires_action", null, null));
 
         var sut = new CapturePaymentIntentCommandHandler(
-            db, stripe, NullLogger<CapturePaymentIntentCommandHandler>.Instance);
+            db, stripe, AdminUser(), NullLogger<CapturePaymentIntentCommandHandler>.Instance);
 
         var act = () => sut.Handle(
             new CapturePaymentIntentCommand(payment.Id), default);
@@ -110,7 +120,7 @@ public class CapturePaymentIntentCommandHandlerTests
 
         var stripe = Substitute.For<IStripeService>();
         var sut = new CapturePaymentIntentCommandHandler(
-            db, stripe, NullLogger<CapturePaymentIntentCommandHandler>.Instance);
+            db, stripe, AdminUser(), NullLogger<CapturePaymentIntentCommandHandler>.Instance);
 
         var result = await sut.Handle(
             new CapturePaymentIntentCommand(payment.Id), default);
@@ -159,11 +169,56 @@ public class CapturePaymentIntentCommandHandlerTests
                 payment.StripePaymentIntentId!, "succeeded", null, "ch_x"));
 
         await new CapturePaymentIntentCommandHandler(
-                db, stripe, NullLogger<CapturePaymentIntentCommandHandler>.Instance)
+                db, stripe, AdminUser(), NullLogger<CapturePaymentIntentCommandHandler>.Instance)
             .Handle(new CapturePaymentIntentCommand(payment.Id), default);
 
         var updated = await db.Payments.FindAsync(payment.Id);
         updated!.ProfitShareAmountCents.Should().Be(1000);   // 20% of 5000
         updated.PayeeAmountCents.Should().Be(4000);
+    }
+
+    // SEC-01: a non-admin caller cannot capture a payment — closes the IDOR where
+    // any authenticated user could POST /api/payments/{id}/capture on a held
+    // payment they don't own. Stripe must never be called.
+    [Fact]
+    public async Task Throws_Forbidden_when_caller_is_not_admin()
+    {
+        using var db = CreateDb();
+        var payment = MakeHeldPayment();
+        db.Payments.Add(payment);
+        await db.SaveChangesAsync();
+
+        var stripe = Substitute.For<IStripeService>();
+        var nonAdmin = Substitute.For<ICurrentUserService>();
+        nonAdmin.IsInRole("Admin").Returns(false);
+
+        var sut = new CapturePaymentIntentCommandHandler(
+            db, stripe, nonAdmin, NullLogger<CapturePaymentIntentCommandHandler>.Instance);
+
+        var act = () => sut.Handle(new CapturePaymentIntentCommand(payment.Id), default);
+
+        await act.Should().ThrowAsync<ForbiddenAccessException>();
+        await stripe.DidNotReceiveWithAnyArgs()
+            .CapturePaymentIntentAsync(default!, default, default!, default);
+    }
+
+    // SEC-01: a SuperAdmin (the platform's highest-privilege operator) must pass the
+    // admin gate like every other admin-gated endpoint — it is not blocked.
+    [Fact]
+    public async Task Allows_SuperAdmin_to_reach_the_handler()
+    {
+        using var db = CreateDb();
+        var stripe = Substitute.For<IStripeService>();
+        var superAdmin = Substitute.For<ICurrentUserService>();
+        superAdmin.IsInRole("SuperAdmin").Returns(true);
+
+        var sut = new CapturePaymentIntentCommandHandler(
+            db, stripe, superAdmin, NullLogger<CapturePaymentIntentCommandHandler>.Instance);
+
+        // No held payment for this id → passes the gate and returns false (idempotent),
+        // proving the SuperAdmin was NOT blocked by the authorization check.
+        var result = await sut.Handle(new CapturePaymentIntentCommand(Guid.NewGuid()), default);
+
+        result.Should().BeFalse();
     }
 }

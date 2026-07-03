@@ -303,6 +303,34 @@ public sealed class StartApplicationCommandHandlerTests : IDisposable
         (await _db.Applications.CountAsync()).Should().Be(2);
     }
 
+    // BUG-01 (FR-043/044): a scholarship whose deadline has passed must reject a
+    // new application even while Status is still Open — the auto-close job flips
+    // Status only on a schedule, so there is a window the deadline guards.
+    [Fact]
+    public async Task Handle_ScholarshipDeadlineHasPassed_ThrowsConflict()
+    {
+        var id = Guid.NewGuid();
+        _db.Scholarships.Add(new Scholarship
+        {
+            Id = id,
+            TitleEn = "Past",
+            TitleAr = "منتهية",
+            DescriptionEn = "d",
+            DescriptionAr = "و",
+            Slug = $"past-{id:N}",
+            Mode = ListingMode.InApp,
+            Status = ScholarshipStatus.Open,
+            Deadline = DateTimeOffset.UtcNow.AddDays(-1),
+        });
+        await _db.SaveChangesAsync();
+
+        var act = () => NewHandler().Handle(
+            new StartApplicationCommand(id, null), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ConflictException>()
+            .WithMessage("*deadline*");
+    }
+
     public void Dispose() => _db.Dispose();
 }
 

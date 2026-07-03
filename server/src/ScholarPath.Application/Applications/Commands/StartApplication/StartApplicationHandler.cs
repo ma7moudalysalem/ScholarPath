@@ -68,6 +68,15 @@ public sealed class StartApplicationCommandHandler(
             throw new ConflictException(
                 "This scholarship is currently closed for applications.");
 
+        // 4b. FR-043/044: the application deadline must not have passed. The
+        //     auto-close job (ScholarshipAutoCloseJob) flips Status→Closed only on
+        //     a schedule, so there is a window where Status is still Open but the
+        //     deadline has already lapsed — enforce it here as defense-in-depth.
+        //     Compared in UTC (DateTimeOffset comparison is instant-based).
+        if (scholarship.Deadline < DateTimeOffset.UtcNow)
+            throw new ConflictException(
+                "This scholarship's application deadline has passed.");
+
         // 5. B1: an in-app application is idempotent per (student, scholarship).
         //    If the student already has a non-terminal application, resume it
         //    instead of dead-ending on a 409 — a repeated "Apply" click then

@@ -59,7 +59,34 @@ public sealed class ProcessStripeWebhookCommandHandler(
 
         webhookEvent.ProcessedAt = DateTimeOffset.UtcNow;
         webhookEvent.IsProcessed = true;
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        try
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (DbUpdateException)
+        {
+            // RACE-01: a concurrent delivery of the same Stripe event may have won
+            // the race and already committed the processed-event row (unique index
+            // on StripeEventId — EntityConfigurations). Re-query: if the event now
+            // exists (committed by the other delivery), treat this delivery as an
+            // idempotent success so Stripe stops retrying; otherwise the failure is
+            // genuine, so rethrow and let it be retried as before. (The re-query is
+            // in the catch body, not a `when` filter — C# forbids await there.)
+            var committedByOther = await db.StripeWebhookEvents
+                .AsNoTracking()
+                .AnyAsync(e => e.StripeEventId == request.EventId
+                            && e.Id != webhookEvent.Id, ct)
+                .ConfigureAwait(false);
+
+            if (!committedByOther)
+                throw;
+
+            logger.LogInformation(
+                "Webhook {EventId} was processed concurrently by another delivery; treating as idempotent success.",
+                request.EventId);
+            return true;
+        }
 
         if (matchedPayment is not null && request.EventType == "charge.dispute.created")
             await NotifyAdminsOfDisputeAsync(request, ct);

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
@@ -11,6 +12,14 @@ namespace ScholarPath.Infrastructure.Jobs;
 
 public interface IStripePayoutJob
 {
+    // RACE-02: the recurring job is registered against THIS interface method
+    // (Program.cs AddOrUpdate<IStripePayoutJob>), and Hangfire resolves job-filter
+    // attributes from the registered (interface) method — so the concurrency lock
+    // must live here, not on the concrete implementation, to actually take effect.
+    // A single Hangfire server then never starts two overlapping payout runs; the
+    // durable cross-instance guarantee still comes from the pre-claim +
+    // Payment.RowVersion concurrency token in the implementation.
+    [DisableConcurrentExecution(timeoutInSeconds: 30 * 60)]
     Task RunAsync(CancellationToken ct);
 }
 
@@ -25,6 +34,9 @@ public sealed class StripePayoutJob(
     INotificationDispatcher notifications,
     ILogger<StripePayoutJob> logger) : IStripePayoutJob
 {
+    // RACE-02: the [DisableConcurrentExecution] lock lives on IStripePayoutJob.RunAsync
+    // (Hangfire reads filters off the registered interface method). The durable
+    // cross-instance guarantee is the pre-claim + Payment.RowVersion token below.
     public async Task RunAsync(CancellationToken ct)
     {
         // Include PartiallyRefunded — consultant earns the kept portion after
@@ -88,7 +100,28 @@ public sealed class StripePayoutJob(
             };
             db.Payouts.Add(payout);
             foreach (var p in payments) p.PayoutId = payout.Id;
-            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+            try
+            {
+                // Pre-claim BEFORE calling Stripe so a re-run never pays twice.
+                await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // RACE-02: another instance/run already claimed these payments —
+                // the pre-claim UPDATE hit 0 rows via the RowVersion concurrency
+                // token, so no double payout happened. Detach this payee's failed
+                // edits (the whole SaveChanges rolled back, so nothing was written)
+                // so a LATER payee's SaveChanges isn't tripped by the stale tracked
+                // rows, then skip to the next payee instead of aborting the run.
+                logger.LogInformation(
+                    "[payout] payee {PayeeId} already claimed by a concurrent run — skipping.", payeeId);
+                db.Entry(payout).State = EntityState.Detached;
+                foreach (var p in payments)
+                    db.Entry(p).State = EntityState.Detached;
+                skipped++;
+                continue;
+            }
 
             try
             {

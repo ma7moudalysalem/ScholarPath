@@ -100,8 +100,16 @@ public sealed class MeetingNoShowSweepJob : IMeetingNoShowSweepJob
     {
         if (!string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
         {
-            var amountCents = (long)decimal.Round(
-                booking.PriceUsd * 100m, 0, MidpointRounding.AwayFromZero);
+            // MON-01: refund the amount actually captured — the Payment row is the
+            // source of truth — falling back to the PriceUsd derivation only when
+            // there is no Payment row. Mirrors MarkNoShowCommandHandler: PriceUsd
+            // can drift from the captured amount (post-payment re-price, free-mode
+            // toggle, prior partial refund), which would otherwise refund the wrong
+            // amount on Stripe while the ledger stamps a full refund.
+            var amountCents = booking.Payment is { } capturedPayment
+                ? capturedPayment.AmountCents
+                : (long)decimal.Round(
+                    booking.PriceUsd * 100m, 0, MidpointRounding.AwayFromZero);
 
             if (amountCents > 0)
             {

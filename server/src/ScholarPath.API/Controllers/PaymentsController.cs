@@ -48,6 +48,7 @@ public sealed class PaymentsController(IMediator mediator) : ControllerBase
     /// Called when a consultant accepts a booking.
     /// </summary>
     [HttpPost("{id:guid}/capture")]
+    [Authorize(Roles = "Admin,SuperAdmin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]

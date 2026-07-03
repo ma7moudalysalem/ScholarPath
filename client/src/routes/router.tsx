@@ -145,9 +145,6 @@ const ScholarshipProviderInsights = lazy(() =>
 const ScholarshipProviderReviews = lazy(() =>
   import("@/pages/company/ScholarshipProviderReviews").then((m) => ({ default: m.ScholarshipProviderReviews })),
 );
-const ScholarshipProviderBookings = lazy(() =>
-  import("@/pages/company/ScholarshipProviderBookings").then((m) => ({ default: m.ScholarshipProviderBookings })),
-);
 
 // Consultant
 const ConsultantDashboard = lazy(() =>
@@ -631,17 +628,6 @@ export function AppRouter() {
               </RequireRole>
             }
           />
-          <Route
-            path="/company/bookings"
-            element={
-              <RequireRole roles={["ScholarshipProvider"]}>
-                <AnimatedRoute>
-                  <ScholarshipProviderBookings />
-                </AnimatedRoute>
-              </RequireRole>
-            }
-          />
-
           <Route
             path="/consultant"
             element={
