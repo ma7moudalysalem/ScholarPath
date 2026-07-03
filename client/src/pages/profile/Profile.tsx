@@ -1734,7 +1734,7 @@ export function Profile() {
                   maxLength={100}
                 />
               </FieldRow>
-              {paymentsEnabled ? (
+              {paymentsEnabled && (
                 <FieldRow
                   label={t("profile:fields.sessionFeeUsd")}
                   description={t("profile:fields.sessionFeeUsdDesc")}
@@ -1760,17 +1760,6 @@ export function Profile() {
                       </p>
                     )}
                   </div>
-                </FieldRow>
-              ) : (
-                // Payments disabled — the field is hidden because the server
-                // will overwrite the stored fee with 0 on the next save.
-                <FieldRow
-                  label={t("profile:fields.sessionFeeUsd")}
-                  description={t("profile:paymentsDisabledNotice")}
-                >
-                  <p className="text-sm font-medium text-brand-600">
-                    {t("scholarships:freeListing")}
-                  </p>
                 </FieldRow>
               )}
               <FieldRow label={t("profile:fields.sessionDurationMinutes")}>

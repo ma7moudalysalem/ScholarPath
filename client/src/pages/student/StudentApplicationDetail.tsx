@@ -32,6 +32,7 @@ import {
 } from "@/services/api/documents";
 import { ApiError, apiErrorMessage } from "@/services/api/client";
 import { ApplicationSubmitConfirmation } from "@/components/application/SubmitConfirmation";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 // ── Application-form schema ───────────────────────────────────────────────────
 // A scholarship's ApplicationFormSchemaJson is { "fields": [{ key, label, type,
@@ -374,6 +375,7 @@ function DraftApplicationForm({
 }) {
   const { t } = useTranslation(["moderation", "common"]);
   const queryClient = useQueryClient();
+  const paymentsEnabled = usePaymentsEnabled();
 
   const [formValues, setFormValues] = useState<Record<string, string>>(() =>
     parseFormValues(application.formDataJson),
@@ -493,7 +495,7 @@ function DraftApplicationForm({
   // after Stripe confirms the authorization do we transition the application
   // to Pending. For free scholarships the flow is unchanged.
   const reviewFeeUsd = application.reviewFeeUsd ?? 0;
-  const requiresReviewFeePayment = reviewFeeUsd > 0;
+  const requiresReviewFeePayment = paymentsEnabled && reviewFeeUsd > 0;
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const submitMut = useMutation({

@@ -254,14 +254,16 @@ export function StudentBookings() {
                             <Clock aria-hidden className="size-3.5 text-text-tertiary" />
                             {durationLabel(booking.durationMinutes, t)}
                           </span>
-                          <span className="inline-flex items-center gap-1.5 text-text-secondary">
-                            <DollarSign aria-hidden className="size-3.5 text-text-tertiary" />
-                            <span className="font-semibold text-text-primary">
-                              {!paymentsEnabled || booking.priceUsd === 0
-                                ? t("scholarships:freeListing")
-                                : formatUsd(booking.priceUsd)}
+                          {paymentsEnabled && (
+                            <span className="inline-flex items-center gap-1.5 text-text-secondary">
+                              <DollarSign aria-hidden className="size-3.5 text-text-tertiary" />
+                              <span className="font-semibold text-text-primary">
+                                {booking.priceUsd === 0
+                                  ? t("scholarships:freeListing")
+                                  : formatUsd(booking.priceUsd)}
+                              </span>
                             </span>
-                          </span>
+                          )}
                         </div>
 
                         <p className="mt-3 line-clamp-2 text-xs leading-relaxed text-text-secondary">

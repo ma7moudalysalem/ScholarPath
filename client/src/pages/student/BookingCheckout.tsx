@@ -76,7 +76,7 @@ export function BookingCheckout() {
     event.preventDefault();
     if (!hasCompleteSlotParams || !consultant) return;
 
-    if (!acceptHold) {
+    if (feeAmount > 0 && !acceptHold) {
       setAcceptError(true);
       return;
     }
@@ -411,32 +411,36 @@ export function BookingCheckout() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-xl border border-border-subtle bg-bg-muted p-4">
-              <p className="text-sm font-medium text-text-primary">{t("checkout.holdNotice.title")}</p>
-              <p className="mt-2 text-sm leading-7 text-text-secondary">
-                {t("checkout.holdNotice.description")}
-              </p>
-            </div>
+            {feeAmount > 0 && (
+              <>
+                <div className="mt-6 rounded-xl border border-border-subtle bg-bg-muted p-4">
+                  <p className="text-sm font-medium text-text-primary">{t("checkout.holdNotice.title")}</p>
+                  <p className="mt-2 text-sm leading-7 text-text-secondary">
+                    {t("checkout.holdNotice.description")}
+                  </p>
+                </div>
 
-            <div className="mt-6">
-              <label className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={acceptHold}
-                  onChange={(event) => {
-                    setAcceptHold(event.target.checked);
-                    setAcceptError(false);
-                  }}
-                  className="mt-1 h-4 w-4 accent-brand-500"
-                />
-                <span className="text-sm text-text-primary">
-                  {t("checkout.holdNotice.acceptLabel")}
-                </span>
-              </label>
-              {acceptError && (
-                <p className="mt-2 text-sm text-danger-500">{t("errors.holdNoticeRequired")}</p>
-              )}
-            </div>
+                <div className="mt-6">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={acceptHold}
+                      onChange={(event) => {
+                        setAcceptHold(event.target.checked);
+                        setAcceptError(false);
+                      }}
+                      className="mt-1 h-4 w-4 accent-brand-500"
+                    />
+                    <span className="text-sm text-text-primary">
+                      {t("checkout.holdNotice.acceptLabel")}
+                    </span>
+                  </label>
+                  {acceptError && (
+                    <p className="mt-2 text-sm text-danger-500">{t("errors.holdNoticeRequired")}</p>
+                  )}
+                </div>
+              </>
+            )}
           </form>
 
           <aside className="rounded-xl border border-border-subtle bg-bg-elevated p-6 shadow-sm lg:col-span-4">

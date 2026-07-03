@@ -46,17 +46,19 @@ export function ApplyConfirmation({
           </span>
         </div>
 
-        <div className="flex items-start space-x-3 rounded-lg bg-bg-elevated p-3 shadow-sm">
-          <ShieldCheck className="text-success-600 shrink-0 mt-0.5" size={20} />
-          <div>
-            <h4 className="text-xs font-semibold text-text-primary uppercase tracking-wider">
-              {t('submit.escrowNoticeTitle')}
-            </h4>
-            <p className="text-xs text-text-secondary mt-1 leading-relaxed">
-              {t('submit.escrowNoticeDesc', { company: scholarshipProviderName })}
-            </p>
+        {!isFree && (
+          <div className="flex items-start space-x-3 rounded-lg bg-bg-elevated p-3 shadow-sm">
+            <ShieldCheck className="text-success-600 shrink-0 mt-0.5" size={20} />
+            <div>
+              <h4 className="text-xs font-semibold text-text-primary uppercase tracking-wider">
+                {t('submit.escrowNoticeTitle')}
+              </h4>
+              <p className="text-xs text-text-secondary mt-1 leading-relaxed">
+                {t('submit.escrowNoticeDesc', { company: scholarshipProviderName })}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Refund / escrow disclaimer only renders for paid applications —
@@ -80,7 +82,7 @@ export function ApplyConfirmation({
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
           ) : (
             <>
-              <CreditCard size={18} />
+              {!isFree && <CreditCard size={18} />}
               <span>{t('common.submit')}</span>
             </>
           )}

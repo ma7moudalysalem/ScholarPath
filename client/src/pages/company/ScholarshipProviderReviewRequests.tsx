@@ -80,7 +80,11 @@ export function ScholarshipProviderReviewRequests() {
           {t("payments:reviewRequest.scholarshipProviderTitle")}
         </h1>
         <p className="mt-1 text-sm text-text-secondary">
-          {t("payments:reviewRequest.scholarshipProviderSubtitle")}
+          {t(
+            paymentsEnabled
+              ? "payments:reviewRequest.scholarshipProviderSubtitle"
+              : "payments:reviewRequest.scholarshipProviderSubtitleFree",
+          )}
         </p>
       </header>
 
@@ -154,10 +158,12 @@ export function ScholarshipProviderReviewRequests() {
               </dl>
 
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-text-tertiary">
-                <span>
-                  {t("payments:reviewRequest.reference")}:{" "}
-                  <code className="font-mono">{req.paymentReference ?? "—"}</code>
-                </span>
+                {paymentsEnabled && !req.isFree && (
+                  <span>
+                    {t("payments:reviewRequest.reference")}:{" "}
+                    <code className="font-mono">{req.paymentReference ?? "—"}</code>
+                  </span>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {isPending && (
                     <>

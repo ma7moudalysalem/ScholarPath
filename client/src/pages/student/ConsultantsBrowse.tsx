@@ -308,6 +308,9 @@ function ConsultantCard({
 export function ConsultantsBrowse() {
   const { t, i18n } = useTranslation("consultants");
   const { data, isLoading, isError } = useConsultantsQuery();
+  // Master payments switch: when off, the entire platform is free, so the
+  // price filter and fee-based sort options are meaningless and are hidden.
+  const paymentsEnabled = usePaymentsEnabled();
 
   const [quickFilter, setQuickFilter] = useState<BrowseFilter>("all");
   const [searchForm, setSearchForm] = useState<SearchFormState>(defaultSearchForm);
@@ -342,6 +345,15 @@ export function ConsultantsBrowse() {
   }, [consultants]);
 
   const searchedConsultants = useMemo(() => {
+    // In free mode the price filter and fee-based sorts are hidden, so ignore any
+    // stale fee selection rather than resetting state (which would need a
+    // setState-in-effect). Derive the effective price/sort during render.
+    const effectivePrice = paymentsEnabled ? appliedSearch.price : "any";
+    const effectiveSort =
+      !paymentsEnabled && (appliedSearch.sort === "feeAsc" || appliedSearch.sort === "feeDesc")
+        ? "ratingDesc"
+        : appliedSearch.sort;
+
     const normalizedQuery = appliedSearch.query.trim().toLowerCase();
     const matched = consultants.filter((consultant) => {
       const searchableText = [
@@ -355,7 +367,7 @@ export function ConsultantsBrowse() {
 
       const queryMatch =
         normalizedQuery.length === 0 || searchableText.includes(normalizedQuery);
-      const priceMatch = matchesPriceFilter(consultant, appliedSearch.price);
+      const priceMatch = matchesPriceFilter(consultant, effectivePrice);
       const ratingMatch = matchesRatingFilter(consultant, appliedSearch.rating);
       const availabilityMatch = matchesAvailabilityFilter(consultant, appliedSearch.availability);
       const specMatch = matchesSpecializationFilter(consultant, appliedSearch.specialization);
@@ -364,10 +376,10 @@ export function ConsultantsBrowse() {
     });
 
     return [...matched].sort((a, b) => {
-      const primary = compareBySort(a, b, appliedSearch.sort);
+      const primary = compareBySort(a, b, effectiveSort);
       return primary !== 0 ? primary : a.name.localeCompare(b.name);
     });
-  }, [appliedSearch, consultants]);
+  }, [appliedSearch, consultants, paymentsEnabled]);
 
   const filteredConsultants = useMemo(() => {
     return searchedConsultants.filter((consultant) => {
@@ -388,7 +400,7 @@ export function ConsultantsBrowse() {
 
   const hasActiveFilters =
     appliedSearch.query.length > 0 ||
-    appliedSearch.price !== "any" ||
+    (paymentsEnabled && appliedSearch.price !== "any") ||
     appliedSearch.rating !== "any" ||
     appliedSearch.availability !== "all" ||
     appliedSearch.specialization !== "any" ||
@@ -475,8 +487,12 @@ export function ConsultantsBrowse() {
               aria-label={t("filters.sortBy")}
             >
               <option value="ratingDesc">{t("sortOptions.ratingDesc")}</option>
-              <option value="feeAsc">{t("sortOptions.feeAsc")}</option>
-              <option value="feeDesc">{t("sortOptions.feeDesc")}</option>
+              {paymentsEnabled && (
+                <>
+                  <option value="feeAsc">{t("sortOptions.feeAsc")}</option>
+                  <option value="feeDesc">{t("sortOptions.feeDesc")}</option>
+                </>
+              )}
               <option value="reviewsDesc">{t("sortOptions.reviewsDesc")}</option>
               <option value="experienceDesc">{t("sortOptions.experienceDesc")}</option>
             </select>
@@ -511,30 +527,32 @@ export function ConsultantsBrowse() {
 
         {showFilters && (
           <div className="mt-3 grid gap-4 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <label
-                htmlFor="price-filter"
-                className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-tertiary"
-              >
-                {t("filters.price")}
-              </label>
-              <select
-                id="price-filter"
-                value={searchForm.price}
-                onChange={(e) =>
-                  setSearchForm((cur) => ({
-                    ...cur,
-                    price: e.target.value as PriceSelectFilter,
-                  }))
-                }
-                className="h-10 w-full rounded-lg border border-border-default bg-bg-canvas px-3 text-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              >
-                <option value="any">{t("priceOptions.any")}</option>
-                <option value="under30">{t("priceOptions.under30")}</option>
-                <option value="30to35">{t("priceOptions.30to35")}</option>
-                <option value="above35">{t("priceOptions.above35")}</option>
-              </select>
-            </div>
+            {paymentsEnabled && (
+              <div>
+                <label
+                  htmlFor="price-filter"
+                  className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-text-tertiary"
+                >
+                  {t("filters.price")}
+                </label>
+                <select
+                  id="price-filter"
+                  value={searchForm.price}
+                  onChange={(e) =>
+                    setSearchForm((cur) => ({
+                      ...cur,
+                      price: e.target.value as PriceSelectFilter,
+                    }))
+                  }
+                  className="h-10 w-full rounded-lg border border-border-default bg-bg-canvas px-3 text-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                >
+                  <option value="any">{t("priceOptions.any")}</option>
+                  <option value="under30">{t("priceOptions.under30")}</option>
+                  <option value="30to35">{t("priceOptions.30to35")}</option>
+                  <option value="above35">{t("priceOptions.above35")}</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label

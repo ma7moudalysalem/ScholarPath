@@ -40,6 +40,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
 import { apiErrorMessage } from "@/services/api/client";
 import { useNotificationHub } from "@/hooks/useNotificationHub";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { notificationsApi, UNREAD_COUNT_QUERY_KEY } from "@/services/api/notifications";
 import { cn } from "@/lib/utils";
 import { userPhotoUrl } from "@/lib/userPhoto";
@@ -254,6 +255,18 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
   ],
 };
 
+/**
+ * Routes that only exist to show money (billing, earnings, earnings trend).
+ * Hidden from the sidebar when the platform runs in free mode
+ * (payments.enabled=false); the routes themselves also redirect via
+ * RequirePayments, so a hidden link can't be reached by deep link either.
+ */
+const MONEY_ROUTES = new Set<string>([
+  "/company/billing",
+  "/consultant/earnings",
+  "/consultant/earnings-trend",
+]);
+
 /** Shared sidebar content — used in both the desktop sidebar and the mobile drawer */
 function SidebarContent({
   navItems,
@@ -407,7 +420,12 @@ export function AuthenticatedLayout() {
   const { t } = useTranslation(["common", "nav"]);
   const { user } = useAuthStore();
   const role = user?.activeRole ?? user?.roles[0] ?? "Student";
-  const navItems = useMemo(() => NAV_BY_ROLE[role] ?? NAV_BY_ROLE.Student, [role]);
+  // Free mode: drop billing/earnings nav entries so no payment page is linked.
+  const paymentsEnabled = usePaymentsEnabled();
+  const navItems = useMemo(() => {
+    const base = NAV_BY_ROLE[role] ?? NAV_BY_ROLE.Student;
+    return paymentsEnabled ? base : base.filter((i) => !MONEY_ROUTES.has(i.to));
+  }, [role, paymentsEnabled]);
   const homePath = user ? postAuthPath(user) : "/";
   const location = useLocation();
 

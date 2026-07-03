@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { bookingsApi } from "@/services/api/bookings";
 import { notificationsApi } from "@/services/api/notifications";
 import { queryKeys } from "@/lib/queryClient";
@@ -52,6 +53,7 @@ const CONSULTANT_BOOKING_STATUSES = ["Requested", "Confirmed", "Completed", "Can
 
 export function ConsultantDashboard() {
   const { t, i18n } = useTranslation(["dashboard"]);
+  const paymentsEnabled = usePaymentsEnabled();
   const firstName = useAuthStore((s) => s.user?.firstName ?? "");
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -119,7 +121,14 @@ export function ConsultantDashboard() {
   const activities = useMemo<ActivityItem[]>(() => {
     if (!notifPage) return [];
     const isAr = i18n.language === "ar";
-    return notifPage.items.slice(0, 5).map((n) => {
+    // In free mode, drop payout/payment-framed notifications so the
+    // Wallet-iconed money items don't surface in the activity feed.
+    const items = paymentsEnabled
+      ? notifPage.items
+      : notifPage.items.filter(
+          (n) => !/^(Payout|Payment)/.test(n.type),
+        );
+    return items.slice(0, 5).map((n) => {
       const meta = NOTIFICATION_ICON[n.type] ?? { icon: Bell, accent: "brand" as StatAccent };
       return {
         id: n.id,
@@ -130,12 +139,15 @@ export function ConsultantDashboard() {
         to: n.deepLink ?? "/notifications",
       };
     });
-  }, [notifPage, i18n.language]);
+  }, [notifPage, i18n.language, paymentsEnabled]);
 
   const CARDS: Array<{ icon: LucideIcon; to: string; titleKey: string; accent: StatAccent }> = [
     { icon: Clock, to: "/consultant/availability", titleKey: "availability", accent: "brand" },
     { icon: CalendarCheck, to: "/consultant/bookings", titleKey: "bookings", accent: "success" },
-    { icon: Wallet, to: "/consultant/earnings", titleKey: "earnings", accent: "warning" },
+    // Earnings hub card is money-related — only surface it when payments are on.
+    ...(paymentsEnabled
+      ? [{ icon: Wallet, to: "/consultant/earnings", titleKey: "earnings", accent: "warning" as StatAccent }]
+      : []),
   ];
 
   return (
@@ -184,8 +196,10 @@ export function ConsultantDashboard() {
         <StatCard
           label={t("dashboard:consultant.stats.thisMonth")}
           value={sessionsThisMonth}
-          to="/consultant/earnings"
-          icon={Wallet}
+          // In free mode this stat is a plain session count — don't link it to
+          // the earnings page or frame it with the Wallet (money) icon.
+          to={paymentsEnabled ? "/consultant/earnings" : undefined}
+          icon={paymentsEnabled ? Wallet : CalendarCheck}
           accent="success"
           delay={0.1}
         />
@@ -237,10 +251,12 @@ export function ConsultantDashboard() {
           <QuickActions
             title={t("dashboard:quickActions.title")}
             actions={[
-              { icon: Clock, label: t("dashboard:consultant.quick.availability"), to: "/consultant/availability", accent: "brand" },
-              { icon: CalendarCheck, label: t("dashboard:consultant.quick.bookings"), to: "/consultant/bookings", accent: "success" },
-              { icon: Wallet, label: t("dashboard:consultant.quick.earnings"), to: "/consultant/earnings", accent: "warning" },
-              { icon: FileEdit, label: t("dashboard:consultant.quick.profile"), to: "/profile", accent: "neutral" },
+              { icon: Clock, label: t("dashboard:consultant.quick.availability"), to: "/consultant/availability", accent: "brand" as StatAccent },
+              { icon: CalendarCheck, label: t("dashboard:consultant.quick.bookings"), to: "/consultant/bookings", accent: "success" as StatAccent },
+              ...(paymentsEnabled
+                ? [{ icon: Wallet, label: t("dashboard:consultant.quick.earnings"), to: "/consultant/earnings", accent: "warning" as StatAccent }]
+                : []),
+              { icon: FileEdit, label: t("dashboard:consultant.quick.profile"), to: "/profile", accent: "neutral" as StatAccent },
             ]}
           />
 

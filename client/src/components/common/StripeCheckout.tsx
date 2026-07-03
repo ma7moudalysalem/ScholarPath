@@ -4,6 +4,7 @@ import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { paymentsApi, type PaymentType } from "@/services/api/payments";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 interface StripeCheckoutProps {
   /**
@@ -47,7 +48,17 @@ interface StripeCheckoutProps {
  *     returns one) and the caller passes its clientSecret — we never create a
  *     second one.
  */
-export function StripeCheckout({
+export function StripeCheckout(props: StripeCheckoutProps) {
+  // Defense-in-depth: the platform master switch payments.enabled=false means no
+  // money is ever collected. Every caller already gates on paymentsEnabled, but
+  // guard here too so live card entry can NEVER mount in free mode regardless of
+  // how this widget is reached.
+  const paymentsEnabled = usePaymentsEnabled();
+  if (!paymentsEnabled) return null;
+  return <StripeCheckoutInner {...props} />;
+}
+
+function StripeCheckoutInner({
   paymentType = "ConsultantBooking",
   bookingId,
   applicationId,

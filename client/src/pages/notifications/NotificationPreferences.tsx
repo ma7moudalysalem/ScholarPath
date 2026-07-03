@@ -30,6 +30,7 @@ import {
   notificationsApi,
   type NotificationPreference,
 } from "@/services/api/notifications";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { cn } from "@/lib/utils";
 
 // ── Group/category metadata ──────────────────────────────────────────────────
@@ -130,6 +131,20 @@ function groupOf(type: string): string {
   return "Other";
 }
 
+/**
+ * Whether a notification type is genuinely about money (a charge, refund, hold,
+ * or payout) — as opposed to the non-money ScholarshipProvider events (rating
+ * received, incoming/completed review request, low-rating flag) that groupOf()
+ * also buckets under "Payments". In free mode we hide ONLY the money ones; the
+ * non-money provider notifications still fire, so their toggles must remain.
+ */
+function isMoneyNotificationType(type: string): boolean {
+  return (
+    /^Payment|^Payout/i.test(type) ||
+    (/^ScholarshipProvider/i.test(type) && /Payment|Refund/i.test(type))
+  );
+}
+
 // ── Toggle switch (premium variant) ──────────────────────────────────────────
 
 function Toggle({
@@ -183,6 +198,7 @@ function Toggle({
 export function NotificationPreferences() {
   const { t } = useTranslation(["notifications", "common"]);
   const qc = useQueryClient();
+  const paymentsEnabled = usePaymentsEnabled();
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ["notifications", "preferences"],
@@ -241,7 +257,13 @@ export function NotificationPreferences() {
     const types = [...new Set(prefs.map((p) => p.type))];
     const grouped = new Map<string, string[]>();
     for (const type of types) {
-      const g = groupOf(type);
+      // Free mode: drop genuinely money notifications entirely and never show a
+      // payment-framed group. Non-money provider events (ratings, incoming review
+      // requests) still fire, so keep their toggles — under a neutral group
+      // instead of "Payments" (which groupOf() over-maps every ScholarshipProvider* to).
+      if (!paymentsEnabled && isMoneyNotificationType(type)) continue;
+      let g = groupOf(type);
+      if (!paymentsEnabled && g === "Payments") g = "Other";
       if (!grouped.has(g)) grouped.set(g, []);
       grouped.get(g)!.push(type);
     }
@@ -265,7 +287,7 @@ export function NotificationPreferences() {
       prefMap: map,
       channelEnabledByType: byType,
     };
-  }, [data]);
+  }, [data, paymentsEnabled]);
 
   if (isLoading) {
     return (

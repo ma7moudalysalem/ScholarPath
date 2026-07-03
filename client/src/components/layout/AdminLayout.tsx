@@ -36,6 +36,7 @@ import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useAuthStore } from "@/stores/authStore";
 import { useNotificationHub } from "@/hooks/useNotificationHub";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { notificationsApi, UNREAD_COUNT_QUERY_KEY } from "@/services/api/notifications";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,8 @@ interface NavItem {
   end?: boolean;
   /** If true, renders a thin horizontal divider before this item. */
   divider?: boolean;
+  /** Hidden when the platform runs in free mode (payments.enabled=false). */
+  paymentGated?: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -60,13 +63,13 @@ const NAV: NavItem[] = [
   { to: "/admin/articles", key: "nav.articles", icon: BookOpen },
   { to: "/admin/community", key: "nav.community", icon: MessageSquare },
   { to: "/admin/low-rated-companies", key: "nav.lowRatedCompanies", icon: AlertTriangle },
-  // Finance
-  { to: "/admin/payments", key: "nav.payments", icon: CreditCard, divider: true },
-  { to: "/admin/profit-share", key: "nav.profitShare", icon: PieChart },
-  { to: "/admin/financial-config", key: "nav.financialConfig", icon: Coins },
+  // Finance — hidden entirely in free mode (payments.enabled=false)
+  { to: "/admin/payments", key: "nav.payments", icon: CreditCard, divider: true, paymentGated: true },
+  { to: "/admin/profit-share", key: "nav.profitShare", icon: PieChart, paymentGated: true },
+  { to: "/admin/financial-config", key: "nav.financialConfig", icon: Coins, paymentGated: true },
   // Intelligence
   { to: "/admin/analytics", key: "nav.analytics", icon: BarChart3, divider: true },
-  { to: "/admin/reports/revenue", key: "nav.revenueReport", icon: Wallet },
+  { to: "/admin/reports/revenue", key: "nav.revenueReport", icon: Wallet, paymentGated: true },
   { to: "/admin/ai-economy", key: "nav.aiEconomy", icon: Sparkles },
   { to: "/admin/knowledge-base", key: "nav.knowledgeBase", icon: Database },
   { to: "/admin/redaction-audit", key: "nav.redactionAudit", icon: ShieldAlert },
@@ -82,6 +85,12 @@ export function AdminLayout() {
   const { user, clear } = useAuthStore();
   const location = useLocation();
   const isRtl = i18n.language.startsWith("ar");
+
+  // Free mode: hide every payment/revenue nav entry (Finance section + revenue
+  // report). The payments.enabled toggle itself lives under /admin/settings,
+  // which stays reachable.
+  const paymentsEnabled = usePaymentsEnabled();
+  const navItems = NAV.filter((i) => paymentsEnabled || !i.paymentGated);
 
   // Same realtime + polling pair the AuthenticatedLayout uses — admins on
   // /admin/* now get a live unread-count badge and a Bell shortcut to the
@@ -109,7 +118,7 @@ export function AdminLayout() {
         </Link>
 
         <nav className="flex-1 overflow-y-auto p-3">
-          {NAV.map(({ to, key, icon: Icon, end, divider }, idx) => (
+          {navItems.map(({ to, key, icon: Icon, end, divider }, idx) => (
             <motion.div
               key={to}
               initial={{ opacity: 0, x: -8 }}

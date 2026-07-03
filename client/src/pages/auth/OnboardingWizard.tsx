@@ -862,7 +862,11 @@ export function OnboardingWizard() {
             </div>
             <h3 className="mb-2 text-xl font-bold tracking-tight">{t(`auth:onboarding.role.${i18n}.title`)}</h3>
             <p className="mb-5 text-sm text-text-secondary leading-relaxed">
-              {t(`auth:onboarding.role.${i18n}.body`)}
+              {t(
+                !paymentsEnabled && i18n === "consultant"
+                  ? "auth:onboarding.role.consultant.bodyFree"
+                  : `auth:onboarding.role.${i18n}.body`,
+              )}
             </p>
             <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 group-hover:text-brand-700 transition-colors">
               {t(`auth:onboarding.role.${i18n}.cta`)}
@@ -1107,17 +1111,10 @@ function ConsultantForm({
           value={value.yearsExperience}
           onChange={(e) => set("yearsExperience", e.target.value)} />
       </Labeled>
-      {paymentsEnabled ? (
+      {paymentsEnabled && (
         <Labeled label={t("auth:onboarding.consultant.fee")} required error={errors.fee}>
           <input type="number" min={0} className={`h-11 ${fieldClass}`} value={value.fee}
             onChange={(e) => set("fee", e.target.value)} />
-        </Labeled>
-      ) : (
-        // Payments disabled platform-wide — the fee is auto-0 on the server.
-        // We stash 0 in the form state so the validator + submit handler
-        // (which still expect a number) keep working.
-        <Labeled label={t("auth:onboarding.consultant.fee")}>
-          <input type="number" className={`h-11 ${fieldClass}`} value="0" disabled readOnly />
         </Labeled>
       )}
       <Labeled label={t("auth:onboarding.consultant.duration")} required error={errors.durationMinutes}>

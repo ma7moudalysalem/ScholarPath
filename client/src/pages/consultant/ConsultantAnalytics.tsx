@@ -10,6 +10,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { analyticsApi, type ConsultantKpisDto } from "@/services/api/analytics";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import {
   ChartCard,
   LegendRow,
@@ -97,6 +98,7 @@ function StarRating({ rating }: { rating: number }) {
 /** PB-015 T-010 — Consultant Self-Analytics dashboard (custom SVG charts). */
 export function ConsultantAnalytics() {
   const { t, i18n } = useTranslation(["analytics"]);
+  const paymentsEnabled = usePaymentsEnabled();
 
   const { data, isLoading, isError, refetch } = useQuery<ConsultantKpisDto>({
     queryKey: ["analytics", "consultant-kpis"],
@@ -228,13 +230,15 @@ export function ConsultantAnalytics() {
               }
               delay={0.06}
             />
-            <StatCard
-              label={t("analytics:consultantKpis.revenue")}
-              value={formattedRevenue}
-              icon={Wallet}
-              accent="warning"
-              delay={0.1}
-            />
+            {paymentsEnabled && (
+              <StatCard
+                label={t("analytics:consultantKpis.revenue")}
+                value={formattedRevenue}
+                icon={Wallet}
+                accent="warning"
+                delay={0.1}
+              />
+            )}
             {/* AvgRating: don't pass reviewCount through `delta.value` — StatCard
                 renders that field with a trailing %, which would mis-label "5"
                 reviews as "5%". The count is shown inline in the rating summary
