@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.FinancialConfig;
 using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
@@ -200,13 +201,27 @@ public sealed class ProcessStripeWebhookCommandHandler(
                 break;
 
             case "charge.refunded":
-                var refunded = request.AmountCents ?? payment.AmountCents;
+                // DATA-02: clamp the webhook-reported refund to [0, AmountCents] so
+                // the retained split can never go negative (Stripe should never
+                // overstate it, but a malformed/duplicated event must not corrupt
+                // the ledger into a negative payee amount).
+                var refunded = Math.Clamp(
+                    request.AmountCents ?? payment.AmountCents, 0, payment.AmountCents);
                 payment.RefundedAmountCents = refunded;
                 payment.RefundedAt = DateTimeOffset.UtcNow;
                 payment.RefundReason = "charge.refunded";
                 payment.Status = refunded >= payment.AmountCents
                     ? PaymentStatus.Refunded
                     : PaymentStatus.PartiallyRefunded;
+                // MON-02: a refund shrinks the payable base, so recompute the split
+                // off the RETAINED amount (gross - refunded). Without this, a refund
+                // that arrives via webhook (not the admin RefundPaymentCommand) left
+                // ProfitShare/Payee at capture-time values and the nightly payout
+                // overpaid the payee. Mirrors RefundPaymentCommand's retained split.
+                var refundSplit = await FinancialRuleResolver.ResolveSplitFromRetainedAsync(
+                    db, payment.Type, payment.AmountCents, payment.RefundedAmountCents, ct);
+                payment.ProfitShareAmountCents = refundSplit.PlatformTakeCents;
+                payment.PayeeAmountCents = refundSplit.PayeeNetCents;
                 break;
 
             case "charge.dispute.created":

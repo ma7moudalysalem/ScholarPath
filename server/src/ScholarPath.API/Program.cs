@@ -152,6 +152,27 @@ builder.Services.AddRateLimiter(opts =>
             });
     });
 
+    // PERF-01: throttle chat message sends per user (fall back to IP for
+    // anonymous) so one account cannot spam/DoS recipients. Higher than "ai"
+    // since chat is a higher-frequency human action; only the REST send path is
+    // covered (a SignalR hub send path, if added, needs hub-level throttling).
+    opts.AddPolicy("messaging", httpContext =>
+    {
+        var userId = httpContext.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var partition = !string.IsNullOrEmpty(userId)
+            ? $"user:{userId}"
+            : $"ip:{httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
+
+        return System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: partition,
+            factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 40,
+                QueueLimit = 0,
+            });
+    });
+
     opts.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 

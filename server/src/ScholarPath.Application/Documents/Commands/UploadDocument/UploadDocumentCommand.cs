@@ -61,8 +61,22 @@ public sealed class UploadDocumentCommandHandler(
     private const string Container = "documents";
 
     // Extensions a document vault is expected to hold — keeps executables out.
-    private static readonly string[] AllowedExtensions =
-        [".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png", ".webp", ".txt", ".rtf", ".odt"];
+    // Each maps to the MIME type(s) the declared ContentType must match, so a
+    // spoofed/mismatched client ContentType is rejected up front (DATA-03).
+    private static readonly IReadOnlyDictionary<string, string[]> AllowedTypes =
+        new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            [".pdf"]  = ["application/pdf"],
+            [".doc"]  = ["application/msword"],
+            [".docx"] = ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+            [".jpg"]  = ["image/jpeg"],
+            [".jpeg"] = ["image/jpeg"],
+            [".png"]  = ["image/png"],
+            [".webp"] = ["image/webp"],
+            [".txt"]  = ["text/plain"],
+            [".rtf"]  = ["application/rtf", "text/rtf"],
+            [".odt"]  = ["application/vnd.oasis.opendocument.text"],
+        };
 
     public async Task<DocumentDto> Handle(UploadDocumentCommand request, CancellationToken ct)
     {
@@ -70,9 +84,17 @@ public sealed class UploadDocumentCommandHandler(
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
         var extension = Path.GetExtension(request.FileName);
-        if (!AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
+        if (!AllowedTypes.TryGetValue(extension, out var allowedContentTypes))
             throw new ConflictException(
                 "Unsupported file type. Allowed: PDF, Word, image, or text documents.");
+
+        // DATA-03: the declared MIME type must match the file's extension — a
+        // spoofed/arbitrary client ContentType is rejected before the bytes are
+        // stored. (Magic-byte verification is the v2 hardening.)
+        var contentType = (request.ContentType ?? string.Empty).Trim();
+        if (!allowedContentTypes.Contains(contentType, StringComparer.OrdinalIgnoreCase))
+            throw new ConflictException(
+                "The file's declared content type does not match its extension.");
 
         // A document may only be linked to one of the caller's own applications.
         if (request.ApplicationTrackerId is { } appId)
@@ -107,7 +129,7 @@ public sealed class UploadDocumentCommandHandler(
         }
 
         var storagePath = await storage
-            .UploadAsync(request.Content, safeName, request.ContentType, Container, ct)
+            .UploadAsync(request.Content, safeName, contentType, Container, ct)
             .ConfigureAwait(false);
 
         var now = clock.UtcNow;
@@ -116,7 +138,7 @@ public sealed class UploadDocumentCommandHandler(
             Id = Guid.NewGuid(),
             OwnerUserId = userId,
             FileName = safeName,
-            ContentType = request.ContentType,
+            ContentType = contentType,
             SizeBytes = request.Length,
             StoragePath = storagePath,
             Category = request.Category,

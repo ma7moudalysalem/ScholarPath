@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ScholarPath.Application.Chat.Commands.BlockUser;
 using ScholarPath.Application.Chat.Commands.SendMessage;
 using ScholarPath.Application.Chat.Commands.UnblockUser;
@@ -38,6 +39,7 @@ public class ChatController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("messages")]
+    [EnableRateLimiting("messaging")]  // PERF-01: throttle chat sends per user
     public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request, CancellationToken ct)
     {
         var command = new SendMessageCommand(request.RecipientId, request.Body);

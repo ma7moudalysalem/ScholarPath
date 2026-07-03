@@ -27,6 +27,11 @@ public sealed class UserAdministration(
         if (status == AccountStatus.Suspended || status == AccountStatus.Deactivated)
         {
             await RevokeAllSessionsAsync(userId, reason ?? $"Status changed to {status}", ct).ConfigureAwait(false);
+            // DATA-04: a suspended/deactivated author's community content is hidden
+            // platform-wide, reusing the IsAutoHidden flag every forum read query
+            // already filters on. Reinstating to Active does NOT auto-unhide — a
+            // moderator unhides deliberately.
+            await AutoHideForumContentAsync(userId, reason ?? $"Author status changed to {status}", ct).ConfigureAwait(false);
         }
 
         if (!result.Succeeded)
@@ -50,7 +55,35 @@ public sealed class UserAdministration(
         user.UpdatedAt = now;
         await users.UpdateAsync(user).ConfigureAwait(false);
         await RevokeAllSessionsAsync(userId, "Account deleted by admin", ct).ConfigureAwait(false);
+        // DATA-04: hide the deleted author's community content too.
+        await AutoHideForumContentAsync(userId, "Author account deleted by admin", ct).ConfigureAwait(false);
         return true;
+    }
+
+    // DATA-04: hide a user's non-deleted, currently-visible forum posts/replies
+    // (roots + replies) when they are suspended/deactivated/deleted. Uses a tracked
+    // update (load → mutate → SaveChanges) rather than ExecuteUpdate so it works on
+    // both SQL Server and the EF InMemory provider used by tests; a user's post
+    // count is small and this only runs on rare admin actions. Already-hidden and
+    // soft-deleted rows are left untouched; reinstating to Active does NOT
+    // auto-unhide (a moderator unhides deliberately).
+    private async Task AutoHideForumContentAsync(Guid userId, string note, CancellationToken ct)
+    {
+        var posts = await db.ForumPosts
+            .Where(p => p.AuthorId == userId && !p.IsDeleted && !p.IsAutoHidden)
+            .ToListAsync(ct).ConfigureAwait(false);
+        if (posts.Count == 0) return;
+
+        var now = clock.UtcNow;
+        foreach (var p in posts)
+        {
+            p.IsAutoHidden = true;
+            p.AutoHiddenAt = now;
+            p.ModerationStatus = PostModerationStatus.Hidden;
+            p.ModeratedAt = now;
+            p.ModerationNote = note;
+        }
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<string>> GetRolesAsync(Guid userId, CancellationToken ct)

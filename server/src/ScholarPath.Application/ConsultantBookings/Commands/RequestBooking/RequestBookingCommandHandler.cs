@@ -270,8 +270,9 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
                 DeletedByUserId = null
             };
 
-            _context.Bookings.Add(freeBooking);
-            await _context.SaveChangesAsync(cancellationToken);
+            await PersistBookingWithSlotGuardAsync(
+                freeBooking, request.ConsultantId, studentId,
+                scheduledStartAtUtc, scheduledEndAtUtc, cancellationToken);
 
             await _publisher.Publish(
                 new BookingRequestedEvent(
@@ -355,8 +356,9 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
             DeletedByUserId = null
         };
 
-        _context.Bookings.Add(booking);
-        await _context.SaveChangesAsync(cancellationToken);
+        await PersistBookingWithSlotGuardAsync(
+            booking, request.ConsultantId, studentId,
+            scheduledStartAtUtc, scheduledEndAtUtc, cancellationToken);
 
         payment.RelatedBookingId = booking.Id;
         await _context.SaveChangesAsync(cancellationToken);
@@ -372,5 +374,65 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
         // Return the intent's client secret so the checkout widget confirms
         // THIS intent — it must not create a second one (PB-006 Problem 1).
         return new RequestBookingResult(booking.Id, IsFree: false, paymentIntent.ClientSecret, paymentIntent.Id);
+    }
+
+    // RACE-04: the app-level overlap check above runs under READ COMMITTED with no
+    // transaction, so two concurrent requests for overlapping-but-different start
+    // times can both pass it and both insert (the unique index only guards the exact
+    // ScheduledStartAt). On a relational provider, re-check overlap and insert inside
+    // a SERIALIZABLE transaction so range locks force the second insert to block then
+    // fail the re-check. The Stripe intent is created BEFORE this (outside the tx) so
+    // no network call is held under the locks. The InMemory provider (unit tests) has
+    // no isolation levels, so fall back to a plain insert — the app-level check above
+    // still guards the non-concurrent case the tests exercise.
+    private async Task PersistBookingWithSlotGuardAsync(
+        ConsultantBooking booking,
+        Guid consultantId,
+        Guid studentId,
+        DateTimeOffset scheduledStartAtUtc,
+        DateTimeOffset scheduledEndAtUtc,
+        CancellationToken cancellationToken)
+    {
+        if (!_context.Database.IsRelational())
+        {
+            _context.Bookings.Add(booking);
+            await _context.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        var blockingStatuses = new[] { BookingStatus.Requested, BookingStatus.Confirmed };
+
+        var strategy = _context.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var tx = await _context.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable, cancellationToken);
+
+            var consultantHasConflict = await _context.Bookings.AnyAsync(
+                b => b.ConsultantId == consultantId
+                     && blockingStatuses.Contains(b.Status)
+                     && scheduledStartAtUtc < b.ScheduledEndAt
+                     && scheduledEndAtUtc > b.ScheduledStartAt,
+                cancellationToken);
+            if (consultantHasConflict)
+            {
+                throw new BookingDomainException("Consultant already has a booking that overlaps this time.");
+            }
+
+            var studentHasConflict = await _context.Bookings.AnyAsync(
+                b => b.StudentId == studentId
+                     && blockingStatuses.Contains(b.Status)
+                     && scheduledStartAtUtc < b.ScheduledEndAt
+                     && scheduledEndAtUtc > b.ScheduledStartAt,
+                cancellationToken);
+            if (studentHasConflict)
+            {
+                throw new BookingDomainException("Student already has a booking that overlaps this time.");
+            }
+
+            _context.Bookings.Add(booking);
+            await _context.SaveChangesAsync(cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+        });
     }
 }

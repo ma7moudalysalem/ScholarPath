@@ -61,11 +61,18 @@ public sealed class SendMessageCommandHandler(
             throw new ConflictException("Cannot send message. User is blocked.");
         }
 
+        // SEC-07 defense-in-depth: strip any HTML/script markup before persisting,
+        // mirroring community posts/replies. The chat UI renders the body as a React
+        // text node today, but the same string also fans out to a SignalR push and an
+        // email notification preview (a non-React sink), so sanitizing on store keeps
+        // every sink safe.
+        var sanitizedBody = new Ganss.Xss.HtmlSanitizer().Sanitize(request.Body);
+
         var message = new ChatMessage
         {
             ConversationId = conversation.Id,
             SenderId = senderId,
-            Body = request.Body,
+            Body = sanitizedBody,
             SentAt = DateTimeOffset.UtcNow
         };
 
@@ -90,7 +97,7 @@ public sealed class SendMessageCommandHandler(
                 MessageId: message.Id,
                 SenderId: senderId,
                 RecipientId: request.RecipientId,
-                BodyPreview: request.Body),
+                BodyPreview: sanitizedBody),
             ct).ConfigureAwait(false);
 
         return message.Id;

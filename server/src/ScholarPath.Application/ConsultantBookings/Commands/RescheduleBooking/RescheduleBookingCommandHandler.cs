@@ -124,38 +124,59 @@ public sealed class RescheduleBookingCommandHandler : IRequestHandler<Reschedule
             BookingStatus.Confirmed
         };
 
-        // The booking being moved must not collide with itself.
-        var consultantHasConflict = await _context.Bookings.AnyAsync(
-            b => b.Id != booking.Id
-                 && b.ConsultantId == booking.ConsultantId
-                 && blockingStatuses.Contains(b.Status)
-                 && scheduledStartAtUtc < b.ScheduledEndAt
-                 && scheduledEndAtUtc > b.ScheduledStartAt,
-            cancellationToken);
-
-        if (consultantHasConflict)
+        // RACE-04: re-check overlap + apply the move atomically. The booking being
+        // moved must not collide with itself (b.Id != booking.Id). On a relational
+        // provider this runs under SERIALIZABLE so a concurrent reschedule into an
+        // overlapping slot blocks then fails the re-check; the InMemory provider
+        // (unit tests) has no isolation levels, so run the check+save directly.
+        async Task CheckAndSaveAsync()
         {
-            throw new BookingDomainException("Consultant already has a booking that overlaps this time.");
+            var consultantHasConflict = await _context.Bookings.AnyAsync(
+                b => b.Id != booking.Id
+                     && b.ConsultantId == booking.ConsultantId
+                     && blockingStatuses.Contains(b.Status)
+                     && scheduledStartAtUtc < b.ScheduledEndAt
+                     && scheduledEndAtUtc > b.ScheduledStartAt,
+                cancellationToken);
+            if (consultantHasConflict)
+            {
+                throw new BookingDomainException("Consultant already has a booking that overlaps this time.");
+            }
+
+            var studentHasConflict = await _context.Bookings.AnyAsync(
+                b => b.Id != booking.Id
+                     && b.StudentId == booking.StudentId
+                     && blockingStatuses.Contains(b.Status)
+                     && scheduledStartAtUtc < b.ScheduledEndAt
+                     && scheduledEndAtUtc > b.ScheduledStartAt,
+                cancellationToken);
+            if (studentHasConflict)
+            {
+                throw new BookingDomainException("Student already has a booking that overlaps this time.");
+            }
+
+            booking.ScheduledStartAt = scheduledStartAtUtc;
+            booking.ScheduledEndAt = scheduledEndAtUtc;
+            booking.AvailabilityId = request.AvailabilityId;
+
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
-        var studentHasConflict = await _context.Bookings.AnyAsync(
-            b => b.Id != booking.Id
-                 && b.StudentId == booking.StudentId
-                 && blockingStatuses.Contains(b.Status)
-                 && scheduledStartAtUtc < b.ScheduledEndAt
-                 && scheduledEndAtUtc > b.ScheduledStartAt,
-            cancellationToken);
-
-        if (studentHasConflict)
+        if (_context.Database.IsRelational())
         {
-            throw new BookingDomainException("Student already has a booking that overlaps this time.");
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await _context.Database.BeginTransactionAsync(
+                    System.Data.IsolationLevel.Serializable, cancellationToken);
+                await CheckAndSaveAsync();
+                await tx.CommitAsync(cancellationToken);
+            });
         }
-
-        booking.ScheduledStartAt = scheduledStartAtUtc;
-        booking.ScheduledEndAt = scheduledEndAtUtc;
-        booking.AvailabilityId = request.AvailabilityId;
-
-        await _context.SaveChangesAsync(cancellationToken);
+        else
+        {
+            await CheckAndSaveAsync();
+        }
 
         await _publisher.Publish(
             new BookingRescheduledEvent(

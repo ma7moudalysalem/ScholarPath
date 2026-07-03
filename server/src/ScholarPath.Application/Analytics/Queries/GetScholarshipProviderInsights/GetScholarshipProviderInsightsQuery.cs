@@ -123,25 +123,34 @@ public sealed class GetScholarshipProviderInsightsQueryHandler(
                 (a.DecisionAt!.Value - a.SubmittedAt!.Value).TotalDays), 2)
             : 0m;
 
-        // Platform-wide acceptance rate (only decided in same window) for delta
-        var platformDecisionCounts = await db.Applications
-            .AsNoTracking()
-            .Where(a => !a.IsDeleted
-                && a.CreatedAt >= fromOffset
-                && a.CreatedAt <= toOffset
-                && (a.Status == ApplicationStatus.Accepted
-                    || a.Status == ApplicationStatus.Rejected))
-            .GroupBy(_ => 1)
-            .Select(g => new
-            {
-                Decided = g.Count(),
-                Accepted = g.Count(a => a.Status == ApplicationStatus.Accepted),
-            })
-            .FirstOrDefaultAsync(ct);
-        var platformAcceptanceRate = platformDecisionCounts != null && platformDecisionCounts.Decided > 0
-            ? Math.Round((decimal)platformDecisionCounts.Accepted * 100m / platformDecisionCounts.Decided, 2)
-            : 0m;
-        var comparisonDelta = Math.Round(acceptanceRate - platformAcceptanceRate, 2);
+        // DATA-05 (FR-207 competitive isolation): the platform-wide acceptance-rate
+        // delta is competitively sensitive — a ScholarshipProvider already receives
+        // its own AcceptanceRate in this DTO, so exposing the delta lets it invert
+        // the platform-wide average (and infer competitors' aggregate performance).
+        // Only admins may see the delta; non-admin owners get 0m (no platform
+        // figure disclosed). This also skips the extra aggregate query for them.
+        decimal comparisonDelta = 0m;
+        if (isAdmin)
+        {
+            var platformDecisionCounts = await db.Applications
+                .AsNoTracking()
+                .Where(a => !a.IsDeleted
+                    && a.CreatedAt >= fromOffset
+                    && a.CreatedAt <= toOffset
+                    && (a.Status == ApplicationStatus.Accepted
+                        || a.Status == ApplicationStatus.Rejected))
+                .GroupBy(_ => 1)
+                .Select(g => new
+                {
+                    Decided = g.Count(),
+                    Accepted = g.Count(a => a.Status == ApplicationStatus.Accepted),
+                })
+                .FirstOrDefaultAsync(ct);
+            var platformAcceptanceRate = platformDecisionCounts != null && platformDecisionCounts.Decided > 0
+                ? Math.Round((decimal)platformDecisionCounts.Accepted * 100m / platformDecisionCounts.Decided, 2)
+                : 0m;
+            comparisonDelta = Math.Round(acceptanceRate - platformAcceptanceRate, 2);
+        }
 
         // ── By country (resolved via student profile) ──────────────────────────
         var studentIds = applications.Select(a => a.StudentId).Distinct().ToList();
