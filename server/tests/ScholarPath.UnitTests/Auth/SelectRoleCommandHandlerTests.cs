@@ -56,6 +56,8 @@ public class SelectRoleCommandHandlerTests
             Email = "new@scholarpath.local",
             UserName = "new@scholarpath.local",
             AccountStatus = AccountStatus.Unassigned,
+            // FR-AUTH-05 — role selection now requires a verified email.
+            EmailConfirmed = true,
         });
         return id;
     }
@@ -456,5 +458,31 @@ public class SelectRoleCommandHandlerTests
         var v = new SelectRoleCommandValidator();
         var d = ValidConsultantDetails() with { SessionDurationMinutes = 120 };
         v.Validate(new SelectRoleCommand("Consultant", d)).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Unverified_email_blocks_role_selection()
+    {
+        // FR-AUTH-05 — a user whose email is not confirmed cannot select a role.
+        using var db = CreateDb();
+        var id = Guid.NewGuid();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = id,
+            FirstName = "Un",
+            LastName = "Verified",
+            Email = "unverified@scholarpath.local",
+            UserName = "unverified@scholarpath.local",
+            AccountStatus = AccountStatus.Unassigned,
+            EmailConfirmed = false,
+        });
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.GetRolesAsync(id, Arg.Any<CancellationToken>()).Returns(Array.Empty<string>());
+
+        var act = () => Sut(db, id, admin).Handle(new SelectRoleCommand("Student"), default);
+
+        await act.Should().ThrowAsync<ConflictException>().WithMessage("*verify your email*");
     }
 }

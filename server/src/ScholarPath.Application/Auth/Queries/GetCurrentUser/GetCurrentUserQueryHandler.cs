@@ -39,6 +39,7 @@ public sealed class GetCurrentUserQueryHandler(
             user.ProfileImageUrl,
             user.AccountStatus.ToString(),
             user.IsOnboardingComplete,
+            user.EmailConfirmed,
             roles,
             user.ActiveRole,
             user.PreferredLanguage,

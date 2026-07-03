@@ -10,6 +10,8 @@ export interface CurrentUser {
   profileImageUrl: string | null;
   accountStatus: "Unassigned" | "PendingApproval" | "Active" | "Suspended" | "Deactivated";
   isOnboardingComplete: boolean;
+  // FR-AUTH-05 — email verification is required before onboarding.
+  emailConfirmed: boolean;
   roles: string[];
   activeRole: string | null;
   preferredLanguage: string | null;

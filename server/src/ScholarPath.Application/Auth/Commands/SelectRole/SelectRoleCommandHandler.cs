@@ -38,6 +38,11 @@ public sealed class SelectRoleCommandHandler(
             .FirstOrDefaultAsync(u => u.Id == userId, ct)
             ?? throw new NotFoundException(nameof(ApplicationUser), userId);
 
+        // FR-AUTH-05 — email verification is REQUIRED before onboarding. An
+        // unverified account cannot select a role until it confirms its email.
+        if (!user.EmailConfirmed)
+            throw new ConflictException("Please verify your email address before continuing.");
+
         // Role selection is a one-time gate — only an Unassigned, role-less account qualifies.
         var existingRoles = await userAdministration.GetRolesAsync(userId, ct);
         if (existingRoles.Count > 0 || user.AccountStatus != AccountStatus.Unassigned)

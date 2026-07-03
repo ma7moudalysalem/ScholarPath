@@ -22,6 +22,7 @@ internal static class AuthDtoFactory
                 user.ProfileImageUrl,
                 user.AccountStatus.ToString(),
                 user.IsOnboardingComplete,
+                user.EmailConfirmed,
                 roles,
                 user.ActiveRole,
                 user.PreferredLanguage,

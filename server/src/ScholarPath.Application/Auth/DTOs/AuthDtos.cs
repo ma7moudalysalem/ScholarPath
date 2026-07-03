@@ -18,6 +18,9 @@ public sealed record CurrentUserDto(
     string? ProfileImageUrl,
     string AccountStatus,
     bool IsOnboardingComplete,
+    // FR-AUTH-05 — email verification is REQUIRED: the client blocks onboarding
+    // (and the server rejects role selection) until this is true.
+    bool EmailConfirmed,
     IReadOnlyList<string> Roles,
     string? ActiveRole,
     string? PreferredLanguage,

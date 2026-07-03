@@ -12,6 +12,7 @@ import {
   FileText,
   Trash2,
   AlertTriangle,
+  Mail,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
@@ -492,6 +493,39 @@ function RejectionBanner({ reason, rejectedAt }: { reason: string; rejectedAt?: 
   );
 }
 
+/** FR-AUTH-05 — blocking gate shown until the account's email is verified. */
+function VerifyEmailRequired({ email }: { email: string }) {
+  const { t } = useTranslation(["auth", "common"]);
+  const resendMut = useMutation({
+    mutationFn: () => authApi.resendVerification(email),
+    // Enumeration-safe: the endpoint always returns 204, so treat both outcomes
+    // as "sent".
+    onSuccess: () => toast.success(t("auth:verifyRequired.resent", "Verification email sent. Check your inbox.")),
+    onError: () => toast.success(t("auth:verifyRequired.resent", "Verification email sent. Check your inbox.")),
+  });
+  return (
+    <section className="mx-auto max-w-md px-4 py-20 text-center sm:px-6">
+      <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-brand-50 text-brand-500">
+        <Mail aria-hidden className="size-6" />
+      </div>
+      <h1 className="mb-2 text-2xl">{t("auth:verifyRequired.title", "Verify your email to continue")}</h1>
+      <p className="text-text-secondary">
+        {t("auth:verifyRequired.body", "We sent a verification link to {{email}}. Please confirm your email address before continuing.", { email })}
+      </p>
+      <button
+        type="button"
+        disabled={resendMut.isPending}
+        onClick={() => resendMut.mutate()}
+        className="cta-pill mt-6 h-11 border border-border-default px-6 text-sm font-medium transition hover:bg-bg-subtle disabled:opacity-50"
+      >
+        {resendMut.isPending
+          ? t("common:status.loading")
+          : t("auth:verifyRequired.resend", "Resend verification email")}
+      </button>
+    </section>
+  );
+}
+
 export function OnboardingWizard() {
   const { t } = useTranslation(["auth", "common"]);
   const navigate = useNavigate();
@@ -513,6 +547,12 @@ export function OnboardingWizard() {
   const [scholarshipProviderErrors, setScholarshipProviderErrors] = useState<Record<string, string>>({});
   const [consultant, setConsultant] = useState<ConsultantFormState>(emptyConsultant);
   const [consultantErrors, setConsultantErrors] = useState<Record<string, string>>({});
+
+  // FR-AUTH-05 — email verification is required before onboarding. Block an
+  // unverified account here until it confirms its email.
+  if (user && !user.emailConfirmed) {
+    return <VerifyEmailRequired email={user.email} />;
+  }
 
   // A ScholarshipProvider/Consultant who already chose their role is awaiting admin review.
   if (user?.accountStatus === "PendingApproval") {
