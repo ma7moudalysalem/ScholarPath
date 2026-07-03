@@ -13,6 +13,9 @@ public sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
         b.Property(d => d.ContentType).IsRequired().HasMaxLength(150);
         b.Property(d => d.StoragePath).IsRequired().HasMaxLength(1024);
         b.Property(d => d.Category).HasConversion<string>().HasMaxLength(32);
+        // FR-ONB-12 — store the onboarding document type as a readable string; null
+        // for non-onboarding and legacy uploads.
+        b.Property(d => d.OnboardingType).HasConversion<string>().HasMaxLength(48);
         b.Property(d => d.RowVersion).IsRowVersion();
 
         b.HasQueryFilter(d => !d.IsDeleted);

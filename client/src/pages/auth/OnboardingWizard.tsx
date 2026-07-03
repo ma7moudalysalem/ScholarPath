@@ -22,7 +22,12 @@ import {
   type OnboardingDetails,
 } from "@/services/api/auth";
 import { apiErrorMessage } from "@/services/api/client";
-import { documentsApi } from "@/services/api/documents";
+import {
+  documentsApi,
+  requiredOnboardingDocTypes,
+  optionalOnboardingDocTypes,
+  type OnboardingDocumentType,
+} from "@/services/api/documents";
 import { useAuthStore } from "@/stores/authStore";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
@@ -104,6 +109,16 @@ function Labeled({
 function PendingReview() {
   const { t } = useTranslation(["auth", "common"]);
   const qc = useQueryClient();
+  // FR-ONB-12 — the applicant tags each verification upload with its type so the
+  // admin can review by type (FR-ONB-14). Options depend on the role under review.
+  const activeRole = useAuthStore((s) => s.user?.activeRole);
+  const roleKey: "ScholarshipProvider" | "Consultant" =
+    activeRole === "Consultant" ? "Consultant" : "ScholarshipProvider";
+  const docTypeOptions: OnboardingDocumentType[] = [
+    ...requiredOnboardingDocTypes[roleKey],
+    ...optionalOnboardingDocTypes[roleKey],
+  ];
+  const [docType, setDocType] = useState<OnboardingDocumentType | "">("");
 
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ["onboarding-documents"],
@@ -111,10 +126,11 @@ function PendingReview() {
   });
 
   const uploadMut = useMutation({
-    mutationFn: (file: File) =>
-      documentsApi.upload({ file, category: "OnboardingDocument" }),
+    mutationFn: ({ file, type }: { file: File; type: OnboardingDocumentType }) =>
+      documentsApi.upload({ file, category: "OnboardingDocument", onboardingType: type }),
     onSuccess: () => {
       toast.success(t("auth:onboarding.documents.uploaded"));
+      setDocType("");
       void qc.invalidateQueries({ queryKey: ["onboarding-documents"] });
     },
     onError: (err) =>
@@ -131,11 +147,15 @@ function PendingReview() {
     const file = e.target.files?.[0];
     e.target.value = ""; // let the same file be re-picked after an error
     if (!file) return;
+    if (!docType) {
+      toast.error(t("auth:onboarding.documents.selectTypeFirst"));
+      return;
+    }
     if (file.size > 25 * 1024 * 1024) {
       toast.error(t("auth:onboarding.documents.tooLarge"));
       return;
     }
-    uploadMut.mutate(file);
+    uploadMut.mutate({ file, type: docType });
   }
 
   return (
@@ -156,7 +176,22 @@ function PendingReview() {
           {t("auth:onboarding.documents.subtitle")}
         </p>
 
-        <label className="mt-4 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-border-subtle px-4 text-sm font-medium text-text-primary transition hover:border-brand-500 hover:text-brand-500">
+        {/* FR-ONB-12 — pick the document type before choosing the file. */}
+        <select
+          value={docType}
+          onChange={(e) => setDocType(e.target.value as OnboardingDocumentType)}
+          className="mt-4 block h-10 w-full max-w-sm rounded-lg border border-border-subtle bg-bg-elevated px-3 text-sm text-text-primary"
+        >
+          <option value="">{t("auth:onboarding.documents.selectType")}</option>
+          {docTypeOptions.map((tp) => (
+            <option key={tp} value={tp}>
+              {t(`auth:onboarding.docTypes.${tp}`, tp)}
+              {requiredOnboardingDocTypes[roleKey].includes(tp) ? " *" : ""}
+            </option>
+          ))}
+        </select>
+
+        <label className={`mt-3 inline-flex h-10 items-center gap-2 rounded-lg border border-border-subtle px-4 text-sm font-medium text-text-primary transition ${docType ? "cursor-pointer hover:border-brand-500 hover:text-brand-500" : "cursor-not-allowed opacity-50"}`}>
           <Upload aria-hidden className="size-4" />
           {uploadMut.isPending
             ? t("auth:onboarding.documents.uploading")
@@ -165,7 +200,7 @@ function PendingReview() {
             type="file"
             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
             onChange={onFileChange}
-            disabled={uploadMut.isPending}
+            disabled={uploadMut.isPending || !docType}
             className="hidden"
           />
         </label>

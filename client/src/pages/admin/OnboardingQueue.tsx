@@ -166,6 +166,13 @@ function OnboardingDocuments({ userId }: { userId: string }) {
           >
             {d.fileName}
           </button>
+          {/* FR-ONB-14 — surface which verification document this is so the admin
+              reviews by type, not just by file name. */}
+          {d.onboardingType && (
+            <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-600">
+              {t(`admin:onboarding.docTypes.${d.onboardingType}`, d.onboardingType)}
+            </span>
+          )}
           <span className="text-xs text-text-tertiary">
             {(d.sizeBytes / 1024).toFixed(0)} KB
           </span>

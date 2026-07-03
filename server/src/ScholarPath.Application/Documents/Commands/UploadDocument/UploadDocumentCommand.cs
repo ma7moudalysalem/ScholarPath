@@ -24,7 +24,10 @@ public sealed record UploadDocumentCommand(
     string ContentType,
     long Length,
     DocumentCategory Category,
-    Guid? ApplicationTrackerId) : IRequest<DocumentDto>;
+    Guid? ApplicationTrackerId,
+    // FR-ONB-12 — the specific onboarding document type, when Category is
+    // OnboardingDocument. Null for every other upload.
+    OnboardingDocumentType? OnboardingType = null) : IRequest<DocumentDto>;
 
 // ─── Validator ────────────────────────────────────────────────────────────────
 
@@ -35,6 +38,7 @@ public sealed class UploadDocumentCommandValidator : AbstractValidator<UploadDoc
         RuleFor(x => x.FileName).NotEmpty().MaximumLength(260);
         RuleFor(x => x.ContentType).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Category).IsInEnum();
+        RuleFor(x => x.OnboardingType).IsInEnum().When(x => x.OnboardingType.HasValue);
         RuleFor(x => x.Length)
             .GreaterThan(0).WithMessage("The file is empty.")
             .LessThanOrEqualTo(UploadDocumentCommandHandler.MaxBytes)
@@ -116,6 +120,7 @@ public sealed class UploadDocumentCommandHandler(
             SizeBytes = request.Length,
             StoragePath = storagePath,
             Category = request.Category,
+            OnboardingType = request.Category == DocumentCategory.OnboardingDocument ? request.OnboardingType : null,
             UploadedAt = now,
             ApplicationTrackerId = request.ApplicationTrackerId,
         };

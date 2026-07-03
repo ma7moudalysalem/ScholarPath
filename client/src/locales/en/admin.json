@@ -104,6 +104,16 @@
       "empty": "This applicant hasn't uploaded any documents.",
       "heading": "Verification documents"
     },
+    "docTypes": {
+      "ProviderLegalRegistration": "Legal registration",
+      "ProviderAuthorizedRepresentativeId": "Representative ID",
+      "ProviderTaxCertificate": "Tax certificate",
+      "ConsultantIdentityProof": "Identity proof",
+      "ConsultantDegreeCertificate": "Degree certificate",
+      "ConsultantCvResume": "CV / Résumé",
+      "ConsultantProfessionalCertificate": "Professional certificate",
+      "ConsultantScholarshipAdvisingProof": "Advising proof"
+    },
     "reviewDialog": {
       "title": "Review onboarding request",
       "notesLabel": "Notes (required if rejecting)",

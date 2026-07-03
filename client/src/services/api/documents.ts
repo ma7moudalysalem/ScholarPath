@@ -30,6 +30,29 @@ export const documentCategories: DocumentCategory[] = [
 
 // ─── DTOs ────────────────────────────────────────────────────────────────────
 
+/** FR-ONB-12 — the specific onboarding verification document type. */
+export type OnboardingDocumentType =
+  | "ProviderLegalRegistration"
+  | "ProviderAuthorizedRepresentativeId"
+  | "ProviderTaxCertificate"
+  | "ConsultantIdentityProof"
+  | "ConsultantDegreeCertificate"
+  | "ConsultantCvResume"
+  | "ConsultantProfessionalCertificate"
+  | "ConsultantScholarshipAdvisingProof";
+
+/** Required onboarding document types per role (mirrors server FR-ONB-13). */
+export const requiredOnboardingDocTypes: Record<"ScholarshipProvider" | "Consultant", OnboardingDocumentType[]> = {
+  ScholarshipProvider: ["ProviderLegalRegistration", "ProviderAuthorizedRepresentativeId"],
+  Consultant: ["ConsultantIdentityProof", "ConsultantDegreeCertificate", "ConsultantCvResume"],
+};
+
+/** Optional (accepted but not required) onboarding document types per role. */
+export const optionalOnboardingDocTypes: Record<"ScholarshipProvider" | "Consultant", OnboardingDocumentType[]> = {
+  ScholarshipProvider: ["ProviderTaxCertificate"],
+  Consultant: ["ConsultantProfessionalCertificate", "ConsultantScholarshipAdvisingProof"],
+};
+
 /** A vault document — mirrors the server DocumentDto. */
 export interface DocumentItem {
   id: string;
@@ -39,12 +62,14 @@ export interface DocumentItem {
   category: DocumentCategory;
   uploadedAt: string;
   applicationTrackerId: string | null;
+  onboardingType?: OnboardingDocumentType | null;
 }
 
 export interface UploadDocumentParams {
   file: File;
   category: DocumentCategory;
   applicationTrackerId?: string;
+  onboardingType?: OnboardingDocumentType;
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────
@@ -65,6 +90,8 @@ export const documentsApi = {
     form.append("category", params.category);
     if (params.applicationTrackerId)
       form.append("applicationTrackerId", params.applicationTrackerId);
+    if (params.onboardingType)
+      form.append("onboardingType", params.onboardingType);
     const { data } = await apiClient.post<DocumentItem>("/api/documents", form);
     return data;
   },

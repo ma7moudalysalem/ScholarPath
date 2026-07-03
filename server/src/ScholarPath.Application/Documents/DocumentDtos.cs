@@ -11,7 +11,10 @@ public sealed record DocumentDto(
     long SizeBytes,
     DocumentCategory Category,
     DateTimeOffset UploadedAt,
-    Guid? ApplicationTrackerId);
+    Guid? ApplicationTrackerId,
+    // FR-ONB-12/14 — the onboarding document type, so the admin review screen can
+    // label each verification file. Null for non-onboarding / legacy uploads.
+    OnboardingDocumentType? OnboardingType = null);
 
 /// <summary>The file bytes plus the metadata needed to stream a download.</summary>
 public sealed record DocumentDownloadDto(
@@ -23,5 +26,5 @@ public sealed record DocumentDownloadDto(
 public static class DocumentMapping
 {
     public static DocumentDto ToDto(Document d) => new(
-        d.Id, d.FileName, d.ContentType, d.SizeBytes, d.Category, d.UploadedAt, d.ApplicationTrackerId);
+        d.Id, d.FileName, d.ContentType, d.SizeBytes, d.Category, d.UploadedAt, d.ApplicationTrackerId, d.OnboardingType);
 }
