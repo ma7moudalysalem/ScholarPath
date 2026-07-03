@@ -37,6 +37,15 @@ public sealed class AiCostGate(
             .ConfigureAwait(false)
             ?? 0m;
 
+        // RACE-05 (KNOWN LIMITATION — deliberately not closed here): this is a
+        // check-then-act read, so highly-concurrent same-user requests could each
+        // read the same rolling total and each pass, overrunning the daily cap by
+        // up to (N-1)*pendingCost. A SERIALIZABLE transaction does NOT fix it — the
+        // check is read-only, so shared range locks don't conflict and both pass.
+        // Genuinely closing it needs a cost-reservation row written INSIDE a
+        // transaction before the LLM call and reconciled to the real cost after
+        // (a schema + multi-handler change, deferred to v2). Practical impact is
+        // negligible: per-call cost (~$0.0003) is tiny versus the ~$1.00 cap.
         if (used + pendingCostUsd > limit)
         {
             throw new ConflictException(

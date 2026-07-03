@@ -57,41 +57,51 @@ public sealed class CaptureScholarshipProviderReviewPaymentCommandHandler(
             return false;
         }
 
-        try
+        // ERR-01: do NOT wrap the Stripe capture in a catch-all. StripeService
+        // already surfaces a real StripeException as a BookingDomainException (422),
+        // and any other failure must PROPAGATE so the capture is retried — the old
+        // blanket `catch => return false` silently left the payment Held, so the
+        // consultant/provider was never paid and nothing surfaced. The benign
+        // non-success status (already-captured / requires_action) still returns
+        // false explicitly below, mirroring CapturePaymentIntentCommandHandler.
+        var stripeResult = await stripeService.CapturePaymentIntentAsync(
+            payment.StripePaymentIntentId,
+            amountToCaptureCents: null,
+            idempotencyKey: $"company-review-capture:{payment.Id:N}",
+            ct: ct);
+
+        if (stripeResult.Status != "succeeded")
         {
-            var stripeResult = await stripeService.CapturePaymentIntentAsync(
-                payment.StripePaymentIntentId,
-                amountToCaptureCents: null,
-                idempotencyKey: $"company-review-capture:{payment.Id:N}",
-                ct: ct);
+            logger.LogWarning(
+                "Capture for application {ApplicationId} returned Stripe status {Status}; payment left as {Original}.",
+                request.ApplicationId, stripeResult.Status, payment.Status);
+            return false;
+        }
 
-            if (stripeResult.Status != "succeeded")
-            {
-                logger.LogWarning(
-                    "Capture for application {ApplicationId} returned Stripe status {Status}; payment left as {Original}.",
-                    request.ApplicationId, stripeResult.Status, payment.Status);
-                return false;
-            }
+        var nowUtc = DateTimeOffset.UtcNow;
+        payment.Status = PaymentStatus.Captured;
+        payment.CapturedAt = nowUtc;
+        if (!string.IsNullOrWhiteSpace(stripeResult.LatestChargeId))
+        {
+            payment.StripeChargeId = stripeResult.LatestChargeId;
+        }
 
-            var nowUtc = DateTimeOffset.UtcNow;
-            payment.Status = PaymentStatus.Captured;
-            payment.CapturedAt = nowUtc;
-            if (!string.IsNullOrWhiteSpace(stripeResult.LatestChargeId))
-            {
-                payment.StripeChargeId = stripeResult.LatestChargeId;
-            }
+        // Re-resolve the split at capture time so the snapshot reflects the
+        // rule in force right now (an admin can change the active rule
+        // between intent creation and capture). PB-014 v1 = 10% default.
+        var split = await FinancialRuleResolver.ResolvePaymentSplitAsync(
+            db, payment.Type, payment.AmountCents, ct);
+        payment.ProfitShareAmountCents = split.PlatformTakeCents;
+        payment.PayeeAmountCents = split.PayeeNetCents;
 
-            // Re-resolve the split at capture time so the snapshot reflects the
-            // rule in force right now (an admin can change the active rule
-            // between intent creation and capture). PB-014 v1 = 10% default.
-            var split = await FinancialRuleResolver.ResolvePaymentSplitAsync(
-                db, payment.Type, payment.AmountCents, ct);
-            payment.ProfitShareAmountCents = split.PlatformTakeCents;
-            payment.PayeeAmountCents = split.PayeeNetCents;
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-            await db.SaveChangesAsync(ct).ConfigureAwait(false);
-
-            if (payment.PayeeUserId is Guid payee)
+        // The payment is captured + persisted; a notification failure must not
+        // undo that success (and must not report the capture as failed), so the
+        // dispatch is best-effort — same stance as StripePayoutJob.SafeNotifyAsync.
+        if (payment.PayeeUserId is Guid payee)
+        {
+            try
             {
                 await notifications.DispatchAsync(
                     payee,
@@ -101,15 +111,14 @@ public sealed class CaptureScholarshipProviderReviewPaymentCommandHandler(
                     idempotencyKey: $"company-review-paid:{payment.Id:N}",
                     ct).ConfigureAwait(false);
             }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex,
+                    "Capture succeeded for application {ApplicationId} but the payment-success notification failed to dispatch.",
+                    request.ApplicationId);
+            }
+        }
 
-            return true;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex,
-                "Failed to capture ScholarshipProviderReview payment for application {ApplicationId}",
-                request.ApplicationId);
-            return false;
-        }
+        return true;
     }
 }

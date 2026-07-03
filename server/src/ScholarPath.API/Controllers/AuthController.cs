@@ -21,6 +21,13 @@ using ScholarPath.Application.Common.Interfaces;
 
 namespace ScholarPath.API.Controllers;
 
+// SEC-10: this controller is intentionally MIXED — public flows (register/login/
+// refresh/forgot-password/SSO callbacks) and authenticated ones (logout/me/
+// switch-role/select-role/change-email). It must NOT carry a class-level
+// [AllowAnonymous] (that would override the method [Authorize]s and expose the
+// authenticated actions — ASP0026) NOR a class-level [Authorize] (that would 401
+// the public flows). Every action is therefore explicitly attributed at the
+// method level; the protected ones carry [Authorize].
 [ApiController]
 [Route("api/auth")]
 [Produces("application/json")]

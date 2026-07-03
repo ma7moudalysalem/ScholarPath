@@ -30,12 +30,37 @@ public sealed class KnowledgeBaseIndexer(
     private const int EmbedBatchSize = 16;
     private const string FaqDatasetName = "scholarpath-faq";
 
+    // RACE-06: a rebuild reads every document, (re)embeds the pending ones against
+    // the paid embedding provider, then SaveChanges. Two overlapping rebuilds —
+    // e.g. the startup RAG bootstrap and an admin-triggered rebuild — would embed
+    // the same documents twice (duplicate spend) and race their writes. The indexer
+    // is registered Scoped, so a process-wide static gate is required to serialize
+    // across requests. Prod runs a single App Service instance, so this suffices;
+    // a DB sp_getapplock would be needed only for a multi-instance deployment.
+    private static readonly SemaphoreSlim RebuildGate = new(1, 1);
+
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         PropertyNameCaseInsensitive = true,
     };
 
     public async Task<KnowledgeBaseRebuildResultDto> RebuildAsync(bool force, CancellationToken ct)
+    {
+        // Serialize rebuilds so a startup bootstrap and an admin rebuild never
+        // overlap. WaitAsync honours the token, so a queued caller cancelling
+        // throws OperationCanceledException rather than hanging.
+        await RebuildGate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            return await RebuildCoreAsync(force, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            RebuildGate.Release();
+        }
+    }
+
+    private async Task<KnowledgeBaseRebuildResultDto> RebuildCoreAsync(bool force, CancellationToken ct)
     {
         var desired = new List<DesiredDoc>();
         desired.AddRange(await BuildScholarshipDocsAsync(ct).ConfigureAwait(false));

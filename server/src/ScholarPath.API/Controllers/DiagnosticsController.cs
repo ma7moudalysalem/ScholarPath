@@ -5,7 +5,11 @@ using ScholarPath.Infrastructure.Hubs;
 
 namespace ScholarPath.API.Controllers;
 
+// SEC-10: explicit default posture. Every Diagnostics action is authenticated, so
+// the controller is deny-by-default at the class level — a newly-added action
+// inherits [Authorize] instead of silently shipping open.
 [ApiController]
+[Authorize]
 [Route("api/diagnostics")]
 [Produces("application/json")]
 public sealed class DiagnosticsController(IHubContext<NotificationHub> notificationHub) : ControllerBase
