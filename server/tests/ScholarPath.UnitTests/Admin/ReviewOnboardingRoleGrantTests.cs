@@ -184,4 +184,25 @@ public class ReviewOnboardingRoleGrantTests
         await act.Should().ThrowAsync<ScholarPath.Application.Common.Exceptions.ConflictException>()
             .WithMessage("*missing required*");
     }
+
+    [Fact]
+    public async Task Rejection_clears_the_pending_active_role()
+    {
+        // On reject the account returns to a clean Unassigned state — the pending
+        // (requested-but-not-granted) ActiveRole must be cleared.
+        using var db = CreateDb();
+        var userId = SeedPendingUser(db, "ScholarshipProvider");
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.SetAccountStatusAsync(userId, AccountStatus.Unassigned,
+                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        await Sut(db, admin).Handle(
+            new ReviewOnboardingCommand(userId, OnboardingDecision.Reject, "Documents unclear."), default);
+
+        var user = await db.Users.FirstAsync(u => u.Id == userId);
+        user.ActiveRole.Should().BeNull();
+    }
 }

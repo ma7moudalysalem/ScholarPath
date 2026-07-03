@@ -86,15 +86,22 @@ public sealed class ReviewOnboardingCommandHandler(
         }
         else
         {
+            // On rejection the account returns to a clean Unassigned state: clear the
+            // pending ActiveRole it was carrying (the requested-but-not-granted role),
+            // otherwise the account would sit Unassigned + role-less yet still report
+            // ActiveRole="ScholarshipProvider"/"Consultant", which mis-routes the UI.
+            user.ActiveRole = null;
+
             // Persist the rejection feedback for the applicant to see when they
-            // resubmit. We only write the reason when one was actually supplied —
+            // resubmit. Only write the reason when one was actually supplied —
             // null/whitespace would just clear the previous one for no reason.
             if (user.Profile is not null && !string.IsNullOrWhiteSpace(request.ReviewerNotes))
             {
                 user.Profile.LastOnboardingRejectionReason = request.ReviewerNotes;
                 user.Profile.LastOnboardingRejectedAt = DateTimeOffset.UtcNow;
-                await db.SaveChangesAsync(ct).ConfigureAwait(false);
             }
+
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
         }
 
         // Tell the applicant their onboarding was decided (in-app + email).
