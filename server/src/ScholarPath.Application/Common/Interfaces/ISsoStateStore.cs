@@ -1,19 +1,22 @@
 namespace ScholarPath.Application.Common.Interfaces;
 
 /// <summary>
-/// Server-side store for the OAuth <c>state</c> anti-CSRF nonce (SEC-06 / GAP-2).
-/// A value is issued when the SSO authorize redirect is built and consumed
-/// (single-use) when the provider calls back, so an attacker cannot replay a
-/// forged callback to hijack the OAuth handshake / link accounts.
+/// Issues and validates the OAuth <c>state</c> anti-CSRF token (SEC-06 / GAP-2).
+/// The token is minted when the SSO authorize redirect is built and validated when
+/// the provider calls back, so an attacker cannot forge a callback to hijack the
+/// OAuth handshake / link accounts. Implementations MUST be stateless (or use a
+/// persistent/shared store) so the token survives app restarts and multiple
+/// instances — an in-process store loses it on every recycle/deploy, which broke
+/// SSO sign-in ("Sign-in could not be completed").
 /// </summary>
 public interface ISsoStateStore
 {
-    /// <summary>Persist a freshly-minted state nonce with a short expiry.</summary>
-    void Store(string state);
+    /// <summary>Mints a fresh, tamper-proof, short-lived state token.</summary>
+    string Issue();
 
     /// <summary>
-    /// Returns <c>true</c> and removes the nonce if it was present (valid, unexpired,
-    /// unused); returns <c>false</c> for a missing / already-consumed / expired nonce.
+    /// Returns <c>true</c> when the token is authentic (untampered) and unexpired;
+    /// <c>false</c> for a missing / forged / expired token.
     /// </summary>
-    bool Consume(string state);
+    bool Validate(string? state);
 }

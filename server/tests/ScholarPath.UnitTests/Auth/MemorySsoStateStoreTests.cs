@@ -1,37 +1,48 @@
 using FluentAssertions;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.DataProtection;
 using ScholarPath.Infrastructure.Services;
 using Xunit;
 
 namespace ScholarPath.UnitTests.Auth;
 
-/// <summary>SEC-06 / GAP-2 — OAuth <c>state</c> nonce store behaviour.</summary>
-public class MemorySsoStateStoreTests
+/// <summary>
+/// SEC-06 — the stateless OAuth <c>state</c> token (issue → validate; blank / forged
+/// / expired rejected). The real tamper-proofing is ASP.NET DataProtection; here a
+/// passthrough protector exercises the store's payload + expiry logic.
+/// </summary>
+public class SsoStateStoreTests
 {
-    private static MemorySsoStateStore NewStore() =>
-        new(new MemoryCache(new MemoryCacheOptions()));
-
-    [Fact]
-    public void Stored_state_is_valid_once_then_rejected_on_replay()
+    // Passthrough IDataProtector: the string Protect/Unprotect extensions still
+    // base64url-encode around it, so a well-formed token round-trips and malformed
+    // input fails to decode — enough to cover issue/validate/expiry behaviour.
+    private sealed class FakeProtector : IDataProtectionProvider, IDataProtector
     {
-        var store = NewStore();
-        store.Store("abc123");
-
-        store.Consume("abc123").Should().BeTrue();   // legitimate callback
-        store.Consume("abc123").Should().BeFalse();  // single-use — replay rejected
+        public IDataProtector CreateProtector(string purpose) => this;
+        public byte[] Protect(byte[] plaintext) => plaintext;
+        public byte[] Unprotect(byte[] protectedData) => protectedData;
     }
 
+    private static DataProtectionSsoStateStore NewStore() => new(new FakeProtector());
+
     [Fact]
-    public void Unknown_state_is_rejected()
+    public void Issued_state_validates()
     {
-        NewStore().Consume("never-issued").Should().BeFalse();
+        var store = NewStore();
+        store.Validate(store.Issue()).Should().BeTrue();
     }
 
     [Fact]
     public void Blank_state_is_rejected()
     {
         var store = NewStore();
-        store.Consume("").Should().BeFalse();
-        store.Consume("   ").Should().BeFalse();
+        store.Validate(null).Should().BeFalse();
+        store.Validate("").Should().BeFalse();
+        store.Validate("   ").Should().BeFalse();
+    }
+
+    [Fact]
+    public void Forged_or_malformed_state_is_rejected()
+    {
+        NewStore().Validate("not-a-real-token").Should().BeFalse();
     }
 }

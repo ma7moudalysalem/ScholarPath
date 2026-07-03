@@ -135,8 +135,10 @@ public static class DependencyInjection
 
         // SEC-06 / GAP-2 — server-side OAuth `state` nonce store (anti-CSRF).
         // Registered regardless of stub/real SSO so the authorize↔callback
-        // handshake is validated in every environment.
-        services.AddSingleton<ISsoStateStore, MemorySsoStateStore>();
+        // handshake is validated in every environment. Stateless (DataProtection)
+        // so the state token survives app restarts / multiple instances — the old
+        // in-memory store lost it on every recycle/deploy, breaking SSO sign-in.
+        services.AddSingleton<ISsoStateStore, DataProtectionSsoStateStore>();
 
         // Email verification (FR-215) — wraps Identity's built-in confirmation tokens.
         services.AddScoped<IEmailVerificationService, EmailVerificationService>();

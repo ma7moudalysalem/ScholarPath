@@ -223,15 +223,9 @@ public sealed class AuthController(IMediator mediator, ISsoService ssoService, I
     // SEC-06 / GAP-2 — issue a single-use CSPRNG `state` nonce and remember it
     // server-side so the matching callback can prove the handshake it completes is
     // the one this server started (anti-CSRF / anti account-linking).
-    private string IssueSsoState()
-    {
-        var state = System.Security.Cryptography.RandomNumberGenerator.GetHexString(32);
-        ssoStateStore.Store(state);
-        return state;
-    }
+    private string IssueSsoState() => ssoStateStore.Issue();
 
-    private bool ValidateSsoState(string? state)
-        => !string.IsNullOrWhiteSpace(state) && ssoStateStore.Consume(state);
+    private bool ValidateSsoState(string? state) => ssoStateStore.Validate(state);
 
     private string? ClientIp() => HttpContext.Connection.RemoteIpAddress?.ToString();
 
