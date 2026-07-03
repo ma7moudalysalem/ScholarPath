@@ -31,6 +31,34 @@ public class ReviewOnboardingRoleGrantTests
             AccountStatus = AccountStatus.PendingApproval,
             ActiveRole = requestedRole,
         });
+        // FR-ONB-13 — approval now requires the role's mandatory document types to be
+        // present, so seed them for the pending applicant.
+        var types = requestedRole == "Consultant"
+            ? new[]
+            {
+                OnboardingDocumentType.ConsultantIdentityProof,
+                OnboardingDocumentType.ConsultantDegreeCertificate,
+                OnboardingDocumentType.ConsultantCvResume,
+            }
+            : new[]
+            {
+                OnboardingDocumentType.ProviderLegalRegistration,
+                OnboardingDocumentType.ProviderAuthorizedRepresentativeId,
+            };
+        foreach (var type in types)
+        {
+            db.Documents.Add(new Document
+            {
+                Id = Guid.NewGuid(),
+                OwnerUserId = id,
+                FileName = $"{type}.pdf",
+                ContentType = "application/pdf",
+                SizeBytes = 1024,
+                StoragePath = $"documents/{id}/{type}.pdf",
+                Category = DocumentCategory.OnboardingDocument,
+                OnboardingType = type,
+            });
+        }
         return id;
     }
 
@@ -128,5 +156,32 @@ public class ReviewOnboardingRoleGrantTests
         var profile = await db.UserProfiles.FirstAsync(p => p.UserId == userId);
         profile.LastOnboardingRejectionReason.Should().BeNull();
         profile.LastOnboardingRejectedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Approval_is_blocked_when_required_document_types_are_missing()
+    {
+        // FR-ONB-13 approval gate — a pending provider with no verification documents
+        // cannot be approved.
+        using var db = CreateDb();
+        var id = Guid.NewGuid();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = id,
+            FirstName = "No",
+            LastName = "Docs",
+            Email = $"{id:N}@scholarpath.local",
+            UserName = $"{id:N}@scholarpath.local",
+            AccountStatus = AccountStatus.PendingApproval,
+            ActiveRole = "ScholarshipProvider",
+        });
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        var act = () => Sut(db, admin).Handle(
+            new ReviewOnboardingCommand(id, OnboardingDecision.Approve, null), default);
+
+        await act.Should().ThrowAsync<ScholarPath.Application.Common.Exceptions.ConflictException>()
+            .WithMessage("*missing required*");
     }
 }

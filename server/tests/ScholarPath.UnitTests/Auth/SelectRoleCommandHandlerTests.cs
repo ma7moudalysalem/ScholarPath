@@ -68,7 +68,18 @@ public class SelectRoleCommandHandlerTests
     /// </summary>
     private static void SeedOnboardingDocuments(ApplicationDbContext db, Guid userId, int count = 3)
     {
-        for (var i = 0; i < count; i++)
+        // FR-ONB-13 — seed one document per mandatory type for BOTH roles so whichever
+        // role a test selects clears the required-type check. (count retained for
+        // call-site compatibility; the type set is what the handler now validates.)
+        var types = new[]
+        {
+            OnboardingDocumentType.ProviderLegalRegistration,
+            OnboardingDocumentType.ProviderAuthorizedRepresentativeId,
+            OnboardingDocumentType.ConsultantIdentityProof,
+            OnboardingDocumentType.ConsultantDegreeCertificate,
+            OnboardingDocumentType.ConsultantCvResume,
+        };
+        for (var i = 0; i < types.Length; i++)
         {
             db.Documents.Add(new Document
             {
@@ -79,9 +90,27 @@ public class SelectRoleCommandHandlerTests
                 SizeBytes = 1024,
                 StoragePath = $"documents/{userId}/verification-{i}.pdf",
                 Category = DocumentCategory.OnboardingDocument,
+                OnboardingType = types[i],
                 UploadedAt = DateTimeOffset.UtcNow,
             });
         }
+    }
+
+    /// <summary>Seeds a single onboarding document tagged with a specific type.</summary>
+    private static void SeedTypedOnboardingDoc(ApplicationDbContext db, Guid userId, OnboardingDocumentType type)
+    {
+        db.Documents.Add(new Document
+        {
+            Id = Guid.NewGuid(),
+            OwnerUserId = userId,
+            FileName = $"{type}.pdf",
+            ContentType = "application/pdf",
+            SizeBytes = 1024,
+            StoragePath = $"documents/{userId}/{type}.pdf",
+            Category = DocumentCategory.OnboardingDocument,
+            OnboardingType = type,
+            UploadedAt = DateTimeOffset.UtcNow,
+        });
     }
 
     [Fact]
@@ -350,7 +379,9 @@ public class SelectRoleCommandHandlerTests
     {
         using var db = CreateDb();
         var userId = SeedUnassignedUser(db);
-        SeedOnboardingDocuments(db, userId, count: 2); // Consultant requires 3.
+        // FR-ONB-13 — only 2 of the 3 required Consultant types (missing the CV).
+        SeedTypedOnboardingDoc(db, userId, OnboardingDocumentType.ConsultantIdentityProof);
+        SeedTypedOnboardingDoc(db, userId, OnboardingDocumentType.ConsultantDegreeCertificate);
         await db.SaveChangesAsync();
 
         var admin = Substitute.For<IUserAdministration>();

@@ -424,3 +424,27 @@ public enum DocumentCategory
     /// </summary>
     OnboardingDocument = 10,
 }
+
+/// <summary>
+/// FR-ONB-12 — the specific kind of onboarding verification document, so the
+/// applicant tags each upload and both the mandatory-type check (FR-ONB-13) and
+/// the admin review screen (FR-ONB-14) can reason about *which* documents are
+/// present rather than just how many.
+/// </summary>
+public enum OnboardingDocumentType
+{
+    /// <summary>Legacy / untyped upload (documents created before FR-ONB-12).</summary>
+    Unspecified = 0,
+
+    // ── Scholarship Provider ──────────────────────────────────────────────────
+    ProviderLegalRegistration = 1,
+    ProviderAuthorizedRepresentativeId = 2,
+    ProviderTaxCertificate = 3,
+
+    // ── Consultant ────────────────────────────────────────────────────────────
+    ConsultantIdentityProof = 10,
+    ConsultantDegreeCertificate = 11,
+    ConsultantCvResume = 12,
+    ConsultantProfessionalCertificate = 13,
+    ConsultantScholarshipAdvisingProof = 14,
+}

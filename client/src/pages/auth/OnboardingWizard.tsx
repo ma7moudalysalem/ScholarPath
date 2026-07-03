@@ -22,7 +22,12 @@ import {
   type OnboardingDetails,
 } from "@/services/api/auth";
 import { apiErrorMessage } from "@/services/api/client";
-import { documentsApi } from "@/services/api/documents";
+import {
+  documentsApi,
+  requiredOnboardingDocTypes,
+  optionalOnboardingDocTypes,
+  type OnboardingDocumentType,
+} from "@/services/api/documents";
 import { useAuthStore } from "@/stores/authStore";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
@@ -101,9 +106,18 @@ function Labeled({
  * it lets the applicant upload supporting verification documents (registration
  * certificate, credentials) for the admin reviewer — UAT TC-001/002.
  */
-function PendingReview() {
+/**
+ * Reusable typed-document upload panel (FR-ONB-12). Used in the wizard's documents
+ * step (before submission) and on the pending-review screen (after submission).
+ */
+function OnboardingDocumentPanel({ roleKey }: { roleKey: "ScholarshipProvider" | "Consultant" }) {
   const { t } = useTranslation(["auth", "common"]);
   const qc = useQueryClient();
+  const docTypeOptions: OnboardingDocumentType[] = [
+    ...requiredOnboardingDocTypes[roleKey],
+    ...optionalOnboardingDocTypes[roleKey],
+  ];
+  const [docType, setDocType] = useState<OnboardingDocumentType | "">("");
 
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ["onboarding-documents"],
@@ -111,10 +125,11 @@ function PendingReview() {
   });
 
   const uploadMut = useMutation({
-    mutationFn: (file: File) =>
-      documentsApi.upload({ file, category: "OnboardingDocument" }),
+    mutationFn: ({ file, type }: { file: File; type: OnboardingDocumentType }) =>
+      documentsApi.upload({ file, category: "OnboardingDocument", onboardingType: type }),
     onSuccess: () => {
       toast.success(t("auth:onboarding.documents.uploaded"));
+      setDocType("");
       void qc.invalidateQueries({ queryKey: ["onboarding-documents"] });
     },
     onError: (err) =>
@@ -131,24 +146,19 @@ function PendingReview() {
     const file = e.target.files?.[0];
     e.target.value = ""; // let the same file be re-picked after an error
     if (!file) return;
+    if (!docType) {
+      toast.error(t("auth:onboarding.documents.selectTypeFirst"));
+      return;
+    }
     if (file.size > 25 * 1024 * 1024) {
       toast.error(t("auth:onboarding.documents.tooLarge"));
       return;
     }
-    uploadMut.mutate(file);
+    uploadMut.mutate({ file, type: docType });
   }
 
   return (
-    <section className="mx-auto max-w-xl px-4 py-20 sm:px-6">
-      <div className="text-center">
-        <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-brand-50 text-brand-500">
-          <Clock aria-hidden className="size-6" />
-        </div>
-        <h1 className="mb-3 text-3xl">{t("auth:onboarding.pending.title")}</h1>
-        <p className="text-text-secondary">{t("auth:onboarding.pending.body")}</p>
-      </div>
-
-      <div className="mt-10 rounded-xl border border-border-subtle bg-bg-elevated p-6 text-start">
+      <div className="mt-8 rounded-xl border border-border-subtle bg-bg-elevated p-6 text-start">
         <h2 className="text-lg font-semibold text-text-primary">
           {t("auth:onboarding.documents.title")}
         </h2>
@@ -156,7 +166,22 @@ function PendingReview() {
           {t("auth:onboarding.documents.subtitle")}
         </p>
 
-        <label className="mt-4 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-border-subtle px-4 text-sm font-medium text-text-primary transition hover:border-brand-500 hover:text-brand-500">
+        {/* FR-ONB-12 — pick the document type before choosing the file. */}
+        <select
+          value={docType}
+          onChange={(e) => setDocType(e.target.value as OnboardingDocumentType)}
+          className="mt-4 block h-10 w-full max-w-sm rounded-lg border border-border-subtle bg-bg-elevated px-3 text-sm text-text-primary"
+        >
+          <option value="">{t("auth:onboarding.documents.selectType")}</option>
+          {docTypeOptions.map((tp) => (
+            <option key={tp} value={tp}>
+              {t(`auth:onboarding.docTypes.${tp}`, tp)}
+              {requiredOnboardingDocTypes[roleKey].includes(tp) ? " *" : ""}
+            </option>
+          ))}
+        </select>
+
+        <label className={`mt-3 inline-flex h-10 items-center gap-2 rounded-lg border border-border-subtle px-4 text-sm font-medium text-text-primary transition ${docType ? "cursor-pointer hover:border-brand-500 hover:text-brand-500" : "cursor-not-allowed opacity-50"}`}>
           <Upload aria-hidden className="size-4" />
           {uploadMut.isPending
             ? t("auth:onboarding.documents.uploading")
@@ -165,7 +190,7 @@ function PendingReview() {
             type="file"
             accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
             onChange={onFileChange}
-            disabled={uploadMut.isPending}
+            disabled={uploadMut.isPending || !docType}
             className="hidden"
           />
         </label>
@@ -204,6 +229,82 @@ function PendingReview() {
           ))}
         </ul>
       </div>
+  );
+}
+
+/** Awaiting-review screen (after submission) — status message + the document panel. */
+function PendingReview() {
+  const { t } = useTranslation(["auth", "common"]);
+  const activeRole = useAuthStore((s) => s.user?.activeRole);
+  const roleKey: "ScholarshipProvider" | "Consultant" =
+    activeRole === "Consultant" ? "Consultant" : "ScholarshipProvider";
+  return (
+    <section className="mx-auto max-w-xl px-4 py-20 sm:px-6">
+      <div className="text-center">
+        <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-brand-50 text-brand-500">
+          <Clock aria-hidden className="size-6" />
+        </div>
+        <h1 className="mb-3 text-3xl">{t("auth:onboarding.pending.title")}</h1>
+        <p className="text-text-secondary">{t("auth:onboarding.pending.body")}</p>
+      </div>
+      <OnboardingDocumentPanel roleKey={roleKey} />
+    </section>
+  );
+}
+
+/**
+ * Documents step (before submission, FR-ONB-13): the applicant uploads typed
+ * verification documents, then submits for review. The submit button is disabled
+ * until every required document type is present.
+ */
+function DocumentsStep({ roleKey, onSubmit, onBack, submitting }: {
+  roleKey: "ScholarshipProvider" | "Consultant";
+  onSubmit: () => void;
+  onBack: () => void;
+  submitting: boolean;
+}) {
+  const { t } = useTranslation(["auth", "common"]);
+  const { data: docs = [] } = useQuery({
+    queryKey: ["onboarding-documents"],
+    queryFn: () => documentsApi.list("OnboardingDocument"),
+  });
+  const uploaded = new Set(docs.map((d) => d.onboardingType).filter(Boolean));
+  const missing = requiredOnboardingDocTypes[roleKey].filter((tp) => !uploaded.has(tp));
+  const canSubmit = missing.length === 0 && !submitting;
+
+  return (
+    <section className="mx-auto max-w-xl px-4 py-16 sm:px-6">
+      <button
+        type="button"
+        onClick={onBack}
+        className="mb-4 text-sm text-text-secondary transition hover:text-text-primary"
+      >
+        {t("auth:onboarding.documents.back", "← Back")}
+      </button>
+      <h1 className="mb-1 text-2xl">{t("auth:onboarding.documents.stepTitle", "Verification documents")}</h1>
+      <p className="text-sm text-text-secondary">
+        {t("auth:onboarding.documents.stepSubtitle", "Upload the required documents to submit your request for review.")}
+      </p>
+
+      <OnboardingDocumentPanel roleKey={roleKey} />
+
+      {missing.length > 0 && (
+        <p className="mt-3 text-sm text-danger-500">
+          {t("auth:onboarding.documents.stillRequired", "Still required")}:{" "}
+          {missing.map((m) => t(`auth:onboarding.docTypes.${m}`, m)).join("، ")}
+        </p>
+      )}
+
+      <button
+        type="button"
+        disabled={!canSubmit}
+        onClick={onSubmit}
+        className="cta-pill mt-5 h-11 w-full bg-brand-500 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {submitting
+          ? t("common:status.loading")
+          : t("auth:onboarding.documents.submitForReview", "Submit for review")}
+      </button>
     </section>
   );
 }
@@ -401,9 +502,12 @@ export function OnboardingWizard() {
   // field is rendered + validated.
   const paymentsEnabled = usePaymentsEnabled();
 
-  const [step, setStep] = useState<"role" | "details">("role");
+  const [step, setStep] = useState<"role" | "details" | "documents">("role");
   const [detailsRole, setDetailsRole] = useState<"ScholarshipProvider" | "Consultant">("ScholarshipProvider");
   const [submitting, setSubmitting] = useState(false);
+  // FR-ONB-13 — details captured on the details step; the applicant then uploads
+  // required documents on the documents step before the request is submitted.
+  const [pendingDetails, setPendingDetails] = useState<OnboardingDetails | null>(null);
 
   const [company, setScholarshipProvider] = useState<ScholarshipProviderFormState>(emptyScholarshipProvider);
   const [scholarshipProviderErrors, setScholarshipProviderErrors] = useState<Record<string, string>>({});
@@ -431,6 +535,14 @@ export function OnboardingWizard() {
     }
   }
 
+  // Details validated → hold them and move to the documents step; the request is
+  // only submitted once the required documents are uploaded there (FR-ONB-13).
+  function goToDocuments(role: "ScholarshipProvider" | "Consultant", details: OnboardingDetails) {
+    setDetailsRole(role);
+    setPendingDetails(details);
+    setStep("documents");
+  }
+
   function pickRole(role: RoleKey) {
     if (submitting) return;
     if (role === "Student") {
@@ -451,7 +563,7 @@ export function OnboardingWizard() {
         toast.error(t("auth:onboarding.details.required"));
         return;
       }
-      void submitRole("ScholarshipProvider", {
+      goToDocuments("ScholarshipProvider", {
         organizationLegalName: company.legalName.trim(),
         organizationWebsite: company.website.trim(),
         organizationEmail: company.email.trim(),
@@ -491,7 +603,7 @@ export function OnboardingWizard() {
       // wire payload consistent with the validator and avoids NaN from an
       // empty string.
       const feeNumber = paymentsEnabled ? Number(consultant.fee) : 0;
-      void submitRole("Consultant", {
+      goToDocuments("Consultant", {
         biography: consultant.bio.trim(),
         professionalTitle: consultant.title.trim(),
         highestDegree: consultant.highestDegree.trim(),
@@ -514,6 +626,17 @@ export function OnboardingWizard() {
   // react-hooks/static-components — components must not be created on each render.)
 
   // ── Step 2 — ScholarshipProvider / Consultant profile details ──────────────────────────
+  if (step === "documents" && pendingDetails) {
+    return (
+      <DocumentsStep
+        roleKey={detailsRole}
+        submitting={submitting}
+        onBack={() => setStep("details")}
+        onSubmit={() => void submitRole(detailsRole, pendingDetails)}
+      />
+    );
+  }
+
   if (step === "details") {
     const isScholarshipProvider = detailsRole === "ScholarshipProvider";
     return (

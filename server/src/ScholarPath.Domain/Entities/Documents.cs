@@ -29,6 +29,13 @@ public class Document : AuditableEntity, ISoftDeletable
     /// <summary>Folder the owner filed the document under.</summary>
     public DocumentCategory Category { get; set; } = DocumentCategory.Other;
 
+    /// <summary>
+    /// FR-ONB-12 — for <see cref="DocumentCategory.OnboardingDocument"/> uploads,
+    /// the specific verification document this is (legal registration, CV, …).
+    /// Null for non-onboarding documents and for legacy uploads made before typing.
+    /// </summary>
+    public OnboardingDocumentType? OnboardingType { get; set; }
+
     /// <summary>When the file was uploaded.</summary>
     public DateTimeOffset UploadedAt { get; set; } = DateTimeOffset.UtcNow;
 

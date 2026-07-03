@@ -59,7 +59,14 @@ public class SubmitConsultantUpgradeRequestCommandHandlerTests
         // fixtures seed them. Pass withDocs:false to exercise the missing-docs guard.
         if (withDocs)
         {
-            for (var i = 0; i < 3; i++)
+            // FR-ONB-13 — seed the three mandatory Consultant document types.
+            var types = new[]
+            {
+                OnboardingDocumentType.ConsultantIdentityProof,
+                OnboardingDocumentType.ConsultantDegreeCertificate,
+                OnboardingDocumentType.ConsultantCvResume,
+            };
+            for (var i = 0; i < types.Length; i++)
             {
                 db.Documents.Add(new Document
                 {
@@ -70,6 +77,7 @@ public class SubmitConsultantUpgradeRequestCommandHandlerTests
                     SizeBytes = 1024,
                     StoragePath = $"documents/{id}/verification-{i}.pdf",
                     Category = DocumentCategory.OnboardingDocument,
+                    OnboardingType = types[i],
                 });
             }
         }

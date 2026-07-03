@@ -104,6 +104,16 @@
       "empty": "لم يرفع مقدّم الطلب أي مستندات.",
       "heading": "مستندات التحقق"
     },
+    "docTypes": {
+      "ProviderLegalRegistration": "التسجيل القانوني",
+      "ProviderAuthorizedRepresentativeId": "هوية الممثل",
+      "ProviderTaxCertificate": "الشهادة الضريبية",
+      "ConsultantIdentityProof": "إثبات الهوية",
+      "ConsultantDegreeCertificate": "الشهادة العلمية",
+      "ConsultantCvResume": "السيرة الذاتية",
+      "ConsultantProfessionalCertificate": "شهادة مهنية",
+      "ConsultantScholarshipAdvisingProof": "إثبات الإرشاد"
+    },
     "reviewDialog": {
       "title": "مراجعة طلب التأهيل",
       "notesLabel": "ملاحظات (إلزامية عند الرفض)",
