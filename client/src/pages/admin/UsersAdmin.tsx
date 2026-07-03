@@ -68,8 +68,13 @@ export function UsersAdmin() {
     placeholderData: keepPreviousData,
   });
 
-  // The API returns totalCount only — derive the page count client-side.
-  const totalPages = data ? Math.max(1, Math.ceil(data.totalCount / data.pageSize)) : 1;
+  // Derive the page count client-side. Guard every input: Math.max(1, NaN)
+  // returns NaN in JS, which is what surfaced as "Page 1 of NaN" when a field
+  // (totalCount / pageSize) was missing from the response.
+  const totalPages = Math.max(
+    1,
+    Math.ceil((data?.totalCount ?? 0) / (data?.pageSize || 25)),
+  );
 
   const statusMut = useMutation({
     mutationFn: ({ id, newStatus, reason }: { id: string; newStatus: AccountStatus; reason?: string }) =>

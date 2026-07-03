@@ -40,12 +40,33 @@ export function useAllBookingsQuery() {
   });
 }
 
-/** One booking's full detail. */
+/**
+ * One booking's full detail.
+ *
+ * UX-01: while the booking is still waiting on the async Stripe webhook —
+ * status "Requested" and paymentStatus not yet settled (Pending / not-yet-
+ * loaded) — poll every 4s so the payment status heals itself once the
+ * `amount_capturable_updated` webhook flips the payment Pending→Held. This fixes
+ * the "stale pending after checkout" gap where a student who opens the booking
+ * straight after paying would otherwise see "Pending" until a manual refresh.
+ * Polling STOPS the moment the payment settles (Held/Failed) or the consultant
+ * acts, so a terminal booking is never over-fetched.
+ */
 export function useBookingDetailQuery(id: string | undefined) {
   return useQuery<BookingDetail>({
     queryKey: queryKeys.bookings.detail(id ?? ""),
     queryFn: () => bookingsApi.getById(id ?? ""),
     enabled: !!id,
+    // Re-read when the user tabs back — a webhook may have landed meanwhile.
+    refetchOnWindowFocus: true,
+    refetchInterval: (query) => {
+      const b = query.state.data;
+      if (!b) return false;
+      const awaitingWebhook =
+        b.status === "Requested" &&
+        (b.paymentStatus == null || b.paymentStatus === "Pending");
+      return awaitingWebhook ? 4_000 : false;
+    },
   });
 }
 

@@ -88,11 +88,23 @@ public sealed class ExternalAuthProviderOptions
     public string? ClientSecret { get; set; }
 
     /// <summary>
-    /// Optional fixed OAuth redirect URI. When empty the redirect URI supplied
-    /// by the caller (the SPA callback URL) is used for both the authorize step
-    /// and the token exchange — they must match exactly.
+    /// Optional fixed OAuth redirect URI. When set it is ALWAYS used (the caller
+    /// value is ignored) for both the authorize step and the token exchange — the
+    /// safest configuration, preferred in production.
     /// </summary>
     public string? RedirectUri { get; set; }
+
+    /// <summary>
+    /// SEC-12 — allowlist of exact redirect URIs a caller may request when no fixed
+    /// <see cref="RedirectUri"/> is configured. When non-empty, a caller-supplied
+    /// redirect URI is accepted only if it matches (ordinal) one of these entries;
+    /// anything else is rejected, so an attacker cannot steer the OAuth handshake
+    /// off-site (open redirect / auth-code leak) even if the provider's own
+    /// registration is broad. When BOTH this and <see cref="RedirectUri"/> are
+    /// empty the caller value is used as-is (legacy behaviour) — production should
+    /// set one of them to fully close the finding.
+    /// </summary>
+    public string[] AllowedRedirectUris { get; set; } = [];
 }
 
 public sealed class StripeOptions

@@ -9,10 +9,11 @@ import {
   Clock,
   ArrowLeft,
   Upload,
-  FileText,
   Trash2,
   AlertTriangle,
   Mail,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { toast } from "sonner";
@@ -111,26 +112,119 @@ function Labeled({
  * Reusable typed-document upload panel (FR-ONB-12). Used in the wizard's documents
  * step (before submission) and on the pending-review screen (after submission).
  */
+/**
+ * One verification-document row: the document type, whether it's uploaded (with
+ * the file name) and a per-type Upload/Remove control — so the applicant sees at
+ * a glance what's needed, what's done, and what's still missing. Module-scope
+ * (not nested) to satisfy react-hooks/static-components.
+ */
+function DocRow({
+  label,
+  required,
+  fileName,
+  busy,
+  removing,
+  onPick,
+  onRemove,
+  requiredLabel,
+  uploadLabel,
+  uploadingLabel,
+  removeLabel,
+}: {
+  label: string;
+  required: boolean;
+  fileName?: string;
+  busy: boolean;
+  removing: boolean;
+  onPick: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove?: () => void;
+  requiredLabel: string;
+  uploadLabel: string;
+  uploadingLabel: string;
+  removeLabel: string;
+}) {
+  const done = !!fileName;
+  return (
+    <li
+      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
+        done ? "border-success-200" : "border-border-subtle"
+      }`}
+    >
+      <div className="flex min-w-0 items-center gap-2.5">
+        {done ? (
+          <CheckCircle2 aria-hidden className="size-5 shrink-0 text-success-500" />
+        ) : (
+          <Circle aria-hidden className="size-5 shrink-0 text-text-tertiary" />
+        )}
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-text-primary">
+            <span className="truncate">{label}</span>
+            {required && (
+              <span className="shrink-0 rounded bg-danger-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-danger-500">
+                {requiredLabel}
+              </span>
+            )}
+          </p>
+          {done && <p className="truncate text-xs text-text-tertiary">{fileName}</p>}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        {done ? (
+          <button
+            type="button"
+            onClick={onRemove}
+            disabled={removing}
+            aria-label={removeLabel}
+            className="text-text-tertiary transition hover:text-danger-500 disabled:opacity-50"
+          >
+            <Trash2 aria-hidden className="size-4" />
+          </button>
+        ) : (
+          <label
+            className={`inline-flex h-9 items-center gap-1.5 rounded-lg border border-border-subtle px-3 text-xs font-medium text-text-primary transition ${
+              busy
+                ? "pointer-events-none opacity-50"
+                : "cursor-pointer hover:border-brand-500 hover:text-brand-500"
+            }`}
+          >
+            <Upload aria-hidden className="size-3.5" />
+            {busy ? uploadingLabel : uploadLabel}
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
+              onChange={onPick}
+              disabled={busy}
+              className="hidden"
+            />
+          </label>
+        )}
+      </div>
+    </li>
+  );
+}
+
 function OnboardingDocumentPanel({ roleKey }: { roleKey: "ScholarshipProvider" | "Consultant" }) {
   const { t } = useTranslation(["auth", "common"]);
   const qc = useQueryClient();
-  const docTypeOptions: OnboardingDocumentType[] = [
-    ...requiredOnboardingDocTypes[roleKey],
-    ...optionalOnboardingDocTypes[roleKey],
-  ];
-  const [docType, setDocType] = useState<OnboardingDocumentType | "">("");
+  const required = requiredOnboardingDocTypes[roleKey];
+  const optional = optionalOnboardingDocTypes[roleKey];
 
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ["onboarding-documents"],
     queryFn: () => documentsApi.list("OnboardingDocument"),
   });
 
+  // The uploaded document per type — the checklist is type-driven so the
+  // applicant sees each required/optional slot and its status directly, instead
+  // of a bare dropdown + flat file list.
+  const docByType = new Map<string, (typeof docs)[number]>();
+  for (const d of docs) if (d.onboardingType) docByType.set(d.onboardingType, d);
+
   const uploadMut = useMutation({
     mutationFn: ({ file, type }: { file: File; type: OnboardingDocumentType }) =>
       documentsApi.upload({ file, category: "OnboardingDocument", onboardingType: type }),
     onSuccess: () => {
       toast.success(t("auth:onboarding.documents.uploaded"));
-      setDocType("");
       void qc.invalidateQueries({ queryKey: ["onboarding-documents"] });
     },
     onError: (err) =>
@@ -143,93 +237,87 @@ function OnboardingDocumentPanel({ roleKey }: { roleKey: "ScholarshipProvider" |
     onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
   });
 
-  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function pick(type: OnboardingDocumentType, e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    e.target.value = ""; // let the same file be re-picked after an error
+    e.target.value = ""; // allow re-picking the same file after an error
     if (!file) return;
-    if (!docType) {
-      toast.error(t("auth:onboarding.documents.selectTypeFirst"));
-      return;
-    }
     if (file.size > 25 * 1024 * 1024) {
       toast.error(t("auth:onboarding.documents.tooLarge"));
       return;
     }
-    uploadMut.mutate({ file, type: docType });
+    uploadMut.mutate({ file, type });
   }
 
+  const requiredDone = required.filter((tp) => docByType.has(tp)).length;
+
+  const strings = {
+    requiredLabel: t("auth:onboarding.documents.requiredBadge", "Required"),
+    uploadLabel: t("auth:onboarding.documents.upload", "Upload"),
+    uploadingLabel: t("auth:onboarding.documents.uploading"),
+    removeLabel: t("auth:onboarding.documents.remove"),
+  };
+
+  const row = (tp: OnboardingDocumentType, isRequired: boolean) => {
+    const doc = docByType.get(tp);
+    return (
+      <DocRow
+        key={tp}
+        label={t(`auth:onboarding.docTypes.${tp}`, tp)}
+        required={isRequired}
+        fileName={doc?.fileName}
+        busy={uploadMut.isPending && uploadMut.variables?.type === tp}
+        removing={removeMut.isPending}
+        onPick={(e) => pick(tp, e)}
+        onRemove={doc ? () => removeMut.mutate(doc.id) : undefined}
+        {...strings}
+      />
+    );
+  };
+
   return (
-      <div className="mt-8 rounded-xl border border-border-subtle bg-bg-elevated p-6 text-start">
-        <h2 className="text-lg font-semibold text-text-primary">
-          {t("auth:onboarding.documents.title")}
-        </h2>
-        <p className="mt-1 text-sm text-text-secondary">
-          {t("auth:onboarding.documents.subtitle")}
-        </p>
+    <div className="mt-8 rounded-xl border border-border-subtle bg-bg-elevated p-6 text-start">
+      <h2 className="text-lg font-semibold text-text-primary">
+        {t("auth:onboarding.documents.title")}
+      </h2>
+      <p className="mt-1 text-sm text-text-secondary">
+        {t("auth:onboarding.documents.subtitle")}
+      </p>
 
-        {/* FR-ONB-12 — pick the document type before choosing the file. */}
-        <select
-          value={docType}
-          onChange={(e) => setDocType(e.target.value as OnboardingDocumentType)}
-          className="mt-4 block h-10 w-full max-w-sm rounded-lg border border-border-subtle bg-bg-elevated px-3 text-sm text-text-primary"
-        >
-          <option value="">{t("auth:onboarding.documents.selectType")}</option>
-          {docTypeOptions.map((tp) => (
-            <option key={tp} value={tp}>
-              {t(`auth:onboarding.docTypes.${tp}`, tp)}
-              {requiredOnboardingDocTypes[roleKey].includes(tp) ? " *" : ""}
-            </option>
-          ))}
-        </select>
-
-        <label className={`mt-3 inline-flex h-10 items-center gap-2 rounded-lg border border-border-subtle px-4 text-sm font-medium text-text-primary transition ${docType ? "cursor-pointer hover:border-brand-500 hover:text-brand-500" : "cursor-not-allowed opacity-50"}`}>
-          <Upload aria-hidden className="size-4" />
-          {uploadMut.isPending
-            ? t("auth:onboarding.documents.uploading")
-            : t("auth:onboarding.documents.choose")}
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
-            onChange={onFileChange}
-            disabled={uploadMut.isPending || !docType}
-            className="hidden"
-          />
-        </label>
-        <p className="mt-2 text-xs text-text-tertiary">
-          {t("auth:onboarding.documents.hint")}
-        </p>
-
-        <ul className="mt-4 space-y-2">
-          {isLoading && (
-            <li className="text-sm text-text-tertiary">{t("common:status.loading")}</li>
-          )}
-          {!isLoading && docs.length === 0 && (
-            <li className="text-sm text-text-tertiary">
-              {t("auth:onboarding.documents.empty")}
-            </li>
-          )}
-          {docs.map((d) => (
-            <li
-              key={d.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-border-subtle px-3 py-2"
-            >
-              <span className="flex min-w-0 items-center gap-2 text-sm text-text-primary">
-                <FileText aria-hidden className="size-4 shrink-0 text-text-tertiary" />
-                <span className="truncate">{d.fileName}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => removeMut.mutate(d.id)}
-                disabled={removeMut.isPending}
-                aria-label={t("auth:onboarding.documents.remove")}
-                className="shrink-0 text-text-tertiary transition hover:text-danger-500 disabled:opacity-50"
+      {isLoading ? (
+        <p className="mt-4 text-sm text-text-tertiary">{t("common:status.loading")}</p>
+      ) : (
+        <>
+          <div className="mt-5">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-text-primary">
+                {t("auth:onboarding.documents.requiredHeading", "Required documents")}
+              </h3>
+              <span
+                className={`text-xs font-medium ${
+                  requiredDone === required.length ? "text-success-500" : "text-text-tertiary"
+                }`}
               >
-                <Trash2 aria-hidden className="size-4" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
+                {requiredDone}/{required.length}
+              </span>
+            </div>
+            <ul className="space-y-2">{required.map((tp) => row(tp, true))}</ul>
+          </div>
+
+          {optional.length > 0 && (
+            <div className="mt-5">
+              <h3 className="mb-2 text-sm font-semibold text-text-secondary">
+                {t("auth:onboarding.documents.optionalHeading", "Optional — speeds up approval")}
+              </h3>
+              <ul className="space-y-2">{optional.map((tp) => row(tp, false))}</ul>
+            </div>
+          )}
+        </>
+      )}
+
+      <p className="mt-4 text-xs text-text-tertiary">
+        {t("auth:onboarding.documents.hint")}
+      </p>
+    </div>
   );
 }
 

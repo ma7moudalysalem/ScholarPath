@@ -78,8 +78,25 @@ public sealed class ProfileController(IMediator mediator) : ControllerBase
         // URL — let browsers cache them (the client cache-busts after an upload).
         Response.Headers.CacheControl = "public, max-age=86400";
 
+        // SEC-13 (defense-in-depth): only ever 302 to a well-formed absolute
+        // http(s) URL. RedirectUrl comes from the stored ProfileImageUrl (an SSO
+        // provider picture); validating the scheme here — at the boundary that
+        // emits the Location header — stops a malformed/non-http(s) stored value
+        // ("javascript:", "data:", protocol-relative "//host") from ever being
+        // reflected into an open redirect. On rejection, serve the bytes if present
+        // else 404, rather than redirecting blindly.
         if (photo.RedirectUrl is not null)
-            return Redirect(photo.RedirectUrl);
+        {
+            if (Uri.TryCreate(photo.RedirectUrl, UriKind.Absolute, out var target)
+                && (target.Scheme == Uri.UriSchemeHttp || target.Scheme == Uri.UriSchemeHttps))
+            {
+                return Redirect(target.AbsoluteUri);
+            }
+
+            return photo.Content is not null
+                ? File(photo.Content, photo.ContentType ?? "application/octet-stream")
+                : NotFound();
+        }
 
         return File(photo.Content!, photo.ContentType ?? "application/octet-stream");
     }

@@ -509,6 +509,12 @@ function DraftApplicationForm({
     },
     onError: (err: unknown) => {
       const status = err instanceof ApiError ? err.status : undefined;
+      // DATA-07: re-fetch the application so the UI reflects the true server
+      // state. If the submit actually landed (or the app is already non-Draft and
+      // this 409s), the refetch flips status away from Draft and the editable form
+      // unmounts — resolving the "did it save/submit?" ambiguity. On a genuine
+      // failure this is a harmless no-op and the error toast still informs.
+      invalidate();
       toast.error(
         status === 409
           ? t("moderation:appDetail.submitConflict")
@@ -546,9 +552,12 @@ function DraftApplicationForm({
       void applicationsApi
         .saveDraft(application.id, buildBody())
         .then(() => setShowPaymentModal(true))
-        .catch((err) =>
-          toast.error(apiErrorMessage(err, t("moderation:appDetail.form.saveError"))),
-        );
+        .catch((err) => {
+          // DATA-07: reflect the true status so a stale draft form isn't left open
+          // after a failed pre-payment save.
+          invalidate();
+          toast.error(apiErrorMessage(err, t("moderation:appDetail.form.saveError")));
+        });
       return;
     }
     submitMut.mutate();

@@ -229,10 +229,31 @@ public sealed class SsoService(
             "access_type=offline",
             "prompt=select_account");
 
+    // SEC-12: never blindly reflect a caller-supplied redirect URI into the OAuth
+    // handshake. Prefer a fixed server-configured URI; otherwise, if an allowlist
+    // is configured, the caller value must exactly match an entry; only when
+    // NEITHER is configured do we fall back to the caller value (legacy behaviour,
+    // still gated by the provider's own redirect-URI registration).
     private static string ResolveRedirectUri(ExternalAuthProviderOptions provider, string callerRedirectUri)
-        => !string.IsNullOrWhiteSpace(provider.RedirectUri)
-            ? provider.RedirectUri!
-            : callerRedirectUri;
+    {
+        if (!string.IsNullOrWhiteSpace(provider.RedirectUri))
+            return provider.RedirectUri!;
+
+        if (provider.AllowedRedirectUris is { Length: > 0 })
+        {
+            if (!string.IsNullOrWhiteSpace(callerRedirectUri)
+                && provider.AllowedRedirectUris.Any(u => string.Equals(u, callerRedirectUri, StringComparison.Ordinal)))
+            {
+                return callerRedirectUri;
+            }
+
+            throw new ConflictException(
+                "SSO redirect URI is not allowed. Add the callback URL to "
+                + "Authentication:{Provider}:AllowedRedirectUris or set a fixed RedirectUri.");
+        }
+
+        return callerRedirectUri;
+    }
 
     private static ExternalAuthProviderOptions Require(ExternalAuthProviderOptions provider, string providerName)
     {
