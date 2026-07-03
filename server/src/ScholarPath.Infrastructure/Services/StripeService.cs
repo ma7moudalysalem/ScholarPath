@@ -30,6 +30,24 @@ public sealed class StripeService(
         new(StringComparer.OrdinalIgnoreCase)
         { "duplicate", "fraudulent", "requested_by_customer" };
 
+    // MON-03: a Stripe `charge.refunded` payload should never report a negative
+    // cumulative AmountRefunded, but a malformed/replayed event must not push a
+    // negative value downstream (refund notices, review-payment status, payout
+    // split). Clamp to >= 0 at the source and log the anomaly. The handler's
+    // DATA-02 clamp is the ledger backstop; this stops the bad value one layer up.
+    private static long NonNegativeRefund(long amountRefunded, ILogger logger, string? chargeId)
+    {
+        if (amountRefunded < 0)
+        {
+            logger.LogWarning(
+                "[stripe-webhook] charge.refunded for {ChargeId} reported a negative AmountRefunded={Amount}; clamping to 0.",
+                chargeId, amountRefunded);
+            return 0;
+        }
+
+        return amountRefunded;
+    }
+
     private static string? StripeReasonOrNull(string? reason, HashSet<string> allowed)
         => reason is not null && allowed.TryGetValue(reason, out var canonical)
             ? canonical
@@ -417,8 +435,9 @@ public sealed class StripeService(
                     // refunded on the charge — using ch.Amount (the gross charge)
                     // made every partial refund record as a full refund and flip
                     // the status to Refunded. ch.AmountRefunded is the only
-                    // consumer of this value for a Charge.
-                    amountCents = ch.AmountRefunded;
+                    // consumer of this value for a Charge. MON-03: guard against a
+                    // malformed/negative value from a spoofed or replayed payload.
+                    amountCents = NonNegativeRefund(ch.AmountRefunded, logger, ch.Id);
                     break;
                 case Account acct:
                     connectAccountId = acct.Id;

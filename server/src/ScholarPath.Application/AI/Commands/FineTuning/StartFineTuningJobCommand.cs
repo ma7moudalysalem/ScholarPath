@@ -27,9 +27,43 @@ public sealed class StartFineTuningJobCommandHandler(
     IAzureFineTuningService fineTuning,
     IMediator mediator) : IRequestHandler<StartFineTuningJobCommand, StartFineTuningJobResult>
 {
+    private static readonly HashSet<string> TerminalStatuses =
+        new(StringComparer.OrdinalIgnoreCase) { "succeeded", "failed", "cancelled", "canceled" };
+
     public async Task<StartFineTuningJobResult> Handle(
         StartFineTuningJobCommand request, CancellationToken ct)
     {
+        // 0. BUG-06: reject a duplicate submission while a prior job is still in
+        //    flight. Only ONE job id is tracked (FineTuningLastJobId); starting a
+        //    new job would overwrite it and orphan the running one. Poll the LIVE
+        //    status (not the stale stored string) so a legitimate retry after a
+        //    real failure/cancel is still allowed.
+        var lastJobId = await PlatformSettingsReader.GetStringAsync(
+            db, PlatformSettingsKeys.FineTuningLastJobId, null, ct).ConfigureAwait(false);
+
+        if (!string.IsNullOrWhiteSpace(lastJobId))
+        {
+            string? liveStatus = null;
+            try
+            {
+                var live = await fineTuning.GetJobStatusAsync(lastJobId, ct).ConfigureAwait(false);
+                liveStatus = live.Status;
+            }
+            catch
+            {
+                // A stale/expired job id may 404 on Azure — never let a bad stored
+                // id permanently block new runs; treat an unresolvable job as done.
+                liveStatus = null;
+            }
+
+            if (!string.IsNullOrWhiteSpace(liveStatus) && !TerminalStatuses.Contains(liveStatus))
+            {
+                throw new ConflictException(
+                    $"A fine-tuning job ({lastJobId}) is already in progress (status: {liveStatus}). " +
+                    "Wait for it to finish or cancel it before starting a new one.");
+            }
+        }
+
         // 1. Generate the JSONL dataset from existing platform data.
         var dataset = await mediator
             .Send(new ExportFineTuningDatasetQuery(), ct)

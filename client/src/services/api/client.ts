@@ -82,8 +82,16 @@ apiClient.interceptors.response.use(
       !(original as InternalAxiosRequestConfig & { _retry?: boolean })._retry
     ) {
       (original as InternalAxiosRequestConfig & { _retry?: boolean })._retry = true;
-      const newToken = await (refreshing ??= refreshTokens());
-      refreshing = null;
+      // BUG-07: share a SINGLE in-flight refresh across all parallel 401s, and
+      // clear the slot only once the refresh SETTLES (via .finally) — not after
+      // each awaiter resolves. Otherwise a 401 arriving in the microtask gap after
+      // one awaiter nulled `refreshing` would spawn a second refresh that sends the
+      // already-rotated refresh token, gets rejected, and spuriously logs the user
+      // out.
+      const pending = refreshing ?? (refreshing = refreshTokens().finally(() => {
+        refreshing = null;
+      }));
+      const newToken = await pending;
       if (newToken) {
         original.headers = original.headers ?? {};
         (original.headers as Record<string, string>)["Authorization"] = `Bearer ${newToken}`;

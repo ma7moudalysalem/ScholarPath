@@ -92,7 +92,11 @@ export function AnalyticsPage() {
   // average and the single busiest day in the window.
   const growthStats = useMemo(() => {
     const pts = growth.data ?? [];
-    if (pts.length === 0) return null;
+    // UX-02: no data points, or an all-zero window (the backend fills zero-days,
+    // so an empty instance returns a full series of count=0). Either way there is
+    // no meaningful average or peak — suppress the stats row instead of showing a
+    // misleading "Peak day: 0 · <arbitrary date>".
+    if (pts.length === 0 || totalInWindow === 0) return null;
     const avg = Math.round((totalInWindow / pts.length) * 10) / 10;
     const peak = pts.reduce((m, p) => (p.count > m.count ? p : m), pts[0]);
     const peakLabel = new Date(peak.date).toLocaleDateString(

@@ -21,7 +21,14 @@ public sealed partial class AskChatbotCommandHandler(
     ILogger<AskChatbotCommandHandler> logger)
     : IRequestHandler<AskChatbotCommand, ChatAnswerDto>
 {
-    private const decimal EstimatedCost = 0.0003m;
+    // ERR-03: conservative PRE-CALL cost reservation for the daily-budget gate.
+    // The real per-turn cost is token-based (prompt + replayed history + injected
+    // profile context + RAG grounding), so the stub's $0.0003 floor can UNDERCOUNT
+    // a real gpt-4o-mini turn several-fold and let a boundary call slip over the
+    // cap. Reserve a realistic worst-case (~4k prompt + ~800 completion tokens),
+    // still negligible vs the ~$1.00 daily cap. The ACTUAL cost is recorded after
+    // the call, so later calls stay exact. (Precise reserve-and-reconcile = v2.)
+    private const decimal EstimatedCost = 0.0015m;
 
     /// <summary>
     /// Max prior turns of the SAME session replayed into the LLM. 20 user-msg +
