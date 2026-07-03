@@ -24,6 +24,15 @@ export interface PlatformStatus {
  * `maintenanceModeEnabled = false` until the first response lands — this
  * matches the "don't break the app when the status endpoint is slow" stance
  * the App-level guard already takes.
+ *
+ * This hook is a pure *reader* of the shared `["platform","status"]` cache — it
+ * deliberately does NOT set `refetchInterval`/`staleTime: 0`. The single poll
+ * lives in `App.tsx` (always mounted at the root), so all 25+ consumers here
+ * share one background request instead of each scheduling their own. Without
+ * this, a page mounting several fee-gated components — plus `staleTime: 0`
+ * forcing a fresh fetch on every mount — hammered `/api/status` far more than
+ * the intended once-per-poll. The global 60 s `staleTime` (queryClient.ts)
+ * keeps mounts serving from cache.
  */
 export function usePlatformStatus(): PlatformStatus {
   const { data } = useQuery<PlatformStatus>({
@@ -32,9 +41,7 @@ export function usePlatformStatus(): PlatformStatus {
       const { data } = await apiClient.get<PlatformStatus>("/api/status");
       return data;
     },
-    refetchInterval: 30_000,
     retry: false,
-    staleTime: 0,
   });
 
   return data ?? {

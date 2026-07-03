@@ -83,12 +83,17 @@ export function App() {
   const { data: status } = useQuery<StatusResponse>({
     queryKey: ["platform", "status"],
     queryFn: fetchStatus,
-    // Poll every 30 s so a maintenance window is detected without a page reload.
-    // Failures are silently ignored — don't break the app if /api/status is
-    // transiently unreachable.
-    refetchInterval: 30_000,
+    // This is the ONE background poller for platform status. It's mounted once
+    // at the app root, so a maintenance window / payments-toggle is detected
+    // without a page reload while every other consumer (usePlatformStatus, used
+    // by 25+ components) just reads this shared cache. Poll every 60 s — the
+    // flags change only on rare admin actions, so a tighter cadence just piles
+    // up background requests (a long-open tab was firing hundreds of them).
+    // No `staleTime: 0`: it inherits the global 60 s window so remounts serve
+    // from cache instead of refetching. Failures are silently ignored — don't
+    // break the app if /api/status is transiently unreachable.
+    refetchInterval: 60_000,
     retry: false,
-    staleTime: 0,
   });
 
   useEffect(() => {

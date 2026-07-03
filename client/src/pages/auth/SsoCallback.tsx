@@ -33,7 +33,7 @@ export function SsoCallback() {
         setExchangeFailed(true);
         toast.error(apiErrorMessage(err, t("auth:errors.ssoFailed")));
       });
-  }, [code, provider, navigate, t]);
+  }, [code, provider, state, navigate, t]);
 
   // A missing code / pending-provider is knowable at render time — no effect
   // is needed to flag it; only the async token exchange sets state (in catch).
