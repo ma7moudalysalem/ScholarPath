@@ -58,6 +58,10 @@
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
     <PackageVersion Include="Serilog.Enrichers.Environment" Version="3.0.0" />
     <PackageVersion Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+    <PackageVersion Include="Serilog.Sinks.ApplicationInsights" Version="4.0.0" />
+  </ItemGroup>
+  <ItemGroup Label="Observability — Application Insights">
+    <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
   </ItemGroup>
   <ItemGroup Label="Background jobs + Stripe + Email + SignalR">
     <PackageVersion Include="Hangfire.AspNetCore" Version="1.8.23" />
