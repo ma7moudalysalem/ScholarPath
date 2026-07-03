@@ -37,18 +37,14 @@ public sealed class FlagPostCommandHandlerTests : IDisposable
             handler.Handle(new FlagPostCommand(post.Id, "spam", null), CancellationToken.None));
     }
 
-    // The next two tests exercise the FlagPost SaveChanges path
-    // (load post + Include flags + modify post + add child flag + save).
-    // The EF Core InMemory provider raises a phantom
-    // DbUpdateConcurrencyException for that combination when the parent was
-    // previously persisted in a different context (a known limitation —
-    // SQLite hits the same issue through its lack of a rowversion type).
-    // The auto-hide and duplicate-flag rules are still expressed in
-    // FlagPostCommandHandler and will be re-covered by an integration test
-    // against the real SQL Server provider; this unit-test layer can only
-    // safely assert the role-check path above.
+    // The next two tests exercise the FlagPost SaveChanges path. The handler now
+    // adds the flag via the ForumFlags DbSet (not the post.Flags navigation) and
+    // derives the distinct-flag count from a query, so the InMemory provider no
+    // longer trips the phantom-navigation error that previously forced these to be
+    // skipped. Prod concurrency (rowversion collisions between simultaneous flags)
+    // is handled by the retry loop in the handler.
 
-    [Fact(Skip = "EF Core InMemory provider can't run load+modify+add-child+save on the FlagPost path; covered at integration-test level.")]
+    [Fact]
     public async Task Duplicate_flag_from_same_user_is_blocked()
     {
         var post = await _h.SeedPostAsync(_h.StudentA);
@@ -62,7 +58,7 @@ public sealed class FlagPostCommandHandlerTests : IDisposable
             second.Handle(new FlagPostCommand(post.Id, "spam", null), CancellationToken.None));
     }
 
-    [Fact(Skip = "EF Core InMemory provider can't run load+modify+add-child+save on the FlagPost path; covered at integration-test level.")]
+    [Fact]
     public async Task Three_distinct_flags_auto_hide_the_post()
     {
         var post = await _h.SeedPostAsync(_h.StudentA);
