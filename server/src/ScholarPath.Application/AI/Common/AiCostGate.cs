@@ -62,4 +62,8 @@ public sealed class AiCostOptionsSnapshot : IAiCostOptions
 {
     public decimal DailyUserCostLimitUsd { get; set; } = 1.00m;
     public int RecommendationTopN { get; set; } = 5;
+
+    /// <summary>DES-04 — projected from AiOptions.FineTuningEnabled. Gates the admin
+    /// fine-tuning start command in the Application layer. Off by default.</summary>
+    public bool FineTuningEnabled { get; set; }
 }

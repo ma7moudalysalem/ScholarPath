@@ -178,6 +178,14 @@ public sealed class AiOptions
     public const string SectionName = "Ai";
     public string Provider { get; set; } = "Stub";
 
+    /// <summary>
+    /// DES-04 — master switch for the admin fine-tuning flow. Off by default:
+    /// fine-tuning is optional for v1 and the code is kept but dormant (the
+    /// StartFineTuningJobCommand returns 409 when false). Flip to true only once an
+    /// Azure OpenAI fine-tuning deployment/quota is available.
+    /// </summary>
+    public bool FineTuningEnabled { get; set; }
+
     /// <summary>How many recommendations to return per call. Stub scores the whole open catalog then trims to this.</summary>
     public int RecommendationTopN { get; set; } = 5;
 
@@ -189,6 +197,15 @@ public sealed class AiOptions
 
     /// <summary>RAG: minimum cosine similarity for a retrieved document to be treated as relevant context.</summary>
     public double RagMinScore { get; set; } = 0.15;
+
+    /// <summary>
+    /// DES-05 — when true, the RAG knowledge base also indexes up to 200 top-voted
+    /// community forum threads. Those are unvetted user-generated content, so this
+    /// is OFF by default: the chatbot is grounded only on curated content
+    /// (scholarships, FAQs, verified consultants, published resources) until a
+    /// moderation/vetting workflow exists.
+    /// </summary>
+    public bool IncludeCommunityPostsInKb { get; set; }
 
     public OpenAiOptions OpenAi { get; set; } = new();
     public AzureOpenAiOptions AzureOpenAi { get; set; } = new();

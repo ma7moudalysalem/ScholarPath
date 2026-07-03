@@ -45,6 +45,11 @@ public sealed class MaintenanceMiddleware(
         "/api/status",
         "/api/auth",
         "/api/admin/settings",
+        // DES-09: the in-app notifications feed + its SignalR hub stay reachable so
+        // signed-in clients can still pull items they missed during a maintenance
+        // window. Both are [Authorize]-gated, so nothing unauthenticated is exposed.
+        "/api/notifications",
+        "/hubs/notifications",
         "/api/profiles",
         "/scalar",
         "/openapi",

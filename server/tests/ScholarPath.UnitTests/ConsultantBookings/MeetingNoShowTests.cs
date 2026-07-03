@@ -90,6 +90,12 @@ public sealed class MeetingNoShowTests
         saved.IsNoShowConsultant.Should().BeTrue();
         saved.NoShowMarkedAt.Should().NotBeNull();
         saved.Payment!.Status.Should().Be(PaymentStatus.Refunded);
+        saved.Payment.RefundedAmountCents.Should().Be(saved.Payment.AmountCents);
+        // DES-02: a consultant no-show is a full refund, so the payout split must be
+        // zeroed — the consultant earns nothing for a session they didn't attend and
+        // StripePayoutJob (which pays any PayeeAmountCents > 0) must never pay them.
+        saved.Payment.ProfitShareAmountCents.Should().Be(0);
+        saved.Payment.PayeeAmountCents.Should().Be(0);
         await stripe.Received(1).RefundPaymentAsync(
             Arg.Any<string>(), Arg.Any<long?>(), Arg.Any<string?>(),
             Arg.Any<string>(), Arg.Any<CancellationToken>());
