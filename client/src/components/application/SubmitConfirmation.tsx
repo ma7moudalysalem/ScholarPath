@@ -26,7 +26,7 @@ export function ApplicationSubmitConfirmation({
   onPaymentSuccess,
   onCancel,
 }: SubmitConfirmationProps) {
-  const { t } = useTranslation(['company', 'scholarships']);
+  const { t } = useTranslation(['company']);
   // Master payments switch — free mode skips the Stripe widget entirely and
   // shows a single "Submit" button that triggers the success callback. The
   // existing free-path on the server already creates a request with no
@@ -37,27 +37,29 @@ export function ApplicationSubmitConfirmation({
   return (
     <div className="mx-auto max-w-2xl p-6">
       <div className="mb-8 text-center">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-50">
-          <CreditCard className="h-8 w-8 text-brand-500" />
-        </div>
+        {!isFree && (
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-50">
+            <CreditCard className="h-8 w-8 text-brand-500" />
+          </div>
+        )}
         <h1 className="text-2xl font-bold tracking-tight text-text-primary">
-          {t('submit.title')}
+          {t(isFree ? 'submit.titleFree' : 'submit.title')}
         </h1>
         <p className="mt-2 text-text-secondary">
-          {t('submit.subtitle', { scholarship: scholarshipTitle })}
+          {t(isFree ? 'submit.subtitleFree' : 'submit.subtitle', { scholarship: scholarshipTitle })}
         </p>
       </div>
 
       <div className="rounded-xl border border-border-subtle bg-bg-elevated shadow-sm overflow-hidden mb-6">
-        <div className="border-b border-border-subtle bg-bg-muted/50 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-medium text-text-secondary">{t('submit.reviewFee')}</span>
-            <span className="text-xl font-bold text-text-primary">
-              {isFree ? t('scholarships:freeListing') : `$${reviewFeeUsd.toFixed(2)}`}
-            </span>
-          </div>
+        {!isFree && (
+          <div className="border-b border-border-subtle bg-bg-muted/50 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium text-text-secondary">{t('submit.reviewFee')}</span>
+              <span className="text-xl font-bold text-text-primary">
+                {`$${reviewFeeUsd.toFixed(2)}`}
+              </span>
+            </div>
 
-          {!isFree && (
             <div className="flex items-start space-x-3 rounded-lg bg-brand-50 p-4 text-sm text-brand-700">
               <Info className="mt-0.5 shrink-0" size={16} />
               <div className="space-y-1">
@@ -67,8 +69,8 @@ export function ApplicationSubmitConfirmation({
                 </p>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="p-6">
           {isFree ? (

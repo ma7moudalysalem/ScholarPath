@@ -213,6 +213,7 @@
     "studentEmpty": "You haven't started any paid review requests yet.",
     "scholarshipProviderTitle": "Incoming review requests",
     "scholarshipProviderSubtitle": "Accept to capture the held payment and start the service. Reject to release the hold without charging the student.",
+    "scholarshipProviderSubtitleFree": "Accept to start the review. Reject to decline the request.",
     "scholarshipProviderEmpty": "No incoming review requests yet.",
     "fee": "Review fee",
     "held": "Held",

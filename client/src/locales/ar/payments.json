@@ -213,6 +213,7 @@
     "studentEmpty": "لم تبدأ أي طلب مراجعة مدفوع بعد.",
     "scholarshipProviderTitle": "طلبات المراجعة الواردة",
     "scholarshipProviderSubtitle": "اقبل لخصم المبلغ المحجوز وبدء الخدمة. ارفض للإفراج عن الحجز دون خصم.",
+    "scholarshipProviderSubtitleFree": "اقبل لبدء المراجعة. ارفض لرفض الطلب.",
     "scholarshipProviderEmpty": "لا توجد طلبات مراجعة واردة بعد.",
     "fee": "رسوم المراجعة",
     "held": "محجوز",

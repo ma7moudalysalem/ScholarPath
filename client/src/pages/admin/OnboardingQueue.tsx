@@ -10,6 +10,7 @@ import { apiErrorMessage } from "@/services/api/client";
 import { documentsApi } from "@/services/api/documents";
 import { PromptDialog } from "@/components/ui/PromptDialog";
 import { expertiseTagLabelByLang, languageNameByLang } from "@/lib/expertiseTagLabel";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 function parseJsonArray(raw: string | null): string[] {
   if (!raw) return [];
@@ -34,6 +35,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 /** Renders the submitted onboarding profile snapshot — ScholarshipProvider or Consultant. */
 function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
   const { t, i18n } = useTranslation(["admin"]);
+  const paymentsEnabled = usePaymentsEnabled();
   const isScholarshipProvider = row.requestedRole === "ScholarshipProvider";
   const isConsultant = row.requestedRole === "Consultant";
 
@@ -71,7 +73,9 @@ function OnboardingProfilePanel({ row }: { row: OnboardingRequestRow }) {
           <Row label={t("admin:onboarding.profile.highestDegree")} value={row.highestDegree} />
           <Row label={t("admin:onboarding.profile.fieldOfExpertise")} value={row.fieldOfExpertise} />
           <Row label={t("admin:onboarding.profile.yearsExperience")} value={row.yearsOfExperience} />
-          <Row label={t("admin:onboarding.profile.sessionFeeUsd")} value={row.sessionFeeUsd} />
+          {paymentsEnabled && (
+            <Row label={t("admin:onboarding.profile.sessionFeeUsd")} value={row.sessionFeeUsd} />
+          )}
           <Row label={t("admin:onboarding.profile.sessionDurationMinutes")} value={row.sessionDurationMinutes} />
           <Row label={t("admin:onboarding.profile.country")} value={row.consultantCountry} />
           <Row label={t("admin:onboarding.profile.timezone")} value={row.timezone} />

@@ -557,7 +557,7 @@ export function ScholarshipDetail() {
                 )}
                 {/* PB-005: Review Service Fee — surfaced BEFORE Apply Now so
                     the Student sees the price they're authorising. */}
-                {!isExternal && (
+                {paymentsEnabled && !isExternal && (
                   <div className="flex items-center justify-between gap-3">
                     <dt className="text-text-tertiary">
                       {t("scholarships:detail.reviewFee")}

@@ -217,16 +217,18 @@ export function StudentBookingDetails() {
                   </p>
                 </div>
 
-                <div>
-                  <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
-                    {t("fields.fee")}
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-text-primary">
-                    {!paymentsEnabled || booking.priceUsd === 0
-                      ? t("scholarships:freeListing")
-                      : formatUsd(booking.priceUsd)}
-                  </p>
-                </div>
+                {paymentsEnabled && (
+                  <div>
+                    <p className="text-[10px] font-medium tracking-[0.02em] text-text-tertiary uppercase">
+                      {t("fields.fee")}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-text-primary">
+                      {booking.priceUsd === 0
+                        ? t("scholarships:freeListing")
+                        : formatUsd(booking.priceUsd)}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

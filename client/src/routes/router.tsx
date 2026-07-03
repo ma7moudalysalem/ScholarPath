@@ -2,7 +2,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { AnimatedRoute } from "@/components/common/AnimatedRoute";
-import { RequireAuth, RequireRole } from "@/routes/RequireAuth";
+import { RequireAuth, RequireRole, RequirePayments } from "@/routes/RequireAuth";
 import { lazy, Suspense, type ReactNode } from "react";
 import { Route, Routes } from "react-router";
 
@@ -602,9 +602,11 @@ export function AppRouter() {
             path="/company/billing"
             element={
               <RequireRole roles={["ScholarshipProvider"]}>
-                <AnimatedRoute>
-                  <ScholarshipProviderBilling />
-                </AnimatedRoute>
+                <RequirePayments>
+                  <AnimatedRoute>
+                    <ScholarshipProviderBilling />
+                  </AnimatedRoute>
+                </RequirePayments>
               </RequireRole>
             }
           />
@@ -672,9 +674,11 @@ export function AppRouter() {
             path="/consultant/earnings"
             element={
               <RequireRole roles={["Consultant"]}>
-                <AnimatedRoute>
-                  <ConsultantEarnings />
-                </AnimatedRoute>
+                <RequirePayments>
+                  <AnimatedRoute>
+                    <ConsultantEarnings />
+                  </AnimatedRoute>
+                </RequirePayments>
               </RequireRole>
             }
           />
@@ -692,9 +696,11 @@ export function AppRouter() {
             path="/consultant/earnings-trend"
             element={
               <RequireRole roles={["Consultant"]}>
-                <AnimatedRoute>
-                  <ConsultantEarningsTrend />
-                </AnimatedRoute>
+                <RequirePayments>
+                  <AnimatedRoute>
+                    <ConsultantEarningsTrend />
+                  </AnimatedRoute>
+                </RequirePayments>
               </RequireRole>
             }
           />
@@ -728,7 +734,7 @@ export function AppRouter() {
           <Route path="/admin/low-rated-companies" element={<AnimatedRoute><AdminLowRatedCompanies /></AnimatedRoute>} />
           <Route path="/admin/broadcast"        element={<AnimatedRoute><AdminBroadcast /></AnimatedRoute>} />
           <Route path="/admin/analytics"        element={<AnimatedRoute><AdminAnalytics /></AnimatedRoute>} />
-          <Route path="/admin/reports/revenue"  element={<AnimatedRoute><AdminRevenueReport /></AnimatedRoute>} />
+          <Route path="/admin/reports/revenue"  element={<RequirePayments><AnimatedRoute><AdminRevenueReport /></AnimatedRoute></RequirePayments>} />
           <Route path="/admin/ai-economy"       element={<AnimatedRoute><AdminAiEconomy /></AnimatedRoute>} />
           <Route path="/admin/knowledge-base"   element={<AnimatedRoute><AdminKnowledgeBase /></AnimatedRoute>} />
           <Route path="/admin/redaction-audit"  element={<AnimatedRoute><AdminRedactionAudit /></AnimatedRoute>} />
@@ -737,9 +743,9 @@ export function AppRouter() {
           <Route path="/admin/featured-scholarships" element={<AnimatedRoute><AdminFeaturedScholarships /></AnimatedRoute>} />
           <Route path="/admin/articles"         element={<AnimatedRoute><AdminArticles /></AnimatedRoute>} />
           <Route path="/admin/community"        element={<AnimatedRoute><AdminCommunity /></AnimatedRoute>} />
-          <Route path="/admin/payments"         element={<AnimatedRoute><AdminPayments /></AnimatedRoute>} />
-          <Route path="/admin/profit-share"     element={<AnimatedRoute><AdminProfitShare /></AnimatedRoute>} />
-          <Route path="/admin/financial-config" element={<AnimatedRoute><AdminFinancialConfig /></AnimatedRoute>} />
+          <Route path="/admin/payments"         element={<RequirePayments><AnimatedRoute><AdminPayments /></AnimatedRoute></RequirePayments>} />
+          <Route path="/admin/profit-share"     element={<RequirePayments><AnimatedRoute><AdminProfitShare /></AnimatedRoute></RequirePayments>} />
+          <Route path="/admin/financial-config" element={<RequirePayments><AnimatedRoute><AdminFinancialConfig /></AnimatedRoute></RequirePayments>} />
           <Route path="/admin/audit-log"        element={<AnimatedRoute><AdminAuditLog /></AnimatedRoute>} />
           <Route path="/admin/settings"         element={<AdminSettings />} />
         </Route>

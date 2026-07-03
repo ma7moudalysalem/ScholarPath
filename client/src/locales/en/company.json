@@ -32,6 +32,8 @@
   "submit": {
     "title": "Review Fee Payment",
     "subtitle": "Pay the review fee to submit your application for {{scholarship}}.",
+    "titleFree": "Submit application",
+    "subtitleFree": "Submit your application for {{scholarship}}.",
     "reviewFee": "Application Review Fee",
     "escrowNoticeTitle": "Secure Payment (Escrow)",
     "escrowNoticeDesc": "Your payment is held securely. {{company}} will only receive the fee after they review your application and provide a decision. If they fail to review within the deadline, you will be automatically refunded.",

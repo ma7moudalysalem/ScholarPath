@@ -15,6 +15,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { usePaymentsEnabled } from '@/hooks/usePlatformStatus';
 import { scholarshipProviderReviewsApi } from '@/services/api/scholarshipProviderReviews';
 import { scholarshipsApi } from '@/services/api/scholarships';
 import { applicationsApi } from '@/services/api/applications';
@@ -60,6 +61,7 @@ export function ScholarshipProviderDashboard() {
   const { t, i18n } = useTranslation(['company', 'dashboard', 'applications']);
   const user = useAuthStore((state) => state.user);
   const firstName = user?.firstName ?? '';
+  const paymentsEnabled = usePaymentsEnabled();
 
   const { data: ratings, isLoading: ratingsLoading } = useQuery({
     queryKey: ['company', 'ratings', user?.id],
@@ -263,7 +265,9 @@ export function ScholarshipProviderDashboard() {
             actions={[
               { icon: Plus, label: t('dashboard:company.quick.post'), to: '/company/scholarships/new', accent: 'brand' },
               { icon: ListChecks, label: t('dashboard:company.quick.review'), to: '/company/applications-review', accent: 'success' },
-              { icon: Receipt, label: t('dashboard:company.quick.billing'), to: '/company/billing', accent: 'warning' },
+              ...(paymentsEnabled
+                ? [{ icon: Receipt, label: t('dashboard:company.quick.billing'), to: '/company/billing', accent: 'warning' as const }]
+                : []),
               { icon: BarChart2, label: t('dashboard:company.quick.analytics'), to: '/company/insights', accent: 'neutral' },
             ]}
           />

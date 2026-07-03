@@ -34,6 +34,7 @@ import {
 import { formatRelativeTime } from "@/components/dashboard/utils";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
+import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
 const AUDIT_ICON: Record<string, { icon: LucideIcon; accent: StatAccent }> = {
   UserStatusChange: { icon: UserCheck, accent: "warning" },
@@ -95,6 +96,7 @@ function greetingKey(): "morning" | "afternoon" | "evening" {
 export function AdminDashboard() {
   const { t, i18n } = useTranslation(["admin", "dashboard"]);
   const firstName = useAuthStore((s) => s.user?.firstName ?? "");
+  const paymentsEnabled = usePaymentsEnabled();
 
   // Period toggle for the user-growth chart (7 / 30 / 90 days). The day count
   // is part of the query key so switching ranges refetches + caches per range.
@@ -193,14 +195,16 @@ export function AdminDashboard() {
               accent={o.pendingApprovals > 0 ? "warning" : "neutral"}
               delay={0.1}
             />
-            <StatCard
-              label={t("dashboard:admin.stats.revenue")}
-              value={formatCents(o.revenueCentsCaptured)}
-              to="/admin/payments"
-              icon={CircleDollarSign}
-              accent="success"
-              delay={0.14}
-            />
+            {paymentsEnabled && (
+              <StatCard
+                label={t("dashboard:admin.stats.revenue")}
+                value={formatCents(o.revenueCentsCaptured)}
+                to="/admin/payments"
+                icon={CircleDollarSign}
+                accent="success"
+                delay={0.14}
+              />
+            )}
           </section>
 
           {/* Secondary KPIs */}
@@ -211,7 +215,9 @@ export function AdminDashboard() {
               { label: t("admin:dashboard.submittedApplications"), value: o.submittedApplications },
               { label: t("admin:dashboard.completedBookings"), value: o.completedBookings },
               { label: t("admin:dashboard.aiInteractions24h"), value: o.aiInteractions24h },
-              { label: t("admin:dashboard.profitShare"), value: formatCents(o.profitShareCentsAccumulated) },
+              ...(paymentsEnabled
+                ? [{ label: t("admin:dashboard.profitShare"), value: formatCents(o.profitShareCentsAccumulated) }]
+                : []),
             ].map((k) => (
               <div
                 key={k.label}
