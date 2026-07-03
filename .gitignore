@@ -106,3 +106,4 @@ test-results/
 *.orig
 .nyc_output/
 coverage-reports/
+~$*
