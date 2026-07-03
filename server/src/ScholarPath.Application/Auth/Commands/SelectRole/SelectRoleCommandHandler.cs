@@ -6,6 +6,7 @@ using ScholarPath.Application.Auth.DTOs;
 using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Documents;
 using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
@@ -22,20 +23,11 @@ public sealed class SelectRoleCommandHandler(
     ILogger<SelectRoleCommandHandler> logger)
     : IRequestHandler<SelectRoleCommand, AuthTokensDto>
 {
-    // FR-ONB-03/04 + Auth alignment AUTH-CODE-02: applicants in these roles must
-    // upload at least this many supporting verification documents (Category =
-    // OnboardingDocument) before they reach the admin queue. The SRS lists the
-    // document keys that should be covered:
-    //   ScholarshipProvider   → ScholarshipProviderLegalRegistration, ScholarshipProviderRepresentativeProof,
-    //               ScholarshipProviderTaxCertificate (when tax-registered)
-    //   Consultant→ ConsultantIdentityProof, ConsultantDegreeCertificate,
-    //               ConsultantCvResume
-    // The wizard is responsible for guiding the user through which documents to
-    // upload; the backend enforces a defensive minimum count so an admin never
-    // sees an empty queue entry.
-    private const int ScholarshipProviderMinDocs = 2;
-    private const int ConsultantMinDocs = 3;
-
+    // FR-ONB-12/13 (submission gate): before an applicant lands in the admin queue
+    // they must have uploaded the SPECIFIC verification documents their role requires.
+    // The onboarding wizard uploads typed documents on the documents step BEFORE this
+    // submit; the required-type set lives in OnboardingDocumentRequirements. The admin
+    // approval handler re-checks the same set as a backstop (defense-in-depth).
     public async Task<AuthTokensDto> Handle(SelectRoleCommand request, CancellationToken ct)
     {
         var userId = currentUser.UserId
@@ -61,21 +53,21 @@ public sealed class SelectRoleCommandHandler(
         }
         else
         {
-            // AUTH-CODE-02 — enforce mandatory verification documents BEFORE
-            // the applicant lands in the admin queue. Counts only undeleted
-            // OnboardingDocument-category uploads owned by the applicant.
-            var onboardingDocCount = await db.Documents
+            // FR-ONB-13 — require the specific mandatory verification document TYPES
+            // (not merely a count). Only typed, undeleted OnboardingDocument uploads count.
+            var uploadedTypes = await db.Documents
                 .Where(d => d.OwnerUserId == userId
-                            && d.Category == DocumentCategory.OnboardingDocument)
-                .CountAsync(ct).ConfigureAwait(false);
+                            && d.Category == DocumentCategory.OnboardingDocument
+                            && d.OnboardingType != null)
+                .Select(d => d.OnboardingType!.Value)
+                .ToListAsync(ct).ConfigureAwait(false);
 
-            var requiredDocs = request.Role == "ScholarshipProvider" ? ScholarshipProviderMinDocs : ConsultantMinDocs;
-            if (onboardingDocCount < requiredDocs)
+            var missingTypes = OnboardingDocumentRequirements.MissingTypes(request.Role, uploadedTypes);
+            if (missingTypes.Count > 0)
             {
-                var missing = requiredDocs - onboardingDocCount;
                 throw new ConflictException(
-                    $"Upload {requiredDocs} verification document(s) before submitting your onboarding request — "
-                    + $"{missing} more required.");
+                    "Upload the required verification documents before submitting your onboarding request. Missing: "
+                    + string.Join(", ", missingTypes) + ".");
             }
 
             // ScholarshipProvider / Consultant must be vetted — park them in the onboarding queue.
