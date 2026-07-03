@@ -207,11 +207,14 @@ public static class DependencyInjection
         // configured; otherwise the deterministic StubMeetingService keeps the
         // booking + no-show flows working offline — the same config-driven
         // fallback pattern as the Stripe and SSO providers above.
+        // SEC-05: bind AcsOptions unconditionally (not only in the real-ACS branch)
+        // so the recording webhook can always read Acs:WebhookKey to authenticate
+        // Event Grid callers, even when the meeting provider is the stub.
+        services.Configure<AcsOptions>(config.GetSection(AcsOptions.SectionName));
         var acsConnString = config.GetValue<string>($"{AcsOptions.SectionName}:ConnectionString");
         if (!string.IsNullOrWhiteSpace(acsConnString)
             && acsConnString.Contains("accesskey=", StringComparison.OrdinalIgnoreCase))
         {
-            services.Configure<AcsOptions>(config.GetSection(AcsOptions.SectionName));
             services.AddSingleton<IMeetingService, AzureCommunicationMeetingService>();
         }
         else

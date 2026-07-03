@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Infrastructure.Hubs;
 
@@ -11,7 +14,7 @@ public abstract class AuthenticatedHub : Hub
 }
 
 /// <summary>Real-time 1:1 chat (PB-007).</summary>
-public sealed class ChatHub(IPresenceTracker presence) : AuthenticatedHub
+public sealed class ChatHub(IPresenceTracker presence, IApplicationDbContext db) : AuthenticatedHub
 {
     public override async Task OnConnectedAsync()
     {
@@ -43,17 +46,50 @@ public sealed class ChatHub(IPresenceTracker presence) : AuthenticatedHub
     /// </summary>
     public IReadOnlyList<string> GetOnlineUsers() => presence.OnlineUsers();
 
-    public Task JoinConversation(string conversationId) =>
-        Groups.AddToGroupAsync(Context.ConnectionId, $"conversation:{conversationId}");
+    public async Task JoinConversation(string conversationId)
+    {
+        await EnsureParticipantAsync(conversationId);
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"conversation:{conversationId}");
+    }
 
     public Task LeaveConversation(string conversationId) =>
         Groups.RemoveFromGroupAsync(Context.ConnectionId, $"conversation:{conversationId}");
 
-    public Task TypingStart(string conversationId) =>
-        Clients.OthersInGroup($"conversation:{conversationId}").SendAsync("TypingStart", conversationId, Context.UserIdentifier);
+    public async Task TypingStart(string conversationId)
+    {
+        await EnsureParticipantAsync(conversationId);
+        await Clients.OthersInGroup($"conversation:{conversationId}").SendAsync("TypingStart", conversationId, Context.UserIdentifier);
+    }
 
-    public Task TypingStop(string conversationId) =>
-        Clients.OthersInGroup($"conversation:{conversationId}").SendAsync("TypingStop", conversationId, Context.UserIdentifier);
+    public async Task TypingStop(string conversationId)
+    {
+        await EnsureParticipantAsync(conversationId);
+        await Clients.OthersInGroup($"conversation:{conversationId}").SendAsync("TypingStop", conversationId, Context.UserIdentifier);
+    }
+
+    /// <summary>
+    /// SEC-02 IDOR gate: the JWT-derived caller (<see cref="HubCallerContext.UserIdentifier"/>)
+    /// must be one of the two participants of the conversation before it can join
+    /// the group or emit typing events — otherwise any authenticated user could
+    /// subscribe to <c>conversation:{id}</c> and eavesdrop on private message
+    /// bodies fanned out by ChatRealtimeNotifier. Throws <see cref="HubException"/>
+    /// on a malformed id or a non-participant.
+    /// </summary>
+    private async Task EnsureParticipantAsync(string conversationId)
+    {
+        if (!Guid.TryParse(Context.UserIdentifier, out var userId))
+            throw new HubException("Unauthorized.");
+        if (!Guid.TryParse(conversationId, out var convId))
+            throw new HubException("Invalid conversation id.");
+
+        var isParticipant = await db.Conversations
+            .AsNoTracking()
+            .AnyAsync(c => c.Id == convId
+                && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
+
+        if (!isParticipant)
+            throw new HubException("You are not a participant in this conversation.");
+    }
 }
 
 /// <summary>Personal notifications stream (PB-010).</summary>
@@ -74,10 +110,22 @@ public sealed class NotificationHub : AuthenticatedHub
 }
 
 /// <summary>Community live updates (PB-007).</summary>
-public sealed class CommunityHub : AuthenticatedHub
+public sealed class CommunityHub(IApplicationDbContext db) : AuthenticatedHub
 {
-    public Task JoinCategory(string categorySlug) =>
-        Groups.AddToGroupAsync(Context.ConnectionId, $"forum-category:{categorySlug}");
+    public async Task JoinCategory(string categorySlug)
+    {
+        // SEC-02: only real, active categories can be subscribed to.
+        if (string.IsNullOrWhiteSpace(categorySlug))
+            throw new HubException("Invalid category.");
+
+        var exists = await db.ForumCategories
+            .AsNoTracking()
+            .AnyAsync(c => c.Slug == categorySlug && c.IsActive);
+        if (!exists)
+            throw new HubException("Category not found.");
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"forum-category:{categorySlug}");
+    }
 
     public Task LeaveCategory(string categorySlug) =>
         Groups.RemoveFromGroupAsync(Context.ConnectionId, $"forum-category:{categorySlug}");
@@ -85,9 +133,25 @@ public sealed class CommunityHub : AuthenticatedHub
     /// <summary>
     /// Joins the per-thread group so clients viewing a single thread receive
     /// the ReplyCreated event the realtime notifier fans out for that post.
+    /// SEC-02: the post must exist and be publicly visible (not soft-deleted,
+    /// moderation-removed, or auto-hidden) before it can be subscribed to.
     /// </summary>
-    public Task JoinPost(string postId) =>
-        Groups.AddToGroupAsync(Context.ConnectionId, $"forum-post:{postId}");
+    public async Task JoinPost(string postId)
+    {
+        if (!Guid.TryParse(postId, out var id))
+            throw new HubException("Invalid post id.");
+
+        var visible = await db.ForumPosts
+            .AsNoTracking()
+            .AnyAsync(p => p.Id == id
+                && !p.IsDeleted
+                && !p.IsAutoHidden
+                && p.ModerationStatus == PostModerationStatus.Visible);
+        if (!visible)
+            throw new HubException("Post not found.");
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"forum-post:{postId}");
+    }
 
     public Task LeavePost(string postId) =>
         Groups.RemoveFromGroupAsync(Context.ConnectionId, $"forum-post:{postId}");

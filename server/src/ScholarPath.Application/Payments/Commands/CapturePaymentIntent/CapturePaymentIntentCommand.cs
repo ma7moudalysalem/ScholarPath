@@ -10,6 +10,7 @@ using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.FinancialConfig;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Payments.Commands.CapturePaymentIntent;
 
@@ -43,6 +44,7 @@ public sealed class CapturePaymentIntentCommandValidator
 public sealed class CapturePaymentIntentCommandHandler(
     IApplicationDbContext db,
     IStripeService stripeService,
+    ICurrentUserService currentUser,
     ILogger<CapturePaymentIntentCommandHandler> logger)
     : IRequestHandler<CapturePaymentIntentCommand, bool>
 {
@@ -50,6 +52,16 @@ public sealed class CapturePaymentIntentCommandHandler(
         CapturePaymentIntentCommand request,
         CancellationToken ct)
     {
+        // SEC-01: manual capture moves money — administrators only (Admin or the
+        // higher-privilege SuperAdmin, matching every other admin-gated path). The
+        // legitimate capture-on-accept path runs server-side in
+        // AcceptBookingCommandHandler by calling IStripeService directly and never
+        // routes through this command, so this HTTP-facing command is an admin/ops
+        // path. Without this gate any authenticated user could capture any Held
+        // payment by guessing its id.
+        if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
+            throw new ForbiddenAccessException("Only an administrator can capture a payment.");
+
         // 1. Load Held payment — only Held can be captured
         var payment = await db.Payments
             .FirstOrDefaultAsync(p =>

@@ -38,6 +38,10 @@ export function Meeting() {
   const [remoteJoined, setRemoteJoined] = useState(false);
   const [hasCamera, setHasCamera] = useState(false);
   const [recording, setRecording] = useState(false);
+  // CONSENT-01: the session is recorded, so gate entry on explicit consent. The
+  // ACS join (and therefore recording) is deferred until the user accepts —
+  // nothing enters the room and no recording can start without consent.
+  const [consented, setConsented] = useState(false);
 
   const localVideoRef = useRef<HTMLDivElement>(null);
   const remoteVideoRef = useRef<HTMLDivElement>(null);
@@ -49,7 +53,8 @@ export function Meeting() {
   const viewsRef = useRef<VideoStreamRendererView[]>([]);
 
   useEffect(() => {
-    if (!bookingId) return;
+    // CONSENT-01: do not join (or record) until the user has consented.
+    if (!bookingId || !consented) return;
     let disposed = false;
     const views = viewsRef.current;
 
@@ -257,8 +262,9 @@ export function Meeting() {
       void agent?.dispose().catch(() => undefined);
     };
   // `t` from useTranslation is referentially stable (never changes across
-  // renders), so adding it to deps does not cause extra effect runs.
-  }, [bookingId, displayName, t]);
+  // renders), so adding it to deps does not cause extra effect runs. `consented`
+  // flips false→true exactly once (CONSENT-01), so it can't re-trigger the join.
+  }, [bookingId, displayName, t, consented]);
 
   const toggleMic = useCallback(async () => {
     const call = callRef.current;
@@ -320,7 +326,33 @@ export function Meeting() {
       )}
 
       <div className="relative flex flex-1 items-center justify-center overflow-hidden px-4 pb-4">
-        {phase === "joining" && (
+        {/* CONSENT-01: block room entry behind an explicit recording-consent
+            gate. The join/record effect only runs after `consented` flips true. */}
+        {phase === "joining" && !consented && (
+          <div className="max-w-md text-center">
+            <p className="text-sm text-neutral-200">
+              {t("bookings:meeting.consentBody")}
+            </p>
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="rounded-lg bg-white/10 px-5 py-2 text-sm font-medium hover:bg-white/20"
+              >
+                {t("bookings:meeting.consentDecline")}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConsented(true)}
+                className="rounded-lg bg-brand-500 px-5 py-2 text-sm font-medium hover:bg-brand-600"
+              >
+                {t("bookings:meeting.consentAccept")}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {phase === "joining" && consented && (
           <div className="flex flex-col items-center gap-3 text-neutral-300">
             <Loader2 aria-hidden className="size-8 animate-spin" />
             <p className="text-sm">{t("bookings:meeting.joining")}</p>

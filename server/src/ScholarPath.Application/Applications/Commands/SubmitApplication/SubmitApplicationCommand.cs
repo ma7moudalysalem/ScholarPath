@@ -76,6 +76,14 @@ public sealed class SubmitApplicationCommandHandler(
             }
         }
 
+        // 3c. FR-043/044: reject submission after the deadline has passed.
+        //     Enforced here (not only at Start) because a Draft may sit past the
+        //     deadline before being submitted. Guarded against a null-included
+        //     Scholarship; compared in UTC.
+        if (application.Scholarship is { } sch && sch.Deadline < DateTimeOffset.UtcNow)
+            throw new ConflictException(
+                "This scholarship's application deadline has passed.");
+
         // 4. Apply transition
         application.Status = ApplicationStatus.Pending;
         application.SubmittedAt = DateTimeOffset.UtcNow;

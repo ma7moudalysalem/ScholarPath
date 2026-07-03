@@ -79,9 +79,12 @@ public sealed class GetBookingByIdQueryHandler(
             ?? throw new NotFoundException(nameof(ConsultantBooking), request.BookingId);
 
         var isParticipant = booking.StudentId == userId || booking.ConsultantId == userId;
+        // SEC-04: a ScholarshipProvider can never own a booking (no provider FK on
+        // the entity), so it must not read arbitrary booking detail (payment
+        // amounts, refund reason, Stripe intent id, student notes/email). Matches
+        // the policy already used by GetBookingRecordings / DownloadSessionRecording.
         var isAdmin = currentUser.IsInRole("Admin")
-            || currentUser.IsInRole("SuperAdmin")
-            || currentUser.IsInRole("ScholarshipProvider");
+            || currentUser.IsInRole("SuperAdmin");
 
         if (!isParticipant && !isAdmin)
         {

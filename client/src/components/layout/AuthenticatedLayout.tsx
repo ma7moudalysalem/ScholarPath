@@ -238,7 +238,6 @@ const NAV_BY_ROLE: Record<string, NavItem[]> = {
     { to: "/company/applications-review", key: "company.applicationsReview", icon: ListChecks },
     { to: "/company/review-requests", key: "company.reviewRequests", icon: ClipboardCheck },
     { to: "/company/reviews", key: "company.reviews", icon: Star },
-    { to: "/company/bookings", key: "company.bookings", icon: Users },
     { to: "/company/billing", key: "company.billing", icon: Calendar },
     { to: "/author/resources", key: "company.resources", icon: FileEdit },
     { to: "/company/insights", key: "company.insights", icon: PieChart },
