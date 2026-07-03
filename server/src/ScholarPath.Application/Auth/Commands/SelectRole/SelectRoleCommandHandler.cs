@@ -43,10 +43,18 @@ public sealed class SelectRoleCommandHandler(
         if (!user.EmailConfirmed)
             throw new ConflictException("Please verify your email address before continuing.");
 
-        // Role selection is a one-time gate — only an Unassigned, role-less account qualifies.
+        // Role selection is a one-time gate keyed on whether a role was actually
+        // GRANTED — not on AccountStatus. A role-less account can legitimately be
+        // non-Unassigned (e.g. left Active by an older onboarding-rejection path or
+        // an admin status change); it must still be able to pick a role instead of
+        // being permanently stuck on a 409 ("A role has already been selected").
         var existingRoles = await userAdministration.GetRolesAsync(userId, ct);
-        if (existingRoles.Count > 0 || user.AccountStatus != AccountStatus.Unassigned)
+        if (existingRoles.Count > 0)
             throw new ConflictException("A role has already been selected for this account.");
+        if (user.AccountStatus == AccountStatus.PendingApproval)
+            throw new ConflictException("Your onboarding request is already awaiting review.");
+        if (user.AccountStatus is AccountStatus.Suspended or AccountStatus.Deactivated)
+            throw new ForbiddenAccessException("This account cannot select a role.");
 
         if (request.Role == "Student")
         {
