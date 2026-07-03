@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Documents;
 using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Enums;
 
@@ -27,6 +28,28 @@ public sealed class ReviewOnboardingCommandHandler(
         {
             throw new ConflictException(
                 $"User {request.UserId} is in status {user.AccountStatus}; onboarding review only applies to PendingApproval.");
+        }
+
+        // FR-ONB-13 (approval gate / defense-in-depth) — an Admin cannot APPROVE until
+        // every required verification-document TYPE for the applicant's requested role
+        // (carried on ActiveRole) is present. Documents are uploaded on the applicant's
+        // pending-review screen, so this is the authoritative completeness gate.
+        if (request.Decision == OnboardingDecision.Approve && !string.IsNullOrWhiteSpace(user.ActiveRole))
+        {
+            var uploadedTypes = await db.Documents
+                .Where(d => d.OwnerUserId == request.UserId
+                            && d.Category == DocumentCategory.OnboardingDocument
+                            && d.OnboardingType != null)
+                .Select(d => d.OnboardingType!.Value)
+                .ToListAsync(ct).ConfigureAwait(false);
+
+            var missing = OnboardingDocumentRequirements.MissingTypes(user.ActiveRole, uploadedTypes);
+            if (missing.Count > 0)
+            {
+                throw new ConflictException(
+                    "Cannot approve — the applicant is missing required verification documents: "
+                    + string.Join(", ", missing) + ".");
+            }
         }
 
         // FR-152: a rejected applicant returns to Unassigned so they can correct
