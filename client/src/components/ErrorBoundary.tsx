@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertTriangle, RotateCcw } from "lucide-react";
+import { isChunkLoadError, recoverFromStaleChunk } from "@/lib/staleChunkRecovery";
 
 interface Props {
   children: ReactNode;
@@ -9,6 +10,9 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  // A stale lazy chunk after a deploy — self-heals with a one-shot reload
+  // rather than showing the crash screen.
+  recovering: boolean;
 }
 
 /**
@@ -24,14 +28,22 @@ interface State {
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, recovering: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    // A failed lazy-route chunk (stale after a deploy) is a recoverable render
+    // error — show a neutral "updating" state, not the crash screen.
+    return { hasError: true, error, recovering: isChunkLoadError(error) };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
+    if (isChunkLoadError(error)) {
+      // A new deploy replaced the chunk this tab tried to lazy-load. Reload once
+      // to pull the fresh assets instead of stranding the user on an error page.
+      recoverFromStaleChunk();
+      return;
+    }
     // Print to console in every environment — visible in Playwright traces and
     // Azure App Service log streams without any external SDK dependency.
     console.error("[ErrorBoundary] Uncaught rendering error:", error, info.componentStack);
@@ -43,6 +55,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      // While a stale-chunk reload is in flight, avoid flashing the crash screen.
+      if (this.state.recovering) {
+        return <div className="min-h-dvh bg-bg-canvas" aria-busy="true" />;
+      }
       return <ErrorFallback onReload={this.handleReload} />;
     }
     return this.props.children;

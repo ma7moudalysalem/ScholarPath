@@ -17,7 +17,11 @@ namespace ScholarPath.Infrastructure.Services;
 /// </summary>
 public sealed class DataProtectionSsoStateStore : ISsoStateStore
 {
-    private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(10);
+    // A real user may sit on the provider's consent screen (account picker, 2FA,
+    // "grant access") for several minutes; 10 min was tight enough to surface
+    // "Invalid or expired SSO state" on slow flows. 30 min keeps the window short
+    // (anti-replay comes from the single-use authorization code) while tolerating it.
+    private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(30);
     private readonly IDataProtector _protector;
 
     public DataProtectionSsoStateStore(IDataProtectionProvider provider)
