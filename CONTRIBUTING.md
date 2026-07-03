@@ -69,6 +69,7 @@ dotnet format --verify-no-changes   # style check
 ### Frontend
 ```bash
 cd client
+npm ci                    # install deps from package-lock (matches README setup)
 npm run typecheck
 npm run lint
 npm run test              # Vitest unit

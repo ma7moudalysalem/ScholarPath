@@ -1,5 +1,18 @@
 # Entity Relationship Diagram
 
+> ### ⚠️ Deprecated — use the canonical diagrams
+>
+> This hand-maintained ER diagram has drifted from the schema (missing entities and
+> `ConsultantBooking` lifecycle fields, and it once showed a removed `MeetingUrl`
+> column). The **authoritative, reviewed** models are:
+>
+> - **[docs/diagrams/01-EERD.md](diagrams/01-EERD.md)** — the enhanced ER diagram
+> - **[docs/diagrams/02-RELATIONAL-MAPPING.md](diagrams/02-RELATIONAL-MAPPING.md)** — the relational mapping
+>
+> This page is kept only as a quick bounded-context overview. On any conflict, the
+> EF migrations under `server/src/ScholarPath.Infrastructure/Migrations/` are ground
+> truth, and the two diagrams above track them.
+
 Source of truth: the EF migration files under `server/src/ScholarPath.Infrastructure/Migrations/`. This page visualizes them using Mermaid (GitHub renders it natively).
 
 40 entities grouped by bounded context.
@@ -234,13 +247,29 @@ erDiagram
     datetimeoffset ScheduledEndAt
     int DurationMinutes
     decimal PriceUsd
+    string StudentNotes
+    string MeetingRoomId
+    datetimeoffset RecordingStartedAt
+    string RecordingId
     BookingStatus Status
-    string MeetingUrl
+    datetimeoffset RequestedAt
     datetimeoffset ConfirmedAt
+    datetimeoffset RejectedAt
+    datetimeoffset ExpiredAt
+    datetimeoffset CancelledAt
+    datetimeoffset CompletedAt
+    CancellationReason CancellationReason
+    Guid CancelledByUserId
     Guid PaymentId FK
     string StripePaymentIntentId
     bool IsNoShowStudent
     bool IsNoShowConsultant
+    datetimeoffset NoShowMarkedAt
+    datetimeoffset StudentJoinedAt
+    datetimeoffset ConsultantJoinedAt
+    bool IsDeleted
+    datetimeoffset DeletedAt
+    Guid DeletedByUserId
   }
   ConsultantReview {
     Guid Id PK

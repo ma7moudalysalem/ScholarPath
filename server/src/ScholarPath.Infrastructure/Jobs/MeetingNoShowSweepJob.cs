@@ -132,6 +132,13 @@ public sealed class MeetingNoShowSweepJob : IMeetingNoShowSweepJob
                     payment.RefundedAmountCents = payment.AmountCents;
                     payment.RefundedAt = nowUtc;
                     payment.RefundReason = CancellationReason.ConsultantNoShow.ToString();
+                    // DES-02: a consultant no-show is a FULL refund — the consultant
+                    // earns nothing. Zero the split (as the manual MarkNoShow handler
+                    // and RefundPaymentCommand do) so StripePayoutJob (which pays any
+                    // PayeeAmountCents > 0) can't still pay the consultant for a
+                    // session they didn't attend after the student was refunded.
+                    payment.ProfitShareAmountCents = 0;
+                    payment.PayeeAmountCents = 0;
                 }
             }
         }

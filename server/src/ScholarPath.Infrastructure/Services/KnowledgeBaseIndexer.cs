@@ -3,12 +3,14 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ScholarPath.Application.Ai.DTOs;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Infrastructure.Persistence;
+using ScholarPath.Infrastructure.Settings;
 
 namespace ScholarPath.Infrastructure.Services;
 
@@ -25,6 +27,7 @@ public sealed class KnowledgeBaseIndexer(
     ApplicationDbContext db,
     IEmbeddingService embeddings,
     IDatasetProvider datasets,
+    IOptions<AiOptions> aiOptions,
     ILogger<KnowledgeBaseIndexer> logger) : IKnowledgeBaseIndexer
 {
     private const int EmbedBatchSize = 16;
@@ -70,7 +73,15 @@ public sealed class KnowledgeBaseIndexer(
         // help articles.
         desired.AddRange(await BuildConsultantDocsAsync(ct).ConfigureAwait(false));
         desired.AddRange(await BuildResourceDocsAsync(ct).ConfigureAwait(false));
-        desired.AddRange(await BuildTopCommunityPostDocsAsync(ct).ConfigureAwait(false));
+        // DES-05: community forum threads are unvetted user-generated content, so
+        // they are grounded into the chatbot's KB only when explicitly enabled
+        // (Ai:IncludeCommunityPostsInKb=true). Off by default until a moderation /
+        // vetting workflow exists — otherwise the assistant could surface unverified
+        // claims from arbitrary users as if they were curated platform content.
+        if (aiOptions.Value.IncludeCommunityPostsInKb)
+        {
+            desired.AddRange(await BuildTopCommunityPostDocsAsync(ct).ConfigureAwait(false));
+        }
 
         var existing = await db.KnowledgeDocuments.ToListAsync(ct).ConfigureAwait(false);
         var byKey = existing.ToDictionary(d => (d.SourceType, d.SourceKey));

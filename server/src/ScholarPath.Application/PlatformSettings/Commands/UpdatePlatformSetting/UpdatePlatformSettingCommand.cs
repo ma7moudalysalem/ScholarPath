@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
@@ -67,6 +68,8 @@ public sealed class UpdatePlatformSettingCommandHandler(
 
         ValidateValueForType(setting.ValueType, request.Value);
 
+        var oldValue = setting.Value;
+
         setting.Value = request.Value;
         setting.UpdatedByAdminId = adminId;
 
@@ -75,9 +78,62 @@ public sealed class UpdatePlatformSettingCommandHandler(
         logger.LogInformation(
             "Platform setting {Key} changed by admin {AdminId}.", setting.Key, adminId);
 
+        // DES-01: switching the platform to free mode (payments.enabled true→false)
+        // does NOT retroactively waive commission on already-captured paid bookings/
+        // reviews — those still carry a ProfitShareAmountCents that will be paid out.
+        // A full retroactive reconciliation is a deliberate v2 decision (needs a
+        // team call on whether the waiver is intended), so the safe mitigation now
+        // is to surface the exposure: log the captured, not-yet-paid-out rows that
+        // still carry commission so an admin can review them before the next payout.
+        if (setting.Key == PlatformSettingsKeys.PaymentsEnabled &&
+            IsTrue(oldValue) && !IsTrue(request.Value))
+        {
+            await WarnOnCapturedCommissionAsync(db, adminId, logger, ct).ConfigureAwait(false);
+        }
+
         return new PlatformSettingDto(
             setting.Id, setting.Key, setting.Value, setting.ValueType,
             setting.DescriptionEn, setting.DescriptionAr, setting.Category, setting.UpdatedAt);
+    }
+
+    private static bool IsTrue(string? value) =>
+        bool.TryParse(value, out var b) && b;
+
+    /// <summary>
+    /// DES-01 mitigation — logs the captured (or partially-refunded) payments that
+    /// have not been paid out yet but still carry a platform commission, so an admin
+    /// can decide whether to waive them before the payout job runs. Read-only; never
+    /// mutates the ledger (retroactive waiver is a v2 decision).
+    /// </summary>
+    private static async Task WarnOnCapturedCommissionAsync(
+        IApplicationDbContext db, Guid adminId,
+        ILogger logger, CancellationToken ct)
+    {
+        var affected = await db.Payments
+            .Where(p =>
+                (p.Status == PaymentStatus.Captured || p.Status == PaymentStatus.PartiallyRefunded) &&
+                p.PayoutId == null &&
+                p.ProfitShareAmountCents > 0)
+            .Select(p => new { p.AmountCents, p.ProfitShareAmountCents })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        if (affected.Count == 0)
+        {
+            logger.LogInformation(
+                "Free-mode toggle by admin {AdminId}: no captured, not-yet-paid-out payments carry commission.",
+                adminId);
+            return;
+        }
+
+        var grossCents = affected.Sum(p => p.AmountCents);
+        var commissionCents = affected.Sum(p => p.ProfitShareAmountCents);
+
+        logger.LogWarning(
+            "Free-mode toggle by admin {AdminId}: {Count} captured/partially-refunded payment(s) " +
+            "still awaiting payout carry a platform commission that free mode will NOT retroactively waive " +
+            "(gross ${GrossUsd:0.00}, commission ${CommissionUsd:0.00}). Review before the next payout.",
+            adminId, affected.Count, grossCents / 100m, commissionCents / 100m);
     }
 
     /// <summary>Rejects values that do not match the setting's declared type.</summary>

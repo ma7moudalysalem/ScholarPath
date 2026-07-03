@@ -2,12 +2,14 @@ using System.Net.Http;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Infrastructure.Services;
+using ScholarPath.Infrastructure.Settings;
 using Xunit;
 
 namespace ScholarPath.UnitTests.Ai;
@@ -41,7 +43,9 @@ public sealed class KnowledgeBaseIndexerTests
             "\"answerEn\":\"A\",\"answerAr\":\"ج\"}]}");
 
         var indexer = new KnowledgeBaseIndexer(
-            db, embeddings, datasets, NullLogger<KnowledgeBaseIndexer>.Instance);
+            db, embeddings, datasets,
+            Options.Create(new AiOptions()),
+            NullLogger<KnowledgeBaseIndexer>.Instance);
 
         var act = () => indexer.RebuildAsync(force: false, CancellationToken.None);
 

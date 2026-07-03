@@ -5,7 +5,13 @@ Stripe powers all money flows. Two payment types; both flow through the shared `
 | Type                  | Trigger                             | Capture           | Payee            |
 |-----------------------|-------------------------------------|-------------------|------------------|
 | ConsultantBooking     | Student requests a consultant slot  | On accept (manual)| Consultant (Connect) |
-| CompanyReview         | Student submits an in-app application to a listing with a review fee | On submit (automatic) | Company |
+| ScholarshipProviderReview (review fee) | Student submits an in-app application to a listing with a review fee | **Manual hold → capture when the provider reviews** | ScholarshipProvider |
+
+> **Shipped behavior (was mis-documented):** the review fee is **not** captured
+> instantly on submit. Like a booking, the card is authorized (`PaymentStatus.Held`)
+> when the application is submitted and captured only when the provider actually
+> reviews it. If the provider never reviews within the SLA the hold is cancelled
+> (no charge) or a captured payment is fully refunded — see the lifecycle below.
 
 ## Consultant booking lifecycle
 
@@ -50,20 +56,49 @@ POST /api/bookings/{id}/accept   POST /api/bookings/{id}/reject or SessionExpiry
 
 Implemented pure-function `RefundCalculatorService` with a state/reason input. Unit-test the whole matrix.
 
-## Company review lifecycle
+## Scholarship-provider review lifecycle
 
 ```
-Student submits application
+Student submits an in-app application to a listing with a review fee
    │
    ▼
-POST /api/payments/intent        (capture_method=automatic)
-   │  instant capture — no escrow
+POST /api/payments/intent        (capture_method=manual)
+   │  authorization HELD on card — no charge yet (Payment.Status = Held)
    ▼
-Payment captured, funds credited
-   ↓
-CompanyReviewTimeoutRefundJob (daily)
-   └─ if 14 days pass with no Company review → full refund
+Provider reviews the application (accept / shortlist / reject decision)
+   ├─ CaptureScholarshipProviderReviewPayment → Payment.Status = Captured
+   │
+   └─ Provider never reviews in time
+        ↓
+ScholarshipProviderReviewTimeoutRefundJob (daily)
+   ├─ Held    → cancel the hold (no charge), Status = Cancelled
+   └─ Captured→ full Stripe refund, Status = Refunded
 ```
+
+**Timeout SLA (FR-068):** the job refunds when `Scholarship.Deadline + 14 days < now`.
+This is deliberately keyed to the **scholarship deadline**, not the submission date —
+a provider reviews applications only after the listing closes, so the 14-day
+response window starts at the deadline. (An audit finding suggested keying it to the
+submission date; that was a mis-read caused by the naming overlap described next —
+the deadline-based rule matches FR-068 and is the intended behavior, so the job was
+left unchanged.)
+
+> ### Terminology — two different "review" concepts (do not confuse)
+>
+> - **`ScholarshipProviderReview` (review fee, above)** — the paid flow where a
+>   student pays a fee for a provider to review their **in-app application**. It is
+>   tied to an `Application` (`Payment.RelatedApplicationId`) and its timeout is
+>   deadline-based (FR-068).
+> - **`ScholarshipProviderReviewRequest`** — a separate direct "request a review"
+>   entity with its own hold-then-capture lifecycle (`Start` → `ConfirmHold` →
+>   `Accept`/`Reject`/`Expire` → `Complete`). Its pending window is keyed to the
+>   **submission** date via `PendingExpiresAt = submittedAt + PendingTtlDays`.
+> - **`ScholarshipProviderReview` rating** (community/ratings) — a *star rating* a
+>   student leaves for a provider. **Carries no money.**
+>
+> These share a name prefix but are distinct; a v2 rename could disambiguate. When
+> reading payment code, follow the `Payment.Type` / `RelatedApplicationId` /
+> `RelatedBookingId` link, not the type name alone.
 
 ## Profit share (PB-014)
 
@@ -100,6 +135,49 @@ incoming payload
 ```
 
 Any handler failure lets the event be retried on next Stripe delivery (event keeps `IsProcessed=false`).
+
+## No-show refunds & the clawback gap (DES-02)
+
+No-show handling is intentionally asymmetric (FR-091/FR-193):
+
+| Who is absent      | Outcome                                             |
+|--------------------|-----------------------------------------------------|
+| Consultant no-show | **Full refund** to the student; the consultant earns nothing — the payment split is zeroed (`ProfitShareAmountCents = PayeeAmountCents = 0`) so the payout job can never pay a consultant for a session they didn't attend. |
+| Student no-show    | **No refund** — the session fee is forfeited.       |
+
+Both the manual `MarkNoShow` path and the automated `MeetingNoShowSweepJob` refund
+off the **captured `Payment.AmountCents`** (the source of truth), never a re-derived
+`PriceUsd` — `PriceUsd` can drift (re-price, free-mode toggle, prior partial refund).
+
+**Known limitation (v2):** there is no *clawback* if a consultant is paid out and the
+student is only later refunded on a dispute. The mitigation today is that the no-show
+and refund paths zero the split **before** payout, so the common cases can't overpay;
+a genuine `CompensationClawback` ledger (reducing the consultant's next payout) is a
+deferred v2 item.
+
+## Free mode (payments.enabled master switch)
+
+The `payments.enabled` platform setting puts the whole platform in **free mode**
+(PB-005R/PB-006R): new bookings and review requests are created with a $0 effective
+fee and skip Stripe entirely.
+
+**Non-retroactive by design (DES-01):** toggling to free mode does **not** waive
+commission on payments already captured before the toggle. Those keep their
+`ProfitShareAmountCents` and are still paid out normally. To surface the exposure,
+`UpdatePlatformSettingCommand` logs a warning listing the count / gross / commission
+of captured (not-yet-paid-out) payments whenever an admin flips `payments.enabled`
+true → false, so they can review those rows before the next payout. Whether a
+retroactive waiver is intended is an open team decision (do not assume it).
+
+## Data erasure vs financial retention (LEGAL-01 / FR-210)
+
+A GDPR-style delete request **anonymizes** rather than hard-deletes a user who is
+referenced by financial rows. Payment / refund / payout / audit records are retained
+for tax and accounting; the `User`'s identifying fields are scrubbed (name →
+"Deleted User", contact fields nulled). This keeps financial history intact and
+prevents FK/read breakage on payment queries that still reference the user. Financial
+records are therefore explicitly **exempt** from erasure — documented here and in
+`docs/SRS.md` (FR-210).
 
 ## Currency
 

@@ -45,6 +45,7 @@ public static class DependencyInjection
             var ai = config.GetSection(AiOptions.SectionName).Get<AiOptions>() ?? new AiOptions();
             snap.DailyUserCostLimitUsd = ai.DailyUserCostLimitUsd;
             snap.RecommendationTopN = ai.RecommendationTopN;
+            snap.FineTuningEnabled = ai.FineTuningEnabled;
         });
 
         // ─── Database ───────────────────────────────────────────────────────────

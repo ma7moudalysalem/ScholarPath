@@ -1,6 +1,6 @@
 # ScholarPath — Remediation & Clarity Plan
 
-**Owner:** @ma7moudalysalem (team lead) · **Created:** 2026-06-02 · **Last updated:** 2026-06-29 · **Status:** living document
+**Owner:** @ma7moudalysalem (team lead) · **Created:** 2026-06-02 · **Last updated:** 2026-07-03 · **Status:** living document
 
 > ✅ **Status update 2026-06-29 — system is fully deployed and operational.**
 > All P0 and P1 items are resolved. Azure resources are ScholarPath-branded.
@@ -23,7 +23,7 @@ code wins** and the doc is flagged below as stale.
 - **Payments**: Stripe hold/capture/refund/payout, profit-share split, free-mode master switch, webhook idempotency.
 - **AI**: Local + OpenAI + Azure providers behind `Ai:Provider`, per-user cost gate, RAG, PII redaction.
 - **Cross-cutting**: audit log, GDPR export/delete, notifications + SignalR, community/chat, resources, analytics pages.
-- **Tests**: 518 backend unit tests green (per `docs/reviews/calculations-audit-2026-05-21.md`).
+- **Tests**: 842 backend unit tests green (up from the 518 counted in `docs/reviews/calculations-audit-2026-05-21.md`, before the P0–P2 security remediation added coverage).
 
 **Conclusion:** the remaining work is **clarity, configuration, and polish — not missing features.**
 
@@ -62,7 +62,7 @@ These were audited and found correct. Listed so we don't re-open settled questio
 |---|---|---|
 | P1-1 | **Azure OpenAI** → knowledge-base/rebuild 503 | ✅ **RESOLVED 2026-06-02** — `ai-scholarpath-prod` (GlobalStandard gpt-4o-mini + text-embedding-3-small) wired in App Service; rebuild → 200, 849 docs indexed, chat live |
 | P1-2 | **Pre-prod secrets** — KV, Stripe, SendGrid, ACS, SSO | ✅ **DONE 2026-06-29** — all secrets configured in Azure Key Vault + App Service + GitHub Actions |
-| P1-3 | **Global authorization** — fallback policy check | ✅ **VERIFIED** — all 32 controllers carry `[Authorize]`; selective `[AllowAnonymous]` on public endpoints (webhooks, public content). Pattern is correct; no fallback policy needed. |
+| P1-3 | **Global authorization** — fallback policy check | ✅ **VERIFIED** — 26 controllers, each explicitly authorized: 21 with class-level `[Authorize]` (4 of them role-scoped `[Authorize(Roles="Admin,SuperAdmin")]`), 3 with class-level `[AllowAnonymous]` for webhook/public endpoints (`WebhooksController`, `MeetingRecordingWebhookController`, `StatusController`), and `AuthController` + `ScholarshipController` gating per action at the method level. `DiagnosticsController` got explicit class attributes in SEC-10; `AuthController` intentionally stays method-level. Pattern is correct; no fallback policy needed. |
 
 ### 🟢 P2 — Polish & consistency
 

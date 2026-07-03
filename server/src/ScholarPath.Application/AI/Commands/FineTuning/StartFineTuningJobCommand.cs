@@ -1,4 +1,6 @@
 using MediatR;
+using Microsoft.Extensions.Options;
+using ScholarPath.Application.Ai.Common;
 using ScholarPath.Application.Ai.DTOs;
 using ScholarPath.Application.Ai.Queries.ExportFineTuningDataset;
 using ScholarPath.Application.Common;
@@ -25,7 +27,8 @@ public sealed record StartFineTuningJobResult(
 public sealed class StartFineTuningJobCommandHandler(
     IApplicationDbContext db,
     IAzureFineTuningService fineTuning,
-    IMediator mediator) : IRequestHandler<StartFineTuningJobCommand, StartFineTuningJobResult>
+    IMediator mediator,
+    IOptions<AiCostOptionsSnapshot> aiOptions) : IRequestHandler<StartFineTuningJobCommand, StartFineTuningJobResult>
 {
     private static readonly HashSet<string> TerminalStatuses =
         new(StringComparer.OrdinalIgnoreCase) { "succeeded", "failed", "cancelled", "canceled" };
@@ -33,6 +36,15 @@ public sealed class StartFineTuningJobCommandHandler(
     public async Task<StartFineTuningJobResult> Handle(
         StartFineTuningJobCommand request, CancellationToken ct)
     {
+        // DES-04: fine-tuning is dormant by default (Ai:FineTuningEnabled=false).
+        // The whole pipeline is over-engineered for v1 — keep the code but refuse
+        // to spend on an Azure fine-tuning run until the flag is explicitly turned
+        // on. This runs before the in-flight-job check so a disabled platform never
+        // even polls Azure.
+        if (!aiOptions.Value.FineTuningEnabled)
+            throw new ConflictException(
+                "Fine-tuning is disabled (Ai:FineTuningEnabled=false). Enable it in configuration before starting a job.");
+
         // 0. BUG-06: reject a duplicate submission while a prior job is still in
         //    flight. Only ONE job id is tracked (FineTuningLastJobId); starting a
         //    new job would overwrite it and orphan the running one. Poll the LIVE

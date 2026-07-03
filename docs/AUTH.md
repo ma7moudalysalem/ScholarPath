@@ -70,6 +70,23 @@ Unassigned user
 
 Company/Consultant accounts can only access `/profile` and `/notifications` until approved.
 
+**Rejection behavior (FR-152 / BUG-03, shipped):** when an admin rejects onboarding
+in `/admin/onboarding`, `ReviewOnboardingCommandHandler` returns the account to a
+clean `Unassigned` state — it clears the pending `ActiveRole` (the requested-but-not-
+granted role) so the account never sits `Unassigned` while still reporting a role,
+and it **does not** grant the Identity role (the role is only added on approval). The
+rejection reason is stored on `UserProfile.LastOnboardingRejectionReason` /
+`LastOnboardingRejectedAt` and surfaced to the applicant (notification + re-shown in
+the onboarding wizard) so they can correct their details and resubmit rather than
+being locked out.
+
+**Dual-role approval semantics (DES-08):** each role a user holds must be approved
+**individually**. `SelectRole` sets the account's initial role at onboarding;
+`SwitchRole` flips an already-approved multi-role user's active role. Neither grants a
+role that hasn't been approved — approval happens via the onboarding/upgrade review.
+After a role is newly approved the client must **refresh the session** (new JWT) for
+the added role claim to take effect.
+
 ## Upgrade Student → Consultant
 
 `POST /api/users/upgrade-request` with files + links. Admin approves → user now holds both roles. Historical Student data is preserved.
@@ -77,7 +94,7 @@ Company/Consultant accounts can only access `/profile` and `/notifications` unti
 ## Gating enforcement — three layers
 
 1. **Frontend route guards** — `RequireAuth` / `RequireRole` in `client/src/routes/RequireAuth.tsx`. Redirects to `/login?redirect=<from>`.
-2. **Backend** — every controller except `AuthController` carries `[Authorize]` (global fallback policy in `Program.cs` will be added before production).
+2. **Backend** — every controller carries an **explicit** class-level authorization attribute (SEC-10): protected controllers are `[Authorize(...)]` (several role-scoped), and the genuinely public ones are explicitly `[AllowAnonymous]` (`WebhooksController`, `MeetingRecordingWebhookController`, `StatusController`). `AuthController` and `ScholarshipController` use method-level attributes (mix of anonymous + authorized actions). This removes the "a new action ships unprotected by omission" drift risk.
 3. **SignalR** — hubs inherit `AuthenticatedHub` which carries `[Authorize]`. JWT passed via `access_token` query string (handled by `JwtBearerEvents.OnMessageReceived`).
 
 ## Password policy (FR-021)
