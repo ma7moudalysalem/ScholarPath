@@ -300,6 +300,64 @@ public class SelectRoleCommandHandlerTests
     }
 
     [Fact]
+    public async Task Role_less_Active_account_can_still_select_a_role()
+    {
+        // Regression: a role-less account left Active (e.g. by an older onboarding-
+        // rejection path or an admin status change) previously got a 409 "A role
+        // has already been selected" and was permanently stuck. It has NO role, so
+        // selection must be allowed and heal the account.
+        using var db = CreateDb();
+        var id = Guid.NewGuid();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = id,
+            FirstName = "Stuck",
+            LastName = "User",
+            Email = "stuck@scholarpath.local",
+            UserName = "stuck@scholarpath.local",
+            AccountStatus = AccountStatus.Active, // non-Unassigned but role-less
+            ActiveRole = null,
+            EmailConfirmed = true,
+        });
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.GetRolesAsync(id, Arg.Any<CancellationToken>()).Returns(Array.Empty<string>());
+
+        await Sut(db, id, admin).Handle(new SelectRoleCommand("Student"), default);
+
+        var user = await db.Users.FirstAsync(u => u.Id == id);
+        user.ActiveRole.Should().Be("Student");
+        await admin.Received().AddRoleAsync(id, "Student", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Rejects_selection_while_a_request_is_pending_approval()
+    {
+        using var db = CreateDb();
+        var id = Guid.NewGuid();
+        db.Users.Add(new ApplicationUser
+        {
+            Id = id,
+            FirstName = "Pending",
+            LastName = "User",
+            Email = "pending@scholarpath.local",
+            UserName = "pending@scholarpath.local",
+            AccountStatus = AccountStatus.PendingApproval,
+            ActiveRole = "Consultant",
+            EmailConfirmed = true,
+        });
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.GetRolesAsync(id, Arg.Any<CancellationToken>()).Returns(Array.Empty<string>());
+
+        var act = () => Sut(db, id, admin).Handle(new SelectRoleCommand("Student"), default);
+
+        await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
     public void Validator_rejects_unknown_role()
     {
         var v = new SelectRoleCommandValidator();
