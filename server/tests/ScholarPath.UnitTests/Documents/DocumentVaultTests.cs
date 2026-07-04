@@ -60,7 +60,10 @@ public sealed class DocumentVaultTests
         return s;
     }
 
-    private static MemoryStream Bytes(string content = "file-content") =>
+    // Default content carries a valid %PDF magic header so the upload handler's
+    // magic-byte check (files are uploaded as .pdf here) passes; the specific
+    // bytes are otherwise irrelevant to these tests.
+    private static MemoryStream Bytes(string content = "%PDF-1.4\nfile-content") =>
         new(Encoding.UTF8.GetBytes(content));
 
     private static UploadDocumentCommand UploadCmd(
@@ -109,6 +112,30 @@ public sealed class DocumentVaultTests
             default);
 
         await act.Should().ThrowAsync<ConflictException>();
+    }
+
+    [Fact]
+    public async Task Upload_rejects_disguised_file_with_wrong_magic_bytes()
+    {
+        using var db = CreateDb();
+        var storage = Storage();
+        var sut = new UploadDocumentCommandHandler(
+            db, User(Guid.NewGuid()), storage, Scanner(), Clock(),
+            NullLogger<UploadDocumentCommandHandler>.Instance);
+
+        // A .pdf whose actual bytes are not a PDF (e.g. a renamed binary) is
+        // rejected on the magic-byte check — before storage or the AV scan, and
+        // regardless of whether the AV provider is active.
+        using var content = new MemoryStream(Encoding.UTF8.GetBytes("MZ not-really-a-pdf"));
+        var act = () => sut.Handle(UploadCmd(content), default);
+
+        (await act.Should().ThrowAsync<ConflictException>())
+            .Which.Message.Should().Contain("don't match its type");
+
+        await storage.DidNotReceive().UploadAsync(
+            Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<string>(),
+            Arg.Any<string>(), Arg.Any<CancellationToken>());
+        (await db.Documents.AnyAsync()).Should().BeFalse();
     }
 
     [Fact]

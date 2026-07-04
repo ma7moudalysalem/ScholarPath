@@ -50,19 +50,19 @@ public sealed class SubmitApplicationCommandHandler(
                 throw new ConflictException("Complete the application form before submitting.");
             }
 
+            var attached = string.IsNullOrWhiteSpace(application.AttachedDocumentsJson)
+                ? []
+                : System.Text.Json.JsonSerializer
+                    .Deserialize<string[]>(application.AttachedDocumentsJson) ?? [];
+
             if (!string.IsNullOrWhiteSpace(scholarship.RequiredDocumentsJson))
             {
                 var required = System.Text.Json.JsonSerializer
                     .Deserialize<string[]>(scholarship.RequiredDocumentsJson) ?? [];
                 if (required.Length > 0)
                 {
-                    var attached = string.IsNullOrWhiteSpace(application.AttachedDocumentsJson)
-                        ? []
-                        : System.Text.Json.JsonSerializer
-                            .Deserialize<string[]>(application.AttachedDocumentsJson) ?? [];
-
                     // Parallel arrays: required[i] maps to attached[i].
-                    // Every slot must be filled (non-empty URL).
+                    // Every slot must be filled (non-empty file name).
                     var missing = required
                         .Select((name, i) => new { name, url = attached.ElementAtOrDefault(i) })
                         .Where(x => string.IsNullOrWhiteSpace(x.url))
@@ -73,6 +73,31 @@ public sealed class SubmitApplicationCommandHandler(
                         throw new ConflictException(
                             $"Missing required documents: {string.Join(", ", missing)}. Upload all required files before submitting.");
                 }
+            }
+
+            // FR-APP-13/14: every attached document must reference a file the
+            // student actually uploaded through the scanned Document vault (which
+            // enforces type/size/antivirus and fail-closes — a Document row only
+            // exists once the file passed those checks). Reject any attached entry
+            // that doesn't map to a Document owned by this student, so a
+            // hand-crafted draft PUT can't submit arbitrary, never-scanned
+            // "documents". Vault reuse (any owned file) is allowed by design.
+            var attachedNames = attached
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .Distinct()
+                .ToList();
+            if (attachedNames.Count > 0)
+            {
+                var ownedNames = await db.Documents
+                    .Where(d => d.OwnerUserId == userId && !d.IsDeleted && attachedNames.Contains(d.FileName))
+                    .Select(d => d.FileName)
+                    .Distinct()
+                    .ToListAsync(ct);
+
+                var unbacked = attachedNames.Where(n => !ownedNames.Contains(n)).ToList();
+                if (unbacked.Count > 0)
+                    throw new ConflictException(
+                        $"These attached documents weren't found in your uploaded files: {string.Join(", ", unbacked)}. Upload them through the application form.");
             }
         }
 
