@@ -172,7 +172,10 @@ public sealed class BookingPaymentSyncTests : IDisposable
             .Returns(new StripePaymentIntentResult("pi_test", "canceled", null, null));
 
         var handler = new CancelBookingCommandHandler(
-            _db, _currentUser, _stripe, new RefundCalculatorService(), _publisher);
+            _db, _currentUser, _stripe, new RefundCalculatorService(),
+            new ConsultantRatingService(_db, Substitute.For<INotificationDispatcher>(),
+                Substitute.For<ILogger<ConsultantRatingService>>()),
+            Options.Create(new BookingOptions()), _publisher);
         await handler.Handle(new CancelBookingCommand(booking.Id), default);
 
         var payment = await PaymentForAsync(booking.Id);
@@ -193,7 +196,10 @@ public sealed class BookingPaymentSyncTests : IDisposable
             .Returns(new StripeRefundResult("re_test", "succeeded", 10_000));
 
         var handler = new CancelBookingCommandHandler(
-            _db, _currentUser, _stripe, new RefundCalculatorService(), _publisher);
+            _db, _currentUser, _stripe, new RefundCalculatorService(),
+            new ConsultantRatingService(_db, Substitute.For<INotificationDispatcher>(),
+                Substitute.For<ILogger<ConsultantRatingService>>()),
+            Options.Create(new BookingOptions()), _publisher);
         await handler.Handle(new CancelBookingCommand(booking.Id), default);
 
         var payment = await PaymentForAsync(booking.Id);
@@ -254,7 +260,10 @@ public sealed class BookingPaymentSyncTests : IDisposable
             .Returns(new StripeRefundResult("re_50", "succeeded", 5_000));
 
         var handler = new CancelBookingCommandHandler(
-            _db, _currentUser, _stripe, new RefundCalculatorService(), _publisher);
+            _db, _currentUser, _stripe, new RefundCalculatorService(),
+            new ConsultantRatingService(_db, Substitute.For<INotificationDispatcher>(),
+                Substitute.For<ILogger<ConsultantRatingService>>()),
+            Options.Create(new BookingOptions()), _publisher);
         await handler.Handle(new CancelBookingCommand(booking.Id), default);
 
         var payment = await PaymentForAsync(booking.Id);

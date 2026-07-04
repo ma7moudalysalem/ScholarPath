@@ -57,17 +57,21 @@ public sealed class RefundCalculatorService
             throw new BookingDomainException("Only requested or confirmed bookings can be cancelled.");
         }
 
+        var moreThan24HoursBefore = scheduledStartAt.ToUniversalTime() > nowUtc.AddHours(24);
+
         if (cancelledByConsultant)
         {
+            // The student is always fully refunded when the consultant cancels; the
+            // <24h case additionally carries a rating penalty (applied by the handler).
             return new RefundCalculationResult
             {
                 RefundPercentage = 100,
                 RefundAmountCents = amountCents,
-                CancellationReason = CancellationReason.ConsultantCancelledAfterAcceptance
+                CancellationReason = moreThan24HoursBefore
+                    ? CancellationReason.ConsultantCancelledAfterAcceptance
+                    : CancellationReason.ConsultantCancelledLessThan24Hours
             };
         }
-
-        var moreThan24HoursBefore = scheduledStartAt.ToUniversalTime() > nowUtc.AddHours(24);
 
         if (moreThan24HoursBefore)
         {
