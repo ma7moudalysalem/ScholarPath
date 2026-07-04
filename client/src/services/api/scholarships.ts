@@ -452,6 +452,11 @@ export const scholarshipsApi = {
     await apiClient.delete(`/api/scholarships/${id}`);
   },
 
+  /** ScholarshipProvider / Admin: reopen a CLOSED listing — sends it back to review. */
+  async reopen(id: string): Promise<void> {
+    await apiClient.post(`/api/scholarships/${id}/reopen`);
+  },
+
   // ── Admin: featured scholarships management ──────────────────────────────────
 
   /**

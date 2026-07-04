@@ -8,6 +8,7 @@ using ScholarPath.Application.Scholarships.Commands;
 using ScholarPath.Application.Scholarships.Commands.ApproveScholarship;
 using ScholarPath.Application.Scholarships.Commands.ConfigureReviewFee;
 using ScholarPath.Application.Scholarships.Commands.RejectScholarship;
+using ScholarPath.Application.Scholarships.Commands.ReopenScholarship;
 using ScholarPath.Application.Scholarships.Commands.ReorderFeaturedScholarships;
 using ScholarPath.Application.Scholarships.Commands.ToggleFeatureScholarship;
 using ScholarPath.Application.Scholarships.DTOs;
@@ -120,6 +121,20 @@ namespace ScholarPath.API.Controllers
         public async Task<IActionResult> Archive(Guid id, CancellationToken ct)
         {
             await mediator.Send(new ArchiveScholarshipCommand(id), ct);
+            return NoContent();
+        }
+
+        // PB-005: owning provider (or admin) reopens a CLOSED listing — it goes
+        // back to the admin moderation queue rather than straight back public.
+        [HttpPost("{id:guid}/reopen")]
+        [Authorize(Roles = "ScholarshipProvider,Admin,SuperAdmin")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> Reopen(Guid id, CancellationToken ct)
+        {
+            await mediator.Send(new ReopenScholarshipCommand(id), ct);
             return NoContent();
         }
 

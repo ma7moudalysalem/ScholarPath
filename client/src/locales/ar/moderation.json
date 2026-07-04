@@ -124,7 +124,9 @@
       "archive": "أرشفة",
       "archiveConfirm": "أرشفة هذه المنحة؟ لن يجدها الطلاب بعد ذلك.",
       "archiveSuccess": "تمت أرشفة المنحة.",
-      "reviewApplications": "مراجعة الطلبات"
+      "reviewApplications": "مراجعة الطلبات",
+      "reopen": "إعادة الفتح (إرسال للمراجعة)",
+      "reopenSuccess": "تم إعادة فتح المنحة — رجعت لمراجعة الأدمن."
     },
     "form": {
       "titleCreate": "إنشاء منحة",
