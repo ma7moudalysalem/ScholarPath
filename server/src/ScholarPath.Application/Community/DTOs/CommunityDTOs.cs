@@ -5,6 +5,8 @@ public record ForumPostDto(
     Guid AuthorId,
     string AuthorName,
     Guid? CategoryId,
+    // Localized single-language view (English side / legacy), kept for backward
+    // compatibility. Prefer the bilingual pair below for display.
     string? Title,
     string BodyMarkdown,
     int UpvoteCount,
@@ -12,7 +14,14 @@ public record ForumPostDto(
     int ReplyCount,
     DateTimeOffset CreatedAt,
     IReadOnlyList<string> Tags,
-    bool IsBookmarked);
+    bool IsBookmarked,
+    // Bilingual content — the client picks by language with a cross-language
+    // fallback (posts are bilingual like scholarships). Replies carry only the
+    // single body in TitleEn=null / BodyEn=<body>.
+    string? TitleEn = null,
+    string? TitleAr = null,
+    string BodyEn = "",
+    string? BodyAr = null);
 
 public record ForumCategoryDto(
     Guid Id,

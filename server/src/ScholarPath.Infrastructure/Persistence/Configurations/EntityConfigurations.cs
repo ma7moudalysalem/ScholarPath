@@ -635,6 +635,11 @@ public sealed class ForumPostConfiguration : IEntityTypeConfiguration<ForumPost>
     {
         b.Property(p => p.Title).HasMaxLength(500);
         b.Property(p => p.BodyMarkdown).IsRequired().HasMaxLength(10000);
+        // Bilingual root-post columns (nullable; replies leave them null).
+        b.Property(p => p.TitleEn).HasMaxLength(500);
+        b.Property(p => p.TitleAr).HasMaxLength(500);
+        b.Property(p => p.BodyEn).HasMaxLength(10000);
+        b.Property(p => p.BodyAr).HasMaxLength(10000);
         b.Property(p => p.ModerationStatus).HasConversion<string>().HasMaxLength(24);
         b.Property(p => p.ModerationNote).HasMaxLength(1000);
         b.Property(p => p.RowVersion).IsRowVersion();

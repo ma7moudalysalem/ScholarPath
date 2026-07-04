@@ -21,8 +21,20 @@ public class ForumPost : AuditableEntity, ISoftDeletable
     public Guid? CategoryId { get; set; }
     public Guid? ParentPostId { get; set; } // null = root thread; non-null = reply
 
+    // Legacy single-language fields. Kept for backward compatibility and still
+    // used by replies (which stay single-language). For root posts these mirror
+    // the English side so any legacy reader keeps working.
     public string? Title { get; set; } // only on root
     public string BodyMarkdown { get; set; } = default!;
+
+    // Bilingual root-post content (FR — community posts are bilingual like
+    // scholarships). Null on replies. TitleAr/BodyAr may be null on legacy rows
+    // that predate the bilingual columns (display falls back to the English side).
+    public string? TitleEn { get; set; }
+    public string? TitleAr { get; set; }
+    public string? BodyEn { get; set; }
+    public string? BodyAr { get; set; }
+
     public PostModerationStatus ModerationStatus { get; set; } = PostModerationStatus.Visible;
 
     // Cached aggregates

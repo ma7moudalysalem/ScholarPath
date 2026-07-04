@@ -47,11 +47,15 @@ public sealed class CreateReplyCommandHandler(
 
         var sanitizer = new Ganss.Xss.HtmlSanitizer();
 
+        var body = sanitizer.Sanitize(request.BodyMarkdown);
         var reply = new ForumPost
         {
             AuthorId = authorId,
             ParentPostId = request.ParentPostId,
-            BodyMarkdown = sanitizer.Sanitize(request.BodyMarkdown),
+            BodyMarkdown = body,
+            // Replies are single-language; mirror into BodyEn so the bilingual
+            // projection (which reads BodyEn with a fallback) shows the text.
+            BodyEn = body,
         };
 
         parent.ReplyCount++;

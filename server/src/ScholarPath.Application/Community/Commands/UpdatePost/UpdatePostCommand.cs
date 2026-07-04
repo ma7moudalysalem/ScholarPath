@@ -16,8 +16,12 @@ namespace ScholarPath.Application.Community.Commands.UpdatePost;
     SummaryTemplate = "Updated forum post {PostId}")]
 public sealed record UpdatePostCommand(
     Guid PostId,
-    string? Title,
-    string BodyMarkdown,
+    // Bilingual root-post fields. For a REPLY, only BodyEn is used (single body);
+    // TitleEn/TitleAr/BodyAr are ignored.
+    string? TitleEn,
+    string? TitleAr,
+    string BodyEn,
+    string? BodyAr,
     IReadOnlyList<string>? Tags = null) : IRequest<bool>;
 
 public sealed class UpdatePostCommandValidator : AbstractValidator<UpdatePostCommand>
@@ -25,8 +29,10 @@ public sealed class UpdatePostCommandValidator : AbstractValidator<UpdatePostCom
     public UpdatePostCommandValidator()
     {
         RuleFor(v => v.PostId).NotEmpty();
-        RuleFor(v => v.Title).MaximumLength(200);
-        RuleFor(v => v.BodyMarkdown).NotEmpty().MaximumLength(10000);
+        RuleFor(v => v.TitleEn).MaximumLength(200);
+        RuleFor(v => v.TitleAr).MaximumLength(200);
+        RuleFor(v => v.BodyEn).NotEmpty().MaximumLength(10000);
+        RuleFor(v => v.BodyAr).MaximumLength(10000);
         RuleFor(v => v.Tags!)
             .Must(tags => tags == null || tags.Count <= TagPolicy.MaxTagsPerPost)
             .WithMessage($"At most {TagPolicy.MaxTagsPerPost} tags are allowed.")
@@ -57,21 +63,40 @@ public sealed class UpdatePostCommandHandler(
             throw new ForbiddenAccessException();
 
         var isRoot = post.ParentPostId == null;
-
-        if (isRoot && string.IsNullOrWhiteSpace(request.Title))
-        {
-            throw new FluentValidation.ValidationException(
-                new[] { new FluentValidation.Results.ValidationFailure("Title", "Root posts must have a title.") });
-        }
-
         var sanitizer = new Ganss.Xss.HtmlSanitizer();
 
-        if (isRoot && !string.IsNullOrEmpty(request.Title))
+        if (isRoot)
         {
-            post.Title = sanitizer.Sanitize(request.Title);
-        }
+            // Root posts are bilingual — require both languages for title + body.
+            if (string.IsNullOrWhiteSpace(request.TitleEn)
+                || string.IsNullOrWhiteSpace(request.TitleAr)
+                || string.IsNullOrWhiteSpace(request.BodyAr))
+            {
+                throw new FluentValidation.ValidationException(
+                    new[] { new FluentValidation.Results.ValidationFailure(
+                        "Title", "Root posts require an English and Arabic title and body.") });
+            }
 
-        post.BodyMarkdown = sanitizer.Sanitize(request.BodyMarkdown);
+            var titleEn = sanitizer.Sanitize(request.TitleEn!);
+            var titleAr = sanitizer.Sanitize(request.TitleAr!);
+            var bodyEn = sanitizer.Sanitize(request.BodyEn);
+            var bodyAr = sanitizer.Sanitize(request.BodyAr!);
+
+            post.TitleEn = titleEn;
+            post.TitleAr = titleAr;
+            post.BodyEn = bodyEn;
+            post.BodyAr = bodyAr;
+            // Keep the legacy single-language columns mirrored to the English side.
+            post.Title = titleEn;
+            post.BodyMarkdown = bodyEn;
+        }
+        else
+        {
+            // Replies stay single-language.
+            var body = sanitizer.Sanitize(request.BodyEn);
+            post.BodyEn = body;
+            post.BodyMarkdown = body;
+        }
 
         // Tags only apply to root posts. For replies the field is ignored
         // — they're threaded under a tagged root anyway.

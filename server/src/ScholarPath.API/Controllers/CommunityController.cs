@@ -58,7 +58,8 @@ public class CommunityController(IMediator mediator) : ControllerBase
     [Authorize(Roles = "Student")]
     public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest request, CancellationToken ct)
     {
-        var command = new CreatePostCommand(request.CategoryId, request.Title, request.BodyMarkdown, request.Tags);
+        var command = new CreatePostCommand(
+            request.CategoryId, request.TitleEn, request.TitleAr, request.BodyEn, request.BodyAr, request.Tags);
         var id = await mediator.Send(command, ct);
         return CreatedAtAction(nameof(GetPostDetails), new { id }, id);
     }
@@ -67,7 +68,8 @@ public class CommunityController(IMediator mediator) : ControllerBase
     [Authorize(Roles = "Student")]
     public async Task<IActionResult> UpdatePost(Guid id, [FromBody] UpdatePostRequest request, CancellationToken ct)
     {
-        var command = new UpdatePostCommand(id, request.Title, request.BodyMarkdown, request.Tags);
+        var command = new UpdatePostCommand(
+            id, request.TitleEn, request.TitleAr, request.BodyEn, request.BodyAr, request.Tags);
         await mediator.Send(command, ct);
         return NoContent();
     }
@@ -164,8 +166,12 @@ public class CommunityController(IMediator mediator) : ControllerBase
     }
 }
 
-public record CreatePostRequest(Guid CategoryId, string Title, string BodyMarkdown, IReadOnlyList<string>? Tags = null);
-public record UpdatePostRequest(string? Title, string BodyMarkdown, IReadOnlyList<string>? Tags = null);
+public record CreatePostRequest(
+    Guid CategoryId, string TitleEn, string TitleAr, string BodyEn, string BodyAr,
+    IReadOnlyList<string>? Tags = null);
+public record UpdatePostRequest(
+    string? TitleEn, string? TitleAr, string BodyEn, string? BodyAr,
+    IReadOnlyList<string>? Tags = null);
 public record CreateReplyRequest(string BodyMarkdown);
 public record ToggleVoteRequest(ScholarPath.Domain.Enums.VoteType VoteType);
 public record FlagPostRequest(string Reason, string? AdditionalDetails);

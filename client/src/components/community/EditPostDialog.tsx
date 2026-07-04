@@ -17,7 +17,10 @@ export interface EditPostDialogProps {
   /** Whether this is the root post (title editable) or a reply (body only). */
   isRoot: boolean;
   /** The post being edited — used to seed the form. */
-  post: Pick<ForumPost, "id" | "title" | "bodyMarkdown" | "tags">;
+  post: Pick<
+    ForumPost,
+    "id" | "title" | "bodyMarkdown" | "tags" | "titleEn" | "titleAr" | "bodyEn" | "bodyAr"
+  >;
   /** Invoked after a successful save so callers can refresh local UI. */
   onSaved?: () => void;
 }
@@ -42,17 +45,29 @@ export function EditPostDialog({
   // refreshed server data, the parent must remount this dialog (use a `key`
   // tied to post.id, and only render it while editing). That avoids the
   // "setState in an effect" anti-pattern.
-  const [title, setTitle] = useState(post.title ?? "");
-  const [body, setBody] = useState(post.bodyMarkdown);
+  const [titleEn, setTitleEn] = useState(post.titleEn ?? post.title ?? "");
+  const [titleAr, setTitleAr] = useState(post.titleAr ?? "");
+  const [bodyEn, setBodyEn] = useState(post.bodyEn ?? post.bodyMarkdown);
+  const [bodyAr, setBodyAr] = useState(post.bodyAr ?? "");
   const [tags, setTags] = useState<string[]>(post.tags ?? []);
 
   const updatePost = useMutation({
     mutationFn: () =>
-      communityApi.updatePost(post.id, {
-        title: isRoot ? title.trim() : null,
-        bodyMarkdown: body.trim(),
-        tags: isRoot ? tags : undefined,
-      }),
+      communityApi.updatePost(post.id, isRoot
+        ? {
+            titleEn: titleEn.trim(),
+            titleAr: titleAr.trim(),
+            bodyEn: bodyEn.trim(),
+            bodyAr: bodyAr.trim(),
+            tags,
+          }
+        : {
+            // Replies are single-language.
+            titleEn: null,
+            titleAr: null,
+            bodyEn: bodyEn.trim(),
+            bodyAr: null,
+          }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["community", "thread"] });
       void qc.invalidateQueries({ queryKey: ["community", "posts"] });
@@ -66,11 +81,11 @@ export function EditPostDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isRoot && !title.trim()) {
+    if (isRoot && (!titleEn.trim() || !titleAr.trim())) {
       toast.error(t("edit.titleRequired"));
       return;
     }
-    if (!body.trim()) {
+    if (!bodyEn.trim() || (isRoot && !bodyAr.trim())) {
       toast.error(t("edit.bodyRequired"));
       return;
     }
@@ -102,34 +117,69 @@ export function EditPostDialog({
 
           <form onSubmit={handleSubmit} className="mt-4 space-y-4">
             {isRoot && (
-              <div className="space-y-1.5">
-                <label htmlFor="ep-title" className="block text-sm font-medium text-text-primary">
-                  {t("ask.titleLabel")}
-                </label>
-                <input
-                  id="ep-title"
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  maxLength={TITLE_MAX}
-                  className={fieldClass}
-                />
-              </div>
+              <>
+                <div className="space-y-1.5">
+                  <label htmlFor="ep-title-en" className="block text-sm font-medium text-text-primary">
+                    {t("ask.titleEnLabel")}
+                  </label>
+                  <input
+                    id="ep-title-en"
+                    type="text"
+                    dir="ltr"
+                    value={titleEn}
+                    onChange={(e) => setTitleEn(e.target.value)}
+                    maxLength={TITLE_MAX}
+                    className={fieldClass}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="ep-title-ar" className="block text-sm font-medium text-text-primary">
+                    {t("ask.titleArLabel")}
+                  </label>
+                  <input
+                    id="ep-title-ar"
+                    type="text"
+                    dir="rtl"
+                    value={titleAr}
+                    onChange={(e) => setTitleAr(e.target.value)}
+                    maxLength={TITLE_MAX}
+                    className={fieldClass}
+                  />
+                </div>
+              </>
             )}
 
             <div className="space-y-1.5">
-              <label htmlFor="ep-body" className="block text-sm font-medium text-text-primary">
-                {t("ask.bodyLabel")}
+              <label htmlFor="ep-body-en" className="block text-sm font-medium text-text-primary">
+                {isRoot ? t("ask.bodyEnLabel") : t("ask.bodyLabel")}
               </label>
               <textarea
-                id="ep-body"
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                rows={6}
+                id="ep-body-en"
+                dir="ltr"
+                value={bodyEn}
+                onChange={(e) => setBodyEn(e.target.value)}
+                rows={isRoot ? 4 : 6}
                 maxLength={BODY_MAX}
                 className={fieldClass}
               />
             </div>
+
+            {isRoot && (
+              <div className="space-y-1.5">
+                <label htmlFor="ep-body-ar" className="block text-sm font-medium text-text-primary">
+                  {t("ask.bodyArLabel")}
+                </label>
+                <textarea
+                  id="ep-body-ar"
+                  dir="rtl"
+                  value={bodyAr}
+                  onChange={(e) => setBodyAr(e.target.value)}
+                  rows={4}
+                  maxLength={BODY_MAX}
+                  className={fieldClass}
+                />
+              </div>
+            )}
 
             {isRoot && (
               <div className="space-y-1.5">

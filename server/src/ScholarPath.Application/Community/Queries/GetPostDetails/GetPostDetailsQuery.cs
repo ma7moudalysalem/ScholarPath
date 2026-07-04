@@ -31,6 +31,10 @@ public sealed class GetPostDetailsQueryHandler(
                 p.CategoryId,
                 p.Title,
                 p.BodyMarkdown,
+                p.TitleEn,
+                p.TitleAr,
+                p.BodyEn,
+                p.BodyAr,
                 p.UpvoteCount,
                 p.DownvoteCount,
                 p.ReplyCount,
@@ -64,6 +68,10 @@ public sealed class GetPostDetailsQueryHandler(
                 p.CategoryId,
                 p.Title,
                 p.BodyMarkdown,
+                p.TitleEn,
+                p.TitleAr,
+                p.BodyEn,
+                p.BodyAr,
                 p.UpvoteCount,
                 p.DownvoteCount,
                 p.ReplyCount,
@@ -76,14 +84,16 @@ public sealed class GetPostDetailsQueryHandler(
             .Select(r => new ForumPostDto(
                 r.Id, r.AuthorId, r.AuthorName, r.CategoryId, r.Title, r.BodyMarkdown,
                 r.UpvoteCount, r.DownvoteCount, r.ReplyCount, r.CreatedAt,
-                Array.Empty<string>(), false))
+                Array.Empty<string>(), false,
+                r.TitleEn, r.TitleAr, r.BodyEn ?? r.BodyMarkdown, r.BodyAr))
             .ToList();
 
         return new ForumThreadDto(
             new ForumPostDto(
                 post.Id, post.AuthorId, post.AuthorName, post.CategoryId, post.Title, post.BodyMarkdown,
                 post.UpvoteCount, post.DownvoteCount, post.ReplyCount, post.CreatedAt,
-                post.Tags, post.IsBookmarked),
+                post.Tags, post.IsBookmarked,
+                post.TitleEn, post.TitleAr, post.BodyEn ?? post.BodyMarkdown, post.BodyAr),
             replies);
     }
 }

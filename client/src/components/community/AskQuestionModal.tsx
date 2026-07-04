@@ -32,25 +32,32 @@ export function AskQuestionModal({
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const [title, setTitle] = useState("");
+  // Bilingual post — both languages required, like scholarships.
+  const [titleEn, setTitleEn] = useState("");
+  const [titleAr, setTitleAr] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [body, setBody] = useState("");
+  const [bodyEn, setBodyEn] = useState("");
+  const [bodyAr, setBodyAr] = useState("");
   const [tags, setTags] = useState<string[]>([]);
 
   const createPost = useMutation({
     mutationFn: () =>
       communityApi.createPost({
         categoryId,
-        title: title.trim(),
-        bodyMarkdown: body.trim(),
+        titleEn: titleEn.trim(),
+        titleAr: titleAr.trim(),
+        bodyEn: bodyEn.trim(),
+        bodyAr: bodyAr.trim(),
         tags,
       }),
     onSuccess: (newPostId) => {
       void queryClient.invalidateQueries({ queryKey: ["community", "posts"] });
       toast.success(t("ask.success"));
-      setTitle("");
+      setTitleEn("");
+      setTitleAr("");
       setCategoryId("");
-      setBody("");
+      setBodyEn("");
+      setBodyAr("");
       setTags([]);
       onOpenChange(false);
       navigate(`/student/community/${newPostId}`);
@@ -60,7 +67,7 @@ export function AskQuestionModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !categoryId || !body.trim()) {
+    if (!titleEn.trim() || !titleAr.trim() || !categoryId || !bodyEn.trim() || !bodyAr.trim()) {
       toast.error(t("ask.validation"));
       return;
     }
@@ -96,16 +103,36 @@ export function AskQuestionModal({
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label
-                htmlFor="aq-title"
+                htmlFor="aq-title-en"
                 className="block text-sm font-medium text-text-primary"
               >
-                {t("ask.titleLabel")}
+                {t("ask.titleEnLabel")}
               </label>
               <input
-                id="aq-title"
+                id="aq-title-en"
                 type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                dir="ltr"
+                value={titleEn}
+                onChange={(e) => setTitleEn(e.target.value)}
+                placeholder={t("ask.titlePlaceholder")}
+                maxLength={TITLE_MAX}
+                className={fieldClass}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="aq-title-ar"
+                className="block text-sm font-medium text-text-primary"
+              >
+                {t("ask.titleArLabel")}
+              </label>
+              <input
+                id="aq-title-ar"
+                type="text"
+                dir="rtl"
+                value={titleAr}
+                onChange={(e) => setTitleAr(e.target.value)}
                 placeholder={t("ask.titlePlaceholder")}
                 maxLength={TITLE_MAX}
                 className={fieldClass}
@@ -136,17 +163,37 @@ export function AskQuestionModal({
 
             <div className="space-y-1.5">
               <label
-                htmlFor="aq-body"
+                htmlFor="aq-body-en"
                 className="block text-sm font-medium text-text-primary"
               >
-                {t("ask.bodyLabel")}
+                {t("ask.bodyEnLabel")}
               </label>
               <textarea
-                id="aq-body"
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
+                id="aq-body-en"
+                dir="ltr"
+                value={bodyEn}
+                onChange={(e) => setBodyEn(e.target.value)}
                 placeholder={t("ask.bodyPlaceholder")}
-                rows={5}
+                rows={4}
+                maxLength={BODY_MAX}
+                className={fieldClass}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="aq-body-ar"
+                className="block text-sm font-medium text-text-primary"
+              >
+                {t("ask.bodyArLabel")}
+              </label>
+              <textarea
+                id="aq-body-ar"
+                dir="rtl"
+                value={bodyAr}
+                onChange={(e) => setBodyAr(e.target.value)}
+                placeholder={t("ask.bodyPlaceholder")}
+                rows={4}
                 maxLength={BODY_MAX}
                 className={fieldClass}
               />

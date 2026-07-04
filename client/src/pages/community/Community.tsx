@@ -15,7 +15,7 @@ import {
   Bookmark,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { communityApi, type ForumCategory, type ForumPost, type VoteType } from "@/services/api/community";
+import { communityApi, forumPostBody, forumPostTitle, type ForumCategory, type ForumPost, type VoteType } from "@/services/api/community";
 import { AskQuestionModal } from "@/components/community/AskQuestionModal";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { Link } from "react-router";
@@ -401,7 +401,7 @@ export function Community() {
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-text-primary group-hover:text-brand-600">
-                            {post.title}
+                            {forumPostTitle(post, isRtl)}
                           </p>
                           <p className="mt-0.5 flex items-center gap-2 text-[11px] text-text-tertiary">
                             <span className="inline-flex items-center gap-1">
@@ -490,10 +490,10 @@ export function Community() {
                             </span>
                           </div>
                           <h3 className="text-lg font-bold mb-2 group-hover:text-brand-600 transition-colors tracking-tight leading-snug">
-                            {post.title}
+                            {forumPostTitle(post, isRtl)}
                           </h3>
                           <p className="text-text-secondary text-sm line-clamp-2 mb-3 leading-relaxed">
-                            {post.bodyMarkdown}
+                            {forumPostBody(post, isRtl)}
                           </p>
                           {post.tags.length > 0 && (
                             <div className="mb-3 flex flex-wrap gap-1.5">
