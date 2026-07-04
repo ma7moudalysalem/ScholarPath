@@ -166,6 +166,45 @@ MediatR handlers — optionally fold those two into their triggering human use c
 - **Submit notifications (part3 SEQ-18):** the submit handler dispatches **two** — `ApplicationSubmittedConfirmation` to the
   **student** (FR-APP-17) + `ApplicationSubmitted` to the company. UC/DESC-18 omit the student confirmation — add it.
 
+## 7. Consultant Booking diagrams (v4) — documentation edits
+
+Reviewed the 43 v4 diagrams against the CURRENT code (incl. the new PB-006R penalty
+system). **The code is correct** (the penalty system was just built + shipped + audited);
+these are SRS/PlantUML edits for you. No `System`-actor violations (the machine-initiated
+UCs correctly use event-trigger actors: "Booking Status Change Event", "Booking Expiry
+Trigger", "Session End Trigger", "Reminder Time Trigger", etc.).
+
+### 7.1 Systemic (dominant root cause — fix globally across the write-path sequences)
+- **HTTP status codes:** every booking mutation returns **`204 No Content`** (accept/reject/
+  cancel/no-show/rate/availability), and every booking-rule failure throws `BookingDomainException`
+  → **`422`** (not 409/403). Booking creation returns **`200`** (not 201). Fix all the
+  `200/201/409/403` labels on SEQ-04/05/07/08/09/12/14 accordingly. (The admin-resolve's
+  already-resolved 409 is the one real 409.)
+
+### 7.2 Specific fixes
+- **SEQ-13 Admin Validate No-Show:** endpoint is `POST /api/admin/no-show-reports/{id}/resolve`
+  → **204** (not `/no-show/{id}/resolve` → 200). Command is `ResolveNoShowReportCommand(reportId,
+  IsValid, AdminNote)` (boolean verdict). Add the missing branches: validated consultant no-show
+  **also fully refunds the student** (diagram only shows −40%); false report sets the booking
+  back to **`Completed`**; already-resolved → **409**.
+- **SEQ-17 Reinstate Intake:** endpoint is `POST /api/admin/users/{userId}/reinstate-booking-intake`
+  → **204**; the command takes no decision arg and only clears `BookingIntakeSuspendedAt`. Delete
+  the fictional "keep restricted" else-branch.
+- **SEQ-16 / ACT-14 low-rating:** the low-rating FLAG (`ConsultantRatingService` → sticky
+  `ConsultantLowRatingFlaggedAt` + admin notify) does NOT stop new bookings. Intake suspension is a
+  **separate** field `BookingIntakeSuspendedAt`, set by the rating-submit handler over the last-20
+  window (min 5 samples) and checked in `RequestBooking`. Don't depict the flag as halting intake.
+- **SEQ-04 Availability:** it's `PATCH /api/bookings/me/availability` on **`BookingsController`**
+  → 204 (not `PUT /availability` on ConsultantsController → 200).
+- **State machine ACT-05 (biggest gap):** use the code enum names (`NoShowStudent`/`NoShowConsultant`)
+  and **add the new `NoShowReported` state**: `Confirmed → NoShowReported` (via report) and
+  `NoShowReported → {NoShowStudent | NoShowConsultant | Completed}` (via admin resolve).
+
+**Correct (no edit):** all 8 use-case diagrams; auto-expire (24h), reminders (24h+1h), complete,
+and cancel-penalty flows (3-day block / −20%) match the code. ~27 of 43 clean.
+
+---
+
 ### 6.4 ✅ Real code bug found & FIXED — withdrawal missing from the status timeline
 `WithdrawApplicationCommandHandler` set `Status=Withdrawn` but (unlike Submit/Review) **never raised
 `ApplicationStatusChangedEvent`**, so `ApplicationStatusHistoryEventHandler` never wrote a StatusHistory row —

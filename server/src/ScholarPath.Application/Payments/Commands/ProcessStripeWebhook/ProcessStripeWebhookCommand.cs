@@ -186,6 +186,14 @@ public sealed class ProcessStripeWebhookCommandHandler(
                 {
                     payment.StripeChargeId = request.ChargeId;
                 }
+                // PB-018: feed the analytics stream. A manual-capture intent always
+                // fires payment_intent.succeeded exactly once (webhook idempotency on
+                // StripeEventId guarantees single processing), so raise it here rather
+                // than at the various capture call sites — PaymentCapturedStreamHandler
+                // was previously dead because nothing ever raised this event.
+                payment.RaiseDomainEvent(new ScholarPath.Domain.Events.PaymentCapturedEvent(
+                    payment.Id, payment.Type, payment.AmountCents,
+                    payment.PayerUserId, payment.PayeeUserId));
                 await ConfirmBookingAsync(payment.StripePaymentIntentId, ct);
                 break;
 
