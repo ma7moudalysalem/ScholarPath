@@ -3,7 +3,7 @@ import { QueryClient } from "@tanstack/react-query";
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60_000,
+      staleTime: 30_000,
       gcTime: 5 * 60_000,
       retry: (failureCount, error: unknown) => {
         if (typeof error === "object" && error !== null && "status" in error) {
@@ -12,7 +12,13 @@ export const queryClient = new QueryClient({
         }
         return failureCount < 2;
       },
-      refetchOnWindowFocus: false,
+      // Refetch stale data when the user returns to the tab. This is react-query's
+      // default and fixes the "I have to refresh to see updates" class of bugs
+      // (newly-approved scholarships, new comments/votes, eligibility, etc.):
+      // switching back to the tab now pulls fresh data instead of showing a
+      // stale snapshot. Only queries older than staleTime refetch, so it isn't
+      // chatty.
+      refetchOnWindowFocus: true,
     },
     mutations: {
       retry: 0,
