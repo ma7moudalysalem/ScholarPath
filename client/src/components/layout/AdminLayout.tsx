@@ -15,6 +15,7 @@ import {
   Database,
   ShieldAlert,
   AlertTriangle,
+  Clock,
   Megaphone,
   FileText,
   Coins,
@@ -63,6 +64,7 @@ const NAV: NavItem[] = [
   { to: "/admin/articles", key: "nav.articles", icon: BookOpen },
   { to: "/admin/community", key: "nav.community", icon: MessageSquare },
   { to: "/admin/low-rated-companies", key: "nav.lowRatedCompanies", icon: AlertTriangle },
+  { to: "/admin/no-show-reports", key: "nav.noShowReports", icon: Clock },
   // Finance — hidden entirely in free mode (payments.enabled=false)
   { to: "/admin/payments", key: "nav.payments", icon: CreditCard, divider: true, paymentGated: true },
   { to: "/admin/profit-share", key: "nav.profitShare", icon: PieChart, paymentGated: true },

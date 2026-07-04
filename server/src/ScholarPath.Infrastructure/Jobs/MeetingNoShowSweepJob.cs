@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 
@@ -8,19 +9,22 @@ namespace ScholarPath.Infrastructure.Jobs;
 
 /// <summary>
 /// FR-217 — automated no-show detection. Every 15 minutes it sweeps confirmed
-/// bookings whose session has ended and exactly one party joined the room:
-/// the absent party is marked a no-show. A consultant no-show fully refunds
-/// the student (FR-193); a student no-show forfeits the fee (FR-091).
+/// bookings whose session has ended and exactly one party joined the room.
+///
+/// PB-006R (FR-CBR-25): the sweep no longer applies penalties or refunds directly.
+/// It FILES a <see cref="NoShowReport"/> (PendingReview) on the absent party — the
+/// present party is recorded as the reporter — and freezes the booking
+/// (<see cref="BookingStatus.NoShowReported"/>). An admin then validates the report,
+/// at which point the blocks / rating deductions / refunds are applied. This keeps
+/// the automated path behind the same admin-validation gate as manual reports.
 ///
 /// Bookings where both parties joined are left to <see cref="CompletionJob"/>.
-/// Bookings where neither party has a recorded join are left untouched — a
-/// missing attendance signal must never produce a false no-show, so the
-/// non-absent party can still resolve those manually via MarkNoShow.
+/// Bookings where neither party joined are left untouched.
 /// </summary>
 public sealed class MeetingNoShowSweepJob : IMeetingNoShowSweepJob
 {
     private readonly IApplicationDbContext _context;
-    private readonly IStripeService _stripeService;
+    private readonly INotificationDispatcher _notifications;
     private readonly ILogger<MeetingNoShowSweepJob> _logger;
 
     // Wait past the scheduled end before judging attendance — a late join is
@@ -33,11 +37,11 @@ public sealed class MeetingNoShowSweepJob : IMeetingNoShowSweepJob
 
     public MeetingNoShowSweepJob(
         IApplicationDbContext context,
-        IStripeService stripeService,
+        INotificationDispatcher notifications,
         ILogger<MeetingNoShowSweepJob> logger)
     {
         _context = context;
-        _stripeService = stripeService;
+        _notifications = notifications;
         _logger = logger;
     }
 
@@ -48,7 +52,6 @@ public sealed class MeetingNoShowSweepJob : IMeetingNoShowSweepJob
         var endedAfter = nowUtc - NoShowWindow;
 
         var bookings = await _context.Bookings
-            .Include(b => b.Payment)
             .Where(b =>
                 b.Status == BookingStatus.Confirmed &&
                 !b.IsNoShowStudent &&
@@ -67,94 +70,92 @@ public sealed class MeetingNoShowSweepJob : IMeetingNoShowSweepJob
             return;
         }
 
-        var marked = 0;
+        var reported = new List<(Guid BookingId, NoShowAccusedRole Role)>();
         foreach (var booking in bookings)
         {
             try
             {
-                if (booking.ConsultantJoinedAt is null)
+                // The PRESENT party is the reporter; the ABSENT party is the accused.
+                var (reporterId, accusedId, accusedRole) = booking.ConsultantJoinedAt is null
+                    ? (booking.StudentId, booking.ConsultantId, NoShowAccusedRole.Consultant)
+                    : (booking.ConsultantId, booking.StudentId, NoShowAccusedRole.Student);
+
+                var alreadyReported = await _context.NoShowReports
+                    .AnyAsync(r => r.BookingId == booking.Id && r.AccusedUserId == accusedId, ct)
+                    .ConfigureAwait(false);
+                if (alreadyReported)
                 {
-                    await MarkConsultantNoShowAsync(booking, nowUtc, ct).ConfigureAwait(false);
-                }
-                else
-                {
-                    MarkStudentNoShow(booking, nowUtc);
+                    continue;
                 }
 
-                marked++;
+                _context.NoShowReports.Add(new NoShowReport
+                {
+                    BookingId = booking.Id,
+                    ReporterUserId = reporterId,
+                    AccusedUserId = accusedId,
+                    AccusedRole = accusedRole,
+                    Status = NoShowReportStatus.PendingReview,
+                    ReporterNote = "Auto-detected: only one party joined the meeting room.",
+                });
+
+                booking.Status = BookingStatus.NoShowReported;
+                booking.NoShowMarkedAt = nowUtc;
+                reported.Add((booking.Id, accusedRole));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "MeetingNoShowSweepJob failed to resolve booking {BookingId}.", booking.Id);
+                    "MeetingNoShowSweepJob failed to file a report for booking {BookingId}.", booking.Id);
             }
         }
 
         await _context.SaveChangesAsync(ct).ConfigureAwait(false);
-        _logger.LogInformation("MeetingNoShowSweepJob marked {Count} no-show booking(s).", marked);
+        _logger.LogInformation("MeetingNoShowSweepJob filed {Count} no-show report(s) for admin validation.", reported.Count);
+
+        if (reported.Count > 0)
+        {
+            await NotifyAdminsAsync(reported, ct).ConfigureAwait(false);
+        }
     }
 
-    /// <summary>Consultant absent → the student is fully refunded (FR-193).</summary>
-    private async Task MarkConsultantNoShowAsync(
-        ConsultantBooking booking, DateTimeOffset nowUtc, CancellationToken ct)
+    private async Task NotifyAdminsAsync(
+        IReadOnlyCollection<(Guid BookingId, NoShowAccusedRole Role)> reported, CancellationToken ct)
     {
-        if (!string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
+        try
         {
-            // MON-01: refund the amount actually captured — the Payment row is the
-            // source of truth — falling back to the PriceUsd derivation only when
-            // there is no Payment row. Mirrors MarkNoShowCommandHandler: PriceUsd
-            // can drift from the captured amount (post-payment re-price, free-mode
-            // toggle, prior partial refund), which would otherwise refund the wrong
-            // amount on Stripe while the ledger stamps a full refund.
-            var amountCents = booking.Payment is { } capturedPayment
-                ? capturedPayment.AmountCents
-                : (long)decimal.Round(
-                    booking.PriceUsd * 100m, 0, MidpointRounding.AwayFromZero);
+            var adminIds = await _context.Users
+                .Where(u => (u.ActiveRole == "Admin" || u.ActiveRole == "SuperAdmin")
+                            && u.AccountStatus == AccountStatus.Active)
+                .Select(u => u.Id)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
 
-            if (amountCents > 0)
+            foreach (var (bookingId, role) in reported)
             {
-                var refund = await _stripeService.RefundPaymentAsync(
-                    paymentIntentId: booking.StripePaymentIntentId,
-                    amountCents: amountCents,
-                    reason: CancellationReason.ConsultantNoShow.ToString(),
-                    idempotencyKey: $"booking-noshow-refund:{booking.Id:N}",
-                    ct: ct).ConfigureAwait(false);
-
-                if (string.IsNullOrWhiteSpace(refund.Id))
+                foreach (var adminId in adminIds)
                 {
-                    throw new InvalidOperationException(
-                        $"Stripe refund failed for booking {booking.Id}.");
-                }
-
-                if (booking.Payment is { } payment)
-                {
-                    payment.Status = PaymentStatus.Refunded;
-                    payment.RefundedAmountCents = payment.AmountCents;
-                    payment.RefundedAt = nowUtc;
-                    payment.RefundReason = CancellationReason.ConsultantNoShow.ToString();
-                    // DES-02: a consultant no-show is a FULL refund — the consultant
-                    // earns nothing. Zero the split (as the manual MarkNoShow handler
-                    // and RefundPaymentCommand do) so StripePayoutJob (which pays any
-                    // PayeeAmountCents > 0) can't still pay the consultant for a
-                    // session they didn't attend after the student was refunded.
-                    payment.ProfitShareAmountCents = 0;
-                    payment.PayeeAmountCents = 0;
+                    try
+                    {
+                        await _notifications.DispatchAsync(
+                            adminId,
+                            NotificationType.NoShowReportSubmitted,
+                            new NotificationParams { Reason = role.ToString() },
+                            deepLink: "/admin/no-show-reports",
+                            idempotencyKey: $"noshow-report:{bookingId:N}:{role}:{adminId:N}",
+                            ct).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex,
+                            "Failed to dispatch NoShowReportSubmitted to admin {AdminId} for booking {BookingId}.",
+                            adminId, bookingId);
+                    }
                 }
             }
         }
-
-        booking.IsNoShowConsultant = true;
-        booking.Status = BookingStatus.NoShowConsultant;
-        booking.CancellationReason = CancellationReason.ConsultantNoShow;
-        booking.NoShowMarkedAt = nowUtc;
-    }
-
-    /// <summary>Student absent → the session fee is forfeited, no refund (FR-091).</summary>
-    private static void MarkStudentNoShow(ConsultantBooking booking, DateTimeOffset nowUtc)
-    {
-        booking.IsNoShowStudent = true;
-        booking.Status = BookingStatus.NoShowStudent;
-        booking.CancellationReason = CancellationReason.StudentNoShow;
-        booking.NoShowMarkedAt = nowUtc;
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "MeetingNoShowSweepJob could not resolve admin recipients for notifications.");
+        }
     }
 }

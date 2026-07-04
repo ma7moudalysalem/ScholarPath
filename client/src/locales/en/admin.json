@@ -21,7 +21,8 @@
     "featuredScholarships": "Featured Scholarships",
     "reports": "Reports",
     "revenueReport": "Revenue report",
-    "lowRatedCompanies": "Low-rated companies"
+    "lowRatedCompanies": "Low-rated companies",
+    "noShowReports": "No-show reports"
   },
   "dashboard": {
     "totalUsers": "Total users",
@@ -410,5 +411,25 @@
     "suspendConfirm": "Suspend this ScholarshipProvider account? They will lose access to restricted ScholarshipProvider actions.",
     "suspendReason": "ScholarshipProvider average rating below 2.5",
     "suspendedToast": "ScholarshipProvider suspended."
+  },
+  "noShowReports": {
+    "title": "No-show reports",
+    "subtitle": "Reports awaiting validation. Validate to penalise the accused, or reject as false to penalise the reporter.",
+    "empty": "No no-show reports are awaiting validation.",
+    "accusedLine": "{{accused}} — reported as a {{role}} no-show",
+    "reporterLine": "Reported by {{reporter}}",
+    "sessionAt": "Session",
+    "reportedAt": "Reported",
+    "note": "Reporter note",
+    "role": {
+      "Student": "student",
+      "Consultant": "consultant"
+    },
+    "validate": "Validate no-show",
+    "validateConfirm": "Validate this no-show? The accused will be penalised (booking block or rating deduction) and the student refunded for a consultant no-show.",
+    "validatedToast": "No-show validated — penalty applied.",
+    "reject": "Reject as false",
+    "rejectConfirm": "Reject this report as false? The reporter will be penalised for a false report.",
+    "rejectedToast": "Report rejected — reporter penalised."
   }
 }

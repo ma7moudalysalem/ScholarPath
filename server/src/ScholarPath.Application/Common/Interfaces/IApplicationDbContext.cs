@@ -41,6 +41,7 @@ public interface IApplicationDbContext
 
     DbSet<ConsultantAvailability> Availabilities { get; }
     DbSet<ConsultantBooking> Bookings { get; }
+    DbSet<NoShowReport> NoShowReports { get; }
 
     DbSet<Payment> Payments { get; }
     DbSet<Payout> Payouts { get; }

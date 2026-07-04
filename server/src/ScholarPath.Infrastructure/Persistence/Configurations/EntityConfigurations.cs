@@ -489,6 +489,34 @@ public sealed class ConsultantReviewConfiguration : IEntityTypeConfiguration<Con
     }
 }
 
+public sealed class NoShowReportConfiguration : IEntityTypeConfiguration<NoShowReport>
+{
+    public void Configure(EntityTypeBuilder<NoShowReport> b)
+    {
+        b.Property(r => r.AccusedRole).HasConversion<string>().HasMaxLength(16);
+        b.Property(r => r.Status).HasConversion<string>().HasMaxLength(24);
+        b.Property(r => r.AdminNote).HasMaxLength(1000);
+        b.Property(r => r.ReporterNote).HasMaxLength(1000);
+        b.Property(r => r.RowVersion).IsRowVersion();
+        b.HasQueryFilter(r => !r.IsDeleted);
+
+        // Filtered index drives the admin pending-reports queue cheaply.
+        b.HasIndex(r => r.Status)
+            .HasFilter("[Status] = 'PendingReview'")
+            .HasDatabaseName("IX_NoShowReports_PendingReview");
+        // At most one report per (booking, accused party) — prevents duplicates.
+        b.HasIndex(r => new { r.BookingId, r.AccusedUserId })
+            .IsUnique()
+            .HasDatabaseName("UX_NoShowReports_Booking_Accused");
+
+        // Two FKs to Users (Reporter + Accused) + one to Booking — explicit
+        // Restrict to avoid SQL Server's multiple-cascade-paths error (1785).
+        b.HasOne(r => r.Reporter).WithMany().HasForeignKey(r => r.ReporterUserId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.Accused).WithMany().HasForeignKey(r => r.AccusedUserId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(r => r.Booking).WithMany().HasForeignKey(r => r.BookingId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public sealed class ConsultantAvailabilityConfiguration : IEntityTypeConfiguration<ConsultantAvailability>
 {
     public void Configure(EntityTypeBuilder<ConsultantAvailability> b)

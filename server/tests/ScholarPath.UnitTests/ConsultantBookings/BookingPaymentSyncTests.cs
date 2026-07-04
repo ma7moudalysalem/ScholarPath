@@ -203,33 +203,33 @@ public sealed class BookingPaymentSyncTests : IDisposable
     }
 
     [Fact]
-    public async Task MarkNoShow_consultant_marks_the_payment_Refunded()
+    public async Task MarkNoShow_consultant_report_files_a_report_and_leaves_the_payment_Captured()
     {
         _currentUser.IsAuthenticated.Returns(true);
         _currentUser.UserId.Returns(_studentId); // student reports the consultant did not show
         var start = DateTimeOffset.UtcNow.AddHours(-2);
         var booking = await SeedAsync(
             BookingStatus.Confirmed, PaymentStatus.Captured, start, start.AddHours(1));
-        // Simulate a pre-existing snapshot from the capture-time split so we
-        // can prove the no-show refund zeroes both commission and payee.
-        var captured = await PaymentForAsync(booking.Id);
-        captured.ProfitShareAmountCents = 1_000;
-        captured.PayeeAmountCents = 9_000;
-        await _db.SaveChangesAsync();
 
-        _stripe.RefundPaymentAsync(
-                Arg.Any<string>(), Arg.Any<long?>(), Arg.Any<string>(), Arg.Any<string>(),
-                Arg.Any<CancellationToken>())
-            .Returns(new StripeRefundResult("re_test", "succeeded", 10_000));
-
-        var handler = new MarkNoShowCommandHandler(_db, _currentUser, _stripe);
+        var handler = new MarkNoShowCommandHandler(
+            _db, _currentUser, Substitute.For<INotificationDispatcher>(),
+            Substitute.For<ILogger<MarkNoShowCommandHandler>>());
         await handler.Handle(new MarkNoShowCommand(booking.Id), default);
 
+        // PB-006R: reporting no longer refunds/terminalizes — it files a report and
+        // freezes the booking pending admin validation. The refund only happens when
+        // an admin validates the consultant no-show.
+        var saved = await _db.Bookings.SingleAsync(b => b.Id == booking.Id);
+        saved.Status.Should().Be(BookingStatus.NoShowReported);
+
+        var report = await _db.NoShowReports.SingleAsync();
+        report.AccusedRole.Should().Be(NoShowAccusedRole.Consultant);
+        report.Status.Should().Be(NoShowReportStatus.PendingReview);
+
         var payment = await PaymentForAsync(booking.Id);
-        payment.Status.Should().Be(PaymentStatus.Refunded);
-        payment.RefundedAmountCents.Should().Be(10_000);
-        payment.ProfitShareAmountCents.Should().Be(0);
-        payment.PayeeAmountCents.Should().Be(0);
+        payment.Status.Should().Be(PaymentStatus.Captured);
+        await _stripe.DidNotReceiveWithAnyArgs().RefundPaymentAsync(
+            default!, default, default!, default!, default);
     }
 
     [Fact]
@@ -266,7 +266,7 @@ public sealed class BookingPaymentSyncTests : IDisposable
     }
 
     [Fact]
-    public async Task MarkNoShow_student_leaves_the_payment_Captured()
+    public async Task MarkNoShow_student_report_files_a_report_and_leaves_the_payment_Captured()
     {
         _currentUser.IsAuthenticated.Returns(true);
         _currentUser.UserId.Returns(_consultantId); // consultant reports the student did not show
@@ -274,8 +274,16 @@ public sealed class BookingPaymentSyncTests : IDisposable
         var booking = await SeedAsync(
             BookingStatus.Confirmed, PaymentStatus.Captured, start, start.AddHours(1));
 
-        var handler = new MarkNoShowCommandHandler(_db, _currentUser, _stripe);
+        var handler = new MarkNoShowCommandHandler(
+            _db, _currentUser, Substitute.For<INotificationDispatcher>(),
+            Substitute.For<ILogger<MarkNoShowCommandHandler>>());
         await handler.Handle(new MarkNoShowCommand(booking.Id), default);
+
+        var saved = await _db.Bookings.SingleAsync(b => b.Id == booking.Id);
+        saved.Status.Should().Be(BookingStatus.NoShowReported);
+
+        var report = await _db.NoShowReports.SingleAsync();
+        report.AccusedRole.Should().Be(NoShowAccusedRole.Student);
 
         var payment = await PaymentForAsync(booking.Id);
         payment.Status.Should().Be(PaymentStatus.Captured);

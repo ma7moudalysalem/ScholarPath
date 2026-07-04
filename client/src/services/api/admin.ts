@@ -155,6 +155,23 @@ export interface LowRatedScholarshipProviderRow {
   lastReviewAt: string | null;
 }
 
+/**
+ * PB-006R: a no-show report awaiting admin validation. `accusedRole` says which
+ * party is accused of not showing up; the admin either validates (applies the
+ * block / rating deduction / refund) or rejects it as false (penalises the reporter).
+ */
+export interface NoShowReportRow {
+  reportId: string;
+  bookingId: string;
+  reporterName: string;
+  accusedName: string;
+  accusedRole: "Student" | "Consultant";
+  scheduledStartAt: string;
+  scheduledEndAt: string;
+  reporterNote: string | null;
+  reportedAt: string;
+}
+
 export interface AnalyticsOverviewDto {
   totalUsers: number;
   activeUsers: number;
@@ -385,6 +402,24 @@ export const adminApi = {
     await apiClient.post(
       `/api/admin/companies/${scholarshipProviderId}/clear-low-rating-flag`,
     );
+  },
+
+  // PB-006R: no-show reports awaiting validation
+  async getNoShowReports(
+    page = 1,
+    pageSize = 25,
+  ): Promise<PagedResult<NoShowReportRow>> {
+    const { data } = await apiClient.get<PagedResult<NoShowReportRow>>(
+      "/api/admin/no-show-reports",
+      { params: { page, pageSize } },
+    );
+    return data;
+  },
+  async resolveNoShowReport(
+    reportId: string,
+    body: { isValid: boolean; adminNote?: string | null },
+  ): Promise<void> {
+    await apiClient.post(`/api/admin/no-show-reports/${reportId}/resolve`, body);
   },
 
   // analytics

@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Admin.Commands.ApproveOnboarding;
 using ScholarPath.Application.Admin.Commands.ChangeUserRole;
 using ScholarPath.Application.Admin.Commands.ClearScholarshipProviderLowRatingFlag;
+using ScholarPath.Application.Admin.Commands.ResolveNoShowReport;
 using ScholarPath.Application.Admin.Queries.GetLowRatedCompanies;
+using ScholarPath.Application.Admin.Queries.GetPendingNoShowReports;
 using ScholarPath.Application.Admin.Commands.ReinstateBookingIntake;
 using ScholarPath.Application.Admin.Commands.ReviewUpgradeRequest;
 using ScholarPath.Application.Admin.Commands.SendBroadcast;
@@ -191,6 +193,41 @@ public sealed class AdminController(IMediator mediator) : ControllerBase
             .ConfigureAwait(false);
         return NoContent();
     }
+
+    /// <summary>
+    /// Admin queue of no-show reports awaiting validation (PB-006R, FR-CBR-25).
+    /// </summary>
+    [HttpGet("no-show-reports")]
+    [ProducesResponseType(typeof(PagedResult<NoShowReportRow>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPendingNoShowReports(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken ct = default)
+    {
+        var result = await mediator
+            .Send(new GetPendingNoShowReportsQuery(page, pageSize), ct)
+            .ConfigureAwait(false);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Validates a no-show report (applies the block / rating deduction / refund) or
+    /// rejects it as false (penalises the reporter). PB-006R, FR-CBR-25..32.
+    /// </summary>
+    [HttpPost("no-show-reports/{reportId:guid}/resolve")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ResolveNoShowReport(
+        Guid reportId, [FromBody] ResolveNoShowReportBody body, CancellationToken ct)
+    {
+        await mediator
+            .Send(new ResolveNoShowReportCommand(reportId, body.IsValid, body.AdminNote), ct)
+            .ConfigureAwait(false);
+        return NoContent();
+    }
+
+    public sealed record ResolveNoShowReportBody(bool IsValid, string? AdminNote);
 
     /// <summary>
     /// Lists the verification documents a ScholarshipProvider / Consultant uploaded for their

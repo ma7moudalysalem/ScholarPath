@@ -66,6 +66,7 @@ public class ApplicationDbContext(
     // Bookings
     public DbSet<ConsultantAvailability> Availabilities => Set<ConsultantAvailability>();
     public DbSet<ConsultantBooking> Bookings => Set<ConsultantBooking>();
+    public DbSet<NoShowReport> NoShowReports => Set<NoShowReport>();
 
     // Payments
     public DbSet<Payment> Payments => Set<Payment>();
