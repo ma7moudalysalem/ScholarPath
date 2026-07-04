@@ -155,6 +155,32 @@ public sealed class RefundScholarshipProviderReviewCommandHandlerTests : IDispos
     }
 
     [Fact]
+    public async Task Partial_refund_is_a_noop_when_already_refunded_to_target()
+    {
+        // Audit C2: a prior path (e.g. CancelScholarshipProviderReviewRequest's 50%) already
+        // refunded half. A subsequent Withdraw-triggered partial refund must NOT issue
+        // another 50% (which would double-refund toward the full charge) — the 50%
+        // target is "refund up to 50% total", so this is a no-op.
+        var appId = Guid.NewGuid();
+        var payment = SeedCapturedPayment(appId, 10_000);
+        payment.Status = PaymentStatus.PartiallyRefunded;
+        payment.RefundedAmountCents = 5_000;
+        _db.Applications.Add(new ApplicationTracker
+        {
+            Id = appId, StudentId = Guid.NewGuid(), Status = ApplicationStatus.UnderReview,
+        });
+        await _db.SaveChangesAsync();
+
+        var result = await _handler.Handle(
+            new RefundScholarshipProviderReviewCommand(appId, IsFullRefund: false), default);
+
+        result.Should().BeTrue();
+        payment.RefundedAmountCents.Should().Be(5_000); // unchanged — no second refund
+        await _stripe.DidNotReceiveWithAnyArgs()
+            .RefundPaymentAsync(default!, default, default, default!, default);
+    }
+
+    [Fact]
     public async Task Returns_false_when_no_companyreview_payment_exists()
     {
         var result = await _handler.Handle(
