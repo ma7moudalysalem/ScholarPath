@@ -87,10 +87,12 @@ namespace ScholarPath.API.Controllers
             return await mediator.Send(command);
         }
 
-        // ScholarshipProvider edits one of its own listings — title/description/category/deadline only.
-        // FundingType and TargetLevel are create-only; the update command doesn't accept them.
+        // ScholarshipProvider edits one of its own listings; an Admin may edit an
+        // admin-created (ownerless) listing such as an External scholarship. The
+        // command enforces ownership either way. Title/description/category/
+        // deadline/country only — FundingType and TargetLevel are create-only.
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "ScholarshipProvider")]
+        [Authorize(Roles = "ScholarshipProvider,Admin,SuperAdmin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]

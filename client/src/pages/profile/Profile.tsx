@@ -1433,7 +1433,7 @@ export function Profile() {
               <div>
                 <textarea
                   rows={5}
-                  maxLength={500}
+                  maxLength={2000}
                   className="input-premium font-normal"
                   placeholder={t("profile:fields.biographyPlaceholder")}
                   value={form.biography}
@@ -1444,7 +1444,7 @@ export function Profile() {
                     {t("profile:fields.biographyHelp")}
                   </p>
                   <p className="text-text-tertiary">
-                    {form.biography.length}/500
+                    {form.biography.length}/2000
                   </p>
                 </div>
               </div>
