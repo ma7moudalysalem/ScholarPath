@@ -108,3 +108,67 @@ Items **1–4 are a real feature** (migration + new admin command + UI) — need
   timezone label via `formatTimeWithTz`. No schema change.
 - **Docs:** the diagram edits in §2 and §3 are yours to make (they're in the SRS/PlantUML files).
   I can generate corrected `.puml` snippets for any diagram you want if that's faster.
+
+---
+
+## 6. Scholarships module diagrams (P1 + P2 + part3) — documentation edits
+
+Reviewed all three diagram sets (P1: 60 diagrams UC-SCH-01..20; P2: 30 diagrams UC-APP-01..10;
+part3: 27 diagrams UC-APP-11..19) against the current code. **The code is correct** (it was
+audited & fixed in the earlier wave); these are all **diagram/SRS edits for you to make** —
+except one real code bug (§6.4, already fixed). No `System`-actor user-story violations
+(UC-SCH-18 = "Scheduled Job / Time Trigger"; UC-APP-17/18 = event-initiated, matching the
+MediatR handlers — optionally fold those two into their triggering human use case as
+`<<include>>` to fully honour the "no System actor" convention).
+
+### 6.1 Systemic fixes (recur across all three parts — do these globally)
+- **State-name drift → rename everywhere:** `"In Assessment"` → **`UnderReview`**; `"Submitted"` →
+  **`Pending`**; `"Open"` (approved listing) is fine but the enum name is `Open`. Real enums:
+  scholarships `Draft/Open/Closed/Archived/UnderReview`; applications `Draft/Pending/UnderReview/Shortlisted/Accepted/Rejected/Withdrawn`.
+- **Invented lifelines → drop them:** `AccessPolicy`, `StateMachinePolicy`, `ScholarshipStatusHistory`,
+  `RespondToApplicationCommand`, `ReapplyCommand`, `SubmitScholarshipForAssessmentCommand`,
+  `ScholarshipListing`, `DocSlot`/`VaultFile`. Real names: the **command/query handler** itself does the
+  auth (`ICurrentUserService.IsInRole` / owner check) and the state guard is the static
+  **`ApplicationStateMachine.EnsureTransition`**; the entity is **`Scholarship`** (not `ScholarshipListing`);
+  status history is written by an **`ApplicationStatusChangedEvent`** MediatR handler, not a synchronous `Hist.record`.
+- **HTTP status codes:** creates return **200 (new id)** not 201; submit/withdraw/save-draft/archive return
+  **204** not 200; business-rule blocks throw `ConflictException` → **409** (not 422); only FluentValidation
+  failures (empty/oversized/missing-field/blank-reason) are **422**.
+
+### 6.2 Part 1 (Discovery/Listing) — key edits
+- **State machine (SCH-ACT-16):** add the missing `Closed → UnderReview : owner/admin reopens (deadline re-checked)`;
+  delete the fictional `Draft → In Assessment (submit)` (no submit-for-assessment command exists — provider
+  create goes straight to `UnderReview`; a rejected `Draft` returns to `UnderReview` by *editing*).
+- **Remove UC/ACT/SEQ-12** ("Submit Listing for Assessment") — no such command/endpoint.
+- **SCH-SEQ-05 Apply-Now:** no `ScholarshipsController.ApplyNow` endpoint — it's client-driven (gate on
+  `status != "Open"` then call the application-intent endpoint, or redirect to the external URL).
+- **SCH-SEQ-01/02/03** collapse Browse/Search/Filter into the single `GetScholarshipsQuery` (`GET /api/scholarships`).
+- **SCH-SEQ-13 approve:** controller is `ScholarshipsController` (not `AdminScholarshipsController`); add the
+  `alt deadline within 7 days → 409` guard on approve. **SCH-SEQ-18 auto-close:** `ScholarshipAutoCloseJob`
+  sets `Open→Closed` for `Deadline < now` (no controller/policy/history). **SCH-SEQ-11 archive:** `DELETE {id}` → 204 + soft-delete.
+- **SCH-SEQ-04 detail:** `GetScholarshipById` returns 200 for any status; only 404 when the row is missing (no discovery-gate 404).
+- **SCH-SEQ-06 bookmark:** pure toggle returning `bookmarked:true/false` — no action param, no duplicate branch, no Open-status guard.
+
+### 6.3 Part 2 (Application submission/tracking) & part3 (responding/notifications/rating) — key edits
+- **Documents (APP-SEQ-04):** upload goes through the **Documents** endpoint/command (not `ApplicationsController`);
+  unsupported-type / MIME-mismatch / magic-byte-fail / infected → **409**; only empty/>25 MB → 422.
+- **Submit (APP-SEQ-06):** completeness failures are **409** (not 422); success is **204**.
+- **Reapply (APP-SEQ-09):** there is no `ReapplyCommand` — reapply is **`StartApplicationCommand`** (Withdrawn/Rejected/Accepted
+  are excluded from the active-duplicate check, so Start re-creates a Draft). Start is idempotent → **200 (AlreadyExisted)**
+  or **201 (new)**; it no longer 409s on an existing active application (resume).
+- **Provider review (part3 SEQ-13..16):** ONE endpoint `POST /api/applications/{id}/review` `{Status, DecisionReason}` → **204**
+  (no `respond`/`reject` endpoints). Reject-reason is enforced by `ReviewApplicationCommandValidator` → **422**. A provider can
+  Shortlist/Accept/Reject directly from `Pending` (not only `UnderReview`).
+- **Rating (part3 SEQ-19):** command is **`SubmitScholarshipProviderRatingCommand`** → `POST /api/company-reviews` → **200 {ReviewId}**.
+  On save it **always** notifies the company (`ScholarshipProviderRatingReceived`); on a first low-rating dip it notifies **admins**
+  (`ScholarshipProviderLowRatingFlagged`, 3-month window). It does **not** notify the student. Add a note: the **rated company is
+  resolved server-side from the scholarship owner** (never client-supplied). Reconcile the FR id for the 3-month window (code = FR-APP-35, DESC-19 says FR-APP-31).
+- **Submit notifications (part3 SEQ-18):** the submit handler dispatches **two** — `ApplicationSubmittedConfirmation` to the
+  **student** (FR-APP-17) + `ApplicationSubmitted` to the company. UC/DESC-18 omit the student confirmation — add it.
+
+### 6.4 ✅ Real code bug found & FIXED — withdrawal missing from the status timeline
+`WithdrawApplicationCommandHandler` set `Status=Withdrawn` but (unlike Submit/Review) **never raised
+`ApplicationStatusChangedEvent`**, so `ApplicationStatusHistoryEventHandler` never wrote a StatusHistory row —
+a withdrawal never appeared in the student's timeline (FR-APP-18/19). Fixed: it now raises the event
+(`statusBeforeWithdrawal → Withdrawn`); the payment-outcome handler only acts on Accepted/Rejected, so it's
+side-effect-safe. Shipped separately.

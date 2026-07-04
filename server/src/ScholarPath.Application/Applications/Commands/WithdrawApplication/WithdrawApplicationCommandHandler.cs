@@ -63,6 +63,18 @@ public sealed class WithdrawApplicationCommandHandler(
             await sender.Send(refundCommand, ct);
         }
 
+        // FR-APP-18/19: record the withdrawal on the student's status timeline.
+        // Submit and Review raise this event to append a StatusHistory row; withdraw
+        // did not, so a withdrawal never appeared in the timeline. The payment-outcome
+        // handler only acts on Accepted/Rejected, so raising it here is side-effect-safe.
+        application.RaiseDomainEvent(new ScholarPath.Domain.Events.ApplicationStatusChangedEvent(
+            application.Id,
+            application.StudentId,
+            application.ScholarshipId,
+            statusBeforeWithdrawal,
+            ApplicationStatus.Withdrawn
+        ));
+
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         await notifications.DispatchAsync(
