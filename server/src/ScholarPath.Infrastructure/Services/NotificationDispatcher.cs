@@ -57,7 +57,19 @@ public sealed class NotificationDispatcher(
             rows.Add(row);
         }
 
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (ScholarPath.Application.Common.Exceptions.ConflictException)
+            when (!string.IsNullOrEmpty(idempotencyKey))
+        {
+            // A concurrent dispatch with the same idempotency key won the race and
+            // inserted these rows first — the unique (IdempotencyKey, Channel) index
+            // rejected ours. Detach our rejected rows and no-op (idempotent).
+            db.Notifications.RemoveRange(rows);
+            return;
+        }
 
         foreach (var row in rows)
             await DeliverAsync(row, content, ct);

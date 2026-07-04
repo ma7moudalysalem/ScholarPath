@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Applications.DTOs;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Applications.Queries.GetScholarshipProviderApplications;
 
@@ -19,7 +20,12 @@ public sealed class GetScholarshipProviderApplicationsQueryHandler(
             .AsNoTracking()
             .Include(a => a.Student)
             .Include(a => a.Scholarship)
-            .Where(a => a.Scholarship != null && a.Scholarship.OwnerScholarshipProviderId == currentUser.UserId);
+            // A Draft is created the instant a student clicks Apply (before filling
+            // in / submitting). Providers must only see SUBMITTED applications —
+            // never a student's unsubmitted in-progress form + documents.
+            .Where(a => a.Scholarship != null
+                        && a.Scholarship.OwnerScholarshipProviderId == currentUser.UserId
+                        && a.Status != ApplicationStatus.Draft);
 
         if (request.ScholarshipId.HasValue)
         {

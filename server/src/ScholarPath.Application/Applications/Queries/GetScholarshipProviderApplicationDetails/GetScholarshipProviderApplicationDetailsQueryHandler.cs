@@ -26,6 +26,13 @@ public sealed class GetScholarshipProviderApplicationDetailsQueryHandler(
             throw new ForbiddenAccessException();
         }
 
+        // A provider must never see a student's unsubmitted Draft (in-progress form
+        // + uploaded documents). Treat it as not-found to avoid confirming it exists.
+        if (application.Status == Domain.Enums.ApplicationStatus.Draft)
+        {
+            throw new NotFoundException(nameof(Domain.Entities.ApplicationTracker), request.ApplicationId);
+        }
+
         var documents = await db.Documents
             .AsNoTracking()
             .Where(d => d.ApplicationTrackerId == application.Id && !d.IsDeleted)

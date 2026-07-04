@@ -955,7 +955,15 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         b.Property(n => n.DispatchError).HasMaxLength(2000);
         b.Property(n => n.RowVersion).IsRowVersion();
         b.HasIndex(n => new { n.RecipientUserId, n.IsRead, n.CreatedAt });
-        b.HasIndex(n => n.IdempotencyKey);
+        // Idempotency is enforced at the DB, not just check-then-act: a concurrent
+        // duplicate dispatch (overlapping jobs, webhook re-delivery) can't insert a
+        // second row. Composite with Channel because one dispatch legitimately writes
+        // one row per channel (InApp + Email) under the same key; filtered so the many
+        // key-less notifications aren't collapsed by SQL Server's NULL-equality.
+        b.HasIndex(n => new { n.IdempotencyKey, n.Channel })
+            .IsUnique()
+            .HasFilter("[IdempotencyKey] IS NOT NULL")
+            .HasDatabaseName("UX_Notifications_IdempotencyKey_Channel");
         b.HasQueryFilter(n => !n.IsDeleted);
     }
 }
