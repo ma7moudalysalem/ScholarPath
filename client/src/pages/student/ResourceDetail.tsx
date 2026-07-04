@@ -187,6 +187,9 @@ export function ResourceDetail() {
     mutationFn: (id: string) => resourcesApi.toggleBookmark(id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["resources", "bookmarks"] });
+      // Also refresh THIS page's detail query so the bookmark button flips
+      // immediately instead of only the separate bookmarks list.
+      void qc.invalidateQueries({ queryKey: ["resources", "detail", idOrSlug] });
     },
     onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
   });
@@ -202,6 +205,9 @@ export function ResourceDetail() {
         toast.success(t("resources:detail.chapterMarked"));
       }
       void qc.invalidateQueries({ queryKey: ["resources", "progress"] });
+      // Also refresh THIS page's detail query so the per-chapter checkmarks
+      // update immediately.
+      void qc.invalidateQueries({ queryKey: ["resources", "detail", idOrSlug] });
     },
     onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
   });

@@ -127,6 +127,10 @@ export function Applications() {
     comment: string,
   ) => {
     await applicationsApi.submitReview(applicationId, scholarshipProviderId, rating, comment);
+    // Refresh the board so `hasReview` flips and the "Rate provider" affordance
+    // disappears — without this the button lingers and a re-click hits a
+    // duplicate-review error until reload.
+    await queryClient.invalidateQueries({ queryKey: queryKeys.applications.mine });
   };
 
   return (
