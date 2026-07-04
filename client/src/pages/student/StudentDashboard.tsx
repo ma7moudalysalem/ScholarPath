@@ -73,25 +73,29 @@ export function StudentDashboard() {
   const { t, i18n } = useTranslation(["dashboard", "notifications", "applications"]);
   const firstName = useAuthStore((s) => s.user?.firstName ?? "");
 
-  const { data: applications = [] } = useQuery({
+  const { data: applications = [], isLoading: appsLoading } = useQuery({
     queryKey: queryKeys.applications.mine,
     queryFn: applicationsApi.getMyApplications,
     staleTime: 60_000,
   });
 
-  const { data: bookmarks = [] } = useBookmarksQuery();
+  const { data: bookmarks = [], isLoading: bookmarksLoading } = useBookmarksQuery();
 
-  const { data: bookings = [] } = useQuery({
+  const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
     queryKey: queryKeys.bookings.mine,
     queryFn: bookingsApi.getMine,
     staleTime: 60_000,
   });
 
-  const { data: unread = 0 } = useQuery({
+  const { data: unread = 0, isLoading: unreadLoading } = useQuery({
     queryKey: UNREAD_COUNT_QUERY_KEY,
     queryFn: notificationsApi.unreadCount,
     staleTime: 30_000,
   });
+
+  // FR-DSH-46: don't flash hard "0"s as if they were final while the KPI queries
+  // are still loading — show skeletons until the first fetch resolves.
+  const statsLoading = appsLoading || bookmarksLoading || bookingsLoading || unreadLoading;
 
   const { data: notifPage, isLoading: notifLoading } = useQuery({
     queryKey: ["notifications", "recent"],
@@ -170,6 +174,13 @@ export function StudentDashboard() {
       />
 
       {/* Stat strip */}
+      {statsLoading ? (
+        <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl bg-bg-subtle" />
+          ))}
+        </section>
+      ) : (
       <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           label={t("dashboard:student.stats.applications")}
@@ -204,6 +215,7 @@ export function StudentDashboard() {
           delay={0.14}
         />
       </section>
+      )}
 
       {/* Main 12-col grid */}
       <div className="grid gap-6 lg:grid-cols-12">

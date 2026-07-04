@@ -34,6 +34,17 @@ public sealed class DeletePostCommandHandler(
         post.DeletedAt = DateTimeOffset.UtcNow;
         post.DeletedByUserId = currentUser.UserId;
 
+        // FR-ADM-05: an admin removing someone else's post is a moderation
+        // decision — stamp the moderator + set the terminal Removed status so the
+        // removal is traceable in the post's moderation history (not just the audit
+        // log). A self-delete by the author leaves the moderation fields untouched.
+        if (isAdmin && post.AuthorId != currentUser.UserId)
+        {
+            post.ModeratedByAdminId = currentUser.UserId;
+            post.ModeratedAt = DateTimeOffset.UtcNow;
+            post.ModerationStatus = PostModerationStatus.Removed;
+        }
+
         if (post.ParentPostId.HasValue)
         {
             var parent = await db.ForumPosts.FirstOrDefaultAsync(p => p.Id == post.ParentPostId, ct);

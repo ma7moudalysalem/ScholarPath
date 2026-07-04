@@ -4,7 +4,9 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { AnimatedRoute } from "@/components/common/AnimatedRoute";
 import { RequireAuth, RequireRole, RequirePayments } from "@/routes/RequireAuth";
 import { lazy, Suspense, type ReactNode } from "react";
-import { Route, Routes } from "react-router";
+import { Navigate, Outlet, Route, Routes } from "react-router";
+import { useAuthStore } from "@/stores/authStore";
+import { postAuthPath } from "@/services/api/auth";
 
 const Home = lazy(() => import("@/pages/public/Home").then((m) => ({ default: m.Home })));
 const Login = lazy(() => import("@/pages/auth/Login").then((m) => ({ default: m.Login })));
@@ -301,20 +303,30 @@ function SuspenseOutlet({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * FR-DSH-02 / US-DSH-01: an authenticated user landing on "/" is sent to the
+ * dashboard for their active role; everyone else sees the public marketing home.
+ */
+function HomeRoute() {
+  const tokens = useAuthStore((s) => s.tokens);
+  const user = useAuthStore((s) => s.user);
+  if (tokens && user) {
+    return <Navigate to={postAuthPath(user)} replace />;
+  }
+  return (
+    <PublicLayout>
+      <AnimatedRoute>
+        <Home />
+      </AnimatedRoute>
+    </PublicLayout>
+  );
+}
+
 export function AppRouter() {
   return (
     <SuspenseOutlet>
       <Routes>
-        <Route
-          path="/"
-          element={
-            <PublicLayout>
-              <AnimatedRoute>
-                <Home />
-              </AnimatedRoute>
-            </PublicLayout>
-          }
-        />
+        <Route path="/" element={<HomeRoute />} />
         <Route
           path="/login"
           element={
@@ -459,57 +471,54 @@ export function AppRouter() {
               </RequireRole>
             }
           />
-          {/* PB-003: Scholarship Discovery */}
-          <Route path="/student/scholarships"      element={<AnimatedRoute><StudentScholarships /></AnimatedRoute>} />
-          <Route path="/student/scholarships/:id"  element={<AnimatedRoute><StudentScholarshipDetail /></AnimatedRoute>} />
-          <Route path="/student/bookmarks"         element={<AnimatedRoute><StudentBookmarks /></AnimatedRoute>} />
+          {/* FR-DSH-03 / FR-AI-04: every /student/* sub-route is Student-only.
+              A pathless layout route applies RequireRole once so a Consultant/
+              Provider/Admin can't reach a student page by editing the URL. */}
+          <Route element={<RequireRole roles={["Student"]}><Outlet /></RequireRole>}>
+            {/* PB-003: Scholarship Discovery */}
+            <Route path="/student/scholarships"      element={<AnimatedRoute><StudentScholarships /></AnimatedRoute>} />
+            <Route path="/student/scholarships/:id"  element={<AnimatedRoute><StudentScholarshipDetail /></AnimatedRoute>} />
+            <Route path="/student/bookmarks"         element={<AnimatedRoute><StudentBookmarks /></AnimatedRoute>} />
 
-          {/* PB-004: Applications */}
-          <Route path="/student/applications"      element={<AnimatedRoute><StudentApplications /></AnimatedRoute>} />
-          <Route path="/student/applications/:id"  element={<AnimatedRoute><StudentApplicationDetail /></AnimatedRoute>} />
+            {/* PB-004: Applications */}
+            <Route path="/student/applications"      element={<AnimatedRoute><StudentApplications /></AnimatedRoute>} />
+            <Route path="/student/applications/:id"  element={<AnimatedRoute><StudentApplicationDetail /></AnimatedRoute>} />
 
-          {/* PB-005: paid ScholarshipProviderReview support requests */}
+            {/* PB-005: paid ScholarshipProviderReview support requests */}
+            <Route path="/student/review-requests"     element={<AnimatedRoute><StudentReviewRequests /></AnimatedRoute>} />
+            <Route path="/student/review-requests/:id" element={<AnimatedRoute><StudentReviewRequests /></AnimatedRoute>} />
+
+            {/* PB-006: Consultant Booking */}
+            <Route path="/student/consultants"       element={<AnimatedRoute><StudentConsultants /></AnimatedRoute>} />
+            <Route path="/student/consultants/:id"   element={<AnimatedRoute><StudentConsultantDetail /></AnimatedRoute>} />
+            <Route path="/student/checkout"          element={<AnimatedRoute><StudentBookingCheckout /></AnimatedRoute>} />
+            <Route path="/student/bookings"          element={<AnimatedRoute><StudentBookings /></AnimatedRoute>} />
+            <Route path="/student/bookings/:id"      element={<AnimatedRoute><StudentBookingDetails /></AnimatedRoute>} />
+
+            {/* PB-007: Community */}
+            <Route path="/student/community"         element={<AnimatedRoute><StudentCommunity /></AnimatedRoute>} />
+            <Route path="/student/community/:id"     element={<AnimatedRoute><StudentCommunityThread /></AnimatedRoute>} />
+            <Route path="/student/messages"          element={<AnimatedRoute><StudentMessages /></AnimatedRoute>} />
+
+            {/* Others */}
+            <Route path="/student/resources"         element={<AnimatedRoute><StudentResources /></AnimatedRoute>} />
+            <Route path="/student/resources/:idOrSlug" element={<AnimatedRoute><StudentResourceDetail /></AnimatedRoute>} />
+            <Route path="/student/documents"         element={<AnimatedRoute><StudentDocuments /></AnimatedRoute>} />
+            <Route path="/student/ai"                element={<AnimatedRoute><StudentAi /></AnimatedRoute>} />
+            <Route path="/student/analytics"         element={<AnimatedRoute><StudentAnalytics /></AnimatedRoute>} />
+          </Route>
+
+          {/* The same Chat component is mounted under the consultant/provider
+              prefixes so cross-role deep links resolve — each gated to its own
+              role (a consultant's email link to /consultant/messages, etc.). */}
           <Route
-            path="/student/review-requests"
-            element={
-              <RequireRole roles={["Student"]}>
-                <AnimatedRoute><StudentReviewRequests /></AnimatedRoute>
-              </RequireRole>
-            }
+            path="/consultant/messages"
+            element={<RequireRole roles={["Consultant"]}><AnimatedRoute><StudentMessages /></AnimatedRoute></RequireRole>}
           />
           <Route
-            path="/student/review-requests/:id"
-            element={
-              <RequireRole roles={["Student"]}>
-                <AnimatedRoute><StudentReviewRequests /></AnimatedRoute>
-              </RequireRole>
-            }
+            path="/company/messages"
+            element={<RequireRole roles={["ScholarshipProvider"]}><AnimatedRoute><StudentMessages /></AnimatedRoute></RequireRole>}
           />
-
-          {/* PB-006: Consultant Booking */}
-          <Route path="/student/consultants"       element={<AnimatedRoute><StudentConsultants /></AnimatedRoute>} />
-          <Route path="/student/consultants/:id"   element={<AnimatedRoute><StudentConsultantDetail /></AnimatedRoute>} />
-          <Route path="/student/checkout"          element={<AnimatedRoute><StudentBookingCheckout /></AnimatedRoute>} />
-          <Route path="/student/bookings"          element={<AnimatedRoute><StudentBookings /></AnimatedRoute>} />
-          <Route path="/student/bookings/:id"      element={<AnimatedRoute><StudentBookingDetails /></AnimatedRoute>} />
-
-          {/* PB-007: Community + Chat */}
-          <Route path="/student/community"         element={<AnimatedRoute><StudentCommunity /></AnimatedRoute>} />
-          <Route path="/student/community/:id"     element={<AnimatedRoute><StudentCommunityThread /></AnimatedRoute>} />
-          <Route path="/student/messages"          element={<AnimatedRoute><StudentMessages /></AnimatedRoute>} />
-          {/* Same Chat component is mounted under each role prefix so deep
-              links from the notification dispatcher and from cross-role chat
-              partners resolve correctly. Without these, an email link sent
-              to a consultant would 404 on /consultant/messages. */}
-          <Route path="/consultant/messages"       element={<AnimatedRoute><StudentMessages /></AnimatedRoute>} />
-          <Route path="/company/messages"          element={<AnimatedRoute><StudentMessages /></AnimatedRoute>} />
-
-          {/* Others */}
-          <Route path="/student/resources"         element={<AnimatedRoute><StudentResources /></AnimatedRoute>} />
-          <Route path="/student/resources/:idOrSlug" element={<AnimatedRoute><StudentResourceDetail /></AnimatedRoute>} />
-          <Route path="/student/documents"         element={<AnimatedRoute><StudentDocuments /></AnimatedRoute>} />
-          <Route path="/student/ai"                element={<AnimatedRoute><StudentAi /></AnimatedRoute>} />
-          <Route path="/student/analytics"         element={<AnimatedRoute><StudentAnalytics /></AnimatedRoute>} />
 
           {/* PB-009: Author resource management (Consultant, ScholarshipProvider, Admin) */}
           <Route

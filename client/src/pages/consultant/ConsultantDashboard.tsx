@@ -58,7 +58,7 @@ export function ConsultantDashboard() {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const { data: bookings = [] } = useQuery({
+  const { data: bookings = [], isLoading: statsLoading } = useQuery({
     queryKey: queryKeys.bookings.consultant,
     queryFn: bookingsApi.getForConsultant,
     staleTime: 60_000,
@@ -175,7 +175,15 @@ export function ConsultantDashboard() {
       />
 
       {/* KPI tiles — no fabricated delta/trend props (those were hard-coded
-          mock numbers that misled the consultant about real growth). */}
+          mock numbers that misled the consultant about real growth).
+          FR-DSH-46: skeletons until the bookings query resolves (no 0-flash). */}
+      {statsLoading ? (
+        <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl bg-bg-subtle" />
+          ))}
+        </section>
+      ) : (
       <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           label={t("dashboard:consultant.stats.pending")}
@@ -212,6 +220,7 @@ export function ConsultantDashboard() {
           delay={0.14}
         />
       </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-12">
         <div className="space-y-6 lg:col-span-8">

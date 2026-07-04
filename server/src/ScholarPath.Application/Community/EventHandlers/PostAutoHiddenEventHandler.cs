@@ -22,7 +22,8 @@ public sealed class PostAutoHiddenEventHandler(
     public async Task Handle(PostAutoHiddenEvent notification, CancellationToken ct)
     {
         var adminIds = await db.Users
-            .Where(u => u.ActiveRole == "Admin" && u.AccountStatus == AccountStatus.Active)
+            .Where(u => (u.ActiveRole == "Admin" || u.ActiveRole == "SuperAdmin")
+                        && u.AccountStatus == AccountStatus.Active)
             .Select(u => u.Id)
             .ToListAsync(ct);
 
