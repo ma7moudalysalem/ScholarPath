@@ -226,14 +226,20 @@ export function ScholarshipDetail() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
 
-      {/* ── Back link ── */}
-      <Link
-        to="/student/scholarships"
+      {/* ── Back (history-aware: returns to where the student came from — the AI
+             recommendations, saved list, or browse — instead of always the browse) ── */}
+      <button
+        type="button"
+        onClick={() => {
+          const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+          if (idx > 0) navigate(-1);
+          else navigate("/student/scholarships");
+        }}
         className="inline-flex items-center gap-1.5 text-sm font-medium text-text-secondary transition hover:text-brand-600"
       >
         <BackIcon aria-hidden className="size-4" />
         {t("scholarships:detail.back")}
-      </Link>
+      </button>
 
       {/* ── Hero banner ── */}
       <div className="relative overflow-hidden rounded-2xl border border-border-subtle">

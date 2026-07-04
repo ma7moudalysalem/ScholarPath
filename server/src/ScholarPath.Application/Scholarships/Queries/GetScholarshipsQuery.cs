@@ -56,17 +56,26 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserS
         if (request.Status.HasValue)
             query = query.Where(s => s.Status == request.Status.Value);
 
-        //  Full-Text Search
+        //  Search (LIKE — no full-text index required)
         if (!string.IsNullOrWhiteSpace(request.Term))
         {
-            // SQL Server CONTAINS requires a quoted phrase for multi-word queries.
-            // Single-word terms also work fine inside quotes, so we always quote.
-            var sanitized = request.Term.Trim().Replace("\"", "");
+            // Previously used SQL Server CONTAINS, which needs a full-text catalog
+            // on Scholarships that is not provisioned in this DB — so every search
+            // threw and surfaced to users as "search failed". LIKE works without an
+            // index. Escape LIKE wildcards so user input can't act as a pattern.
+            var sanitized = request.Term.Trim();
             if (!string.IsNullOrWhiteSpace(sanitized))
             {
-                var ftsTerm = $"\"{sanitized}\"";
-                query = query.Where(s => EF.Functions.Contains(s.TitleEn, ftsTerm) ||
-                                         EF.Functions.Contains(s.TitleAr, ftsTerm));
+                var escaped = sanitized
+                    .Replace("[", "[[]")
+                    .Replace("%", "[%]")
+                    .Replace("_", "[_]");
+                var like = $"%{escaped}%";
+                query = query.Where(s =>
+                    EF.Functions.Like(s.TitleEn, like) ||
+                    EF.Functions.Like(s.TitleAr, like) ||
+                    EF.Functions.Like(s.DescriptionEn, like) ||
+                    EF.Functions.Like(s.DescriptionAr, like));
             }
         }
 

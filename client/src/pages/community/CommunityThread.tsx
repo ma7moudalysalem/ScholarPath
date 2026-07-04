@@ -222,16 +222,11 @@ export function CommunityThread() {
         <div className="p-6 sm:p-8">
           <div className="flex gap-5 sm:gap-6">
             {/* Vote Side — students only */}
-            {isStudent && (() => {
-              const isOwnPost = thread.post.authorId === currentUserId;
-              const title = isOwnPost ? t("actions.voteOwnPost") : undefined;
-              return (
+            {isStudent && (
                 <div className="flex flex-col items-center gap-0.5 bg-bg-subtle/70 rounded-xl px-1.5 py-2 h-fit border border-border-subtle">
                   <button
                     type="button"
                     onClick={() => handleVote(thread.post.id, "Up")}
-                    disabled={isOwnPost}
-                    title={title}
                     aria-label={t("thread.upvote")}
                     className="p-1.5 rounded-md text-text-tertiary hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                   >
@@ -245,16 +240,13 @@ export function CommunityThread() {
                   <button
                     type="button"
                     onClick={() => handleVote(thread.post.id, "Down")}
-                    disabled={isOwnPost}
-                    title={title}
                     aria-label={t("thread.downvote")}
                     className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                   >
                     <ArrowDown size={20} strokeWidth={2.5} aria-hidden />
                   </button>
                 </div>
-              );
-            })()}
+            )}
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between mb-5 gap-3">
