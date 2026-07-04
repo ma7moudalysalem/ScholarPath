@@ -20,4 +20,12 @@ public sealed class BookingOptions
 
     /// <summary>Number of most-recent visible ratings averaged for the low-rating check.</summary>
     public int LowRatingWindowSize { get; set; } = 20;
+
+    /// <summary>
+    /// Minimum number of visible ratings required before the low-rating check is
+    /// evaluated at all. FR-CBR-37 averages the *last 20* reviews, i.e. "up to 20":
+    /// a consultant with fewer than a full window can still be flagged, but a very
+    /// small sample (1-4 reviews) is too noisy to auto-suspend on.
+    /// </summary>
+    public int LowRatingMinimumSampleSize { get; set; } = 5;
 }

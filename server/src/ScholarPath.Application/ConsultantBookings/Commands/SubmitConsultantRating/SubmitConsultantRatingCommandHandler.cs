@@ -106,7 +106,10 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
             .Select(r => r.Rating)
             .ToListAsync(cancellationToken);
 
-        if (recentRatings.Count >= windowSize)
+        // FR-CBR-37: evaluate the average over *up to* the last 20 visible ratings —
+        // a consultant does not need a full window of 20 before they can be flagged,
+        // only a minimum sample big enough to be meaningful.
+        if (recentRatings.Count >= _bookingOptions.LowRatingMinimumSampleSize)
         {
             var average = recentRatings.Average();
 
