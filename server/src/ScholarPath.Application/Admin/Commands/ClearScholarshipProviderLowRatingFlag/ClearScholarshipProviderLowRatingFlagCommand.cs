@@ -44,7 +44,7 @@ public sealed class ClearScholarshipProviderLowRatingFlagCommandHandler(
     public async Task<bool> Handle(
         ClearScholarshipProviderLowRatingFlagCommand command, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
         {
             throw new ForbiddenAccessException(
                 "Only an administrator can clear the low-rating flag.");

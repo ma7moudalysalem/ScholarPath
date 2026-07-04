@@ -29,8 +29,7 @@ public sealed class GetAllBookingsQueryHandler(
         // SEC-03: only platform admins may list every booking. ScholarshipProvider
         // was previously allowed but has no ownership path to a booking, so it
         // leaked all students'/consultants' bookings platform-wide.
-        var isPrivileged = currentUser.IsInRole("Admin")
-            || currentUser.IsInRole("SuperAdmin");
+        var isPrivileged = currentUser.IsAdminOrSuperAdmin();
 
         if (!isPrivileged)
             throw new ForbiddenAccessException("Only admins can view all bookings.");

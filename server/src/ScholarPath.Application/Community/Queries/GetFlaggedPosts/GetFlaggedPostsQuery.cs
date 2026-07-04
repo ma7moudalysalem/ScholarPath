@@ -53,7 +53,7 @@ public sealed class GetFlaggedPostsQueryHandler(
 
     public async Task<PagedResult<FlaggedPostDto>> Handle(GetFlaggedPostsQuery request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can moderate the community.");
 
         var page = Math.Max(1, request.Page);

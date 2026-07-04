@@ -32,7 +32,7 @@ public sealed class DownloadDocumentQueryHandler(
             .ConfigureAwait(false)
             ?? throw new NotFoundException(nameof(Document), request.DocumentId);
 
-        var isAdmin = currentUser.IsInRole("Admin") || currentUser.IsInRole("SuperAdmin");
+        var isAdmin = currentUser.IsAdminOrSuperAdmin();
         if (document.OwnerUserId != userId && !isAdmin)
         {
             // A company reviewer may download documents that are attached to an

@@ -30,7 +30,7 @@ public sealed class DismissPostFlagsCommandHandler(
 {
     public async Task<bool> Handle(DismissPostFlagsCommand request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can moderate the community.");
 
         var adminId = currentUser.UserId

@@ -25,8 +25,11 @@ public sealed class DeletePostCommandHandler(
             .FirstOrDefaultAsync(p => p.Id == request.PostId && !p.IsDeleted, ct)
             ?? throw new NotFoundException(nameof(ForumPost), request.PostId);
 
-        // Allow author or admin to delete
-        var isAdmin = currentUser.Roles?.Contains("Admin") == true;
+        // Allow author or admin to delete. Use IsInRole (the active_role claim) not
+        // the full Roles list — a refresh-rotated token carries active_role but not the
+        // ClaimTypes.Role set, so `currentUser.Roles.Contains("Admin")` wrongly failed
+        // for a legit admin after a token refresh.
+        var isAdmin = currentUser.IsAdminOrSuperAdmin();
         if (post.AuthorId != currentUser.UserId && !isAdmin)
             throw new ForbiddenAccessException();
 

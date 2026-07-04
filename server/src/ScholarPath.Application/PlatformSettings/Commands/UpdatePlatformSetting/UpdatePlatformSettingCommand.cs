@@ -55,7 +55,7 @@ public sealed class UpdatePlatformSettingCommandHandler(
         UpdatePlatformSettingCommand request, CancellationToken ct)
     {
         // Platform settings govern site-wide behaviour — administrators only.
-        if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException(
                 "Only an administrator can change platform settings.");
 

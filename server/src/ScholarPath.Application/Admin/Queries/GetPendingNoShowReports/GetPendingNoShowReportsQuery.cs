@@ -36,7 +36,7 @@ public sealed class GetPendingNoShowReportsQueryHandler(
     public async Task<PagedResult<NoShowReportRow>> Handle(
         GetPendingNoShowReportsQuery request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
         {
             throw new ForbiddenAccessException();
         }

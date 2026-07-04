@@ -59,7 +59,7 @@ public sealed class CapturePaymentIntentCommandHandler(
         // routes through this command, so this HTTP-facing command is an admin/ops
         // path. Without this gate any authenticated user could capture any Held
         // payment by guessing its id.
-        if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can capture a payment.");
 
         // 1. Load Held payment — only Held can be captured

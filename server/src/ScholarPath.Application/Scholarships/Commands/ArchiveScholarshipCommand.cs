@@ -28,7 +28,7 @@ public class ArchiveScholarshipCommandHandler(
         }
 
         // Only the owning company (or an admin) may archive a listing.
-        if (entity.OwnerScholarshipProviderId != user.UserId && !user.IsInRole("Admin"))
+        if (entity.OwnerScholarshipProviderId != user.UserId && !user.IsAdminOrSuperAdmin())
         {
             throw new ForbiddenAccessException("You can only archive your own scholarship listings.");
         }

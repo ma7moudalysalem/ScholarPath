@@ -49,7 +49,7 @@ public sealed class HideScholarshipProviderReviewCommandHandler(
 {
     public async Task<bool> Handle(HideScholarshipProviderReviewCommand request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can moderate reviews.");
 
         var review = await db.ScholarshipProviderReviews

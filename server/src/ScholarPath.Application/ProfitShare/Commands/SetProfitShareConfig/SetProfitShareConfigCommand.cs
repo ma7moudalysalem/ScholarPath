@@ -57,7 +57,7 @@ public sealed class SetProfitShareConfigCommandHandler(
         SetProfitShareConfigCommand request, CancellationToken ct)
     {
         // Profit-share config governs how money is split — administrators only.
-        if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException(
                 "Only an administrator can change the profit-share configuration.");
 

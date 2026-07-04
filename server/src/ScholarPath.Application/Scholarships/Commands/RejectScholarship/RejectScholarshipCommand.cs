@@ -46,7 +46,7 @@ public sealed class RejectScholarshipCommandHandler(
 {
     public async Task<bool> Handle(RejectScholarshipCommand request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can reject scholarships.");
 
         var adminId = currentUser.UserId

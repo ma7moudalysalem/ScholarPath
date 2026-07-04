@@ -38,7 +38,7 @@ public sealed class ApproveResourceCommandHandler(
 {
     public async Task<bool> Handle(ApproveResourceCommand request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can approve resources.");
 
         var adminId = currentUser.UserId

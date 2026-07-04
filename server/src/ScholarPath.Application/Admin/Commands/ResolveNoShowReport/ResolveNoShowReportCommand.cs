@@ -55,7 +55,7 @@ public sealed class ResolveNoShowReportCommandHandler(
 
     public async Task Handle(ResolveNoShowReportCommand command, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
         {
             throw new ForbiddenAccessException("Only an administrator can resolve a no-show report.");
         }
