@@ -205,6 +205,36 @@ and cancel-penalty flows (3-day block / −20%) match the code. ~27 of 43 clean.
 
 ---
 
+## 8. Community diagrams — documentation edits
+
+Reviewed the 25 Community diagrams (FR-COM-01..54) against the current code. **The code is
+correct** (recently audited: bilingual posts, mutual block, auto-hide 3-distinct-flaggers,
+moderation stamping). All edits below are SRS/PlantUML. No `System`-actor violations (auto
+behaviours use event actors: PostAutoHiddenEvent, reply/report events). No code bug found.
+
+### 8.1 🔴 Self-vote — the diagrams still forbid it, but the code REMOVED that rule
+The code intentionally allows an author to vote on their own content (`ToggleVoteCommand.cs:43-45`:
+"the self-vote block was removed on request" — only the Student-role + one-vote-per-item rules remain).
+Delete the "cannot vote on own content / Own content? → reject" wording from **UC-03 note, UC-COM-12
+table (step 2 + ext 2a), ACT-04, and SEQ-04's guard**. (This also confirms the client's self-vote
+button being enabled is CORRECT — not a bug.)
+
+### 8.2 🟠 HTTP status codes (systemic)
+- Mutations return **`204 No Content`**, not 200: SEQ-04 (vote), SEQ-05 (flag), SEQ-08 (edit),
+  SEQ-09 (delete), SEQ-11 (admin remove), SEQ-12 (admin dismiss).
+- SEQ-03 (create reply) returns **`200 Ok(replyId)`**, not 201. (SEQ-02 create-POST's 201 is correct.)
+- SEQ-05 self-report / duplicate branches are **`409 Conflict`** (not the 200 path).
+- SEQ-08 edit: non-owner → **403**, missing bilingual field → **422** (optionally split the alt).
+
+### 8.3 🟡 Minor
+- ACT-03 models realtime-notify + author-notify as a fork/join; the code runs them **sequentially** in
+  one handler (`CommunityEventHandlers.cs:44` then `:73`). SEQ-03 already models it sequentially. Optional.
+
+**Correct (no edit):** UC-01/02/04/05, ACT-01/02/05/06/07/08, SEQ-01/02/06/07/10; mutual block, bilingual
+posts, auto-hide-at-3-distinct, moderation stamping, self-reply-notify suppression all match the code.
+
+---
+
 ### 6.4 ✅ Real code bug found & FIXED — withdrawal missing from the status timeline
 `WithdrawApplicationCommandHandler` set `Status=Withdrawn` but (unlike Submit/Review) **never raised
 `ApplicationStatusChangedEvent`**, so `ApplicationStatusHistoryEventHandler` never wrote a StatusHistory row —
