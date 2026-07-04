@@ -37,7 +37,11 @@ public sealed class GetMyBookmarksQueryHandler(
             .Where(b => b.UserId == userId
                         && b.ForumPost != null
                         && !b.ForumPost.IsDeleted
-                        && !b.ForumPost.IsAutoHidden);
+                        && !b.ForumPost.IsAutoHidden
+                        // Personal block: a post whose author the user later blocked
+                        // drops out of their bookmarks too.
+                        && !db.UserBlocks.Any(
+                            ub => ub.BlockerId == userId && ub.BlockedUserId == b.ForumPost.AuthorId));
 
         var total = await baseQuery.CountAsync(ct).ConfigureAwait(false);
 

@@ -42,10 +42,19 @@ public sealed class GetPostDetailsQueryHandler(
             .ConfigureAwait(false)
             ?? throw new NotFoundException(nameof(ForumPost), request.Id);
 
-        var replyRows = await db.ForumPosts
+        var repliesQuery = db.ForumPosts
             .AsNoTracking()
             .Include(p => p.Author)
-            .Where(p => p.ParentPostId == request.Id && !p.IsDeleted && !p.IsAutoHidden)
+            .Where(p => p.ParentPostId == request.Id && !p.IsDeleted && !p.IsAutoHidden);
+
+        // Personal block: drop replies authored by anyone the current user blocked.
+        if (currentUserId is Guid blockerId)
+        {
+            repliesQuery = repliesQuery.Where(p => !db.UserBlocks.Any(
+                b => b.BlockerId == blockerId && b.BlockedUserId == p.AuthorId));
+        }
+
+        var replyRows = await repliesQuery
             .OrderBy(p => p.CreatedAt)
             .Select(p => new
             {

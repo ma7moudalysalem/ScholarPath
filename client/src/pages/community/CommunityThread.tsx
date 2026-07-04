@@ -14,9 +14,11 @@ import {
   Pencil,
   Trash2,
   Hash,
+  Ban,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { communityApi, type ForumPost, type VoteType } from "@/services/api/community";
+import { chatApi } from "@/services/api/chat";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { formatDistanceToNow } from "date-fns";
@@ -136,6 +138,20 @@ export function CommunityThread() {
       toast.error(apiErrorMessage(err, t("actions.deleteError")));
       setDeleteTarget(null);
     },
+  });
+
+  // Personal block: hide this author's content from the current user everywhere
+  // (feed, threads, bookmarks) and prevent DMs both ways. Reversible from chat.
+  const blockMutation = useMutation({
+    mutationFn: (userId: string) => chatApi.blockUser({ userId }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["community", "posts"] });
+      void qc.invalidateQueries({ queryKey: ["community", "trending"] });
+      void qc.invalidateQueries({ queryKey: ["community", "bookmarks-feed"] });
+      toast.success(t("actions.blockSuccess"));
+      navigate("/student/community");
+    },
+    onError: (err) => toast.error(apiErrorMessage(err, t("actions.blockError"))),
   });
 
   const handleVote = (postId: string, type: VoteType) => {
@@ -316,6 +332,18 @@ export function CommunityThread() {
                       className="p-2 text-text-tertiary hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors shrink-0"
                     >
                       <Flag size={16} aria-hidden />
+                    </button>
+                  )}
+                  {isStudent && !isRootOwn && (
+                    <button
+                      type="button"
+                      onClick={() => blockMutation.mutate(thread.post.authorId)}
+                      disabled={blockMutation.isPending}
+                      aria-label={t("actions.blockAuthor")}
+                      title={t("actions.blockAuthor")}
+                      className="p-2 text-text-tertiary hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors shrink-0 disabled:opacity-50"
+                    >
+                      <Ban size={16} aria-hidden />
                     </button>
                   )}
                 </div>

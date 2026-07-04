@@ -60,9 +60,27 @@ public sealed class GetPostsQueryHandler(
             return new PagedResult<ForumPostDto>(Array.Empty<ForumPostDto>(), request.Page, request.PageSize, 0);
         }
 
+        // Personal block: hide posts authored by anyone the current user has
+        // blocked (blocker-only — the block never affects other viewers).
+        if (currentUserId is Guid blockerId)
+        {
+            query = query.Where(p => !db.UserBlocks.Any(
+                b => b.BlockerId == blockerId && b.BlockedUserId == p.AuthorId));
+        }
+
+        // "Trending" = recent + high engagement (last 30 days, scored by net votes
+        // plus replies) rather than all-time most-voted, so a genuinely active
+        // post surfaces over an old one with a big vote count.
+        var trendingSince = DateTimeOffset.UtcNow.AddDays(-30);
         query = request.SortBy switch
         {
-            "MostVoted" => query.OrderByDescending(p => p.UpvoteCount - p.DownvoteCount),
+            "MostVoted" => query
+                .OrderByDescending(p => p.UpvoteCount - p.DownvoteCount)
+                .ThenByDescending(p => p.CreatedAt),
+            "Trending" => query
+                .Where(p => p.CreatedAt >= trendingSince)
+                .OrderByDescending(p => p.UpvoteCount - p.DownvoteCount + p.ReplyCount)
+                .ThenByDescending(p => p.CreatedAt),
             _ => query.OrderByDescending(p => p.CreatedAt),
         };
 
