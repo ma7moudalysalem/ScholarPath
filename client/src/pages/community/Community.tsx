@@ -44,6 +44,7 @@ export function Community() {
 
   const activeRole = useAuthStore((state) => state.user?.activeRole);
   const roles = useAuthStore((state) => state.user?.roles ?? []);
+  const currentUserId = useAuthStore((state) => state.user?.id);
   const isStudent = activeRole === "Student" || roles.includes("Student");
 
   const { data: categories = [] } = useQuery<ForumCategory[]>({
@@ -452,12 +453,17 @@ export function Community() {
                     >
                       <div className="flex gap-4">
                         {/* Vote Side */}
-                        {isStudent && (
+                        {isStudent && (() => {
+                          const isOwnPost = post.authorId === currentUserId;
+                          const voteTitle = isOwnPost ? t("actions.voteOwnPost") : undefined;
+                          return (
                           <div className="hidden sm:flex flex-col items-center gap-0.5 bg-bg-subtle rounded-xl px-1.5 py-2 h-fit border border-border-subtle">
                             <button
                               type="button"
                               aria-label={t("thread.upvote")}
                               onClick={(e) => handleVote(e, post.id, "Up")}
+                              disabled={isOwnPost}
+                              title={voteTitle}
                               className="p-1.5 rounded-md text-text-tertiary hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                             >
                               <ArrowUp size={18} aria-hidden strokeWidth={2.5} />
@@ -471,12 +477,15 @@ export function Community() {
                               type="button"
                               aria-label={t("thread.downvote")}
                               onClick={(e) => handleVote(e, post.id, "Down")}
+                              disabled={isOwnPost}
+                              title={voteTitle}
                               className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                             >
                               <ArrowDown size={18} aria-hidden strokeWidth={2.5} />
                             </button>
                           </div>
-                        )}
+                          );
+                        })()}
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-2 flex-wrap">

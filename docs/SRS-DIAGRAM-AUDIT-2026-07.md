@@ -212,12 +212,14 @@ correct** (recently audited: bilingual posts, mutual block, auto-hide 3-distinct
 moderation stamping). All edits below are SRS/PlantUML. No `System`-actor violations (auto
 behaviours use event actors: PostAutoHiddenEvent, reply/report events). No code bug found.
 
-### 8.1 🔴 Self-vote — the diagrams still forbid it, but the code REMOVED that rule
-The code intentionally allows an author to vote on their own content (`ToggleVoteCommand.cs:43-45`:
-"the self-vote block was removed on request" — only the Student-role + one-vote-per-item rules remain).
-Delete the "cannot vote on own content / Own content? → reject" wording from **UC-03 note, UC-COM-12
-table (step 2 + ext 2a), ACT-04, and SEQ-04's guard**. (This also confirms the client's self-vote
-button being enabled is CORRECT — not a bug.)
+### 8.1 ✅ Self-vote — code now BLOCKS it, matching the diagrams (no edit needed)
+The diagrams' "cannot vote on own content / Own content? → reject" guard is CORRECT. On request
+(2026-07-05) the self-vote block was **re-added** to the code: `ToggleVoteCommand.cs:43-46` now throws
+`ConflictException("You can't vote on your own content.")` when `post.AuthorId == currentUser.UserId`
+(mirrors the self-report block on `FlagPost`). The client also disables the up/down vote buttons on the
+author's own posts in both the feed (`Community.tsx`) and the thread (`CommunityThread.tsx`), with a
+`voteOwnPost` tooltip. So UC-03 note, UC-COM-12 table (step 2 + ext 2a), ACT-04 and SEQ-04's guard all
+match the code — **keep them as-is**. (SEQ-04's reject branch is a **409 Conflict**.)
 
 ### 8.2 🟠 HTTP status codes (systemic)
 - Mutations return **`204 No Content`**, not 200: SEQ-04 (vote), SEQ-05 (flag), SEQ-08 (edit),
@@ -241,3 +243,41 @@ posts, auto-hide-at-3-distinct, moderation stamping, self-reply-notify suppressi
 a withdrawal never appeared in the student's timeline (FR-APP-18/19). Fixed: it now raises the event
 (`statusBeforeWithdrawal → Withdrawn`); the payment-outcome handler only acts on Accepted/Rejected, so it's
 side-effect-safe. Shipped separately.
+
+---
+
+## 9. Messaging / Direct Chat diagrams — documentation edits
+
+Reviewed all 24 Messaging diagrams (6 UC + 8 ACT + 10 SEQ) against the current code. **The code is
+correct** (audited: mutual block, canonical conversation, 2000-char cap, presence ref-counting). 19 clean;
+5 sequence diagrams need edits — all SRS/PlantUML, no code bug. No `System`-actor violations (real-time
+delivery + offline notification are correctly initiated by `ChatMessageReceivedEvent`, not a System actor).
+
+### 9.1 🔴 SEQ-07 "Block User" — remove the fabricated "reject duplicate" branch; fix status
+A duplicate block is **idempotent** (`BlockUserCommand.cs:40-41` → `return true`, no error), not rejected.
+Self-block throws `ConflictException` → **409** (`:34-35`); success returns **204 No Content**
+(`ChatController.cs:50-56`), not 200. Model as: `alt blocking self → 409` / `else new-or-already-blocked →
+create if none → 204`. Delete the "reject duplicate" else-branch.
+
+### 9.2 🔴 SEQ-08 "Unblock User" — remove the fabricated 404 branch; fix status
+Unblock is a silent **no-op** when no block exists (`UnblockUserCommand.cs:23-32` always `return true`), not
+a 404. Success returns **204** (`ChatController.cs:58-64`). Model as: `find block → opt exists → remove` →
+**204**. Drop the `else no removable block / 404` branch.
+
+### 9.3 🟠 SEQ-02 & SEQ-03 — Send returns **200**, not 201
+Both show `201 Created`; the controller returns `Ok(result)` (**200**) carrying the new message Guid
+(`ChatController.cs:41-48`). Change both to 200.
+
+### 9.4 🟠 SEQ-03 "Send Message" — event publish/save ordering is misplaced
+Actual order (`SendMessageCommand.cs:94,96,102-109`): **save first** → realtime `NotifyNewMessageAsync` →
+`publisher.Publish(ChatMessageReceivedEvent)` — all **synchronously before** returning to the controller.
+Reorder the diagram so the HANDLER fan-out sits above the `CTRL → API` return arrows, not after the response.
+
+### 9.5 🟡 Minor
+- **SEQ-04** note `load messages (ReadAt updated)` is wrong — `GetMessagesQuery` is read-only `AsNoTracking`
+  and never writes `ReadAt` (read receipts are out of scope). Change to `load messages (read-only)`.
+  Optionally add the unmodeled 404 (conversation-not-found) branch before the participant 403.
+- **SEQ-05** lifeline `ChatHubClient` should be `chatHub` (real client module `services/signalR/chatHub.ts`).
+
+**Correct (no edit):** UC-01..06, ACT-01..08, SEQ-01/06/09/10; canonical conversation reuse, block gating on
+send + community, presence ref-counted connect/disconnect, offline-only notification all match the code.

@@ -243,6 +243,8 @@ export function CommunityThread() {
                   <button
                     type="button"
                     onClick={() => handleVote(thread.post.id, "Up")}
+                    disabled={isRootOwn}
+                    title={isRootOwn ? t("actions.voteOwnPost") : undefined}
                     aria-label={t("thread.upvote")}
                     className="p-1.5 rounded-md text-text-tertiary hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                   >
@@ -256,6 +258,8 @@ export function CommunityThread() {
                   <button
                     type="button"
                     onClick={() => handleVote(thread.post.id, "Down")}
+                    disabled={isRootOwn}
+                    title={isRootOwn ? t("actions.voteOwnPost") : undefined}
                     aria-label={t("thread.downvote")}
                     className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                   >

@@ -40,8 +40,11 @@ public sealed class ToggleVoteCommandHandler(
             .FirstOrDefaultAsync(p => p.Id == request.PostId && !p.IsDeleted, ct)
             ?? throw new NotFoundException(nameof(ForumPost), request.PostId);
 
-        // Authors may upvote their own posts (the self-vote block was removed on
-        // request); the unique (post, user) vote guarantees one vote per user.
+        // A user cannot vote on their own content (mirrors the self-report block on
+        // FlagPost). The unique (post, user) vote still guarantees one vote per user.
+        if (post.AuthorId == currentUser.UserId)
+            throw new ConflictException("You can't vote on your own content.");
+
         var existingVote = post.Votes.FirstOrDefault(v => v.UserId == currentUser.UserId);
 
         if (existingVote != null)
