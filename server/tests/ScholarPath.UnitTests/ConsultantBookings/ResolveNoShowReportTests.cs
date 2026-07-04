@@ -39,6 +39,9 @@ public sealed class ResolveNoShowReportTests : IDisposable
         _stripe.RefundPaymentAsync(Arg.Any<string>(), Arg.Any<long?>(), Arg.Any<string?>(),
                 Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new StripeRefundResult("re_test", "succeeded", 10000));
+        _stripe.CancelPaymentIntentAsync(Arg.Any<string>(), Arg.Any<string>(),
+                Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new StripePaymentIntentResult("pi_test", "canceled", null, null));
     }
 
     private ResolveNoShowReportCommandHandler Sut()
@@ -51,7 +54,9 @@ public sealed class ResolveNoShowReportTests : IDisposable
             Options.Create(new BookingOptions()), NullLogger<ResolveNoShowReportCommandHandler>.Instance);
     }
 
-    private async Task<Guid> SeedAsync(NoShowAccusedRole accusedRole, bool withPayment = false)
+    private async Task<Guid> SeedAsync(
+        NoShowAccusedRole accusedRole, bool withPayment = false,
+        PaymentStatus paymentStatus = PaymentStatus.Captured)
     {
         _db.UserProfiles.Add(new UserProfile { UserId = _studentId });
         _db.UserProfiles.Add(new UserProfile { UserId = _consultantId });
@@ -74,7 +79,7 @@ public sealed class ResolveNoShowReportTests : IDisposable
             {
                 Id = Guid.NewGuid(),
                 Type = PaymentType.ConsultantBooking,
-                Status = PaymentStatus.Captured,
+                Status = paymentStatus,
                 AmountCents = 10000,
                 Currency = "USD",
                 IdempotencyKey = "ik-" + Guid.NewGuid().ToString("N"),
@@ -170,6 +175,26 @@ public sealed class ResolveNoShowReportTests : IDisposable
         var consultant = await ProfileAsync(_consultantId);
         consultant.ConsultantRatingPenaltyFactor.Should().Be(0.30m); // −70%
         (await _db.Bookings.AsNoTracking().FirstAsync()).Status.Should().Be(BookingStatus.Completed);
+    }
+
+    [Fact]
+    public async Task Validated_consultant_no_show_on_an_uncaptured_payment_cancels_the_intent()
+    {
+        // Webhook lag: the booking is Confirmed but the payment is still Held (not
+        // captured). Refunding an un-captured intent would 400 on Stripe and block the
+        // admin from ever resolving — instead we must cancel the intent.
+        var reportId = await SeedAsync(NoShowAccusedRole.Consultant, withPayment: true,
+            paymentStatus: PaymentStatus.Held);
+
+        await Sut().Handle(new ResolveNoShowReportCommand(reportId, IsValid: true, null), default);
+
+        var payment = await _db.Payments.AsNoTracking().FirstAsync();
+        payment.Status.Should().Be(PaymentStatus.Cancelled);
+        (await _db.Bookings.AsNoTracking().FirstAsync()).Status.Should().Be(BookingStatus.NoShowConsultant);
+        await _stripe.Received(1).CancelPaymentIntentAsync(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _stripe.DidNotReceiveWithAnyArgs().RefundPaymentAsync(
+            default!, default, default!, default!, default);
     }
 
     [Fact]

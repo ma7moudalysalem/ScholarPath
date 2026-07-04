@@ -103,6 +103,26 @@ public sealed class StartScholarshipProviderReviewRequestCommandHandler(
         if (scholarship.OwnerScholarshipProviderId == studentId)
             throw new ConflictException("A ScholarshipProvider cannot start a paid review request for its own scholarship.");
 
+        // Server-derive the application link — never trust the optional client-supplied
+        // ApplicationTrackerId blindly. The payment's RelatedApplicationId is how the
+        // timeout-refund job and the capture/refund event handlers locate the money, so
+        // a null/wrong link strands a held/captured fee (it can never be released).
+        // Validate a provided id belongs to this student + scholarship, else fall back
+        // to the student's own most-recent application for this scholarship.
+        Guid? applicationTrackerId = request.ApplicationTrackerId;
+        if (applicationTrackerId is { } clientTracker)
+        {
+            var belongsToStudent = await db.Applications.AnyAsync(
+                a => a.Id == clientTracker && a.StudentId == studentId
+                     && a.ScholarshipId == request.ScholarshipId && !a.IsDeleted, ct);
+            if (!belongsToStudent) applicationTrackerId = null;
+        }
+        applicationTrackerId ??= await db.Applications
+            .Where(a => a.StudentId == studentId && a.ScholarshipId == request.ScholarshipId && !a.IsDeleted)
+            .OrderByDescending(a => a.CreatedAt)
+            .Select(a => (Guid?)a.Id)
+            .FirstOrDefaultAsync(ct);
+
         // Master switch: when payments are off, treat every request as free
         // regardless of the stored fee — money never moves on this platform
         // until the admin re-enables payments. This also lets legacy listings
@@ -189,7 +209,7 @@ public sealed class StartScholarshipProviderReviewRequestCommandHandler(
                 StudentId = studentId,
                 ScholarshipProviderId = companyId,
                 ScholarshipId = scholarship.Id,
-                ApplicationTrackerId = request.ApplicationTrackerId,
+                ApplicationTrackerId = applicationTrackerId,
                 PaymentId = null,
                 Status = ScholarshipProviderReviewRequestStatus.Pending,
                 ReviewFeeUsdSnapshot = 0m,
@@ -267,7 +287,7 @@ public sealed class StartScholarshipProviderReviewRequestCommandHandler(
             StripePaymentIntentId = stripeResult.Id,
             StripeChargeId = stripeResult.LatestChargeId,
             IdempotencyKey = idempotencyKey,
-            RelatedApplicationId = request.ApplicationTrackerId,
+            RelatedApplicationId = applicationTrackerId,
         };
 
         var entity = new ScholarshipProviderReviewRequest

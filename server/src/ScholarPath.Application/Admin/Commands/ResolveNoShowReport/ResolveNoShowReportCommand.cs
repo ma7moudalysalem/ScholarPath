@@ -78,6 +78,43 @@ public sealed class ResolveNoShowReportCommandHandler(
             ?? throw new NotFoundException(nameof(ConsultantBooking), report.BookingId);
 
         var nowUtc = DateTimeOffset.UtcNow;
+
+        // Apply the whole resolution ATOMICALLY: report status + booking status +
+        // student block + Stripe refund/ledger + consultant rating deduction must all
+        // commit together or all roll back. Without this, a mid-way DB failure could
+        // leave the report Validated but the −40%/−70% penalty unapplied — and the
+        // PendingReview guard would then block any retry, losing the penalty forever.
+        // The transaction also makes the compounding rating factor idempotent under an
+        // execution-strategy retry: a rollback undoes the factor multiply, and the
+        // Stripe refund is idempotency-keyed, so a retry never double-charges.
+        if (db.Database.IsRelational())
+        {
+            var strategy = db.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var tx = await db.Database.BeginTransactionAsync(ct);
+                await ApplyResolutionAsync(report, booking, command, adminId, nowUtc, ct);
+                await tx.CommitAsync(ct);
+            });
+        }
+        else
+        {
+            // InMemory (unit tests) has no transaction support — apply directly.
+            await ApplyResolutionAsync(report, booking, command, adminId, nowUtc, ct);
+        }
+
+        logger.LogInformation(
+            "Admin {AdminId} resolved no-show report {ReportId} as {Verdict} (accused {Role}).",
+            adminId, report.Id, report.Status, report.AccusedRole);
+
+        // Party notifications are a post-commit side effect (never rolled back).
+        await NotifyPartiesAsync(report, ct);
+    }
+
+    private async Task ApplyResolutionAsync(
+        NoShowReport report, ConsultantBooking booking, ResolveNoShowReportCommand command,
+        Guid adminId, DateTimeOffset nowUtc, CancellationToken ct)
+    {
         Guid? consultantToDeduct = null;
         decimal deductionFactor = 1m;
 
@@ -129,18 +166,12 @@ public sealed class ResolveNoShowReportCommandHandler(
 
         await db.SaveChangesAsync(ct);
 
-        // Apply the rating deduction last — ApplyPenaltyFactorAsync recomputes the
-        // snapshot and commits, so all prior tracked changes persist with it.
+        // Rating deduction runs inside the same transaction (ApplyPenaltyFactorAsync
+        // recomputes the snapshot and commits) — so it rolls back with everything else.
         if (consultantToDeduct is { } consultantId)
         {
             await ratingService.ApplyPenaltyFactorAsync(consultantId, deductionFactor, ct);
         }
-
-        logger.LogInformation(
-            "Admin {AdminId} resolved no-show report {ReportId} as {Verdict} (accused {Role}).",
-            adminId, report.Id, report.Status, report.AccusedRole);
-
-        await NotifyPartiesAsync(report, ct);
     }
 
     private async Task BlockStudentAsync(
@@ -169,20 +200,52 @@ public sealed class ResolveNoShowReportCommandHandler(
             throw new ConflictException("Booking has no Stripe payment intent to refund.");
         }
 
-        // Refund the amount actually captured (the Payment row is authoritative).
-        var amountCents = booking.Payment is { } capturedPayment
-            ? capturedPayment.AmountCents
-            : (long)decimal.Round(booking.PriceUsd * 100m, 0, MidpointRounding.AwayFromZero);
+        var payment = booking.Payment;
+        var reason = CancellationReason.ConsultantNoShow.ToString();
+        var nowUtc = DateTimeOffset.UtcNow;
 
-        if (amountCents < 0)
+        // Already terminal (a prior path fully refunded/cancelled) — nothing to do.
+        if (payment is { Status: PaymentStatus.Refunded or PaymentStatus.Cancelled })
         {
-            throw new ConflictException("Booking amount cannot be negative.");
+            return;
+        }
+
+        // Held/authorized-but-not-captured → cancel the intent (Stripe rejects a
+        // Refund on an un-captured charge). Mirrors CancelBookingCommandHandler.
+        if (payment is { Status: PaymentStatus.Held or PaymentStatus.Pending })
+        {
+            var cancelResult = await stripe.CancelPaymentIntentAsync(
+                paymentIntentId: booking.StripePaymentIntentId,
+                cancellationReason: reason,
+                idempotencyKey: $"booking-noshow-cancel:{booking.Id:N}",
+                ct: ct);
+
+            if (string.IsNullOrWhiteSpace(cancelResult.Id))
+            {
+                throw new ConflictException("Stripe payment-intent cancellation failed.");
+            }
+
+            payment.Status = PaymentStatus.Cancelled;
+            payment.FailureReason = "consultant_no_show_before_capture";
+            return;
+        }
+
+        // Captured (or a payment-less priced booking) → refund the OUTSTANDING amount,
+        // net of any prior partial refund, so we never over-refund on Stripe.
+        var gross = payment?.AmountCents
+            ?? (long)decimal.Round(booking.PriceUsd * 100m, 0, MidpointRounding.AwayFromZero);
+        var alreadyRefunded = payment?.RefundedAmountCents ?? 0;
+        var refundable = gross - alreadyRefunded;
+
+        if (refundable <= 0)
+        {
+            return; // already fully refunded — idempotent
         }
 
         var refundResult = await stripe.RefundPaymentAsync(
             paymentIntentId: booking.StripePaymentIntentId,
-            amountCents: amountCents,
-            reason: CancellationReason.ConsultantNoShow.ToString(),
+            amountCents: refundable,
+            reason: reason,
             idempotencyKey: $"booking-noshow-refund:{booking.Id:N}",
             ct: ct);
 
@@ -191,12 +254,12 @@ public sealed class ResolveNoShowReportCommandHandler(
             throw new ConflictException("Stripe refund failed.");
         }
 
-        if (booking.Payment is { } payment)
+        if (payment is not null)
         {
             payment.Status = PaymentStatus.Refunded;
-            payment.RefundedAmountCents = payment.AmountCents;
-            payment.RefundedAt = DateTimeOffset.UtcNow;
-            payment.RefundReason = CancellationReason.ConsultantNoShow.ToString();
+            payment.RefundedAmountCents = gross; // fully refunded now
+            payment.RefundedAt = nowUtc;
+            payment.RefundReason = reason;
             payment.ProfitShareAmountCents = 0;
             payment.PayeeAmountCents = 0;
         }

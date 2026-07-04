@@ -94,10 +94,23 @@ public sealed class RefundScholarshipProviderReviewCommandHandler(
             }
             else
             {
-                // PATH B — Captured / PartiallyRefunded: Stripe Refund.
+                // PATH B — Captured / PartiallyRefunded: Stripe Refund. BOTH the full
+                // and the 50% target NET OUT any refund a different path already issued
+                // (e.g. CancelScholarshipProviderReviewRequest's 50%) — a "50% refund" means "refund
+                // up to 50% total", not "an additional 50%". Without this, a Cancel (50%)
+                // followed by a Withdraw (partial) double-refunds toward the full charge.
                 var refundAmountCents = request.IsFullRefund
                     ? payment.AmountCents - payment.RefundedAmountCents
-                    : payment.AmountCents / 2;
+                    : Math.Max(0, payment.AmountCents / 2 - payment.RefundedAmountCents);
+
+                if (refundAmountCents <= 0)
+                {
+                    // Already refunded to (at least) the target amount — idempotent no-op.
+                    logger.LogInformation(
+                        "ScholarshipProviderReview payment {PaymentId} already refunded to target; no further refund.",
+                        payment.Id);
+                    return true;
+                }
 
                 if (payment.RefundedAmountCents + refundAmountCents > payment.AmountCents)
                 {
