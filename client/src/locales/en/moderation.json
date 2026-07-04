@@ -106,6 +106,7 @@
   "scholarshipProviderScholarships": {
     "title": "My scholarships",
     "subtitle": "Every scholarship listing your organisation has created.",
+    "rejectedReason": "Rejected by admin: {{reason}} — edit and save to resubmit.",
     "loading": "Loading scholarships…",
     "loadError": "Could not load your scholarships.",
     "empty": "You have not created any scholarships yet.",

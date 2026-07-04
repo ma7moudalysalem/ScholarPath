@@ -58,6 +58,8 @@ public sealed class RejectScholarshipCommandHandler(
             throw new ConflictException("Only a scholarship under review can be rejected.");
 
         scholarship.Status = ScholarshipStatus.Draft;
+        scholarship.RejectionReason = request.Reason;
+        scholarship.RejectedAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 

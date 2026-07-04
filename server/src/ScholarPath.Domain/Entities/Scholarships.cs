@@ -35,6 +35,11 @@ public class Scholarship : AuditableEntity, ISoftDeletable
     public DateTimeOffset Deadline { get; set; }
     public DateTimeOffset? OpenedAt { get; set; }
     public DateTimeOffset? ArchivedAt { get; set; }
+    // PB-005: admin moderation feedback shown to the owning provider so they know
+    // WHY a listing was rejected (vs. it merely being a draft). Cleared on approve
+    // and when the provider resubmits an edited listing.
+    public string? RejectionReason { get; set; }
+    public DateTimeOffset? RejectedAt { get; set; }
     public bool IsFeatured { get; set; }
     public int FeaturedOrder { get; set; }
 

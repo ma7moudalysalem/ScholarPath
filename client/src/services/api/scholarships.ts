@@ -145,6 +145,8 @@ export interface MyScholarship {
   deadline: string;
   applicantCount: number;
   createdAt: string;
+  /** Admin's reason when a listing was rejected (status back to Draft). */
+  rejectionReason?: string | null;
 }
 
 /** Row returned by `GET /api/scholarships/admin/featured` for the reorder page. */

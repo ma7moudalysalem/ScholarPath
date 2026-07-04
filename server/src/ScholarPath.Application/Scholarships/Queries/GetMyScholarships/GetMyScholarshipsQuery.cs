@@ -18,7 +18,8 @@ public sealed record MyScholarshipDto(
     ListingMode Mode,
     DateTimeOffset Deadline,
     int ApplicantCount,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? RejectionReason = null);
 
 // ─── Query ────────────────────────────────────────────────────────────────────
 
@@ -52,7 +53,8 @@ public sealed class GetMyScholarshipsQueryHandler(
                 s.Mode,
                 s.Deadline,
                 s.Applications.Count(a => !a.IsDeleted),
-                s.CreatedAt))
+                s.CreatedAt,
+                s.RejectionReason))
             .ToListAsync(ct);
     }
 }
