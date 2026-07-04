@@ -72,13 +72,24 @@ export const consultantsApi = {
   /** Lists every active consultant with a profile summary. Anonymous-accessible. */
   async browse(): Promise<ConsultantSummary[]> {
     const { data } = await apiClient.get<ConsultantSummary[]>("/api/consultants");
-    return data;
+    // Normalize array fields so a partial/omitting response can never crash a
+    // consumer doing `.map`/`.length` on them (the arrays are typed non-optional).
+    return (data ?? []).map((c) => ({
+      ...c,
+      expertiseTags: c.expertiseTags ?? [],
+      languages: c.languages ?? [],
+    }));
   },
 
   /** Returns one consultant's full public profile. Anonymous-accessible. */
   async getById(id: string): Promise<ConsultantDetail> {
     const { data } = await apiClient.get<ConsultantDetail>(`/api/consultants/${id}`);
-    return data;
+    return {
+      ...data,
+      expertiseTags: data.expertiseTags ?? [],
+      languages: data.languages ?? [],
+      recentReviews: data.recentReviews ?? [],
+    };
   },
 
   /** Returns a consultant's upcoming bookable slots (next 28 days). */

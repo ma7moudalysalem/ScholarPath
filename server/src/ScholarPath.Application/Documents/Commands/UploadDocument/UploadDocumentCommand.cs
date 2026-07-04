@@ -78,6 +78,25 @@ public sealed class UploadDocumentCommandHandler(
             [".odt"]  = ["application/vnd.oasis.opendocument.text"],
         };
 
+    // Magic-byte signatures per extension — the file's actual leading bytes must
+    // match, so a disguised file (e.g. an .exe renamed .pdf with a faked
+    // Content-Type) is rejected even when the antivirus provider is a no-op.
+    // Text (.txt) has no signature, so it's accepted on the extension+MIME check
+    // alone. .webp additionally requires "WEBP" at offset 8 (handled below).
+    private static readonly IReadOnlyDictionary<string, byte[][]> Signatures =
+        new Dictionary<string, byte[][]>(StringComparer.OrdinalIgnoreCase)
+        {
+            [".pdf"]  = [[0x25, 0x50, 0x44, 0x46]],                          // %PDF
+            [".png"]  = [[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]],  // PNG
+            [".jpg"]  = [[0xFF, 0xD8, 0xFF]],
+            [".jpeg"] = [[0xFF, 0xD8, 0xFF]],
+            [".webp"] = [[0x52, 0x49, 0x46, 0x46]],                          // RIFF (+ WEBP@8)
+            [".docx"] = [[0x50, 0x4B, 0x03, 0x04]],                          // ZIP (OOXML)
+            [".odt"]  = [[0x50, 0x4B, 0x03, 0x04]],                          // ZIP (ODF)
+            [".doc"]  = [[0xD0, 0xCF, 0x11, 0xE0]],                          // OLE2
+            [".rtf"]  = [[0x7B, 0x5C, 0x72, 0x74, 0x66]],                    // {\rtf
+        };
+
     public async Task<DocumentDto> Handle(UploadDocumentCommand request, CancellationToken ct)
     {
         var userId = currentUser.UserId
@@ -95,6 +114,30 @@ public sealed class UploadDocumentCommandHandler(
         if (!allowedContentTypes.Contains(contentType, StringComparer.OrdinalIgnoreCase))
             throw new ConflictException(
                 "The file's declared content type does not match its extension.");
+
+        // Magic-byte verification: the file's actual leading bytes must match the
+        // declared extension, so a disguised binary (renamed executable, etc.) is
+        // rejected regardless of the client-declared type — and independently of
+        // whether the antivirus provider is active. Only runs on a seekable
+        // stream (buffered upload); the position is restored for the scan/upload.
+        if (request.Content.CanSeek && Signatures.TryGetValue(extension, out var signatures))
+        {
+            var header = new byte[12];
+            request.Content.Position = 0;
+            var read = await request.Content.ReadAsync(header.AsMemory(0, header.Length), ct).ConfigureAwait(false);
+            request.Content.Position = 0;
+
+            var matches = signatures.Any(sig =>
+                read >= sig.Length && header.Take(sig.Length).SequenceEqual(sig));
+
+            // WebP is "RIFF"....(4 bytes size)...."WEBP" — verify the WEBP tag too.
+            if (matches && extension.Equals(".webp", StringComparison.OrdinalIgnoreCase))
+                matches = read >= 12 && header.Skip(8).Take(4).SequenceEqual(new byte[] { 0x57, 0x45, 0x42, 0x50 });
+
+            if (!matches)
+                throw new ConflictException(
+                    "The file's contents don't match its type (possible disguised or corrupt file).");
+        }
 
         // A document may only be linked to one of the caller's own applications.
         if (request.ApplicationTrackerId is { } appId)

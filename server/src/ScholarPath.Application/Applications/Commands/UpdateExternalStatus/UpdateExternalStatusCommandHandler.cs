@@ -27,6 +27,17 @@ public sealed class UpdateExternalStatusCommandHandler(
             throw new ConflictException("Only external applications can be manually updated by the student.");
         }
 
+        // FR-APP-33/34: external self-tracking only supports Intending / Applied /
+        // WaitingResult. Reject anything else so a student can't push an external
+        // tracker into an in-app review state (Accepted/UnderReview/Rejected/…).
+        if (request.Status is not (ApplicationStatus.Intending
+            or ApplicationStatus.Applied
+            or ApplicationStatus.WaitingResult))
+        {
+            throw new ConflictException(
+                "External applications can only be set to Intending, Applied, or WaitingResult.");
+        }
+
         application.Status = request.Status;
         application.UpdatedAt = DateTimeOffset.UtcNow;
 

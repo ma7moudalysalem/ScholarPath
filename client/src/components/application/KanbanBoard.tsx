@@ -30,6 +30,17 @@ const COLUMNS: {
   { key: "Rejected",    members: ["Rejected", "Withdrawn"] },
 ];
 
+// Only EXTERNAL trackers are draggable, and FR-APP-33/34 limits them to the
+// three self-tracking states. Map each column to the external status it writes
+// back — the "In Review" column represents "waiting for the result", so it maps
+// to WaitingResult (which also makes that status reachable). Columns with no
+// entry (Accepted / Rejected — in-app provider decisions) reject the drop.
+const EXTERNAL_DROP_STATUS: Partial<Record<ApplicationStatus, ApplicationStatus>> = {
+  Intending: "Intending",
+  Applied: "Applied",
+  UnderReview: "WaitingResult",
+};
+
 export function KanbanBoard({ applications, onStatusChange }: KanbanBoardProps) {
   const { t } = useTranslation("applications");
 
@@ -61,7 +72,10 @@ export function KanbanBoard({ applications, onStatusChange }: KanbanBoardProps) 
               onDragOver={(e: React.DragEvent) => e.preventDefault()}
               onDrop={(e: React.DragEvent) => {
                 const id = e.dataTransfer.getData("applicationId");
-                if (id) onStatusChange(id, status);
+                const target = EXTERNAL_DROP_STATUS[status];
+                // No mapping = an in-app-only column (Accepted/Rejected): reject
+                // the drop rather than send a status the server will 409 on.
+                if (id && target) onStatusChange(id, target);
               }}
             >
               <AnimatePresence mode="popLayout">

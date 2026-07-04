@@ -223,7 +223,7 @@ export function ScholarshipProviderDashboard() {
               />
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
-                {ratings.recentReviews.slice(0, 4).map((review) => (
+                {(ratings.recentReviews ?? []).slice(0, 4).map((review) => (
                   <article
                     key={review.reviewId}
                     className="rounded-2xl border border-border-subtle bg-bg-subtle/40 p-4 transition-all hover:border-brand-200 hover:bg-bg-subtle/70"

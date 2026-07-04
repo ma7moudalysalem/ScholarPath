@@ -15,8 +15,10 @@ public sealed class NotificationCatalog : INotificationCatalog
     {
         NotificationType.ApplicationStatusChanged => new(
             "Application updated", "تحديث على الطلب",
-            $"Your application status changed to {p.StatusText ?? "updated"}.",
-            $"تغيّرت حالة طلبك إلى {p.StatusText ?? "محدّثة"}."),
+            $"Your application status changed to {p.StatusText ?? "updated"}." +
+                (string.IsNullOrWhiteSpace(p.Reason) ? "" : $" Reason: {p.Reason}"),
+            $"تغيّرت حالة طلبك إلى {p.StatusText ?? "محدّثة"}." +
+                (string.IsNullOrWhiteSpace(p.Reason) ? "" : $" السبب: {p.Reason}")),
 
         // Sent to the scholarship's owning company when a student submits a new
         // in-app application (QA BUG-017 — the company was never told).
@@ -35,6 +37,17 @@ public sealed class NotificationCatalog : INotificationCatalog
             "Application submitted", "تم إرسال طلبك",
             $"Your application for \"{p.TitleEn ?? "the scholarship"}\" was submitted successfully.",
             $"تم إرسال طلبك للمنحة \"{p.TitleAr ?? "المنحة"}\" بنجاح."),
+
+        // Sent to the owning provider when an admin approves/rejects their listing.
+        NotificationType.ScholarshipApproved => new(
+            "Scholarship approved", "تمت الموافقة على المنحة",
+            $"Your scholarship \"{p.TitleEn ?? "listing"}\" was approved and is now live.",
+            $"تمت الموافقة على منحتك \"{p.TitleAr ?? "المنحة"}\" وأصبحت متاحة الآن."),
+
+        NotificationType.ScholarshipRejected => new(
+            "Scholarship needs changes", "المنحة تحتاج تعديلات",
+            $"Your scholarship \"{p.TitleEn ?? "listing"}\" was returned to draft: {p.Reason ?? "see the review notes"}.",
+            $"أُعيدت منحتك \"{p.TitleAr ?? "المنحة"}\" إلى المسودة: {p.Reason ?? "راجِع ملاحظات المراجعة"}."),
 
         NotificationType.ApplicationDeadlineApproaching => new(
             "Scholarship deadline approaching", "اقتراب موعد إغلاق المنحة",

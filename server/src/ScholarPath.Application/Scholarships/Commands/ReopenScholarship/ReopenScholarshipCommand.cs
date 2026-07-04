@@ -55,6 +55,14 @@ public sealed class ReopenScholarshipCommandHandler(
         if (scholarship.Status != ScholarshipStatus.Closed)
             throw new ConflictException("Only a closed scholarship can be reopened.");
 
+        // FR-SCH-22: reopening is the most common past-deadline path (listings
+        // usually auto-close because the deadline passed). Require a valid
+        // ≥7-day deadline before it can re-enter moderation, so it can't be
+        // reopened straight into another immediate auto-close.
+        if (scholarship.Deadline <= DateTimeOffset.UtcNow.AddDays(7))
+            throw new ConflictException(
+                "Cannot reopen: update the application deadline to at least 7 days away first.");
+
         scholarship.Status = ScholarshipStatus.UnderReview;
         scholarship.RejectionReason = null;
         scholarship.RejectedAt = null;

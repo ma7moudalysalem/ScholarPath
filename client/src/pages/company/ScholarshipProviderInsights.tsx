@@ -398,7 +398,7 @@ export function ScholarshipProviderInsights() {
       >
         {isLoading || !data ? (
           <div className="h-48 animate-pulse rounded-lg bg-bg-subtle sm:h-56" />
-        ) : data.monthlyFunnel.length < 2 ? (
+        ) : (data.monthlyFunnel?.length ?? 0) < 2 ? (
           <p className="py-8 text-center text-sm text-text-tertiary">
             {t("analytics:reports.noData")}
           </p>

@@ -495,9 +495,9 @@ export function Community() {
                           <p className="text-text-secondary text-sm line-clamp-2 mb-3 leading-relaxed">
                             {forumPostBody(post, isRtl)}
                           </p>
-                          {post.tags.length > 0 && (
+                          {(post.tags ?? []).length > 0 && (
                             <div className="mb-3 flex flex-wrap gap-1.5">
-                              {post.tags.map((tag) => (
+                              {(post.tags ?? []).map((tag) => (
                                 <button
                                   key={tag}
                                   type="button"

@@ -109,7 +109,7 @@ function PendingTab() {
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{r.authorRole}</td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {r.tags.slice(0, 3).join(", ") || "—"}
+                  {(r.tags ?? []).slice(0, 3).join(", ") || "—"}
                 </td>
                 <td className="px-4 py-3 text-end">
                   <div className="inline-flex gap-2">
@@ -251,7 +251,7 @@ function PublishedTab() {
                   {t(`resources:resourceType.${r.type}`)}
                 </td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {r.tags.slice(0, 3).join(", ") || "—"}
+                  {(r.tags ?? []).slice(0, 3).join(", ") || "—"}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <button

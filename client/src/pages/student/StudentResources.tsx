@@ -280,9 +280,9 @@ function ResourceCard({
         )}
 
         <div className="mt-auto pt-3 space-y-2">
-          {resource.tags.length > 0 && (
+          {(resource.tags ?? []).length > 0 && (
             <div className="flex flex-wrap gap-1">
-              {resource.tags.slice(0, 4).map((tag) => (
+              {(resource.tags ?? []).slice(0, 4).map((tag) => (
                 <span
                   key={tag}
                   className="rounded-md bg-bg-subtle border border-border-subtle px-1.5 py-0.5 text-[10px] font-medium text-text-secondary"

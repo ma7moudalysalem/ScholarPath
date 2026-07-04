@@ -191,6 +191,10 @@ public enum NotificationType
     // Student-facing "your application was submitted" confirmation (FR-APP-17).
     ApplicationSubmittedConfirmation = 105,
 
+    // Scholarship moderation outcome → owning provider (US-SCH-13).
+    ScholarshipApproved = 106,
+    ScholarshipRejected = 107,
+
     // ScholarshipProvider review + payment (PB-005)
     ScholarshipProviderRatingReceived = 110,
     ScholarshipProviderReviewPaymentSuccess = 111,
