@@ -52,8 +52,20 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
 
         if (entity == null) throw new NotFoundException(nameof(Scholarship), request.Id);
 
-        if (entity.OwnerScholarshipProviderId != user.UserId)
+        // FR-SCH-18/19: a provider may edit only their OWN listing. An
+        // admin-created (ownerless) listing — e.g. an External scholarship — is
+        // editable only by an Admin/SuperAdmin. Providers still cannot touch
+        // another provider's listing.
+        var isAdmin = user.IsInRole("Admin") || user.IsInRole("SuperAdmin");
+        if (entity.OwnerScholarshipProviderId is { } ownerId)
+        {
+            if (ownerId != user.UserId)
+                throw new ForbiddenAccessException();
+        }
+        else if (!isAdmin)
+        {
             throw new ForbiddenAccessException();
+        }
 
         if (entity.Applications.Any() && entity.CategoryId != request.CategoryId)
             throw new ConflictException("Cannot change scholarship category while applications are in progress.");
@@ -109,11 +121,13 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             }
         }
 
-        // PB-005: editing a live (Open) listing sends it back through moderation
-        // so the changed content is re-reviewed by an admin before it is public
-        // again. Editing a REJECTED draft resubmits it (clears the feedback and
-        // re-enters the queue). Plain drafts / under-review / closed are untouched.
-        if (entity.Status == ScholarshipStatus.Open)
+        // PB-005: editing a live (Open) PROVIDER listing sends it back through
+        // moderation so the changed content is re-reviewed before it is public
+        // again. Admin-created (ownerless) listings skip this — the admin IS the
+        // moderator, so their edit stays live. Editing a REJECTED draft resubmits
+        // it (clears the feedback and re-enters the queue). Plain drafts /
+        // under-review / closed are untouched.
+        if (entity.OwnerScholarshipProviderId is not null && entity.Status == ScholarshipStatus.Open)
         {
             entity.Status = ScholarshipStatus.UnderReview;
             entity.OpenedAt = null;
