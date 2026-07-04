@@ -156,13 +156,19 @@ export function AdminCommunity() {
                       count: p.validFlagCount,
                     })}
                   </span>
-                  {p.topFlagReason && (
-                    <p className="mt-1 text-xs text-text-tertiary">
-                      {t("moderation:communityModeration.topReason")}:{" "}
-                      <span className="text-text-secondary">
-                        {flagReasonLabel(p.topFlagReason, i18n.language)}
-                      </span>
-                    </p>
+                  {p.flags.length > 0 && (
+                    <ul className="mt-1.5 max-w-xs space-y-1">
+                      {p.flags.map((f, i) => (
+                        <li key={i} className="text-xs text-text-tertiary">
+                          <span className="font-medium text-text-secondary">
+                            {flagReasonLabel(f.reason, i18n.language)}
+                          </span>
+                          {f.additionalDetails && (
+                            <span> — {f.additionalDetails}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
                   )}
                 </td>
                 <td className="px-4 py-3">

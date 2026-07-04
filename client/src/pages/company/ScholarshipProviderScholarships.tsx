@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
-import { FileText, Pencil, Plus, Trash2 } from "lucide-react";
+import { FileText, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
 import {
   scholarshipsApi,
   type MyScholarship,
@@ -59,6 +59,18 @@ export function ScholarshipProviderScholarships() {
       );
       setArchiveTargetId(null);
     },
+  });
+
+  const reopenMut = useMutation({
+    mutationFn: (id: string) => scholarshipsApi.reopen(id),
+    onSuccess: () => {
+      toast.success(t("moderation:scholarshipProviderScholarships.actions.reopenSuccess"));
+      void queryClient.invalidateQueries({ queryKey: ["company", "scholarships", "mine"] });
+    },
+    onError: (err) =>
+      toast.error(
+        apiErrorMessage(err, t("moderation:scholarshipProviderScholarships.form.error")),
+      ),
   });
 
   return (
@@ -175,6 +187,18 @@ export function ScholarshipProviderScholarships() {
                     >
                       <Pencil aria-hidden className="size-4" />
                     </Link>
+                    {s.status === "Closed" && (
+                      <button
+                        type="button"
+                        onClick={() => reopenMut.mutate(s.id)}
+                        disabled={reopenMut.isPending}
+                        title={t("moderation:scholarshipProviderScholarships.actions.reopen")}
+                        aria-label={t("moderation:scholarshipProviderScholarships.actions.reopen")}
+                        className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-brand-50 hover:text-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <RotateCcw aria-hidden className="size-4" />
+                      </button>
+                    )}
                     {s.status !== "Archived" && (
                       <button
                         type="button"

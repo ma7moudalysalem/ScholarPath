@@ -124,7 +124,9 @@
       "archive": "Archive",
       "archiveConfirm": "Archive this scholarship? Students can no longer find it after this.",
       "archiveSuccess": "Scholarship archived.",
-      "reviewApplications": "Review applications"
+      "reviewApplications": "Review applications",
+      "reopen": "Reopen (send for review)",
+      "reopenSuccess": "Scholarship reopened — sent back to admin review."
     },
     "form": {
       "titleCreate": "Create scholarship",

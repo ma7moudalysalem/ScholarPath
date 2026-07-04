@@ -9,6 +9,14 @@ namespace ScholarPath.Application.Community.Queries.GetFlaggedPosts;
 
 // ─── DTO ──────────────────────────────────────────────────────────────────────
 
+/// <summary>An individual report on a flagged post — shown to the admin so they can
+/// judge the reason(s) before deciding (PB-007). Reporter identity is intentionally
+/// omitted for privacy; the reason + details are what the decision needs.</summary>
+public sealed record FlagDetailDto(
+    string Reason,
+    string? AdditionalDetails,
+    DateTimeOffset FlaggedAt);
+
 /// <summary>A post that needs admin attention — flagged by users or auto-hidden (PB-007).</summary>
 public sealed record FlaggedPostDto(
     Guid Id,
@@ -22,7 +30,8 @@ public sealed record FlaggedPostDto(
     PostModerationStatus ModerationStatus,
     bool IsAutoHidden,
     DateTimeOffset? AutoHiddenAt,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    IReadOnlyList<FlagDetailDto> Flags);
 
 // ─── Query ────────────────────────────────────────────────────────────────────
 
@@ -84,7 +93,11 @@ public sealed class GetFlaggedPostsQueryHandler(
                 p.ModerationStatus,
                 p.IsAutoHidden,
                 p.AutoHiddenAt,
-                p.CreatedAt))
+                p.CreatedAt,
+                p.Flags.Where(f => f.IsValid)
+                    .OrderByDescending(f => f.FlaggedAt)
+                    .Select(f => new FlagDetailDto(f.Reason, f.AdditionalDetails, f.FlaggedAt))
+                    .ToList()))
             .ToList();
 
         return new PagedResult<FlaggedPostDto>(items, page, pageSize, total);

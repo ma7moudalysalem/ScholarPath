@@ -48,6 +48,13 @@ export interface CommunityPagedResult<T> {
   totalCount: number;
 }
 
+/** An individual report on a flagged post (shown to the admin). */
+export interface FlagDetail {
+  reason: string;
+  additionalDetails: string | null;
+  flaggedAt: string;
+}
+
 /** Server FlaggedPostDto shape — a post in the admin moderation queue. */
 export interface FlaggedPost {
   id: string;
@@ -62,6 +69,7 @@ export interface FlaggedPost {
   isAutoHidden: boolean;
   autoHiddenAt: string | null;
   createdAt: string;
+  flags: FlagDetail[];
 }
 
 export interface GetPostsParams {
