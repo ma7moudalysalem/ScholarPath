@@ -204,6 +204,11 @@ jobs:
         with:
           app-name: ${{ vars.AZURE_API_APP_NAME }}
           package: ${{ github.workspace }}/publish
+          # clean wipes wwwroot before writing so stale/half-overwritten DLLs from a
+          # previous deploy can't linger and cause System.BadImageFormatException;
+          # restart forces a fresh assembly load afterwards.
+          clean: true
+          restart: true
 
       - name: Azure logout
         if: always()
