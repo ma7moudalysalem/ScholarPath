@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.ConsultantBookings.Services;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Events;
@@ -47,6 +48,18 @@ public sealed class RequestBookingCommandHandler : IRequestHandler<RequestBookin
         if (studentId == request.ConsultantId)
         {
             throw new BookingDomainException("Student cannot book a session with themselves.");
+        }
+
+        // FR-CBR-21..24: a student under an active booking block cannot create new
+        // bookings. Checked before any Stripe payment-intent is created so a blocked
+        // student never reaches checkout.
+        var studentProfile = await _context.UserProfiles
+            .FirstOrDefaultAsync(p => p.UserId == studentId, cancellationToken);
+        if (studentProfile is not null
+            && BookingBlockService.IsCurrentlyBlocked(studentProfile, DateTimeOffset.UtcNow))
+        {
+            throw new BookingDomainException(
+                $"Your booking access is blocked until {studentProfile.BookingBlockUntil:yyyy-MM-dd HH:mm} UTC.");
         }
 
         var scheduledStartAtUtc = request.ScheduledStartAt.ToUniversalTime();
