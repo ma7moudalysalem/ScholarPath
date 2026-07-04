@@ -56,6 +56,9 @@ export function AdminScholarships() {
     onSuccess: () => {
       toast.success(t("moderation:scholarshipModeration.approveSuccess"));
       void qc.invalidateQueries({ queryKey: ["admin", "scholarships"] });
+      // An approved scholarship becomes publicly visible — refresh the
+      // student/public scholarship lists too so it shows without a manual reload.
+      void qc.invalidateQueries({ queryKey: ["scholarships"] });
     },
     onError: () => toast.error(t("moderation:scholarshipModeration.approveError")),
   });
@@ -68,6 +71,8 @@ export function AdminScholarships() {
     onSuccess: () => {
       toast.success(t("moderation:scholarshipModeration.rejectSuccess"));
       void qc.invalidateQueries({ queryKey: ["admin", "scholarships"] });
+      // A rejected scholarship must disappear from any public list it slipped into.
+      void qc.invalidateQueries({ queryKey: ["scholarships"] });
       setRejectTargetId(null);
     },
     onError: () => {
