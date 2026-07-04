@@ -19,6 +19,7 @@ public class CreateScholarshipReviewFeeValidatorTests
             TitleEn = "T", TitleAr = "ع",
             DescriptionEn = "D", DescriptionAr = "وصف",
             CategoryId = Guid.NewGuid(),
+            Country = "Egypt",
             Deadline = DateTimeOffset.UtcNow.AddDays(30),
             FundingType = FundingType.FullyFunded,
             TargetLevel = AcademicLevel.Undergrad,

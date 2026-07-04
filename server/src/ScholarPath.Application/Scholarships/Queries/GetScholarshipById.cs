@@ -53,6 +53,7 @@ namespace ScholarPath.Application.Scholarships.Queries
                 IsBookmarked = isBookmarked,
                 Deadline = entity.Deadline,
                 Mode = entity.Mode.ToString(),
+                Country = ParseFirstCountry(entity.TargetCountriesJson),
                 ExternalApplicationUrl = entity.ExternalApplicationUrl,
                 EligibilityRequirements = lang == "ar"
                     ? (entity.EligibilityRequirementsAr ?? entity.EligibilityRequirementsEn)
@@ -84,6 +85,23 @@ namespace ScholarPath.Application.Scholarships.Queries
                         c.SortOrder
                     )).ToList()
             };
+        }
+
+        // TargetCountriesJson stores a JSON array; the listing form captures a
+        // single country. Return the first element for display, tolerating a
+        // legacy plain-string value or malformed JSON.
+        private static string? ParseFirstCountry(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return null;
+            try
+            {
+                var list = JsonSerializer.Deserialize<List<string>>(json);
+                return list is { Count: > 0 } ? list[0] : null;
+            }
+            catch (JsonException)
+            {
+                return json; // legacy non-JSON value
+            }
         }
     }
 }

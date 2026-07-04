@@ -15,6 +15,8 @@ public record CreateScholarshipCommand : IRequest<Guid>
     public string DescriptionEn { get; init; } = null!;
     public string DescriptionAr { get; init; } = null!;
     public Guid CategoryId { get; init; }
+    /// <summary>Target country of the scholarship (FR-SCH-21, required).</summary>
+    public string? Country { get; init; }
     public DateTimeOffset Deadline { get; init; }
     public FundingType FundingType { get; init; }
     public AcademicLevel TargetLevel { get; init; }
@@ -62,6 +64,8 @@ public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholar
         // and fail at SaveChanges with a generic 500 instead of a clean 400.
         RuleFor(v => v.DescriptionAr).NotEmpty().MaximumLength(4000);
         RuleFor(v => v.CategoryId).NotEmpty();
+        // FR-SCH-21: Country is a required listing field.
+        RuleFor(v => v.Country).NotEmpty().MaximumLength(100);
 
         // Spec: deadline must be at least 7 days out. Evaluated per-request
         // (a lambda) — NOT captured once at validator construction.
@@ -167,6 +171,12 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             TargetLevel = request.TargetLevel,
             FieldsOfStudyJson = request.FieldsOfStudy is { Length: > 0 }
                 ? System.Text.Json.JsonSerializer.Serialize(request.FieldsOfStudy)
+                : null,
+            // Country is stored in the existing TargetCountriesJson array column
+            // (the discovery country filter matches against it). The listing form
+            // captures a single country, persisted as a one-element array.
+            TargetCountriesJson = !string.IsNullOrWhiteSpace(request.Country)
+                ? System.Text.Json.JsonSerializer.Serialize(new[] { request.Country.Trim() })
                 : null,
             RequiredDocumentsJson = NormalizeRequiredDocs(request.RequiredDocuments),
             Mode = request.Mode,

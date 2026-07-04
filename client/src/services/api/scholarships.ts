@@ -35,6 +35,8 @@ export interface ScholarshipListItem {
 export interface ScholarshipDetail extends ScholarshipListItem {
   mode: ListingMode;
   externalUrl?: string | null;
+  /** Target country (FR-SCH-08). Null for legacy listings without one. */
+  country?: string | null;
   eligibilityCriteria?: string | null;
   applicationFormSchemaJson?: string | null;
   requiredDocuments?: string[];
@@ -114,6 +116,8 @@ export interface CreateScholarshipInput {
   descriptionEn: string;
   descriptionAr: string;
   categoryId: string;
+  /** Target country (FR-SCH-21, required on create). */
+  country?: string;
   deadline: string;
   fundingType: FundingType;
   targetLevel: AcademicLevel;
@@ -205,6 +209,7 @@ interface ScholarshipChildWireDto {
 interface ScholarshipDetailWireDto extends ScholarshipWireDto {
   externalApplicationUrl: string | null;
   mode: ListingMode;
+  country?: string | null;
   eligibilityRequirements: string | null;
   children: ScholarshipChildWireDto[];
   applicationFormSchemaJson: string | null;
@@ -298,6 +303,7 @@ function toDetail(dto: ScholarshipDetailWireDto): ScholarshipDetail {
     ownerScholarshipProviderId: dto.ownerScholarshipProviderId ?? null,
     mode: dto.mode,
     externalUrl: dto.externalApplicationUrl,
+    country: dto.country ?? null,
     eligibilityCriteria: dto.eligibilityRequirements,
     applicationFormSchemaJson: dto.applicationFormSchemaJson,
     requiredDocuments: parseStringArray(dto.requiredDocumentsJson) ?? (childDocs.length > 0 ? childDocs : undefined),

@@ -8,10 +8,10 @@ using ScholarPath.Domain.Events;
 namespace ScholarPath.Application.Applications.EventHandlers;
 
 /// <summary>
-/// Notifies the scholarship's owning company when a student submits a new in-app
-/// application, so the company knows there's something to review (QA BUG-017 —
-/// previously SubmitApplication notified no one but the student's own timeline).
-/// External / admin-owned listings (no owning company) are skipped.
+/// On submission, notifies BOTH the student (a submission confirmation) and the
+/// scholarship's owning company (there's something to review) — FR-APP-17.
+/// The student is always notified; the company only when the listing has an
+/// owner (external / admin-owned listings have none).
 /// </summary>
 public sealed class ApplicationSubmittedNotificationEventHandler(
     IApplicationDbContext db,
@@ -27,8 +27,18 @@ public sealed class ApplicationSubmittedNotificationEventHandler(
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
 
+        // FR-APP-17: confirm submission to the student (they were previously only
+        // given a timeline entry, no notification).
+        await notifications.DispatchAsync(
+            notification.StudentId,
+            NotificationType.ApplicationSubmittedConfirmation,
+            new NotificationParams { TitleEn = scholarship?.TitleEn, TitleAr = scholarship?.TitleAr },
+            deepLink: $"/student/applications/{notification.ApplicationId}",
+            idempotencyKey: $"app-submitted-student:{notification.ApplicationId}",
+            ct).ConfigureAwait(false);
+
         if (scholarship?.OwnerScholarshipProviderId is not { } companyId)
-            return; // No owning company (external/admin listing) — nothing to notify.
+            return; // No owning company (external/admin listing) — nothing more to notify.
 
         await notifications.DispatchAsync(
             companyId,

@@ -175,6 +175,8 @@
       "updateSuccess": "Scholarship updated.",
       "error": "Could not save the scholarship. Please try again.",
       "reviewNotice": "New scholarships are reviewed by an admin before they go live. You can track the status from your scholarships dashboard.",
+      "country": "Country",
+      "countryPlaceholder": "Select a country…",
       "listingMode": "Listing type",
       "listingModeHint": "In-app scholarships are applied to inside ScholarPath. External scholarships redirect the student to another website.",
       "listingModeInApp": "In-app (Local) scholarship",

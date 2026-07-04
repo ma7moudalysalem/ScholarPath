@@ -92,7 +92,9 @@
     "actions": {
       "view": "View details",
       "accept": "Accept",
-      "reject": "Reject"
+      "reject": "Reject",
+      "startAssessment": "Move to In Assessment",
+      "shortlist": "Shortlist"
     },
     "decision": {
       "rejectTitle": "Reject application",

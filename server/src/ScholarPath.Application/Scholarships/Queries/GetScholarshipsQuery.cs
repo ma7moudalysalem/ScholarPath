@@ -75,7 +75,12 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserS
                     EF.Functions.Like(s.TitleEn, like) ||
                     EF.Functions.Like(s.TitleAr, like) ||
                     EF.Functions.Like(s.DescriptionEn, like) ||
-                    EF.Functions.Like(s.DescriptionAr, like));
+                    EF.Functions.Like(s.DescriptionAr, like) ||
+                    // FR-SCH-04: also match on the provider's name.
+                    (s.OwnerScholarshipProvider != null &&
+                     EF.Functions.Like(
+                         s.OwnerScholarshipProvider.FirstName + " " + s.OwnerScholarshipProvider.LastName,
+                         like)));
             }
         }
 
