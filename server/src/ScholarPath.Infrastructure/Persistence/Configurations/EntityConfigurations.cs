@@ -504,9 +504,14 @@ public sealed class NoShowReportConfiguration : IEntityTypeConfiguration<NoShowR
         b.HasIndex(r => r.Status)
             .HasFilter("[Status] = 'PendingReview'")
             .HasDatabaseName("IX_NoShowReports_PendingReview");
-        // At most one report per (booking, accused party) — prevents duplicates.
+        // At most one LIVE report per (booking, accused party) — prevents duplicates.
+        // Filtered on IsDeleted so it matches the HasQueryFilter above: a soft-deleted
+        // report must not occupy the slot (otherwise the app-level AnyAsync check, which
+        // honours the query filter, would say "no report" while the unfiltered index
+        // still throws a 2601 on re-report).
         b.HasIndex(r => new { r.BookingId, r.AccusedUserId })
             .IsUnique()
+            .HasFilter("[IsDeleted] = 0")
             .HasDatabaseName("UX_NoShowReports_Booking_Accused");
 
         // Two FKs to Users (Reporter + Accused) + one to Booking — explicit
@@ -819,6 +824,9 @@ public sealed class AiInteractionConfiguration : IEntityTypeConfiguration<AiInte
         b.Property(a => a.RowVersion).IsRowVersion();
         b.HasIndex(a => new { a.UserId, a.StartedAt });
         b.HasIndex(a => a.SessionId);
+        // Supports the monthly RedactionAuditSamplingJob's (Feature, StartedAt) scan,
+        // which otherwise full-scans AiInteractions as the table grows.
+        b.HasIndex(a => new { a.Feature, a.StartedAt });
     }
 }
 

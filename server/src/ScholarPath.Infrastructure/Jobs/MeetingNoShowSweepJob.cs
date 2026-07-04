@@ -31,10 +31,6 @@ public sealed class MeetingNoShowSweepJob : IMeetingNoShowSweepJob
     // still recorded for up to 15 min after end, so 20 min is safely clear.
     private static readonly TimeSpan PostSessionGrace = TimeSpan.FromMinutes(20);
 
-    // Aligns with MarkNoShowCommandHandler's 6-hour manual window and
-    // CompletionJob's 6-hour auto-completion threshold.
-    private static readonly TimeSpan NoShowWindow = TimeSpan.FromHours(6);
-
     public MeetingNoShowSweepJob(
         IApplicationDbContext context,
         INotificationDispatcher notifications,
@@ -49,15 +45,19 @@ public sealed class MeetingNoShowSweepJob : IMeetingNoShowSweepJob
     {
         var nowUtc = DateTimeOffset.UtcNow;
         var endedBefore = nowUtc - PostSessionGrace;
-        var endedAfter = nowUtc - NoShowWindow;
 
+        // No lower age bound: the sweep is the SOLE authority for one-party-joined
+        // bookings (CompletionJob now skips them). Without covering any age, a sweep
+        // outage longer than the old 6h window would strand a one-party-joined booking
+        // in Confirmed forever — CompletionJob won't complete it and the old window
+        // wouldn't re-catch it. The filter (Confirmed + exactly-one-joined) is naturally
+        // small, so scanning older rows is cheap.
         var bookings = await _context.Bookings
             .Where(b =>
                 b.Status == BookingStatus.Confirmed &&
                 !b.IsNoShowStudent &&
                 !b.IsNoShowConsultant &&
                 b.ScheduledEndAt <= endedBefore &&
-                b.ScheduledEndAt > endedAfter &&
                 // exactly one party joined the room
                 ((b.StudentJoinedAt != null && b.ConsultantJoinedAt == null) ||
                  (b.StudentJoinedAt == null && b.ConsultantJoinedAt != null)))

@@ -35,9 +35,15 @@ public sealed class ReinstateBookingIntakeCommandHandler(IApplicationDbContext d
             .FirstOrDefaultAsync(u => u.Id == request.ConsultantId, ct)
             ?? throw new NotFoundException("User", request.ConsultantId);
 
-        if (consultant.Profile?.BookingIntakeSuspendedAt is not null)
+        // Clear BOTH the intake suspension AND the sticky low-rating admin flag —
+        // an admin reinstating a consultant has reviewed them, so the flag (which
+        // otherwise is never cleared anywhere, keeping the consultant permanently in
+        // the low-rated queue and suppressing all future re-alerts) is resolved here too.
+        if (consultant.Profile is { } profile
+            && (profile.BookingIntakeSuspendedAt is not null || profile.ConsultantLowRatingFlaggedAt is not null))
         {
-            consultant.Profile.BookingIntakeSuspendedAt = null;
+            profile.BookingIntakeSuspendedAt = null;
+            profile.ConsultantLowRatingFlaggedAt = null;
             await db.SaveChangesAsync(ct);
         }
     }

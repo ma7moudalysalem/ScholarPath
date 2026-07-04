@@ -20,10 +20,12 @@ public static class ConsultantRatingThresholds
 
     /// <summary>
     /// Minimum number of visible reviews required before the penalized-average
-    /// flag check fires. A penalized average needs at least one review to be
-    /// non-null, so 1 matches the literal spec.
+    /// admin flag fires. Set to 5 to match the booking-intake auto-suspend sample
+    /// floor (BookingOptions.LowRatingMinimumSampleSize) — a single noisy 2-star (or
+    /// a penalty on a 1-review consultant) should not put a consultant in the admin
+    /// low-rated queue.
     /// </summary>
-    public const int MinimumReviewsForFlagging = 1;
+    public const int MinimumReviewsForFlagging = 5;
 
     // ── Penalty factors (compounding multipliers on the rating average) ──────────
 

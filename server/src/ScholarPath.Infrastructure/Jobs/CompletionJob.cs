@@ -32,7 +32,14 @@ public sealed class CompletionJob : ICompletionJob
                 b.Status == BookingStatus.Confirmed &&
                 b.ScheduledEndAt <= completionThreshold &&
                 !b.IsNoShowStudent &&
-                !b.IsNoShowConsultant)
+                !b.IsNoShowConsultant &&
+                // Never auto-complete a booking where exactly ONE party joined — that's
+                // a no-show and belongs to MeetingNoShowSweepJob (which files a report).
+                // Completing it here would silently erase the present party's no-show
+                // remedy if the sweep lagged past this 6h threshold. Both-joined or
+                // neither-joined bookings still complete normally.
+                !((b.StudentJoinedAt != null && b.ConsultantJoinedAt == null) ||
+                  (b.StudentJoinedAt == null && b.ConsultantJoinedAt != null)))
             .ToListAsync(cancellationToken);
 
         if (bookings.Count == 0)
