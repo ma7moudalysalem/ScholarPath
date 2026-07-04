@@ -204,10 +204,15 @@ jobs:
         with:
           app-name: ${{ vars.AZURE_API_APP_NAME }}
           package: ${{ github.workspace }}/publish
-          # clean wipes wwwroot before writing so stale/half-overwritten DLLs from a
-          # previous deploy can't linger and cause System.BadImageFormatException;
-          # restart forces a fresh assembly load afterwards.
-          clean: true
+          # NOTE: do NOT set `clean: true` here. On Linux App Service the action
+          # runs Kudu's parallel_rsync with the clean flag, which races and fails
+          # with "No such file or directory" (rsync exit 23) — the deploy still
+          # lands but the step goes red. rsync-without-clean overwrites each
+          # assembly atomically (temp file + rename), and `restart: true` then
+          # forces a fresh, consistent assembly load — which is what prevents the
+          # System.BadImageFormatException the clean flag was originally added for
+          # (that corruption predated restart:true). If a dropped dependency ever
+          # needs a true wipe, do a one-off Kudu `rm -rf /home/site/wwwroot/*`.
           restart: true
 
       - name: Azure logout
