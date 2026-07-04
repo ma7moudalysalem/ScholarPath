@@ -87,7 +87,7 @@ export function Community() {
   // changes categories. Hidden on filter / search to avoid duplicating context.
   const { data: trendingData } = useQuery({
     queryKey: ["community", "trending"],
-    queryFn: () => communityApi.getPosts({ sortBy: "MostVoted", page: 1, pageSize: 6 }),
+    queryFn: () => communityApi.getPosts({ sortBy: "Trending", page: 1, pageSize: 6 }),
     staleTime: 60_000,
   });
   const trendingPosts = useMemo<ForumPost[]>(() => {
@@ -340,9 +340,9 @@ export function Community() {
                   {t("feed.sortNewest")}
                 </button>
                 <button
-                  onClick={() => setSortBy("MostVoted")}
+                  onClick={() => setSortBy("Trending")}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                    sortBy === "MostVoted"
+                    sortBy === "Trending"
                       ? "bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm"
                       : "text-text-secondary hover:text-text-primary hover:bg-bg-subtle"
                   }`}
