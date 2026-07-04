@@ -285,9 +285,14 @@ export function Chat() {
 
       // Refresh the list; for a pending conversation, swap the placeholder for
       // the real row the backend just created so the thread loads its messages.
+      // staleTime:0 forces a network read — otherwise fetchQuery returns the
+      // cached list (which predates the just-created conversation), the real row
+      // is never found, and the new thread stays stuck on the "pending" placeholder
+      // until a manual refresh.
       const fresh = await qc.fetchQuery({
         queryKey: ["chat", "conversations"],
         queryFn: () => chatApi.getConversations(),
+        staleTime: 0,
       });
       if (isPending) {
         const real = fresh.find((c) => c.otherParticipantId === selectedConv.otherParticipantId);
@@ -362,15 +367,22 @@ export function Chat() {
       }
 
       // Keep the thread open and refresh so the button reflects the new block
-      // state and the toggle stays reachable (UAT TC-006).
+      // state and the toggle stays reachable (UAT TC-006). staleTime:0 forces a
+      // network read — without it fetchQuery returns the cached (pre-block)
+      // conversations while they're still within the global staleTime window, so
+      // the button would keep showing the old state until a manual refresh.
       const fresh = await qc.fetchQuery({
         queryKey: ["chat", "conversations"],
         queryFn: () => chatApi.getConversations(),
+        staleTime: 0,
       });
       const updated = fresh.find(
         (c) => c.otherParticipantId === selectedConv.otherParticipantId,
       );
       setSelectedConv(updated ?? { ...selectedConv, isBlocked: !wasBlocked });
+      // A block/unblock changes who shows up in contact search (FR-MSG-23) —
+      // drop the cached contact lists so the next "new message" picker is correct.
+      void qc.invalidateQueries({ queryKey: ["chat", "contacts"] });
     } catch (error) {
       console.error("Failed to toggle block", error);
       toast.error(

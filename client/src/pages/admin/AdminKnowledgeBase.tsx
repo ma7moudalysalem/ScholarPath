@@ -152,7 +152,10 @@ export function AdminKnowledgeBase() {
     mutationFn: () => adminApi.startFineTuningJob(),
     onSuccess: (r) => {
       toast.success(t("admin:knowledgeBase.ftStarted", { jobId: r.jobId }));
-      qc.invalidateQueries({ queryKey: FT_STATUS_KEY });
+      // The status query is enabled:false, so invalidate is a no-op (it never
+      // ran). Force a fetch so the status panel populates without the admin
+      // having to click "Check status".
+      void qc.refetchQueries({ queryKey: FT_STATUS_KEY });
     },
     onError: () => toast.error(t("admin:knowledgeBase.ftStartError")),
   });

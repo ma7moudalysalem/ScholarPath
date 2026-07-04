@@ -57,6 +57,10 @@ export function ApplicationsReview() {
     }) => applicationsApi.reviewApplication(id, status, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company", "applications"] });
+      // The detail modal uses ["company","application","detail",id] (singular) —
+      // a different prefix, so it needs its own invalidation or it shows the old
+      // status when re-opened right after a decision.
+      queryClient.invalidateQueries({ queryKey: ["company", "application", "detail"] });
       toast.success(t("scholarshipProviderReview.decision.success"));
       setDecisionTarget(null);
     },

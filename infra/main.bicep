@@ -355,6 +355,11 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true
+      // Required for SignalR real-time (chat messages, typing, presence,
+      // notifications). Without this the WebSocket transport is rejected and the
+      // client falls back to slow/flaky polling, so live updates never arrive and
+      // users have to refresh manually.
+      webSocketsEnabled: true
       healthCheckPath: '/health'
       cors: {
         allowedOrigins: empty(clientCorsOrigin) ? [] : [clientCorsOrigin]

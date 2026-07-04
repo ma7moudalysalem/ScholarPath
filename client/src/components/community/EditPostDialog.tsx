@@ -71,7 +71,9 @@ export function EditPostDialog({
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ["community", "thread"] });
       void qc.invalidateQueries({ queryKey: ["community", "posts"] });
-      void qc.invalidateQueries({ queryKey: ["community", "bookmarks"] });
+      // The bookmarks tab query key is "bookmarks-feed" — the old "bookmarks"
+      // key matched no query, so an edited bookmarked post stayed stale there.
+      void qc.invalidateQueries({ queryKey: ["community", "bookmarks-feed"] });
       toast.success(t("edit.success"));
       onSaved?.();
       onOpenChange(false);
