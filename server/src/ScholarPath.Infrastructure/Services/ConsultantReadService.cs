@@ -407,24 +407,27 @@ public sealed class ConsultantReadService(
     private async Task<Dictionary<Guid, (int Count, double Average)>> LoadRatingAggregatesAsync(
         IReadOnlyCollection<Guid> consultantIds, CancellationToken ct)
     {
-        var rows = await db.ConsultantReviews
+        // PB-006R: read the persisted rating SNAPSHOT (penalized average + count)
+        // off UserProfile rather than live-aggregating the reviews. This is what
+        // makes reputation penalties (cancel −20% / no-show −40% / false report −70%)
+        // actually show — the deduction lives in ConsultantAverageRating, which a
+        // live AVG(Rating) would ignore. The snapshot is kept current by
+        // ConsultantRatingService on every rating submit and penalty event.
+        var rows = await db.UserProfiles
             .AsNoTracking()
-            .Where(rev => consultantIds.Contains(rev.ConsultantId)
-                          && !rev.IsHiddenByAdmin
-                          && !rev.IsDeleted)
-            .GroupBy(rev => rev.ConsultantId)
-            .Select(g => new
+            .Where(p => consultantIds.Contains(p.UserId) && p.ConsultantReviewCount > 0)
+            .Select(p => new
             {
-                ConsultantId = g.Key,
-                Count = g.Count(),
-                Average = g.Average(rev => (double)rev.Rating),
+                ConsultantId = p.UserId,
+                Count = p.ConsultantReviewCount,
+                Average = (double)(p.ConsultantAverageRating ?? 0m),
             })
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
         return rows.ToDictionary(
             x => x.ConsultantId,
-            x => (x.Count, Math.Round(x.Average, 2)));
+            x => (x.Count, x.Average));
     }
 
     private async Task<Dictionary<Guid, int>> LoadCompletedCountsAsync(

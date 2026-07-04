@@ -72,6 +72,30 @@ public sealed class GetMyReceivedConsultantReviewsQueryHandlerTests : IDisposabl
         await _db.SaveChangesAsync();
     }
 
+    /// <summary>
+    /// PB-006R: the summary average now comes from the persisted rating snapshot
+    /// (ConsultantAverageRating), which ConsultantRatingService keeps current in
+    /// production. Mirror that invariant here (factor 1.0, penalized == raw).
+    /// </summary>
+    private async Task SyncSnapshotAsync(Guid? consultantId = null)
+    {
+        var cid = consultantId ?? _consultantId;
+        var visible = await _db.ConsultantReviews
+            .Where(r => r.ConsultantId == cid && !r.IsHiddenByAdmin && !r.IsDeleted)
+            .ToListAsync();
+        var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == cid);
+        if (profile is null)
+        {
+            profile = new UserProfile { UserId = cid };
+            _db.UserProfiles.Add(profile);
+        }
+        profile.ConsultantReviewCount = visible.Count;
+        profile.ConsultantAverageRating = visible.Count == 0
+            ? null
+            : Math.Round((decimal)visible.Average(r => r.Rating), 2, MidpointRounding.AwayFromZero);
+        await _db.SaveChangesAsync();
+    }
+
     [Fact]
     public async Task Handle_NotAuthenticated_ThrowsForbidden()
     {
@@ -103,6 +127,7 @@ public sealed class GetMyReceivedConsultantReviewsQueryHandlerTests : IDisposabl
         await SeedReviewAsync(s1, 1, hidden: true);
         await SeedReviewAsync(s2, 1, deleted: true);
         await SeedReviewAsync(s1, 1, consultantId: Guid.NewGuid());
+        await SyncSnapshotAsync();
 
         var result = await Sut(User()).Handle(new GetMyReceivedConsultantReviewsQuery(), default);
 

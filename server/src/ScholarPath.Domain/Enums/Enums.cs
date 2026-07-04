@@ -220,6 +220,9 @@ public enum NotificationType
     BookingReminder = 205,
     BookingCompleted = 206,
     ConsultantRatingReceived = 207,
+    // Admin-inbound: a consultant's penalized average rating dropped below the
+    // low-rating threshold and needs admin review (PB-006R).
+    ConsultantLowRatingFlagged = 208,
 
     // Payments (PB-013)
     PaymentSuccess = 300,

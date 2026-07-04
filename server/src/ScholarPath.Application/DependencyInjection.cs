@@ -31,6 +31,7 @@ public static class DependencyInjection
 
         // Consultant booking services
         services.AddScoped<RefundCalculatorService>();
+        services.AddScoped<ConsultantRatingService>();
 
         return services;
     }

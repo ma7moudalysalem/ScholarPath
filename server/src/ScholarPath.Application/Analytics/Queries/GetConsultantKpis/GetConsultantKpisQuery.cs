@@ -49,14 +49,15 @@ public sealed class GetConsultantKpisQueryHandler(
             })
             .FirstOrDefaultAsync(ct);
 
-        var reviews = await db.ConsultantReviews
+        // PB-006R: read the penalized rating snapshot off UserProfile rather than
+        // live-aggregating raw reviews, so the KPI card reflects reputation penalties.
+        var reviews = await db.UserProfiles
             .AsNoTracking()
-            .Where(r => r.ConsultantId == userId && !r.IsDeleted && !r.IsHiddenByAdmin)
-            .GroupBy(_ => 1)
-            .Select(g => new
+            .Where(p => p.UserId == userId)
+            .Select(p => new
             {
-                Count = g.Count(),
-                Avg = (decimal?)g.Average(r => (decimal)r.Rating),
+                Count = p.ConsultantReviewCount,
+                Avg = p.ConsultantAverageRating,
             })
             .FirstOrDefaultAsync(ct);
 
