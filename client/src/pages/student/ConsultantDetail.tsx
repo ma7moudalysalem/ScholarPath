@@ -17,7 +17,7 @@ import {
   useConsultantDetailQuery,
 } from "@/hooks/useConsultantsQuery";
 import type { BookableSlot } from "@/services/api/consultants";
-import { durationLabel, formatDate, formatTime, formatUsd } from "@/lib/bookingFormat";
+import { durationLabel, formatDate, formatTime, formatTimeWithTz, formatUsd } from "@/lib/bookingFormat";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { expertiseTagLabelByLang, languageNameByLang } from "@/lib/expertiseTagLabel";
 import { UserAvatar } from "@/components/common/UserAvatar";
@@ -367,7 +367,7 @@ export function ConsultantDetail() {
                           {formatDate(slot.startAt, lang)}
                         </p>
                         <p className="mt-0.5 text-xs text-text-secondary">
-                          {formatTime(slot.startAt, lang)} – {formatTime(slot.endAt, lang)}
+                          {formatTime(slot.startAt, lang)} – {formatTimeWithTz(slot.endAt, lang)}
                         </p>
                       </div>
                       <span className="badge badge-success text-[10.5px]">
