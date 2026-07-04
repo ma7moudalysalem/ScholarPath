@@ -37,7 +37,13 @@ public sealed record ApplicationDetailDto(
     // student UI show a "Rate provider" action after a final decision and hide
     // it once a rating exists. Null provider = external listing (nothing to rate).
     Guid? ScholarshipProviderId,
-    bool HasReview);
+    bool HasReview,
+    // FR-APP-19: the real recorded status transitions, oldest-first, so the
+    // student sees an actual timeline rather than a fixed set of scalar dates.
+    IReadOnlyList<ApplicationStatusEntryDto> StatusHistory);
+
+/// <summary>One recorded status transition on the application timeline.</summary>
+public sealed record ApplicationStatusEntryDto(string Status, DateTimeOffset OccurredAt);
 
 // ─── Query ────────────────────────────────────────────────────────────────────
 
@@ -81,6 +87,15 @@ public sealed class GetApplicationDetailQueryHandler(
             .AsNoTracking()
             .AnyAsync(r => r.ApplicationTrackerId == application.Id, ct);
 
+        // FR-APP-19: the recorded status-transition rows (written by
+        // ApplicationStatusHistoryEventHandler), oldest-first.
+        var statusHistory = await db.ApplicationChildren
+            .AsNoTracking()
+            .Where(c => c.ApplicationTrackerId == application.Id && c.ChildType == "StatusHistory")
+            .OrderBy(c => c.OccurredAt)
+            .Select(c => new ApplicationStatusEntryDto(c.Title ?? "", c.OccurredAt))
+            .ToListAsync(ct);
+
         return new ApplicationDetailDto(
             application.Id,
             application.ScholarshipId,
@@ -103,6 +118,7 @@ public sealed class GetApplicationDetailQueryHandler(
             application.DecisionAt,
             scholarship?.ReviewFeeUsd,
             scholarship?.OwnerScholarshipProviderId,
-            hasReview);
+            hasReview,
+            statusHistory);
     }
 }

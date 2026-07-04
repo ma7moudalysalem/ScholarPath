@@ -98,8 +98,19 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserS
             query = query.Where(s => s.TargetCountriesJson!.Contains(request.Country));
 
         if (!string.IsNullOrEmpty(request.FieldOfStudy))
+        {
+            // FR-SCH-05: match the field as a whole JSON-array element, not a raw
+            // substring — otherwise "Art" wrongly matched "Smart Materials".
+            // Serialize the needle with the SAME serializer used to store the
+            // array (CreateScholarshipCommand). That way the surrounding quotes
+            // AND the default encoder's escaping of characters such as ampersand
+            // both line up with the stored value, so fields like "Arts and
+            // Humanities" written with an ampersand still match. A listing with
+            // no fields declared is unrestricted (matches every field filter).
+            var fieldNeedle = JsonSerializer.Serialize(request.FieldOfStudy);
             query = query.Where(s => s.FieldsOfStudyJson == null ||
-                                     s.FieldsOfStudyJson.Contains(request.FieldOfStudy));
+                                     s.FieldsOfStudyJson.Contains(fieldNeedle));
+        }
 
         //  Sorting with Tie-break for Pagination Stability
         // `Sort` is an opt-in override. The default keeps featured-first then

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Exceptions;
@@ -115,6 +116,31 @@ public sealed class ScholarshipTests : IDisposable
         result.Should().NotBeNull();
         result.Id.Should().Be(id);
         result.Title.Should().Be("Test Scholarship");
+    }
+
+    // FR-SCH-05: the field-of-study filter matches a whole JSON-array element
+    // (not a raw substring). This mirrors the handler's exact logic —
+    // storedJson.Contains(JsonSerializer.Serialize(field)) — where BOTH the stored
+    // array and the needle go through the same default serializer, so the quoting
+    // and the '&'→& escaping line up. (A DB-backed test can't run here: the
+    // query's DateTimeOffset ORDER BY is unsupported by the SQLite test harness,
+    // though SQL Server handles it in prod.)
+    [Fact]
+    public void FieldFilter_SerializedNeedle_MatchesStoredElement_IncludingAmpersand()
+    {
+        var stored = JsonSerializer.Serialize(new[] { "Arts & Humanities", "Engineering" });
+
+        // Exact-element matches, ampersand handled by identical encoding.
+        stored.Contains(JsonSerializer.Serialize("Arts & Humanities")).Should().BeTrue();
+        stored.Contains(JsonSerializer.Serialize("Engineering")).Should().BeTrue();
+
+        // Partial-word needle must NOT match (the bug this fix closes).
+        JsonSerializer.Serialize(new[] { "Smart Materials" })
+            .Contains(JsonSerializer.Serialize("Art")).Should().BeFalse();
+
+        // A RAW (unserialized) ampersand needle would NOT match — proving why the
+        // handler must serialize the needle rather than build "\"{field}\"".
+        stored.Contains("\"Arts & Humanities\"").Should().BeFalse();
     }
 
     public void Dispose()
