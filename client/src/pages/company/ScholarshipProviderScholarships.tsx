@@ -138,6 +138,13 @@ export function ScholarshipProviderScholarships() {
               >
                 <td className="px-4 py-3 font-medium text-text-primary">
                   {isAr ? s.titleAr || s.titleEn : s.titleEn || s.titleAr}
+                  {s.status === "Draft" && s.rejectionReason && (
+                    <p className="mt-1 max-w-xs text-xs font-normal text-danger-500">
+                      {t("moderation:scholarshipProviderScholarships.rejectedReason", {
+                        reason: s.rejectionReason,
+                      })}
+                    </p>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <span

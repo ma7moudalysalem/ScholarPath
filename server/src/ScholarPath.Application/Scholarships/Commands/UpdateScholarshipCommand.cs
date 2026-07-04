@@ -103,11 +103,18 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
 
         // PB-005: editing a live (Open) listing sends it back through moderation
         // so the changed content is re-reviewed by an admin before it is public
-        // again. Drafts / under-review / closed listings are left as-is.
+        // again. Editing a REJECTED draft resubmits it (clears the feedback and
+        // re-enters the queue). Plain drafts / under-review / closed are untouched.
         if (entity.Status == ScholarshipStatus.Open)
         {
             entity.Status = ScholarshipStatus.UnderReview;
             entity.OpenedAt = null;
+        }
+        else if (entity.Status == ScholarshipStatus.Draft && entity.RejectionReason is not null)
+        {
+            entity.Status = ScholarshipStatus.UnderReview;
+            entity.RejectionReason = null;
+            entity.RejectedAt = null;
         }
 
         await db.SaveChangesAsync(ct);

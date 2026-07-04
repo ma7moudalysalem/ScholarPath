@@ -50,6 +50,9 @@ public sealed class ApproveScholarshipCommandHandler(
 
         scholarship.Status = ScholarshipStatus.Open;
         scholarship.OpenedAt ??= DateTimeOffset.UtcNow;
+        // Clear any stale rejection feedback now that it's approved.
+        scholarship.RejectionReason = null;
+        scholarship.RejectedAt = null;
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
