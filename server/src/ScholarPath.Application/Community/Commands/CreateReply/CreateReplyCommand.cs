@@ -45,6 +45,13 @@ public sealed class CreateReplyCommandHandler(
             .ConfigureAwait(false)
             ?? throw new NotFoundException(nameof(ForumPost), request.ParentPostId);
 
+        // FR-MSG-29: a mutual block prevents either party from replying to the
+        // other's community posts.
+        if (await CommunityBlockFilter.AreBlockedAsync(db, authorId, parent.AuthorId, ct).ConfigureAwait(false))
+        {
+            throw new ConflictException("You cannot reply to this post because a block is in place.");
+        }
+
         var sanitizer = new Ganss.Xss.HtmlSanitizer();
 
         var body = sanitizer.Sanitize(request.BodyMarkdown);

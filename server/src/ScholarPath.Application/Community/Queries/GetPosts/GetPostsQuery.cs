@@ -67,12 +67,11 @@ public sealed class GetPostsQueryHandler(
             return new PagedResult<ForumPostDto>(Array.Empty<ForumPostDto>(), request.Page, request.PageSize, 0);
         }
 
-        // Personal block: hide posts authored by anyone the current user has
-        // blocked (blocker-only — the block never affects other viewers).
+        // FR-MSG-29: mutual block — hide posts authored by anyone in a block
+        // relationship (either direction) with the current user.
         if (currentUserId is Guid blockerId)
         {
-            query = query.Where(p => !db.UserBlocks.Any(
-                b => b.BlockerId == blockerId && b.BlockedUserId == p.AuthorId));
+            query = query.Where(CommunityBlockFilter.NotBlockedWith(db, blockerId));
         }
 
         // "Trending" = recent + high engagement (last 30 days, scored by net votes

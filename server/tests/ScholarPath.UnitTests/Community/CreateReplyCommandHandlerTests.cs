@@ -1,5 +1,6 @@
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Community.Commands.CreateReply;
+using ScholarPath.Domain.Entities;
 
 namespace ScholarPath.UnitTests.Community;
 
@@ -47,5 +48,36 @@ public sealed class CreateReplyCommandHandlerTests : IDisposable
 
         await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
             handler.Handle(new CreateReplyCommand(root.Id, "no"), CancellationToken.None));
+    }
+
+    // FR-MSG-29: a mutual block prevents either party from replying to the other.
+
+    [Fact]
+    public async Task Reply_is_blocked_when_the_replier_blocked_the_post_author()
+    {
+        var root = await _h.SeedPostAsync(_h.StudentA);
+        _h.Db.UserBlocks.Add(new UserBlock { BlockerId = _h.StudentB.Id, BlockedUserId = _h.StudentA.Id });
+        await _h.Db.SaveChangesAsync();
+
+        _h.AsStudent(_h.StudentB);
+        var handler = new CreateReplyCommandHandler(_h.Db, _h.CurrentUser);
+
+        await Assert.ThrowsAsync<ConflictException>(() =>
+            handler.Handle(new CreateReplyCommand(root.Id, "blocked reply"), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Reply_is_blocked_when_the_post_author_blocked_the_replier()
+    {
+        // Reverse direction: A blocked B, B still cannot reply to A's post (mutual).
+        var root = await _h.SeedPostAsync(_h.StudentA);
+        _h.Db.UserBlocks.Add(new UserBlock { BlockerId = _h.StudentA.Id, BlockedUserId = _h.StudentB.Id });
+        await _h.Db.SaveChangesAsync();
+
+        _h.AsStudent(_h.StudentB);
+        var handler = new CreateReplyCommandHandler(_h.Db, _h.CurrentUser);
+
+        await Assert.ThrowsAsync<ConflictException>(() =>
+            handler.Handle(new CreateReplyCommand(root.Id, "blocked reply"), CancellationToken.None));
     }
 }
