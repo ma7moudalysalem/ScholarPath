@@ -27,10 +27,18 @@ public static class ScholarshipProviderRatingThresholds
     public const decimal LowRatingThreshold = 2.5m;
 
     /// <summary>
-    /// Minimum number of visible reviews required before the threshold check
-    /// fires. Defaults to 1 to match the literal spec ("If ScholarshipProvider average
-    /// rating is below 2.5: Flag the ScholarshipProvider"). Bump this if a "one bad
-    /// reviewer can sink a new ScholarshipProvider" concern surfaces.
+    /// Minimum number of visible reviews (within the flagging window) required
+    /// before the threshold check fires. Defaults to 1 to match the literal
+    /// spec ("If ScholarshipProvider average rating is below 2.5: Flag the
+    /// ScholarshipProvider"). Bump this if a "one bad reviewer can sink a new
+    /// ScholarshipProvider" concern surfaces.
     /// </summary>
     public const int MinimumReviewsForFlagging = 1;
+
+    /// <summary>
+    /// FR-APP-35: the flag decision considers only reviews created within this
+    /// trailing window (in months). The displayed all-time average is unaffected
+    /// — only the flag trigger is time-scoped.
+    /// </summary>
+    public const int FlaggingWindowMonths = 3;
 }

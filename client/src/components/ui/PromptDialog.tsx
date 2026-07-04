@@ -41,6 +41,12 @@ export interface PromptDialogProps {
    * Usually wired to the underlying mutation's `isPending`.
    */
   loading?: boolean;
+  /**
+   * When true, the confirm button stays disabled until the field contains
+   * non-whitespace text. Used for mandatory-reason flows (e.g. FR-APP-30
+   * application rejection, where a reason is required).
+   */
+  requireInput?: boolean;
 }
 
 /**
@@ -77,6 +83,7 @@ export function PromptDialog({
   variant = "default",
   onConfirm,
   loading = false,
+  requireInput = false,
 }: PromptDialogProps) {
   const { t } = useTranslation("common");
 
@@ -98,7 +105,11 @@ export function PromptDialog({
       ? "bg-danger-500 hover:bg-danger-600 text-white"
       : "bg-brand-500 hover:bg-brand-600 text-text-on-brand";
 
+  // When the field is mandatory, block confirmation until it has real text.
+  const confirmDisabled = loading || (requireInput && value.trim().length === 0);
+
   const handleConfirm = async () => {
+    if (requireInput && value.trim().length === 0) return;
     await onConfirm(value.trim());
   };
 
@@ -160,7 +171,7 @@ export function PromptDialog({
             <button
               type="button"
               onClick={handleConfirm}
-              disabled={loading}
+              disabled={confirmDisabled}
               className={`inline-flex h-10 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition disabled:opacity-50 ${confirmClasses}`}
             >
               {loading && <Loader2 className="size-4 animate-spin" />}

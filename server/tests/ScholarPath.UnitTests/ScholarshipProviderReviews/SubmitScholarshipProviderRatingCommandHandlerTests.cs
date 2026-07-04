@@ -72,7 +72,7 @@ public sealed class SubmitScholarshipProviderRatingCommandHandlerTests : IDispos
     }
 
     private async Task SeedExistingReviewAsync(
-        Guid companyId, int rating, bool hidden = false)
+        Guid companyId, int rating, bool hidden = false, DateTimeOffset? createdAt = null)
     {
         // Seeds a ScholarshipProviderReview attributed to an arbitrary (unique) prior
         // application so the unique index on ApplicationTrackerId doesn't bite.
@@ -91,6 +91,10 @@ public sealed class SubmitScholarshipProviderRatingCommandHandlerTests : IDispos
             ScholarshipProviderId = companyId,
             Rating = rating,
             IsHiddenByAdmin = hidden,
+            // Explicit non-default CreatedAt survives the SaveChanges audit stamp
+            // (which only fills CreatedAt when it's still default) — lets a test
+            // place a review outside the 3-month flagging window.
+            CreatedAt = createdAt ?? default,
         });
         await _db.SaveChangesAsync();
     }
@@ -333,6 +337,42 @@ public sealed class SubmitScholarshipProviderRatingCommandHandlerTests : IDispos
         var profile = await _db.UserProfiles.SingleAsync(p => p.UserId == companyId);
         profile.ScholarshipProviderLowRatingFlaggedAt.Should().BeNull();
         profile.ScholarshipProviderAverageRating.Should().Be(2.50m);
+
+        await _notif.DidNotReceive().DispatchAsync(
+            Arg.Any<Guid>(),
+            NotificationType.ScholarshipProviderLowRatingFlagged,
+            Arg.Any<NotificationParams>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_OldLowRatingsOutsideWindow_DoNotFlag()
+    {
+        // FR-APP-35: the flag decision is scoped to the trailing 3 months. Two
+        // old 1-star reviews (4 months ago) drag the ALL-TIME average below 2.5,
+        // but a recent good rating means the 3-month window average is healthy —
+        // so the company must NOT be flagged.
+        var studentId = Guid.NewGuid();
+        _currentUser.UserId.Returns(studentId);
+        var (appId, companyId) = await SeedApplicationAsync(studentId, ApplicationStatus.Accepted);
+        await SeedAdminAsync();
+
+        var fourMonthsAgo = DateTimeOffset.UtcNow.AddMonths(-4);
+        await SeedExistingReviewAsync(companyId, rating: 1, createdAt: fourMonthsAgo);
+        await SeedExistingReviewAsync(companyId, rating: 1, createdAt: fourMonthsAgo);
+
+        // Recent 5-star. All-time avg = (1+1+5)/3 = 2.33 (< 2.5), but the last
+        // 3 months hold only the 5-star → window avg 5.0 → no flag.
+        await _handler.Handle(
+            new SubmitScholarshipProviderRatingCommand(appId, 5, null), CancellationToken.None);
+
+        var profile = await _db.UserProfiles.SingleAsync(p => p.UserId == companyId);
+        profile.ScholarshipProviderLowRatingFlaggedAt.Should().BeNull();
+        // The displayed snapshot stays all-time.
+        profile.ScholarshipProviderReviewCount.Should().Be(3);
+        profile.ScholarshipProviderAverageRating.Should().Be(2.33m);
 
         await _notif.DidNotReceive().DispatchAsync(
             Arg.Any<Guid>(),

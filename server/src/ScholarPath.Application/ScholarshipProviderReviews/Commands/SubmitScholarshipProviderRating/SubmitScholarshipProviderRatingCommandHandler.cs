@@ -115,11 +115,34 @@ public sealed class SubmitScholarshipProviderRatingCommandHandler(
             return;
         }
 
+        // The displayed reputation snapshot stays ALL-TIME (overall standing).
         profile.ScholarshipProviderAverageRating = averageRating;
         profile.ScholarshipProviderReviewCount = reviewCount;
 
-        var shouldFlag = averageRating is { } avg
-            && reviewCount >= ScholarshipProviderRatingThresholds.MinimumReviewsForFlagging
+        // FR-APP-35: the low-rating FLAG decision is scoped to the trailing
+        // 3 months only — "if the ScholarshipProvider average rating during the last 3
+        // months falls below 2.5, flag for Admin assessment." A provider that
+        // has recently improved should not stay flagged on old ratings, and a
+        // provider that recently declined should be caught even if its all-time
+        // average is still healthy.
+        var windowStart = DateTimeOffset.UtcNow.AddMonths(-ScholarshipProviderRatingThresholds.FlaggingWindowMonths);
+        var recentReviews = db.ScholarshipProviderReviews
+            .AsNoTracking()
+            .Where(r => r.ScholarshipProviderId == companyId
+                        && !r.IsHiddenByAdmin
+                        && r.CreatedAt >= windowStart);
+
+        var recentCount = await recentReviews.CountAsync(ct);
+        decimal? recentAverage = recentCount == 0
+            ? null
+            : await recentReviews.AverageAsync(r => (decimal)r.Rating, ct);
+        if (recentAverage is not null)
+        {
+            recentAverage = Math.Round(recentAverage.Value, 2, MidpointRounding.AwayFromZero);
+        }
+
+        var shouldFlag = recentAverage is { } avg
+            && recentCount >= ScholarshipProviderRatingThresholds.MinimumReviewsForFlagging
             && avg < ScholarshipProviderRatingThresholds.LowRatingThreshold;
 
         // Sticky flag: don't overwrite an existing FlaggedAt timestamp on
@@ -135,7 +158,9 @@ public sealed class SubmitScholarshipProviderRatingCommandHandler(
 
         if (firstFlagging)
         {
-            await NotifyAdminsAsync(companyId, averageRating!.Value, reviewCount, ct);
+            // Notify with the trailing-window figures that actually triggered
+            // the flag, not the all-time snapshot.
+            await NotifyAdminsAsync(companyId, recentAverage!.Value, recentCount, ct);
         }
     }
 

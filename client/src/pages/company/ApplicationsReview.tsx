@@ -291,6 +291,9 @@ export function ApplicationsReview() {
             : t("scholarshipProviderReview.decision.acceptPrompt")
         }
         inputMultiline
+        // FR-APP-30: a rejection reason is mandatory — keep the Reject button
+        // disabled until the field has text. Acceptance notes stay optional.
+        requireInput={decisionTarget?.status === "Rejected"}
         variant={decisionTarget?.status === "Rejected" ? "destructive" : "default"}
         confirmLabel={
           decisionTarget?.status === "Rejected"

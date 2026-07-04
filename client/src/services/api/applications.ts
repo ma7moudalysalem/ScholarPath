@@ -115,6 +115,13 @@ export interface ApplicationDetail {
    * in escrow until the company finalises the review (PB-005 v1).
    */
   reviewFeeUsd: number | null;
+  /**
+   * FR-APP-35: the in-app scholarship's owning provider (null for external
+   * listings — nothing to rate), and whether this student already rated them
+   * for this application. Used to gate the "Rate provider" action.
+   */
+  scholarshipProviderId: string | null;
+  hasReview: boolean;
 }
 
 /** Result of `POST /api/applications` — mirrors the server's StartApplicationResult. */

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useLocation } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -72,6 +72,7 @@ function makeSchema(t: TFunction) {
   const englishOnly = t("errors:validate.englishOnly");
   const arabicOnly = t("errors:validate.arabicOnly");
   const deadlineMsg = t("moderation:scholarshipProviderScholarships.form.deadlineHint");
+  const externalUrlInvalid = t("moderation:scholarshipProviderScholarships.form.externalUrlInvalid");
 
   // Single schema — funding type and target level are always validated, but
   // only sent to the server in create mode. In edit mode the form keeps them
@@ -109,6 +110,25 @@ function makeSchema(t: TFunction) {
       .gte(0, t("moderation:scholarshipProviderScholarships.form.reviewFeeMin"))
       .lte(500, t("moderation:scholarshipProviderScholarships.form.reviewFeeMax")),
     requiredDocuments: z.array(z.string()).optional(),
+    // Listing mode + apply-out URL. Only surfaced on the admin create path
+    // (FR-SCH-29/32: External scholarships are admin-only). defaultValues seeds
+    // "InApp" so this stays a required (non-defaulted) enum for the resolver.
+    listingMode: z.enum(["InApp", "ExternalUrl"]),
+    externalApplicationUrl: z.string().optional(),
+  }).superRefine((val, ctx) => {
+    // FR-SCH-30: an ExternalUrl listing needs a valid absolute HTTPS URL.
+    if (val.listingMode === "ExternalUrl") {
+      const url = (val.externalApplicationUrl ?? "").trim();
+      let ok = false;
+      try { ok = new URL(url).protocol === "https:"; } catch { ok = false; }
+      if (!ok) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["externalApplicationUrl"],
+          message: externalUrlInvalid,
+        });
+      }
+    }
   });
 }
 
@@ -149,8 +169,16 @@ export function ScholarshipForm() {
       // master payments switch is off, the form auto-populates 0 and hides the
       // input below — validation still catches negative / >500 / >2dp.
       reviewFeeUsd: paymentsEnabled ? 50 : 0,
+      listingMode: "InApp",
+      externalApplicationUrl: "",
     },
   });
+
+  // FR-SCH-29/32: the mode selector + external URL are admin-only, create-only.
+  // useWatch (not form.watch) keeps this compiler-safe.
+  const listingMode = useWatch({ control: form.control, name: "listingMode" });
+  const isExternalCreate =
+    isAdminPath && mode === "create" && listingMode === "ExternalUrl";
 
   const categoriesQuery = useQuery<ScholarshipCategory[]>({
     queryKey: ["scholarships", "categories"],
@@ -252,6 +280,9 @@ export function ScholarshipForm() {
       return;
     }
 
+    // Only admins may create an ExternalUrl listing; providers always post InApp.
+    const isExternal = isAdminPath && values.listingMode === "ExternalUrl";
+
     const input: CreateScholarshipInput = {
       titleEn: values.titleEn,
       titleAr: values.titleAr,
@@ -264,8 +295,14 @@ export function ScholarshipForm() {
       fieldsOfStudy: values.fieldsOfStudy && values.fieldsOfStudy.length > 0
         ? values.fieldsOfStudy
         : undefined,
-      reviewFeeUsd: values.reviewFeeUsd,
+      // External listings settle off-platform — no review fee. In-app keeps its fee.
+      reviewFeeUsd: isExternal ? undefined : values.reviewFeeUsd,
       requiredDocuments: values.requiredDocuments ?? [],
+      // Send mode only on the admin path; providers rely on the server default.
+      mode: isAdminPath ? values.listingMode : undefined,
+      externalApplicationUrl: isExternal
+        ? values.externalApplicationUrl?.trim()
+        : undefined,
     };
     createMut.mutate(input);
   });
@@ -310,6 +347,48 @@ export function ScholarshipForm() {
             <div className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700">
               {t("moderation:scholarshipProviderScholarships.form.reviewNotice")}
             </div>
+          )}
+
+          {isAdminPath && mode === "create" && (
+            // FR-SCH-29/32: only admins choose the listing mode. External
+            // listings redirect students to an off-platform HTTPS apply URL.
+            <Field
+              id="listingMode"
+              label={t("moderation:scholarshipProviderScholarships.form.listingMode")}
+              hint={t("moderation:scholarshipProviderScholarships.form.listingModeHint")}
+            >
+              <select
+                id="listingMode"
+                className={fieldClass}
+                {...form.register("listingMode")}
+              >
+                <option value="InApp">
+                  {t("moderation:scholarshipProviderScholarships.form.listingModeInApp")}
+                </option>
+                <option value="ExternalUrl">
+                  {t("moderation:scholarshipProviderScholarships.form.listingModeExternal")}
+                </option>
+              </select>
+            </Field>
+          )}
+
+          {isExternalCreate && (
+            <Field
+              id="externalApplicationUrl"
+              label={t("moderation:scholarshipProviderScholarships.form.externalUrl")}
+              hint={t("moderation:scholarshipProviderScholarships.form.externalUrlHint")}
+              error={errors.externalApplicationUrl?.message}
+            >
+              <input
+                id="externalApplicationUrl"
+                type="url"
+                inputMode="url"
+                placeholder="https://…"
+                className={fieldClass}
+                dir="ltr"
+                {...form.register("externalApplicationUrl")}
+              />
+            </Field>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -476,7 +555,12 @@ export function ScholarshipForm() {
             />
           </Field>
 
-          {paymentsEnabled ? (
+          {isExternalCreate ? (
+            // External listings settle off-platform — no Review Service Fee.
+            <div className="rounded-lg border border-border-subtle bg-bg-subtle px-4 py-3 text-sm text-text-secondary">
+              {t("moderation:scholarshipProviderScholarships.form.externalFeeNotice")}
+            </div>
+          ) : paymentsEnabled ? (
             <Field
               id="reviewFeeUsd"
               label={t("moderation:scholarshipProviderScholarships.form.reviewFee")}

@@ -16,10 +16,28 @@ public class ReviewApplicationCommandValidatorTests
     [InlineData(ApplicationStatus.Shortlisted)]
     [InlineData(ApplicationStatus.UnderReview)]
     [InlineData(ApplicationStatus.Accepted)]
-    [InlineData(ApplicationStatus.Rejected)]
     public void Valid_review_statuses_pass(ApplicationStatus status)
     {
+        // Non-reject decisions don't require a reason.
         _v.Validate(new ReviewApplicationCommand(Guid.NewGuid(), status, null))
+            .IsValid.Should().BeTrue();
+    }
+
+    // FR-APP-30: rejecting an application requires a rejection reason.
+    [Fact]
+    public void Reject_without_reason_is_rejected()
+    {
+        _v.Validate(new ReviewApplicationCommand(Guid.NewGuid(), ApplicationStatus.Rejected, null))
+            .IsValid.Should().BeFalse();
+
+        _v.Validate(new ReviewApplicationCommand(Guid.NewGuid(), ApplicationStatus.Rejected, "   "))
+            .IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Reject_with_reason_passes()
+    {
+        _v.Validate(new ReviewApplicationCommand(Guid.NewGuid(), ApplicationStatus.Rejected, "Incomplete transcript."))
             .IsValid.Should().BeTrue();
     }
 
