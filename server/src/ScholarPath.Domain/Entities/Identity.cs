@@ -99,6 +99,14 @@ public class UserProfile : AuditableEntity
     public string? PreferredCountriesJson { get; set; }
     public string? PreferredFieldsJson { get; set; }
 
+    // Student consultant-booking access (PB-006R, FR-CBR-21..24). A student who
+    // late-cancels, no-shows (admin-validated), or falsely reports a consultant
+    // no-show is temporarily blocked from creating NEW bookings. BookingBlockUntil
+    // is the expiry; a lazy check flips the status back to Active once it passes.
+    public BookingAccessStatus BookingAccessStatus { get; set; } = BookingAccessStatus.Active;
+    public BookingBlockReason? BookingBlockReason { get; set; }
+    public DateTimeOffset? BookingBlockUntil { get; set; }
+
     // ScholarshipProvider fields
     public string? OrganizationLegalName { get; set; }
     public string? OrganizationRegistrationNumber { get; set; }

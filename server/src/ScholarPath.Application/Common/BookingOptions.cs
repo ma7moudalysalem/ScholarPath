@@ -28,4 +28,15 @@ public sealed class BookingOptions
     /// small sample (1-4 reviews) is too noisy to auto-suspend on.
     /// </summary>
     public int LowRatingMinimumSampleSize { get; set; } = 5;
+
+    // ── Student booking-block durations (PB-006R, FR-CBR-15..32) ─────────────────
+
+    /// <summary>Days a student is blocked after cancelling a confirmed booking &lt;24h before start (FR-CBR-18).</summary>
+    public int LateCancellationBlockDays { get; set; } = 3;
+
+    /// <summary>Days a student is blocked after an admin-validated no-show (FR-CBR-28).</summary>
+    public int ValidatedNoShowBlockDays { get; set; } = 7;
+
+    /// <summary>Days a student is blocked after being falsely reported as a no-show (FR-CBR-31).</summary>
+    public int FalseNoShowReportBlockDays { get; set; } = 14;
 }

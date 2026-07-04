@@ -140,6 +140,14 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
         b.HasIndex(p => p.ConsultantLowRatingFlaggedAt)
             .HasFilter("[ConsultantLowRatingFlaggedAt] IS NOT NULL")
             .HasDatabaseName("IX_UserProfiles_ConsultantLowRatingFlagged");
+        // PB-006R: student booking-access block (FR-CBR-21..24). Enums stored as
+        // strings for readability; filtered index drives any "expire blocks" sweep.
+        b.Property(p => p.BookingAccessStatus).HasConversion<string>().HasMaxLength(24)
+            .HasDefaultValue(BookingAccessStatus.Active);
+        b.Property(p => p.BookingBlockReason).HasConversion<string>().HasMaxLength(32);
+        b.HasIndex(p => p.BookingBlockUntil)
+            .HasFilter("[BookingBlockUntil] IS NOT NULL")
+            .HasDatabaseName("IX_UserProfiles_BookingBlockUntil");
         b.Property(p => p.AcademicLevel).HasConversion<string>().HasMaxLength(32);
         b.Property(p => p.StripeConnectAccountId).HasMaxLength(256);
         b.Property(p => p.StripeConnectStatus).HasConversion<string>().HasMaxLength(24);

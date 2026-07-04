@@ -89,6 +89,33 @@ public enum BookingStatus
     Completed = 5,
     NoShowStudent = 6,
     NoShowConsultant = 7,
+    // PB-006R: a party reported a no-show; the booking is frozen pending admin
+    // validation (FR-CBR-25). Excluded from auto-completion until resolved.
+    NoShowReported = 8,
+}
+
+/// <summary>
+/// A student's access to CREATE consultant bookings (PB-006R, FR-CBR-21..24).
+/// Independent of the account status — a blocked student keeps full access to
+/// everything except starting a new booking, until <c>BookingBlockUntil</c> passes.
+/// </summary>
+public enum BookingAccessStatus
+{
+    Active = 0,
+    BookingBlocked = 1,
+}
+
+/// <summary>Why a student's booking access was blocked (PB-006R).</summary>
+public enum BookingBlockReason
+{
+    /// <summary>Student cancelled a confirmed booking &lt;24h before start — 3-day block (FR-CBR-18).</summary>
+    CancelledLessThan24Hours = 0,
+
+    /// <summary>Admin-validated student no-show — 7-day block (FR-CBR-28).</summary>
+    ValidatedNoShow = 1,
+
+    /// <summary>Student was falsely reported as a no-show by the consultant — 14-day block (FR-CBR-31).</summary>
+    FalseNoShowReport = 2,
 }
 
 public enum PaymentType
