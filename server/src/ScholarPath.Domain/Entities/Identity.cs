@@ -172,6 +172,24 @@ public class UserProfile : AuditableEntity
     /// </summary>
     public DateTimeOffset? BookingIntakeSuspendedAt { get; set; }
 
+    // Consultant rating snapshot + penalty ledger (PB-006R, FR-CBR-33..39).
+    // Mirrors the ScholarshipProvider snapshot triplet above, but adds a
+    // persisted penalty FACTOR so reputation deductions (cancel −20% / validated
+    // no-show −40% / false report −70%) survive future review recomputes:
+    //
+    //   ConsultantAverageRating   the DISPLAYED average = round(clamp(rawAvg * factor, 0, 5), 2);
+    //                             null when the consultant has no visible reviews.
+    //   ConsultantReviewCount     count of visible (not soft-deleted / admin-hidden) reviews.
+    //   ConsultantLowRatingFlaggedAt sticky admin-queue flag when the *penalized* average
+    //                             dips below threshold. Distinct from BookingIntakeSuspendedAt
+    //                             (which the *raw* trailing-window average drives).
+    //   ConsultantRatingPenaltyFactor compounding multiplier, default 1.0; only a penalty
+    //                             event mutates it (*= 0.80/0.60/0.30). A recompute never resets it.
+    public decimal? ConsultantAverageRating { get; set; }
+    public int ConsultantReviewCount { get; set; }
+    public DateTimeOffset? ConsultantLowRatingFlaggedAt { get; set; }
+    public decimal ConsultantRatingPenaltyFactor { get; set; } = 1.0m;
+
     // Stripe Connect — payee payout onboarding
     public string? StripeConnectAccountId { get; set; }
     public StripeConnectStatus StripeConnectStatus { get; set; } = StripeConnectStatus.None;

@@ -128,6 +128,25 @@ public sealed class ConsultantReadServiceTests : IDisposable
             CreatedAt = Now.AddDays(-1),
         });
         _db.SaveChanges();
+        SyncRatingSnapshot(consultantId);
+    }
+
+    /// <summary>
+    /// PB-006R: the read service now reads the persisted rating snapshot, which
+    /// ConsultantRatingService keeps current in production. Mirror that invariant in
+    /// tests (penalty factor stays 1.0, so penalized average == raw average).
+    /// </summary>
+    private void SyncRatingSnapshot(Guid consultantId)
+    {
+        var visible = _db.ConsultantReviews
+            .Where(r => r.ConsultantId == consultantId && !r.IsHiddenByAdmin && !r.IsDeleted)
+            .ToList();
+        var profile = _db.UserProfiles.First(p => p.UserId == consultantId);
+        profile.ConsultantReviewCount = visible.Count;
+        profile.ConsultantAverageRating = visible.Count == 0
+            ? null
+            : Math.Round((decimal)visible.Average(r => r.Rating), 2, MidpointRounding.AwayFromZero);
+        _db.SaveChanges();
     }
 
     private void SeedBooking(
@@ -330,6 +349,7 @@ public sealed class ConsultantReadServiceTests : IDisposable
             CreatedAt = Now,
         });
         await _db.SaveChangesAsync();
+        SyncRatingSnapshot(consultant);
 
         var result = await _service.GetConsultantDetailAsync(consultant, CancellationToken.None);
 

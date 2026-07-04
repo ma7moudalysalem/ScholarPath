@@ -234,6 +234,12 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"{p.CounterpartyName ?? "A company"} dropped to an average rating of {p.AmountText ?? "below threshold"} over {p.Count ?? 0} review(s). Review and decide whether to suspend the account.",
             $"انخفض متوسط تقييم {p.CounterpartyName ?? "إحدى الشركات"} إلى {p.AmountText ?? "أقل من الحد"} عبر {p.Count ?? 0} تقييم. راجِع الحساب وقرّر ما إذا كان يجب إيقافه."),
 
+        // Admin-inbound: a consultant's penalized average dropped below threshold (PB-006R).
+        NotificationType.ConsultantLowRatingFlagged => new(
+            "Consultant flagged for low rating", "تم تنبيه على مستشار بسبب تقييم منخفض",
+            $"{p.CounterpartyName ?? "A consultant"} dropped to an average rating of {p.AmountText ?? "below threshold"} over {p.Count ?? 0} review(s). Review the consultant and decide on any action.",
+            $"انخفض متوسط تقييم {p.CounterpartyName ?? "أحد المستشارين"} إلى {p.AmountText ?? "أقل من الحد"} عبر {p.Count ?? 0} تقييم. راجِع المستشار وقرّر الإجراء المناسب."),
+
         // Admin-inbound: a community post was reported and needs a moderation decision.
         NotificationType.ContentReported => new(
             "Post reported", "تم الإبلاغ عن منشور",

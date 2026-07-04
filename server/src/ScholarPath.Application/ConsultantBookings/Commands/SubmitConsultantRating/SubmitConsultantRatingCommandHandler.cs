@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.ConsultantBookings.Services;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Exceptions;
@@ -17,16 +18,19 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
     private readonly ICurrentUserService _currentUser;
     private readonly ILogger<SubmitConsultantRatingCommandHandler> _logger;
     private readonly BookingOptions _bookingOptions;
+    private readonly ConsultantRatingService _ratingService;
 
     public SubmitConsultantRatingCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
         IOptions<BookingOptions> bookingOptions,
+        ConsultantRatingService ratingService,
         ILogger<SubmitConsultantRatingCommandHandler> logger)
     {
         _context = context;
         _currentUser = currentUser;
         _bookingOptions = bookingOptions.Value;
+        _ratingService = ratingService;
         _logger = logger;
     }
 
@@ -91,6 +95,12 @@ public sealed class SubmitConsultantRatingCommandHandler : IRequestHandler<Submi
 
         _context.ConsultantReviews.Add(review);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // PB-006R: recompute the persisted rating snapshot (penalized average +
+        // review count) and evaluate the admin low-rating flag. Runs after the new
+        // review is saved so the aggregate sees it. The penalty factor is unchanged
+        // by a normal rating submit, so here penalized == raw average.
+        await _ratingService.RecalculateSnapshotAsync(booking.ConsultantId, cancellationToken);
 
         // FR-094: when the consultant's recent ratings fall below the configured
         // threshold, auto-suspend their *booking intake* (not the whole account)

@@ -130,6 +130,16 @@ public sealed class UserProfileConfiguration : IEntityTypeConfiguration<UserProf
         b.HasIndex(p => p.ScholarshipProviderLowRatingFlaggedAt)
             .HasFilter("[ScholarshipProviderLowRatingFlaggedAt] IS NOT NULL")
             .HasDatabaseName("IX_UserProfiles_ScholarshipProviderLowRatingFlagged");
+        // PB-006R: consultant rating snapshot + penalty factor. Average precision
+        // 3,2 fits 0.00..5.00; the factor needs 5,4 to hold compounded multipliers
+        // (e.g. 0.80*0.60 = 0.4800) without drift.
+        b.Property(p => p.ConsultantAverageRating).HasPrecision(3, 2);
+        // Default 1.0 (no penalty) so existing rows and any non-EF insert start
+        // un-penalized — a SQL default of 0 would zero out every rating.
+        b.Property(p => p.ConsultantRatingPenaltyFactor).HasPrecision(5, 4).HasDefaultValue(1.0m);
+        b.HasIndex(p => p.ConsultantLowRatingFlaggedAt)
+            .HasFilter("[ConsultantLowRatingFlaggedAt] IS NOT NULL")
+            .HasDatabaseName("IX_UserProfiles_ConsultantLowRatingFlagged");
         b.Property(p => p.AcademicLevel).HasConversion<string>().HasMaxLength(32);
         b.Property(p => p.StripeConnectAccountId).HasMaxLength(256);
         b.Property(p => p.StripeConnectStatus).HasConversion<string>().HasMaxLength(24);

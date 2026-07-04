@@ -29,13 +29,17 @@ public sealed class GetMyReceivedConsultantReviewsQueryHandler(
 
         var total = await baseQuery.CountAsync(ct).ConfigureAwait(false);
 
-        double averageRating = 0;
-        if (total > 0)
-        {
-            averageRating = await baseQuery
-                .AverageAsync(r => (double)r.Rating, ct)
-                .ConfigureAwait(false);
-        }
+        // PB-006R: the summary average is the PENALIZED snapshot the consultant's
+        // students also see (ConsultantAverageRating), not a live raw mean — so a
+        // reputation deduction is reflected in the consultant's own dashboard. The
+        // individual review rows below stay raw (each shows its own submitted stars).
+        var snapshotAverage = await db.UserProfiles
+            .AsNoTracking()
+            .Where(p => p.UserId == consultantId)
+            .Select(p => p.ConsultantAverageRating)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+        double averageRating = (double)(snapshotAverage ?? 0m);
 
         var rows = await baseQuery
             .OrderByDescending(r => r.CreatedAt)
