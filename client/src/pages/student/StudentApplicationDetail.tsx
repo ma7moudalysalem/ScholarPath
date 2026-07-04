@@ -186,6 +186,9 @@ export function StudentApplicationDetail() {
   const isDraft = data.status === "Draft";
   const scholarshipTitle = isRtl ? data.scholarshipTitleAr : data.scholarshipTitleEn;
   const attachedDocs = parseStringArray(data.attachedDocumentsJson);
+  // Defensive: an older API build (or a partial deploy) may omit statusHistory —
+  // never let a missing array crash the whole page.
+  const statusHistory = data.statusHistory ?? [];
 
   // FR-APP-35: rating is offered once, only for an in-app application that has
   // reached a final decision and whose provider hasn't been rated yet.
@@ -309,13 +312,13 @@ export function StudentApplicationDetail() {
         </dl>
 
         {/* FR-APP-19: the real recorded status history, oldest-first. */}
-        {data.statusHistory.length > 0 && (
+        {statusHistory.length > 0 && (
           <ol className="mt-5 space-y-3 border-t border-border-subtle pt-4">
-            {data.statusHistory.map((entry, i) => (
+            {statusHistory.map((entry, i) => (
               <li key={`${entry.status}-${entry.occurredAt}-${i}`} className="flex items-start gap-3">
                 <span
                   className={`mt-1.5 size-2 shrink-0 rounded-full ${
-                    i === data.statusHistory.length - 1 ? "bg-brand-500" : "bg-border-strong"
+                    i === statusHistory.length - 1 ? "bg-brand-500" : "bg-border-strong"
                   }`}
                 />
                 <div className="min-w-0">

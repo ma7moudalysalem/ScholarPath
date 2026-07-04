@@ -199,20 +199,33 @@ jobs:
             --output none
           echo "Applied ${#settings[@]} integration app setting(s)."
 
+      # CRITICAL: the running app holds its loaded assemblies open, so a plain
+      # rsync deploy CANNOT overwrite the *.dll on disk — rsync fails with
+      # "No such file or directory" (exit 23) and the API keeps serving STALE
+      # code (verified: server fixes silently didn't go live). Delete the
+      # deployed assemblies FIRST so the deploy writes a fresh, consistent set
+      # into place with no locked-file conflict; the app keeps running on its
+      # in-memory copies until restart:true reloads the new ones. Only *.dll is
+      # removed — uploads/, logs/, appsettings, and web.config are preserved.
+      - name: Release locked assemblies before deploy
+        run: |
+          token=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
+          scm="https://${{ vars.AZURE_API_APP_NAME }}.scm.azurewebsites.net/api/command"
+          code=$(curl -s -o /tmp/clean.json -w "%{http_code}" -X POST "$scm" \
+            -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
+            -d '{"command":"find /home/site/wwwroot -maxdepth 2 -name \"*.dll\" -delete","dir":"/home"}')
+          echo "assembly-clean HTTP $code"; cat /tmp/clean.json || true
+          if [ "$code" != "200" ]; then echo "Assembly clean failed — aborting to avoid a partial deploy."; exit 1; fi
+
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ vars.AZURE_API_APP_NAME }}
           package: ${{ github.workspace }}/publish
-          # NOTE: do NOT set `clean: true` here. On Linux App Service the action
-          # runs Kudu's parallel_rsync with the clean flag, which races and fails
-          # with "No such file or directory" (rsync exit 23) — the deploy still
-          # lands but the step goes red. rsync-without-clean overwrites each
-          # assembly atomically (temp file + rename), and `restart: true` then
-          # forces a fresh, consistent assembly load — which is what prevents the
-          # System.BadImageFormatException the clean flag was originally added for
-          # (that corruption predated restart:true). If a dropped dependency ever
-          # needs a true wipe, do a one-off Kudu `rm -rf /home/site/wwwroot/*`.
+          # `clean: true` is intentionally NOT set — on Linux App Service it runs
+          # Kudu's parallel_rsync with a delete flag that races (exit 23). We
+          # release locked assemblies in the step above instead, then rsync writes
+          # into the freed slots and restart:true loads the fresh set.
           restart: true
 
       - name: Azure logout

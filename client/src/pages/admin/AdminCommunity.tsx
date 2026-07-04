@@ -156,9 +156,9 @@ export function AdminCommunity() {
                       count: p.validFlagCount,
                     })}
                   </span>
-                  {p.flags.length > 0 && (
+                  {(p.flags ?? []).length > 0 && (
                     <ul className="mt-1.5 max-w-xs space-y-1">
-                      {p.flags.map((f, i) => (
+                      {(p.flags ?? []).map((f, i) => (
                         <li key={i} className="text-xs text-text-tertiary">
                           <span className="font-medium text-text-secondary">
                             {flagReasonLabel(f.reason, i18n.language)}
