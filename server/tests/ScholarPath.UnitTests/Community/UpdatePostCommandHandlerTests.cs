@@ -16,11 +16,15 @@ public sealed class UpdatePostCommandHandlerTests : IDisposable
         var handler = new UpdatePostCommandHandler(_h.Db, _h.CurrentUser);
 
         var ok = await handler.Handle(
-            new UpdatePostCommand(post.Id, "Updated title", "Updated body"),
+            new UpdatePostCommand(post.Id, "Updated title", "عنوان محدث", "Updated body", "جسم محدث"),
             CancellationToken.None);
 
         ok.Should().BeTrue();
         var saved = _h.Db.ForumPosts.Single(p => p.Id == post.Id);
+        saved.TitleEn.Should().Be("Updated title");
+        saved.TitleAr.Should().Be("عنوان محدث");
+        saved.BodyEn.Should().Be("Updated body");
+        saved.BodyAr.Should().Be("جسم محدث");
         saved.Title.Should().Be("Updated title");
         saved.BodyMarkdown.Should().Be("Updated body");
     }
@@ -34,7 +38,7 @@ public sealed class UpdatePostCommandHandlerTests : IDisposable
 
         await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
             handler.Handle(
-                new UpdatePostCommand(post.Id, "hack", "hack"),
+                new UpdatePostCommand(post.Id, "hack", "هاك", "hack", "هاك"),
                 CancellationToken.None));
     }
 
@@ -47,7 +51,7 @@ public sealed class UpdatePostCommandHandlerTests : IDisposable
 
         await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
             handler.Handle(
-                new UpdatePostCommand(post.Id, "x", "y"),
+                new UpdatePostCommand(post.Id, "x", "س", "y", "ص"),
                 CancellationToken.None));
     }
 
@@ -60,12 +64,13 @@ public sealed class UpdatePostCommandHandlerTests : IDisposable
         var handler = new UpdatePostCommandHandler(_h.Db, _h.CurrentUser);
 
         var ok = await handler.Handle(
-            new UpdatePostCommand(reply.Id, null, "Edited reply text"),
+            new UpdatePostCommand(reply.Id, null, null, "Edited reply text", null),
             CancellationToken.None);
 
         ok.Should().BeTrue();
         var saved = _h.Db.ForumPosts.Single(p => p.Id == reply.Id);
         saved.BodyMarkdown.Should().Be("Edited reply text");
+        saved.BodyEn.Should().Be("Edited reply text");
     }
 
     [Fact]
@@ -85,7 +90,7 @@ public sealed class UpdatePostCommandHandlerTests : IDisposable
 
         var handler = new UpdatePostCommandHandler(_h.Db, _h.CurrentUser);
         await handler.Handle(
-            new UpdatePostCommand(post.Id, "title", "body", new[] { "gamma" }),
+            new UpdatePostCommand(post.Id, "title", "عنوان", "body", "جسم", new[] { "gamma" }),
             CancellationToken.None);
 
         var slugs = _h.Db.ForumPostTags

@@ -16,8 +16,10 @@ namespace ScholarPath.Application.Community.Commands.CreatePost;
     SummaryTemplate = "Created forum post")]
 public sealed record CreatePostCommand(
     Guid CategoryId,
-    string Title,
-    string BodyMarkdown,
+    string TitleEn,
+    string TitleAr,
+    string BodyEn,
+    string BodyAr,
     IReadOnlyList<string>? Tags = null) : IRequest<Guid>;
 
 public sealed class CreatePostCommandValidator : AbstractValidator<CreatePostCommand>
@@ -25,8 +27,11 @@ public sealed class CreatePostCommandValidator : AbstractValidator<CreatePostCom
     public CreatePostCommandValidator()
     {
         RuleFor(v => v.CategoryId).NotEmpty();
-        RuleFor(v => v.Title).NotEmpty().MaximumLength(200);
-        RuleFor(v => v.BodyMarkdown).NotEmpty().MaximumLength(10000);
+        // Community posts are bilingual — both languages required, like scholarships.
+        RuleFor(v => v.TitleEn).NotEmpty().MaximumLength(200);
+        RuleFor(v => v.TitleAr).NotEmpty().MaximumLength(200);
+        RuleFor(v => v.BodyEn).NotEmpty().MaximumLength(10000);
+        RuleFor(v => v.BodyAr).NotEmpty().MaximumLength(10000);
         RuleFor(v => v.Tags!)
             .Must(tags => tags == null || tags.Count <= TagPolicy.MaxTagsPerPost)
             .WithMessage($"At most {TagPolicy.MaxTagsPerPost} tags are allowed.")
@@ -52,12 +57,23 @@ public sealed class CreatePostCommandHandler(
 
         var sanitizer = new Ganss.Xss.HtmlSanitizer();
 
+        var titleEn = sanitizer.Sanitize(request.TitleEn);
+        var titleAr = sanitizer.Sanitize(request.TitleAr);
+        var bodyEn = sanitizer.Sanitize(request.BodyEn);
+        var bodyAr = sanitizer.Sanitize(request.BodyAr);
+
         var post = new ForumPost
         {
             AuthorId = authorId,
             CategoryId = request.CategoryId,
-            Title = sanitizer.Sanitize(request.Title),
-            BodyMarkdown = sanitizer.Sanitize(request.BodyMarkdown),
+            TitleEn = titleEn,
+            TitleAr = titleAr,
+            BodyEn = bodyEn,
+            BodyAr = bodyAr,
+            // Mirror the English side into the legacy single-language columns so
+            // search and any legacy reader keep working (BodyMarkdown is NOT NULL).
+            Title = titleEn,
+            BodyMarkdown = bodyEn,
         };
 
         db.ForumPosts.Add(post);

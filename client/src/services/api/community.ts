@@ -16,14 +16,37 @@ export interface ForumPost {
   authorId: string;
   authorName: string;
   categoryId?: string;
+  /** Legacy single-language view (English side). Prefer the bilingual pair. */
   title?: string;
   bodyMarkdown: string;
+  /** Bilingual content — display with a cross-language fallback (see helpers). */
+  titleEn?: string | null;
+  titleAr?: string | null;
+  bodyEn?: string;
+  bodyAr?: string | null;
   upvoteCount: number;
   downvoteCount: number;
   replyCount: number;
   createdAt: string;
   tags: string[];
   isBookmarked: boolean;
+}
+
+/** Localized post title — current language first, then the other, then legacy. */
+export function forumPostTitle(p: ForumPost, isRtl: boolean): string {
+  return (
+    (isRtl ? p.titleAr || p.titleEn : p.titleEn || p.titleAr) ??
+    p.title ??
+    ""
+  );
+}
+
+/** Localized post body — current language first, then the other, then legacy. */
+export function forumPostBody(p: ForumPost, isRtl: boolean): string {
+  return (
+    (isRtl ? p.bodyAr || p.bodyEn : p.bodyEn || p.bodyAr) ||
+    p.bodyMarkdown
+  );
 }
 
 export interface ForumThread {
@@ -99,8 +122,10 @@ export const communityApi = {
 
   async createPost(req: {
     categoryId: string;
-    title: string;
-    bodyMarkdown: string;
+    titleEn: string;
+    titleAr: string;
+    bodyEn: string;
+    bodyAr: string;
     tags?: string[];
   }): Promise<string> {
     const { data } = await apiClient.post<string>("/api/community/posts", req);
@@ -109,7 +134,13 @@ export const communityApi = {
 
   async updatePost(
     postId: string,
-    req: { title?: string | null; bodyMarkdown: string; tags?: string[] },
+    req: {
+      titleEn?: string | null;
+      titleAr?: string | null;
+      bodyEn: string;
+      bodyAr?: string | null;
+      tags?: string[];
+    },
   ): Promise<void> {
     await apiClient.put(`/api/community/posts/${postId}`, req);
   },

@@ -16,11 +16,16 @@ public sealed class CreatePostCommandHandlerTests : IDisposable
         var handler = new CreatePostCommandHandler(_h.Db, _h.CurrentUser);
 
         var id = await handler.Handle(
-            new CreatePostCommand(_h.Category.Id, "First post", "Body content"),
+            new CreatePostCommand(_h.Category.Id, "First post", "منشور أول", "Body content", "محتوى الجسم"),
             CancellationToken.None);
 
         var saved = _h.Db.ForumPosts.Single(p => p.Id == id);
         saved.AuthorId.Should().Be(_h.StudentA.Id);
+        saved.TitleEn.Should().Be("First post");
+        saved.TitleAr.Should().Be("منشور أول");
+        saved.BodyEn.Should().Be("Body content");
+        saved.BodyAr.Should().Be("محتوى الجسم");
+        // Legacy columns mirror the English side.
         saved.Title.Should().Be("First post");
         saved.BodyMarkdown.Should().Be("Body content");
         saved.ParentPostId.Should().BeNull();
@@ -33,7 +38,7 @@ public sealed class CreatePostCommandHandlerTests : IDisposable
         var handler = new CreatePostCommandHandler(_h.Db, _h.CurrentUser);
 
         var act = () => handler.Handle(
-            new CreatePostCommand(_h.Category.Id, "x", "y"),
+            new CreatePostCommand(_h.Category.Id, "x", "س", "y", "ص"),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<ForbiddenAccessException>();
@@ -46,7 +51,7 @@ public sealed class CreatePostCommandHandlerTests : IDisposable
         var handler = new CreatePostCommandHandler(_h.Db, _h.CurrentUser);
 
         var act = () => handler.Handle(
-            new CreatePostCommand(_h.Category.Id, "x", "y"),
+            new CreatePostCommand(_h.Category.Id, "x", "س", "y", "ص"),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<ForbiddenAccessException>();
@@ -61,8 +66,8 @@ public sealed class CreatePostCommandHandlerTests : IDisposable
         var id = await handler.Handle(
             new CreatePostCommand(
                 _h.Category.Id,
-                "With tags",
-                "Body",
+                "With tags", "بعنوان ووسوم",
+                "Body", "الجسم",
                 new[] { "Visa", "  visa  ", "study-abroad", "Study Abroad" }),
             CancellationToken.None);
 
@@ -86,8 +91,8 @@ public sealed class CreatePostCommandHandlerTests : IDisposable
         var act = () => handler.Handle(
             new CreatePostCommand(
                 _h.Category.Id,
-                "Title",
-                "Body",
+                "Title", "عنوان",
+                "Body", "الجسم",
                 new[] { "a", "b", "c", "d", "e", "f" }),
             CancellationToken.None);
 

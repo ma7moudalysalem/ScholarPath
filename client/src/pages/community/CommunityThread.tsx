@@ -17,7 +17,7 @@ import {
   Ban,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { communityApi, type ForumPost, type VoteType } from "@/services/api/community";
+import { communityApi, forumPostBody, forumPostTitle, type ForumPost, type VoteType } from "@/services/api/community";
 import { chatApi } from "@/services/api/chat";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/common/UserAvatar";
@@ -350,7 +350,7 @@ export function CommunityThread() {
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-bold mb-5 leading-tight tracking-tight">
-                {thread.post.title}
+                {forumPostTitle(thread.post, isRtl)}
               </h1>
 
               {thread.post.tags.length > 0 && (
@@ -369,7 +369,7 @@ export function CommunityThread() {
               )}
 
               <div className="max-w-none text-text-secondary leading-relaxed mb-6 space-y-2 text-[15px]">
-                {thread.post.bodyMarkdown.split('\n').filter((l) => l.trim()).map((line, idx) => (
+                {forumPostBody(thread.post, isRtl).split('\n').filter((l) => l.trim()).map((line, idx) => (
                   <p key={idx}>{line}</p>
                 ))}
               </div>
@@ -520,7 +520,7 @@ export function CommunityThread() {
                   </div>
                 </div>
                 <div className="text-text-secondary text-sm leading-relaxed space-y-1.5">
-                  {reply.bodyMarkdown.split('\n').filter((l) => l.trim()).map((line, idx) => (
+                  {forumPostBody(reply, isRtl).split('\n').filter((l) => l.trim()).map((line, idx) => (
                     <p key={idx}>{line}</p>
                   ))}
                 </div>

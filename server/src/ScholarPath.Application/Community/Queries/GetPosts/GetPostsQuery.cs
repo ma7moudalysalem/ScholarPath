@@ -37,7 +37,14 @@ public sealed class GetPostsQueryHandler(
 
         if (!string.IsNullOrWhiteSpace(request.SearchQuery))
         {
-            query = query.Where(p => p.Title!.Contains(request.SearchQuery) || p.BodyMarkdown.Contains(request.SearchQuery));
+            var term = request.SearchQuery;
+            query = query.Where(p =>
+                (p.Title != null && p.Title.Contains(term)) ||
+                p.BodyMarkdown.Contains(term) ||
+                (p.TitleEn != null && p.TitleEn.Contains(term)) ||
+                (p.TitleAr != null && p.TitleAr.Contains(term)) ||
+                (p.BodyEn != null && p.BodyEn.Contains(term)) ||
+                (p.BodyAr != null && p.BodyAr.Contains(term)));
         }
 
         if (!string.IsNullOrWhiteSpace(request.Tag))
@@ -97,6 +104,10 @@ public sealed class GetPostsQueryHandler(
                 p.CategoryId,
                 p.Title,
                 p.BodyMarkdown,
+                p.TitleEn,
+                p.TitleAr,
+                p.BodyEn,
+                p.BodyAr,
                 p.UpvoteCount,
                 p.DownvoteCount,
                 p.ReplyCount,
@@ -111,7 +122,8 @@ public sealed class GetPostsQueryHandler(
             .Select(r => new ForumPostDto(
                 r.Id, r.AuthorId, r.AuthorName, r.CategoryId, r.Title, r.BodyMarkdown,
                 r.UpvoteCount, r.DownvoteCount, r.ReplyCount, r.CreatedAt,
-                r.Tags, r.IsBookmarked))
+                r.Tags, r.IsBookmarked,
+                r.TitleEn, r.TitleAr, r.BodyEn ?? r.BodyMarkdown, r.BodyAr))
             .ToList();
 
         return new PagedResult<ForumPostDto>(items, request.Page, request.PageSize, total);

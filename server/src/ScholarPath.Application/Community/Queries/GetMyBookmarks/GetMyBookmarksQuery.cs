@@ -57,6 +57,10 @@ public sealed class GetMyBookmarksQueryHandler(
                 b.ForumPost.CategoryId,
                 b.ForumPost.Title,
                 b.ForumPost.BodyMarkdown,
+                b.ForumPost.TitleEn,
+                b.ForumPost.TitleAr,
+                b.ForumPost.BodyEn,
+                b.ForumPost.BodyAr,
                 b.ForumPost.UpvoteCount,
                 b.ForumPost.DownvoteCount,
                 b.ForumPost.ReplyCount,
@@ -70,7 +74,8 @@ public sealed class GetMyBookmarksQueryHandler(
             .Select(r => new ForumPostDto(
                 r.Id, r.AuthorId, r.AuthorName, r.CategoryId, r.Title, r.BodyMarkdown,
                 r.UpvoteCount, r.DownvoteCount, r.ReplyCount, r.CreatedAt,
-                r.Tags, true))
+                r.Tags, true,
+                r.TitleEn, r.TitleAr, r.BodyEn ?? r.BodyMarkdown, r.BodyAr))
             .ToList();
 
         return new PagedResult<ForumPostDto>(items, page, pageSize, total);
