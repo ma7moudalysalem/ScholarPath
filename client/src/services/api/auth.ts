@@ -113,17 +113,27 @@ export const authApi = {
   },
   /** Redirects the browser to the provider's consent screen. */
   beginSso(provider: SsoProvider): void {
-    sessionStorage.setItem(SSO_PROVIDER_KEY, provider);
+    // Stash the chosen provider in BOTH storages so the callback can recover it
+    // regardless of how the OAuth round-trip (SWA -> API -> provider -> SWA) is
+    // treated by the browser. sessionStorage alone occasionally came back empty
+    // on the callback, which surfaced as "Sign-in could not be completed".
+    try { localStorage.setItem(SSO_PROVIDER_KEY, provider); } catch { /* storage blocked */ }
+    try { sessionStorage.setItem(SSO_PROVIDER_KEY, provider); } catch { /* storage blocked */ }
     const redirectUri = encodeURIComponent(ssoRedirectUri());
     window.location.href = `${apiBase()}/api/auth/${provider}/authorize?redirectUri=${redirectUri}`;
   },
-  /** Reads the provider stashed before the redirect. */
+  /** Reads the provider stashed before the redirect (either storage). */
   pendingSsoProvider(): SsoProvider | null {
-    const value = sessionStorage.getItem(SSO_PROVIDER_KEY);
+    let value: string | null = null;
+    try { value = localStorage.getItem(SSO_PROVIDER_KEY); } catch { /* ignore */ }
+    if (!value) {
+      try { value = sessionStorage.getItem(SSO_PROVIDER_KEY); } catch { /* ignore */ }
+    }
     return value === "google" || value === "microsoft" ? value : null;
   },
   async completeSso(provider: SsoProvider, code: string, state: string): Promise<AuthTokensResponse> {
-    sessionStorage.removeItem(SSO_PROVIDER_KEY);
+    try { localStorage.removeItem(SSO_PROVIDER_KEY); } catch { /* ignore */ }
+    try { sessionStorage.removeItem(SSO_PROVIDER_KEY); } catch { /* ignore */ }
     // SEC-06 / GAP-2 — forward the `state` nonce the provider echoed back so the
     // server can validate the OAuth handshake it started.
     const { data } = await apiClient.get<AuthTokensResponse>(`/api/auth/${provider}/callback`, {
