@@ -1,8 +1,12 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.ConsultantBookings;
 using ScholarPath.Application.ConsultantBookings.Services;
 using ScholarPath.Application.FinancialConfig;
+using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Events;
 using ScholarPath.Domain.Exceptions;
@@ -16,6 +20,8 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
     private readonly ICurrentUserService _currentUser;
     private readonly IStripeService _stripeService;
     private readonly RefundCalculatorService _refundCalculator;
+    private readonly ConsultantRatingService _ratingService;
+    private readonly BookingOptions _options;
     private readonly IPublisher _publisher;
 
     public CancelBookingCommandHandler(
@@ -23,12 +29,16 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
         ICurrentUserService currentUser,
         IStripeService stripeService,
         RefundCalculatorService refundCalculator,
+        ConsultantRatingService ratingService,
+        IOptions<BookingOptions> bookingOptions,
         IPublisher publisher)
     {
         _context = context;
         _currentUser = currentUser;
         _stripeService = stripeService;
         _refundCalculator = refundCalculator;
+        _ratingService = ratingService;
+        _options = bookingOptions.Value;
         _publisher = publisher;
     }
 
@@ -72,19 +82,19 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
             // reason check below always reads "Cancelled" and every free-booking
             // cancellation is mis-recorded as a consultant-side cancellation.
             var wasRequested = booking.Status == BookingStatus.Requested;
+            var nowUtcFree = DateTimeOffset.UtcNow;
 
             booking.Status = BookingStatus.Cancelled;
-            booking.CancelledAt = DateTimeOffset.UtcNow;
+            booking.CancelledAt = nowUtcFree;
             booking.CancelledByUserId = currentUserId;
-            // Mirror the paid-path reasoning: a Student cancelling a Requested
-            // booking is "before acceptance"; otherwise (Confirmed, or
-            // Consultant initiated) classify as the consultant-side reason so
-            // the booking's audit trail still shows a meaningful cause even
-            // though no money moved.
-            booking.CancellationReason = isStudent && wasRequested
-                ? CancellationReason.StudentCancelledBeforeAcceptance
-                : CancellationReason.ConsultantCancelledAfterAcceptance;
+            // Mirror the paid-path reasoning so free bookings incur the same
+            // reputational penalties (money is separate from reputation). A
+            // Requested cancel is "before acceptance" (no penalty); a Confirmed
+            // cancel <24h before start penalises the cancelling party.
+            booking.CancellationReason = ClassifyCancellation(
+                isStudent, wasRequested, booking.ScheduledStartAt, nowUtcFree);
 
+            await ApplyReputationPenaltyAsync(booking, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
             await _publisher.Publish(
@@ -210,6 +220,7 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
         booking.CancelledByUserId = currentUserId;
         booking.CancellationReason = refund.CancellationReason;
 
+        await ApplyReputationPenaltyAsync(booking, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
         await _publisher.Publish(
@@ -220,5 +231,58 @@ public sealed class CancelBookingCommandHandler : IRequestHandler<CancelBookingC
                 currentUserId,
                 booking.CancellationReason?.ToString()),
             cancellationToken);
+    }
+
+    /// <summary>
+    /// Mirrors <see cref="RefundCalculatorService"/> semantics for the free-booking
+    /// path so both paths record the same precise cancellation reason.
+    /// </summary>
+    private static CancellationReason ClassifyCancellation(
+        bool cancelledByStudent, bool wasRequested, DateTimeOffset scheduledStartAt, DateTimeOffset nowUtc)
+    {
+        if (wasRequested)
+        {
+            return cancelledByStudent
+                ? CancellationReason.StudentCancelledBeforeAcceptance
+                : CancellationReason.ConsultantCancelledAfterAcceptance;
+        }
+
+        var moreThan24HoursBefore = scheduledStartAt.ToUniversalTime() > nowUtc.AddHours(24);
+        return cancelledByStudent
+            ? (moreThan24HoursBefore
+                ? CancellationReason.StudentCancelledMoreThan24HoursBefore
+                : CancellationReason.StudentCancelledLessThan24HoursBefore)
+            : (moreThan24HoursBefore
+                ? CancellationReason.ConsultantCancelledAfterAcceptance
+                : CancellationReason.ConsultantCancelledLessThan24Hours);
+    }
+
+    /// <summary>
+    /// PB-006R (FR-CBR-15..20): a &lt;24h cancellation of a confirmed booking carries a
+    /// reputational penalty on the cancelling party — a 3-day booking block for the
+    /// student, a 20% rating deduction for the consultant. &gt;24h and before-acceptance
+    /// cancels carry no penalty. Keyed on the recorded reason so both the paid and
+    /// free paths behave identically.
+    /// </summary>
+    private async Task ApplyReputationPenaltyAsync(ConsultantBooking booking, CancellationToken ct)
+    {
+        switch (booking.CancellationReason)
+        {
+            case CancellationReason.StudentCancelledLessThan24HoursBefore:
+                var studentProfile = await _context.UserProfiles
+                    .FirstOrDefaultAsync(p => p.UserId == booking.StudentId, ct);
+                if (studentProfile is not null)
+                {
+                    BookingBlockService.ApplyBlock(
+                        studentProfile, BookingBlockReason.CancelledLessThan24Hours,
+                        _options.LateCancellationBlockDays, DateTimeOffset.UtcNow);
+                }
+                break;
+
+            case CancellationReason.ConsultantCancelledLessThan24Hours:
+                await _ratingService.ApplyPenaltyFactorAsync(
+                    booking.ConsultantId, ConsultantRatingThresholds.CancelLessThan24HoursFactor, ct);
+                break;
+        }
     }
 }

@@ -90,7 +90,7 @@ public sealed class RefundCalculatorServiceTests
     }
 
     [Fact]
-    public void Calculate_WhenConsultantCancelsConfirmedBooking_ReturnsFullRefund()
+    public void Calculate_WhenConsultantCancelsConfirmedBookingWithin24h_FullRefundButLessThan24hReason()
     {
         var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
 
@@ -99,12 +99,32 @@ public sealed class RefundCalculatorServiceTests
             cancelledByUserId: ConsultantId,
             studentId: StudentId,
             consultantId: ConsultantId,
-            scheduledStartAt: nowUtc.AddHours(12),
+            scheduledStartAt: nowUtc.AddHours(12), // <24h → rating penalty (handler)
+            amountCents: 10_000,
+            nowUtc: nowUtc);
+
+        // Student is always fully refunded when the consultant cancels; the <24h
+        // reason drives the 20% consultant rating deduction in the handler (PB-006R).
+        Assert.Equal(100, result.RefundPercentage);
+        Assert.Equal(10_000, result.RefundAmountCents);
+        Assert.Equal(CancellationReason.ConsultantCancelledLessThan24Hours, result.CancellationReason);
+    }
+
+    [Fact]
+    public void Calculate_WhenConsultantCancelsConfirmedBookingMoreThan24h_FullRefundNoPenaltyReason()
+    {
+        var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
+
+        var result = _sut.Calculate(
+            bookingStatus: BookingStatus.Confirmed,
+            cancelledByUserId: ConsultantId,
+            studentId: StudentId,
+            consultantId: ConsultantId,
+            scheduledStartAt: nowUtc.AddHours(48), // >24h → no penalty
             amountCents: 10_000,
             nowUtc: nowUtc);
 
         Assert.Equal(100, result.RefundPercentage);
-        Assert.Equal(10_000, result.RefundAmountCents);
         Assert.Equal(CancellationReason.ConsultantCancelledAfterAcceptance, result.CancellationReason);
     }
 

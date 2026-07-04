@@ -453,6 +453,10 @@ public enum CancellationReason
     StudentNoShow = 5,
     AutoExpiredNoResponse = 6,
     RejectedByConsultant = 7,
+    // PB-006R (FR-CBR-16/20): consultant cancels a confirmed booking <24h before
+    // start. Same 100% student refund as ConsultantCancelledAfterAcceptance, but
+    // additionally deducts 20% from the consultant's rating.
+    ConsultantCancelledLessThan24Hours = 8,
     Other = 99
 }
 
