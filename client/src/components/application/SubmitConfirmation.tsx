@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CreditCard, Info } from 'lucide-react';
 import { StripeCheckout } from '../common/StripeCheckout';
@@ -33,6 +34,9 @@ export function ApplicationSubmitConfirmation({
   // Payment row when fee is 0.
   const paymentsEnabled = usePaymentsEnabled();
   const isFree = !paymentsEnabled || reviewFeeUsd === 0;
+  // Guard the free-path Submit against a double-click firing the mutation twice
+  // (the server 409s the duplicate, surfacing a spurious error toast).
+  const [submitting, setSubmitting] = useState(false);
 
   return (
     <div className="mx-auto max-w-2xl p-6">
@@ -77,8 +81,13 @@ export function ApplicationSubmitConfirmation({
             // No Stripe widget — submitting the request directly is enough.
             <button
               type="button"
-              onClick={onPaymentSuccess}
-              className="w-full rounded-lg bg-brand-600 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition"
+              onClick={() => {
+                if (submitting) return;
+                setSubmitting(true);
+                onPaymentSuccess();
+              }}
+              disabled={submitting}
+              className="w-full rounded-lg bg-brand-600 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition disabled:opacity-50"
             >
               {t('common.submit')}
             </button>
