@@ -126,7 +126,7 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
             className="block text-sm font-medium text-text-secondary"
           >
             {t("addExternalModal.titleLabel")}{" "}
-            <span aria-hidden className="text-error-600">*</span>
+            <span aria-hidden className="text-danger-500">*</span>
           </label>
           <input
             id="external-title"
@@ -147,7 +147,7 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
             className="block text-sm font-medium text-text-secondary"
           >
             {t("addExternalModal.providerLabel")}{" "}
-            <span aria-hidden className="text-error-600">*</span>
+            <span aria-hidden className="text-danger-500">*</span>
           </label>
           <input
             id="external-provider"
