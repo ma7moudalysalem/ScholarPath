@@ -95,7 +95,14 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserS
         if (request.DeadlineTo.HasValue) query = query.Where(s => s.Deadline <= request.DeadlineTo);
 
         if (!string.IsNullOrEmpty(request.Country))
-            query = query.Where(s => s.TargetCountriesJson!.Contains(request.Country));
+        {
+            // FR-SCH-14: match the country as a whole JSON-array element (same fix as
+            // the field-of-study filter below) — a raw substring made "oman" match
+            // ["Romania"] and "United" match UK/US/UAE indiscriminately. Serialize the
+            // needle with the same serializer the array was stored with.
+            var countryNeedle = JsonSerializer.Serialize(request.Country);
+            query = query.Where(s => s.TargetCountriesJson!.Contains(countryNeedle));
+        }
 
         if (!string.IsNullOrEmpty(request.FieldOfStudy))
         {

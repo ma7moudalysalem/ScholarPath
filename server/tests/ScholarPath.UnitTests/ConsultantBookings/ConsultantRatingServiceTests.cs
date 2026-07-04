@@ -126,7 +126,9 @@ public sealed class ConsultantRatingServiceTests : IDisposable
     public async Task Penalized_average_below_threshold_sets_sticky_flag()
     {
         await SeedProfileAsync(factor: 0.60m);
-        await AddReviewsAsync(4, 4, 4); // raw 4.00 → 2.40 penalized, < 2.5
+        // ≥5 reviews (MinimumReviewsForFlagging) so a real sample, not a single noisy
+        // one, drives the flag. raw 4.00 → 2.40 penalized, < 2.5.
+        await AddReviewsAsync(4, 4, 4, 4, 4);
 
         await _sut.RecalculateSnapshotAsync(_consultantId, default);
         var firstFlag = (await ReloadProfileAsync()).ConsultantLowRatingFlaggedAt;
