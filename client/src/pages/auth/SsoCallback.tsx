@@ -12,11 +12,18 @@ export function SsoCallback() {
   const [exchangeFailed, setExchangeFailed] = useState(false);
   const ran = useRef(false);
 
-  const code = params.get("code");
+  // Capture the handshake ONCE on mount. completeSso clears the stashed provider
+  // from storage, and re-reading provider/params on every render would flip the
+  // screen to the error state WHILE the exchange is still succeeding — the bug
+  // where SSO briefly showed "Sign-in could not be completed" and then logged in.
   // SEC-06 / GAP-2 — the provider echoes the `state` nonce we sent; forward it so
   // the server can validate the handshake and reject forged callbacks.
-  const state = params.get("state");
-  const provider = authApi.pendingSsoProvider();
+  const [handshake] = useState(() => ({
+    code: params.get("code"),
+    state: params.get("state"),
+    provider: authApi.pendingSsoProvider(),
+  }));
+  const { code, state, provider } = handshake;
 
   useEffect(() => {
     if (ran.current || !code || !provider || !state) return;
