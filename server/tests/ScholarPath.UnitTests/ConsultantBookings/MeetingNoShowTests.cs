@@ -26,14 +26,8 @@ public sealed class MeetingNoShowTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options);
 
-    private static IStripeService Stripe()
-    {
-        var s = Substitute.For<IStripeService>();
-        s.RefundPaymentAsync(Arg.Any<string>(), Arg.Any<long?>(), Arg.Any<string?>(),
-                Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(new StripeRefundResult("re_test", "succeeded", 10000));
-        return s;
-    }
+    private static INotificationDispatcher Notifications() =>
+        Substitute.For<INotificationDispatcher>();
 
     private static ConsultantBooking Booking(
         DateTimeOffset endAt,
@@ -73,7 +67,7 @@ public sealed class MeetingNoShowTests
     // ─── No-show sweep job ──────────────────────────────────────────────────
 
     [Fact]
-    public async Task Sweep_marks_consultant_no_show_and_refunds_when_only_the_student_joined()
+    public async Task Sweep_files_a_consultant_no_show_report_when_only_the_student_joined()
     {
         using var db = CreateDb();
         var ended = DateTimeOffset.UtcNow.AddMinutes(-30);
@@ -81,28 +75,26 @@ public sealed class MeetingNoShowTests
         db.Bookings.Add(booking);
         await db.SaveChangesAsync();
 
-        var stripe = Stripe();
-        var sut = new MeetingNoShowSweepJob(db, stripe, NullLogger<MeetingNoShowSweepJob>.Instance);
+        var sut = new MeetingNoShowSweepJob(db, Notifications(), NullLogger<MeetingNoShowSweepJob>.Instance);
         await sut.RunAsync(default);
 
+        // PB-006R: the sweep freezes the booking pending admin validation — NO
+        // penalty or refund is applied here.
         var saved = await db.Bookings.Include(b => b.Payment).SingleAsync();
-        saved.Status.Should().Be(BookingStatus.NoShowConsultant);
-        saved.IsNoShowConsultant.Should().BeTrue();
+        saved.Status.Should().Be(BookingStatus.NoShowReported);
         saved.NoShowMarkedAt.Should().NotBeNull();
-        saved.Payment!.Status.Should().Be(PaymentStatus.Refunded);
-        saved.Payment.RefundedAmountCents.Should().Be(saved.Payment.AmountCents);
-        // DES-02: a consultant no-show is a full refund, so the payout split must be
-        // zeroed — the consultant earns nothing for a session they didn't attend and
-        // StripePayoutJob (which pays any PayeeAmountCents > 0) must never pay them.
-        saved.Payment.ProfitShareAmountCents.Should().Be(0);
-        saved.Payment.PayeeAmountCents.Should().Be(0);
-        await stripe.Received(1).RefundPaymentAsync(
-            Arg.Any<string>(), Arg.Any<long?>(), Arg.Any<string?>(),
-            Arg.Any<string>(), Arg.Any<CancellationToken>());
+        saved.IsNoShowConsultant.Should().BeFalse();
+        saved.Payment!.Status.Should().Be(PaymentStatus.Captured);
+
+        var report = await db.NoShowReports.SingleAsync();
+        report.ReporterUserId.Should().Be(booking.StudentId);
+        report.AccusedUserId.Should().Be(booking.ConsultantId);
+        report.AccusedRole.Should().Be(NoShowAccusedRole.Consultant);
+        report.Status.Should().Be(NoShowReportStatus.PendingReview);
     }
 
     [Fact]
-    public async Task Sweep_marks_student_no_show_without_a_refund_when_only_the_consultant_joined()
+    public async Task Sweep_files_a_student_no_show_report_when_only_the_consultant_joined()
     {
         using var db = CreateDb();
         var ended = DateTimeOffset.UtcNow.AddMinutes(-30);
@@ -110,16 +102,18 @@ public sealed class MeetingNoShowTests
         db.Bookings.Add(booking);
         await db.SaveChangesAsync();
 
-        var stripe = Stripe();
-        var sut = new MeetingNoShowSweepJob(db, stripe, NullLogger<MeetingNoShowSweepJob>.Instance);
+        var sut = new MeetingNoShowSweepJob(db, Notifications(), NullLogger<MeetingNoShowSweepJob>.Instance);
         await sut.RunAsync(default);
 
         var saved = await db.Bookings.SingleAsync();
-        saved.Status.Should().Be(BookingStatus.NoShowStudent);
-        saved.IsNoShowStudent.Should().BeTrue();
-        await stripe.DidNotReceive().RefundPaymentAsync(
-            Arg.Any<string>(), Arg.Any<long?>(), Arg.Any<string?>(),
-            Arg.Any<string>(), Arg.Any<CancellationToken>());
+        saved.Status.Should().Be(BookingStatus.NoShowReported);
+        saved.IsNoShowStudent.Should().BeFalse();
+
+        var report = await db.NoShowReports.SingleAsync();
+        report.ReporterUserId.Should().Be(booking.ConsultantId);
+        report.AccusedUserId.Should().Be(booking.StudentId);
+        report.AccusedRole.Should().Be(NoShowAccusedRole.Student);
+        report.Status.Should().Be(NoShowReportStatus.PendingReview);
     }
 
     [Fact]
@@ -130,10 +124,11 @@ public sealed class MeetingNoShowTests
         db.Bookings.Add(Booking(ended, studentJoined: ended, consultantJoined: ended));
         await db.SaveChangesAsync();
 
-        var sut = new MeetingNoShowSweepJob(db, Stripe(), NullLogger<MeetingNoShowSweepJob>.Instance);
+        var sut = new MeetingNoShowSweepJob(db, Notifications(), NullLogger<MeetingNoShowSweepJob>.Instance);
         await sut.RunAsync(default);
 
         (await db.Bookings.SingleAsync()).Status.Should().Be(BookingStatus.Confirmed);
+        (await db.NoShowReports.CountAsync()).Should().Be(0);
     }
 
     [Fact]
@@ -144,13 +139,12 @@ public sealed class MeetingNoShowTests
         db.Bookings.Add(Booking(ended, studentJoined: null, consultantJoined: null));
         await db.SaveChangesAsync();
 
-        var sut = new MeetingNoShowSweepJob(db, Stripe(), NullLogger<MeetingNoShowSweepJob>.Instance);
+        var sut = new MeetingNoShowSweepJob(db, Notifications(), NullLogger<MeetingNoShowSweepJob>.Instance);
         await sut.RunAsync(default);
 
         var saved = await db.Bookings.SingleAsync();
         saved.Status.Should().Be(BookingStatus.Confirmed);
-        saved.IsNoShowStudent.Should().BeFalse();
-        saved.IsNoShowConsultant.Should().BeFalse();
+        (await db.NoShowReports.CountAsync()).Should().Be(0);
     }
 
     [Fact]
@@ -163,7 +157,7 @@ public sealed class MeetingNoShowTests
         db.Bookings.Add(Booking(ended, studentJoined: ended.AddMinutes(-40), consultantJoined: null));
         await db.SaveChangesAsync();
 
-        var sut = new MeetingNoShowSweepJob(db, Stripe(), NullLogger<MeetingNoShowSweepJob>.Instance);
+        var sut = new MeetingNoShowSweepJob(db, Notifications(), NullLogger<MeetingNoShowSweepJob>.Instance);
         await sut.RunAsync(default);
 
         (await db.Bookings.SingleAsync()).Status.Should().Be(BookingStatus.Confirmed);

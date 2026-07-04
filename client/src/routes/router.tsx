@@ -213,6 +213,11 @@ const AdminLowRatedCompanies = lazy(() =>
     default: m.AdminLowRatedCompanies,
   })),
 );
+const AdminNoShowReports = lazy(() =>
+  import("@/pages/admin/AdminNoShowReports").then((m) => ({
+    default: m.AdminNoShowReports,
+  })),
+);
 const AdminBroadcast = lazy(() =>
   import("@/pages/admin/BroadcastComposer").then((m) => ({ default: m.BroadcastComposer })),
 );
@@ -732,6 +737,7 @@ export function AppRouter() {
           <Route path="/admin/upgrades"         element={<AnimatedRoute><AdminUpgrades /></AnimatedRoute>} />
           {/* PB-005R: low-rated companies admin queue */}
           <Route path="/admin/low-rated-companies" element={<AnimatedRoute><AdminLowRatedCompanies /></AnimatedRoute>} />
+          <Route path="/admin/no-show-reports" element={<AnimatedRoute><AdminNoShowReports /></AnimatedRoute>} />
           <Route path="/admin/broadcast"        element={<AnimatedRoute><AdminBroadcast /></AnimatedRoute>} />
           <Route path="/admin/analytics"        element={<AnimatedRoute><AdminAnalytics /></AnimatedRoute>} />
           <Route path="/admin/reports/revenue"  element={<RequirePayments><AnimatedRoute><AdminRevenueReport /></AnimatedRoute></RequirePayments>} />

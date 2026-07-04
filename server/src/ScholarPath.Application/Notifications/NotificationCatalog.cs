@@ -240,6 +240,18 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"{p.CounterpartyName ?? "A consultant"} dropped to an average rating of {p.AmountText ?? "below threshold"} over {p.Count ?? 0} review(s). Review the consultant and decide on any action.",
             $"انخفض متوسط تقييم {p.CounterpartyName ?? "أحد المستشارين"} إلى {p.AmountText ?? "أقل من الحد"} عبر {p.Count ?? 0} تقييم. راجِع المستشار وقرّر الإجراء المناسب."),
 
+        // Admin-inbound: a no-show was reported and needs validation (PB-006R).
+        NotificationType.NoShowReportSubmitted => new(
+            "No-show reported", "تم الإبلاغ عن عدم حضور",
+            "A no-show was reported for a consultant session and needs your validation.",
+            "تم الإبلاغ عن عدم حضور في جلسة استشارية ويحتاج إلى مراجعتك."),
+
+        // Sent to both parties once an admin resolves a no-show report (PB-006R).
+        NotificationType.NoShowReportResolved => new(
+            "No-show report reviewed", "تمت مراجعة بلاغ عدم الحضور",
+            "An admin has reviewed the no-show report for your consultant session.",
+            "قام المشرف بمراجعة بلاغ عدم الحضور الخاص بجلستك الاستشارية."),
+
         // Admin-inbound: a community post was reported and needs a moderation decision.
         NotificationType.ContentReported => new(
             "Post reported", "تم الإبلاغ عن منشور",

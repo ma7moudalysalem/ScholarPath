@@ -16,7 +16,7 @@ public sealed class MarkNoShowEndpointTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Post_MarkNoShow_ByStudent_ReturnsNoContent_AndMarksConsultantNoShow()
+    public async Task Post_MarkNoShow_ByStudent_ReturnsNoContent_AndFilesConsultantNoShowReport()
     {
         var studentId = Guid.NewGuid();
         var consultantId = Guid.NewGuid();
@@ -154,18 +154,23 @@ public sealed class MarkNoShowEndpointTests : IntegrationTestBase
             var booking = await db.Bookings.FindAsync(bookingId);
             booking.Should().NotBeNull();
 
-            booking!.Status.Should().Be(BookingStatus.NoShowConsultant);
-            booking.CancellationReason.Should().Be(CancellationReason.ConsultantNoShow);
-            booking.IsNoShowConsultant.Should().BeTrue();
+            // PB-006R: reporting files a report and freezes the booking pending
+            // admin validation — no penalty/refund yet.
+            booking!.Status.Should().Be(BookingStatus.NoShowReported);
+            booking.IsNoShowConsultant.Should().BeFalse();
             booking.IsNoShowStudent.Should().BeFalse();
             booking.NoShowMarkedAt.Should().NotBeNull();
             booking.StripePaymentIntentId.Should().Be(paymentIntentId);
 
+            var report = db.NoShowReports.FirstOrDefault(r => r.BookingId == bookingId);
+            report.Should().NotBeNull();
+            report!.AccusedUserId.Should().Be(consultantId);
+            report.AccusedRole.Should().Be(NoShowAccusedRole.Consultant);
+            report.Status.Should().Be(NoShowReportStatus.PendingReview);
+
             var payment = db.Payments.FirstOrDefault(p => p.Id == paymentId);
             payment.Should().NotBeNull();
-            payment!.StripePaymentIntentId.Should().Be(paymentIntentId);
-            payment.PayerUserId.Should().Be(studentId);
-            payment.PayeeUserId.Should().Be(consultantId);
+            payment!.Status.Should().Be(PaymentStatus.Captured);
         });
     }
 }

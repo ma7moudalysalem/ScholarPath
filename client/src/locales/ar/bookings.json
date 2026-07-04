@@ -7,6 +7,7 @@
     "Expired": "منتهي الصلاحية",
     "Cancelled": "ملغى",
     "Completed": "مكتمل",
+    "NoShowReported": "تم الإبلاغ عن عدم الحضور — قيد المراجعة",
     "NoShowStudent": "تم تسجيل عدم الحضور",
     "NoShowConsultant": "تغيّب المستشار"
   },

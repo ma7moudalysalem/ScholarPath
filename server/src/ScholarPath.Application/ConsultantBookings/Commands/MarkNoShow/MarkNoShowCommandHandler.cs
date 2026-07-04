@@ -1,26 +1,39 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
+using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Exceptions;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.ConsultantBookings.Commands.MarkNoShow;
 
+/// <summary>
+/// PB-006R (FR-CBR-25..32): reporting a no-show no longer applies penalties
+/// directly. It files a <see cref="NoShowReport"/> (PendingReview), freezes the
+/// booking (<see cref="BookingStatus.NoShowReported"/>), and notifies admins. All
+/// penalties (blocks, rating deductions, refunds) are applied only when an admin
+/// validates the report via ResolveNoShowReport.
+/// </summary>
 public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand>
 {
     private readonly IApplicationDbContext _context;
     private readonly ICurrentUserService _currentUser;
-    private readonly IStripeService _stripeService;
+    private readonly INotificationDispatcher _notifications;
+    private readonly ILogger<MarkNoShowCommandHandler> _logger;
 
     public MarkNoShowCommandHandler(
         IApplicationDbContext context,
         ICurrentUserService currentUser,
-        IStripeService stripeService)
+        INotificationDispatcher notifications,
+        ILogger<MarkNoShowCommandHandler> logger)
     {
         _context = context;
         _currentUser = currentUser;
-        _stripeService = stripeService;
+        _notifications = notifications;
+        _logger = logger;
     }
 
     public async Task Handle(MarkNoShowCommand request, CancellationToken cancellationToken)
@@ -34,7 +47,6 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
             ?? throw new UnauthorizedAccessException("Authenticated user id is missing.");
 
         var booking = await _context.Bookings
-            .Include(b => b.Payment)
             .FirstOrDefaultAsync(b => b.Id == request.BookingId, cancellationToken);
 
         if (booking is null)
@@ -52,14 +64,7 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
 
         if (booking.Status != BookingStatus.Confirmed)
         {
-            throw new BookingDomainException("Only confirmed bookings can be marked as no-show.");
-        }
-
-        if (booking.IsNoShowStudent || booking.IsNoShowConsultant ||
-            booking.Status == BookingStatus.NoShowStudent ||
-            booking.Status == BookingStatus.NoShowConsultant)
-        {
-            throw new BookingDomainException("This booking already has a no-show mark.");
+            throw new BookingDomainException("Only confirmed bookings can be reported as no-show.");
         }
 
         var nowUtc = DateTimeOffset.UtcNow;
@@ -67,83 +72,82 @@ public sealed class MarkNoShowCommandHandler : IRequestHandler<MarkNoShowCommand
 
         if (nowUtc < sessionEndUtc)
         {
-            throw new BookingDomainException("No-show can only be marked after the session end time.");
+            throw new BookingDomainException("No-show can only be reported after the session end time.");
         }
 
         if (nowUtc > sessionEndUtc.AddHours(6))
         {
-            throw new BookingDomainException("No-show can only be marked within 6 hours after session end.");
+            throw new BookingDomainException("No-show can only be reported within 6 hours after session end.");
         }
 
+        // The reporter accuses the OTHER party. Student → accuses consultant, and
+        // vice-versa. AccusedRole records which side the accused held.
+        var (accusedUserId, accusedRole) = isStudent
+            ? (booking.ConsultantId, NoShowAccusedRole.Consultant)
+            : (booking.StudentId, NoShowAccusedRole.Student);
+
+        var alreadyReported = await _context.NoShowReports
+            .AnyAsync(r => r.BookingId == booking.Id && r.AccusedUserId == accusedUserId, cancellationToken);
+
+        if (alreadyReported)
+        {
+            throw new BookingDomainException("A no-show report for this booking is already pending review.");
+        }
+
+        _context.NoShowReports.Add(new NoShowReport
+        {
+            BookingId = booking.Id,
+            ReporterUserId = currentUserId,
+            AccusedUserId = accusedUserId,
+            AccusedRole = accusedRole,
+            Status = NoShowReportStatus.PendingReview,
+            ReporterNote = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
+        });
+
+        // Freeze the booking pending admin validation — no refund, no penalty yet.
         booking.NoShowMarkedAt = nowUtc;
-
-        if (isStudent)
-        {
-            // Free booking (no Stripe intent, no Payment row): the student is
-            // still entitled to mark the consultant as a no-show — there's just
-            // no money to refund. Skip the Stripe + Payment-row updates.
-            var isFree = booking.PriceUsd == 0m && booking.Payment is null;
-
-            if (!isFree)
-            {
-                if (string.IsNullOrWhiteSpace(booking.StripePaymentIntentId))
-                {
-                    throw new BookingDomainException("Booking has no Stripe payment intent to refund.");
-                }
-
-                // Refund the amount that was actually captured (the Payment row
-                // is the source of truth), not a re-derivation from PriceUsd —
-                // the two can diverge if the booking was re-priced after payment,
-                // which would otherwise over- or under-refund on Stripe while the
-                // Payment row claims a full refund.
-                var amountCents = booking.Payment is { } capturedPayment
-                    ? capturedPayment.AmountCents
-                    : (long)decimal.Round(booking.PriceUsd * 100m, 0, MidpointRounding.AwayFromZero);
-
-                if (amountCents < 0)
-                {
-                    throw new BookingDomainException("Booking amount cannot be negative.");
-                }
-
-                var idempotencyKey = $"booking-noshow-refund:{booking.Id:N}";
-
-                var refundResult = await _stripeService.RefundPaymentAsync(
-                    paymentIntentId: booking.StripePaymentIntentId,
-                    amountCents: amountCents,
-                    reason: CancellationReason.ConsultantNoShow.ToString(),
-                    idempotencyKey: idempotencyKey,
-                    ct: cancellationToken);
-
-                if (string.IsNullOrWhiteSpace(refundResult.Id))
-                {
-                    throw new BookingDomainException("Stripe refund failed.");
-                }
-
-                // FR-090/193: a consultant no-show fully refunds the student, so the
-                // internal Payment row is marked Refunded for the gross amount and
-                // both commission and payee net are zeroed (retained = 0).
-                if (booking.Payment is { } payment)
-                {
-                    payment.Status = PaymentStatus.Refunded;
-                    payment.RefundedAmountCents = payment.AmountCents;
-                    payment.RefundedAt = nowUtc;
-                    payment.RefundReason = CancellationReason.ConsultantNoShow.ToString();
-                    payment.ProfitShareAmountCents = 0;
-                    payment.PayeeAmountCents = 0;
-                }
-            }
-
-            booking.IsNoShowConsultant = true;
-            booking.Status = BookingStatus.NoShowConsultant;
-            booking.CancellationReason = CancellationReason.ConsultantNoShow;
-        }
-        else
-        {
-            booking.IsNoShowStudent = true;
-            booking.Status = BookingStatus.NoShowStudent;
-            booking.CancellationReason = CancellationReason.StudentNoShow;
-        }
+        booking.Status = BookingStatus.NoShowReported;
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        await NotifyAdminsAsync(booking.Id, accusedRole, cancellationToken);
+    }
+
+    private async Task NotifyAdminsAsync(Guid bookingId, NoShowAccusedRole accusedRole, CancellationToken ct)
+    {
+        try
+        {
+            var adminIds = await _context.Users
+                .Where(u => (u.ActiveRole == "Admin" || u.ActiveRole == "SuperAdmin")
+                            && u.AccountStatus == AccountStatus.Active)
+                .Select(u => u.Id)
+                .ToListAsync(ct);
+
+            foreach (var adminId in adminIds)
+            {
+                try
+                {
+                    await _notifications.DispatchAsync(
+                        adminId,
+                        NotificationType.NoShowReportSubmitted,
+                        new NotificationParams { Reason = accusedRole.ToString() },
+                        deepLink: "/admin/no-show-reports",
+                        idempotencyKey: $"noshow-report:{bookingId:N}:{accusedRole}:{adminId:N}",
+                        ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex,
+                        "Failed to dispatch NoShowReportSubmitted to admin {AdminId} for booking {BookingId}.",
+                        adminId, bookingId);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "Could not resolve admin recipients for NoShowReportSubmitted on booking {BookingId}.",
+                bookingId);
+        }
     }
 }

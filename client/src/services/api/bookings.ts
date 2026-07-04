@@ -11,6 +11,7 @@ export type BookingStatus =
   | "Expired"
   | "Cancelled"
   | "Completed"
+  | "NoShowReported"
   | "NoShowStudent"
   | "NoShowConsultant";
 

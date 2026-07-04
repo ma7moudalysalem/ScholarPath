@@ -11,5 +11,6 @@ namespace ScholarPath.Application.ConsultantBookings.Commands.MarkNoShow;
     SummaryTemplate = "Booking no-show marked: {TargetId}"
 )]
 public sealed record MarkNoShowCommand(
-    Guid BookingId
+    Guid BookingId,
+    string? Note = null
 ) : IRequest;

@@ -79,6 +79,9 @@ export function statusBucket(status: BookingStatus): BookingStatusBucket {
       return "pending";
     case "Confirmed":
       return "confirmed";
+    case "NoShowReported":
+      // Frozen pending admin validation — still an open item for both parties.
+      return "pending";
     case "Completed":
       return "completed";
     case "Rejected":
@@ -99,6 +102,8 @@ export function statusBadgeClass(status: BookingStatus): string {
       return "bg-warning-50 text-warning-600";
     case "Confirmed":
       return "bg-brand-50 text-brand-600";
+    case "NoShowReported":
+      return "bg-warning-50 text-warning-600";
     case "Completed":
       return "bg-success-50 text-success-600";
     case "Rejected":

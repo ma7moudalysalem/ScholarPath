@@ -105,6 +105,21 @@ public enum BookingAccessStatus
     BookingBlocked = 1,
 }
 
+/// <summary>Which party a no-show report accuses (PB-006R, FR-CBR-25..32).</summary>
+public enum NoShowAccusedRole
+{
+    Student = 0,
+    Consultant = 1,
+}
+
+/// <summary>Admin validation state of a no-show report (PB-006R).</summary>
+public enum NoShowReportStatus
+{
+    PendingReview = 0,
+    ValidatedNoShow = 1,
+    RejectedAsFalse = 2,
+}
+
 /// <summary>Why a student's booking access was blocked (PB-006R).</summary>
 public enum BookingBlockReason
 {
@@ -250,6 +265,10 @@ public enum NotificationType
     // Admin-inbound: a consultant's penalized average rating dropped below the
     // low-rating threshold and needs admin review (PB-006R).
     ConsultantLowRatingFlagged = 208,
+    // Admin-inbound: a no-show was reported and needs admin validation (PB-006R).
+    NoShowReportSubmitted = 209,
+    // Sent to both parties once an admin resolves a no-show report (PB-006R).
+    NoShowReportResolved = 210,
 
     // Payments (PB-013)
     PaymentSuccess = 300,
