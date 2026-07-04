@@ -43,10 +43,18 @@ public sealed class SendMessageCommandHandler(
 
         if (conversation == null)
         {
+            // FR-MSG-11: store the pair in a CANONICAL order (smaller GUID first) so
+            // the unique index on (ParticipantOneId, ParticipantTwoId) actually
+            // enforces one-conversation-per-pair — otherwise a concurrent first
+            // message from each side races two rows in with swapped columns. Reads
+            // map participant→user by id, so the order carries no other meaning.
+            var (participantOne, participantTwo) = senderId.CompareTo(request.RecipientId) <= 0
+                ? (senderId, request.RecipientId)
+                : (request.RecipientId, senderId);
             conversation = new ChatConversation
             {
-                ParticipantOneId = senderId,
-                ParticipantTwoId = request.RecipientId,
+                ParticipantOneId = participantOne,
+                ParticipantTwoId = participantTwo,
             };
             db.Conversations.Add(conversation);
         }

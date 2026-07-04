@@ -46,16 +46,23 @@ public sealed class GetPostDetailsQueryHandler(
             .ConfigureAwait(false)
             ?? throw new NotFoundException(nameof(ForumPost), request.Id);
 
+        // FR-MSG-29: mutual block — the thread of a user in a block relationship
+        // (either direction) with the viewer is hidden entirely (not just its replies).
+        if (currentUserId is Guid viewerId
+            && await CommunityBlockFilter.AreBlockedAsync(db, viewerId, post.AuthorId, ct).ConfigureAwait(false))
+        {
+            throw new NotFoundException(nameof(ForumPost), request.Id);
+        }
+
         var repliesQuery = db.ForumPosts
             .AsNoTracking()
             .Include(p => p.Author)
             .Where(p => p.ParentPostId == request.Id && !p.IsDeleted && !p.IsAutoHidden);
 
-        // Personal block: drop replies authored by anyone the current user blocked.
+        // FR-MSG-29: drop replies authored by anyone in a block relationship with the viewer.
         if (currentUserId is Guid blockerId)
         {
-            repliesQuery = repliesQuery.Where(p => !db.UserBlocks.Any(
-                b => b.BlockerId == blockerId && b.BlockedUserId == p.AuthorId));
+            repliesQuery = repliesQuery.Where(CommunityBlockFilter.NotBlockedWith(db, blockerId));
         }
 
         var replyRows = await repliesQuery

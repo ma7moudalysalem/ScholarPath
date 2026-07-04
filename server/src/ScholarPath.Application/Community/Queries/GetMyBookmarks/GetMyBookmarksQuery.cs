@@ -38,10 +38,11 @@ public sealed class GetMyBookmarksQueryHandler(
                         && b.ForumPost != null
                         && !b.ForumPost.IsDeleted
                         && !b.ForumPost.IsAutoHidden
-                        // Personal block: a post whose author the user later blocked
-                        // drops out of their bookmarks too.
+                        // FR-MSG-29: a post whose author is in a block relationship
+                        // (either direction) with the user drops out of their bookmarks.
                         && !db.UserBlocks.Any(
-                            ub => ub.BlockerId == userId && ub.BlockedUserId == b.ForumPost.AuthorId));
+                            ub => (ub.BlockerId == userId && ub.BlockedUserId == b.ForumPost.AuthorId)
+                               || (ub.BlockerId == b.ForumPost.AuthorId && ub.BlockedUserId == userId)));
 
         var total = await baseQuery.CountAsync(ct).ConfigureAwait(false);
 

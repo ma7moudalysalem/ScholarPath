@@ -800,6 +800,8 @@ export function Chat() {
                   value={messageBody}
                   onChange={handleTyping}
                   disabled={isBlocked}
+                  // FR-MSG-12: cap the body at 2000 chars (matches the server validator).
+                  maxLength={2000}
                   placeholder={
                     isBlocked
                       ? t("chat.input_disabled_blocked", "Conversation is blocked.")
@@ -810,13 +812,13 @@ export function Chat() {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      if (!isBlocked && !isSending) handleSendMessage(e);
+                      if (!isBlocked && !isSending && messageBody.length <= 2000) handleSendMessage(e);
                     }
                   }}
                 />
                 <button
                   type="submit"
-                  disabled={!messageBody.trim() || isBlocked || isSending}
+                  disabled={!messageBody.trim() || isBlocked || isSending || messageBody.length > 2000}
                   aria-label={t("chat.send", "Send")}
                   className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-brand-sm transition-all hover:shadow-brand-md hover:from-brand-600 hover:to-brand-800 active:scale-95 disabled:bg-none disabled:bg-bg-subtle disabled:text-text-tertiary disabled:shadow-none disabled:cursor-not-allowed flex-shrink-0"
                 >
@@ -827,6 +829,15 @@ export function Chat() {
                   )}
                 </button>
               </form>
+              {messageBody.length > 1800 && (
+                <p
+                  className={`mt-1 text-end text-xs ${
+                    messageBody.length >= 2000 ? "text-danger-500" : "text-text-tertiary"
+                  }`}
+                >
+                  {messageBody.length}/2000
+                </p>
+              )}
             </div>
           </>
         ) : (
