@@ -121,6 +121,7 @@
   },
   "errors": {
     "budgetExceeded": "You've hit today's AI budget. Try again after midnight UTC.",
+    "rateLimited": "You're using AI a bit too fast. Please wait a minute and try again.",
     "generic": "Something went wrong. Please try again."
   }
 }

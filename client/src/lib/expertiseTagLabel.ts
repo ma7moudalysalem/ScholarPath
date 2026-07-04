@@ -161,28 +161,50 @@ const TAG_TRANSLATIONS_AR: Record<string, string> = {
   "draft": "مسودة",
 };
 
+// Reverse index (Arabic value → canonical English key), built once from the
+// map above. Lets us normalise a tag that was stored in Arabic back to its
+// English canonical so the English UI never shows a stray Arabic chip among
+// English ones (a consultant typed their specialisation in Arabic).
+const AR_TO_EN: Record<string, string> = (() => {
+  const rev: Record<string, string> = {};
+  for (const [en, ar] of Object.entries(TAG_TRANSLATIONS_AR)) {
+    if (!(ar in rev)) rev[ar] = en; // first English key wins for duplicate AR values
+  }
+  return rev;
+})();
+
+// Known free-text Arabic variants that aren't exact map values, pinned to their
+// canonical English key. Extend when a new stray value shows up in real data.
+const NON_CANONICAL_ALIASES: Record<string, string> = {
+  "التحضير للمقابلات": "Interview Prep",
+};
+
+/** Normalise any stored tag (English or Arabic) to its canonical English key. */
+function toCanonicalEnglish(tag: string): string {
+  return NON_CANONICAL_ALIASES[tag] ?? AR_TO_EN[tag] ?? tag;
+}
+
 /**
  * Returns a localized label for an expertise tag / required document key.
  * Pass the current i18n `t` (or its `language`) so we can pick AR/EN.
- * Falls back to the original `tag` string when no translation is known.
+ * Normalises Arabic-stored values to their English canonical first, so the
+ * English UI stays all-English and the Arabic UI stays all-Arabic.
  */
 export function expertiseTagLabel(tag: string, t: TFunction): string {
   // i18next exposes language via t.lng on the i18n instance; the safest
   // pattern is to check i18next directly. We accept either signature.
   const lang = (t as unknown as { lng?: string }).lng
     ?? (typeof window !== "undefined" ? document.documentElement.lang : "en");
-  if (lang?.startsWith("ar")) {
-    return TAG_TRANSLATIONS_AR[tag] ?? tag;
-  }
-  return tag;
+  return expertiseTagLabelByLang(tag, lang);
 }
 
 /** Same as above but takes an explicit language code. */
 export function expertiseTagLabelByLang(tag: string, lang: string | undefined): string {
+  const canonical = toCanonicalEnglish(tag);
   if (lang?.startsWith("ar")) {
-    return TAG_TRANSLATIONS_AR[tag] ?? tag;
+    return TAG_TRANSLATIONS_AR[canonical] ?? canonical;
   }
-  return tag;
+  return canonical;
 }
 
 /** ISO 639-1 → display name in EN / AR. */

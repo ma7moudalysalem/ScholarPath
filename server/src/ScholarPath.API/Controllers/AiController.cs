@@ -15,7 +15,10 @@ using ScholarPath.Application.Ai.Queries.GetMyRecommendations;
 namespace ScholarPath.API.Controllers;
 
 [ApiController]
-[Authorize]
+// FR-AI-04: the student-facing AI advisory features are Student-only. Consultants,
+// Scholarship Providers, and Admins are not AI feature users (admin KB management
+// lives on AdminAiController). Nav hides the link, this enforces it server-side.
+[Authorize(Roles = "Student")]
 [Route("api/ai")]
 [Produces("application/json")]
 public sealed class AiController(IMediator mediator) : ControllerBase

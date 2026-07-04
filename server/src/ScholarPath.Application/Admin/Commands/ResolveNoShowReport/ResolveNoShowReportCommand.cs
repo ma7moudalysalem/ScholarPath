@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using ScholarPath.Application.Common.Auditing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -25,6 +26,9 @@ namespace ScholarPath.Application.Admin.Commands.ResolveNoShowReport;
 /// <item>Falsely-reported consultant (student lied) → 14-day student booking block.</item>
 /// </list>
 /// </summary>
+[Auditable(AuditAction.Update, "NoShowReport",
+    TargetIdProperty = nameof(ReportId),
+    SummaryTemplate = "Admin resolved no-show report {ReportId}")]
 public sealed record ResolveNoShowReportCommand(Guid ReportId, bool IsValid, string? AdminNote)
     : IRequest;
 

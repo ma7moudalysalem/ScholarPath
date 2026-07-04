@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { formatDistanceToNow, differenceInDays, isPast } from "date-fns";
 import { ar as arLocale } from "date-fns/locale";
 import { AlertCircle, Calendar, RefreshCw, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { aiApi, type RecommendationItem, type RecommendationsDto } from "@/services/api/ai";
 import { AiDisclaimer } from "./AiDisclaimer";
 import { MatchScoreBadge } from "./MatchScoreBadge";
@@ -109,6 +110,14 @@ export function AiRecommendations() {
   const refreshMut = useMutation({
     mutationFn: () => aiApi.recommendations(5),
     onSuccess: (data) => qc.setQueryData(KEY, data),
+    onError: (err) => {
+      // FR-AI-23: surface the daily-budget (409) and rate-limit (429) caps as a
+      // clear usage-limit message rather than a generic failure.
+      const status = (err as { status?: number })?.status;
+      if (status === 409) toast.warning(t("ai:errors.budgetExceeded"));
+      else if (status === 429) toast.warning(t("ai:errors.rateLimited"));
+      else toast.error(t("ai:recommendations.error"));
+    },
   });
 
   const isAr = i18n.language.startsWith("ar");
