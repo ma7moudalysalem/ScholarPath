@@ -229,32 +229,44 @@ jobs:
           sleep 10
           echo "::endgroup::"
 
-          echo "::group::Deploy while stopped (no locked files) — async, then poll"
-          # --async: return after the upload; the extraction/rsync runs server-side.
-          # --restart false: the app is stopped; we start it explicitly below.
-          az webapp deploy --name "$APP" --resource-group "$RG" \
-            --src-path "${{ github.workspace }}/api.zip" --type zip \
-            --clean false --restart false --async true
+          echo "::group::Deploy while stopped via Kudu OneDeploy"
+          # Use the Kudu OneDeploy REST API directly, NOT `az webapp deploy`: the
+          # CLI keeps polling the STOPPED app for warmup even after the file
+          # deployment has finished, so it never returns and the job hangs with
+          # the app down. curl to /api/publish (async) returns as soon as the
+          # upload is queued; we then poll the deployment record for completion.
           token=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
-          scm="https://$APP.scm.azurewebsites.net/api/deployments/latest"
-          ok=0
-          for i in $(seq 1 40); do
-            body=$(curl -s "$scm" -H "Authorization: Bearer $token")
-            echo "$body" | grep -q '"complete":true' && { ok=1; echo "deployment complete (poll $i)"; break; }
-            echo "…deploying (poll $i)"; sleep 10
+          latest="https://$APP.scm.azurewebsites.net/api/deployments/latest"
+          prev=$(curl -s "$latest" -H "Authorization: Bearer $token" | grep -oE '"id":"[^"]+"' | head -1 | cut -d'"' -f4)
+
+          http=$(curl -s -o /tmp/pub.txt -w "%{http_code}" --max-time 240 -X POST \
+            "https://$APP.scm.azurewebsites.net/api/publish?type=zip&clean=false&restart=false&async=true" \
+            -H "Authorization: Bearer $token" -H "Content-Type: application/zip" \
+            --data-binary @"${{ github.workspace }}/api.zip" || echo "000")
+          echo "OneDeploy queued: HTTP $http"; head -c 400 /tmp/pub.txt 2>/dev/null || true; echo ""
+
+          # Poll for the NEW deployment (id != prev) to complete — id-tracking
+          # avoids matching the previous deploy's stale complete:true.
+          ok=0; status=""
+          for i in $(seq 1 45); do
+            body=$(curl -s "$latest" -H "Authorization: Bearer $token")
+            id=$(echo "$body" | grep -oE '"id":"[^"]+"' | head -1 | cut -d'"' -f4)
+            if [ "$id" != "$prev" ] && echo "$body" | grep -q '"complete":true'; then
+              status=$(echo "$body" | grep -oE '"status":[0-9]+' | grep -oE '[0-9]+' | head -1)
+              ok=1; echo "deployment complete (poll $i, status=$status)"; break
+            fi
+            echo "…deploying (poll $i)"; sleep 8
           done
-          status=$(curl -s "$scm" -H "Authorization: Bearer $token" | grep -oE '"status":[0-9]+' | grep -oE '[0-9]+')
-          echo "final deployment status=$status (4=success, 3=failed)"
           echo "::endgroup::"
 
           echo "::group::Start $APP"
           az webapp start --name "$APP" --resource-group "$RG"
           echo "::endgroup::"
 
-          # status 4 = success. Anything else (or never-completed) fails the job —
-          # but the app has already been started so it can recover on the next run.
+          # status 4 = success. The app is started either way so it can recover,
+          # but a non-success deployment fails the job so it's visible.
           if [ "$ok" != "1" ] || [ "$status" != "4" ]; then
-            echo "Deployment did not report success."; exit 1
+            echo "Deployment did not report success (ok=$ok status=$status)."; exit 1
           fi
 
       - name: Verify API is healthy after deploy
