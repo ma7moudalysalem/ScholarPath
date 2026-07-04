@@ -49,7 +49,7 @@ public sealed class ReopenScholarshipCommandHandler(
         // Only the owning provider may reopen their listing; admins may reopen any
         // (they own the platform-created external listings).
         if (scholarship.OwnerScholarshipProviderId != userId
-            && !currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
+            && !currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("You can only reopen your own scholarships.");
 
         if (scholarship.Status != ScholarshipStatus.Closed)

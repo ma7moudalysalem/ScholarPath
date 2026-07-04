@@ -31,7 +31,7 @@ public sealed class GetScholarshipProviderReviewRequestByIdQueryHandler(
         // a confidentiality break.
         if (currentUser.UserId != dto.StudentId
             && currentUser.UserId != dto.ScholarshipProviderId
-            && !currentUser.IsInRole("Admin"))
+            && !currentUser.IsAdminOrSuperAdmin())
         {
             throw new ForbiddenAccessException();
         }

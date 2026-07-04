@@ -20,7 +20,7 @@ public sealed class ConfigureReviewFeeCommandHandler(
             ?? throw new NotFoundException(nameof(Domain.Entities.Scholarship), request.ScholarshipId);
 
         // Verify the current user is the owner or an admin
-        if (scholarship.OwnerScholarshipProviderId != currentUser.UserId && !currentUser.IsInRole("Admin"))
+        if (scholarship.OwnerScholarshipProviderId != currentUser.UserId && !currentUser.IsAdminOrSuperAdmin())
         {
             throw new ForbiddenAccessException();
         }

@@ -37,7 +37,7 @@ public sealed class GetLowRatedCompaniesQueryHandler(
     public async Task<PagedResult<LowRatedScholarshipProviderRow>> Handle(
         GetLowRatedCompaniesQuery request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
         {
             throw new ForbiddenAccessException();
         }

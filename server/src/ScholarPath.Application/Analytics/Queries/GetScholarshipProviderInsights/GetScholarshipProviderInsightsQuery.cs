@@ -64,7 +64,7 @@ public sealed class GetScholarshipProviderInsightsQueryHandler(
         var userId = currentUser.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
-        var isAdmin = currentUser.IsInRole("Admin") || currentUser.IsInRole("SuperAdmin");
+        var isAdmin = currentUser.IsAdminOrSuperAdmin();
 
         // Admins may supply a ScholarshipProviderId, owners default to themselves.
         var companyId = request.ScholarshipProviderId ?? userId;

@@ -38,7 +38,7 @@ public sealed class FeatureResourceCommandHandler(
 
     public async Task<bool> Handle(FeatureResourceCommand request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can feature resources.");
 
         var resource = await db.Resources

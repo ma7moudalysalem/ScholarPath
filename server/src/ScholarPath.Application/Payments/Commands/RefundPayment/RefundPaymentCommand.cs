@@ -60,7 +60,7 @@ public sealed class RefundPaymentCommandHandler(
         CancellationToken ct)
     {
         // Refunds move money — administrators only.
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can issue refunds.");
 
         // 1. Load payment — must be Held or Captured to be refundable

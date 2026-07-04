@@ -474,7 +474,8 @@ internal sealed class AdminDashboardAuthorizationFilter : Hangfire.Dashboard.IDa
 
         if (httpCtxProp?.GetValue(context) is Microsoft.AspNetCore.Http.HttpContext http)
         {
-            return http.User.Identity?.IsAuthenticated == true && http.User.IsInRole("Admin");
+            return http.User.Identity?.IsAuthenticated == true
+                && (http.User.IsInRole("Admin") || http.User.IsInRole("SuperAdmin"));
         }
 
         return false;

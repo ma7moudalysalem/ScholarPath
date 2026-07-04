@@ -49,7 +49,7 @@ public sealed class SetResourceVisibilityCommandHandler(
 {
     public async Task<bool> Handle(SetResourceVisibilityCommand request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can moderate resources.");
 
         var resource = await db.Resources

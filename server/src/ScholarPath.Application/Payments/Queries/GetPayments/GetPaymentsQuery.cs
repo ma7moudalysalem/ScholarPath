@@ -41,7 +41,7 @@ public sealed class GetPaymentsQueryHandler(
         var query = db.Payments.AsNoTracking().Where(p => !p.IsDeleted);
 
         // Non-admins are scoped to payments they are a party to.
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             query = query.Where(p => p.PayerUserId == userId || p.PayeeUserId == userId);
 
         if (request.Status is { } status)

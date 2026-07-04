@@ -51,7 +51,7 @@ public sealed class SubmitResourceForReviewCommandHandler(
             .FirstOrDefaultAsync(r => r.Id == request.ResourceId, ct)
             ?? throw new NotFoundException(nameof(Resource), request.ResourceId);
 
-        var isAdmin = currentUser.IsInRole("Admin");
+        var isAdmin = currentUser.IsAdminOrSuperAdmin();
         if (resource.AuthorUserId != userId && !isAdmin)
             throw new ForbiddenAccessException("You can only submit your own resources.");
 

@@ -31,7 +31,7 @@ public sealed class GetResourceDetailQueryHandler(
 
         if (resource.Status != ResourceStatus.Published)
         {
-            var canSeeDraft = currentUser.IsInRole("Admin")
+            var canSeeDraft = currentUser.IsAdminOrSuperAdmin()
                 || (currentUser.UserId is { } uid && uid == resource.AuthorUserId);
             if (!canSeeDraft) return null;
         }

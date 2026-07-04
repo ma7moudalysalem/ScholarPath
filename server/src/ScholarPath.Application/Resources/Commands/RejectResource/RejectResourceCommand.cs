@@ -44,7 +44,7 @@ public sealed class RejectResourceCommandHandler(
 {
     public async Task<bool> Handle(RejectResourceCommand request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can reject resources.");
 
         var adminId = currentUser.UserId

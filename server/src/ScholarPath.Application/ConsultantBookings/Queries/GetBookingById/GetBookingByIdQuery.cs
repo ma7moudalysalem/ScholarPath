@@ -83,8 +83,7 @@ public sealed class GetBookingByIdQueryHandler(
         // the entity), so it must not read arbitrary booking detail (payment
         // amounts, refund reason, Stripe intent id, student notes/email). Matches
         // the policy already used by GetBookingRecordings / DownloadSessionRecording.
-        var isAdmin = currentUser.IsInRole("Admin")
-            || currentUser.IsInRole("SuperAdmin");
+        var isAdmin = currentUser.IsAdminOrSuperAdmin();
 
         if (!isParticipant && !isAdmin)
         {

@@ -45,7 +45,7 @@ public sealed class ToggleFeatureScholarshipCommandHandler(
     public async Task<bool> Handle(
         ToggleFeatureScholarshipCommand request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can feature scholarships.");
 
         var scholarship = await db.Scholarships

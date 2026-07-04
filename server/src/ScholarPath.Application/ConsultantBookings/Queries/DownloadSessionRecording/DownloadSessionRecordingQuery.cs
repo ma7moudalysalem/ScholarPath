@@ -39,7 +39,7 @@ public sealed class DownloadSessionRecordingQueryHandler(
             ?? throw new NotFoundException(nameof(ConsultantBooking), recording.BookingId);
 
         var isParticipant = booking.StudentId == userId || booking.ConsultantId == userId;
-        var isAdmin = currentUser.IsInRole("Admin") || currentUser.IsInRole("SuperAdmin");
+        var isAdmin = currentUser.IsAdminOrSuperAdmin();
         if (!isParticipant && !isAdmin)
         {
             throw new ForbiddenAccessException("You are not allowed to download this recording.");

@@ -18,7 +18,7 @@ public sealed class GetPendingReviewResourcesQueryHandler(
     public async Task<IReadOnlyList<ResourceListItemDto>> Handle(
         GetPendingReviewResourcesQuery request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can view the review queue.");
 
         var entities = await db.Resources.AsNoTracking()

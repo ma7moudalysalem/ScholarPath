@@ -30,7 +30,7 @@ public sealed class GetScholarshipsForModerationQueryHandler(
     public async Task<PaginatedList<MyScholarshipDto>> Handle(
         GetScholarshipsForModerationQuery request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can moderate scholarships.");
 
         var page = Math.Max(1, request.Page);

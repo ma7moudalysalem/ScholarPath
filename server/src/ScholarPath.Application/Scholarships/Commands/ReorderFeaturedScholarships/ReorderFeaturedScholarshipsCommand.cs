@@ -43,7 +43,7 @@ public sealed class ReorderFeaturedScholarshipsCommandHandler(
     public async Task<Unit> Handle(
         ReorderFeaturedScholarshipsCommand request, CancellationToken ct)
     {
-        if (!currentUser.IsInRole("Admin") && !currentUser.IsInRole("SuperAdmin"))
+        if (!currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can reorder featured scholarships.");
 
         // Load the full current featured set in one round-trip.

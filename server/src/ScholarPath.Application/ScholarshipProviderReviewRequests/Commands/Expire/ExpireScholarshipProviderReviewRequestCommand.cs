@@ -46,7 +46,7 @@ public sealed class ExpireScholarshipProviderReviewRequestCommandHandler(
         ExpireScholarshipProviderReviewRequestCommand command,
         CancellationToken ct)
     {
-        if (!command.SkipOwnerCheck && !currentUser.IsInRole("Admin"))
+        if (!command.SkipOwnerCheck && !currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException("Only an administrator can manually expire a request.");
 
         var entity = await db.ScholarshipProviderReviewRequests

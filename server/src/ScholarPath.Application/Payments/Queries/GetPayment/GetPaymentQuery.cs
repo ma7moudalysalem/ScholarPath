@@ -57,7 +57,7 @@ public sealed class GetPaymentQueryHandler(
         // Only the payer, the payee, or an admin may read a payment.
         if (payment.PayerUserId != currentUser.UserId
             && payment.PayeeUserId != currentUser.UserId
-            && !currentUser.IsInRole("Admin"))
+            && !currentUser.IsAdminOrSuperAdmin())
         {
             throw new ForbiddenAccessException("You can only view your own payments.");
         }

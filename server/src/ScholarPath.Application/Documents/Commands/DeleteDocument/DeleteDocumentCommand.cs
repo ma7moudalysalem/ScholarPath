@@ -41,7 +41,7 @@ public sealed class DeleteDocumentCommandHandler(
             .ConfigureAwait(false)
             ?? throw new NotFoundException(nameof(Document), request.DocumentId);
 
-        var isAdmin = currentUser.IsInRole("Admin") || currentUser.IsInRole("SuperAdmin");
+        var isAdmin = currentUser.IsAdminOrSuperAdmin();
         if (document.OwnerUserId != userId && !isAdmin)
             throw new ForbiddenAccessException("You can only delete your own documents.");
 

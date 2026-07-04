@@ -76,7 +76,7 @@ public sealed class GetApplicationDetailQueryHandler(
             return null;
 
         // Only the owning student or an administrator may view an application.
-        if (application.StudentId != userId && !currentUser.IsInRole("Admin"))
+        if (application.StudentId != userId && !currentUser.IsAdminOrSuperAdmin())
             throw new ForbiddenAccessException();
 
         var scholarship = application.Scholarship;
