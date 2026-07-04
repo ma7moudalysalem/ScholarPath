@@ -42,8 +42,10 @@ export function createTypedChatHub(handlers?: ConnectionLifecycleHandlers): Chat
     onUserOffline: (callback) => connection.on("UserOffline", callback),
     offUserOffline: (callback) => connection.off("UserOffline", callback),
 
-    onNewMessage: (callback) => connection.on("NewMessage", callback),
-    offNewMessage: (callback) => connection.off("NewMessage", callback),
+    // Server emits "MessageReceived" (see ChatRealtimeNotifier); the previous
+    // "NewMessage" name silently received nothing.
+    onNewMessage: (callback) => connection.on("MessageReceived", callback),
+    offNewMessage: (callback) => connection.off("MessageReceived", callback),
 
     onTypingStart: (callback) => connection.on("TypingStart", callback),
     offTypingStart: (callback) => connection.off("TypingStart", callback),

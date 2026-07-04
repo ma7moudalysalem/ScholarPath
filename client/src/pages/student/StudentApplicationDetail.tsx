@@ -307,6 +307,29 @@ export function StudentApplicationDetail() {
               : t("moderation:appDetail.notProvided")}
           </Field>
         </dl>
+
+        {/* FR-APP-19: the real recorded status history, oldest-first. */}
+        {data.statusHistory.length > 0 && (
+          <ol className="mt-5 space-y-3 border-t border-border-subtle pt-4">
+            {data.statusHistory.map((entry, i) => (
+              <li key={`${entry.status}-${entry.occurredAt}-${i}`} className="flex items-start gap-3">
+                <span
+                  className={`mt-1.5 size-2 shrink-0 rounded-full ${
+                    i === data.statusHistory.length - 1 ? "bg-brand-500" : "bg-border-strong"
+                  }`}
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text-primary">
+                    {t(`moderation:applicationStatus.${entry.status}`, { defaultValue: entry.status })}
+                  </p>
+                  <p className="text-xs text-text-tertiary">
+                    {format(new Date(entry.occurredAt), "dd MMM yyyy, HH:mm", { locale: dateLocale })}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
       </section>
 
       {data.decisionReason && (

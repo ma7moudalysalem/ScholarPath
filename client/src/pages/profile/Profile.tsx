@@ -998,6 +998,10 @@ export function Profile() {
       }
       setPhotoVersion(Date.now());
       setPhotoFailed(false);
+      // FR-PROF-08: the photo is a completeness field, so refetch the profile
+      // to pick up the recalculated completenessPercent (setQueryData above only
+      // patches the image URL, leaving the meter stale until a full refetch).
+      void qc.invalidateQueries({ queryKey: PROFILE_KEY });
       toast.success(t("profile:photo.saved"));
     },
     onError: (err) => toast.error(apiErrorMessage(err, t("profile:photo.error"))),

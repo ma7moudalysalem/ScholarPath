@@ -122,6 +122,14 @@ export interface ApplicationDetail {
    */
   scholarshipProviderId: string | null;
   hasReview: boolean;
+  /** FR-APP-19: recorded status transitions, oldest-first. */
+  statusHistory: ApplicationStatusEntry[];
+}
+
+/** One recorded status transition on the application timeline. */
+export interface ApplicationStatusEntry {
+  status: ApplicationStatus;
+  occurredAt: string;
 }
 
 /** Result of `POST /api/applications` — mirrors the server's StartApplicationResult. */

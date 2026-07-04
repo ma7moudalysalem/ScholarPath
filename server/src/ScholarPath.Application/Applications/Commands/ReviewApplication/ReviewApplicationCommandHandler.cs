@@ -37,6 +37,10 @@ public sealed class ReviewApplicationCommandHandler(
         ApplicationStateMachine.EnsureTransition(oldStatus, request.Status);
 
         application.Status = request.Status;
+        // FR-APP-19: stamp when review actually started so the student timeline
+        // can show a real "Review started" date instead of always "not provided".
+        if (request.Status == ApplicationStatus.UnderReview && application.ReviewStartedAt is null)
+            application.ReviewStartedAt = DateTimeOffset.UtcNow;
         application.DecisionAt = DateTimeOffset.UtcNow;
         application.DecisionReason = request.DecisionReason;
 
