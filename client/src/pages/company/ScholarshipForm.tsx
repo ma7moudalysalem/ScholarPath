@@ -28,6 +28,7 @@ import type { AcademicLevel, FundingType } from "@/types/domain";
 // validator will accept.
 
 import { SCHOLARSHIP_FIELDS_OF_STUDY } from "@/constants/scholarshipFields";
+import { COUNTRIES, countryLabel } from "@/lib/countryLabel";
 
 const FUNDING_TYPES = [
   "FullyFunded",
@@ -87,6 +88,8 @@ function makeSchema(t: TFunction) {
     descriptionAr: z.string().min(1, required)
       .refine(looksArabic, arabicOnly),
     categoryId: z.string().min(1, required),
+    // FR-SCH-21: Country is required.
+    country: z.string().min(1, required),
     deadline: z
       .string()
       .min(1, required)
@@ -160,6 +163,7 @@ export function ScholarshipForm() {
       descriptionEn: "",
       descriptionAr: "",
       categoryId: "",
+      country: "",
       deadline: "",
       fundingType: "FullyFunded",
       targetLevel: "Undergrad",
@@ -204,6 +208,7 @@ export function ScholarshipForm() {
       descriptionEn: d.descriptionEn ?? "",
       descriptionAr: d.descriptionAr ?? "",
       categoryId: d.categoryId ?? "",
+      country: d.country ?? "",
       deadline: d.deadline ? d.deadline.slice(0, 10) : "",
       fundingType: d.fundingType as typeof FUNDING_TYPES[number],
       targetLevel: d.targetLevel as typeof ACADEMIC_LEVELS[number],
@@ -268,6 +273,7 @@ export function ScholarshipForm() {
         descriptionEn: values.descriptionEn,
         descriptionAr: values.descriptionAr,
         categoryId: values.categoryId,
+        country: values.country,
         deadline: deadlineIso,
         fieldsOfStudy:
           values.fieldsOfStudy && values.fieldsOfStudy.length > 0
@@ -289,6 +295,7 @@ export function ScholarshipForm() {
       descriptionEn: values.descriptionEn,
       descriptionAr: values.descriptionAr,
       categoryId: values.categoryId,
+      country: values.country,
       deadline: deadlineIso,
       fundingType: values.fundingType,
       targetLevel: values.targetLevel,
@@ -467,6 +474,23 @@ export function ScholarshipForm() {
               {categoriesQuery.data?.map((c) => (
                 <option key={c.id} value={c.id}>
                   {isAr ? c.nameAr || c.nameEn : c.nameEn || c.nameAr}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field
+            id="country"
+            label={t("moderation:scholarshipProviderScholarships.form.country")}
+            error={errors.country?.message}
+          >
+            <select id="country" className={fieldClass} {...form.register("country")}>
+              <option value="">
+                {t("moderation:scholarshipProviderScholarships.form.countryPlaceholder")}
+              </option>
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>
+                  {isAr ? countryLabel(c, "ar") : c}
                 </option>
               ))}
             </select>

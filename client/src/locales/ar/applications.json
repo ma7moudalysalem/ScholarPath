@@ -92,7 +92,9 @@
     "actions": {
       "view": "عرض التفاصيل",
       "accept": "قبول",
-      "reject": "رفض"
+      "reject": "رفض",
+      "startAssessment": "بدء المراجعة",
+      "shortlist": "القائمة المختصرة"
     },
     "decision": {
       "rejectTitle": "رفض الطلب",

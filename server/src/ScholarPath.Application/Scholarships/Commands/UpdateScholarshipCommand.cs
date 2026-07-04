@@ -18,6 +18,11 @@ public record UpdateScholarshipCommand : IRequest<bool>
     public string DescriptionAr { get; init; } = default!;
     public DateTimeOffset Deadline { get; init; }
     public Guid CategoryId { get; init; }
+    /// <summary>
+    /// Updated target country. Null leaves the existing value untouched (keeps
+    /// legacy PUT bodies working); a non-empty value overwrites it.
+    /// </summary>
+    public string? Country { get; init; }
     /// <summary>Optional updated list of eligible academic fields of study.</summary>
     public string[]? FieldsOfStudy { get; init; }
 
@@ -59,6 +64,9 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
         entity.DescriptionAr = request.DescriptionAr;
         entity.Deadline = request.Deadline;
         entity.CategoryId = request.CategoryId;
+        // Only overwrite the country when the caller actually sent one.
+        if (!string.IsNullOrWhiteSpace(request.Country))
+            entity.TargetCountriesJson = System.Text.Json.JsonSerializer.Serialize(new[] { request.Country.Trim() });
         entity.FieldsOfStudyJson = request.FieldsOfStudy is { Length: > 0 }
             ? System.Text.Json.JsonSerializer.Serialize(request.FieldsOfStudy)
             : null;

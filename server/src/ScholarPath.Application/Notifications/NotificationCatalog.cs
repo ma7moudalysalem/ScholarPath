@@ -30,6 +30,12 @@ public sealed class NotificationCatalog : INotificationCatalog
             "Your application has been withdrawn.",
             "تم سحب طلبك."),
 
+        // Sent to the student to confirm their own submission (FR-APP-17).
+        NotificationType.ApplicationSubmittedConfirmation => new(
+            "Application submitted", "تم إرسال طلبك",
+            $"Your application for \"{p.TitleEn ?? "the scholarship"}\" was submitted successfully.",
+            $"تم إرسال طلبك للمنحة \"{p.TitleAr ?? "المنحة"}\" بنجاح."),
+
         NotificationType.ApplicationDeadlineApproaching => new(
             "Scholarship deadline approaching", "اقتراب موعد إغلاق المنحة",
             $"\"{p.TitleEn ?? "A scholarship you saved"}\" closes in {p.Count ?? 0} day(s) — submit before the deadline.",

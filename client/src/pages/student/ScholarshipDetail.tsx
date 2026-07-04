@@ -31,6 +31,7 @@ import { scholarshipProviderReviewRequestsApi } from "@/services/api/scholarship
 import { applicationsApi } from "@/services/api/applications";
 import { ApiError, apiErrorMessage } from "@/services/api/client";
 import { profileApi, type UserProfile } from "@/services/api/profile";
+import { countryLabel } from "@/lib/countryLabel";
 import type { FundingType } from "@/types/domain";
 import { SkeletonDetailCard } from "@/components/common/Skeleton";
 
@@ -105,6 +106,16 @@ export function ScholarshipDetail() {
       !profileQuery.data.fieldOfStudy ||
       profileQuery.data.fieldOfStudy.trim().length === 0
     : false;
+
+  // FR-APP-02: surface an existing in-app application for THIS scholarship so
+  // the student resumes their draft (or reviews a submitted one) instead of
+  // seeing a plain "Apply" that would just re-open the same tracker.
+  const { data: myApps } = useQuery({
+    queryKey: ["applications", "mine"],
+    queryFn: () => applicationsApi.getMyApplications(),
+    enabled: !!id,
+    staleTime: 30_000,
+  });
 
   // Apply Now: for company-owned scholarships uses the PB-005 ScholarshipProviderReview
   // paid flow; for platform/admin scholarships (no ownerScholarshipProviderId) falls back
@@ -201,6 +212,16 @@ export function ScholarshipDetail() {
   const isUrgent     = daysLeft <= 7 && daysLeft >= 0;
   const isClosed     = daysLeft < 0;
   const isExternal   = data.mode === "ExternalUrl" && !!data.externalUrl;
+  // FR-SCH-10/17: Apply Now must be blocked for any non-Open listing (Closed,
+  // Archived, Draft, UnderReview) — not just a passed deadline.
+  const isUnavailable = data.status !== "Open";
+
+  // FR-APP-02: an existing in-app application for this scholarship (a Withdrawn
+  // one doesn't count — the student may re-apply). Draft → resume; anything
+  // else active/terminal → view.
+  const existingApp = myApps?.find(
+    (a) => a.scholarshipId === data.id && a.mode === "InApp" && a.status !== "Withdrawn",
+  );
   // PB-005: an in-app scholarship is "ready to apply" when the Review Service
   // Fee is set — including the explicit 0 (free) case. Null means the ScholarshipProvider
   // hasn't configured a fee yet, so Apply Now stays disabled with a clear
@@ -423,7 +444,28 @@ export function ScholarshipDetail() {
               </p>
 
               <div className="mt-3 flex flex-col gap-2.5">
-                {isExternal ? (
+                {existingApp ? (
+                  // FR-APP-02: resume/view the existing application.
+                  <Link
+                    to={`/student/applications/${existingApp.applicationId}`}
+                    className="btn btn-primary w-full"
+                  >
+                    <ClipboardCheck aria-hidden className="size-4" />
+                    {existingApp.status === "Draft"
+                      ? t("scholarships:detail.resumeApplication")
+                      : t("scholarships:detail.viewApplication")}
+                  </Link>
+                ) : isUnavailable ? (
+                  // FR-SCH-10/17: non-Open listing — block with a clear message.
+                  <>
+                    <button type="button" disabled className="btn btn-primary w-full">
+                      {t("scholarships:detail.apply")}
+                    </button>
+                    <p className="text-xs text-warning-600">
+                      {t("scholarships:detail.unavailable")}
+                    </p>
+                  </>
+                ) : isExternal ? (
                   <a
                     href={data.externalUrl ?? "#"}
                     target="_blank"
@@ -558,6 +600,16 @@ export function ScholarshipDetail() {
                     </dt>
                     <dd className="truncate font-medium text-text-primary">
                       {data.categoryName}
+                    </dd>
+                  </div>
+                )}
+                {data.country && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-text-tertiary">
+                      {t("scholarships:detail.country")}
+                    </dt>
+                    <dd className="truncate font-medium text-text-primary">
+                      {isRtl ? countryLabel(data.country, "ar") : data.country}
                     </dd>
                   </div>
                 )}

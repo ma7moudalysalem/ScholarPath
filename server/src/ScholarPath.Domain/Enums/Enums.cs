@@ -188,6 +188,8 @@ public enum NotificationType
     ApplicationDeadlineApproaching = 102,
     ApplicationWithdrawn = 103,
     ApplicationDraftReminder = 104,
+    // Student-facing "your application was submitted" confirmation (FR-APP-17).
+    ApplicationSubmittedConfirmation = 105,
 
     // ScholarshipProvider review + payment (PB-005)
     ScholarshipProviderRatingReceived = 110,

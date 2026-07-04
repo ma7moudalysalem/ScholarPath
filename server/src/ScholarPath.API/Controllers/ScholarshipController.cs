@@ -106,6 +106,7 @@ namespace ScholarPath.API.Controllers
                 DescriptionAr = body.DescriptionAr,
                 Deadline = body.Deadline,
                 CategoryId = body.CategoryId,
+                Country = body.Country,
                 FieldsOfStudy = body.FieldsOfStudy,
                 ReviewFeeUsd = body.ReviewFeeUsd,
             }, ct);
@@ -288,6 +289,7 @@ namespace ScholarPath.API.Controllers
         string DescriptionAr,
         DateTimeOffset Deadline,
         Guid CategoryId,
+        string? Country = null,
         string[]? FieldsOfStudy = null,
         decimal? ReviewFeeUsd = null);
 

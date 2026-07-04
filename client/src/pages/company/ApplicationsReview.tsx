@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Eye, Clock, Search, Filter, Download, FileText, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Eye, Clock, Search, Filter, Download, FileText, Loader2, PlayCircle, Star } from "lucide-react";
 import {
   applicationsApi,
   type ScholarshipProviderApplicationRow,
@@ -77,6 +77,12 @@ export function ApplicationsReview() {
       status: decisionTarget.status,
       reason: reason || undefined,
     });
+  };
+
+  // FR-APP-27/28: intermediate workflow transitions that need no reason —
+  // Submitted → In Assessment (UnderReview) and In Assessment → Shortlisted.
+  const handleQuickAction = (id: string, status: ApplicationStatus) => {
+    reviewMutation.mutate({ id, status });
   };
 
   // Status is now filtered server-side; only apply the search term here.
@@ -244,7 +250,30 @@ export function ApplicationsReview() {
                         >
                           <Eye size={18} />
                         </button>
-                        {isActionable && (
+                        {/* FR-APP-27: Submitted → In Assessment. */}
+                        {app.status === "Pending" && (
+                          <button
+                            type="button"
+                            onClick={() => handleQuickAction(app.applicationId, "UnderReview")}
+                            className="p-1.5 text-text-tertiary transition-colors hover:text-brand-600"
+                            title={t("scholarshipProviderReview.actions.startAssessment")}
+                          >
+                            <PlayCircle size={18} />
+                          </button>
+                        )}
+                        {/* FR-APP-28: In Assessment → Shortlisted. */}
+                        {app.status === "UnderReview" && (
+                          <button
+                            type="button"
+                            onClick={() => handleQuickAction(app.applicationId, "Shortlisted")}
+                            className="p-1.5 text-text-tertiary transition-colors hover:text-warning-600"
+                            title={t("scholarshipProviderReview.actions.shortlist")}
+                          >
+                            <Star size={18} />
+                          </button>
+                        )}
+                        {/* FR-APP-29: Accept / Reject only from In Assessment or Shortlisted. */}
+                        {(app.status === "UnderReview" || app.status === "Shortlisted") && (
                           <>
                             <button
                               type="button"
@@ -315,6 +344,10 @@ export function ApplicationsReview() {
             setViewTarget(null);
             handleDecisionClick(id, status);
           }}
+          onQuickAction={(id, status) => {
+            setViewTarget(null);
+            handleQuickAction(id, status);
+          }}
         />
       )}
     </div>
@@ -335,12 +368,14 @@ function ApplicationDetailModal({
   t,
   onClose,
   onDecision,
+  onQuickAction,
 }: {
   row: ScholarshipProviderApplicationRow;
   lang: string;
   t: ReturnType<typeof useTranslation<"applications">>["t"];
   onClose: () => void;
   onDecision: (id: string, status: "Accepted" | "Rejected") => void;
+  onQuickAction: (id: string, status: ApplicationStatus) => void;
 }) {
   const { data: details, isLoading } = useQuery({
     queryKey: ["company", "application", "detail", row.applicationId],
@@ -489,23 +524,45 @@ function ApplicationDetailModal({
           )}
         </div>
 
-        {/* Footer actions */}
+        {/* Footer actions — mirror the state machine (FR-APP-27/28/29). */}
         {!isTerminal && (
-          <div className="flex justify-end gap-2 border-t border-border-subtle p-4">
-            <button
-              type="button"
-              onClick={() => onDecision(row.applicationId, "Rejected")}
-              className="rounded-lg border border-danger-200 px-3 py-1.5 text-sm font-medium text-danger-600 transition hover:border-danger-400 hover:bg-danger-50"
-            >
-              {t("scholarshipProviderReview.actions.reject")}
-            </button>
-            <button
-              type="button"
-              onClick={() => onDecision(row.applicationId, "Accepted")}
-              className="rounded-lg bg-success-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-success-600"
-            >
-              {t("scholarshipProviderReview.actions.accept")}
-            </button>
+          <div className="flex flex-wrap justify-end gap-2 border-t border-border-subtle p-4">
+            {row.status === "Pending" && (
+              <button
+                type="button"
+                onClick={() => onQuickAction(row.applicationId, "UnderReview")}
+                className="rounded-lg border border-brand-200 px-3 py-1.5 text-sm font-medium text-brand-600 transition hover:border-brand-400 hover:bg-brand-50"
+              >
+                {t("scholarshipProviderReview.actions.startAssessment")}
+              </button>
+            )}
+            {row.status === "UnderReview" && (
+              <button
+                type="button"
+                onClick={() => onQuickAction(row.applicationId, "Shortlisted")}
+                className="rounded-lg border border-warning-200 px-3 py-1.5 text-sm font-medium text-warning-600 transition hover:border-warning-400 hover:bg-warning-50"
+              >
+                {t("scholarshipProviderReview.actions.shortlist")}
+              </button>
+            )}
+            {(row.status === "UnderReview" || row.status === "Shortlisted") && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onDecision(row.applicationId, "Rejected")}
+                  className="rounded-lg border border-danger-200 px-3 py-1.5 text-sm font-medium text-danger-600 transition hover:border-danger-400 hover:bg-danger-50"
+                >
+                  {t("scholarshipProviderReview.actions.reject")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDecision(row.applicationId, "Accepted")}
+                  className="rounded-lg bg-success-500 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-success-600"
+                >
+                  {t("scholarshipProviderReview.actions.accept")}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
