@@ -16,8 +16,10 @@ import {
   Upload,
   X,
   Trash2,
+  Star,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { RatingModal } from "@/components/company/RatingModal";
 import {
   applicationsApi,
   type ApplicationDetail,
@@ -109,6 +111,21 @@ export function StudentApplicationDetail() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [rateOpen, setRateOpen] = useState(false);
+
+  // FR-APP-35: after a final decision the student may rate the in-app provider
+  // once. The server resolves the rated provider from the scholarship owner and
+  // ignores any client-supplied id, so passing the surfaced id is only for the
+  // modal's own display.
+  const handleSubmitRating = async (
+    applicationId: string,
+    _scholarshipProviderId: string,
+    rating: number,
+    comment: string,
+  ) => {
+    await applicationsApi.submitReview(applicationId, _scholarshipProviderId, rating, comment);
+    void queryClient.invalidateQueries({ queryKey: ["application", "detail", id] });
+  };
 
   const withdrawMut = useMutation({
     mutationFn: () => applicationsApi.withdraw(id!),
@@ -170,6 +187,14 @@ export function StudentApplicationDetail() {
   const scholarshipTitle = isRtl ? data.scholarshipTitleAr : data.scholarshipTitleEn;
   const attachedDocs = parseStringArray(data.attachedDocumentsJson);
 
+  // FR-APP-35: rating is offered once, only for an in-app application that has
+  // reached a final decision and whose provider hasn't been rated yet.
+  const canRate =
+    (data.status === "Accepted" || data.status === "Rejected") &&
+    data.mode === "InApp" &&
+    !!data.scholarshipProviderId &&
+    !data.hasReview;
+
   return (
     <div className="space-y-5">
       <Link
@@ -200,6 +225,22 @@ export function StudentApplicationDetail() {
           >
             {t(`moderation:applicationStatus.${data.status}`)}
           </span>
+          {canRate && (
+            <button
+              type="button"
+              onClick={() => setRateOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 px-3 py-1.5 text-sm font-medium text-brand-600 transition hover:border-brand-400 hover:bg-brand-50"
+            >
+              <Star className="size-4" />
+              {t("moderation:appDetail.rateProvider")}
+            </button>
+          )}
+          {data.hasReview && (
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-success-100 px-3 py-1.5 text-sm font-medium text-success-600">
+              <Star className="size-4 fill-current" />
+              {t("moderation:appDetail.rated")}
+            </span>
+          )}
           {WITHDRAWABLE_STATUSES.includes(data.status) && (
             <button
               type="button"
@@ -358,6 +399,17 @@ export function StudentApplicationDetail() {
         loading={withdrawMut.isPending}
         onConfirm={() => withdrawMut.mutate()}
       />
+
+      {canRate && data.scholarshipProviderId && (
+        <RatingModal
+          isOpen={rateOpen}
+          onOpenChange={setRateOpen}
+          applicationId={data.id}
+          scholarshipProviderId={data.scholarshipProviderId}
+          scholarshipProviderName={data.scholarshipProviderName ?? ""}
+          onSubmitRating={handleSubmitRating}
+        />
+      )}
     </div>
   );
 }

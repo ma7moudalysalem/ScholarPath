@@ -31,7 +31,13 @@ public sealed record ApplicationDetailDto(
     DateTimeOffset? DecisionAt,
     // Surfaced so the student UI can decide whether to gate "Submit" behind
     // a ScholarshipProviderReview payment confirmation. Null/0 = no fee required.
-    decimal? ReviewFeeUsd);
+    decimal? ReviewFeeUsd,
+    // FR-APP-35: the in-app scholarship's owning provider, and whether this
+    // student has already rated them for this application. Together they let the
+    // student UI show a "Rate provider" action after a final decision and hide
+    // it once a rating exists. Null provider = external listing (nothing to rate).
+    Guid? ScholarshipProviderId,
+    bool HasReview);
 
 // ─── Query ────────────────────────────────────────────────────────────────────
 
@@ -69,6 +75,12 @@ public sealed class GetApplicationDetailQueryHandler(
 
         var scholarship = application.Scholarship;
 
+        // FR-APP-35: one rating per finalized application. Surface whether it
+        // already exists so the UI only offers "Rate provider" once.
+        var hasReview = await db.ScholarshipProviderReviews
+            .AsNoTracking()
+            .AnyAsync(r => r.ApplicationTrackerId == application.Id, ct);
+
         return new ApplicationDetailDto(
             application.Id,
             application.ScholarshipId,
@@ -89,6 +101,8 @@ public sealed class GetApplicationDetailQueryHandler(
             application.SubmittedAt,
             application.ReviewStartedAt,
             application.DecisionAt,
-            scholarship?.ReviewFeeUsd);
+            scholarship?.ReviewFeeUsd,
+            scholarship?.OwnerScholarshipProviderId,
+            hasReview);
     }
 }

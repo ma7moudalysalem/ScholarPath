@@ -123,6 +123,11 @@ export interface CreateScholarshipInput {
   reviewFeeUsd?: number;
   /** Ordered list of document names the applicant must upload (e.g. "Transcript"). */
   requiredDocuments?: string[];
+  /** Listing mode. Defaults to "InApp" server-side. Only an Admin may create
+   *  an "ExternalUrl" listing (FR-SCH-29/32). */
+  mode?: ListingMode;
+  /** Apply-out HTTPS URL — required when mode is "ExternalUrl" (FR-SCH-30). */
+  externalApplicationUrl?: string | null;
 }
 
 /**

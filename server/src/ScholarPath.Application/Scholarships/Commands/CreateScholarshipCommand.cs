@@ -95,16 +95,19 @@ public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholar
                 .NotEmpty()
                 .WithMessage("ExternalApplicationUrl is required when Mode is ExternalUrl.")
                 .MaximumLength(2048)
-                .Must(BeAbsoluteHttpUrl)
-                .WithMessage("ExternalApplicationUrl must be a valid absolute http or https URL.");
+                .Must(BeAbsoluteHttpsUrl)
+                .WithMessage("ExternalApplicationUrl must be a valid absolute HTTPS URL.");
         });
     }
 
-    private static bool BeAbsoluteHttpUrl(string? value)
+    private static bool BeAbsoluteHttpsUrl(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return false;
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)) return false;
-        return uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps;
+        // FR-SCH-30: External Scholarships require a valid HTTPS URL. Plain
+        // http is rejected — students must not be redirected to an insecure
+        // apply target.
+        return uri.Scheme == Uri.UriSchemeHttps;
     }
 }
 
@@ -119,6 +122,13 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
         var isAdmin = user.IsInRole("Admin") || user.IsInRole("SuperAdmin");
         if (!isAdmin && !user.IsInRole("ScholarshipProvider"))
             throw new ForbiddenAccessException("Only a ScholarshipProvider, Admin, or SuperAdmin account can create scholarship listings.");
+
+        // FR-SCH-29/32: External Scholarships are admin-only. A ScholarshipProvider
+        // may only post in-app (Local) listings — attempting to create an
+        // ExternalUrl listing is forbidden, not silently coerced, so the caller
+        // learns their request was rejected rather than getting a surprise mode.
+        if (!isAdmin && request.Mode == ListingMode.ExternalUrl)
+            throw new ForbiddenAccessException("Only an Admin can create External scholarships. Scholarship Providers can only create in-app (Local) listings.");
 
         // Admins create platform scholarships (no company owner); they go
         // straight to Open and do not need moderation approval.
