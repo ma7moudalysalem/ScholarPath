@@ -199,34 +199,75 @@ jobs:
             --output none
           echo "Applied ${#settings[@]} integration app setting(s)."
 
-      # CRITICAL: the running app holds its loaded assemblies open, so a plain
-      # rsync deploy CANNOT overwrite the *.dll on disk — rsync fails with
-      # "No such file or directory" (exit 23) and the API keeps serving STALE
-      # code (verified: server fixes silently didn't go live). Delete the
-      # deployed assemblies FIRST so the deploy writes a fresh, consistent set
-      # into place with no locked-file conflict; the app keeps running on its
-      # in-memory copies until restart:true reloads the new ones. Only *.dll is
-      # removed — uploads/, logs/, appsettings, and web.config are preserved.
-      - name: Release locked assemblies before deploy
+      # CRITICAL — reliable deploy on Linux App Service (Azure Files):
+      #
+      # The running app holds its loaded *.dll open on the Azure Files (SMB)
+      # /home share, which does NOT support overwriting/deleting an open file.
+      # A live rsync deploy therefore fails to replace ScholarPath.*.dll (rsync
+      # exit 23) and the API silently keeps serving STALE code — verified in
+      # prod: server fixes did not go live. (Do NOT try to pre-delete the DLLs
+      # either — on Azure Files a delete-while-open leaves the path in a locked
+      # "pending delete" limbo that nothing can recreate until the app stops.)
+      #
+      # The only reliable fix: STOP the app (releases the SMB handles), deploy
+      # into the now-free wwwroot, then START. Kudu/SCM stays reachable while the
+      # app is stopped, so the deploy still works. Costs ~1-2 min of downtime per
+      # (manual) deploy in exchange for the code actually landing.
+      - name: Package publish output as a zip
         run: |
-          token=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
-          scm="https://${{ vars.AZURE_API_APP_NAME }}.scm.azurewebsites.net/api/command"
-          code=$(curl -s -o /tmp/clean.json -w "%{http_code}" -X POST "$scm" \
-            -H "Authorization: Bearer $token" -H "Content-Type: application/json" \
-            -d '{"command":"find /home/site/wwwroot -maxdepth 2 -name \"*.dll\" -delete","dir":"/home"}')
-          echo "assembly-clean HTTP $code"; cat /tmp/clean.json || true
-          if [ "$code" != "200" ]; then echo "Assembly clean failed — aborting to avoid a partial deploy."; exit 1; fi
+          cd ${{ github.workspace }}/publish
+          zip -r -q ${{ github.workspace }}/api.zip .
 
-      - name: Deploy to Azure App Service
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ vars.AZURE_API_APP_NAME }}
-          package: ${{ github.workspace }}/publish
-          # `clean: true` is intentionally NOT set — on Linux App Service it runs
-          # Kudu's parallel_rsync with a delete flag that races (exit 23). We
-          # release locked assemblies in the step above instead, then rsync writes
-          # into the freed slots and restart:true loads the fresh set.
-          restart: true
+      - name: Deploy to Azure App Service (stop → deploy → start)
+        run: |
+          APP="${{ vars.AZURE_API_APP_NAME }}"
+          RG=$(az webapp list --query "[?name=='$APP'].resourceGroup | [0]" -o tsv)
+          if [ -z "$RG" ]; then echo "Could not resolve resource group for $APP."; exit 1; fi
+
+          echo "::group::Stop $APP (release Azure Files assembly locks)"
+          az webapp stop --name "$APP" --resource-group "$RG"
+          sleep 10
+          echo "::endgroup::"
+
+          echo "::group::Deploy while stopped (no locked files) — async, then poll"
+          # --async: return after the upload; the extraction/rsync runs server-side.
+          # --restart false: the app is stopped; we start it explicitly below.
+          az webapp deploy --name "$APP" --resource-group "$RG" \
+            --src-path "${{ github.workspace }}/api.zip" --type zip \
+            --clean false --restart false --async true
+          token=$(az account get-access-token --resource https://management.azure.com --query accessToken -o tsv)
+          scm="https://$APP.scm.azurewebsites.net/api/deployments/latest"
+          ok=0
+          for i in $(seq 1 40); do
+            body=$(curl -s "$scm" -H "Authorization: Bearer $token")
+            echo "$body" | grep -q '"complete":true' && { ok=1; echo "deployment complete (poll $i)"; break; }
+            echo "…deploying (poll $i)"; sleep 10
+          done
+          status=$(curl -s "$scm" -H "Authorization: Bearer $token" | grep -oE '"status":[0-9]+' | grep -oE '[0-9]+')
+          echo "final deployment status=$status (4=success, 3=failed)"
+          echo "::endgroup::"
+
+          echo "::group::Start $APP"
+          az webapp start --name "$APP" --resource-group "$RG"
+          echo "::endgroup::"
+
+          # status 4 = success. Anything else (or never-completed) fails the job —
+          # but the app has already been started so it can recover on the next run.
+          if [ "$ok" != "1" ] || [ "$status" != "4" ]; then
+            echo "Deployment did not report success."; exit 1
+          fi
+
+      - name: Verify API is healthy after deploy
+        run: |
+          url="https://${{ vars.AZURE_API_APP_NAME }}.azurewebsites.net/health"
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "$url" || true)
+            echo "health poll $i: $code"
+            [ "$code" = "200" ] && ok=$((ok+1)) || ok=0
+            [ "${ok:-0}" -ge 3 ] && { echo "API healthy."; exit 0; }
+            sleep 10
+          done
+          echo "API did not become healthy in time."; exit 1
 
       - name: Azure logout
         if: always()
