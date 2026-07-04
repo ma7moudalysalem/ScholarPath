@@ -4,6 +4,7 @@ using ScholarPath.Application.Common;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
+using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Scholarships.Commands;
@@ -98,6 +99,15 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
                 }
                 entity.ReviewFeeUsd = fee;
             }
+        }
+
+        // PB-005: editing a live (Open) listing sends it back through moderation
+        // so the changed content is re-reviewed by an admin before it is public
+        // again. Drafts / under-review / closed listings are left as-is.
+        if (entity.Status == ScholarshipStatus.Open)
+        {
+            entity.Status = ScholarshipStatus.UnderReview;
+            entity.OpenedAt = null;
         }
 
         await db.SaveChangesAsync(ct);

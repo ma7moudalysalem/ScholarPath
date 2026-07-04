@@ -42,10 +42,6 @@ export function Community() {
   const [tab, setTab] = useState<FeedTab>("all");
   const [askOpen, setAskOpen] = useState(false);
 
-  // The server returns 409 if someone tries to vote on a post they authored.
-  // We pre-empt that here by disabling the buttons for posts authored by the
-  // current user — single source of truth is the auth store.
-  const currentUserId = useAuthStore((state) => state.user?.id);
   const activeRole = useAuthStore((state) => state.user?.activeRole);
   const roles = useAuthStore((state) => state.user?.roles ?? []);
   const isStudent = activeRole === "Student" || roles.includes("Student");
@@ -439,8 +435,6 @@ export function Community() {
               ))
             ) : posts.length > 0 ? (
               posts.map((post, idx) => {
-                const isOwnPost = post.authorId === currentUserId;
-                const voteDisabledTitle = isOwnPost ? t("actions.voteOwnPost") : undefined;
                 const score = post.upvoteCount - post.downvoteCount;
                 const categoryName =
                   categories.find((c) => c.id === post.categoryId)?.[isRtl ? "nameAr" : "nameEn"] ||
@@ -463,8 +457,6 @@ export function Community() {
                             <button
                               type="button"
                               aria-label={t("thread.upvote")}
-                              disabled={isOwnPost}
-                              title={voteDisabledTitle}
                               onClick={(e) => handleVote(e, post.id, "Up")}
                               className="p-1.5 rounded-md text-text-tertiary hover:text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                             >
@@ -478,8 +470,6 @@ export function Community() {
                             <button
                               type="button"
                               aria-label={t("thread.downvote")}
-                              disabled={isOwnPost}
-                              title={voteDisabledTitle}
                               onClick={(e) => handleVote(e, post.id, "Down")}
                               className="p-1.5 rounded-md text-text-tertiary hover:text-danger-500 hover:bg-danger-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
                             >

@@ -10,14 +10,17 @@ public sealed class ToggleVoteCommandHandlerTests : IDisposable
     public void Dispose() => _h.Dispose();
 
     [Fact]
-    public async Task Self_vote_is_blocked()
+    public async Task Author_can_vote_on_own_post()
     {
+        // The self-vote block was removed on request — authors may upvote their
+        // own posts, and the unique (post, user) vote still caps it at one.
         var post = await _h.SeedPostAsync(_h.StudentA);
         _h.AsStudent(_h.StudentA);
         var handler = new ToggleVoteCommandHandler(_h.Db, _h.CurrentUser);
 
-        await Assert.ThrowsAsync<ConflictException>(() =>
-            handler.Handle(new ToggleVoteCommand(post.Id, VoteType.Up), CancellationToken.None));
+        await handler.Handle(new ToggleVoteCommand(post.Id, VoteType.Up), CancellationToken.None);
+
+        _h.Db.ForumPosts.Single(p => p.Id == post.Id).UpvoteCount.Should().Be(1);
     }
 
     [Fact]

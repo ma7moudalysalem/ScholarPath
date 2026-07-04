@@ -571,16 +571,27 @@ export function ScholarshipsPage() {
             </h2>
           )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {data!.items.map((s, i) => (
-              <ScholarshipCard
-                key={s.id}
-                scholarship={s}
-                isRtl={isRtl}
-                dateLocale={dateLocale}
-                onBookmark={handleBookmark}
-                index={i}
-              />
-            ))}
+            {(() => {
+              // On the default discovery view the featured strip above already
+              // shows the top 3 featured listings; drop them from the main grid
+              // so the same scholarship isn't rendered twice.
+              const stripIds =
+                !query && !hasActiveFilters && featured
+                  ? new Set(featured.slice(0, 3).map((f) => f.id))
+                  : new Set<string>();
+              return data!.items
+                .filter((s) => !stripIds.has(s.id))
+                .map((s, i) => (
+                  <ScholarshipCard
+                    key={s.id}
+                    scholarship={s}
+                    isRtl={isRtl}
+                    dateLocale={dateLocale}
+                    onBookmark={handleBookmark}
+                    index={i}
+                  />
+                ));
+            })()}
           </div>
         </section>
       )}
