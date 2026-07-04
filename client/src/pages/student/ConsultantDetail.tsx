@@ -230,8 +230,8 @@ export function ConsultantDetail() {
 
           {/* Expertise tags */}
           <div className="mt-5 flex flex-wrap gap-1.5">
-            {consultant.expertiseTags.length > 0 ? (
-              consultant.expertiseTags.map((tag) => (
+            {(consultant.expertiseTags ?? []).length > 0 ? (
+              (consultant.expertiseTags ?? []).map((tag) => (
                 <span key={tag} className="badge badge-brand">{expertiseTagLabelByLang(tag, i18n.language)}</span>
               ))
             ) : (
@@ -265,8 +265,8 @@ export function ConsultantDetail() {
               icon={Languages}
               label={t("detail.languages")}
               value={
-                consultant.languages.length > 0
-                  ? consultant.languages.map(c => languageNameByLang(c, i18n.language)).join(" · ")
+                (consultant.languages ?? []).length > 0
+                  ? (consultant.languages ?? []).map(c => languageNameByLang(c, i18n.language)).join(" · ")
                   : "—"
               }
             />
@@ -291,13 +291,13 @@ export function ConsultantDetail() {
             </section>
           )}
 
-          {consultant.recentReviews.length > 0 && (
+          {(consultant.recentReviews ?? []).length > 0 && (
             <section className="rounded-2xl border border-border-subtle bg-bg-elevated p-6 shadow-xs">
               <h2 className="mb-4 text-base font-semibold text-text-primary">
                 {t("detail.reviewsTitle")}
               </h2>
               <div className="space-y-4">
-                {consultant.recentReviews.map((review) => (
+                {(consultant.recentReviews ?? []).map((review) => (
                   <div
                     key={review.id}
                     className="rounded-xl border border-border-subtle bg-bg-muted p-4"

@@ -57,7 +57,7 @@ public sealed class ReviewApplicationCommandHandler(
         await notifications.DispatchAsync(
             application.StudentId,
             NotificationType.ApplicationStatusChanged,
-            new NotificationParams { StatusText = request.Status.ToString() },
+            new NotificationParams { StatusText = request.Status.ToString(), Reason = request.DecisionReason },
             null,
             null,
             ct);

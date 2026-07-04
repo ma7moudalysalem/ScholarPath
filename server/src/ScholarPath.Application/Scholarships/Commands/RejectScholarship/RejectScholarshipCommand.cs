@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 
@@ -39,6 +40,7 @@ public sealed class RejectScholarshipCommandValidator : AbstractValidator<Reject
 public sealed class RejectScholarshipCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
+    INotificationDispatcher notifications,
     ILogger<RejectScholarshipCommandHandler> logger)
     : IRequestHandler<RejectScholarshipCommand, bool>
 {
@@ -62,6 +64,19 @@ public sealed class RejectScholarshipCommandHandler(
         scholarship.RejectedAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        // Notify the owning provider with the reason (US-SCH-13). Ownerless
+        // (admin-created) listings have no provider to tell.
+        if (scholarship.OwnerScholarshipProviderId is { } ownerId)
+        {
+            await notifications.DispatchAsync(
+                ownerId,
+                NotificationType.ScholarshipRejected,
+                new NotificationParams { TitleEn = scholarship.TitleEn, TitleAr = scholarship.TitleAr, Reason = request.Reason },
+                deepLink: "/company/scholarships",
+                idempotencyKey: $"scholarship-rejected:{scholarship.Id}:{scholarship.RejectedAt:O}",
+                ct).ConfigureAwait(false);
+        }
 
         logger.LogInformation(
             "Scholarship {ScholarshipId} rejected by {AdminId}. Reason: {Reason}",

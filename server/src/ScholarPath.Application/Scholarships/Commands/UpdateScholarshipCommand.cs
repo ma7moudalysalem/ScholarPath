@@ -48,9 +48,16 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
     {
         var entity = await db.Scholarships
             .Include(x => x.Applications)
-            .FirstOrDefaultAsync(x => x.Id == request.Id, ct);
+            .FirstOrDefaultAsync(x => x.Id == request.Id && !x.IsDeleted, ct);
 
         if (entity == null) throw new NotFoundException(nameof(Scholarship), request.Id);
+
+        // FR-SCH-35: a Closed or Archived listing is terminal — it can't be
+        // edited in place (a Closed one must be reopened first; an Archived one
+        // is soft-deleted). Only Draft / UnderReview / Open are editable.
+        if (entity.Status is ScholarshipStatus.Closed or ScholarshipStatus.Archived)
+            throw new ConflictException(
+                "This scholarship can no longer be edited. Reopen a closed listing before editing it.");
 
         // FR-SCH-18/19: a provider may edit only their OWN listing. An
         // admin-created (ownerless) listing — e.g. an External scholarship — is

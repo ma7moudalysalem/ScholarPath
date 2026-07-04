@@ -257,7 +257,7 @@ export function ResourceDetail() {
   const content = isAr
     ? data.contentMarkdownAr ?? data.contentMarkdownEn
     : data.contentMarkdownEn ?? data.contentMarkdownAr;
-  const chapters = [...data.chapters].sort((a, b) => a.sortOrder - b.sortOrder);
+  const chapters = [...(data.chapters ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
   const Icon = TYPE_ICON[data.type];
   const typeBadge = TYPE_THEME[data.type];
 
@@ -323,9 +323,9 @@ export function ResourceDetail() {
                 </p>
               )}
 
-              {data.tags.length > 0 && (
+              {(data.tags ?? []).length > 0 && (
                 <div className="mt-5 flex flex-wrap gap-1.5">
-                  {data.tags.map((tag) => (
+                  {(data.tags ?? []).map((tag) => (
                     <span
                       key={tag}
                       className="rounded-md bg-bg-subtle border border-border-subtle px-2 py-0.5 text-xs font-medium text-text-secondary"

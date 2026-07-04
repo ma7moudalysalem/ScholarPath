@@ -353,9 +353,9 @@ export function CommunityThread() {
                 {forumPostTitle(thread.post, isRtl)}
               </h1>
 
-              {thread.post.tags.length > 0 && (
+              {(thread.post.tags ?? []).length > 0 && (
                 <div className="mb-4 flex flex-wrap gap-1.5">
-                  {thread.post.tags.map((tag) => (
+                  {(thread.post.tags ?? []).map((tag) => (
                     <Link
                       key={tag}
                       to={`/student/community?tag=${encodeURIComponent(tag)}`}
@@ -418,12 +418,12 @@ export function CommunityThread() {
 
       {/* Replies List */}
       <div className="space-y-3 relative">
-        {thread.replies.length > 0 && (
+        {(thread.replies ?? []).length > 0 && (
           <h2 className="text-sm font-bold text-text-secondary uppercase tracking-wider mb-2">
             {t("thread.commentsCount", { count: thread.post.replyCount })}
           </h2>
         )}
-        {thread.replies.map((reply, idx) => {
+        {(thread.replies ?? []).map((reply, idx) => {
           const isOwnReply = reply.authorId === currentUserId;
           const replyVoteTitle = isOwnReply ? t("actions.voteOwnPost") : undefined;
           const replyScore = reply.upvoteCount - reply.downvoteCount;

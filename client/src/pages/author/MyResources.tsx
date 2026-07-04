@@ -139,9 +139,9 @@ export function MyResources() {
                   <tr key={r.id} className="transition hover:bg-bg-subtle/40">
                     <td className="max-w-xs px-4 py-3">
                       <p className="truncate font-medium text-text-primary">{title}</p>
-                      {r.tags.length > 0 && (
+                      {(r.tags ?? []).length > 0 && (
                         <p className="mt-0.5 truncate text-xs text-text-tertiary">
-                          {r.tags.slice(0, 3).join(" · ")}
+                          {(r.tags ?? []).slice(0, 3).join(" · ")}
                         </p>
                       )}
                     </td>
