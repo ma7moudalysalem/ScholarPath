@@ -49,20 +49,26 @@ public sealed class ScholarshipProviderReviewTimeoutRefundJob(
             return;
         }
 
+        // Batch-load the refundable payments for all expired applications in ONE query
+        // (was an N+1 — one FirstOrDefault per application).
+        var appIds = expiredApplications.Select(a => a.Id).ToList();
+        var paymentsByApp = (await db.Payments
+                .Where(p => p.Type == PaymentType.ScholarshipProviderReview
+                            && p.RelatedApplicationId != null
+                            && appIds.Contains(p.RelatedApplicationId.Value)
+                            && (p.Status == PaymentStatus.Held
+                                || p.Status == PaymentStatus.Pending
+                                || p.Status == PaymentStatus.Captured))
+                .ToListAsync(ct)
+                .ConfigureAwait(false))
+            .GroupBy(p => p.RelatedApplicationId!.Value)
+            .ToDictionary(g => g.Key, g => g.First());
+
         int refunded = 0;
 
         foreach (var app in expiredApplications)
         {
-            var payment = await db.Payments
-                .FirstOrDefaultAsync(p =>
-                    p.Type == PaymentType.ScholarshipProviderReview
-                    && p.RelatedApplicationId == app.Id
-                    && (p.Status == PaymentStatus.Held
-                        || p.Status == PaymentStatus.Pending
-                        || p.Status == PaymentStatus.Captured),
-                    ct);
-
-            if (payment is null) continue;
+            if (!paymentsByApp.TryGetValue(app.Id, out var payment)) continue;
             if (string.IsNullOrWhiteSpace(payment.StripePaymentIntentId)) continue;
 
             try
@@ -115,6 +121,13 @@ public sealed class ScholarshipProviderReviewTimeoutRefundJob(
                     payment.PayeeAmountCents = retainedSplit.PayeeNetCents;
                 }
 
+                // Persist THIS application's refund immediately — each refund is its own
+                // unit of work. Previously a single SaveChanges after the whole loop meant
+                // a mid-loop crash left Stripe having refunded N payments while zero DB rows
+                // were saved (they'd be reprocessed next run — safe via the Stripe idempotency
+                // key, but fragile). Saving per iteration bounds that window to one row.
+                await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
                 await notifications.DispatchAsync(
                     app.StudentId,
                     NotificationType.ScholarshipProviderReviewRefunded,
@@ -133,7 +146,6 @@ public sealed class ScholarshipProviderReviewTimeoutRefundJob(
             }
         }
 
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
         logger.LogInformation(
             "ScholarshipProviderReviewTimeoutRefundJob — scanned {Scanned} expired applications, refunded {Refunded}.",
             expiredApplications.Count, refunded);
