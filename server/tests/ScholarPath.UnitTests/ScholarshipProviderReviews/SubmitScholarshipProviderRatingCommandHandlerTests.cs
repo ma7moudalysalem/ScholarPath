@@ -348,33 +348,41 @@ public sealed class SubmitScholarshipProviderRatingCommandHandlerTests : IDispos
     }
 
     [Fact]
-    public async Task Handle_OldLowRatingsOutsideWindow_DoNotFlag()
+    public async Task Handle_ReviewsBeyondLatest20_ExcludedFromRatingAndFlag()
     {
-        // FR-APP-35: the flag decision is scoped to the trailing 3 months. Two
-        // old 1-star reviews (4 months ago) drag the ALL-TIME average below 2.5,
-        // but a recent good rating means the 3-month window average is healthy —
-        // so the company must NOT be flagged.
+        // FR-APP-35 (updated): the rating + flag use the latest 20 reviews only.
+        // A pile of OLD 5-star reviews keeps the ALL-TIME average healthy, but a
+        // run of RECENT 1-stars fills the latest-20 window → the company IS
+        // flagged on its recent decline, and the displayed average reflects the
+        // window (not all-time).
         var studentId = Guid.NewGuid();
         _currentUser.UserId.Returns(studentId);
         var (appId, companyId) = await SeedApplicationAsync(studentId, ApplicationStatus.Accepted);
         await SeedAdminAsync();
 
-        var fourMonthsAgo = DateTimeOffset.UtcNow.AddMonths(-4);
-        await SeedExistingReviewAsync(companyId, rating: 1, createdAt: fourMonthsAgo);
-        await SeedExistingReviewAsync(companyId, rating: 1, createdAt: fourMonthsAgo);
+        var now = DateTimeOffset.UtcNow;
+        // 25 old 5-star reviews (a year ago) — pushed out of the latest-20 window.
+        for (var i = 0; i < 25; i++)
+        {
+            await SeedExistingReviewAsync(companyId, rating: 5, createdAt: now.AddYears(-1).AddMinutes(i));
+        }
+        // 19 recent 1-star reviews (last half hour) — inside the window.
+        for (var i = 0; i < 19; i++)
+        {
+            await SeedExistingReviewAsync(companyId, rating: 1, createdAt: now.AddMinutes(-30 + i));
+        }
 
-        // Recent 5-star. All-time avg = (1+1+5)/3 = 2.33 (< 2.5), but the last
-        // 3 months hold only the 5-star → window avg 5.0 → no flag.
+        // The submitted 1-star (newest) makes twenty recent 1-stars in the window → avg 1.00.
         await _handler.Handle(
-            new SubmitScholarshipProviderRatingCommand(appId, 5, null), CancellationToken.None);
+            new SubmitScholarshipProviderRatingCommand(appId, 1, null), CancellationToken.None);
 
         var profile = await _db.UserProfiles.SingleAsync(p => p.UserId == companyId);
-        profile.ScholarshipProviderLowRatingFlaggedAt.Should().BeNull();
-        // The displayed snapshot stays all-time.
-        profile.ScholarshipProviderReviewCount.Should().Be(3);
-        profile.ScholarshipProviderAverageRating.Should().Be(2.33m);
+        // Displayed count is all-time (25 + 19 + 1); the average is the latest-20 window.
+        profile.ScholarshipProviderReviewCount.Should().Be(45);
+        profile.ScholarshipProviderAverageRating.Should().Be(1.00m);
+        profile.ScholarshipProviderLowRatingFlaggedAt.Should().NotBeNull();
 
-        await _notif.DidNotReceive().DispatchAsync(
+        await _notif.Received().DispatchAsync(
             Arg.Any<Guid>(),
             NotificationType.ScholarshipProviderLowRatingFlagged,
             Arg.Any<NotificationParams>(),

@@ -19,6 +19,15 @@ public static class ConsultantRatingThresholds
     public const decimal LowRatingThreshold = 2.5m;
 
     /// <summary>
+    /// FR-CBR-38: the displayed rating and the low-rating flag are both computed
+    /// from the most recent N reviews only ("latest 20 reviews", newest first) —
+    /// not the all-time set and not a calendar window. A consultant who recently
+    /// improved is not held back by old ratings, and a recent decline is caught
+    /// even if the all-time average is still healthy.
+    /// </summary>
+    public const int RatingWindowSize = 20;
+
+    /// <summary>
     /// Minimum number of visible reviews required before the penalized-average
     /// admin flag fires. Set to 5 to match the booking-intake auto-suspend sample
     /// floor (BookingOptions.LowRatingMinimumSampleSize) — a single noisy 2-star (or

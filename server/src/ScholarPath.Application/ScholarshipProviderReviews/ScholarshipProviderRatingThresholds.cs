@@ -5,10 +5,11 @@ namespace ScholarPath.Application.ScholarshipProviderReviews;
 ///
 /// <para>
 /// When a Student submits a ScholarshipProviderReview, the handler recomputes the
-/// ScholarshipProvider's average rating across its visible reviews (not soft-deleted, not
-/// admin-hidden). If the average falls below <see cref="LowRatingThreshold"/>
-/// and the ScholarshipProvider has at least <see cref="MinimumReviewsForFlagging"/> visible
-/// review(s), the ScholarshipProvider's <c>UserProfile.ScholarshipProviderLowRatingFlaggedAt</c> is
+/// ScholarshipProvider's average rating from the most recent <see cref="RatingWindowSize"/>
+/// visible reviews (not soft-deleted, not admin-hidden), newest first. If that average
+/// falls below <see cref="LowRatingThreshold"/> and the ScholarshipProvider has at least
+/// <see cref="MinimumReviewsForFlagging"/> visible review(s) in that window, the
+/// ScholarshipProvider's <c>UserProfile.ScholarshipProviderLowRatingFlaggedAt</c> is
 /// stamped and the admins are notified — they triage the queue and either
 /// clear the flag or suspend the account via the existing
 /// <c>SetUserStatusCommand</c>.
@@ -36,9 +37,9 @@ public static class ScholarshipProviderRatingThresholds
     public const int MinimumReviewsForFlagging = 1;
 
     /// <summary>
-    /// FR-APP-35: the flag decision considers only reviews created within this
-    /// trailing window (in months). The displayed all-time average is unaffected
-    /// — only the flag trigger is time-scoped.
+    /// FR-APP-35 (updated): both the displayed rating and the low-rating flag are
+    /// computed from the most recent N reviews only ("latest 20 reviews", newest
+    /// first) — not the all-time set and not a calendar window.
     /// </summary>
-    public const int FlaggingWindowMonths = 3;
+    public const int RatingWindowSize = 20;
 }
