@@ -118,7 +118,7 @@ public sealed class ReviewUpgradeRequestConsultantMarkerTests : IDisposable
     public async Task Approving_company_upgrade_does_not_set_consultant_marker()
     {
         var userId = SeedUserWithProfile();
-        var reqId = SeedPendingRequest(userId, UpgradeTarget.Company);
+        var reqId = SeedPendingRequest(userId, UpgradeTarget.ScholarshipProvider);
 
         await Sut(Substitute.For<IUserAdministration>()).Handle(
             new ReviewUpgradeRequestCommand(reqId, UpgradeDecision.Approve, null), default);

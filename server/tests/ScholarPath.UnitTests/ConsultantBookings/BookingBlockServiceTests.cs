@@ -92,8 +92,12 @@ public sealed class BookingBlockServiceTests
         currentUser.UserId.Returns(studentId);
         var stripe = Substitute.For<IStripeService>();
         var publisher = Substitute.For<IPublisher>();
+        // The consultant is eligible; this test exercises the student-block guard.
+        var eligibility = Substitute.For<IConsultantEligibilityService>();
+        eligibility.CanActAsConsultantAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(true);
 
-        var handler = new RequestBookingCommandHandler(db, currentUser, stripe, publisher);
+        var handler = new RequestBookingCommandHandler(db, currentUser, stripe, publisher, eligibility);
         var start = DateTimeOffset.UtcNow.AddDays(2);
         var command = new RequestBookingCommand(
             Guid.NewGuid(), null, start, start.AddMinutes(45), "UTC", null);
