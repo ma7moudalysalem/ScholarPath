@@ -25,7 +25,27 @@
     "decisionReason": "ملاحظة القرار",
     "personalNotes": "ملاحظاتك",
     "formData": "بيانات النموذج المقدّم",
-    "documents": "المستندات المرفقة",
+    "documents": {
+      "heading": "المستندات",
+      "types": {
+        "Transcript": "كشف الدرجات",
+        "Certificate": "شهادة",
+        "RecommendationLetter": "خطاب توصية",
+        "PersonalStatement": "خطاب شخصي",
+        "Resume": "السيرة الذاتية",
+        "IdentityDocument": "وثيقة هوية",
+        "ProofOfEnglish": "إثبات إتقان الإنجليزية",
+        "FinancialDocument": "وثيقة مالية",
+        "Portfolio": "نموذج الأعمال",
+        "Other": "أخرى"
+      },
+      "uploadCta": "ارفع ملف",
+      "uploading": "جارٍ الرفع…",
+      "remove": "إزالة",
+      "uploadError": "تعذّر رفع الملف. حاول مرة أخرى.",
+      "reuseFromVault": "أو استخدم ملفاً سبق رفعه",
+      "missing": "هذا المستند مطلوب."
+    },
     "externalTracking": "التتبّع الخارجي",
     "externalRef": "المرجع الخارجي",
     "openExternal": "فتح الإعلان الخارجي",
@@ -67,26 +87,6 @@
       "incomplete": "املأ كل حقل مطلوب وأرفِق مستندًا واحدًا على الأقل قبل الإرسال.",
       "fieldRequired": "هذا الحقل مطلوب.",
       "confirmRequired": "أكّد البيانات قبل الإرسال."
-    },
-    "documents": {
-      "types": {
-        "Transcript": "كشف الدرجات",
-        "Certificate": "شهادة",
-        "RecommendationLetter": "خطاب توصية",
-        "PersonalStatement": "خطاب شخصي",
-        "Resume": "السيرة الذاتية",
-        "IdentityDocument": "وثيقة هوية",
-        "ProofOfEnglish": "إثبات إتقان الإنجليزية",
-        "FinancialDocument": "وثيقة مالية",
-        "Portfolio": "نموذج الأعمال",
-        "Other": "أخرى"
-      },
-      "uploadCta": "ارفع ملف",
-      "uploading": "جارٍ الرفع…",
-      "remove": "إزالة",
-      "uploadError": "تعذّر رفع الملف. حاول مرة أخرى.",
-      "reuseFromVault": "أو استخدم ملفاً سبق رفعه",
-      "missing": "هذا المستند مطلوب."
     }
   },
   "applicationStatus": {

@@ -387,7 +387,7 @@ export function StudentApplicationDetail() {
       {!isDraft && attachedDocs.length > 0 && (
         <section className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
           <h2 className="mb-3 text-lg font-semibold text-text-primary">
-            {t("moderation:appDetail.documents")}
+            {t("moderation:appDetail.documents.heading")}
           </h2>
           <ul className="space-y-1.5">
             {attachedDocs.map((doc) => (
