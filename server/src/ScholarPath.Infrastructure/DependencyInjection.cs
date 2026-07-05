@@ -23,6 +23,14 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration config)
     {
+        // Ensure IHttpClientFactory always exists. Several services (e.g.
+        // AzureFineTuningService) depend on it unconditionally, but the named
+        // AddHttpClient registrations below are behind provider conditionals — so
+        // in a fully-stubbed environment (Development) the factory would otherwise
+        // be missing and DI validation on build would fail. Named clients still
+        // coexist with this default registration.
+        services.AddHttpClient();
+
         // ─── Options ────────────────────────────────────────────────────────────
         services.Configure<JwtOptions>(config.GetSection(JwtOptions.SectionName));
         services.Configure<StripeOptions>(config.GetSection(StripeOptions.SectionName));

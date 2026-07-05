@@ -130,6 +130,10 @@ public static partial class DbSeeder
 
         var bookings = await SeedConsultantModuleAsync(db, users, logger, ct).ConfigureAwait(false);
 
+        // Rich bilingual consultant reviews + provider rating snapshots so the
+        // marketplace and rating pages look realistic at scale (demo/screenshots).
+        await SeedBulkReviewsAsync(db, users, logger, ct).ConfigureAwait(false);
+
         await SeedCommunityAsync(db, users, logger, ct).ConfigureAwait(false);
         await SeedChatAsync(db, users, logger, ct).ConfigureAwait(false);
         await SeedPaymentsAsync(db, users, applications, bookings, logger, ct).ConfigureAwait(false);
@@ -141,6 +145,60 @@ public static partial class DbSeeder
         await SeedNotificationsAsync(db, users, logger, ct).ConfigureAwait(false);
         await SeedSuccessStoriesAsync(db, users, logger, ct).ConfigureAwait(false);
         await SeedAiAsync(db, users, scholarships, logger, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// DESTRUCTIVE one-shot: deletes every data row from every application table
+    /// (keeping the schema and <c>__EFMigrationsHistory</c>) so the idempotent
+    /// <see cref="SeedAsync"/> repopulates a fresh demo dataset on the same boot.
+    /// Gated behind the <c>ResetAndReseedData</c> config flag in Program.cs —
+    /// never call this unguarded. No-op on a non-relational provider (tests).
+    /// </summary>
+    public static async Task ResetDemoDataAsync(
+        ApplicationDbContext db, ILogger logger, CancellationToken ct)
+    {
+        if (!db.Database.IsRelational())
+        {
+            return;
+        }
+
+        logger.LogWarning(
+            "ResetAndReseedData=true — WIPING all application data before reseeding. " +
+            "This is destructive and intended only for a demo-data refresh.");
+        db.Database.SetCommandTimeout(TimeSpan.FromMinutes(5));
+
+        // Dynamic SQL: disable every FK, delete every user-table row except the
+        // migration history + DataProtection keys, then re-enable the FKs. Ordering
+        // is irrelevant because constraints are off during the deletes.
+        const string sql = @"
+-- Required so DELETE works against tables that carry filtered indexes
+-- (e.g. the active-booking unique index) regardless of the caller's session.
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+
+DECLARE @excluded TABLE (name sysname);
+INSERT INTO @excluded(name) VALUES ('__EFMigrationsHistory'), ('DataProtectionKeys');
+
+DECLARE @sql NVARCHAR(MAX);
+
+SET @sql = N'';
+SELECT @sql += 'ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(t.schema_id)) + '.' + QUOTENAME(t.name) + ' NOCHECK CONSTRAINT ALL;' + CHAR(10)
+FROM sys.tables t WHERE t.is_ms_shipped = 0 AND t.name NOT IN (SELECT name FROM @excluded);
+EXEC sp_executesql @sql;
+
+SET @sql = N'';
+SELECT @sql += 'DELETE FROM ' + QUOTENAME(SCHEMA_NAME(t.schema_id)) + '.' + QUOTENAME(t.name) + ';' + CHAR(10)
+FROM sys.tables t WHERE t.is_ms_shipped = 0 AND t.name NOT IN (SELECT name FROM @excluded);
+EXEC sp_executesql @sql;
+
+SET @sql = N'';
+SELECT @sql += 'ALTER TABLE ' + QUOTENAME(SCHEMA_NAME(t.schema_id)) + '.' + QUOTENAME(t.name) + ' WITH CHECK CHECK CONSTRAINT ALL;' + CHAR(10)
+FROM sys.tables t WHERE t.is_ms_shipped = 0 AND t.name NOT IN (SELECT name FROM @excluded);
+EXEC sp_executesql @sql;
+";
+
+        await db.Database.ExecuteSqlRawAsync(sql, ct).ConfigureAwait(false);
+        logger.LogWarning("Data wipe complete — the seeder will now repopulate a fresh demo dataset.");
     }
 
     private static async Task SeedPlatformSettingsAsync(

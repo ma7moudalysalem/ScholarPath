@@ -443,6 +443,16 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("SeedDem
             var db = sp.GetRequiredService<ApplicationDbContext>();
             var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
             var rm = sp.GetRequiredService<RoleManager<ApplicationRole>>();
+
+            // One-shot destructive refresh: when ResetAndReseedData=true, wipe all
+            // application data first so the (idempotent) seeder repopulates a fresh
+            // demo dataset. Turn the flag OFF again after the refresh so a normal
+            // restart never wipes.
+            if (app.Configuration.GetValue<bool>("ResetAndReseedData"))
+            {
+                await DbSeeder.ResetDemoDataAsync(db, logger, CancellationToken.None).ConfigureAwait(false);
+            }
+
             await DbSeeder.SeedAsync(db, um, rm, logger, CancellationToken.None).ConfigureAwait(false);
 
             // Bootstrap the RAG pipeline once the demo data exists: import the
