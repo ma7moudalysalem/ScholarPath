@@ -36,8 +36,27 @@
     "bookmark": "Save",
     "bookmarkToggle": "Toggle bookmark",
     "markComplete": "Done",
+    "completed": "Completed",
+    "progressLabel": "{{done}} of {{total}} chapters completed",
+    "progressPercent": "{{percent}}%",
     "chapterMarked": "Chapter marked as complete.",
     "resourceComplete": "Resource complete! Well done."
+  },
+  "progress": {
+    "title": "My Resource Progress",
+    "subtitle": "Resources you've started and how far you've gotten.",
+    "loadError": "Could not load your progress.",
+    "retry": "Retry",
+    "empty": "You haven't started any resources yet.",
+    "emptyBody": "Open a guide or checklist and mark chapters complete to track your progress here.",
+    "browse": "Browse resources",
+    "inProgress": "In progress",
+    "completed": "Completed",
+    "chaptersDone": "{{done}} of {{total}} chapters",
+    "percentComplete": "{{percent}}% complete",
+    "continue": "Continue",
+    "review": "Review",
+    "lastAccessed": "Last opened {{date}}"
   },
   "author": {
     "title": "My Resources",

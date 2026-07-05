@@ -15,6 +15,7 @@
     "bookings": "Bookings",
     "community": "Community",
     "resources": "Resources",
+    "resourceProgress": "My Progress",
     "documents": "Documents",
     "ai": "AI",
     "messages": "Messages",
@@ -29,7 +30,7 @@
     "resources": "My resources",
     "insights": "Insights",
     "reviews": "Reviews",
-    "bookings": "Bookings"
+    "messages": "Messages"
   },
   "consultant": {
     "dashboard": "Dashboard",
@@ -39,7 +40,8 @@
     "resources": "My resources",
     "analytics": "My Analytics",
     "earningsTrend": "Earnings trend",
-    "reviews": "Reviews"
+    "reviews": "Reviews",
+    "messages": "Messages"
   },
   "admin": {
     "dashboard": "Dashboard",

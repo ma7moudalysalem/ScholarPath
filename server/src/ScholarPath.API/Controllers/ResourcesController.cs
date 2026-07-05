@@ -18,6 +18,7 @@ using ScholarPath.Application.Resources.Queries.GetMyResourceProgress;
 using ScholarPath.Application.Resources.Queries.GetMyResources;
 using ScholarPath.Application.Resources.Queries.GetPendingReviewResources;
 using ScholarPath.Application.Resources.Queries.GetResourceDetail;
+using ScholarPath.Application.Resources.Queries.GetResourceProgressDetail;
 using ScholarPath.Application.Resources.Queries.SearchResources;
 using ScholarPath.Domain.Enums;
 
@@ -133,6 +134,13 @@ public sealed class ResourcesController(IMediator mediator) : ControllerBase
     [ProducesResponseType(typeof(IReadOnlyList<ResourceProgressDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> MyProgress(CancellationToken ct)
         => Ok(await mediator.Send(new GetMyResourceProgressQuery(), ct));
+
+    /// <summary>The caller's progress for a single resource, incl. which chapters are done.</summary>
+    [HttpGet("{id:guid}/progress/me")]
+    [Authorize]
+    [ProducesResponseType(typeof(ResourceProgressDetailDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> MyResourceProgress(Guid id, CancellationToken ct)
+        => Ok(await mediator.Send(new GetResourceProgressDetailQuery(id), ct));
 
     // ── Admin moderation ──────────────────────────────────────────────────────
 

@@ -146,7 +146,8 @@
       "addTimeSlot": "Add time slot",
       "removeSlot": "Remove time slot",
       "invalidSlot": "Each slot's start time must be before its end time.",
-      "slotOverlap": "Time slots on the same day can't overlap."
+      "slotOverlap": "Time slots on the same day can't overlap.",
+      "windowTooShort": "One or more enabled windows are shorter than your {{minutes}}-minute session length, so students see no bookable slots. Make each window at least {{minutes}} minutes long, or shorten your session length in your profile."
     },
     "bookingRules": {
       "title": "Booking rules",
@@ -167,7 +168,8 @@
     "notes": {
       "title": "Availability notes",
       "line1": "Enabled days define the recurring slot pool students can book on your profile page.",
-      "line2": "Bookable slots are expanded over the next four weeks and exclude times already taken by a booking."
+      "line2": "Bookable slots are expanded over the next four weeks and exclude times already taken by a booking.",
+      "sessionLength": "Each window is sliced into {{minutes}}-minute slots to match your session length, so every window must be at least {{minutes}} minutes long to produce any bookable slot."
     }
   },
   "weekdays": {

@@ -15,6 +15,7 @@
     "bookings": "الحجوزات",
     "community": "المجتمع",
     "resources": "الموارد",
+    "resourceProgress": "تقدّمي",
     "documents": "المستندات",
     "ai": "الذكاء الاصطناعي",
     "messages": "الرسائل",
@@ -29,7 +30,7 @@
     "resources": "مواردي",
     "insights": "التحليلات",
     "reviews": "التقييمات",
-    "bookings": "الحجوزات"
+    "messages": "الرسائل"
   },
   "consultant": {
     "dashboard": "لوحة التحكم",
@@ -39,7 +40,8 @@
     "resources": "مواردي",
     "analytics": "تحليلاتي",
     "earningsTrend": "اتجاه الأرباح",
-    "reviews": "التقييمات"
+    "reviews": "التقييمات",
+    "messages": "الرسائل"
   },
   "admin": {
     "dashboard": "لوحة التحكم",
