@@ -67,34 +67,34 @@ public sealed class NotificationCatalog : INotificationCatalog
         NotificationType.ScholarshipProviderReviewRefunded => RenderReviewRefund(p),
 
         NotificationType.ScholarshipProviderReviewRequestPaymentHeld => new(
-            "Review fee on hold", "تم حجز رسوم المراجعة",
-            $"Your card was authorised for {p.HeldAmountText ?? "the review fee"} on \"{p.ScholarshipNameEn ?? "the scholarship"}\" — the amount is held but not captured. The ScholarshipProvider will be charged only if they accept your request. Reference: {p.PaymentReference ?? "—"}.",
-            $"تم حجز مبلغ {p.HeldAmountText ?? "رسوم المراجعة"} على بطاقتك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" — لن يُخصم المبلغ ما لم تقبل الشركة الطلب. المرجع: {p.PaymentReference ?? "—"}."),
+            "Application support request sent", "تم إرسال طلب دعم التقديم",
+            $"Your application support request for \"{p.ScholarshipNameEn ?? "the scholarship"}\" was sent to the company. You'll be notified when they respond.",
+            $"تم إرسال طلب دعم التقديم للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" إلى الشركة. سيتم إشعارك عند ردّها."),
 
         NotificationType.ScholarshipProviderReviewRequestPaymentCaptured => new(
-            "Review fee charged", "تم خصم رسوم المراجعة",
-            $"The ScholarshipProvider accepted your request — {p.CapturedAmountText ?? "the review fee"} was captured from your card for \"{p.ScholarshipNameEn ?? "the scholarship"}\". Reference: {p.PaymentReference ?? "—"}.",
-            $"قبلت الشركة طلبك — تم خصم {p.CapturedAmountText ?? "رسوم المراجعة"} من بطاقتك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\". المرجع: {p.PaymentReference ?? "—"}."),
+            "Application support request accepted", "تم قبول طلب دعم التقديم",
+            $"The company accepted your application support request for \"{p.ScholarshipNameEn ?? "the scholarship"}\" and has started working on it.",
+            $"قبلت الشركة طلب دعم التقديم للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" وبدأت العمل عليه."),
 
         NotificationType.ScholarshipProviderReviewRequestPaymentHoldCancelled => new(
-            "Review fee hold released", "تم الإفراج عن حجز رسوم المراجعة",
-            $"Your request for \"{p.ScholarshipNameEn ?? "the scholarship"}\" was {p.RequestStatusText ?? "closed"} — the {p.HeldAmountText ?? "card hold"} was released and nothing was captured. Reference: {p.PaymentReference ?? "—"}.",
-            $"تم {p.RequestStatusText ?? "إغلاق"} طلبك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" — أُفرج عن حجز {p.HeldAmountText ?? "البطاقة"} ولم يُخصم أي مبلغ. المرجع: {p.PaymentReference ?? "—"}."),
+            "Application support request closed", "تم إغلاق طلب دعم التقديم",
+            $"Your application support request for \"{p.ScholarshipNameEn ?? "the scholarship"}\" was {p.RequestStatusText ?? "closed"}.",
+            $"تم {p.RequestStatusText ?? "إغلاق"} طلب دعم التقديم للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\"."),
 
         NotificationType.ScholarshipProviderReviewRequestPartiallyRefunded => new(
-            "50% review fee refunded", "تم استرداد 50% من رسوم المراجعة",
-            $"Your cancellation of \"{p.ScholarshipNameEn ?? "the scholarship"}\" request was processed — {p.RefundAmountText ?? "50%"} refunded, {p.RetainedAmountText ?? "the remainder"} retained. Reference: {p.PaymentReference ?? "—"}.",
-            $"تمت معالجة إلغائك لطلب \"{p.ScholarshipNameAr ?? "المنحة"}\" — تم استرداد {p.RefundAmountText ?? "50%"} والاحتفاظ بـ {p.RetainedAmountText ?? "النصف المتبقي"}. المرجع: {p.PaymentReference ?? "—"}."),
+            "Application support request cancelled", "تم إلغاء طلب دعم التقديم",
+            $"Your cancellation of the \"{p.ScholarshipNameEn ?? "the scholarship"}\" application support request was processed.",
+            $"تمت معالجة إلغاء طلب دعم التقديم للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\"."),
 
         NotificationType.ScholarshipProviderReviewRequestCompleted => new(
-            "Application support service completed", "اكتملت خدمة دعم الطلب",
-            $"The ScholarshipProvider marked your support service for \"{p.ScholarshipNameEn ?? "the scholarship"}\" as completed. Reference: {p.PaymentReference ?? "—"}.",
-            $"وضعت الشركة خدمة دعم طلبك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" كمكتملة. المرجع: {p.PaymentReference ?? "—"}."),
+            "Application support completed", "اكتمل دعم التقديم",
+            $"The company marked your application support for \"{p.ScholarshipNameEn ?? "the scholarship"}\" as completed.",
+            $"وضعت الشركة دعم طلبك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" كمكتمل."),
 
         NotificationType.ScholarshipProviderReviewRequestIncoming => new(
-            "New paid review request", "طلب مراجعة مدفوع جديد",
-            $"{p.CounterpartyName ?? "A student"} submitted a paid review request for \"{p.ScholarshipNameEn ?? "your scholarship"}\". Hold: {p.HeldAmountText ?? "—"}. Accept to capture and start the service. Reference: {p.PaymentReference ?? "—"}.",
-            $"قدّم {p.CounterpartyName ?? "أحد الطلاب"} طلب مراجعة مدفوع للمنحة \"{p.ScholarshipNameAr ?? "الخاصة بك"}\". الحجز: {p.HeldAmountText ?? "—"}. اقبل الطلب لخصم المبلغ وبدء الخدمة. المرجع: {p.PaymentReference ?? "—"}."),
+            "New application support request", "طلب دعم تقديم جديد",
+            $"{p.CounterpartyName ?? "A student"} sent an application support request for \"{p.ScholarshipNameEn ?? "your scholarship"}\". Accept to start supporting the application, or reject to decline.",
+            $"أرسل {p.CounterpartyName ?? "أحد الطلاب"} طلب دعم تقديم للمنحة \"{p.ScholarshipNameAr ?? "الخاصة بك"}\". اقبله لبدء دعم التقديم أو ارفضه."),
 
         NotificationType.ScholarshipProviderRatingReceived => new(
             "New company rating", "تقييم جديد للشركة",

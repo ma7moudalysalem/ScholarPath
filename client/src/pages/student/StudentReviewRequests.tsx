@@ -170,7 +170,7 @@ export function StudentReviewRequests() {
                   {cancelMut.isPending && pendingCancelId === req.id && (
                     <Loader2 aria-hidden className="size-3 animate-spin" />
                   )}
-                  {refundsHalfOnCancel(req.status)
+                  {paymentsEnabled && !req.isFree && refundsHalfOnCancel(req.status)
                     ? t("payments:reviewRequest.cancelWithRefund")
                     : t("payments:reviewRequest.cancel")}
                 </button>
