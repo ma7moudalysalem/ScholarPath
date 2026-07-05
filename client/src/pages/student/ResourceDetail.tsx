@@ -176,6 +176,12 @@ export function ResourceDetail() {
   const BackIcon = isRtl ? ArrowRight : ArrowLeft;
   const { user } = useAuthStore();
   const qc = useQueryClient();
+  // The same detail page is reused as the AUTHOR preview (Consultant / Provider /
+  // Admin viewing their own published resource from /author/resources). In that
+  // context the student-only affordances — bookmark, chapter completion, the
+  // per-resource progress query, and the "back to student resources" link —
+  // don't apply and their endpoints are student-gated, so they're hidden.
+  const isStudentView = user?.activeRole === "Student";
 
   const { data, isLoading, isError, error, refetch } = useQuery<ResourceDetailDto>({
     queryKey: ["resources", "detail", idOrSlug],
@@ -189,7 +195,7 @@ export function ResourceDetail() {
   const { data: progress } = useQuery<ResourceProgressDetail>({
     queryKey: ["resources", "progress", "detail", resourceId],
     queryFn: () => resourcesApi.getResourceProgress(resourceId!),
-    enabled: !!user && !!resourceId && hasChapters,
+    enabled: !!user && !!resourceId && hasChapters && isStudentView,
   });
   const completedChapters = new Set(progress?.completedChapterIds ?? []);
 
@@ -228,7 +234,7 @@ export function ResourceDetail() {
 
   const backLink = (
     <Link
-      to="/student/resources"
+      to={isStudentView ? "/student/resources" : "/author/resources"}
       className="inline-flex items-center gap-1.5 text-sm text-text-secondary hover:text-text-primary"
     >
       <BackIcon aria-hidden className="size-4" />
@@ -368,7 +374,7 @@ export function ResourceDetail() {
                     <ExternalLink aria-hidden className="size-4" />
                   </a>
                 )}
-                {user && (
+                {user && isStudentView && (
                   <button
                     type="button"
                     disabled={bookmarkMut.isPending}
@@ -464,7 +470,7 @@ export function ResourceDetail() {
                             })}
                           </span>
                         )}
-                        {user &&
+                        {user && isStudentView &&
                           (isChapterDone ? (
                             <span className="inline-flex items-center gap-1 rounded-full border border-success-200 bg-success-100 px-2.5 py-1 text-xs font-semibold text-success-700">
                               <CheckCircle aria-hidden className="size-3.5" />

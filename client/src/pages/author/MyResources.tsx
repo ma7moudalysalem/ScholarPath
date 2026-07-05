@@ -179,7 +179,7 @@ export function MyResources() {
                         )}
                         {canView && (
                           <Link
-                            to={`/student/resources/${r.slug}`}
+                            to={`/author/resources/${r.slug}/preview`}
                             className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-canvas px-2.5 py-1.5 text-xs font-medium text-text-secondary transition hover:border-border-default hover:text-text-primary"
                           >
                             <Eye aria-hidden className="size-3.5" />
