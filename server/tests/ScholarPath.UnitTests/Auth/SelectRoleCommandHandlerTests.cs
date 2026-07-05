@@ -41,7 +41,9 @@ public class SelectRoleCommandHandlerTests
     private static SelectRoleCommandHandler Sut(
         ApplicationDbContext db, Guid userId, IUserAdministration admin,
         INotificationDispatcher? notifications = null) =>
-        new(db, CurrentUser(userId), admin, TokenService(),
+        new(db, CurrentUser(userId), admin,
+            Substitute.For<IConsultantEligibilityService>(),
+            TokenService(),
             notifications ?? Substitute.For<INotificationDispatcher>(),
             NullLogger<SelectRoleCommandHandler>.Instance);
 

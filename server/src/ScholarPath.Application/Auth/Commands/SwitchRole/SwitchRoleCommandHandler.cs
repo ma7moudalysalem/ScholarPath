@@ -12,9 +12,12 @@ public sealed class SwitchRoleCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
     IUserAdministration userAdministration,
+    IConsultantEligibilityService consultantEligibility,
     ITokenService tokenService)
     : IRequestHandler<SwitchRoleCommand, AuthTokensDto>
 {
+    private const string ConsultantRole = "Consultant";
+
     public async Task<AuthTokensDto> Handle(SwitchRoleCommand request, CancellationToken ct)
     {
         var userId = currentUser.UserId
@@ -27,6 +30,21 @@ public sealed class SwitchRoleCommandHandler(
         if (!roles.Contains(request.TargetRole, StringComparer.OrdinalIgnoreCase))
             throw new ForbiddenAccessException($"You do not hold the '{request.TargetRole}' role.");
 
+        // Consultant is a privileged capability, not just a role row: holding the
+        // Consultant role is necessary but NOT sufficient. Block the switch unless
+        // the account is a verified/approved consultant — otherwise a stale or
+        // out-of-band Consultant role would let a plain student act as a
+        // consultant (create availability, appear in the marketplace).
+        var canActAsConsultant = await consultantEligibility
+            .CanActAsConsultantAsync(userId, roles, ct);
+        if (string.Equals(request.TargetRole, ConsultantRole, StringComparison.OrdinalIgnoreCase)
+            && !canActAsConsultant)
+        {
+            throw new ForbiddenAccessException(
+                "You can't switch to the Consultant role. A consultant upgrade request must be "
+                + "approved before consultant access is activated for your account.");
+        }
+
         user.ActiveRole = request.TargetRole;
         await db.SaveChangesAsync(ct);
 
@@ -36,6 +54,6 @@ public sealed class SwitchRoleCommandHandler(
 
         // Issue a fresh pair so the JWT carries the new active_role claim.
         var tokens = tokenService.IssueTokens(user, roles, request.TargetRole, rememberMe: false);
-        return AuthDtoFactory.Build(tokens, user, roles);
+        return AuthDtoFactory.Build(tokens, user, roles, canActAsConsultant);
     }
 }

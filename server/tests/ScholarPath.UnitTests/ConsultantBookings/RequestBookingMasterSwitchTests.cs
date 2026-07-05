@@ -26,6 +26,8 @@ public sealed class RequestBookingMasterSwitchTests : IDisposable
     private readonly ICurrentUserService _currentUser = Substitute.For<ICurrentUserService>();
     private readonly IStripeService _stripe = Substitute.For<IStripeService>();
     private readonly IPublisher _publisher = Substitute.For<IPublisher>();
+    private readonly IConsultantEligibilityService _eligibility =
+        Substitute.For<IConsultantEligibilityService>();
     private readonly Guid _studentId = Guid.NewGuid();
     private readonly Guid _consultantId = Guid.NewGuid();
 
@@ -39,6 +41,11 @@ public sealed class RequestBookingMasterSwitchTests : IDisposable
         _currentUser.IsAuthenticated.Returns(true);
         _currentUser.IsInRole("Student").Returns(true);
         _currentUser.UserId.Returns(_studentId);
+
+        // Eligibility is covered by RequestBookingEligibilityTests; these tests
+        // focus on the payments master switch, so treat the consultant as eligible.
+        _eligibility.CanActAsConsultantAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(true);
     }
 
     public void Dispose() => _db.Dispose();
@@ -86,7 +93,7 @@ public sealed class RequestBookingMasterSwitchTests : IDisposable
     }
 
     private RequestBookingCommandHandler Sut() =>
-        new(_db, _currentUser, _stripe, _publisher);
+        new(_db, _currentUser, _stripe, _publisher, _eligibility);
 
     [Fact]
     public async Task Master_switch_off_makes_the_booking_free_and_never_calls_Stripe()

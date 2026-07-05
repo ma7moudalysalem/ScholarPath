@@ -36,15 +36,13 @@ import {
 } from "@/services/api/profile";
 import { useAuthStore } from "@/stores/authStore";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
-import { authApi, applyAuthSession, postAuthPath } from "@/services/api/auth";
+import { authApi, applyAuthSession, postAuthPath, switchableRoles } from "@/services/api/auth";
 import { userPhotoUrl } from "@/lib/userPhoto";
 import { apiErrorMessage } from "@/services/api/client";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { cn } from "@/lib/utils";
 import { COUNTRIES, countryLabel } from "@/lib/countryLabel";
 import { ConsultantUpgradeModal } from "@/components/profile/ConsultantUpgradeModal";
-
-const SWITCHABLE_ROLES = ["Student", "Consultant", "ScholarshipProvider", "Admin"] as const;
 
 const PROFILE_KEY = ["profile", "me"] as const;
 
@@ -729,10 +727,8 @@ function ActiveRoleSwitcher() {
   const activeRole = user.activeRole ?? user.roles[0] ?? null;
   if (!activeRole) return null;
 
-  const switchableRoles = user.roles.filter((r) =>
-    (SWITCHABLE_ROLES as readonly string[]).includes(r),
-  );
-  const hasMultiple = switchableRoles.length > 1;
+  const availableRoles = switchableRoles(user);
+  const hasMultiple = availableRoles.length > 1;
   const activeLabel = t(`common:roles.${activeRole}`, activeRole);
 
   if (!hasMultiple) {
@@ -746,7 +742,7 @@ function ActiveRoleSwitcher() {
     );
   }
 
-  const targets = switchableRoles.filter((r) => r !== activeRole);
+  const targets = availableRoles.filter((r) => r !== activeRole);
 
   return (
     <DropdownMenu.Root dir={isRtl ? "rtl" : "ltr"}>
