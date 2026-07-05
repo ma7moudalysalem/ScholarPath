@@ -145,6 +145,11 @@ public static partial class DbSeeder
         await SeedNotificationsAsync(db, users, logger, ct).ConfigureAwait(false);
         await SeedSuccessStoriesAsync(db, users, logger, ct).ConfigureAwait(false);
         await SeedAiAsync(db, users, scholarships, logger, ct).ConfigureAwait(false);
+
+        // Deep "ran for a year" enrichment: bulk bilingual community threads +
+        // replies + votes + moderation queue, a populated bilingual document
+        // vault, a year of audit-log activity, and the admin low-rating queues.
+        await SeedEnrichmentAsync(db, users, logger, ct).ConfigureAwait(false);
     }
 
     /// <summary>

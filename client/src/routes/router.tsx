@@ -548,6 +548,16 @@ export function AppRouter() {
             }
           />
           <Route
+            path="/author/resources/:idOrSlug/preview"
+            element={
+              <RequireRole roles={["Consultant", "ScholarshipProvider", "Admin", "SuperAdmin"]}>
+                <AnimatedRoute>
+                  <StudentResourceDetail />
+                </AnimatedRoute>
+              </RequireRole>
+            }
+          />
+          <Route
             path="/author/resources/:id/edit"
             element={
               <RequireRole roles={["Consultant", "ScholarshipProvider", "Admin", "SuperAdmin"]}>
