@@ -25,7 +25,27 @@
     "decisionReason": "Decision note",
     "personalNotes": "Your notes",
     "formData": "Submitted form data",
-    "documents": "Attached documents",
+    "documents": {
+      "heading": "Documents",
+      "types": {
+        "Transcript": "Transcript",
+        "Certificate": "Certificate",
+        "RecommendationLetter": "Recommendation letter",
+        "PersonalStatement": "Personal statement",
+        "Resume": "Resume / CV",
+        "IdentityDocument": "Identity document",
+        "ProofOfEnglish": "Proof of English",
+        "FinancialDocument": "Financial document",
+        "Portfolio": "Portfolio",
+        "Other": "Other"
+      },
+      "uploadCta": "Upload file",
+      "uploading": "Uploading…",
+      "remove": "Remove",
+      "uploadError": "Could not upload the file. Please try again.",
+      "reuseFromVault": "Or reuse a file you already uploaded",
+      "missing": "This document is required."
+    },
     "externalTracking": "External tracking",
     "externalRef": "External reference",
     "openExternal": "Open external listing",
@@ -67,26 +87,6 @@
       "incomplete": "Fill in every required field and attach at least one document before submitting.",
       "fieldRequired": "This field is required.",
       "confirmRequired": "Please confirm the data before submitting."
-    },
-    "documents": {
-      "types": {
-        "Transcript": "Transcript",
-        "Certificate": "Certificate",
-        "RecommendationLetter": "Recommendation letter",
-        "PersonalStatement": "Personal statement",
-        "Resume": "Resume / CV",
-        "IdentityDocument": "Identity document",
-        "ProofOfEnglish": "Proof of English",
-        "FinancialDocument": "Financial document",
-        "Portfolio": "Portfolio",
-        "Other": "Other"
-      },
-      "uploadCta": "Upload file",
-      "uploading": "Uploading…",
-      "remove": "Remove",
-      "uploadError": "Could not upload the file. Please try again.",
-      "reuseFromVault": "Or reuse a file you already uploaded",
-      "missing": "This document is required."
     }
   },
   "applicationStatus": {

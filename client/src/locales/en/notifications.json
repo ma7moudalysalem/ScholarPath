@@ -114,7 +114,7 @@
       "OnboardingSubmitted": "Onboarding request submitted",
       "UpgradeRequestSubmitted": "Role upgrade request submitted",
       "ContentReported": "Content reported",
-      "ScholarshipProviderReviewRequestIncoming": "New paid review request",
+      "ScholarshipProviderReviewRequestIncoming": "New application support request",
       "ScholarshipProviderReviewRequestPaymentHeld": "Review payment held",
       "ScholarshipProviderReviewRequestPaymentCaptured": "Review payment captured",
       "ScholarshipProviderReviewRequestPaymentHoldCancelled": "Review payment hold released",
