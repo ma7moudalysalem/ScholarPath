@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Award,
   CheckCircle2,
+  LifeBuoy,
 } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
 import { parseCalendarDate } from "@/lib/dates";
@@ -117,48 +118,51 @@ export function ScholarshipDetail() {
     staleTime: 30_000,
   });
 
-  // Apply Now: for company-owned scholarships uses the PB-005 ScholarshipProviderReview
-  // paid flow; for platform/admin scholarships (no ownerScholarshipProviderId) falls back
-  // to a direct free application (StartApplicationCommand).
-  const applyMut = useMutation({
-    mutationFn: async (scholarshipId: string) => {
-      if (!data?.ownerScholarshipProviderId) {
-        const res = await applicationsApi.start(scholarshipId);
-        return { type: "direct" as const, applicationId: res.applicationId };
-      }
-      const res = await scholarshipProviderReviewRequestsApi.start(scholarshipId);
-      return { type: "review" as const, ...res };
-    },
-    onSuccess: (result) => {
-      if (result.type === "direct") {
-        toast.success(t("scholarships:detail.applyStartedFree"));
-        navigate(`/student/applications/${result.applicationId}`);
-      } else {
-        toast.success(
-          result.isFree
-            ? t("scholarships:detail.applyStartedFree")
-            : t("scholarships:detail.applyStarted"),
-        );
-        navigate(`/student/review-requests/${result.requestId}`);
-      }
-    },
-    onError: (err: unknown) => {
-      const status = err instanceof ApiError ? err.status : undefined;
-      const detail = err instanceof ApiError
-        ? (err.payload.detail ?? err.payload.title)
-        : null;
+  // Shared error handling — surfaces the "complete your profile" 409 with a
+  // shortcut to the profile page; everything else is a generic error toast.
+  const handleActionError = (err: unknown) => {
+    const status = err instanceof ApiError ? err.status : undefined;
+    const detail = err instanceof ApiError
+      ? (err.payload.detail ?? err.payload.title)
+      : null;
+    if (status === 409 && detail && detail.toLowerCase().includes("complete your profile")) {
+      toast.error(detail, {
+        action: {
+          label: t("scholarships:detail.applyGoToProfile"),
+          onClick: () => navigate("/profile"),
+        },
+      });
+    } else {
+      toast.error(apiErrorMessage(err, t("common:status.error")));
+    }
+  };
 
-      if (status === 409 && detail && detail.toLowerCase().includes("complete your profile")) {
-        toast.error(detail, {
-          action: {
-            label: t("scholarships:detail.applyGoToProfile"),
-            onClick: () => navigate("/profile"),
-          },
-        });
-      } else {
-        toast.error(apiErrorMessage(err, t("common:status.error")));
-      }
+  // Apply → a normal application for ANY in-app scholarship (platform OR
+  // company-owned), tracked under "My Applications". One clear, consistent flow.
+  const applyMut = useMutation({
+    mutationFn: (scholarshipId: string) => applicationsApi.start(scholarshipId),
+    onSuccess: (res) => {
+      toast.success(t("scholarships:detail.applyStartedFree"));
+      navigate(`/student/applications/${res.applicationId}`);
     },
+    onError: handleActionError,
+  });
+
+  // Request application support → the OPTIONAL company review/support service
+  // (PB-005), offered as a clearly separate action only for company-owned
+  // scholarships (the company that can actually provide the support).
+  const supportMut = useMutation({
+    mutationFn: (scholarshipId: string) =>
+      scholarshipProviderReviewRequestsApi.start(scholarshipId),
+    onSuccess: (res) => {
+      toast.success(
+        res.isFree
+          ? t("scholarships:detail.supportRequested")
+          : t("scholarships:detail.applyStarted"),
+      );
+      navigate(`/student/review-requests/${res.requestId}`);
+    },
+    onError: handleActionError,
   });
 
   const handleBookmark = () => {
@@ -476,39 +480,48 @@ export function ScholarshipDetail() {
                     {t("scholarships:detail.applyExternal")}
                   </a>
                 ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => applyMut.mutate(data.id)}
-                      disabled={
-                        isClosed ||
-                        applyMut.isPending ||
-                        profileIncomplete ||
-                        !hasReviewFee
-                      }
-                      title={
-                        !hasReviewFee
-                          ? t("scholarships:detail.applyMissingFee")
-                          : profileIncomplete
-                            ? t("scholarships:detail.profileIncompleteTitle")
-                            : undefined
-                      }
-                      className="btn btn-primary w-full"
-                    >
-                      {applyMut.isPending
-                        ? t("scholarships:detail.applying")
-                        : isFreeListing
-                          ? t("scholarships:detail.applyFree")
-                          : t("scholarships:detail.apply")}
-                    </button>
-                    {/* PB-005: spec PART 2 — when the fee is missing or invalid,
-                        Apply Now must be disabled with a clear message. */}
-                    {!hasReviewFee && (
-                      <p className="text-xs text-warning-600">
-                        {t("scholarships:detail.applyMissingFee")}
-                      </p>
-                    )}
-                  </>
+                  <button
+                    type="button"
+                    onClick={() => applyMut.mutate(data.id)}
+                    disabled={isClosed || applyMut.isPending || profileIncomplete}
+                    title={
+                      profileIncomplete
+                        ? t("scholarships:detail.profileIncompleteTitle")
+                        : undefined
+                    }
+                    className="btn btn-primary w-full"
+                  >
+                    <ClipboardCheck aria-hidden className="size-4" />
+                    {applyMut.isPending
+                      ? t("scholarships:detail.applying")
+                      : t("scholarships:detail.apply")}
+                  </button>
+                )}
+
+                {/* A company-owned scholarship also offers the OPTIONAL
+                    application-support service as a clearly separate action, so
+                    "apply" and "ask the company for help" never get conflated. */}
+                {data.ownerScholarshipProviderId && !isExternal && !isUnavailable && (
+                  <button
+                    type="button"
+                    onClick={() => supportMut.mutate(data.id)}
+                    disabled={
+                      isClosed || supportMut.isPending || profileIncomplete || !hasReviewFee
+                    }
+                    title={
+                      !hasReviewFee
+                        ? t("scholarships:detail.supportUnavailable")
+                        : undefined
+                    }
+                    className="btn btn-secondary w-full"
+                  >
+                    <LifeBuoy aria-hidden className="size-4" />
+                    {supportMut.isPending
+                      ? t("scholarships:detail.requestingSupport")
+                      : isFreeListing
+                        ? t("scholarships:detail.requestSupportFree")
+                        : t("scholarships:detail.requestSupport")}
+                  </button>
                 )}
 
                 <Link
