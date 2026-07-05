@@ -21,6 +21,12 @@ export interface CurrentUser {
   // resubmission or approval has cleared them server-side).
   lastOnboardingRejectionReason?: string | null;
   lastOnboardingRejectedAt?: string | null;
+  // Backend-confirmed consultant eligibility. True only when the user may
+  // actually act as a Consultant (verified/approved), NOT merely because a
+  // Consultant role row exists. The role-switch UI relies on this so a stale or
+  // unapproved Consultant role can never expose the "switch to Consultant"
+  // option. Optional for backward compatibility with older cached sessions.
+  canActAsConsultant?: boolean;
 }
 
 export interface AuthTokens {

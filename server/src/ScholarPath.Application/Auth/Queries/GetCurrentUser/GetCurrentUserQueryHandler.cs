@@ -11,7 +11,8 @@ namespace ScholarPath.Application.Auth.Queries.GetCurrentUser;
 public sealed class GetCurrentUserQueryHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
-    IUserAdministration userAdministration)
+    IUserAdministration userAdministration,
+    IConsultantEligibilityService consultantEligibility)
     : IRequestHandler<GetCurrentUserQuery, CurrentUserDto>
 {
     public async Task<CurrentUserDto> Handle(GetCurrentUserQuery request, CancellationToken ct)
@@ -29,6 +30,8 @@ public sealed class GetCurrentUserQueryHandler(
             ?? throw new NotFoundException(nameof(ApplicationUser), userId);
 
         var roles = await userAdministration.GetRolesAsync(user.Id, ct);
+        var canActAsConsultant = await consultantEligibility
+            .CanActAsConsultantAsync(user.Id, roles, ct);
 
         return new CurrentUserDto(
             user.Id,
@@ -44,6 +47,7 @@ public sealed class GetCurrentUserQueryHandler(
             user.ActiveRole,
             user.PreferredLanguage,
             user.Profile?.LastOnboardingRejectionReason,
-            user.Profile?.LastOnboardingRejectedAt);
+            user.Profile?.LastOnboardingRejectedAt,
+            canActAsConsultant);
     }
 }

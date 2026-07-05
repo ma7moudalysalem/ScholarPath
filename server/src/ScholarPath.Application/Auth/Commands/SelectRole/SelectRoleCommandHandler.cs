@@ -18,6 +18,7 @@ public sealed class SelectRoleCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
     IUserAdministration userAdministration,
+    IConsultantEligibilityService consultantEligibility,
     ITokenService tokenService,
     INotificationDispatcher notifications,
     ILogger<SelectRoleCommandHandler> logger)
@@ -189,13 +190,14 @@ public sealed class SelectRoleCommandHandler(
         await tokenService.RevokeAllForUserAsync(userId, "Role selected", ct);
 
         var roles = await userAdministration.GetRolesAsync(userId, ct);
+        var canActAsConsultant = await consultantEligibility.CanActAsConsultantAsync(userId, roles, ct);
         var tokens = tokenService.IssueTokens(user, roles, user.ActiveRole, rememberMe: false);
 
         logger.LogInformation(
             "User {UserId} selected role {Role} -> account status {Status}.",
             userId, request.Role, user.AccountStatus);
 
-        return AuthDtoFactory.Build(tokens, user, roles);
+        return AuthDtoFactory.Build(tokens, user, roles, canActAsConsultant);
     }
 
     // FR-ONB — alert every admin so a new onboarding request never sits unseen.

@@ -61,7 +61,8 @@ public sealed class ConsultantReadServiceTests : IDisposable
         int? durationMinutes = 45,
         string? expertiseJson = null,
         string? languagesJson = null,
-        string? bio = "Helps students with scholarships.")
+        string? bio = "Helps students with scholarships.",
+        bool verified = true)
     {
         var id = Guid.NewGuid();
         var email = $"c-{id:N}@test.com";
@@ -81,6 +82,10 @@ public sealed class ConsultantReadServiceTests : IDisposable
                 SessionDurationMinutes = durationMinutes,
                 ExpertiseTagsJson = expertiseJson,
                 LanguagesJson = languagesJson,
+                // Marketplace visibility requires the official verification
+                // marker (PB-006 / consultant-eligibility). Seed it by default so
+                // the pre-existing projection tests still surface the consultant.
+                ConsultantVerifiedAt = verified ? Now.AddDays(-30) : null,
             },
         });
 
@@ -112,6 +117,18 @@ public sealed class ConsultantReadServiceTests : IDisposable
         });
         _db.SaveChanges();
         return id;
+    }
+
+    private void SeedApprovedConsultantUpgrade(Guid userId)
+    {
+        _db.UpgradeRequests.Add(new UpgradeRequest
+        {
+            UserId = userId,
+            Target = UpgradeTarget.Consultant,
+            Status = UpgradeRequestStatus.Approved,
+            CreatedAt = Now.AddDays(-5),
+        });
+        _db.SaveChanges();
     }
 
     private void SeedReview(Guid consultantId, Guid studentId, int rating, bool hidden = false)
@@ -301,6 +318,32 @@ public sealed class ConsultantReadServiceTests : IDisposable
         result.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task Browse_ExcludesActiveConsultantWithoutVerificationMarker()
+    {
+        // An active user in the Consultant role but with no verification marker
+        // and no approved upgrade must NOT appear in the public marketplace.
+        SeedConsultant(first: "Unverified", verified: false);
+
+        var result = await _service.BrowseConsultantsAsync(CancellationToken.None);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Browse_IncludesConsultantVerifiedByApprovedUpgrade()
+    {
+        // No ConsultantVerifiedAt marker, but an approved consultant upgrade
+        // request is an equally valid approval signal (historical accounts).
+        var consultant = SeedConsultant(first: "ByUpgrade", verified: false);
+        SeedApprovedConsultantUpgrade(consultant);
+
+        var result = await _service.BrowseConsultantsAsync(CancellationToken.None);
+
+        result.Should().ContainSingle();
+        result[0].Id.Should().Be(consultant);
+    }
+
     // ── GetConsultantDetailAsync ────────────────────────────────────────────────
 
     [Fact]
@@ -319,6 +362,16 @@ public sealed class ConsultantReadServiceTests : IDisposable
         var suspended = SeedConsultant(status: AccountStatus.Suspended);
 
         var result = await _service.GetConsultantDetailAsync(suspended, CancellationToken.None);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Detail_ReturnsNull_WhenConsultantIsNotVerified()
+    {
+        var unverified = SeedConsultant(verified: false);
+
+        var result = await _service.GetConsultantDetailAsync(unverified, CancellationToken.None);
 
         result.Should().BeNull();
     }
@@ -384,6 +437,20 @@ public sealed class ConsultantReadServiceTests : IDisposable
 
         result.Should().NotBeNull();
         result!.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task OpenSlots_ReturnsNull_WhenConsultantIsNotVerified()
+    {
+        // Even with saved availability, an unverified consultant exposes no
+        // bookable slots to the public.
+        var unverified = SeedConsultant(verified: false);
+        SeedRecurringAvailability(unverified, DayOfWeek.Tuesday,
+            new TimeOnly(16, 0), new TimeOnly(17, 0));
+
+        var result = await _service.GetConsultantOpenSlotsAsync(unverified, CancellationToken.None);
+
+        result.Should().BeNull();
     }
 
     [Fact]

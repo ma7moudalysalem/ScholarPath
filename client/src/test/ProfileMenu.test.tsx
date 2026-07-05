@@ -62,7 +62,11 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
 import { useAuthStore } from "@/stores/authStore";
 
-function seedUser(roles: string[], activeRole: string) {
+function seedUser(
+  roles: string[],
+  activeRole: string,
+  opts: { canActAsConsultant?: boolean } = {},
+) {
   useAuthStore.setState({
     user: {
       id: "user-1",
@@ -77,6 +81,7 @@ function seedUser(roles: string[], activeRole: string) {
       roles,
       activeRole,
       preferredLanguage: "en",
+      canActAsConsultant: opts.canActAsConsultant ?? false,
     },
     tokens: {
       accessToken: "a",
@@ -116,8 +121,8 @@ describe("ProfileMenu — role switcher", () => {
     expect(screen.queryByRole("menuitem", { name: /switch to/i })).not.toBeInTheDocument();
   });
 
-  it("shows the other role as a switch option for a dual-role user", async () => {
-    seedUser(["Student", "Consultant"], "Student");
+  it("shows the Consultant switch option only when the backend confirms eligibility", async () => {
+    seedUser(["Student", "Consultant"], "Student", { canActAsConsultant: true });
     renderLayout();
     const trigger = await screen.findByRole("button", { name: /profile/i });
     await userEvent.click(trigger);
@@ -126,8 +131,21 @@ describe("ProfileMenu — role switcher", () => {
     expect(screen.queryByRole("menuitem", { name: /switch to student/i })).not.toBeInTheDocument();
   });
 
+  it("hides the Consultant switch option when the account is not consultant-eligible", async () => {
+    // Stale/unapproved Consultant role row: the backend says canActAsConsultant
+    // is false, so the switch option must not surface (defence-in-depth on top
+    // of the server-side block).
+    seedUser(["Student", "Consultant"], "Student", { canActAsConsultant: false });
+    renderLayout();
+    const trigger = await screen.findByRole("button", { name: /profile/i });
+    await userEvent.click(trigger);
+    expect(screen.queryByRole("menuitem", { name: /switch to consultant/i })).not.toBeInTheDocument();
+    // The identity card still renders — the menu just has no Consultant target.
+    expect(screen.getByText("u@example.com")).toBeInTheDocument();
+  });
+
   it("calls the switch-role API when a target role is picked", async () => {
-    seedUser(["Student", "Consultant"], "Student");
+    seedUser(["Student", "Consultant"], "Student", { canActAsConsultant: true });
     renderLayout();
     const trigger = await screen.findByRole("button", { name: /profile/i });
     await userEvent.click(trigger);

@@ -87,6 +87,47 @@ public class ReviewOnboardingRoleGrantTests
     }
 
     [Fact]
+    public async Task Approving_direct_consultant_onboarding_sets_verification_marker()
+    {
+        using var db = CreateDb();
+        var userId = SeedPendingUser(db, "Consultant");
+        db.UserProfiles.Add(new UserProfile { UserId = userId });
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.SetAccountStatusAsync(userId, AccountStatus.Active,
+                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        await Sut(db, admin).Handle(
+            new ReviewOnboardingCommand(userId, OnboardingDecision.Approve, null), default);
+
+        await admin.Received().AddRoleAsync(userId, "Consultant", Arg.Any<CancellationToken>());
+        var profile = await db.UserProfiles.FirstAsync(p => p.UserId == userId);
+        profile.ConsultantVerifiedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Approving_company_onboarding_does_not_set_consultant_marker()
+    {
+        using var db = CreateDb();
+        var userId = SeedPendingUser(db, "ScholarshipProvider");
+        db.UserProfiles.Add(new UserProfile { UserId = userId });
+        await db.SaveChangesAsync();
+
+        var admin = Substitute.For<IUserAdministration>();
+        admin.SetAccountStatusAsync(userId, AccountStatus.Active,
+                Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(true);
+
+        await Sut(db, admin).Handle(
+            new ReviewOnboardingCommand(userId, OnboardingDecision.Approve, null), default);
+
+        var profile = await db.UserProfiles.FirstAsync(p => p.UserId == userId);
+        profile.ConsultantVerifiedAt.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Rejection_does_not_grant_a_role()
     {
         using var db = CreateDb();

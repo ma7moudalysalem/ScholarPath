@@ -5,6 +5,7 @@ using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Documents;
 using ScholarPath.Application.Notifications;
+using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Admin.Commands.ApproveOnboarding;
@@ -73,6 +74,25 @@ public sealed class ReviewOnboardingCommandHandler(
         {
             if (!string.IsNullOrWhiteSpace(user.ActiveRole))
                 await admin.AddRoleAsync(request.UserId, user.ActiveRole, ct).ConfigureAwait(false);
+
+            // A direct/standalone Consultant becomes an eligible consultant only
+            // once approved here — stamp the official verification marker so they
+            // pass IConsultantEligibilityService, mirroring the upgrade-approval
+            // path. Idempotent (keeps any earlier verification timestamp).
+            if (string.Equals(user.ActiveRole, "Consultant", StringComparison.OrdinalIgnoreCase))
+            {
+                if (user.Profile is null)
+                {
+                    user.Profile = new UserProfile
+                    {
+                        UserId = user.Id,
+                        CreatedAt = DateTimeOffset.UtcNow,
+                    };
+                    db.UserProfiles.Add(user.Profile);
+                }
+
+                user.Profile.ConsultantVerifiedAt ??= DateTimeOffset.UtcNow;
+            }
 
             user.IsOnboardingComplete = true;
             // Approval clears any stale rejection feedback so a future onboarding
