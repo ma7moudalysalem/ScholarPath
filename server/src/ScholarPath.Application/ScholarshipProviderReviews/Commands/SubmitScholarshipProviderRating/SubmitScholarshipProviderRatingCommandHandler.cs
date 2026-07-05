@@ -89,17 +89,24 @@ public sealed class SubmitScholarshipProviderRatingCommandHandler(
             .AsNoTracking()
             .Where(r => r.ScholarshipProviderId == companyId && !r.IsHiddenByAdmin);
 
-        var reviewCount = await visibleReviews.CountAsync(ct);
-        // Math.Round on the decimal average — server-side aggregation already
-        // returns decimal, but a CLR Math.Round at write time keeps the
-        // persisted snapshot at 2-decimal precision matching the column.
-        decimal? averageRating = reviewCount == 0
+        // Total visible reviews — the "N reviews" figure shown to users.
+        var totalReviewCount = await visibleReviews.CountAsync(ct);
+
+        // FR-APP-35 (updated): the rating + low-rating flag are both computed
+        // from the most recent RatingWindowSize reviews only ("latest 20
+        // reviews"), newest first — not all-time and not a 3-month window.
+        var windowRatings = await visibleReviews
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(ScholarshipProviderRatingThresholds.RatingWindowSize)
+            .Select(r => (decimal)r.Rating)
+            .ToListAsync(ct);
+
+        var sampleCount = windowRatings.Count;
+        decimal? averageRating = sampleCount == 0
             ? null
-            : await visibleReviews.AverageAsync(r => (decimal)r.Rating, ct);
-        if (averageRating is not null)
-        {
-            averageRating = Math.Round(averageRating.Value, 2, MidpointRounding.AwayFromZero);
-        }
+            // Math.Round keeps the persisted snapshot at 2-decimal precision
+            // matching the column.
+            : Math.Round(windowRatings.Average(), 2, MidpointRounding.AwayFromZero);
 
         var profile = await db.UserProfiles
             .FirstOrDefaultAsync(p => p.UserId == companyId, ct);
@@ -115,34 +122,12 @@ public sealed class SubmitScholarshipProviderRatingCommandHandler(
             return;
         }
 
-        // The displayed reputation snapshot stays ALL-TIME (overall standing).
+        // Both the displayed snapshot and the flag use the latest-20 window.
         profile.ScholarshipProviderAverageRating = averageRating;
-        profile.ScholarshipProviderReviewCount = reviewCount;
+        profile.ScholarshipProviderReviewCount = totalReviewCount;
 
-        // FR-APP-35: the low-rating FLAG decision is scoped to the trailing
-        // 3 months only — "if the ScholarshipProvider average rating during the last 3
-        // months falls below 2.5, flag for Admin assessment." A provider that
-        // has recently improved should not stay flagged on old ratings, and a
-        // provider that recently declined should be caught even if its all-time
-        // average is still healthy.
-        var windowStart = DateTimeOffset.UtcNow.AddMonths(-ScholarshipProviderRatingThresholds.FlaggingWindowMonths);
-        var recentReviews = db.ScholarshipProviderReviews
-            .AsNoTracking()
-            .Where(r => r.ScholarshipProviderId == companyId
-                        && !r.IsHiddenByAdmin
-                        && r.CreatedAt >= windowStart);
-
-        var recentCount = await recentReviews.CountAsync(ct);
-        decimal? recentAverage = recentCount == 0
-            ? null
-            : await recentReviews.AverageAsync(r => (decimal)r.Rating, ct);
-        if (recentAverage is not null)
-        {
-            recentAverage = Math.Round(recentAverage.Value, 2, MidpointRounding.AwayFromZero);
-        }
-
-        var shouldFlag = recentAverage is { } avg
-            && recentCount >= ScholarshipProviderRatingThresholds.MinimumReviewsForFlagging
+        var shouldFlag = averageRating is { } avg
+            && sampleCount >= ScholarshipProviderRatingThresholds.MinimumReviewsForFlagging
             && avg < ScholarshipProviderRatingThresholds.LowRatingThreshold;
 
         // Sticky flag: don't overwrite an existing FlaggedAt timestamp on
@@ -158,9 +143,8 @@ public sealed class SubmitScholarshipProviderRatingCommandHandler(
 
         if (firstFlagging)
         {
-            // Notify with the trailing-window figures that actually triggered
-            // the flag, not the all-time snapshot.
-            await NotifyAdminsAsync(companyId, recentAverage!.Value, recentCount, ct);
+            // Notify with the latest-20-window figures that actually triggered the flag.
+            await NotifyAdminsAsync(companyId, averageRating!.Value, sampleCount, ct);
         }
     }
 

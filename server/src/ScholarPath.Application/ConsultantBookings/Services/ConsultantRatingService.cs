@@ -67,10 +67,22 @@ public sealed class ConsultantRatingService(
             .AsNoTracking()
             .Where(r => r.ConsultantId == consultantId && !r.IsHiddenByAdmin && !r.IsDeleted);
 
-        var reviewCount = await visibleReviews.CountAsync(ct).ConfigureAwait(false);
-        decimal? rawAverage = reviewCount == 0
+        // Total visible reviews — the "N reviews" figure shown to users.
+        var totalReviewCount = await visibleReviews.CountAsync(ct).ConfigureAwait(false);
+
+        // FR-CBR-38: the rating + flag are computed from the most recent
+        // RatingWindowSize reviews only ("latest 20 reviews"), newest first.
+        var windowRatings = await visibleReviews
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(ConsultantRatingThresholds.RatingWindowSize)
+            .Select(r => (decimal)r.Rating)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        var sampleCount = windowRatings.Count;
+        decimal? rawAverage = sampleCount == 0
             ? null
-            : await visibleReviews.AverageAsync(r => (decimal)r.Rating, ct).ConfigureAwait(false);
+            : windowRatings.Average();
 
         var profile = await db.UserProfiles
             .FirstOrDefaultAsync(p => p.UserId == consultantId, ct)
@@ -93,10 +105,10 @@ public sealed class ConsultantRatingService(
             : decimal.Round(Math.Clamp(rawAverage.Value * factor, 0m, 5m), 2, MidpointRounding.AwayFromZero);
 
         profile.ConsultantAverageRating = penalized;
-        profile.ConsultantReviewCount = reviewCount;
+        profile.ConsultantReviewCount = totalReviewCount;
 
         var shouldFlag = penalized is { } avg
-            && reviewCount >= ConsultantRatingThresholds.MinimumReviewsForFlagging
+            && sampleCount >= ConsultantRatingThresholds.MinimumReviewsForFlagging
             && avg < ConsultantRatingThresholds.LowRatingThreshold;
 
         // Sticky flag: the original flag time is what the admin queue surfaces; a
@@ -111,7 +123,7 @@ public sealed class ConsultantRatingService(
 
         if (firstFlagging)
         {
-            await NotifyAdminsAsync(consultantId, penalized!.Value, reviewCount, ct).ConfigureAwait(false);
+            await NotifyAdminsAsync(consultantId, penalized!.Value, sampleCount, ct).ConfigureAwait(false);
         }
     }
 
