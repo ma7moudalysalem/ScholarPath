@@ -644,6 +644,7 @@ export function AppRouter() {
               </RequireRole>
             }
           />
+
           <Route
             path="/consultant"
             element={
