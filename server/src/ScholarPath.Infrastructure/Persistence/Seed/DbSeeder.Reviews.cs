@@ -127,27 +127,12 @@ public static partial class DbSeeder
             return;
         }
 
-        // Load the consultant + provider profiles once so we can stamp their
-        // displayed rating snapshots.
-        var allRatedIds = consultantIds.Concat(providerIds).ToList();
-        var profiles = await db.UserProfiles
-            .Where(p => allRatedIds.Contains(p.UserId))
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
-        var profileByUser = profiles.ToDictionary(p => p.UserId);
-
-        // Bookings that already exist (from the curated seeder) so we don't clash
-        // and so those consultants' counts include the curated reviews.
-        var existingReviewByConsultant = await db.ConsultantReviews
-            .GroupBy(r => r.ConsultantId)
-            .Select(g => new { ConsultantId = g.Key, Count = g.Count(), Sum = g.Sum(r => r.Rating) })
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
-        var priorByConsultant = existingReviewByConsultant
-            .ToDictionary(x => x.ConsultantId, x => (count: x.Count, sum: x.Sum));
-
-        var newBookings = new List<ConsultantBooking>();
-        var newReviews = new List<ConsultantReview>();
+        // Build the whole booking+review set in memory (lightweight POCOs), then
+        // persist in BATCHES with the change-tracker cleared between them. On a
+        // small hosting tier a single ~3,000-entity SaveChanges holds far too much
+        // in the EF change tracker and can push the app into a memory-pressure
+        // recycle mid-seed — batching keeps the working set flat.
+        var pending = new List<(ConsultantBooking booking, ConsultantReview review)>();
 
         foreach (var consultantId in consultantIds)
         {
@@ -157,9 +142,6 @@ public static partial class DbSeeder
             var target = volumeRoll < 15 ? rng.Next(0, 2)
                        : volumeRoll < 45 ? rng.Next(2, 5)
                        : rng.Next(5, 12);
-
-            var priorCount = priorByConsultant.TryGetValue(consultantId, out var prior) ? prior.count : 0;
-            var priorSum = priorCount > 0 ? prior.sum : 0;
 
             var sessionPrice = new[] { 30m, 35m, 45m, 60m, 80m }[rng.Next(5)];
 
@@ -187,13 +169,9 @@ public static partial class DbSeeder
                     ConsultantJoinedAt = start,
                     CreatedAt = start.AddDays(-6),
                 };
-                newBookings.Add(booking);
 
                 var rating = PickRating(rng);
-                priorSum += rating;
-                priorCount++;
-
-                newReviews.Add(new ConsultantReview
+                var review = new ConsultantReview
                 {
                     Id = Guid.NewGuid(),
                     BookingId = booking.Id,
@@ -202,43 +180,75 @@ public static partial class DbSeeder
                     Rating = rating,
                     Comment = PickBilingual(rng, ConsultantReviewsEn, ConsultantReviewsAr),
                     CreatedAt = booking.CompletedAt!.Value.AddHours(rng.Next(1, 60)),
-                });
-            }
+                };
 
-            // Stamp the displayed snapshot from the REAL reviews (curated + new).
-            if (profileByUser.TryGetValue(consultantId, out var cp))
-            {
-                cp.ConsultantReviewCount = priorCount;
-                cp.ConsultantAverageRating = priorCount == 0
-                    ? null
-                    : Math.Round((decimal)priorSum / priorCount, 2, MidpointRounding.AwayFromZero);
+                pending.Add((booking, review));
             }
         }
 
-        // Providers: give every provider a realistic displayed snapshot so the
-        // scholarship-listing provider cards are populated. (Provider reviews are
-        // 1:1 with a finalised application, so we don't fabricate applications
-        // here — the snapshot is what the cards read.)
-        foreach (var providerId in providerIds)
+        // Persist in batches, clearing the tracker each time to cap memory.
+        const int batchSize = 250;
+        var totalReviews = 0;
+        for (var i = 0; i < pending.Count; i += batchSize)
         {
-            if (!profileByUser.TryGetValue(providerId, out var pp)) continue;
+            var slice = pending.GetRange(i, Math.Min(batchSize, pending.Count - i));
+            db.Bookings.AddRange(slice.Select(x => x.booking));
+            db.ConsultantReviews.AddRange(slice.Select(x => x.review));
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+            db.ChangeTracker.Clear();
+            totalReviews += slice.Count;
+        }
+
+        // Stamp each consultant's displayed snapshot with a single SET-BASED
+        // update computed directly from the persisted reviews — reliable
+        // regardless of list size and allocation-free (no per-profile loading).
+        // SET QUOTED_IDENTIFIER ON so the UPDATE works against the filtered-index
+        // tables in the model regardless of the session default.
+        var consultantsRated = 0;
+        if (db.Database.IsRelational())
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+UPDATE p
+   SET p.ConsultantReviewCount   = x.cnt,
+       p.ConsultantAverageRating = x.avg
+FROM UserProfiles p
+JOIN (SELECT ConsultantId,
+             COUNT(*) AS cnt,
+             CAST(ROUND(AVG(CAST(Rating AS decimal(5,2))), 2) AS decimal(3,2)) AS avg
+      FROM ConsultantReviews
+      WHERE IsDeleted = 0 AND IsHiddenByAdmin = 0
+      GROUP BY ConsultantId) x
+  ON p.UserId = x.ConsultantId;", ct).ConfigureAwait(false);
+
+            consultantsRated = await db.UserProfiles
+                .CountAsync(p => p.ConsultantAverageRating != null, ct)
+                .ConfigureAwait(false);
+        }
+
+        // Providers: a realistic synthetic snapshot so the scholarship-listing
+        // provider cards are populated. (Provider reviews are 1:1 with a finalised
+        // application, so we don't fabricate applications here.) Only ~60 rows —
+        // load, set, save in one cheap pass.
+        var providerProfiles = await db.UserProfiles
+            .Where(p => providerIds.Contains(p.UserId))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        foreach (var pp in providerProfiles)
+        {
             var count = rng.Next(100) < 20 ? rng.Next(0, 3) : rng.Next(4, 40);
             pp.ScholarshipProviderReviewCount = count;
             pp.ScholarshipProviderAverageRating = count == 0
                 ? null
                 : Math.Round(3.6m + (decimal)rng.NextDouble() * 1.4m, 2, MidpointRounding.AwayFromZero);
         }
-
-        if (newBookings.Count > 0)
-        {
-            db.Bookings.AddRange(newBookings);
-            db.ConsultantReviews.AddRange(newReviews);
-        }
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        db.ChangeTracker.Clear();
 
         logger.LogInformation(
-            "Seeded bulk ratings: {B} completed bookings, {R} bilingual consultant reviews across {C} consultants; " +
-            "stamped provider rating snapshots on {P} providers.",
-            newBookings.Count, newReviews.Count, consultantIds.Count, providerIds.Count);
+            "Seeded bulk ratings: {R} bilingual consultant reviews (batched) across {C} consultants " +
+            "({Rated} rated snapshots); stamped {P} provider snapshots.",
+            totalReviews, consultantIds.Count, consultantsRated, providerProfiles.Count);
     }
 }
