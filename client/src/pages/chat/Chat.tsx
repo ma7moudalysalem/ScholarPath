@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import {
   Send,
@@ -37,6 +38,8 @@ export function Chat() {
 
   const currentUser = useAuthStore((state) => state.user);
   const accessToken = useAuthStore((state) => state.tokens?.accessToken);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkHandledRef = useRef(false);
 
   const [selectedConv, setSelectedConv] = useState<ChatConversation | null>(null);
   const [messageBody, setMessageBody] = useState("");
@@ -69,7 +72,7 @@ export function Chat() {
     ? onlineUserIds.has(selectedConv.otherParticipantId) || selectedConv.isOnline
     : false;
 
-  const { data: conversations = [] } = useQuery({
+  const { data: conversations = [], isSuccess: conversationsLoaded } = useQuery({
     queryKey: ["chat", "conversations"],
     queryFn: () => chatApi.getConversations(),
   });
@@ -135,6 +138,30 @@ export function Chat() {
     }
     setSelectedConv(next);
   };
+
+  // Deep-link: /messages?with={userId}&name={name}. Lets a "Message" button
+  // elsewhere (e.g. on an accepted application-support request) jump straight
+  // into a conversation with that person — reusing an existing thread if there
+  // is one, or staging a fresh compose that the first message turns real.
+  useEffect(() => {
+    const withId = searchParams.get("with");
+    if (!withId || deepLinkHandledRef.current || !conversationsLoaded) return;
+    deepLinkHandledRef.current = true;
+    const name = searchParams.get("name") ?? "";
+    const existing = conversations.find((c) => c.otherParticipantId === withId);
+    selectConversation(
+      existing ?? {
+        id: `pending:${withId}`,
+        otherParticipantId: withId,
+        otherParticipantName: name,
+        isOnline: false,
+        isBlocked: false,
+      },
+    );
+    // Drop the query params so a later refresh doesn't re-open this thread.
+    setSearchParams({}, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, conversationsLoaded, conversations]);
 
   useEffect(() => {
     if (!accessToken) return;

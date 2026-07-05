@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, Loader2, X, CheckCircle2 } from "lucide-react";
+import { Check, Loader2, X, CheckCircle2, MessageSquare } from "lucide-react";
 import {
   scholarshipProviderReviewRequestsApi,
   type ScholarshipProviderReviewRequestDto,
@@ -165,6 +166,15 @@ export function ScholarshipProviderReviewRequests() {
                   </span>
                 )}
                 <div className="flex flex-wrap gap-2">
+                  {(isPending || isUnderReview) && (
+                    <Link
+                      to={`/company/messages?with=${req.studentId}&name=${encodeURIComponent(req.studentName ?? "")}`}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-brand-200 bg-bg-canvas px-3 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50"
+                    >
+                      <MessageSquare aria-hidden className="size-3" />
+                      {t("payments:reviewRequest.message")}
+                    </Link>
+                  )}
                   {isPending && (
                     <>
                       <button
