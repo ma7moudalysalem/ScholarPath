@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -13,6 +14,7 @@ import type {
   AvailabilityRule,
   DayOfWeek,
 } from "@/services/api/bookings";
+import { profileApi, type UserProfile } from "@/services/api/profile";
 import { formatDate, formatTime } from "@/lib/bookingFormat";
 import { apiErrorMessage } from "@/services/api/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -84,6 +86,13 @@ function toApiTime(value: string): string {
   return value.length === 5 ? `${value}:00` : value;
 }
 
+/** Whole minutes between two `"HH:mm"` values (assumes end ≥ start on the day). */
+function minutesBetween(start: string, end: string): number {
+  const [sh, sm] = start.split(":").map((part) => Number(part));
+  const [eh, em] = end.split(":").map((part) => Number(part));
+  return eh * 60 + em - (sh * 60 + sm);
+}
+
 /**
  * Builds the editable weekday rows from the consultant's saved rules. Every
  * recurring rule on a day becomes its own slot, so a single weekday can expose
@@ -122,6 +131,18 @@ export function ConsultantAvailability() {
   const { data, isLoading, isError } = useMyAvailabilityQuery();
   const updateMutation = useUpdateAvailabilityMutation();
 
+  // The consultant's session length drives how bookable slots are generated:
+  // the server slices each working-hour window into back-to-back session-sized
+  // slots (see ConsultantReadService.SliceWindow). A window shorter than one
+  // session therefore yields ZERO bookable slots — the exact reason a saved
+  // schedule can show up empty on the student side. Fetch the duration so the
+  // editor can warn before that happens. Shares the Profile page's cache key.
+  const { data: profile } = useQuery<UserProfile>({
+    queryKey: ["profile", "me"],
+    queryFn: () => profileApi.getMine(),
+  });
+  const sessionMinutes = profile?.sessionDurationMinutes ?? null;
+
   // Preview: show the consultant exactly how many slots students currently see.
   // Uses the same public endpoint students call, so the count is authoritative.
   const consultantId = useAuthStore((s) => s.user?.id);
@@ -153,6 +174,21 @@ export function ConsultantAvailability() {
   );
 
   const activeDaysCount = rows.filter((row) => row.isEnabled).length;
+
+  // Any enabled window shorter than one session produces no bookable slots.
+  // Surfacing this inline explains an otherwise-silent "0 visible slots".
+  const hasShortWindow = useMemo(() => {
+    if (!sessionMinutes || sessionMinutes <= 0) return false;
+    return rows.some(
+      (row) =>
+        row.isEnabled &&
+        row.slots.some(
+          (slot) =>
+            slot.start < slot.end &&
+            minutesBetween(slot.start, slot.end) < sessionMinutes,
+        ),
+    );
+  }, [rows, sessionMinutes]);
 
   const handleToggleDay = (key: string) => {
     setRows((current) =>
@@ -231,6 +267,22 @@ export function ConsultantAvailability() {
         if (ordered[i].end > ordered[i + 1].start) {
           toast.error(t("availability.weeklySchedule.slotOverlap"));
           return;
+        }
+      }
+
+      // A window shorter than one full session slices into no bookable slots,
+      // so saving it would silently leave the student side empty. Block it with
+      // a message that names the fix (longer window / shorter session length).
+      if (sessionMinutes && sessionMinutes > 0) {
+        for (const slot of row.slots) {
+          if (minutesBetween(slot.start, slot.end) < sessionMinutes) {
+            toast.error(
+              t("availability.weeklySchedule.windowTooShort", {
+                minutes: sessionMinutes,
+              }),
+            );
+            return;
+          }
         }
       }
     }
@@ -355,6 +407,14 @@ export function ConsultantAvailability() {
                 )}
               </div>
             </div>
+
+            {hasShortWindow ? (
+              <div className="mt-6 rounded-xl border border-warning-200 bg-warning-50 p-5 text-sm leading-6 text-warning-700">
+                {t("availability.weeklySchedule.windowTooShort", {
+                  minutes: sessionMinutes,
+                })}
+              </div>
+            ) : null}
 
             <div className="mt-8 grid gap-6 xl:grid-cols-12">
               <section className="space-y-6 xl:col-span-8">
@@ -588,6 +648,13 @@ export function ConsultantAvailability() {
                   <div className="mt-5 space-y-3 text-sm leading-6 text-text-secondary">
                     <p>{t("availability.notes.line1")}</p>
                     <p>{t("availability.notes.line2")}</p>
+                    {sessionMinutes && sessionMinutes > 0 ? (
+                      <p>
+                        {t("availability.notes.sessionLength", {
+                          minutes: sessionMinutes,
+                        })}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </aside>

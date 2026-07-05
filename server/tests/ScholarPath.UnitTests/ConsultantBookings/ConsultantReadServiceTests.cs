@@ -434,6 +434,42 @@ public sealed class ConsultantReadServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task OpenSlots_YieldsNoSlots_WhenWindowIsShorterThanTheSession()
+    {
+        // Regression: a consultant with a 45-minute session who saved narrow
+        // 15-minute windows (Monday 17:00-17:15) gets ZERO bookable slots — a
+        // 45-minute session cannot be sliced out of a 15-minute window. This is
+        // the silent mismatch the availability editor now warns about before
+        // saving; the read side is asserted here so the behaviour is pinned.
+        var consultant = SeedConsultant(durationMinutes: 45);
+        SeedRecurringAvailability(consultant, DayOfWeek.Tuesday,
+            new TimeOnly(17, 0), new TimeOnly(17, 15));
+
+        var result = await _service.GetConsultantOpenSlotsAsync(consultant, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task OpenSlots_ReturnsWholeWindow_WhenConsultantHasNoSessionLength()
+    {
+        // With no configured session length the window stands whole (the booking
+        // handler skips the duration check then), so even a narrow window is
+        // bookable — contrast with the too-short-window case above.
+        var consultant = SeedConsultant(durationMinutes: null);
+        SeedRecurringAvailability(consultant, DayOfWeek.Tuesday,
+            new TimeOnly(17, 0), new TimeOnly(17, 15));
+
+        var result = await _service.GetConsultantOpenSlotsAsync(consultant, CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result!.Where(s => s.StartAt.UtcDateTime.Date == new DateTime(2026, 5, 19))
+            .Should().ContainSingle()
+            .Which.DurationMinutes.Should().Be(15);
+    }
+
+    [Fact]
     public async Task OpenSlots_IncludesFutureAdHocSlot_AndExcludesPastOne()
     {
         var consultant = SeedConsultant();
