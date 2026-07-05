@@ -69,6 +69,13 @@ public sealed record ResourceProgressDto(
     int TotalChapters,
     DateTimeOffset LastAccessedAt);
 
+/// <summary>The caller's progress for a single resource, including which chapters are done.</summary>
+public sealed record ResourceProgressDetailDto(
+    Guid ResourceId,
+    int ChaptersCompletedCount,
+    int TotalChapters,
+    IReadOnlyList<Guid> CompletedChapterIds);
+
 /// <summary>Chapter payload accepted by Create/Update resource commands.</summary>
 public sealed record ResourceChapterInput(
     string TitleEn,

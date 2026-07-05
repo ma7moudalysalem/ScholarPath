@@ -124,12 +124,19 @@ export interface ResourceProgressItem {
   lastAccessedAt: string;
 }
 
+/** Server ChapterProgressResult — returned when a chapter is marked complete. */
 export interface ChapterProgressResult {
   resourceId: string;
-  chapterId: string;
+  chaptersCompletedCount: number;
   totalChapters: number;
-  chaptersCompleted: number;
-  isResourceComplete: boolean;
+}
+
+/** The caller's progress for one resource, incl. which chapters are done. */
+export interface ResourceProgressDetail {
+  resourceId: string;
+  chaptersCompletedCount: number;
+  totalChapters: number;
+  completedChapterIds: string[];
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────
@@ -218,6 +225,14 @@ export const resourcesApi = {
   /** The caller's reading progress across all resources. */
   async getMyProgress(): Promise<ResourceProgressItem[]> {
     const { data } = await apiClient.get<ResourceProgressItem[]>("/api/resources/progress/me");
+    return data;
+  },
+
+  /** The caller's progress for a single resource, incl. which chapters are done. */
+  async getResourceProgress(resourceId: string): Promise<ResourceProgressDetail> {
+    const { data } = await apiClient.get<ResourceProgressDetail>(
+      `/api/resources/${resourceId}/progress/me`,
+    );
     return data;
   },
 
