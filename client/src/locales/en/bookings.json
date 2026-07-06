@@ -96,7 +96,7 @@
     "waiting": "Waiting for the other participant to join…",
     "connected": "Connected",
     "ended": "The session has ended.",
-    "errorGeneric": "Could not connect to the session. The room opens 15 minutes before the scheduled time.",
+    "errorGeneric": "We couldn't connect you to the video session. Your browser may be blocking video calls, the camera, or the microphone — try Chrome or Edge, turn off any browser shields or blockers for this site, allow camera & microphone access, and try again.",
     "errorNotOpenYet": "The session room is not open yet. It opens 15 minutes before the scheduled start time.",
     "errorRoomClosed": "The session room has closed. Sessions remain joinable until 15 minutes after the scheduled end time.",
     "errorNotParticipant": "You are not a participant of this booking, so you cannot join its session.",
