@@ -12,6 +12,7 @@ import {
   type PagedResult,
 } from "@/services/api/admin";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 const ACTIONS: AuditAction[] = [
   "Create",
@@ -59,6 +60,7 @@ export function AuditLogViewer() {
   const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
 
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [action, setAction] = useState<AuditAction | "">("");
   const [targetType, setTargetType] = useState("");
   const [from, setFrom] = useState("");
@@ -68,7 +70,7 @@ export function AuditLogViewer() {
   const params: AuditLogParams = {
     page,
     pageSize: 50,
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     action: action || undefined,
     targetType: targetType || undefined,
     // `from` is the start of the chosen day; `to` is end-of-day (inclusive).

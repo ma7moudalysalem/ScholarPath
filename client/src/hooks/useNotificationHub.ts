@@ -58,12 +58,18 @@ export function useNotificationHub() {
       if (effectIdRef.current !== effectId) return;
 
       const lang = document.documentElement.lang || "en";
+      // Dedupe by id so a SignalR reconnect replay / double broadcast can't show
+      // the same toast twice (the list-cache merge below is already id-guarded).
       toast(lang === "ar" ? payload.titleAr : payload.titleEn, {
+        id: payload.id || undefined,
         description: lang === "ar" ? payload.bodyAr : payload.bodyEn,
       });
 
       // Bump the header bell badge the moment a notification lands.
       void queryClient.invalidateQueries({ queryKey: UNREAD_COUNT_QUERY_KEY });
+      // Refresh the dashboard "recent notifications" widget too — it uses a
+      // separate query key that the list-cache merge below does not touch.
+      void queryClient.invalidateQueries({ queryKey: ["notifications", "recent"] });
 
       // Optimistically prepend to every cached notifications list page so the
       // notifications page reflects the new row without an extra refetch.
