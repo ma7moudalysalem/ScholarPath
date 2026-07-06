@@ -398,15 +398,24 @@ export function Meeting() {
 
         {/* The video surfaces stay mounted while connected so the SDK can
             attach its renderers to the ref containers. */}
-        <div className={phase === "connected" ? "h-full w-full" : "hidden"}>
+        <div className={phase === "connected" ? "relative h-full w-full" : "hidden"}>
+          {/* The ACS SDK attaches the remote <video> into this node via
+              replaceChildren, so it must have NO React-managed children.
+              Previously the "waiting" placeholder lived inside here: once the
+              remote stream rendered (replaceChildren removed the placeholder)
+              and remoteJoined flipped true, React tried to remove that same
+              placeholder and threw "removeChild: node is not a child", which
+              tripped the ErrorBoundary and dropped the second participant out of
+              the call. Keep the placeholder as a SIBLING overlay instead. */}
           <div
             ref={remoteVideoRef}
             className="flex h-full w-full items-center justify-center rounded-xl bg-neutral-900"
-          >
-            {!remoteJoined && (
-              <p className="text-sm text-neutral-500">{t("bookings:meeting.waiting")}</p>
-            )}
-          </div>
+          />
+          {!remoteJoined && (
+            <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-neutral-500">
+              {t("bookings:meeting.waiting")}
+            </p>
+          )}
           <div
             ref={localVideoRef}
             aria-label={t("bookings:meeting.you")}
