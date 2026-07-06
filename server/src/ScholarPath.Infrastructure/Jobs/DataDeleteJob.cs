@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
@@ -25,6 +26,7 @@ public interface IDataDeleteJob
 public sealed class DataDeleteJob(
     ApplicationDbContext db,
     IDateTimeService clock,
+    IBlobStorageService storage,
     ILogger<DataDeleteJob> logger) : IDataDeleteJob
 {
     public async Task RunAsync(CancellationToken ct)
@@ -317,6 +319,45 @@ public sealed class DataDeleteJob(
         {
             s.AuthorDisplayName = "Former member";
             s.AuthorImageUrl = null;
+        }
+
+        // ── Session recordings — a recording is the video/audio of the user's
+        // consultation, the most sensitive personal data we hold. Time-based
+        // retention is "keep forever" by policy, but erasure (Art. 17) must still
+        // destroy them: delete the blob bytes AND the row. A recording captures
+        // this person whether they were the student or the consultant, so both
+        // roles are in scope. Best-effort per blob so an already-purged file
+        // cannot stall the erasure. Hard-delete the rows (like reset tokens) —
+        // once the bytes are gone the metadata row has no reason to survive.
+        var recordingBookingIds = await db.Bookings
+            .IgnoreQueryFilters()
+            .Where(b => b.StudentId == userId || b.ConsultantId == userId)
+            .Select(b => b.Id)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        if (recordingBookingIds.Count > 0)
+        {
+            var recordings = await db.SessionRecordings
+                .IgnoreQueryFilters()
+                .Where(r => recordingBookingIds.Contains(r.BookingId))
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+
+            foreach (var r in recordings)
+            {
+                try
+                {
+                    await storage.DeleteAsync(r.StoragePath, ct).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(
+                        ex, "[job] DataDelete: could not delete recording blob {Path}", r.StoragePath);
+                }
+            }
+
+            db.SessionRecordings.RemoveRange(recordings);
         }
 
         // ── Audit log — IP / UA tied to this actor are personal data.
