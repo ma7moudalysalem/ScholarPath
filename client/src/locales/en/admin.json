@@ -421,6 +421,10 @@
     "sessionAt": "Session",
     "reportedAt": "Reported",
     "note": "Reporter note",
+    "attendance": "Room attendance (evidence)",
+    "studentJoined": "Student joined",
+    "consultantJoined": "Consultant joined",
+    "didNotJoin": "Never joined",
     "role": {
       "Student": "student",
       "Consultant": "consultant"

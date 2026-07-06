@@ -170,6 +170,9 @@ export interface NoShowReportRow {
   scheduledEndAt: string;
   reporterNote: string | null;
   reportedAt: string;
+  /** Hard attendance evidence from the session room — null when that party never joined. */
+  studentJoinedAt: string | null;
+  consultantJoinedAt: string | null;
 }
 
 export interface AnalyticsOverviewDto {

@@ -26,7 +26,13 @@ public sealed record NoShowReportRow(
     DateTimeOffset ScheduledStartAt,
     DateTimeOffset ScheduledEndAt,
     string? ReporterNote,
-    DateTimeOffset ReportedAt);
+    DateTimeOffset ReportedAt,
+    // Hard attendance evidence from the session room — the admin needs this to
+    // resolve correctly. For an auto-detected report ("only one party joined")
+    // these timestamps say WHICH party actually attended, so a genuine no-show
+    // isn't rejected as a false report (which would wrongly penalise the reporter).
+    DateTimeOffset? StudentJoinedAt,
+    DateTimeOffset? ConsultantJoinedAt);
 
 public sealed class GetPendingNoShowReportsQueryHandler(
     IApplicationDbContext db,
@@ -68,7 +74,9 @@ public sealed class GetPendingNoShowReportsQueryHandler(
                 x.booking.ScheduledStartAt,
                 x.booking.ScheduledEndAt,
                 x.r.ReporterNote,
-                x.r.CreatedAt))
+                x.r.CreatedAt,
+                x.booking.StudentJoinedAt,
+                x.booking.ConsultantJoinedAt))
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
