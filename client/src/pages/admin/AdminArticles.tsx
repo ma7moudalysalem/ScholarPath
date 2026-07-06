@@ -143,6 +143,7 @@ function PendingTab() {
         title={t("resources:moderation.reject")}
         inputLabel={t("resources:moderation.rejectPrompt")}
         inputMultiline
+        requireInput
         variant="destructive"
         confirmLabel={t("resources:moderation.reject")}
         loading={rejectMut.isPending}

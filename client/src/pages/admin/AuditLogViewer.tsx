@@ -72,9 +72,12 @@ export function AuditLogViewer() {
     action: action || undefined,
     targetType: targetType || undefined,
     // `from` is the start of the chosen day; `to` is end-of-day (inclusive).
-    // The DatePicker hands us YYYY-MM-DD; the API wants ISO datetime.
-    from: from ? `${from}T00:00:00.000Z` : undefined,
-    to: to ? `${to}T23:59:59.999Z` : undefined,
+    // The DatePicker hands us YYYY-MM-DD; the API wants an ISO instant. Build the
+    // instant from the admin's LOCAL midnight (no trailing "Z"), then convert to
+    // UTC — appending "Z" treated the local day as a UTC day, which shifted the
+    // window by the admin's offset (e.g. Egypt UTC+2/+3) and dropped edge rows.
+    from: from ? new Date(`${from}T00:00:00`).toISOString() : undefined,
+    to: to ? new Date(`${to}T23:59:59.999`).toISOString() : undefined,
   };
 
   const { data, isLoading } = useQuery<PagedResult<AuditLogDto>>({

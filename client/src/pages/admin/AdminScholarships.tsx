@@ -262,6 +262,7 @@ export function AdminScholarships() {
         title={t("moderation:scholarshipModeration.reject")}
         inputLabel={t("moderation:scholarshipModeration.rejectPrompt")}
         inputMultiline
+        requireInput
         variant="destructive"
         confirmLabel={t("moderation:scholarshipModeration.reject")}
         loading={rejectMut.isPending}

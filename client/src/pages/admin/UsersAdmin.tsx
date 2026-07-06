@@ -342,6 +342,7 @@ export function UsersAdmin() {
         title={t("admin:users.statusChange.title")}
         inputLabel={t("admin:users.statusChange.reasonLabel")}
         inputMultiline
+        requireInput
         confirmLabel={t("admin:users.statusChange.submit")}
         cancelLabel={t("admin:users.statusChange.cancel")}
         variant={reasonTarget?.newStatus === "Deactivated" ? "destructive" : "default"}

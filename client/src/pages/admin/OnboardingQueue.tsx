@@ -323,6 +323,7 @@ export function OnboardingQueue() {
         title={t("admin:onboarding.reviewDialog.title")}
         inputLabel={t("admin:onboarding.reviewDialog.notesLabel")}
         inputMultiline
+        requireInput
         variant="destructive"
         confirmLabel={t("admin:onboarding.reviewDialog.reject")}
         cancelLabel={t("admin:onboarding.reviewDialog.cancel")}
