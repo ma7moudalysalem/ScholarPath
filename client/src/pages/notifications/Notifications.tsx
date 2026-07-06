@@ -182,7 +182,8 @@ export function Notifications() {
         </div>
       </div>
 
-      {items.length === 0 ? (
+      {items.length === 0 &&
+      !(tab === "unread" && unreadCount > 0 && allItems.length < data.total) ? (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -248,7 +249,11 @@ export function Notifications() {
         </ul>
       )}
 
-      {items.length < data.total && tab === "all" && (
+      {/* Load-more must work on BOTH tabs: the Unread tab derives its rows from
+          the loaded page, so gating this on the "all" tab left unread items
+          beyond the first page unreachable. Compare the loaded count (allItems)
+          — not the filtered `items` — against the whole-feed total. */}
+      {allItems.length < data.total && (
         <div className="mt-6 text-center">
           <button
             type="button"

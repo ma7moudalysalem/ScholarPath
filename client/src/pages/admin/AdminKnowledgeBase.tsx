@@ -172,7 +172,9 @@ export function AdminKnowledgeBase() {
     mutationFn: (name: string) => adminApi.activateFineTunedModel(name),
     onSuccess: (r) => {
       toast.success(t("admin:knowledgeBase.ftActivated", { name: r.deploymentName }));
-      qc.invalidateQueries({ queryKey: FT_STATUS_KEY });
+      // FT_STATUS_KEY query is enabled:false, so invalidate never refetches —
+      // force it so the "Active deployment" panel reflects the change immediately.
+      void qc.refetchQueries({ queryKey: FT_STATUS_KEY });
       setDeploymentInput("");
     },
     onError: () => toast.error(t("admin:knowledgeBase.ftActivateError")),
@@ -182,14 +184,18 @@ export function AdminKnowledgeBase() {
     mutationFn: () => adminApi.deactivateFineTunedModel(),
     onSuccess: () => {
       toast.success(t("admin:knowledgeBase.ftDeactivated"));
-      qc.invalidateQueries({ queryKey: FT_STATUS_KEY });
+      void qc.refetchQueries({ queryKey: FT_STATUS_KEY });
     },
     onError: () => toast.error(t("admin:knowledgeBase.ftDeactivateError")),
   });
 
   const busy = rebuild.isPending || importMut.isPending || exportMut.isPending;
   const s = status.data;
-  const ft = checkStatusMut.data ?? ftStatus.data;
+  // Read the status straight from the query cache. The "Check status" button's
+  // mutation writes into FT_STATUS_KEY via setQueryData, and activate/deactivate
+  // refetch it — so this single source stays fresh. (Previously checkStatusMut.data
+  // shadowed the query and went stale after activate/deactivate.)
+  const ft = ftStatus.data;
 
   return (
     <div className="space-y-6">
