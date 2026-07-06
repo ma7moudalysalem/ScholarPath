@@ -148,16 +148,6 @@ public static partial class DbSeeder
                 "How was your recent consultation? Leave a review.", "كيف كانت استشارتك الأخيرة؟ اترك تقييماً.",
                 isRead: false, priority: 1, ageDays: 14, deepLink: "/student/bookings"),
 
-            // Payment notifications
-            N(s1, NotificationType.PaymentSuccess, NotificationChannel.Email,
-                "Payment successful", "تمت عملية الدفع بنجاح",
-                "Your payment for the consultation session was successful.", "تمت عملية الدفع لجلستك الاستشارية بنجاح.",
-                isRead: true, priority: 1, ageDays: 12),
-            N(consultant, NotificationType.PayoutCompleted, NotificationChannel.InApp,
-                "Payout completed", "تم تحويل المستحقات",
-                "Your payout has been transferred to your bank account.", "تم تحويل مستحقاتك إلى حسابك البنكي.",
-                isRead: false, priority: 1, ageDays: 7, deepLink: "/consultant/earnings"),
-
             // Community notification
             N(s0, NotificationType.ReplyOnYourPost, NotificationChannel.InApp,
                 "New reply on your post", "رد جديد على منشورك",
@@ -167,7 +157,7 @@ public static partial class DbSeeder
             // Onboarding / admin notification
             N(s1, NotificationType.UpgradeRequestApproved, NotificationChannel.InApp,
                 "Upgrade request approved", "تمت الموافقة على طلب الترقية",
-                "Your request to become a ScholarshipProvider has been approved.", "تمت الموافقة على طلبك لتصبح شركة.",
+                "Your request to become a ScholarshipProvider has been approved.", "تمت الموافقة على طلبك لتصبح مقدّم منحة.",
                 isRead: true, priority: 2, ageDays: 20, deepLink: "/profile"),
 
             // Resource notification
@@ -179,7 +169,7 @@ public static partial class DbSeeder
             // Broadcast
             N(company, NotificationType.Broadcast, NotificationChannel.InApp,
                 "Platform update", "تحديث المنصة",
-                "ScholarPath has launched new analytics dashboards for companies.", "أطلقت سكولرباث لوحات تحليلات جديدة للشركات.",
+                "ScholarPath has launched new analytics dashboards for scholarship providers.", "أطلقت سكولرباث لوحات تحليلات جديدة لمقدّمي المنح.",
                 isRead: false, priority: 1, ageDays: 5),
         };
 

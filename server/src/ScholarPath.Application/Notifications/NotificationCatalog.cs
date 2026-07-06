@@ -68,13 +68,13 @@ public sealed class NotificationCatalog : INotificationCatalog
 
         NotificationType.ScholarshipProviderReviewRequestPaymentHeld => new(
             "Application support request sent", "تم إرسال طلب دعم التقديم",
-            $"Your application support request for \"{p.ScholarshipNameEn ?? "the scholarship"}\" was sent to the company. You'll be notified when they respond.",
-            $"تم إرسال طلب دعم التقديم للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" إلى الشركة. سيتم إشعارك عند ردّها."),
+            $"Your application support request for \"{p.ScholarshipNameEn ?? "the scholarship"}\" was sent to the scholarship provider. You'll be notified when they respond.",
+            $"تم إرسال طلب دعم التقديم للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" إلى مقدّم المنحة. سيتم إشعارك عند ردّها."),
 
         NotificationType.ScholarshipProviderReviewRequestPaymentCaptured => new(
             "Application support request accepted", "تم قبول طلب دعم التقديم",
-            $"The company accepted your application support request for \"{p.ScholarshipNameEn ?? "the scholarship"}\" and has started working on it.",
-            $"قبلت الشركة طلب دعم التقديم للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" وبدأت العمل عليه."),
+            $"The scholarship provider accepted your application support request for \"{p.ScholarshipNameEn ?? "the scholarship"}\" and has started working on it.",
+            $"قبِل مقدّم المنحة طلب دعم التقديم للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" وبدأت العمل عليه."),
 
         NotificationType.ScholarshipProviderReviewRequestPaymentHoldCancelled => new(
             "Application support request closed", "تم إغلاق طلب دعم التقديم",
@@ -88,8 +88,8 @@ public sealed class NotificationCatalog : INotificationCatalog
 
         NotificationType.ScholarshipProviderReviewRequestCompleted => new(
             "Application support completed", "اكتمل دعم التقديم",
-            $"The company marked your application support for \"{p.ScholarshipNameEn ?? "the scholarship"}\" as completed.",
-            $"وضعت الشركة دعم طلبك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" كمكتمل."),
+            $"The scholarship provider marked your application support for \"{p.ScholarshipNameEn ?? "the scholarship"}\" as completed.",
+            $"وضع مقدّم المنحة دعم طلبك للمنحة \"{p.ScholarshipNameAr ?? "المنحة"}\" كمكتمل."),
 
         NotificationType.ScholarshipProviderReviewRequestIncoming => new(
             "New application support request", "طلب دعم تقديم جديد",
@@ -97,9 +97,9 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"أرسل {p.CounterpartyName ?? "أحد الطلاب"} طلب دعم تقديم للمنحة \"{p.ScholarshipNameAr ?? "الخاصة بك"}\". اقبله لبدء دعم التقديم أو ارفضه."),
 
         NotificationType.ScholarshipProviderRatingReceived => new(
-            "New company rating", "تقييم جديد للشركة",
-            $"You received a {p.Count ?? 0}-star company rating.",
-            $"حصلت على تقييم للشركة بـ {p.Count ?? 0} نجوم."),
+            "New provider rating", "تقييم جديد لمقدّم المنحة",
+            $"You received a {p.Count ?? 0}-star provider rating.",
+            $"حصلت على تقييم لمقدّم المنحة بـ {p.Count ?? 0} نجوم."),
 
         NotificationType.ResourceApproved => new(
             "Resource published", "تم نشر المورد",
@@ -308,7 +308,7 @@ public sealed class NotificationCatalog : INotificationCatalog
 
         "Timeout" => new(
             "Review fee refunded", "تم استرداد رسوم المراجعة",
-            "The company did not review your application in time — your review fee was fully refunded.",
+            "The scholarship provider did not review your application in time — your review fee was fully refunded.",
             "لم تُراجع الشركة طلبك في الوقت المحدد — تم استرداد كامل رسوم المراجعة."),
 
         _ => new(

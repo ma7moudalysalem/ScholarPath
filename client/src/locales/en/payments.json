@@ -209,7 +209,7 @@
   },
   "reviewRequest": {
     "studentTitle": "My application support requests",
-    "studentSubtitle": "Requests you've sent to companies to help strengthen your scholarship application before you submit.",
+    "studentSubtitle": "Requests you've sent to scholarship providers to help strengthen your scholarship application before you submit.",
     "studentEmpty": "You haven't sent any application support requests yet.",
     "scholarshipProviderTitle": "Incoming application support requests",
     "scholarshipProviderSubtitle": "Accept to start supporting the application. Reject to decline the request.",
@@ -223,7 +223,7 @@
     "commission": "Platform commission (10%)",
     "share": "Your share (90%)",
     "reference": "Reference",
-    "unknownScholarshipProvider": "Unknown company",
+    "unknownScholarshipProvider": "Unknown provider",
     "unknownStudent": "Unknown student",
     "message": "Message",
     "cancel": "Cancel request",
@@ -248,7 +248,7 @@
       "Cancelled": "Cancelled",
       "Failed": "Payment failed",
       "CancelledByStudent": "Cancelled by student",
-      "RejectedByScholarshipProvider": "Rejected by company",
+      "RejectedByScholarshipProvider": "Rejected by provider",
       "Expired": "Expired"
     }
   }
