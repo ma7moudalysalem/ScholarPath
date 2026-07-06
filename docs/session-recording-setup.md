@@ -1,11 +1,12 @@
-# Session recording — production setup runbook
+# Session recording — production setup & runbook
 
-The consultant-session video recording (PB-006) is **fully implemented in code** but
-needs Azure wiring that the `deploy.yml` pipeline does **not** provision (the pipeline
-only zip-deploys the API, syncs app settings, and builds the client — it never applies
-`infra/main.bicep`). Until the steps below are done, recording **starts** (the consultant
-sees the red "Recording" dot) but the finished file is **never captured**, so no recording
-ever appears on the booking-details page for anyone.
+Status: **PROVISIONED AND VERIFIED WORKING in production (2026-07-06).** A real
+recording (`SessionRecording` row + `.mp4` blob) was confirmed for a live booking.
+This doc records how the wiring is set up and how to reproduce/verify it — the
+`deploy.yml` pipeline does **not** apply `infra/main.bicep`, so the ACS resource and
+its Event Grid subscription were provisioned out-of-band (they are NOT in bicep — a
+known IaC drift; only the `session-recordings` container and the `Acs__WebhookKey`
+deploy wiring are in the repo).
 
 ## How the pipeline works
 
@@ -23,89 +24,90 @@ Meeting.tsx ensureRecording()                      // client, on call Connected
   → GetBookingRecordings → BookingRecordings.tsx card on Student/Consultant booking details
 ```
 
-The webhook is the **only** thing that ever writes a `SessionRecording` row. No Event Grid
-subscription ⇒ webhook is never called ⇒ recording appears nowhere.
+The webhook is the **only** thing that ever writes a `SessionRecording` row. The red
+"Recording" dot in the call only means `StartAsync` succeeded — not that the file was
+captured. The recording appears on the **booking-details page** (student, consultant,
+and admin) once the webhook has stored it.
 
-## Prerequisites (what must be true in prod)
+## Provisioned prod resources (verified 2026-07-06)
 
-| # | Requirement | Status / how |
-|---|-------------|--------------|
-| 1 | ACS **Call Recording** enabled on the ACS resource | Already effectively on — `StartAsync` succeeds (consultant sees "Recording"). |
-| 2 | **`Acs__WebhookKey`** app setting on the API, equal to the `?code=` on the Event Grid subscription URL | Wire the `ACS_WEBHOOK_KEY` GitHub secret (now consumed by `deploy.yml`), then redeploy — or set it directly (below). |
-| 3 | **Event Grid system topic + subscription** on the ACS resource for `RecordingFileStatusUpdated` → the webhook | **Missing.** Create it (below). Not in `deploy.yml`; optionally add to bicep for a future full infra deploy. |
-| 4 | **`session-recordings` blob container** + API on the **AzureBlob** storage provider | Container declared in `infra/main.bicep`; also auto-created at runtime on the AzureBlob path. Verify prod is `Storage__Provider=AzureBlob` (it drifted to `Local` once — see the doc-vault incident). |
+| Requirement | Prod state |
+|-------------|-----------|
+| ACS resource (Call Recording enabled) | `ScholarPath` in RG `NetworkWatcherRG`, endpoint `scholarpath.unitedstates.communication.azure.com` |
+| `Acs__WebhookKey` app setting on the API | **Set** on `app-scholarpath-prod-api` |
+| Event Grid system topic on the ACS resource | `scholarpath-fe074b88-…` (RG `networkwatcherrg`), Succeeded |
+| Event subscription for `RecordingFileStatusUpdated` → webhook | `scholarpath-recording-ready` → `https://app-scholarpath-prod-api.azurewebsites.net/api/meeting-recording/events`, Succeeded |
+| `session-recordings` blob container + AzureBlob provider | Container exists on `stscholarpath`; `Storage__Provider=AzureBlob` |
 
-## One-time setup (Azure CLI)
+`Acs__WebhookKey` is also wired into `deploy.yml` (from the `ACS_WEBHOOK_KEY` GitHub
+secret) so a redeploy re-applies it — set that secret to the **same** value as the
+`?code=` on the Event Grid subscription URL if you ever rotate it.
 
-Set these to your real resource names first:
+## Reproduction runbook (if recreating in a fresh environment)
+
+Set your real resource names first:
 
 ```bash
-RG="<api-resource-group>"                 # e.g. rg-scholarpath-prod
-API_APP="app-scholarpath-prod-api"        # API App Service name
-ACS_NAME="<acs-resource-name>"            # the ACS resource whose connection string is in ACS_CONNECTION_STRING
+RG="scholarpath"
+API_APP="app-scholarpath-prod-api"
+ACS_RG="NetworkWatcherRG"
+ACS_NAME="ScholarPath"
 API_HOST="https://$API_APP.azurewebsites.net"
 
-# A strong random webhook key (also add this same value as the ACS_WEBHOOK_KEY GitHub secret)
+# Webhook key — also add as the ACS_WEBHOOK_KEY GitHub secret
 WEBHOOK_KEY="$(openssl rand -hex 24)"
-echo "ACS_WEBHOOK_KEY = $WEBHOOK_KEY"      # store in GitHub → Settings → Secrets → Actions
 ```
 
-### 2 — Set `Acs__WebhookKey` on the API
-
-Either add `ACS_WEBHOOK_KEY` as a GitHub Actions secret and re-run **Deploy** (the sync step
-now applies it), or set it directly:
+### 1 — Set `Acs__WebhookKey` on the API
 
 ```bash
 az webapp config appsettings set -g "$RG" -n "$API_APP" \
   --settings "Acs__WebhookKey=$WEBHOOK_KEY" -o none
 ```
 
-### 3 — Create the Event Grid system topic + subscription on the ACS resource
+### 2 — Event Grid system topic + subscription on the ACS resource
+
+`Acs__WebhookKey` must be set FIRST — the subscription-validation handshake goes
+through the same `?code=` auth gate, so it is rejected 401 without a matching key.
 
 ```bash
+ACS_ID=$(az resource show -g "$ACS_RG" -n "$ACS_NAME" \
+  --resource-type Microsoft.Communication/CommunicationServices --query id -o tsv)
+
 az eventgrid system-topic create \
-  -g "$RG" --name scholarpath-acs-topic \
-  --source "$(az communication show -g "$RG" -n "$ACS_NAME" --query id -o tsv)" \
+  -g "$ACS_RG" --name scholarpath-acs-topic \
+  --source "$ACS_ID" \
   --topic-type Microsoft.Communication.CommunicationServices \
   --location global
 
 az eventgrid system-topic event-subscription create \
-  --name recording-ready \
-  -g "$RG" --system-topic-name scholarpath-acs-topic \
+  --name scholarpath-recording-ready \
+  -g "$ACS_RG" --system-topic-name scholarpath-acs-topic \
   --endpoint "$API_HOST/api/meeting-recording/events?code=$WEBHOOK_KEY" \
   --endpoint-type webhook \
   --included-event-types Microsoft.Communication.RecordingFileStatusUpdated
 ```
 
-The webhook already handles the Event Grid `SubscriptionValidationEvent` handshake, so the
-subscription validates automatically **provided `Acs__WebhookKey` is already set (step 2)** —
-otherwise the handshake POST is rejected 401 and the subscription fails to create.
-
-### 4 — Confirm storage
+### 3 — Confirm storage
 
 ```bash
 az webapp config appsettings list -g "$RG" -n "$API_APP" \
   --query "[?name=='Storage__Provider'].value | [0]" -o tsv   # must print: AzureBlob
 ```
 
-If it prints `Local`, set `Storage__Provider=AzureBlob` (the KV-referenced connection string
-is already provisioned by bicep as `Storage--AzureBlob--ConnectionString`).
+## Verification (the answer to "where does the recording appear?")
 
-## Verification (end-to-end — this is the answer to "where does the recording appear?")
+1. Book + confirm a session; both parties join on **Chrome/Edge** (not Brave — Brave
+   shields block WebRTC and the ACS SDK, which is what produced the student's "could
+   not connect" screen even though the server-side join succeeded).
+2. Let the call connect (consultant sees "Recording") and run ~30s, then both leave.
+3. Within a few minutes a `SessionRecording` row + a `.mp4` in the `session-recordings`
+   container are created, and the **Session recordings** card with a **Download** link
+   appears on the booking-details page for both the student and the consultant.
 
-1. Book + confirm a session; both parties join on **Chrome/Edge** (not Brave).
-2. Let the call connect (consultant sees "Recording") and run for ~30s, then both leave.
-3. Within a few minutes, watch the API log stream for a `RecordingFileStatusUpdated` POST
-   returning **200** (not 401 / not `LogCritical: Acs:WebhookKey is not configured`).
-4. Confirm a row exists: `SELECT * FROM SessionRecordings WHERE BookingId = '<id>'`.
-5. Open the booking details page as the student **and** the consultant → the **Session
-   recordings** card lists the file and the **Download** link streams the `.mp4`.
+Confirmed working 2026-07-06 (booking `3ddb74d0-dfe0-4a03-a7fd-97a14eb9f8da`: 308 KB
+`.mp4`, `RecordedAt` 16:24:44 UTC).
 
-Until steps 2–4 above are done, the honest status is: **recordings appear nowhere.**
-
-## Demo fallback (if the Azure wiring can't be done in time)
-
-Seed one `SessionRecording` row for a demo booking pointing at a short `.mp4` uploaded to the
-`session-recordings` container. `GetBookingRecordings` + `BookingRecordings.tsx` then render it
-on both booking-details pages, exercising the real list/download path without needing a live
-Event Grid delivery.
+To inspect the DB directly (SQL auth `scholarpathadmin`, connstr in KV
+`kv-scholarpath-prod-fpa7`), add a temporary firewall rule for your IP on
+`sql-scholarpath-prod-fpa7x7`, query `SessionRecordings`, then delete the rule.
