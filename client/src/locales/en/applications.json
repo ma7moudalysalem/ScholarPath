@@ -62,6 +62,7 @@
     "close": "Close",
     "pleaseEnterTitle": "Please enter the scholarship name.",
     "pleaseEnterProvider": "Please enter the provider or organization name.",
+    "deadlineInPast": "The deadline can't be in the past — pick today or a later date.",
     "success": "External application added.",
     "error": "Could not add the application. Please try again."
   },
