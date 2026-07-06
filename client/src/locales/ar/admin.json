@@ -421,6 +421,10 @@
     "sessionAt": "الجلسة",
     "reportedAt": "تاريخ البلاغ",
     "note": "ملاحظة المُبلِّغ",
+    "attendance": "حضور الغرفة (دليل)",
+    "studentJoined": "دخول الطالب",
+    "consultantJoined": "دخول المستشار",
+    "didNotJoin": "لم يدخل",
     "role": {
       "Student": "طالب",
       "Consultant": "مستشار"

@@ -131,6 +131,36 @@ export function AdminNoShowReports() {
                 )}
               </dl>
 
+              {/* Hard attendance evidence — who actually joined the room. This is
+                  the decisive fact for an auto-detected report: rejecting a genuine
+                  no-show as "false" wrongly penalises the reporter. */}
+              <div className="mt-3 rounded-lg border border-border-subtle bg-bg-subtle px-3 py-2.5">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                  {t("admin:noShowReports.attendance")}
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-x-6 gap-y-1 text-xs">
+                  {[
+                    { label: t("admin:noShowReports.studentJoined"), at: row.studentJoinedAt },
+                    { label: t("admin:noShowReports.consultantJoined"), at: row.consultantJoinedAt },
+                  ].map((party) => (
+                    <span key={party.label} className="inline-flex items-center gap-1.5">
+                      <span className="text-text-secondary">{party.label}:</span>
+                      {party.at ? (
+                        <span className="inline-flex items-center gap-1 font-medium text-success-600">
+                          <Check aria-hidden className="size-3.5" />
+                          {format(new Date(party.at), "dd MMM, HH:mm", { locale: dateLocale })}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 font-medium text-danger-600">
+                          <X aria-hidden className="size-3.5" />
+                          {t("admin:noShowReports.didNotJoin")}
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
               <div className="mt-3 flex flex-wrap justify-end gap-2">
                 <button
                   type="button"
