@@ -73,6 +73,10 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
   const [deadline, setDeadline] = useState(""); // YYYY-MM-DD from <input type="date">
   const [notes, setNotes] = useState("");
 
+  // Local "today" as YYYY-MM-DD — the tracked deadline can't be in the past
+  // (you can't still be pursuing a scholarship whose deadline already lapsed).
+  const today = new Date().toLocaleDateString("en-CA");
+
   const createMutation = useMutation({
     mutationFn: () =>
       applicationsApi.createExternal({
@@ -106,6 +110,11 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
     }
     if (!provider.trim()) {
       toast.error(t("addExternalModal.pleaseEnterProvider"));
+      return;
+    }
+    // `min` blocks the native picker, but a typed value can still be in the past.
+    if (deadline && deadline < today) {
+      toast.error(t("addExternalModal.deadlineInPast"));
       return;
     }
     createMutation.mutate();
@@ -196,6 +205,7 @@ function AddExternalApplicationForm({ onDone }: AddExternalApplicationFormProps)
           <input
             id="external-deadline"
             type="date"
+            min={today}
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
             className="h-10 w-full rounded-md border border-border-subtle bg-bg-canvas px-3 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"

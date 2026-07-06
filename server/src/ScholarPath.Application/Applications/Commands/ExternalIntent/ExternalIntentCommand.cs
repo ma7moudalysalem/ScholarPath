@@ -87,6 +87,16 @@ public sealed class ExternalIntentCommandHandler(
                 throw new ConflictException(
                     "A scholarship title is required when adding an off-platform external application.");
 
+            // A tracked deadline that already lapsed makes no sense for a
+            // scholarship the student is still pursuing — reject a past date
+            // (day-granular, so "today" is still allowed). Defense-in-depth behind
+            // the client's min-date guard.
+            if (request.Deadline is { } deadline
+                && deadline.UtcDateTime.Date < DateTimeOffset.UtcNow.Date)
+            {
+                throw new ConflictException("The application deadline can't be in the past.");
+            }
+
             entity.ExternalTitle = request.Title.Trim();
             entity.ExternalProvider = string.IsNullOrWhiteSpace(request.Provider)
                 ? null : request.Provider.Trim();
