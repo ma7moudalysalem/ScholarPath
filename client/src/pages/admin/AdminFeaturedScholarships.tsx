@@ -79,6 +79,9 @@ function FeaturedList() {
       toast.success(t("admin:featured.reorderSaved"));
       setOrderedIds(null);
       void qc.invalidateQueries({ queryKey: ["admin", "scholarships", "featured"] });
+      // Also refresh the public scholarships cache so the home/listing featured
+      // rail reflects the change without a hard reload.
+      void qc.invalidateQueries({ queryKey: ["scholarships"] });
     },
     onError: (err: unknown) =>
       toast.error(apiErrorMessage(err, t("common:status.error"))),
@@ -89,6 +92,7 @@ function FeaturedList() {
     onSuccess: () => {
       toast.success(t("admin:featured.unfeatureSuccess"));
       void qc.invalidateQueries({ queryKey: ["admin", "scholarships", "featured"] });
+      void qc.invalidateQueries({ queryKey: ["scholarships"] });
     },
     onError: (err: unknown) =>
       toast.error(apiErrorMessage(err, t("common:status.error"))),
@@ -262,6 +266,7 @@ function AddScholarshipPanel() {
     onSuccess: () => {
       toast.success(t("admin:featured.featureSuccess"));
       void qc.invalidateQueries({ queryKey: ["admin", "scholarships"] });
+      void qc.invalidateQueries({ queryKey: ["scholarships"] });
     },
     onError: (err: unknown) =>
       toast.error(apiErrorMessage(err, t("common:status.error"))),

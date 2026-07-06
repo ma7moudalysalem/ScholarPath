@@ -14,6 +14,7 @@ import {
 } from "@/services/api/admin";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 // "Unassigned" is the status of a just-registered / first-SSO account that has
 // not picked a role yet (it holds NO role row, so the Roles column shows "—").
@@ -48,13 +49,16 @@ export function UsersAdmin() {
   const qc = useQueryClient();
 
   const [search, setSearch] = useState("");
+  // Debounced so typing doesn't fire a request per keystroke; the input stays
+  // bound to `search` for instant feedback.
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [status, setStatus] = useState<AccountStatus | "">("");
   const [role, setRole] = useState("");
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [page, setPage] = useState(1);
 
   const params = {
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     status: status || undefined,
     role: role || undefined,
     includeDeleted,

@@ -1,7 +1,9 @@
 using MediatR;
 using ScholarPath.Application.Common;
+using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Domain.Enums;
 
 namespace ScholarPath.Application.Ai.Commands.FineTuning;
 
@@ -9,6 +11,8 @@ namespace ScholarPath.Application.Ai.Commands.FineTuning;
 /// Stores a fine-tuned deployment name in <c>PlatformSettings</c> so the chatbot
 /// immediately starts using it — no App Service restart or config change required.
 /// </summary>
+[Auditable(AuditAction.ConfigChanged, "AiModel",
+    SummaryTemplate = "Activated fine-tuned chat model {DeploymentName}")]
 public sealed record ActivateFineTunedModelCommand(string DeploymentName) : IRequest<ActivateFineTunedModelResult>;
 
 public sealed record ActivateFineTunedModelResult(string DeploymentName, bool Replaced);
@@ -16,6 +20,8 @@ public sealed record ActivateFineTunedModelResult(string DeploymentName, bool Re
 /// <summary>
 /// Clears the active fine-tuned deployment and reverts the chatbot to the base model.
 /// </summary>
+[Auditable(AuditAction.ConfigChanged, "AiModel",
+    SummaryTemplate = "Reverted the chatbot to the base model")]
 public sealed record DeactivateFineTunedModelCommand : IRequest;
 
 public sealed class ActivateFineTunedModelCommandHandler(IApplicationDbContext db)

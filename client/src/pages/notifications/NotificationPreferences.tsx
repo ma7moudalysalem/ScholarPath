@@ -127,7 +127,12 @@ function groupOf(type: string): string {
   if (/^Resource/i.test(type)) return "Resources";
   if (/^Chat/i.test(type)) return "Chat";
   if (/^Broadcast/i.test(type)) return "Broadcast";
-  if (/^ScholarshipProvider/i.test(type)) return "Payments";
+  // Only the money-bearing provider events belong under Payments; the rest
+  // (rating received, review request, low-rating flag) are scholarship-domain —
+  // grouping them under Payments hid their toggles entirely in free mode.
+  if (/^ScholarshipProvider/i.test(type)) {
+    return isMoneyNotificationType(type) ? "Payments" : "Applications";
+  }
   return "Other";
 }
 
