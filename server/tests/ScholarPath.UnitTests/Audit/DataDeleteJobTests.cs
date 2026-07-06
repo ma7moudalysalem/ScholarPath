@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -33,7 +34,7 @@ public class DataDeleteJobTests
     }
 
     private static DataDeleteJob Sut(ApplicationDbContext db) =>
-        new(db, Clock(), NullLogger<DataDeleteJob>.Instance);
+        new(db, Clock(), Substitute.For<IBlobStorageService>(), NullLogger<DataDeleteJob>.Instance);
 
     /// <summary>Seeds a fully-populated user with PII spread across every table, plus a due delete request.</summary>
     private static async Task<Guid> SeedFullUserWithDueRequest(ApplicationDbContext db)
@@ -345,5 +346,43 @@ public class DataDeleteJobTests
         kept.Should().NotBeNull();
         kept!.AmountCents.Should().Be(5000);
         kept.PayerUserId.Should().Be(userId);
+    }
+
+    [Fact]
+    public async Task Delete_erases_the_users_session_recordings_blob_and_row()
+    {
+        using var db = CreateDb();
+        var userId = await SeedFullUserWithDueRequest(db);
+
+        var bookingId = Guid.NewGuid();
+        db.Bookings.Add(new ConsultantBooking
+        {
+            Id = bookingId,
+            StudentId = userId,
+            ConsultantId = Guid.NewGuid(),
+            Status = BookingStatus.Confirmed,
+        });
+        db.SessionRecordings.Add(new SessionRecording
+        {
+            Id = Guid.NewGuid(),
+            BookingId = bookingId,
+            RecordingId = "rec-1",
+            StoragePath = "azure:session-recordings/abc/session.mp4",
+            ContentType = "video/mp4",
+            SizeBytes = 1234,
+            RecordedAt = Now,
+        });
+        await db.SaveChangesAsync();
+
+        var storage = Substitute.For<IBlobStorageService>();
+        await new DataDeleteJob(db, Clock(), storage, NullLogger<DataDeleteJob>.Instance)
+            .RunAsync(default);
+
+        // The blob bytes (the actual video) are deleted, and the metadata row is
+        // hard-removed — a recording must not survive account erasure.
+        await storage.Received(1)
+            .DeleteAsync("azure:session-recordings/abc/session.mp4", Arg.Any<CancellationToken>());
+        (await db.SessionRecordings.IgnoreQueryFilters().AnyAsync(r => r.BookingId == bookingId))
+            .Should().BeFalse("the recording bytes and row must not survive erasure");
     }
 }

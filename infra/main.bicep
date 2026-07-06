@@ -330,6 +330,18 @@ resource storageConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' 
 resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
   parent: storageAccount
   name: 'default'
+  // Safety net: a deleted blob (e.g. a recording removed by a GDPR erasure, or an
+  // accidental delete) is recoverable for 7 days before it is permanently purged.
+  properties: {
+    deleteRetentionPolicy: {
+      enabled: true
+      days: 7
+    }
+    containerDeleteRetentionPolicy: {
+      enabled: true
+      days: 7
+    }
+  }
 }
 
 resource sessionRecordingsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {

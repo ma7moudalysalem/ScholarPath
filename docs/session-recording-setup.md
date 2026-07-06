@@ -111,3 +111,17 @@ Confirmed working 2026-07-06 (booking `3ddb74d0-dfe0-4a03-a7fd-97a14eb9f8da`: 30
 To inspect the DB directly (SQL auth `scholarpathadmin`, connstr in KV
 `kv-scholarpath-prod-fpa7`), add a temporary firewall rule for your IP on
 `sql-scholarpath-prod-fpa7x7`, query `SessionRecordings`, then delete the rule.
+
+## Retention
+
+- **ACS side:** Azure Communication Services keeps the raw recording for ~48h then
+  auto-purges it; the webhook copies it into our storage within that window.
+- **Our side (blob + `SessionRecording` row):** kept **indefinitely** by policy —
+  there is no time-based deletion job and no storage lifecycle rule.
+- **Account erasure (GDPR Art. 17):** when a user's Delete request is processed,
+  `DataDeleteJob` deletes that user's recording blobs **and** rows — a recording is
+  in scope whether the user was the student or the consultant (the video captures
+  them either way).
+- **Safety net:** blob + container soft-delete is enabled on `stscholarpath`
+  (7 days), so an accidental or erasure delete is recoverable for a week before it
+  is permanently purged.
