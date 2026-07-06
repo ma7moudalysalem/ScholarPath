@@ -154,7 +154,11 @@ jobs:
       # two CLIENT SECRETS. Required Secrets (set the ones you use):
       #   AUTH_GOOGLE_CLIENT_SECRET · AUTH_MICROSOFT_CLIENT_SECRET
       #   STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET / STRIPE_CONNECT_CLIENT_ID
-      #   SENDGRID_API_KEY · ACS_CONNECTION_STRING
+      #   SENDGRID_API_KEY · ACS_CONNECTION_STRING · ACS_WEBHOOK_KEY
+      # ACS_WEBHOOK_KEY authenticates the ACS recording Event Grid webhook
+      # (?code=...). It MUST equal the code on the Event Grid subscription URL;
+      # without it the webhook fails closed and no recording is ever captured.
+      # See docs/session-recording-setup.md.
       - name: Sync auth + integration app settings
         env:
           AUTH_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
@@ -166,6 +170,7 @@ jobs:
           STRIPE_CONNECT_CLIENT_ID: ${{ secrets.STRIPE_CONNECT_CLIENT_ID }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
           ACS_CONNECTION_STRING: ${{ secrets.ACS_CONNECTION_STRING }}
+          ACS_WEBHOOK_KEY: ${{ secrets.ACS_WEBHOOK_KEY }}
         run: |
           rg=$(az webapp list --query "[?name=='${{ vars.AZURE_API_APP_NAME }}'] | [0].resourceGroup" -o tsv)
           if [ -z "$rg" ]; then
@@ -187,6 +192,7 @@ jobs:
           if [ -n "$STRIPE_CONNECT_CLIENT_ID" ]; then settings+=("Stripe__ConnectClientId=$STRIPE_CONNECT_CLIENT_ID"); fi
           if [ -n "$SENDGRID_API_KEY" ];         then settings+=("Email__Provider=SendGrid" "Email__SendGrid__ApiKey=$SENDGRID_API_KEY"); fi
           if [ -n "$ACS_CONNECTION_STRING" ];    then settings+=("Acs__ConnectionString=$ACS_CONNECTION_STRING"); fi
+          if [ -n "$ACS_WEBHOOK_KEY" ];          then settings+=("Acs__WebhookKey=$ACS_WEBHOOK_KEY"); fi
 
           if [ ${#settings[@]} -eq 0 ]; then
             echo "No auth/integration secrets configured — skipping (stubs stay active)."

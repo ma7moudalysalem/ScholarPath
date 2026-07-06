@@ -323,6 +323,23 @@ resource storageConnectionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' 
   }
 }
 
+// Blob container the finished ACS session recordings land in (PB-006). The
+// StoreSessionRecording handler uploads each .mp4 here after the recording-ready
+// Event Grid webhook fires; declaring it in IaC (rather than relying on runtime
+// auto-create) keeps the container deterministic across environments.
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
+  parent: storageAccount
+  name: 'default'
+}
+
+resource sessionRecordingsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: blobService
+  name: 'session-recordings'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
 // ─── App Service Plan + API App Service ─────────────────────────────────────
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {

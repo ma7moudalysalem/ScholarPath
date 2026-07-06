@@ -199,6 +199,15 @@ export function Meeting() {
         if (!disposed) setPhase("connected");
       } catch (err) {
         if (!disposed) {
+          // The on-screen message is deliberately cause-neutral (a raw ACS/
+          // WebRTC/browser failure has no user-facing detail), so log the real
+          // error here — otherwise the actual cause (e.g. Brave shields blocking
+          // WebRTC) is invisible and gets mistaken for a scheduling problem.
+          if (err instanceof Error) {
+            console.error("Session join failed:", err.name, err.message);
+          } else {
+            console.error("Session join failed:", err);
+          }
           setErrorMsg(resolveErrorMessage(err));
           setPhase("error");
         }
