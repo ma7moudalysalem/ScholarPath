@@ -1,6 +1,6 @@
 {
   "consultantTitle": "My Analytics",
-  "consultantSubtitle": "Track your booking performance, earnings, and student satisfaction.",
+  "consultantSubtitle": "Track your booking performance, sessions, and student satisfaction.",
   "studentTitle": "My Journey",
   "studentSubtitle": "Visualize your scholarship applications, acceptance rates, and AI-assisted progress.",
   "notConfiguredTitle": "Analytics Dashboard Coming Soon",
@@ -28,7 +28,7 @@
   },
   "consultantKpis": {
     "title": "Consultant Analytics",
-    "subtitle": "Your booking performance and earnings overview",
+    "subtitle": "Your booking performance and session overview",
     "totalBookings": "Total Bookings",
     "completed": "Completed",
     "cancelled": "Cancelled",

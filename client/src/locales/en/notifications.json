@@ -70,13 +70,14 @@
       "Payments": "Receipts, refunds, and payout activity.",
       "Community": "Replies, mentions, and moderation actions.",
       "Resources": "Approvals and updates on your shared resources.",
-      "Chat": "Direct messages from students, consultants, or companies.",
+      "Chat": "Direct messages from students, consultants, or scholarship providers.",
       "Admin": "Onboarding, role upgrades, and approvals.",
       "Broadcast": "Announcements and product news from ScholarPath.",
       "Other": "Anything else."
     },
     "types": {
       "ApplicationSubmitted": "Application submitted",
+      "ApplicationSubmittedConfirmation": "Application submitted — confirmation",
       "ApplicationStatusChanged": "Application status changed",
       "ApplicationDeadlineApproaching": "Application deadline approaching",
       "ApplicationWithdrawn": "Application withdrawn",
@@ -115,11 +116,11 @@
       "UpgradeRequestSubmitted": "Role upgrade request submitted",
       "ContentReported": "Content reported",
       "ScholarshipProviderReviewRequestIncoming": "New application support request",
-      "ScholarshipProviderReviewRequestPaymentHeld": "Review payment held",
-      "ScholarshipProviderReviewRequestPaymentCaptured": "Review payment captured",
-      "ScholarshipProviderReviewRequestPaymentHoldCancelled": "Review payment hold released",
-      "ScholarshipProviderReviewRequestPartiallyRefunded": "Review partially refunded",
-      "ScholarshipProviderReviewRequestCompleted": "Review completed",
+      "ScholarshipProviderReviewRequestPaymentHeld": "Application support request sent",
+      "ScholarshipProviderReviewRequestPaymentCaptured": "Application support request accepted",
+      "ScholarshipProviderReviewRequestPaymentHoldCancelled": "Application support request closed",
+      "ScholarshipProviderReviewRequestPartiallyRefunded": "Application support request cancelled",
+      "ScholarshipProviderReviewRequestCompleted": "Application support completed",
       "ScholarshipProviderLowRatingFlagged": "ScholarshipProvider flagged for low rating"
     }
   }

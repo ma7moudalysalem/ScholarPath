@@ -16,7 +16,7 @@
   },
   "reviews": {
     "rateScholarshipProviderTitle": "Rate {{company}}",
-    "rateScholarshipProviderDescription": "How was your experience applying to this company? Your feedback helps other students.",
+    "rateScholarshipProviderDescription": "How was your experience applying to this scholarship provider? Your feedback helps other students.",
     "commentLabel": "Review Comment",
     "optional": "Optional",
     "commentPlaceholder": "Share your thoughts about the application process...",

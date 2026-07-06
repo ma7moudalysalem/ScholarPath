@@ -21,7 +21,7 @@
     "featuredScholarships": "Featured Scholarships",
     "reports": "Reports",
     "revenueReport": "Revenue report",
-    "lowRatedCompanies": "Low-rated companies",
+    "lowRatedCompanies": "Low-rated providers",
     "noShowReports": "No-show reports"
   },
   "dashboard": {
@@ -88,7 +88,7 @@
   },
   "onboarding": {
     "title": "Onboarding queue",
-    "empty": "The queue is empty. New company / consultant applications will appear here.",
+    "empty": "The queue is empty. New provider / consultant applications will appear here.",
     "headers": {
       "name": "Name",
       "email": "Email",
@@ -398,15 +398,15 @@
     "Deactivated": "Deactivated"
   },
   "lowRatedCompanies": {
-    "title": "Companies flagged for low rating",
-    "subtitle": "Companies whose average rating fell below 2.5. Review each case and either clear the flag or suspend the account.",
-    "empty": "No companies are currently flagged for low rating.",
+    "title": "Providers flagged for low rating",
+    "subtitle": "Providers whose average rating fell below 2.5. Review each case and either clear the flag or suspend the account.",
+    "empty": "No providers are currently flagged for low rating.",
     "average": "Average rating",
     "reviews": "Reviews",
     "flaggedAt": "Flagged",
     "lastReviewAt": "Last review",
     "clear": "Clear flag",
-    "clearedToast": "Flag cleared — company removed from the queue.",
+    "clearedToast": "Flag cleared — provider removed from the queue.",
     "suspend": "Suspend account",
     "suspendConfirm": "Suspend this ScholarshipProvider account? They will lose access to restricted ScholarshipProvider actions.",
     "suspendReason": "ScholarshipProvider average rating below 2.5",
