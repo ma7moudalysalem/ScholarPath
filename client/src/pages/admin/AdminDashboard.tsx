@@ -36,16 +36,43 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
+// Keyed by the real AuditAction enum NAMES (the audit log serialises the enum as
+// its name). The old keys ("UserStatusChange", "ScholarshipApproved", …) matched
+// no real action, so most feed rows fell through to the generic icon — the
+// "illogical" widget the lead flagged.
 const AUDIT_ICON: Record<string, { icon: LucideIcon; accent: StatAccent }> = {
-  UserStatusChange: { icon: UserCheck, accent: "warning" },
-  UserRoleChange: { icon: UserCheck, accent: "brand" },
-  ScholarshipApproved: { icon: ClipboardCheck, accent: "success" },
-  ScholarshipRejected: { icon: ClipboardCheck, accent: "danger" },
+  RoleChanged: { icon: UserCheck, accent: "brand" },
+  Approved: { icon: ClipboardCheck, accent: "success" },
+  Rejected: { icon: ClipboardCheck, accent: "danger" },
+  Moderated: { icon: ClipboardCheck, accent: "warning" },
+  Login: { icon: UserCheck, accent: "neutral" },
+  Logout: { icon: UserCheck, accent: "neutral" },
+  LoginFailed: { icon: UserCheck, accent: "danger" },
+  PasswordReset: { icon: Settings, accent: "warning" },
+  Create: { icon: ScrollText, accent: "neutral" },
+  Update: { icon: ScrollText, accent: "neutral" },
+  Delete: { icon: ScrollText, accent: "danger" },
   PaymentCaptured: { icon: CircleDollarSign, accent: "success" },
   PaymentRefunded: { icon: CircleDollarSign, accent: "warning" },
   ConfigChanged: { icon: Settings, accent: "brand" },
   BroadcastSent: { icon: Activity, accent: "brand" },
+  BookingRequested: { icon: Clock, accent: "brand" },
+  BookingAccepted: { icon: Clock, accent: "success" },
+  BookingRejected: { icon: Clock, accent: "danger" },
+  BookingCancelled: { icon: Clock, accent: "warning" },
+  BookingNoShowMarked: { icon: Clock, accent: "danger" },
 };
+
+/**
+ * A real period-over-period delta for a StatCard, or null when there's no
+ * meaningful baseline (both windows empty) — so the card never shows a
+ * fabricated or divide-by-zero number.
+ */
+function pctDelta(current: number, previous: number, label: string): { value: number; label: string } | null {
+  if (current === 0 && previous === 0) return null;
+  const value = Math.round(((current - previous) / Math.max(previous, 1)) * 100);
+  return { value, label };
+}
 
 function formatCents(cents: number): string {
   return new Intl.NumberFormat(undefined, {
@@ -169,8 +196,9 @@ export function AdminDashboard() {
         </div>
       ) : (
         <>
-          {/* Top-line stats (4 hero cards). Hardcoded mock deltas and trends
-              are removed so the admin never sees fabricated growth numbers. */}
+          {/* Top-line stats (4 hero cards). Deltas are REAL period-over-period
+              figures from the server (last 7d vs the prior 7d) — no fabrication;
+              a card shows no delta when there's no baseline. */}
           <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <StatCard
               label={t("dashboard:admin.stats.users")}
@@ -178,11 +206,12 @@ export function AdminDashboard() {
               to="/admin/users"
               icon={Users}
               accent="brand"
+              delta={pctDelta(o.newUsers7d, o.newUsersPrev7d, t("dashboard:admin.stats.usersDelta"))}
               delay={0.02}
             />
             <StatCard
-              label={t("dashboard:admin.stats.active")}
-              value={o.activeUsers}
+              label={t("dashboard:admin.stats.activeNow")}
+              value={o.activeUsers24h}
               icon={Activity}
               accent="success"
               delay={0.06}
@@ -210,6 +239,8 @@ export function AdminDashboard() {
           {/* Secondary KPIs */}
           <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-6">
             {[
+              { label: t("admin:dashboard.logins24h"), value: o.logins24h },
+              { label: t("admin:dashboard.enabledAccounts"), value: o.activeUsers },
               { label: t("admin:dashboard.totalScholarships"), value: o.totalScholarships },
               { label: t("admin:dashboard.openScholarships"), value: o.openScholarships },
               { label: t("admin:dashboard.submittedApplications"), value: o.submittedApplications },

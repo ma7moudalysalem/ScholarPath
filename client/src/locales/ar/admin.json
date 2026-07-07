@@ -37,6 +37,8 @@
     "revenue": "الإيراد المحصَّل",
     "profitShare": "حصة المنصة",
     "aiInteractions24h": "تفاعلات الذكاء خلال 24 ساعة",
+    "logins24h": "تسجيلات الدخول (24 ساعة)",
+    "enabledAccounts": "الحسابات المفعّلة",
     "userGrowth": "نمو المستخدمين (30 يوم)",
     "applicationFunnel": "قمع الطلبات"
   },

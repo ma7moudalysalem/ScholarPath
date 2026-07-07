@@ -204,6 +204,13 @@ export interface AnalyticsOverviewDto {
   revenueCentsCaptured: number;
   profitShareCentsAccumulated: number;
   aiInteractions24h: number;
+  // Period-over-period + real activity signals.
+  newUsers7d: number;
+  newUsersPrev7d: number;
+  newApplications7d: number;
+  newApplicationsPrev7d: number;
+  activeUsers24h: number;
+  logins24h: number;
 }
 
 export interface GrowthPoint {

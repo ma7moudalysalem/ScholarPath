@@ -37,6 +37,8 @@
     "revenue": "Revenue (captured)",
     "profitShare": "Profit share",
     "aiInteractions24h": "AI interactions 24h",
+    "logins24h": "Logins (24h)",
+    "enabledAccounts": "Enabled accounts",
     "userGrowth": "User growth (30d)",
     "applicationFunnel": "Application funnel"
   },
