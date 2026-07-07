@@ -49,7 +49,10 @@ public sealed record ResourceDetailDto(
     bool IsFeatured,
     DateTimeOffset? PublishedAt,
     string? RejectionReason,
-    IReadOnlyList<ResourceChapterDto> Chapters);
+    IReadOnlyList<ResourceChapterDto> Chapters,
+    // Whether the CURRENT caller has this resource bookmarked — lets the detail
+    // page's Save button reflect saved state (mirrors scholarships/community).
+    bool IsBookmarked = false);
 
 public sealed record ResourceBookmarkDto(
     Guid ResourceId,

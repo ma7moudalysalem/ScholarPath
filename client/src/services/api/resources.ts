@@ -75,6 +75,8 @@ export interface ResourceDetail {
   publishedAt: string | null;
   rejectionReason: string | null;
   chapters: ResourceChapter[];
+  /** Whether the current user has this resource bookmarked. */
+  isBookmarked: boolean;
 }
 
 export interface SearchResourcesParams {
@@ -210,8 +212,14 @@ export const resourcesApi = {
 
   /** The caller's bookmarked resources. */
   async getMyBookmarks(): Promise<ResourceListItem[]> {
-    const { data } = await apiClient.get<ResourceListItem[]>("/api/resources/bookmarks/me");
-    return data;
+    const { data } = await apiClient.get<(ResourceListItem & { resourceId?: string })[]>(
+      "/api/resources/bookmarks/me",
+    );
+    // This endpoint returns ResourceBookmarkDto whose identifier field is
+    // `resourceId`, NOT `id`. Normalize to `id` so `.id`-based code (list keys
+    // and the unsave button) works — otherwise unsave posted to
+    // /api/resources/undefined/bookmark and 404'd (the "delete does nothing" bug).
+    return data.map((b) => ({ ...b, id: b.id ?? b.resourceId ?? "" }));
   },
 
   /** Mark a chapter as completed. */

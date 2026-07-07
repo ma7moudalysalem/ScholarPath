@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Plus, Edit, Send, Eye, Loader2 } from "lucide-react";
 import { resourcesApi, type ResourceListItem, type ResourceStatus } from "@/services/api/resources";
 import { apiErrorMessage } from "@/services/api/client";
+import { expertiseTagLabelByLang } from "@/lib/expertiseTagLabel";
 import { cn } from "@/lib/utils";
 
 const STATUS_CLASSES: Record<ResourceStatus, string> = {
@@ -141,7 +142,10 @@ export function MyResources() {
                       <p className="truncate font-medium text-text-primary">{title}</p>
                       {(r.tags ?? []).length > 0 && (
                         <p className="mt-0.5 truncate text-xs text-text-tertiary">
-                          {(r.tags ?? []).slice(0, 3).join(" · ")}
+                          {(r.tags ?? [])
+                            .slice(0, 3)
+                            .map((tag) => `#${expertiseTagLabelByLang(tag, i18n.language)}`)
+                            .join(" · ")}
                         </p>
                       )}
                     </td>
