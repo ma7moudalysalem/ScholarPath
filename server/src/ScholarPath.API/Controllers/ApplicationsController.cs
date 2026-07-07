@@ -13,6 +13,7 @@ using ScholarPath.Application.Applications.Commands.WithdrawApplication;
 using ScholarPath.Application.Applications.Queries.GetApplicationDetail;
 using ScholarPath.Application.Applications.Queries.GetScholarshipProviderApplicationDetails;
 using ScholarPath.Application.Applications.Queries.GetScholarshipProviderApplications;
+using ScholarPath.Application.Applications.Queries.GetScholarshipProviderApplicationStatusCounts;
 using ScholarPath.Application.Applications.Queries.GetMyApplications;
 
 namespace ScholarPath.API.Controllers;
@@ -186,6 +187,20 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
     {
         var result = await mediator.Send(
             new GetScholarshipProviderApplicationsQuery(scholarshipId, page, pageSize, status), ct);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Status breakdown of ALL the authenticated provider's submitted applications
+    /// (not just the current page) — powers the dashboard's pending-review KPI and
+    /// "Applications by status" chart accurately regardless of application volume.
+    /// </summary>
+    [HttpGet("company/status-counts")]
+    [Authorize(Roles = "ScholarshipProvider")]
+    [ProducesResponseType(typeof(ScholarshipProviderApplicationStatusCountsDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetScholarshipProviderApplicationStatusCounts(CancellationToken ct)
+    {
+        var result = await mediator.Send(new GetScholarshipProviderApplicationStatusCountsQuery(), ct);
         return Ok(result);
     }
 

@@ -63,6 +63,9 @@ const STUDENT_APP_STATUSES = [
   "Applied",
   "Pending",
   "UnderReview",
+  // Shortlisted is a live state a provider can move an application into; without
+  // it here the chart dropped those rows and disagreed with the "Active" KPI.
+  "Shortlisted",
   "WaitingResult",
   "Accepted",
   "Rejected",

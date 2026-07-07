@@ -84,9 +84,9 @@ public sealed class GetConsultantEarningsTrendQueryHandler(
             .OrderBy(m => m.Month, StringComparer.Ordinal)
             .ToList();
 
-        // Simple linear projection: average net of the last 3 months × month-
-        // over-month slope. If we have fewer than 2 months of data, fall back
-        // to the mean (no slope).
+        // Simple linear projection: the LAST month's net + the average month-
+        // over-month slope of the last 3 months. If we have fewer than 2 months
+        // of data, fall back to that single month (no slope).
         decimal projectedNextMonth = 0m;
         if (monthly.Count > 0)
         {
@@ -97,13 +97,14 @@ public sealed class GetConsultantEarningsTrendQueryHandler(
             }
             else
             {
-                // Average net + average MoM delta (linear extrapolation)
-                var avg = lastN.Average(m => m.NetUsd);
+                // Anchor on the latest month and add the average MoM delta — a
+                // one-step linear extrapolation. Anchoring on the MEAN (which the
+                // old code did) systematically lags the trend by ~half the window.
                 decimal totalDelta = 0m;
                 for (int i = 1; i < lastN.Count; i++)
                     totalDelta += lastN[i].NetUsd - lastN[i - 1].NetUsd;
                 var avgDelta = totalDelta / (lastN.Count - 1);
-                projectedNextMonth = Math.Max(0m, avg + avgDelta);
+                projectedNextMonth = Math.Max(0m, lastN[^1].NetUsd + avgDelta);
             }
         }
         projectedNextMonth = Math.Round(projectedNextMonth, 2);

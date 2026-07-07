@@ -101,6 +101,8 @@
         "Confirmed": "Confirmed",
         "Completed": "Completed",
         "Cancelled": "Cancelled",
+        "Rejected": "Rejected",
+        "Expired": "Expired",
         "NoShow": "No-show"
       }
     }
@@ -188,7 +190,7 @@
     },
     "charts": {
       "growthTitle": "User growth",
-      "growthSubtitle": "New signups over the last 30 days",
+      "growthSubtitle": "New signups over the last {{days}} days",
       "funnelTitle": "Application funnel",
       "funnelSubtitle": "Status distribution across all applications"
     }

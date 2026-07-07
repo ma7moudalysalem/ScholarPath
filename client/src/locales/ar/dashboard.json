@@ -101,6 +101,8 @@
         "Confirmed": "مؤكدة",
         "Completed": "مكتملة",
         "Cancelled": "ملغاة",
+        "Rejected": "مرفوضة",
+        "Expired": "منتهية",
         "NoShow": "لم يحضر"
       }
     }
@@ -188,7 +190,7 @@
     },
     "charts": {
       "growthTitle": "نمو المستخدمين",
-      "growthSubtitle": "التسجيلات الجديدة خلال آخر 30 يوماً",
+      "growthSubtitle": "التسجيلات الجديدة خلال آخر {{days}} يوماً",
       "funnelTitle": "مسار الطلبات",
       "funnelSubtitle": "توزيع حالات جميع الطلبات"
     }

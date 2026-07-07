@@ -103,7 +103,8 @@ export interface ScholarshipProviderInsightsDto {
   rejectedCount: number;
   acceptanceRate: number;
   averageDaysToDecision: number;
-  comparisonToPlatformAvg: number;
+  /** Null for non-admin owners — the platform-wide delta is not disclosed to them (FR-207). */
+  comparisonToPlatformAvg: number | null;
   byCountry: CountryBreakdownDto[];
   byField: FieldBreakdownDto[];
   topScholarships: TopScholarshipDto[];

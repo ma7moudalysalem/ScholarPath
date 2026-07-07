@@ -67,6 +67,16 @@ export interface ScholarshipProviderApplicationRow {
   submittedAt: string | null;
 }
 
+/**
+ * Mirrors the server's `ScholarshipProviderApplicationStatusCountsDto`. The
+ * per-status breakdown covers ALL of the provider's submitted applications (not
+ * just one page), so dashboard KPIs stay accurate at any volume.
+ */
+export interface ScholarshipProviderApplicationStatusCounts {
+  total: number;
+  byStatus: Record<string, number>;
+}
+
 export interface ScholarshipProviderDocumentInfo {
   id: string;
   fileName: string;
@@ -179,6 +189,18 @@ export const applicationsApi = {
     const { data } = await apiClient.get<PagedResult<ScholarshipProviderApplicationRow>>("/api/applications/company", {
       params: { scholarshipId, page, pageSize, status },
     });
+    return data;
+  },
+
+  /**
+   * Per-status counts across ALL the provider's submitted applications (server
+   * aggregates in SQL). Use for dashboard KPIs/charts instead of counting a
+   * single page of rows.
+   */
+  async getScholarshipProviderApplicationStatusCounts(): Promise<ScholarshipProviderApplicationStatusCounts> {
+    const { data } = await apiClient.get<ScholarshipProviderApplicationStatusCounts>(
+      "/api/applications/company/status-counts",
+    );
     return data;
   },
 

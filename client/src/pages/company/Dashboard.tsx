@@ -48,7 +48,9 @@ export interface ScholarshipProviderRatingsSummaryDto {
 }
 
 // Status buckets shown in the "Applications by status" breakdown, in order.
-const COMPANY_STATUS_ORDER = ['Applied', 'Pending', 'UnderReview', 'WaitingResult', 'Accepted', 'Rejected'];
+// Shortlisted MUST be included — a shortlisted application is a real, non-terminal
+// state; omitting it dropped those rows from the chart and the pending count.
+const COMPANY_STATUS_ORDER = ['Applied', 'Pending', 'UnderReview', 'WaitingResult', 'Shortlisted', 'Accepted', 'Rejected'];
 
 function greetingKey(): 'morning' | 'afternoon' | 'evening' {
   const h = new Date().getHours();
@@ -81,29 +83,40 @@ export function ScholarshipProviderDashboard() {
     staleTime: 60_000,
   });
 
+  // Per-status counts across ALL of the provider's applications (server-side
+  // aggregate). The KPI + status chart derive from this so they stay correct
+  // for providers with more applications than the 50-row recent-list page holds.
+  const { data: statusCounts } = useQuery({
+    queryKey: ['applications', 'company', 'status-counts'],
+    queryFn: () => applicationsApi.getScholarshipProviderApplicationStatusCounts(),
+    staleTime: 60_000,
+  });
+
   const activeScholarships = useMemo(
     () => scholarships.filter((s) => s.status === 'Open').length,
     [scholarships],
   );
 
+  // The recent-applications list below shows the newest page of rows; the KPI and
+  // status chart use the full server-side aggregate (`statusCounts`) instead so
+  // they never undercount a provider with more apps than one page.
   const apps = useMemo(() => applicationsPage?.items ?? [], [applicationsPage]);
-  // totalCount is the full server-side total from the paged result. `apps.length`
-  // would only reflect the 50-row page and understate companies with > 50 apps.
-  const totalApplicants = applicationsPage?.totalCount ?? 0;
-  const pendingReview = apps.filter(
-    (a) => a.status === 'Pending' || a.status === 'UnderReview' || a.status === 'Applied',
-  ).length;
+  const byStatus = useMemo(() => statusCounts?.byStatus ?? {}, [statusCounts]);
+  const totalApplicants = statusCounts?.total ?? applicationsPage?.totalCount ?? 0;
+  const pendingReview =
+    (byStatus['Pending'] ?? 0) +
+    (byStatus['UnderReview'] ?? 0) +
+    (byStatus['Applied'] ?? 0) +
+    (byStatus['Shortlisted'] ?? 0);
 
-  // Real status distribution across the loaded applications (no fabricated
-  // numbers — derived straight from the rows). Ordered + zero buckets dropped.
+  // Real status distribution across ALL applications (no fabricated numbers —
+  // straight from the server aggregate). Ordered + zero buckets dropped.
   const statusBreakdown = useMemo<CategoryBar[]>(() => {
-    const counts = new Map<string, number>();
-    for (const a of apps) counts.set(a.status, (counts.get(a.status) ?? 0) + 1);
     return COMPANY_STATUS_ORDER.map((s) => ({
       label: t(`applications:scholarshipProviderReview.status.${s}`, { defaultValue: s }),
-      count: counts.get(s) ?? 0,
+      count: byStatus[s] ?? 0,
     })).filter((x) => x.count > 0);
-  }, [apps, t]);
+  }, [byStatus, t]);
 
   if (ratingsLoading) {
     return (

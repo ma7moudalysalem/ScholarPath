@@ -243,7 +243,14 @@
       "PaymentCaptured": "Payment captured",
       "PaymentRefunded": "Payment refunded",
       "ConfigChanged": "Config changed",
-      "BroadcastSent": "Broadcast sent"
+      "BroadcastSent": "Broadcast sent",
+      "BookingRequested": "Booking requested",
+      "BookingAccepted": "Booking accepted",
+      "BookingRejected": "Booking rejected",
+      "BookingCancelled": "Booking cancelled",
+      "BookingNoShowMarked": "No-show marked",
+      "ConsultantRatingSubmitted": "Rating submitted",
+      "ConsultantAvailabilityUpdated": "Availability updated"
     }
   },
   "applicationStatus": {

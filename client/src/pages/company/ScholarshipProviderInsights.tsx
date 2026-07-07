@@ -136,15 +136,19 @@ export function ScholarshipProviderInsights() {
     return date.toLocaleDateString(locale, { month: "short", year: "2-digit" });
   });
 
-  const deltaLabel = data
-    ? data.comparisonToPlatformAvg >= 0
-      ? t("analytics:scholarshipProviderInsights.deltaUp", {
-          value: data.comparisonToPlatformAvg.toFixed(1),
-        })
-      : t("analytics:scholarshipProviderInsights.deltaDown", {
-          value: data.comparisonToPlatformAvg.toFixed(1),
-        })
-    : "";
+  // comparisonToPlatformAvg is null for non-admin owners (the platform delta is not
+  // disclosed to them), so there is no comparison label to show in that case.
+  const platformDelta = data?.comparisonToPlatformAvg ?? null;
+  const deltaLabel =
+    platformDelta == null
+      ? ""
+      : platformDelta >= 0
+        ? t("analytics:scholarshipProviderInsights.deltaUp", {
+            value: platformDelta.toFixed(1),
+          })
+        : t("analytics:scholarshipProviderInsights.deltaDown", {
+            value: platformDelta.toFixed(1),
+          });
 
   return (
     <div className="space-y-6">
@@ -247,12 +251,15 @@ export function ScholarshipProviderInsights() {
               icon={TrendingUp}
               accent="success"
               delta={
-                data.totalApplications > 0
+                // Only render a platform-comparison delta when the server actually
+                // disclosed one (admins). Non-admin owners get null, so we must NOT
+                // fabricate a green "+0.0pp at-or-above average" chip for them.
+                platformDelta != null && data.totalApplications > 0
                   ? {
                       // Keep the sign so the arrow icon flips for "below
                       // platform average" — Math.abs would have wrongly shown
                       // an upward green arrow for negative deltas.
-                      value: Math.round(data.comparisonToPlatformAvg * 10) / 10,
+                      value: Math.round(platformDelta * 10) / 10,
                       label: `${deltaLabel} ${t("analytics:reports.vsPlatformAvg")}`,
                     }
                   : null

@@ -36,7 +36,9 @@ public record ScholarshipProviderInsightsDto(
     int RejectedCount,
     decimal AcceptanceRate,
     decimal AverageDaysToDecision,
-    decimal ComparisonToPlatformAvg,
+    // Null for non-admin owners (the platform-wide delta is not disclosed to them —
+    // DATA-05/FR-207). Only admins receive a real number, which may legitimately be 0.
+    decimal? ComparisonToPlatformAvg,
     IReadOnlyList<CountryBreakdownDto> ByCountry,
     IReadOnlyList<FieldBreakdownDto> ByField,
     IReadOnlyList<TopScholarshipDto> TopScholarships,
@@ -127,9 +129,10 @@ public sealed class GetScholarshipProviderInsightsQueryHandler(
         // delta is competitively sensitive — a ScholarshipProvider already receives
         // its own AcceptanceRate in this DTO, so exposing the delta lets it invert
         // the platform-wide average (and infer competitors' aggregate performance).
-        // Only admins may see the delta; non-admin owners get 0m (no platform
-        // figure disclosed). This also skips the extra aggregate query for them.
-        decimal comparisonDelta = 0m;
+        // Only admins may see the delta; non-admin owners get null (no platform
+        // figure disclosed — the client must not render a fabricated "at-average"
+        // chip). This also skips the extra aggregate query for them.
+        decimal? comparisonDelta = null;
         if (isAdmin)
         {
             var platformDecisionCounts = await db.Applications
