@@ -12,6 +12,7 @@ import {
 } from "@/services/api/scholarships";
 import { apiErrorMessage } from "@/services/api/client";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DeadlineHint } from "@/components/scholarships/DeadlineHint";
 import { formatCalendarDate } from "@/lib/dates";
 
 function statusBadgeClass(s: ScholarshipStatus): string {
@@ -150,6 +151,11 @@ export function ScholarshipProviderScholarships() {
               >
                 <td className="px-4 py-3 font-medium text-text-primary">
                   {isAr ? s.titleAr || s.titleEn : s.titleEn || s.titleAr}
+                  <p className="mt-0.5 text-xs font-normal text-text-tertiary">
+                    {t("moderation:scholarshipProviderScholarships.createdOn", {
+                      date: formatCalendarDate(s.createdAt, "dd MMM yyyy", dateLocale),
+                    })}
+                  </p>
                   {s.status === "Draft" && s.rejectionReason && (
                     <p className="mt-1 max-w-xs text-xs font-normal text-danger-500">
                       {t("moderation:scholarshipProviderScholarships.rejectedReason", {
@@ -165,8 +171,11 @@ export function ScholarshipProviderScholarships() {
                     {t(`moderation:scholarshipStatus.${s.status}`)}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {formatCalendarDate(s.deadline, "yyyy-MM-dd", dateLocale)}
+                <td className="px-4 py-3 text-xs">
+                  <div className="text-text-secondary">
+                    {formatCalendarDate(s.deadline, "dd MMM yyyy", dateLocale)}
+                  </div>
+                  <DeadlineHint deadline={s.deadline} />
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{s.applicantCount}</td>
                 <td className="px-4 py-3">

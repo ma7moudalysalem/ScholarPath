@@ -29,6 +29,23 @@ namespace ScholarPath.Application.Scholarships.Queries
             if (entity == null) throw new NotFoundException(nameof(Scholarship), request.Id);
 
             var userId = currentUser.UserId;
+
+            // Access gate: a listing that isn't public yet — Draft / UnderReview —
+            // is visible only to its owning provider or an admin. Open / Closed /
+            // Archived were all live at some point, so they stay publicly viewable.
+            // Without this, any authenticated user could read a not-yet-approved
+            // listing by guessing its id (the admin moderation preview relies on the
+            // admin branch here to read an UnderReview listing).
+            var isPublicStatus = entity.Status is ScholarshipStatus.Open
+                or ScholarshipStatus.Closed
+                or ScholarshipStatus.Archived;
+            if (!isPublicStatus)
+            {
+                var isOwner = userId != null && entity.OwnerScholarshipProviderId == userId;
+                if (!isOwner && !currentUser.IsAdminOrSuperAdmin())
+                    throw new NotFoundException(nameof(Scholarship), request.Id);
+            }
+
             var isBookmarked = userId != null && await db.SavedScholarships
                 .AnyAsync(sv => sv.ScholarshipId == entity.Id && sv.UserId == userId, ct);
 
