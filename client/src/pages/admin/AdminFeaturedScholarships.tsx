@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ar } from "date-fns/locale";
-import { GripVertical, Star, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, Star, Trash2 } from "lucide-react";
 import { formatCalendarDate } from "@/lib/dates";
 import {
   scholarshipsApi,
@@ -12,6 +12,7 @@ import {
   type PaginatedMyScholarships,
 } from "@/services/api/scholarships";
 import { apiErrorMessage } from "@/services/api/client";
+import { ScholarshipDetailPanel } from "@/components/scholarships/ScholarshipDetailPanel";
 import { cn } from "@/lib/utils";
 
 const MAX_FEATURED = 12;
@@ -245,6 +246,8 @@ function AddScholarshipPanel() {
   const { t, i18n } = useTranslation(["admin", "common"]);
   const isAr = i18n.language.startsWith("ar");
   const qc = useQueryClient();
+  // Which candidate is expanded to preview its full detail before featuring it.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data: adminList } = useQuery<PaginatedMyScholarships>({
     queryKey: ["admin", "scholarships", "Open", 1],
@@ -288,33 +291,48 @@ function AddScholarshipPanel() {
     <div className="divide-y divide-border-subtle rounded-xl border border-border-subtle bg-bg-elevated">
       {notYetFeatured.map((s) => {
         const title = isAr ? s.titleAr || s.titleEn : s.titleEn || s.titleAr;
+        const isExpanded = expandedId === s.id;
         return (
-          <div
-            key={s.id}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-bg-subtle/50"
-          >
-            <span className="flex-1 truncate text-sm text-text-primary">
-              {title}
-            </span>
-            <button
-              type="button"
-              disabled={featureMut.isPending || atCap}
-              onClick={() => featureMut.mutate(s.id)}
-              title={
-                atCap
-                  ? t("admin:featured.atCapHint", { max: MAX_FEATURED })
-                  : undefined
-              }
-              className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition",
-                atCap || featureMut.isPending
-                  ? "cursor-not-allowed text-text-tertiary opacity-50"
-                  : "text-brand-500 hover:bg-brand-500/10",
-              )}
-            >
-              <Star aria-hidden className="size-3.5" />
-              {t("admin:featured.feature")}
-            </button>
+          <div key={s.id}>
+            <div className="flex items-center gap-3 px-4 py-3 hover:bg-bg-subtle/50">
+              <button
+                type="button"
+                onClick={() => setExpandedId(isExpanded ? null : s.id)}
+                aria-expanded={isExpanded}
+                className="flex flex-1 items-center gap-1.5 truncate text-start text-sm text-text-primary transition-colors hover:text-brand-600"
+              >
+                {isExpanded ? (
+                  <ChevronDown aria-hidden className="size-4 shrink-0 text-text-tertiary" />
+                ) : (
+                  <ChevronRight aria-hidden className="size-4 shrink-0 text-text-tertiary rtl:rotate-180" />
+                )}
+                <span className="truncate">{title}</span>
+              </button>
+              <button
+                type="button"
+                disabled={featureMut.isPending || atCap}
+                onClick={() => featureMut.mutate(s.id)}
+                title={
+                  atCap
+                    ? t("admin:featured.atCapHint", { max: MAX_FEATURED })
+                    : undefined
+                }
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium transition",
+                  atCap || featureMut.isPending
+                    ? "cursor-not-allowed text-text-tertiary opacity-50"
+                    : "text-brand-500 hover:bg-brand-500/10",
+                )}
+              >
+                <Star aria-hidden className="size-3.5" />
+                {t("admin:featured.feature")}
+              </button>
+            </div>
+            {isExpanded && (
+              <div className="border-t border-border-subtle bg-bg-subtle/30 px-4 py-4">
+                <ScholarshipDetailPanel id={s.id} />
+              </div>
+            )}
           </div>
         );
       })}

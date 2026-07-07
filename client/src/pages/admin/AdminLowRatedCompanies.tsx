@@ -4,13 +4,58 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { AlertTriangle, Check, ShieldOff, Star } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, ChevronRight, ShieldOff, Star } from "lucide-react";
 import {
   adminApi,
   type LowRatedScholarshipProviderRow,
   type PagedResult,
 } from "@/services/api/admin";
 import { apiErrorMessage } from "@/services/api/client";
+import { scholarshipProviderReviewsApi } from "@/services/api/scholarshipProviderReviews";
+import { formatCalendarDate } from "@/lib/dates";
+
+/**
+ * The actual reviews behind a provider's low rating — so suspending is an
+ * evidence-based call, not a blind one. Lazily loads them on expand from the
+ * existing public ratings endpoint (admins may call it).
+ */
+function LowRatedReviewsPanel({ scholarshipProviderId }: { scholarshipProviderId: string }) {
+  const { t, i18n } = useTranslation(["admin", "common"]);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["admin", "provider-reviews", scholarshipProviderId],
+    queryFn: () => scholarshipProviderReviewsApi.getScholarshipProviderRatings(scholarshipProviderId, 1, 25),
+  });
+
+  if (isLoading) return <p className="text-sm text-text-tertiary">{t("common:status.loading")}</p>;
+  if (isError || !data) return <p className="text-sm text-danger-500">{t("common:status.error")}</p>;
+  if (data.recentReviews.length === 0) {
+    return <p className="text-sm text-text-tertiary">{t("admin:lowRatedCompanies.noReviews", "No reviews yet.")}</p>;
+  }
+
+  return (
+    <ul className="space-y-2">
+      {data.recentReviews.map((r) => (
+        <li key={r.reviewId} className="rounded-lg border border-border-subtle bg-bg-canvas p-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1 text-amber-500" aria-label={`${r.rating}/5`}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star key={n} className="size-3.5" fill={n <= r.rating ? "currentColor" : "none"} />
+              ))}
+            </div>
+            <span className="text-xs text-text-tertiary">
+              {formatCalendarDate(r.createdAt, "dd MMM yyyy", dateLocale)}
+            </span>
+          </div>
+          <p className="mt-1 text-xs font-medium text-text-secondary">{r.studentName}</p>
+          {r.comment && (
+            <p className="mt-1 whitespace-pre-wrap text-sm text-text-primary">{r.comment}</p>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /**
  * Admin queue for Companies whose average rating dropped below the platform's
@@ -27,6 +72,8 @@ export function AdminLowRatedCompanies() {
   const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
+  // Which provider's reviews are expanded (the evidence behind the low rating).
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data, isLoading, isError } = useQuery<PagedResult<LowRatedScholarshipProviderRow>>({
     queryKey: ["admin", "low-rated-companies", page],
@@ -152,6 +199,21 @@ export function AdminLowRatedCompanies() {
               <div className="mt-3 flex flex-wrap justify-end gap-2">
                 <button
                   type="button"
+                  onClick={() =>
+                    setExpandedId(expandedId === row.scholarshipProviderId ? null : row.scholarshipProviderId)
+                  }
+                  aria-expanded={expandedId === row.scholarshipProviderId}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle bg-bg-canvas px-3 py-1.5 text-xs font-medium text-text-secondary hover:border-brand-400 hover:text-brand-600"
+                >
+                  {expandedId === row.scholarshipProviderId ? (
+                    <ChevronDown aria-hidden className="size-3" />
+                  ) : (
+                    <ChevronRight aria-hidden className="size-3 rtl:rotate-180" />
+                  )}
+                  {t("admin:lowRatedCompanies.viewReviews", "View reviews")}
+                </button>
+                <button
+                  type="button"
                   onClick={() => clearMut.mutate(row.scholarshipProviderId)}
                   disabled={busy}
                   className="inline-flex items-center gap-1.5 rounded-md border border-success-200 bg-success-50 px-3 py-1.5 text-xs font-medium text-success-700 hover:bg-success-100 disabled:opacity-50"
@@ -172,6 +234,15 @@ export function AdminLowRatedCompanies() {
                   {t("admin:lowRatedCompanies.suspend")}
                 </button>
               </div>
+
+              {expandedId === row.scholarshipProviderId && (
+                <div className="mt-4 border-t border-border-subtle pt-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                    {t("admin:lowRatedCompanies.reviewsHeading", "Recent reviews")}
+                  </p>
+                  <LowRatedReviewsPanel scholarshipProviderId={row.scholarshipProviderId} />
+                </div>
+              )}
             </li>
           );
         })}
