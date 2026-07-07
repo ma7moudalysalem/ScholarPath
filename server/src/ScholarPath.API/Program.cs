@@ -346,15 +346,17 @@ app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseMiddleware<ExceptionHandlerMiddleware>();
 app.UseMiddleware<MaintenanceMiddleware>();
 
-if (app.Environment.IsDevelopment())
+// API docs are exposed in ALL environments (incl. production) so the team can
+// browse the endpoint surface for the graduation demo. The OpenAPI JSON at
+// /openapi/v1.json and the Scalar UI at /scalar/v1 are anonymous, but every
+// endpoint they describe still enforces its own [Authorize] — no data or
+// privileged action is reachable without a valid token.
+app.UseSwagger(opts => opts.RouteTemplate = "openapi/{documentName}.json");
+app.MapScalarApiReference(opts =>
 {
-    app.UseSwagger(opts => opts.RouteTemplate = "openapi/{documentName}.json");
-    app.MapScalarApiReference(opts =>
-    {
-        opts.Title = "ScholarPath API";
-        opts.OpenApiRoutePattern = "/openapi/{documentName}.json";
-    });
-}
+    opts.Title = "ScholarPath API";
+    opts.OpenApiRoutePattern = "/openapi/{documentName}.json";
+});
 
 app.UseHttpsRedirection();
 app.UseCors();
