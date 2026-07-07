@@ -28,7 +28,7 @@ namespace ScholarPath.Infrastructure.Persistence.Seed;
 public static partial class DbSeeder
 {
     public static readonly string[] SeededRoles =
-        ["Admin", "Student", "ScholarshipProvider", "Consultant", "Unassigned"];
+        ["SuperAdmin", "Admin", "Student", "ScholarshipProvider", "Consultant", "Unassigned"];
 
     public static async Task SeedAsync(
         ApplicationDbContext db,
@@ -67,6 +67,25 @@ public static partial class DbSeeder
         await EnsureUserAsync(userManager, "student@scholarpath.local", "Student123!", "Alaa", "Mostafa", "Student", logger);
         await EnsureUserAsync(userManager, "company@scholarpath.local", "ScholarshipProvider123!", "Global Scholars", "Org", "ScholarshipProvider", logger);
         await EnsureUserAsync(userManager, "consultant@scholarpath.local", "Consult123!", "Hana", "Farouk", "Consultant", logger);
+
+        // 2b) Bootstrap a SuperAdmin. Granting/revoking the Admin role is guarded to
+        // the SuperAdmin tier (so an Admin can't mint another Admin — anti
+        // self-escalation). Without a SuperAdmin existing, "add admin" is
+        // permanently blocked with a 403. Promote the primary demo admin — the JWT
+        // role claim is the user's ActiveRole, so it must be SuperAdmin for the
+        // IsInRole("SuperAdmin") check to pass. Idempotent: safe on every startup.
+        var superAdmin = await userManager.FindByEmailAsync("admin@scholarpath.local").ConfigureAwait(false);
+        if (superAdmin is not null)
+        {
+            if (!await userManager.IsInRoleAsync(superAdmin, "SuperAdmin").ConfigureAwait(false))
+                await userManager.AddToRoleAsync(superAdmin, "SuperAdmin").ConfigureAwait(false);
+            if (superAdmin.ActiveRole != "SuperAdmin")
+            {
+                superAdmin.ActiveRole = "SuperAdmin";
+                await userManager.UpdateAsync(superAdmin).ConfigureAwait(false);
+            }
+            logger.LogInformation("Ensured SuperAdmin bootstrap for {Email}.", superAdmin.Email);
+        }
 
         // 3) Scholarship categories (bilingual)
         if (!await db.Categories.AnyAsync(ct).ConfigureAwait(false))

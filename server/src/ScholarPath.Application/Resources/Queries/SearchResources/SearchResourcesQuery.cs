@@ -33,18 +33,20 @@ public sealed class SearchResourcesQueryHandler(IApplicationDbContext db)
 
         if (!string.IsNullOrWhiteSpace(request.Term))
         {
+            // Language-AGNOSTIC full-text match. The old code scoped matching to
+            // the UI language (e.g. only TitleAr/ContentAr on the Arabic-default
+            // UI), so a student on the Arabic UI searching an English keyword
+            // ("IELTS", "scholarship") matched nothing even though it exists in the
+            // English title/content — the "search returns no results" bug. Also
+            // cover Description + Tags, not just Title + Content.
             var term = request.Term.Trim();
-            var lang = request.Language?.Trim().ToLower();
-            q = lang switch
-            {
-                "ar" => q.Where(r => r.TitleAr.Contains(term)
-                    || (r.ContentMarkdownAr != null && r.ContentMarkdownAr.Contains(term))),
-                "en" => q.Where(r => r.TitleEn.Contains(term)
-                    || (r.ContentMarkdownEn != null && r.ContentMarkdownEn.Contains(term))),
-                _ => q.Where(r => r.TitleEn.Contains(term) || r.TitleAr.Contains(term)
-                    || (r.ContentMarkdownEn != null && r.ContentMarkdownEn.Contains(term))
-                    || (r.ContentMarkdownAr != null && r.ContentMarkdownAr.Contains(term))),
-            };
+            q = q.Where(r =>
+                r.TitleEn.Contains(term) || r.TitleAr.Contains(term)
+                || (r.DescriptionEn != null && r.DescriptionEn.Contains(term))
+                || (r.DescriptionAr != null && r.DescriptionAr.Contains(term))
+                || (r.ContentMarkdownEn != null && r.ContentMarkdownEn.Contains(term))
+                || (r.ContentMarkdownAr != null && r.ContentMarkdownAr.Contains(term))
+                || (r.TagsJson != null && r.TagsJson.Contains(term)));
         }
 
         if (!string.IsNullOrWhiteSpace(request.CategorySlug))

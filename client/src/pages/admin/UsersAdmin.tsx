@@ -12,6 +12,7 @@ import {
   type PagedResult,
   type RoleOp,
 } from "@/services/api/admin";
+import { apiErrorMessage } from "@/services/api/client";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PromptDialog } from "@/components/ui/PromptDialog";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -115,7 +116,9 @@ export function UsersAdmin() {
       toast.success(t("common:status.success"));
       void qc.invalidateQueries({ queryKey: ["admin", "users"] });
     },
-    onError: () => toast.error(t("common:status.error")),
+    // Surface the server reason (e.g. "Only a SuperAdmin can grant the Admin
+    // role") instead of a generic error, so testers understand why it failed.
+    onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
   });
 
   // Suspend/Deactivate require a reason — surface that through a PromptDialog;

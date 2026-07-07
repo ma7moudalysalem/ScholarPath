@@ -259,11 +259,18 @@ export function ResourceDetail() {
                     type="button"
                     disabled={bookmarkMut.isPending}
                     onClick={() => bookmarkMut.mutate(data.id)}
-                    className="btn btn-secondary"
+                    className={data.isBookmarked ? "btn btn-primary" : "btn btn-secondary"}
                     aria-label={t("resources:detail.bookmarkToggle")}
+                    aria-pressed={data.isBookmarked}
                   >
-                    <Bookmark aria-hidden className="size-4" />
-                    {t("resources:detail.bookmark")}
+                    <Bookmark
+                      aria-hidden
+                      className="size-4"
+                      fill={data.isBookmarked ? "currentColor" : "none"}
+                    />
+                    {data.isBookmarked
+                      ? t("resources:detail.bookmarked", "Saved")
+                      : t("resources:detail.bookmark")}
                   </button>
                 )}
               </div>

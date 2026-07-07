@@ -44,6 +44,11 @@ public sealed class GetResourceDetailQueryHandler(
                 c.SortOrder, c.EstimatedReadMinutes))
             .ToList();
 
+        // The caller's saved state, so the detail page's Save button reflects it.
+        var isBookmarked = currentUser.UserId is { } uid2
+            && await db.ResourceBookmarks.AsNoTracking()
+                .AnyAsync(b => b.ResourceId == resource.Id && b.UserId == uid2, ct);
+
         return new ResourceDetailDto(
             resource.Id, resource.Slug, resource.TitleEn, resource.TitleAr,
             resource.DescriptionEn, resource.DescriptionAr,
@@ -53,6 +58,6 @@ public sealed class GetResourceDetailQueryHandler(
             resource.Type, resource.Status, resource.CategorySlug,
             ResourceTags.Deserialize(resource.TagsJson),
             resource.IsFeatured, resource.PublishedAt, resource.RejectionReason,
-            chapters);
+            chapters, isBookmarked);
     }
 }
