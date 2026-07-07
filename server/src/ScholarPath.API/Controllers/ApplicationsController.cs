@@ -5,6 +5,7 @@ using ScholarPath.Domain.Enums;
 using ScholarPath.Application.Applications.Commands.ExternalIntent;
 using ScholarPath.Application.Applications.Commands.ReviewApplication;
 using ScholarPath.Application.Applications.Commands.SaveApplicationDraft;
+using ScholarPath.Application.Applications.Commands.UpdateApplicationNotes;
 using ScholarPath.Application.Applications.Commands.StartApplication;
 using ScholarPath.Application.Applications.Commands.SubmitApplication;
 using ScholarPath.Application.Applications.Commands.UpdateExternalStatus;
@@ -76,6 +77,28 @@ public sealed class ApplicationsController(IMediator mediator) : ControllerBase
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult> SaveDraft(
         Guid id, SaveApplicationDraftCommand command, CancellationToken ct)
+    {
+        if (id != command.ApplicationId)
+        {
+            return BadRequest("Route application id does not match body application id.");
+        }
+
+        await mediator.Send(command, ct);
+        return NoContent();
+    }
+
+    /// <summary>
+    /// Updates the student's personal notes / required-documents free text on a
+    /// non-terminal application (works for external trackers, which are never Draft).
+    /// </summary>
+    [HttpPut("{id:guid}/notes")]
+    [Authorize(Roles = "Student")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult> UpdateNotes(
+        Guid id, UpdateApplicationNotesCommand command, CancellationToken ct)
     {
         if (id != command.ApplicationId)
         {

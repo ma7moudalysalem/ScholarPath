@@ -24,6 +24,10 @@
     "lastUpdated": "آخر تحديث",
     "decisionReason": "ملاحظة القرار",
     "personalNotes": "ملاحظاتك",
+    "externalNotes": "ملاحظاتك والمستندات المطلوبة",
+    "externalNotesHint": "دوّن المستندات التي لا تزال بحاجة لتجهيزها وأي ملاحظات لنفسك. يمكنك تعديلها حتى صدور القرار النهائي.",
+    "externalNotesPlaceholder": "مثال: ما زلت أحتاج: خطاب توصية، شهادة IELTS…",
+    "notesSaved": "تم حفظ الملاحظات.",
     "formData": "بيانات النموذج المقدّم",
     "documents": {
       "heading": "المستندات",
@@ -129,7 +133,9 @@
       "archiveSuccess": "تمت أرشفة المنحة.",
       "reviewApplications": "مراجعة الطلبات",
       "reopen": "إعادة الفتح (إرسال للمراجعة)",
-      "reopenSuccess": "تم إعادة فتح المنحة — رجعت لمراجعة الأدمن."
+      "reopenSuccess": "تم إعادة فتح المنحة — رجعت لمراجعة الأدمن.",
+      "submitForReview": "إرسال للمراجعة",
+      "submitSuccess": "تم إرسال المنحة للمراجعة."
     },
     "form": {
       "titleCreate": "إنشاء منحة",
@@ -170,6 +176,7 @@
       "reviewFeeMax": "لا يمكن أن تتجاوز رسوم خدمة المراجعة 500 دولار.",
       "submitCreate": "إنشاء",
       "submitEdit": "حفظ",
+      "saveDraft": "حفظ كمسودة",
       "submitting": "جارٍ الحفظ…",
       "cancel": "إلغاء",
       "back": "رجوع",

@@ -132,15 +132,17 @@ export interface CreateScholarshipInput {
   mode?: ListingMode;
   /** Apply-out HTTPS URL — required when mode is "ExternalUrl" (FR-SCH-30). */
   externalApplicationUrl?: string | null;
+  /** Save as a private Draft instead of publishing / submitting for review. */
+  saveAsDraft?: boolean;
 }
 
 /**
  * Body for `PUT /api/scholarships/{id}` — the update command doesn't accept
- * funding type or target level (those are create-only), so they're omitted here.
+ * funding type, target level or the draft flag (create-only), so they're omitted.
  */
 export type UpdateScholarshipInput = Omit<
   CreateScholarshipInput,
-  "fundingType" | "targetLevel"
+  "fundingType" | "targetLevel" | "saveAsDraft"
 >;
 
 /** Server MyScholarshipDto shape — company list + admin moderation rows. */
@@ -466,6 +468,11 @@ export const scholarshipsApi = {
   /** ScholarshipProvider / Admin: reopen a CLOSED listing — sends it back to review. */
   async reopen(id: string): Promise<void> {
     await apiClient.post(`/api/scholarships/${id}/reopen`);
+  },
+
+  /** ScholarshipProvider / Admin: submit a DRAFT listing for review / publish. */
+  async submitForReview(id: string): Promise<void> {
+    await apiClient.post(`/api/scholarships/${id}/submit`);
   },
 
   // ── Admin: featured scholarships management ──────────────────────────────────
