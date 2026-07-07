@@ -28,8 +28,10 @@ import {
   QuickActions,
   ChartCard,
   SmoothAreaChart,
+  DonutChart,
   TimeRangeTabs,
   type StatAccent,
+  type DonutSegment,
 } from "@/components/dashboard/primitives";
 import { formatRelativeTime } from "@/components/dashboard/utils";
 import { cn } from "@/lib/utils";
@@ -65,6 +67,22 @@ const AUDIT_ICON: Record<string, { icon: LucideIcon; accent: StatAccent }> = {
   ConsultantAvailabilityUpdated: { icon: Clock, accent: "brand" },
 };
 
+// Per-status visual encoding for the application-funnel donut: a design-system
+// status color per state. Mirrors the Student dashboard's STATUS_META so a
+// status reads the same color across the whole product.
+const STATUS_META: Record<string, { tone: StatAccent; color: string }> = {
+  Intending:    { tone: "neutral", color: "var(--color-status-planned)" },
+  Draft:        { tone: "neutral", color: "var(--color-status-withdrawn)" },
+  Applied:      { tone: "brand",   color: "var(--color-status-applied)" },
+  Pending:      { tone: "warning", color: "var(--color-status-pending)" },
+  UnderReview:  { tone: "warning", color: "var(--color-brand-400)" },
+  Shortlisted:  { tone: "brand",   color: "var(--color-status-planned)" },
+  WaitingResult:{ tone: "warning", color: "var(--color-warning-500)" },
+  Accepted:     { tone: "success", color: "var(--color-status-accepted)" },
+  Rejected:     { tone: "danger",  color: "var(--color-status-rejected)" },
+  Withdrawn:    { tone: "neutral", color: "var(--color-status-withdrawn)" },
+};
+
 /**
  * A real period-over-period delta for a StatCard, or null when there's no
  * meaningful baseline (both windows empty) — so the card never shows a
@@ -82,37 +100,6 @@ function formatCents(cents: number): string {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(cents / 100);
-}
-
-interface FunnelBarProps {
-  points: ApplicationStatusPoint[];
-}
-
-function FunnelBars({ points }: FunnelBarProps) {
-  const { t } = useTranslation(["admin"]);
-  if (points.length === 0) return null;
-  const max = Math.max(...points.map((p) => p.count), 1);
-  const colors = ["bg-brand-500", "bg-success-500", "bg-warning-500", "bg-danger-500", "bg-text-tertiary"];
-  return (
-    <div className="space-y-3">
-      {points.map((p, idx) => (
-        <div key={p.status} className="flex items-center gap-3">
-          <span className="w-28 shrink-0 truncate text-xs font-medium text-text-secondary">
-            {t(`admin:applicationStatus.${p.status}`, { defaultValue: p.status })}
-          </span>
-          <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-bg-subtle">
-            <div
-              className={cn("h-full rounded-full transition-all", colors[idx % colors.length])}
-              style={{ width: `${(p.count / max) * 100}%` }}
-            />
-          </div>
-          <span className="w-10 shrink-0 text-end text-xs font-semibold tabular-nums text-text-primary">
-            {p.count}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function greetingKey(): "morning" | "afternoon" | "evening" {
@@ -154,6 +141,23 @@ export function AdminDashboard() {
 
   const o = overview.data;
   const growthValues = useMemo(() => (growth.data ?? []).map((p) => p.count), [growth.data]);
+
+  // Real application-status distribution → donut segments. Colors come from the
+  // shared STATUS_META so every status matches its color elsewhere in the app.
+  // The center total is the genuine sum of the funnel counts — no fabrication.
+  const funnelSegments = useMemo<DonutSegment[]>(
+    () =>
+      (funnel.data ?? []).map((p) => ({
+        label: t(`admin:applicationStatus.${p.status}`, { defaultValue: p.status }),
+        count: p.count,
+        color: STATUS_META[p.status]?.color ?? "var(--color-text-tertiary)",
+      })),
+    [funnel.data, t],
+  );
+  const funnelTotal = useMemo(
+    () => (funnel.data ?? []).reduce((sum, p) => sum + p.count, 0),
+    [funnel.data],
+  );
   const growthLabels = useMemo(
     () =>
       (growth.data ?? []).map((p) => {
@@ -300,9 +304,14 @@ export function AdminDashboard() {
                 subtitle={t("dashboard:admin.charts.funnelSubtitle")}
               >
                 {funnel.isLoading ? (
-                  <div className="h-32 animate-pulse rounded-lg bg-bg-subtle" />
+                  <div className="h-40 animate-pulse rounded-lg bg-bg-subtle" />
                 ) : (
-                  <FunnelBars points={funnel.data ?? []} />
+                  <DonutChart
+                    segments={funnelSegments}
+                    centerValue={funnelTotal}
+                    centerLabel={t("admin:dashboard.totalApplications")}
+                    emptyLabel={t("dashboard:student.applicationsByStatus.empty")}
+                  />
                 )}
               </ChartCard>
             </div>
