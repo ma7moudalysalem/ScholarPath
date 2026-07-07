@@ -48,8 +48,17 @@ function greetingKey(): "morning" | "afternoon" | "evening" {
 }
 
 // Booking buckets shown in the "Bookings by status" breakdown, in order. The
-// two no-show statuses are merged into a single "NoShow" row at render time.
-const CONSULTANT_BOOKING_STATUSES = ["Requested", "Confirmed", "Completed", "Cancelled"];
+// no-show statuses (reported + both confirmed sides) are merged into a single
+// "NoShow" row at render time. Rejected (consultant declined) and Expired (no
+// response in time) are real terminal outcomes and must be shown, not dropped.
+const CONSULTANT_BOOKING_STATUSES = [
+  "Requested",
+  "Confirmed",
+  "Completed",
+  "Cancelled",
+  "Rejected",
+  "Expired",
+];
 
 export function ConsultantDashboard() {
   const { t, i18n } = useTranslation(["dashboard"]);
@@ -109,7 +118,9 @@ export function ConsultantDashboard() {
     return acc;
   }, {});
   const noShowCount =
-    (bookingCounts.NoShowStudent ?? 0) + (bookingCounts.NoShowConsultant ?? 0);
+    (bookingCounts.NoShowStudent ?? 0) +
+    (bookingCounts.NoShowConsultant ?? 0) +
+    (bookingCounts.NoShowReported ?? 0);
   const bookingBreakdown: CategoryBar[] = [
     ...CONSULTANT_BOOKING_STATUSES.map((s) => ({
       label: t(`dashboard:consultant.bookingsByStatus.statuses.${s}`),

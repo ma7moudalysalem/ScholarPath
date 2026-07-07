@@ -106,12 +106,16 @@ export function AnalyticsPage() {
     return { avg, peakCount: peak.count, peakLabel };
   }, [growth.data, totalInWindow, i18n.language]);
 
-  // Acceptance rate = accepted applications as a share of all applications.
+  // Acceptance rate = accepted as a share of DECIDED applications (accepted +
+  // rejected), matching the provider-side definition. Draft / in-progress /
+  // external-tracked / withdrawn rows are not decisions, so counting them in the
+  // denominator would understate the rate.
   const acceptanceRate = useMemo(() => {
     const pts = funnel.data ?? [];
-    const total = pts.reduce((acc, p) => acc + p.count, 0);
     const accepted = pts.find((p) => p.status === "Accepted")?.count ?? 0;
-    return total > 0 ? Math.round((accepted / total) * 100) : 0;
+    const rejected = pts.find((p) => p.status === "Rejected")?.count ?? 0;
+    const decided = accepted + rejected;
+    return decided > 0 ? Math.round((accepted / decided) * 100) : 0;
   }, [funnel.data]);
 
   return (

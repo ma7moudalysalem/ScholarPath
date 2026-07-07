@@ -61,6 +61,8 @@ const AUDIT_ICON: Record<string, { icon: LucideIcon; accent: StatAccent }> = {
   BookingRejected: { icon: Clock, accent: "danger" },
   BookingCancelled: { icon: Clock, accent: "warning" },
   BookingNoShowMarked: { icon: Clock, accent: "danger" },
+  ConsultantRatingSubmitted: { icon: ClipboardCheck, accent: "success" },
+  ConsultantAvailabilityUpdated: { icon: Clock, accent: "brand" },
 };
 
 /**
@@ -268,7 +270,7 @@ export function AdminDashboard() {
             <div className="space-y-6 lg:col-span-8">
               <ChartCard
                 title={t("dashboard:admin.charts.growthTitle")}
-                subtitle={t("dashboard:admin.charts.growthSubtitle")}
+                subtitle={t("dashboard:admin.charts.growthSubtitle", { days: growthDays })}
                 trailing={
                   <TimeRangeTabs
                     value={growthDays}

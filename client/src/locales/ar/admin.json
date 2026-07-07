@@ -243,7 +243,14 @@
       "PaymentCaptured": "تحصيل دفعة",
       "PaymentRefunded": "استرداد دفعة",
       "ConfigChanged": "تغيير الإعدادات",
-      "BroadcastSent": "إرسال إعلان"
+      "BroadcastSent": "إرسال إعلان",
+      "BookingRequested": "طلب حجز",
+      "BookingAccepted": "قبول حجز",
+      "BookingRejected": "رفض حجز",
+      "BookingCancelled": "إلغاء حجز",
+      "BookingNoShowMarked": "تسجيل عدم حضور",
+      "ConsultantRatingSubmitted": "إرسال تقييم",
+      "ConsultantAvailabilityUpdated": "تحديث المواعيد المتاحة"
     }
   },
   "applicationStatus": {

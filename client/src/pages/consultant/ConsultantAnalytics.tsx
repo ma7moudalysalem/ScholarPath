@@ -215,19 +215,15 @@ export function ConsultantAnalytics() {
               accent="brand"
               delay={0.02}
             />
+            {/* No delta here: StatCard renders any delta as a green upward "%"
+                growth pill, but completed/total is a static completion RATIO, not
+                period-over-period growth. Showing it as a trend was fabricated —
+                match the other KPI tiles and omit it. */}
             <StatCard
               label={t("analytics:consultantKpis.completed")}
               value={data.completedBookings}
               icon={CheckCircle2}
               accent="success"
-              delta={
-                data.totalBookings > 0
-                  ? {
-                      value: Math.round((data.completedBookings / data.totalBookings) * 100),
-                      label: `${data.totalBookings} ${t("analytics:consultantKpis.totalBookings").toLowerCase()}`,
-                    }
-                  : null
-              }
               delay={0.06}
             />
             {paymentsEnabled && (
