@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Bell } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/authStore";
 import { playNotificationChime } from "@/lib/notificationSound";
@@ -66,6 +67,12 @@ export function useNotificationHub() {
       toast(lang === "ar" ? payload.titleAr : payload.titleEn, {
         id: payload.id || undefined,
         description: lang === "ar" ? payload.bodyAr : payload.bodyEn,
+        // A branded bell chip so the toast instantly reads as a notification.
+        icon: (
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 ring-1 ring-inset ring-brand-500/15">
+            <Bell aria-hidden className="size-[18px]" />
+          </span>
+        ),
         // Make the toast actionable: jump straight to the relevant page.
         action: payload.deepLink
           ? {

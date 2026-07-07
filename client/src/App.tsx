@@ -119,10 +119,11 @@ export function App() {
         closeButton
         duration={4000}
         toastOptions={{
-          style: { fontSize: 14, padding: 14, borderRadius: 12 },
+          style: { fontSize: 14, padding: 16, borderRadius: 16 },
           classNames: {
             toast: [
-              "group !rounded-xl !border !shadow-lg !font-sans !text-sm",
+              "group !gap-3 !rounded-2xl !border !font-sans !text-sm",
+              "!shadow-[0_12px_34px_-10px_rgba(2,8,23,0.24)]",
               "!bg-bg-elevated !border-border-subtle !text-text-primary",
             ].join(" "),
             title:       "!font-semibold !text-text-primary",
