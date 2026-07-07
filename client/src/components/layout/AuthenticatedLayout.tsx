@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, Suspense } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import {
   GraduationCap,
   LayoutDashboard,
@@ -15,7 +15,6 @@ import {
   BookOpen,
   FolderOpen,
   Sparkles,
-  Bell,
   Settings,
   LogOut,
   Menu,
@@ -41,7 +40,7 @@ import { authApi, applyAuthSession, postAuthPath, switchableRoles } from "@/serv
 import { apiErrorMessage } from "@/services/api/client";
 import { useNotificationHub } from "@/hooks/useNotificationHub";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
-import { notificationsApi, UNREAD_COUNT_QUERY_KEY } from "@/services/api/notifications";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import { cn } from "@/lib/utils";
 import { userPhotoUrl } from "@/lib/userPhoto";
 
@@ -450,16 +449,6 @@ export function AuthenticatedLayout() {
   // Subscribe to the notification hub while the user is authenticated
   useNotificationHub();
 
-  // Unread-notification count for the header bell badge. Polled as a safety
-  // net; the notification hub also invalidates this key the moment one arrives.
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: UNREAD_COUNT_QUERY_KEY,
-    queryFn: () => notificationsApi.unreadCount(),
-    enabled: !!user,
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-  });
-
   // Shared sidebar props
   const sidebarUser = user
     ? { id: user.id, firstName: user.firstName, fullName: user.fullName }
@@ -541,22 +530,7 @@ export function AuthenticatedLayout() {
           <div className="flex flex-1 items-center justify-end gap-2">
             <LanguageSwitcher />
             <ThemeToggle />
-            <NavLink
-              to="/notifications"
-              className="relative inline-flex size-9 items-center justify-center rounded-lg border border-border-subtle bg-bg-elevated text-text-primary transition hover:bg-bg-subtle"
-              aria-label={
-                unreadCount > 0
-                  ? `${t("nav:common.notifications")} (${unreadCount})`
-                  : t("nav:common.notifications")
-              }
-            >
-              <Bell aria-hidden className="size-4" />
-              {unreadCount > 0 && (
-                <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold leading-none text-white">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </NavLink>
+            <NotificationBell />
             <ProfileMenu />
           </div>
         </header>
