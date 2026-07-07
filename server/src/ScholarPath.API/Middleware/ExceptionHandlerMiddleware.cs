@@ -82,6 +82,19 @@ public sealed class ExceptionHandlerMiddleware(
                 "Service unavailable",
                 suex.Message).ConfigureAwait(false);
         }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            // The client disconnected / aborted the request (e.g. React Query
+            // cancels an in-flight query on unmount or refetch), so ASP.NET's
+            // RequestAborted token fired and cancelled the EF query. This is
+            // expected, not an error — don't log it as "unhandled" or try to write
+            // a 500 to a socket that's already gone. 499 = client closed request.
+            logger.LogDebug("Request aborted by the client at {Path}", context.Request.Path);
+            if (!context.Response.HasStarted)
+            {
+                context.Response.StatusCode = 499;
+            }
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled exception at {Path}", context.Request.Path);
