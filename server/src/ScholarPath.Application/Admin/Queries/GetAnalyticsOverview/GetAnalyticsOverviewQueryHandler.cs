@@ -15,6 +15,8 @@ public sealed class GetAnalyticsOverviewQueryHandler(
     public async Task<AnalyticsOverviewDto> Handle(GetAnalyticsOverviewQuery request, CancellationToken ct)
     {
         var since24h = clock.UtcNow.AddHours(-24);
+        var since7d = clock.UtcNow.AddDays(-7);
+        var since14d = clock.UtcNow.AddDays(-14);
 
         // Sequential because IApplicationDbContext → single DbContext instance
         // (EF Core forbids parallel queries on the same context).
@@ -53,6 +55,25 @@ public sealed class GetAnalyticsOverviewQueryHandler(
 
         var ai24h = await db.AiInteractions.CountAsync(x => x.CreatedAt >= since24h, ct).ConfigureAwait(false);
 
+        // Real period-over-period signals — last 7d vs the 7d before, so the
+        // dashboard shows a genuine up/down delta (never a fabricated one).
+        var newUsers7d = await db.Users
+            .CountAsync(u => !u.IsDeleted && u.CreatedAt >= since7d, ct).ConfigureAwait(false);
+        var newUsersPrev7d = await db.Users
+            .CountAsync(u => !u.IsDeleted && u.CreatedAt >= since14d && u.CreatedAt < since7d, ct).ConfigureAwait(false);
+
+        var newApplications7d = await db.Applications
+            .CountAsync(a => !a.IsDeleted && a.Status != ApplicationStatus.Draft && a.CreatedAt >= since7d, ct).ConfigureAwait(false);
+        var newApplicationsPrev7d = await db.Applications
+            .CountAsync(a => !a.IsDeleted && a.Status != ApplicationStatus.Draft && a.CreatedAt >= since14d && a.CreatedAt < since7d, ct).ConfigureAwait(false);
+
+        // Genuine activity — accounts that actually logged in within 24h + the
+        // count of successful logins in that window (the "real login number").
+        var activeUsers24h = await db.Users
+            .CountAsync(u => !u.IsDeleted && u.LastLoginAt != null && u.LastLoginAt >= since24h, ct).ConfigureAwait(false);
+        var logins24h = await db.LoginAttempts
+            .CountAsync(a => a.Succeeded && a.OccurredAt >= since24h, ct).ConfigureAwait(false);
+
         return new AnalyticsOverviewDto(
             TotalUsers: totalUsers,
             ActiveUsers: activeUsers,
@@ -65,6 +86,12 @@ public sealed class GetAnalyticsOverviewQueryHandler(
             CompletedBookings: completedBookings,
             RevenueCentsCaptured: captured ?? 0,
             ProfitShareCentsAccumulated: profitShare ?? 0,
-            AiInteractions24h: ai24h);
+            AiInteractions24h: ai24h,
+            NewUsers7d: newUsers7d,
+            NewUsersPrev7d: newUsersPrev7d,
+            NewApplications7d: newApplications7d,
+            NewApplicationsPrev7d: newApplicationsPrev7d,
+            ActiveUsers24h: activeUsers24h,
+            Logins24h: logins24h);
     }
 }

@@ -106,7 +106,19 @@ public sealed record AnalyticsOverviewDto(
     int CompletedBookings,
     long RevenueCentsCaptured,
     long ProfitShareCentsAccumulated,
-    int AiInteractions24h);
+    int AiInteractions24h,
+    // ── Real period-over-period + activity signals (PB-015) ──────────────────
+    // New sign-ups in the last 7 days and the 7 days before, so the dashboard can
+    // show a real up/down delta instead of a fabricated one.
+    int NewUsers7d,
+    int NewUsersPrev7d,
+    // New submitted applications, last 7d vs the prior 7d.
+    int NewApplications7d,
+    int NewApplicationsPrev7d,
+    // Genuine activity: distinct accounts that logged in within 24h, and the
+    // count of successful logins in 24h (the "real login count" the lead asked for).
+    int ActiveUsers24h,
+    int Logins24h);
 
 public sealed record GrowthPoint(DateTimeOffset Date, int Count);
 

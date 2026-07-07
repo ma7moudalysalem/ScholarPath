@@ -157,6 +157,7 @@
       "users": "Total users",
       "usersDelta": "vs last week",
       "active": "Active users",
+      "activeNow": "Active (24h)",
       "activeDelta": "last 24h",
       "pending": "Pending approvals",
       "pendingDelta": "in queue",
