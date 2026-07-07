@@ -50,6 +50,14 @@ public record CreateScholarshipCommand : IRequest<Guid>
     /// (e.g. "Transcript", "Recommendation Letter"). Stored as JSON.
     /// </summary>
     public string[]? RequiredDocuments { get; init; }
+
+    /// <summary>
+    /// When true the listing is saved as a <see cref="ScholarshipStatus.Draft"/>
+    /// instead of being published / submitted for review — the owner can finish
+    /// it later and submit it from their listings page. Draft never appears in the
+    /// public catalog or the admin moderation queue.
+    /// </summary>
+    public bool SaveAsDraft { get; init; }
 }
 
 public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholarshipCommand>
@@ -191,12 +199,16 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             ReviewFeeUsd = request.Mode == ListingMode.InApp
                 ? effectiveFee
                 : null,
+            // Save-as-draft keeps the listing private (not in the public catalog
+            // nor the admin queue) until the owner submits it. Otherwise:
             // ScholarshipProvider-created listings start in the moderation queue and become
-            // Open after an admin Approve. Admin-created listings (platform
+            // Open after an admin Approve; admin-created listings (platform
             // scholarships) skip moderation and open immediately — the admin IS
             // the moderator.
-            Status = isAdmin ? ScholarshipStatus.Open : ScholarshipStatus.UnderReview,
-            OpenedAt = isAdmin ? DateTimeOffset.UtcNow : null,
+            Status = request.SaveAsDraft
+                ? ScholarshipStatus.Draft
+                : (isAdmin ? ScholarshipStatus.Open : ScholarshipStatus.UnderReview),
+            OpenedAt = (!request.SaveAsDraft && isAdmin) ? DateTimeOffset.UtcNow : null,
             OwnerScholarshipProviderId = ownerScholarshipProviderId,
             // Slug is REQUIRED + UNIQUE on the schema — generate from the
             // English title with a short Guid suffix so two scholarships sharing

@@ -1,8 +1,10 @@
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Scholarships.Commands;
+using ScholarPath.Application.Scholarships.Commands.SubmitScholarshipForReview;
 using ScholarPath.Application.Scholarships.Queries;
 using ScholarPath.Infrastructure.Persistence;
 using ScholarPath.Domain.Entities;
@@ -175,6 +177,65 @@ public sealed class ScholarshipTests : IDisposable
 
         result.Should().NotBeNull();
         result.Id.Should().Be(id);
+    }
+
+    [Fact]
+    public async Task SubmitForReview_publishes_an_ownerless_admin_draft()
+    {
+        var id = Guid.NewGuid();
+        _context.Scholarships.Add(new Scholarship
+        {
+            Id = id,
+            TitleEn = "Admin Draft",
+            TitleAr = "مسودة",
+            Slug = "admin-draft-submit-unique",
+            DescriptionEn = "d",
+            DescriptionAr = "و",
+            Deadline = DateTimeOffset.UtcNow.AddDays(30),
+            Status = ScholarshipStatus.Draft, // ownerless = admin-created
+        });
+        await _context.SaveChangesAsync();
+
+        var admin = Substitute.For<ICurrentUserService>();
+        admin.UserId.Returns(Guid.NewGuid());
+        admin.IsAdminOrSuperAdmin().Returns(true);
+
+        var handler = new SubmitScholarshipForReviewCommandHandler(
+            _context, admin, NullLogger<SubmitScholarshipForReviewCommandHandler>.Instance);
+
+        await handler.Handle(new SubmitScholarshipForReviewCommand(id), CancellationToken.None);
+
+        var updated = await _context.Scholarships.FindAsync(id);
+        updated!.Status.Should().Be(ScholarshipStatus.Open);
+        updated.OpenedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task SubmitForReview_rejects_a_non_draft_listing()
+    {
+        var id = Guid.NewGuid();
+        _context.Scholarships.Add(new Scholarship
+        {
+            Id = id,
+            TitleEn = "Open",
+            TitleAr = "مفتوحة",
+            Slug = "open-submit-unique",
+            DescriptionEn = "d",
+            DescriptionAr = "و",
+            Deadline = DateTimeOffset.UtcNow.AddDays(30),
+            Status = ScholarshipStatus.Open,
+        });
+        await _context.SaveChangesAsync();
+
+        var admin = Substitute.For<ICurrentUserService>();
+        admin.UserId.Returns(Guid.NewGuid());
+        admin.IsAdminOrSuperAdmin().Returns(true);
+
+        var handler = new SubmitScholarshipForReviewCommandHandler(
+            _context, admin, NullLogger<SubmitScholarshipForReviewCommandHandler>.Instance);
+
+        var act = () => handler.Handle(new SubmitScholarshipForReviewCommand(id), CancellationToken.None);
+        await act.Should().ThrowAsync<ConflictException>().WithMessage("*draft*");
     }
 
     // FR-SCH-05: the field-of-study filter matches a whole JSON-array element

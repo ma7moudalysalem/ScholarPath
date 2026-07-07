@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
-import { FileText, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { FileText, Pencil, Plus, RotateCcw, Send, Trash2 } from "lucide-react";
 import {
   scholarshipsApi,
   type MyScholarship,
@@ -66,6 +66,18 @@ export function ScholarshipProviderScholarships() {
     mutationFn: (id: string) => scholarshipsApi.reopen(id),
     onSuccess: () => {
       toast.success(t("moderation:scholarshipProviderScholarships.actions.reopenSuccess"));
+      void queryClient.invalidateQueries({ queryKey: ["company", "scholarships", "mine"] });
+    },
+    onError: (err) =>
+      toast.error(
+        apiErrorMessage(err, t("moderation:scholarshipProviderScholarships.form.error")),
+      ),
+  });
+
+  const submitMut = useMutation({
+    mutationFn: (id: string) => scholarshipsApi.submitForReview(id),
+    onSuccess: () => {
+      toast.success(t("moderation:scholarshipProviderScholarships.actions.submitSuccess"));
       void queryClient.invalidateQueries({ queryKey: ["company", "scholarships", "mine"] });
     },
     onError: (err) =>
@@ -196,6 +208,18 @@ export function ScholarshipProviderScholarships() {
                     >
                       <Pencil aria-hidden className="size-4" />
                     </Link>
+                    {s.status === "Draft" && (
+                      <button
+                        type="button"
+                        onClick={() => submitMut.mutate(s.id)}
+                        disabled={submitMut.isPending}
+                        title={t("moderation:scholarshipProviderScholarships.actions.submitForReview")}
+                        aria-label={t("moderation:scholarshipProviderScholarships.actions.submitForReview")}
+                        className="inline-flex size-8 items-center justify-center rounded-md text-text-secondary transition hover:bg-brand-50 hover:text-brand-500 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Send aria-hidden className="size-4" />
+                      </button>
+                    )}
                     {s.status === "Closed" && (
                       <button
                         type="button"

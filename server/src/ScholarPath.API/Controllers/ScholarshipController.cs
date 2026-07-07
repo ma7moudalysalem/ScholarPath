@@ -9,6 +9,7 @@ using ScholarPath.Application.Scholarships.Commands.ApproveScholarship;
 using ScholarPath.Application.Scholarships.Commands.ConfigureReviewFee;
 using ScholarPath.Application.Scholarships.Commands.RejectScholarship;
 using ScholarPath.Application.Scholarships.Commands.ReopenScholarship;
+using ScholarPath.Application.Scholarships.Commands.SubmitScholarshipForReview;
 using ScholarPath.Application.Scholarships.Commands.ReorderFeaturedScholarships;
 using ScholarPath.Application.Scholarships.Commands.ToggleFeatureScholarship;
 using ScholarPath.Application.Scholarships.DTOs;
@@ -138,6 +139,20 @@ namespace ScholarPath.API.Controllers
         public async Task<IActionResult> Reopen(Guid id, CancellationToken ct)
         {
             await mediator.Send(new ReopenScholarshipCommand(id), ct);
+            return NoContent();
+        }
+
+        // PB-005: owning provider (or admin) submits a DRAFT listing — a provider
+        // draft enters moderation (UnderReview); an admin draft publishes directly.
+        [HttpPost("{id:guid}/submit")]
+        [Authorize(Roles = "ScholarshipProvider,Admin,SuperAdmin")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        public async Task<IActionResult> SubmitForReview(Guid id, CancellationToken ct)
+        {
+            await mediator.Send(new SubmitScholarshipForReviewCommand(id), ct);
             return NoContent();
         }
 

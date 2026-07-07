@@ -262,7 +262,7 @@ export function ScholarshipForm() {
       ),
   });
 
-  const onSubmit = form.handleSubmit((values) => {
+  const doSubmit = (values: FormValues, saveAsDraft: boolean) => {
     // The HTML date input emits YYYY-MM-DD; convert to an ISO instant so the
     // .NET DateTimeOffset binder + the "> now + 7d" rule both see a real point
     // in time. Use the END of the chosen day (23:59:59 UTC), not the start —
@@ -315,9 +315,14 @@ export function ScholarshipForm() {
       externalApplicationUrl: isExternal
         ? values.externalApplicationUrl?.trim()
         : undefined,
+      // Save-as-draft keeps the listing private until the owner submits it later.
+      saveAsDraft: saveAsDraft || undefined,
     };
     createMut.mutate(input);
-  });
+  };
+
+  const onSubmit = form.handleSubmit((values) => doSubmit(values, false));
+  const onSaveDraft = form.handleSubmit((values) => doSubmit(values, true));
 
   const isSubmitting = createMut.isPending || updateMut.isPending;
   const isLoadingDetail = mode === "edit" && detailQuery.isLoading;
@@ -677,6 +682,18 @@ export function ScholarshipForm() {
             >
               {t("moderation:scholarshipProviderScholarships.form.cancel")}
             </Link>
+            {/* Save as draft — create mode only. Keeps the listing private so the
+                owner can finish it and submit for review later. */}
+            {mode === "create" && (
+              <button
+                type="button"
+                onClick={onSaveDraft}
+                disabled={isSubmitting}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-border-strong bg-bg-elevated px-5 text-sm font-medium text-text-primary transition hover:bg-bg-subtle disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {t("moderation:scholarshipProviderScholarships.form.saveDraft")}
+              </button>
+            )}
             <button
               type="submit"
               disabled={isSubmitting}

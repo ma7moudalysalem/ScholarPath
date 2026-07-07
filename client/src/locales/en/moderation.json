@@ -24,6 +24,10 @@
     "lastUpdated": "Last updated",
     "decisionReason": "Decision note",
     "personalNotes": "Your notes",
+    "externalNotes": "Your notes & required documents",
+    "externalNotesHint": "Track the documents you still need to prepare and any notes for yourself. You can edit this until a final decision.",
+    "externalNotesPlaceholder": "e.g. Still need: recommendation letter, IELTS certificate…",
+    "notesSaved": "Notes saved.",
     "formData": "Submitted form data",
     "documents": {
       "heading": "Documents",
@@ -129,7 +133,9 @@
       "archiveSuccess": "Scholarship archived.",
       "reviewApplications": "Review applications",
       "reopen": "Reopen (send for review)",
-      "reopenSuccess": "Scholarship reopened — sent back to admin review."
+      "reopenSuccess": "Scholarship reopened — sent back to admin review.",
+      "submitForReview": "Submit for review",
+      "submitSuccess": "Scholarship submitted for review."
     },
     "form": {
       "titleCreate": "Create scholarship",
@@ -170,6 +176,7 @@
       "reviewFeeMax": "Review Service Fee cannot exceed $500.",
       "submitCreate": "Create",
       "submitEdit": "Save",
+      "saveDraft": "Save as draft",
       "submitting": "Saving…",
       "cancel": "Cancel",
       "back": "Back",

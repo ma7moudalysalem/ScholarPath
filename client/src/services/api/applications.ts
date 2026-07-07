@@ -222,6 +222,15 @@ export const applicationsApi = {
     await apiClient.put(`/api/applications/${id}/draft`, { applicationId: id, ...body });
   },
 
+  /**
+   * Updates the student's personal notes / required-documents free text on a
+   * non-terminal application. Works for external trackers (never Draft), unlike
+   * saveDraft. Server locks it once a final decision is reached (409).
+   */
+  async updateNotes(id: string, personalNotes: string): Promise<void> {
+    await apiClient.put(`/api/applications/${id}/notes`, { applicationId: id, personalNotes });
+  },
+
   /** Submits a Draft application — transitions it to Pending. */
   async submit(id: string): Promise<void> {
     await apiClient.put(`/api/applications/${id}/submit`);

@@ -160,6 +160,29 @@ export function StudentApplicationDetail() {
     [scholarship?.applicationFormSchemaJson],
   );
 
+  // Editable notes / required-documents for an EXTERNAL tracker — the student
+  // records what they still need to prepare, editable for the life of the
+  // request until a final decision locks it (a Draft in-app app edits notes via
+  // the DraftApplicationForm instead).
+  const [notesValue, setNotesValue] = useState("");
+  const [notesDirty, setNotesDirty] = useState(false);
+  useEffect(() => {
+    // Sync server value into the editor until the user starts typing.
+    if (data && !notesDirty) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNotesValue(data.personalNotes ?? "");
+    }
+  }, [data, notesDirty]);
+  const notesMut = useMutation({
+    mutationFn: () => applicationsApi.updateNotes(id!, notesValue.trim()),
+    onSuccess: () => {
+      toast.success(t("moderation:appDetail.notesSaved"));
+      setNotesDirty(false);
+      void queryClient.invalidateQueries({ queryKey: ["application", "detail", id] });
+    },
+    onError: (e) => toast.error(apiErrorMessage(e, t("common:status.error"))),
+  });
+
   if (isLoading) {
     return (
       <p className="py-12 text-center text-sm text-text-tertiary">
@@ -370,8 +393,10 @@ export function StudentApplicationDetail() {
         </section>
       )}
 
-      {/* A submitted application is read-only — show the answers as a list. */}
-      {!isDraft && (
+      {/* A submitted IN-APP application is read-only — show its answers as a list.
+          External trackers carry no platform form (no schema/answers), so this
+          section would only ever say "no data submitted" for them — hide it. */}
+      {!isDraft && data.mode === "InApp" && (
         <section className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
           <h2 className="mb-3 text-lg font-semibold text-text-primary">
             {t("moderation:appDetail.formData")}
@@ -400,20 +425,54 @@ export function StudentApplicationDetail() {
         </section>
       )}
 
-      {!isDraft && (
-        <section className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
-          <h2 className="mb-2 text-lg font-semibold text-text-primary">
-            {t("moderation:appDetail.personalNotes")}
-          </h2>
-          {data.personalNotes ? (
-            <p className="whitespace-pre-wrap text-sm text-text-secondary">
-              {data.personalNotes}
-            </p>
-          ) : (
-            <p className="text-sm text-text-tertiary">{t("moderation:appDetail.noNotes")}</p>
-          )}
-        </section>
-      )}
+      {!isDraft && (() => {
+        const isExternal = data.mode === "External";
+        // External notes stay editable for the life of the request until a final
+        // decision; an in-app submitted app is read-only.
+        const editable = isExternal && WITHDRAWABLE_STATUSES.includes(data.status);
+        return (
+          <section className="rounded-lg border border-border-subtle bg-bg-elevated p-5">
+            <h2 className="mb-2 text-lg font-semibold text-text-primary">
+              {isExternal
+                ? t("moderation:appDetail.externalNotes")
+                : t("moderation:appDetail.personalNotes")}
+            </h2>
+            {isExternal && (
+              <p className="mb-2 text-xs text-text-tertiary">
+                {t("moderation:appDetail.externalNotesHint")}
+              </p>
+            )}
+            {editable ? (
+              <div className="space-y-2">
+                <textarea
+                  value={notesValue}
+                  onChange={(e) => { setNotesValue(e.target.value); setNotesDirty(true); }}
+                  rows={4}
+                  maxLength={4000}
+                  placeholder={t("moderation:appDetail.externalNotesPlaceholder")}
+                  className="w-full rounded-lg border border-border-subtle bg-bg-canvas px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled={!notesDirty || notesMut.isPending}
+                    onClick={() => notesMut.mutate()}
+                    className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+                  >
+                    {t("common:cta.save", "Save")}
+                  </button>
+                </div>
+              </div>
+            ) : data.personalNotes ? (
+              <p className="whitespace-pre-wrap text-sm text-text-secondary">
+                {data.personalNotes}
+              </p>
+            ) : (
+              <p className="text-sm text-text-tertiary">{t("moderation:appDetail.noNotes")}</p>
+            )}
+          </section>
+        );
+      })()}
 
       <ConfirmDialog
         open={withdrawOpen}
