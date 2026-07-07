@@ -32,5 +32,9 @@
     "Completed": "Completed",
     "Cancelled": "Cancelled",
     "Failed": "Failed"
+  },
+  "type": {
+    "Export": "Export",
+    "Delete": "Delete"
   }
 }

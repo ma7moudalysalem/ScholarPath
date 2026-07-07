@@ -191,14 +191,17 @@ export function OnboardingQueue() {
   const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const qc = useQueryClient();
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
-  // For now the queue renders the first page; pagination will come with filters
-  // when the volume warrants it.
   const { data, isLoading } = useQuery<PagedResult<OnboardingRequestRow>>({
-    queryKey: ["admin", "onboarding-queue", 1],
-    queryFn: () => adminApi.getOnboardingQueue(1),
+    queryKey: ["admin", "onboarding-queue", page],
+    queryFn: () => adminApi.getOnboardingQueue(page),
     placeholderData: keepPreviousData,
   });
+
+  // The wire DTO carries `totalCount`; page count is derived client-side so
+  // applicants past the first page stay reachable and actionable.
+  const totalPages = data ? Math.max(1, Math.ceil(data.totalCount / (data.pageSize || 25))) : 1;
 
   const reviewMut = useMutation({
     mutationFn: ({ userId, approve, notes }: { userId: string; approve: boolean; notes?: string }) =>
@@ -314,6 +317,34 @@ export function OnboardingQueue() {
           </tbody>
         </table>
       </div>
+
+      {data && (
+        <div className="flex items-center justify-between text-sm text-text-secondary">
+          <span>
+            {t("admin:common.page", { page: data.page, total: totalPages })}
+            {" · "}
+            {t("admin:common.totalCount", { count: data.totalCount, defaultValue: "{{count}} total" })}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={data.page <= 1}
+              className="rounded-md border border-border-subtle px-3 py-1 disabled:opacity-50"
+            >
+              {t("admin:common.prev")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={data.page >= totalPages}
+              className="rounded-md border border-border-subtle px-3 py-1 disabled:opacity-50"
+            >
+              {t("admin:common.next")}
+            </button>
+          </div>
+        </div>
+      )}
 
       <PromptDialog
         open={rejectTargetUserId !== null}

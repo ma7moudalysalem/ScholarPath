@@ -127,9 +127,13 @@ function groupOf(type: string): string {
     return "Other";
   }
   if (/^Application/i.test(type)) return "Applications";
+  // Scholarship decision notifications belong with the student's applications.
+  if (/^Scholarship(Approved|Rejected)/i.test(type)) return "Applications";
   if (/^Booking|ConsultantRating/i.test(type)) return "Bookings";
   if (/^Payment|Payout/i.test(type)) return "Payments";
   if (/^Onboarding|Upgrade|Admin/i.test(type)) return "Admin";
+  // Admin-inbound moderation signals (low-rating flags, no-show reports).
+  if (/^ConsultantLowRating|^NoShowReport/i.test(type)) return "Admin";
   if (/^Reply|Post/i.test(type)) return "Community";
   if (/^Resource/i.test(type)) return "Resources";
   if (/^Chat/i.test(type)) return "Chat";

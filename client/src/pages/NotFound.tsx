@@ -10,6 +10,11 @@ export function NotFound() {
   const user = useAuthStore((s) => s.user);
   // Signed-in users return to their dashboard; visitors to the landing page.
   const homePath = user ? postAuthPath(user) : "/";
+  // The suggestion cards deep-link into Student-only routes (/student/*), so only
+  // offer them to students (or signed-out visitors → landing). A signed-in
+  // consultant / provider / admin would just bounce off the RequireRole gate.
+  const isStudent =
+    user?.activeRole === "Student" || (user?.roles?.includes("Student") ?? false);
 
   return (
     <section className="relative mx-auto flex min-h-[calc(100vh-8rem)] max-w-2xl flex-col items-center justify-center px-4 py-12 text-center overflow-hidden">
@@ -42,7 +47,7 @@ export function NotFound() {
           {t("errors:notFound")}
         </p>
         <p className="mb-8 max-w-md text-base text-text-secondary leading-relaxed">
-          The page you're looking for doesn't exist or has been moved. Let's get you back on track.
+          {t("errors:notFoundBody")}
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -60,29 +65,35 @@ export function NotFound() {
           </button>
         </div>
 
-        {/* Suggested links */}
-        <div className="mt-12 grid grid-cols-2 gap-3 w-full max-w-md">
-          <Link
-            to={user ? "/student/scholarships" : "/"}
-            className="card-premium p-4 text-start group hover:border-brand-300"
-          >
-            <Search size={16} className="text-brand-500 mb-2" aria-hidden />
-            <p className="text-sm font-bold text-text-primary group-hover:text-brand-600 transition-colors">
-              Browse scholarships
-            </p>
-            <p className="text-xs text-text-tertiary mt-0.5">Find your next opportunity</p>
-          </Link>
-          <Link
-            to={user ? "/student/ai" : "/"}
-            className="card-premium p-4 text-start group hover:border-brand-300"
-          >
-            <Compass size={16} className="text-brand-500 mb-2" aria-hidden />
-            <p className="text-sm font-bold text-text-primary group-hover:text-brand-600 transition-colors">
-              Ask the AI assistant
-            </p>
-            <p className="text-xs text-text-tertiary mt-0.5">Get instant guidance</p>
-          </Link>
-        </div>
+        {/* Suggested links — Student-only routes, so only for students or visitors. */}
+        {(!user || isStudent) && (
+          <div className="mt-12 grid grid-cols-2 gap-3 w-full max-w-md">
+            <Link
+              to={user ? "/student/scholarships" : "/"}
+              className="card-premium p-4 text-start group hover:border-brand-300"
+            >
+              <Search size={16} className="text-brand-500 mb-2" aria-hidden />
+              <p className="text-sm font-bold text-text-primary group-hover:text-brand-600 transition-colors">
+                {t("errors:notFoundLinks.scholarships.title")}
+              </p>
+              <p className="text-xs text-text-tertiary mt-0.5">
+                {t("errors:notFoundLinks.scholarships.subtitle")}
+              </p>
+            </Link>
+            <Link
+              to={user ? "/student/ai" : "/"}
+              className="card-premium p-4 text-start group hover:border-brand-300"
+            >
+              <Compass size={16} className="text-brand-500 mb-2" aria-hidden />
+              <p className="text-sm font-bold text-text-primary group-hover:text-brand-600 transition-colors">
+                {t("errors:notFoundLinks.ai.title")}
+              </p>
+              <p className="text-xs text-text-tertiary mt-0.5">
+                {t("errors:notFoundLinks.ai.subtitle")}
+              </p>
+            </Link>
+          </div>
+        )}
       </motion.div>
     </section>
   );

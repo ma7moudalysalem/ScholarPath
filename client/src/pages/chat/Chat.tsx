@@ -68,8 +68,12 @@ export function Chat() {
 
   // Live chat presence — drives the online dots in the list + thread header.
   const onlineUserIds = usePresenceStore((state) => state.onlineUserIds);
+  // Drive purely from the live presence store. The old `|| selectedConv.isOnline`
+  // fallback pinned a stale snapshot: selectedConv is frozen at selection time,
+  // so once its isOnline was true the header stayed green even after the peer
+  // went offline (the live UserOffline removal was masked by the OR term).
   const selectedParticipantOnline = selectedConv
-    ? onlineUserIds.has(selectedConv.otherParticipantId) || selectedConv.isOnline
+    ? onlineUserIds.has(selectedConv.otherParticipantId)
     : false;
 
   const { data: conversations = [], isSuccess: conversationsLoaded } = useQuery({
@@ -207,31 +211,42 @@ export function Chat() {
     connection.on("UserOffline", (userId: string) => presence.markOffline(userId));
 
     let cancelled = false;
+
+    // Shared join + presence-seed, run on the initial start AND after every
+    // automatic reconnect. SignalR group membership is connection-scoped: a
+    // reconnect gets a NEW connection id and silently loses the conversation
+    // group, so without re-joining, realtime MessageReceived/TypingStart stop
+    // for the open thread (only the 15s poll remains) and presence goes stale
+    // (UserOnline/UserOffline missed during the gap).
+    const joinAndSeed = async () => {
+      const conv = selectedConvRef.current;
+      if (conv && !conv.id.startsWith("pending:")) {
+        try {
+          await connection.invoke("JoinConversation", conv.id);
+          joinedConversationIdRef.current = conv.id;
+        } catch {
+          /* best-effort group (re-)join */
+        }
+      }
+      try {
+        const online = await connection.invoke<string[]>("GetOnlineUsers");
+        if (!cancelled) usePresenceStore.getState().setOnlineUsers(online);
+      } catch {
+        /* best-effort seed — UserOnline/UserOffline events still arrive */
+      }
+    };
+
+    // Re-establish the open thread + presence after a transient reconnect.
+    connection.onreconnected(() => {
+      void joinAndSeed();
+    });
+
     connection
       .start()
       .then(async () => {
         if (cancelled) return;
         hubConnectionRef.current = connection;
-
-        // Re-join the open conversation: a connection that finishes starting
-        // after a conversation was already picked would otherwise miss its group.
-        const conv = selectedConvRef.current;
-        if (conv && !conv.id.startsWith("pending:")) {
-          try {
-            await connection.invoke("JoinConversation", conv.id);
-            joinedConversationIdRef.current = conv.id;
-          } catch {
-            /* best-effort group re-join */
-          }
-        }
-
-        // Seed presence with everyone already online.
-        try {
-          const online = await connection.invoke<string[]>("GetOnlineUsers");
-          if (!cancelled) usePresenceStore.getState().setOnlineUsers(online);
-        } catch {
-          /* best-effort seed — UserOnline/UserOffline events still arrive */
-        }
+        await joinAndSeed();
       })
       .catch((err: unknown) => {
         // The cleanup below aborts an in-flight start() (notably under React

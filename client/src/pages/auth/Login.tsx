@@ -100,11 +100,19 @@ export function Login() {
       navigate(destination, { replace: true });
     } catch (err) {
       const status = err instanceof ApiError ? err.status : 0;
-      toast.error(
-        status === 409
-          ? t("auth:errors.loginFailed")
-          : apiErrorMessage(err, t("auth:errors.generic")),
-      );
+      const detail = err instanceof ApiError ? err.payload.detail ?? "" : "";
+      // The backend returns 409 for three distinct cases with distinct detail
+      // text. Surface the real reason (temporary lockout / inactive account)
+      // instead of collapsing every 409 to a false "wrong password".
+      let message: string;
+      if (status === 409) {
+        if (/locked/i.test(detail)) message = t("errors:accountLocked");
+        else if (/not active/i.test(detail)) message = t("errors:accountInactive");
+        else message = t("auth:errors.loginFailed");
+      } else {
+        message = apiErrorMessage(err, t("auth:errors.generic"));
+      }
+      toast.error(message);
     }
   });
 

@@ -326,7 +326,10 @@ function PublishedTab() {
 
   const { data, isLoading, isError, refetch } = useQuery<PaginatedResources>({
     queryKey: ["admin", "resources", "published", page],
-    queryFn: () => resourcesApi.search({ page, pageSize: PAGE_SIZE }),
+    // includeHidden surfaces Hidden resources too (admin-only server-side) so a
+    // moderator can un-hide them; without it a hidden resource vanishes from the
+    // only surface that lists it, with no way to restore it.
+    queryFn: () => resourcesApi.search({ page, pageSize: PAGE_SIZE, includeHidden: true }),
   });
 
   const featureMut = useMutation({

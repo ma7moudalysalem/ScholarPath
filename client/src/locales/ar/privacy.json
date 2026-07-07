@@ -32,5 +32,9 @@
     "Completed": "اكتمل",
     "Cancelled": "أُلغي",
     "Failed": "فشل"
+  },
+  "type": {
+    "Export": "تصدير",
+    "Delete": "حذف"
   }
 }

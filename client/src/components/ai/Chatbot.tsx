@@ -127,6 +127,9 @@ export const Chatbot = forwardRef<ChatbotHandle>(function Chatbot(_, ref) {
           cost: r.costUsd ?? undefined,
           prompt: r.promptTokens ?? undefined,
           completion: r.completionTokens ?? undefined,
+          // Re-hydrate the RAG citations from the server so they persist across
+          // the cache catch-up and when reopening a past session.
+          sources: r.sources,
         });
       }
     }

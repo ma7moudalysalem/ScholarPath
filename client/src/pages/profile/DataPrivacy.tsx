@@ -181,7 +181,7 @@ export function DataPrivacy() {
               <tbody>
                 {requests.map((r) => (
                   <tr key={r.id} className="border-t border-border-subtle">
-                    <td className="px-3 py-2">{r.type}</td>
+                    <td className="px-3 py-2">{t(`privacy:type.${r.type}`)}</td>
                     <td className="px-3 py-2 text-text-secondary">{fmtDate(r.requestedAt)}</td>
                     <td className="px-3 py-2">{t(`privacy:status.${r.status}`)}</td>
                     <td className="px-3 py-2 text-text-secondary">{fmtDate(r.scheduledProcessAt)}</td>

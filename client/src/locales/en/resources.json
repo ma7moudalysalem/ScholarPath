@@ -70,6 +70,8 @@
     "newTitle": "New resource",
     "editTitle": "Edit resource",
     "readOnlyWarning": "This resource is no longer a draft and cannot be edited. Create a new version if changes are needed.",
+    "rejectedTitle": "This resource was rejected",
+    "rejectedHint": "Address the feedback above, then resubmit for review.",
     "edit": "Edit",
     "submit": "Submit",
     "view": "View",

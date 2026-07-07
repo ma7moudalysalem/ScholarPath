@@ -1,5 +1,7 @@
+using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Ai.DTOs;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Domain.Enums;
@@ -17,7 +19,11 @@ public sealed record AiSessionTurnDto(
     DateTimeOffset? CompletedAt,
     int? PromptTokens,
     int? CompletionTokens,
-    decimal? CostUsd);
+    decimal? CostUsd,
+    // RAG citations that grounded the assistant reply — re-hydrated from
+    // AiInteraction.MetadataJson so they survive a session reload (they were
+    // previously only returned live on the ChatAnswerDto and lost on refetch).
+    IReadOnlyList<ChatSourceDto> Sources);
 
 // ─── Query ────────────────────────────────────────────────────────────────────
 
@@ -37,6 +43,11 @@ public sealed class GetAiSessionTurnsQueryHandler(
     ICurrentUserService currentUser)
     : IRequestHandler<GetAiSessionTurnsQuery, IReadOnlyList<AiSessionTurnDto>>
 {
+    private static readonly JsonSerializerOptions SourcesJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     public async Task<IReadOnlyList<AiSessionTurnDto>> Handle(
         GetAiSessionTurnsQuery request, CancellationToken ct)
     {
@@ -48,12 +59,31 @@ public sealed class GetAiSessionTurnsQueryHandler(
             return Array.Empty<AiSessionTurnDto>();
         }
 
-        return await db.AiInteractions
+        // Fetch the raw rows (including MetadataJson) then map in memory — the
+        // sources live as JSON inside MetadataJson and can't be deserialized in
+        // an EF/SQL projection.
+        var rows = await db.AiInteractions
             .AsNoTracking()
             .Where(i => i.SessionId == request.SessionId
                         && i.UserId == userId
                         && i.Feature == AiFeature.Chatbot)
             .OrderBy(i => i.StartedAt)
+            .Select(i => new
+            {
+                i.Id,
+                i.PromptText,
+                i.ResponseText,
+                i.StartedAt,
+                i.CompletedAt,
+                i.PromptTokens,
+                i.CompletionTokens,
+                i.CostUsd,
+                i.MetadataJson,
+            })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        return rows
             .Select(i => new AiSessionTurnDto(
                 i.Id,
                 i.PromptText,
@@ -62,8 +92,35 @@ public sealed class GetAiSessionTurnsQueryHandler(
                 i.CompletedAt,
                 i.PromptTokens,
                 i.CompletionTokens,
-                i.CostUsd))
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
+                i.CostUsd,
+                ParseSources(i.MetadataJson)))
+            .ToList();
     }
+
+    /// <summary>
+    /// Re-hydrates the RAG citations persisted alongside a chat turn. The
+    /// AskChatbot handler stores them as <c>{"sources":[…]}</c> in
+    /// <see cref="ScholarPath.Domain.Entities.AiInteraction.MetadataJson"/>;
+    /// anything else (absent, or malformed JSON) yields an empty list rather
+    /// than failing the whole transcript load.
+    /// </summary>
+    private static IReadOnlyList<ChatSourceDto> ParseSources(string? metadataJson)
+    {
+        if (string.IsNullOrWhiteSpace(metadataJson))
+        {
+            return Array.Empty<ChatSourceDto>();
+        }
+
+        try
+        {
+            var envelope = JsonSerializer.Deserialize<SourcesEnvelope>(metadataJson, SourcesJsonOptions);
+            return envelope?.Sources ?? Array.Empty<ChatSourceDto>();
+        }
+        catch (JsonException)
+        {
+            return Array.Empty<ChatSourceDto>();
+        }
+    }
+
+    private sealed record SourcesEnvelope(IReadOnlyList<ChatSourceDto>? Sources);
 }

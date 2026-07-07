@@ -25,9 +25,9 @@
     "daysLeft": "يتبقى {{count}} يوم",
     "deadlineClosed": "انتهى",
     "funding": {
-      "FullyFunded": "تمويل كامل",
-      "PartiallyFunded": "تمويل جزئي",
-      "TuitionOnly": "رسوم دراسية"
+      "FullyFunded": "تمويل كامل {{amount}}",
+      "PartiallyFunded": "تمويل جزئي {{amount}}",
+      "TuitionOnly": "رسوم دراسية {{amount}}"
     }
   },
   "eligibility": {

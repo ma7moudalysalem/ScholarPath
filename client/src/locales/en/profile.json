@@ -8,6 +8,11 @@
   "completenessDone": "Your profile is complete.",
   "loading": "Loading your profile…",
   "loadError": "Could not load your profile.",
+  "verificationStatus": {
+    "Verified": "Verified",
+    "Pending": "Pending",
+    "PendingReview": "Pending review"
+  },
   "photo": {
     "change": "Change photo",
     "uploading": "Uploading…",

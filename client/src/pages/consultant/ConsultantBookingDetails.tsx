@@ -80,6 +80,20 @@ export function ConsultantBookingDetails() {
     cancelMutation.isPending ||
     noShowMutation.isPending;
 
+  // A no-show can only be reported in the 6-hour window that opens when the
+  // session's scheduled end time passes — the server MarkNoShowCommandHandler
+  // rejects anything outside it. Gate the button on the same rule so a
+  // consultant on a future-dated (or long-past) confirmed booking doesn't click
+  // an enabled button that just errors. The current time is read once per render.
+  const NO_SHOW_WINDOW_MS = 6 * 60 * 60 * 1000;
+  const scheduledEndMs = new Date(booking.scheduledEndAt).getTime();
+  const now = new Date().getTime();
+  const noShowWindowOpen =
+    isConfirmed &&
+    Number.isFinite(scheduledEndMs) &&
+    now >= scheduledEndMs &&
+    now <= scheduledEndMs + NO_SHOW_WINDOW_MS;
+
   // Mutation onError handlers all route through apiErrorMessage so the
   // consultant sees the actual server reason — "Only requested bookings can
   // be rejected", "Booking has no Stripe payment intent to cancel", etc. —
@@ -111,7 +125,7 @@ export function ConsultantBookingDetails() {
   };
 
   const handleNoShow = () => {
-    if (!isConfirmed) return;
+    if (!noShowWindowOpen) return;
     noShowMutation.mutate(booking.id, {
       onSuccess: () => toast.success(t("details.banner.noShow")),
       onError: (err) => toast.error(apiErrorMessage(err, t("states.error"))),
@@ -309,10 +323,10 @@ export function ConsultantBookingDetails() {
                 <button
                   type="button"
                   onClick={handleNoShow}
-                  disabled={!isConfirmed || isBusy}
+                  disabled={!noShowWindowOpen || isBusy}
                   className={[
                     "inline-flex h-12 items-center justify-center rounded-lg px-5 text-sm font-medium transition",
-                    isConfirmed && !isBusy
+                    noShowWindowOpen && !isBusy
                       ? "border border-warning-600 bg-bg-elevated text-warning-600 hover:bg-warning-50"
                       : "cursor-not-allowed border border-border-subtle bg-bg-elevated text-text-tertiary",
                   ].join(" ")}

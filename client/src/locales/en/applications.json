@@ -101,7 +101,7 @@
     "decision": {
       "rejectTitle": "Reject application",
       "acceptTitle": "Accept application",
-      "rejectPrompt": "Reason for rejection (optional):",
+      "rejectPrompt": "Reason for rejection (required, shown to the student):",
       "acceptPrompt": "Notes for acceptance (optional):",
       "success": "Decision recorded successfully.",
       "error": "Failed to record decision. Please try again."

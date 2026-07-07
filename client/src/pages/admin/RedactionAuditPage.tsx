@@ -92,6 +92,23 @@ export function RedactionAuditPage() {
         </div>
       )}
 
+      {q.isError && (
+        <div className="rounded-lg border border-danger-200 bg-danger-50 p-6 text-center">
+          <p className="text-sm text-danger-500">
+            {t("admin:redactionAudit.loadError", {
+              defaultValue: "Could not load the redaction samples.",
+            })}
+          </p>
+          <button
+            type="button"
+            onClick={() => void q.refetch()}
+            className="mt-3 rounded-md border border-danger-200 px-3 py-1.5 text-xs font-medium text-danger-500 hover:bg-danger-100"
+          >
+            {t("admin:redactionAudit.retry", { defaultValue: "Retry" })}
+          </button>
+        </div>
+      )}
+
       {q.data && q.data.items.length === 0 && (
         <div className="rounded-lg border border-border-subtle bg-bg-elevated p-8 text-center">
           <ShieldCheck aria-hidden className="mx-auto size-10 text-brand-500" />
