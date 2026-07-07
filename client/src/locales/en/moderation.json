@@ -252,6 +252,8 @@
     "loadError": "Could not load flagged posts.",
     "empty": "No posts need moderation right now.",
     "untitled": "(reply)",
+    "showFull": "Show full post",
+    "hideFull": "Hide full post",
     "autoHidden": "Auto-hidden",
     "flags": "{{count}} flag",
     "flags_other": "{{count}} flags",

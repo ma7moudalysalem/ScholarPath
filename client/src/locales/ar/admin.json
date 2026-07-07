@@ -164,6 +164,9 @@
       "rejected": "مرفوضة",
       "all": "الكل"
     },
+    "actions": {
+      "details": "التفاصيل"
+    },
     "target": {
       "ScholarshipProvider": "شركة",
       "Consultant": "مستشار"

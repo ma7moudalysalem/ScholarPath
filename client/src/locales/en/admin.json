@@ -164,6 +164,9 @@
       "rejected": "Rejected",
       "all": "All"
     },
+    "actions": {
+      "details": "Details"
+    },
     "target": {
       "ScholarshipProvider": "ScholarshipProvider",
       "Consultant": "Consultant"

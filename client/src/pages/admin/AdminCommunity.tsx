@@ -11,6 +11,7 @@ import {
   type FlaggedPost,
 } from "@/services/api/community";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Markdown } from "@/components/resources/ResourceMarkdown";
 import { flagReasonLabel } from "@/lib/flagReasons";
 
 const PAGE_SIZE = 20;
@@ -21,6 +22,9 @@ export function AdminCommunity() {
   const qc = useQueryClient();
 
   const [page, setPage] = useState(1);
+  // Which flagged post is expanded to show its full body (the 240-char preview
+  // can hide the flagged content past the cut).
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery<
     CommunityPagedResult<FlaggedPost>
@@ -141,9 +145,28 @@ export function AdminCommunity() {
                   <p className="font-medium text-text-primary">
                     {p.title || t("moderation:communityModeration.untitled")}
                   </p>
-                  <p className="mt-0.5 line-clamp-2 max-w-md text-xs text-text-secondary">
-                    {p.bodyPreview}
-                  </p>
+                  {expandedId === p.id ? (
+                    <div className="mt-1 max-w-md rounded-md border border-border-subtle bg-bg-canvas p-3">
+                      <Markdown source={p.body || p.bodyPreview} />
+                    </div>
+                  ) : (
+                    <p className="mt-0.5 line-clamp-2 max-w-md text-xs text-text-secondary">
+                      {p.bodyPreview}
+                    </p>
+                  )}
+                  {/* Only offer the toggle when there's more to show than the preview. */}
+                  {(p.body.length > p.bodyPreview.length || expandedId === p.id) && (
+                    <button
+                      type="button"
+                      onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
+                      aria-expanded={expandedId === p.id}
+                      className="mt-1 text-xs font-medium text-brand-500 hover:underline"
+                    >
+                      {expandedId === p.id
+                        ? t("moderation:communityModeration.hideFull")
+                        : t("moderation:communityModeration.showFull")}
+                    </button>
+                  )}
                   <p className="mt-1 text-xs text-text-tertiary">
                     {format(new Date(p.createdAt), "yyyy-MM-dd", { locale: dateLocale })}
                   </p>

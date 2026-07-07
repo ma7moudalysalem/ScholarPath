@@ -85,6 +85,8 @@ export interface FlaggedPost {
   authorName: string;
   title: string | null;
   bodyPreview: string;
+  /** Full post body, so the admin can expand and read the whole thing. */
+  body: string;
   flagCount: number;
   validFlagCount: number;
   topFlagReason: string | null;

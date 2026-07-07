@@ -225,6 +225,8 @@
     "reference": "Reference",
     "unknownScholarshipProvider": "Unknown provider",
     "unknownStudent": "Unknown student",
+    "requestedOn": "Requested {{date}}",
+    "respondBy": "respond by {{date}}",
     "message": "Message",
     "cancel": "Cancel request",
     "cancelWithRefund": "Cancel (50% refund)",
