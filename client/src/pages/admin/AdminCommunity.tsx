@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { formatCalendarDate } from "@/lib/dates";
 import { EyeOff, Flag } from "lucide-react";
 import {
   communityApi,
@@ -168,7 +168,7 @@ export function AdminCommunity() {
                     </button>
                   )}
                   <p className="mt-1 text-xs text-text-tertiary">
-                    {format(new Date(p.createdAt), "yyyy-MM-dd", { locale: dateLocale })}
+                    {formatCalendarDate(p.createdAt, "dd MMM yyyy", dateLocale)}
                   </p>
                 </td>
                 <td className="px-4 py-3 text-text-secondary">{p.authorName}</td>

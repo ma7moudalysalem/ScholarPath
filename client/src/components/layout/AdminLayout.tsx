@@ -110,18 +110,12 @@ export function AdminLayout() {
           <span>{t("admin:title")}</span>
         </Link>
 
+        {/* Sidebar is chrome — render statically. The per-item entrance stagger
+            used to replay on cross-block navigations (reading as "the sidebar
+            reloads"); the page body animates via AnimatedRoute instead. */}
         <nav className="flex-1 overflow-y-auto p-3">
-          {navItems.map(({ to, key, icon: Icon, end, divider }, idx) => (
-            <motion.div
-              key={to}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{
-                duration: 0.28,
-                ease: [0.22, 1, 0.36, 1],
-                delay: Math.min(idx, 12) * 0.03,
-              }}
-            >
+          {navItems.map(({ to, key, icon: Icon, end, divider }) => (
+            <div key={to}>
               {divider && (
                 <div className="my-1.5 border-t border-border-subtle" />
               )}
@@ -140,7 +134,7 @@ export function AdminLayout() {
                 <Icon aria-hidden className="size-4" />
                 {t(`admin:${key}`)}
               </NavLink>
-            </motion.div>
+            </div>
           ))}
         </nav>
 
@@ -157,7 +151,10 @@ export function AdminLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-2 border-b border-border-subtle bg-bg-canvas/80 px-4 backdrop-blur-xl">
+        <header
+          className="sticky top-0 z-30 flex h-14 items-center justify-end gap-2 border-b border-border-subtle bg-bg-elevated/90 px-4 backdrop-blur-xl"
+          style={{ boxShadow: "var(--shadow-xs)" }}
+        >
           <LanguageSwitcher />
           <ThemeToggle />
           <NotificationBell />

@@ -2,13 +2,13 @@ import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { FileText } from "lucide-react";
 import { adminApi, type OnboardingRequestRow, type PagedResult } from "@/services/api/admin";
 import { apiErrorMessage } from "@/services/api/client";
 import { documentsApi } from "@/services/api/documents";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { formatCalendarDate } from "@/lib/dates";
 import { expertiseTagLabelByLang, languageNameByLang } from "@/lib/expertiseTagLabel";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
@@ -259,7 +259,7 @@ export function OnboardingQueue() {
                     <td className="px-4 py-3 font-medium">{u.fullName}</td>
                     <td className="px-4 py-3">{u.email}</td>
                     <td className="px-4 py-3 text-text-secondary">{u.requestedRole ? t(`common:roles.${u.requestedRole}`, { defaultValue: u.requestedRole }) : "—"}</td>
-                    <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(u.createdAt), "yyyy-MM-dd", { locale: dateLocale })}</td>
+                    <td className="px-4 py-3 text-xs text-text-tertiary">{formatCalendarDate(u.createdAt, "dd MMM yyyy", dateLocale)}</td>
                     <td className="px-4 py-3 text-end">
                       <div className="inline-flex gap-1.5">
                         <button
