@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -28,7 +27,6 @@ import {
   PieChart,
   Settings,
   Wallet,
-  Bell,
   ChevronDown,
   User as UserIcon,
 } from "lucide-react";
@@ -38,7 +36,7 @@ import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { useAuthStore } from "@/stores/authStore";
 import { useNotificationHub } from "@/hooks/useNotificationHub";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
-import { notificationsApi, UNREAD_COUNT_QUERY_KEY } from "@/services/api/notifications";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -98,13 +96,6 @@ export function AdminLayout() {
   // /admin/* now get a live unread-count badge and a Bell shortcut to the
   // notifications page.
   useNotificationHub();
-  const { data: unreadCount = 0 } = useQuery({
-    queryKey: UNREAD_COUNT_QUERY_KEY,
-    queryFn: () => notificationsApi.unreadCount(),
-    enabled: !!user,
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-  });
 
   const onSignOut = () => {
     clear();
@@ -169,22 +160,7 @@ export function AdminLayout() {
         <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-2 border-b border-border-subtle bg-bg-canvas/80 px-4 backdrop-blur-xl">
           <LanguageSwitcher />
           <ThemeToggle />
-          <NavLink
-            to="/notifications"
-            aria-label={
-              unreadCount > 0
-                ? `${t("nav:common.notifications")} (${unreadCount})`
-                : t("nav:common.notifications")
-            }
-            className="relative inline-flex size-9 items-center justify-center rounded-lg border border-border-subtle bg-bg-elevated text-text-primary transition hover:bg-bg-subtle"
-          >
-            <Bell aria-hidden className="size-4" />
-            {unreadCount > 0 && (
-              <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold leading-none text-white">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </NavLink>
+          <NotificationBell />
           {user && (
             <DropdownMenu.Root dir={isRtl ? "rtl" : "ltr"}>
               <DropdownMenu.Trigger asChild>
