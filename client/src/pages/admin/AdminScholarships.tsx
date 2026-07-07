@@ -3,17 +3,17 @@ import { Link } from "react-router";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { PlusCircle, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
+import { PlusCircle, ChevronDown, ChevronRight } from "lucide-react";
 import { ar } from "date-fns/locale";
 import {
   scholarshipsApi,
   type PaginatedMyScholarships,
   type ScholarshipStatus,
-  type ScholarshipDetail,
 } from "@/services/api/scholarships";
 import { PromptDialog } from "@/components/ui/PromptDialog";
 import { SegmentedFilter } from "@/components/ui/SegmentedFilter";
 import { DeadlineHint } from "@/components/scholarships/DeadlineHint";
+import { ScholarshipDetailPanel } from "@/components/scholarships/ScholarshipDetailPanel";
 import { formatCalendarDate } from "@/lib/dates";
 
 const STATUSES: ScholarshipStatus[] = [
@@ -37,120 +37,6 @@ function statusBadgeClass(s: ScholarshipStatus): string {
     default:
       return "bg-bg-subtle text-text-tertiary";
   }
-}
-
-// An admin must READ the listing before approving it — title + deadline alone is
-// a blind approval. This lazily loads the full detail (the server lets an admin
-// read an UnderReview listing) and lays out every field that matters to the call.
-function ScholarshipModerationPanel({ id }: { id: string }) {
-  const { t, i18n } = useTranslation(["moderation", "scholarships", "common"]);
-  const isAr = i18n.language.startsWith("ar");
-
-  const { data, isLoading, isError } = useQuery<ScholarshipDetail>({
-    queryKey: ["scholarship", "detail", id],
-    queryFn: () => scholarshipsApi.getById(id),
-  });
-
-  if (isLoading) {
-    return (
-      <p className="text-sm text-text-tertiary">
-        {t("moderation:scholarshipModeration.loading")}
-      </p>
-    );
-  }
-  if (isError || !data) {
-    return (
-      <p className="text-sm text-danger-500">
-        {t("moderation:scholarshipModeration.loadError")}
-      </p>
-    );
-  }
-
-  const p = "moderation:scholarshipModeration.preview";
-  const description = isAr
-    ? data.descriptionAr || data.descriptionEn
-    : data.descriptionEn || data.descriptionAr;
-  const docs = data.requiredDocuments ?? [];
-  const fields = data.fieldsOfStudy ?? [];
-
-  return (
-    <div className="max-w-3xl space-y-4">
-      <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.provider`)}</dt>
-          <dd className="mt-0.5 text-sm text-text-secondary">{data.ownerScholarshipProviderName || "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.funding`)}</dt>
-          <dd className="mt-0.5 text-sm text-text-secondary">{t(`scholarships:fundingType.${data.fundingType}`)}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.level`)}</dt>
-          <dd className="mt-0.5 text-sm text-text-secondary">{t(`scholarships:level.${data.targetLevel}`)}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.country`)}</dt>
-          <dd className="mt-0.5 text-sm text-text-secondary">{data.country || "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.mode`)}</dt>
-          <dd className="mt-0.5 text-sm text-text-secondary">
-            {data.mode === "ExternalUrl" ? t(`${p}.external`) : t(`${p}.inApp`)}
-          </dd>
-        </div>
-        {data.reviewFeeUsd != null && (
-          <div>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.reviewFee`)}</dt>
-            <dd className="mt-0.5 text-sm text-text-secondary">${data.reviewFeeUsd}</dd>
-          </div>
-        )}
-      </dl>
-
-      {description && (
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.description`)}</p>
-          <p className="whitespace-pre-wrap text-sm text-text-secondary">{description}</p>
-        </div>
-      )}
-
-      {data.eligibilityCriteria && (
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.eligibility`)}</p>
-          <p className="whitespace-pre-wrap text-sm text-text-secondary">{data.eligibilityCriteria}</p>
-        </div>
-      )}
-
-      {fields.length > 0 && (
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.fields`)}</p>
-          <p className="text-sm text-text-secondary">{fields.join("، ")}</p>
-        </div>
-      )}
-
-      {docs.length > 0 && (
-        <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.requiredDocs`)}</p>
-          <ul className="list-disc space-y-0.5 ps-5 text-sm text-text-secondary">
-            {docs.map((d, i) => (
-              <li key={i}>{d}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {data.externalUrl && (
-        <a
-          href={data.externalUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm text-brand-600 underline"
-        >
-          <ExternalLink aria-hidden className="size-3.5" />
-          {t(`${p}.externalLink`)}
-        </a>
-      )}
-    </div>
-  );
 }
 
 export function AdminScholarships() {
@@ -364,7 +250,7 @@ export function AdminScholarships() {
                   {isExpanded && (
                     <tr className="border-t border-border-subtle bg-bg-subtle/30">
                       <td colSpan={5} className="px-4 py-4">
-                        <ScholarshipModerationPanel id={s.id} />
+                        <ScholarshipDetailPanel id={s.id} />
                       </td>
                     </tr>
                   )}
