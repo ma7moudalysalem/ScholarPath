@@ -73,7 +73,26 @@ public sealed record UpgradeRequestRow(
     UpgradeTarget Target,
     UpgradeRequestStatus Status,
     string? Reason,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    // ── Applicant + proposed consultant profile snapshot ─────────────────────
+    // A consultant upgrade grants a paid, earning role, so the reviewer must see
+    // the profile the applicant proposed — not just a one-line reason. Mirrors
+    // the OnboardingRequestRow consultant snapshot; verification documents are
+    // fetched separately via the same onboarding-documents endpoint.
+    string? FullName = null,
+    string? Biography = null,
+    string? ProfessionalTitle = null,
+    string? HighestDegree = null,
+    string? FieldOfExpertise = null,
+    int? YearsOfExperience = null,
+    decimal? SessionFeeUsd = null,
+    int? SessionDurationMinutes = null,
+    string? ExpertiseTagsJson = null,
+    string? LanguagesJson = null,
+    string? Timezone = null,
+    string? LinkedInUrl = null,
+    string? PortfolioUrl = null,
+    string? ConsultantCountry = null);
 
 public sealed record AnalyticsOverviewDto(
     int TotalUsers,

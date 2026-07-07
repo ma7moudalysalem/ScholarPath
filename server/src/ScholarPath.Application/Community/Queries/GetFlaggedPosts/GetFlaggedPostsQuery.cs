@@ -24,6 +24,10 @@ public sealed record FlaggedPostDto(
     string AuthorName,
     string? Title,
     string BodyPreview,
+    // Full post body so the admin can expand and read the WHOLE post before
+    // deciding — the 240-char preview can hide the flagged content (a bad link
+    // or slur past the cut). The list row still shows BodyPreview collapsed.
+    string Body,
     int FlagCount,
     int ValidFlagCount,
     string? TopFlagReason,
@@ -84,6 +88,7 @@ public sealed class GetFlaggedPostsQueryHandler(
                 p.Author?.FullName ?? "Anonymous",
                 p.Title,
                 Preview(p.BodyMarkdown),
+                p.BodyMarkdown ?? string.Empty,
                 p.FlagCount,
                 p.Flags.Count(f => f.IsValid),
                 p.Flags.Where(f => f.IsValid)

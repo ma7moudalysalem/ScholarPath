@@ -225,6 +225,8 @@
     "reference": "المرجع",
     "unknownScholarshipProvider": "شركة غير معروفة",
     "unknownStudent": "طالب غير معروف",
+    "requestedOn": "طُلبت في {{date}}",
+    "respondBy": "الرد قبل {{date}}",
     "message": "مراسلة",
     "cancel": "إلغاء الطلب",
     "cancelWithRefund": "إلغاء (استرداد 50٪)",

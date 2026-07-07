@@ -135,6 +135,22 @@ export interface UpgradeRequestRow {
   status: UpgradeRequestStatus;
   reason: string | null;
   createdAt: string;
+  // Proposed consultant profile snapshot — evidence for the reviewer (a
+  // consultant upgrade grants a paid, earning role). All optional.
+  fullName?: string | null;
+  biography?: string | null;
+  professionalTitle?: string | null;
+  highestDegree?: string | null;
+  fieldOfExpertise?: string | null;
+  yearsOfExperience?: number | null;
+  sessionFeeUsd?: number | null;
+  sessionDurationMinutes?: number | null;
+  expertiseTagsJson?: string | null;
+  languagesJson?: string | null;
+  timezone?: string | null;
+  linkedInUrl?: string | null;
+  portfolioUrl?: string | null;
+  consultantCountry?: string | null;
 }
 
 /**

@@ -9,9 +9,11 @@ import {
   type ScholarshipProviderReviewRequestDto,
   type ScholarshipProviderReviewRequestStatus,
 } from "@/services/api/scholarshipProviderReviewRequests";
+import { ar } from "date-fns/locale";
 import { apiErrorMessage } from "@/services/api/client";
 import { formatMoneyCents } from "@/services/api/payments";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
+import { formatCalendarDate } from "@/lib/dates";
 
 /**
  * ScholarshipProvider-side queue of incoming paid ScholarshipProviderReview requests. Pending rows
@@ -24,6 +26,7 @@ import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
  */
 export function ScholarshipProviderReviewRequests() {
   const { t, i18n } = useTranslation(["payments", "common", "scholarships"]);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
   // Master payments switch — collapses the money breakdown to a single Free
@@ -124,6 +127,23 @@ export function ScholarshipProviderReviewRequests() {
                   </p>
                   <p className="mt-1 text-xs text-text-tertiary">
                     {req.studentName ?? t("payments:reviewRequest.unknownStudent")}
+                  </p>
+                  <p className="mt-1 text-xs text-text-tertiary">
+                    {t("payments:reviewRequest.requestedOn", {
+                      date: formatCalendarDate(
+                        req.submittedAt ?? req.createdAt,
+                        "dd MMM yyyy",
+                        dateLocale,
+                      ),
+                    })}
+                    {isPending && req.pendingExpiresAt && (
+                      <span className="text-warning-600">
+                        {" · "}
+                        {t("payments:reviewRequest.respondBy", {
+                          date: formatCalendarDate(req.pendingExpiresAt, "dd MMM yyyy", dateLocale),
+                        })}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <StatusBadge status={req.status} />
