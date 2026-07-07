@@ -42,6 +42,14 @@ public class Document : AuditableEntity, ISoftDeletable
     /// <summary>Optional link to an application this document supports.</summary>
     public Guid? ApplicationTrackerId { get; set; }
 
+    /// <summary>
+    /// Optional link to a paid ScholarshipProvider review/support request (PB-005) — so a
+    /// student can attach files for the provider to review + give completeness
+    /// feedback before applying. Only the owning student and the request's
+    /// provider may see/download it.
+    /// </summary>
+    public Guid? ScholarshipProviderReviewRequestId { get; set; }
+
     public bool IsDeleted { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public Guid? DeletedByUserId { get; set; }

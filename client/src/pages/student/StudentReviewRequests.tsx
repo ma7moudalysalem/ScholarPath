@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, MessageSquare } from "lucide-react";
+import { FileText, Loader2, MessageSquare, Upload } from "lucide-react";
 import {
   scholarshipProviderReviewRequestsApi,
   isRequestCancellableByStudent,
@@ -12,6 +12,7 @@ import {
   type ScholarshipProviderReviewRequestDto,
   type ScholarshipProviderReviewRequestStatus,
 } from "@/services/api/scholarshipProviderReviewRequests";
+import { documentsApi } from "@/services/api/documents";
 import { apiErrorMessage } from "@/services/api/client";
 import { formatMoneyCents } from "@/services/api/payments";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
@@ -131,6 +132,8 @@ export function StudentReviewRequests() {
               )}
             </dl>
 
+            <StudentRequestAttachments req={req} />
+
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-text-tertiary">
               {paymentsEnabled && !req.isFree ? (
                 <span>
@@ -188,6 +191,108 @@ export function StudentReviewRequests() {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * Files the student attaches for the provider to review + the provider's
+ * completeness feedback (PB-005). The student may add files while the request
+ * is still open (before a final decision).
+ */
+function StudentRequestAttachments({ req }: { req: ScholarshipProviderReviewRequestDto }) {
+  const { t } = useTranslation(["payments", "common"]);
+  const qc = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const canAttach =
+    req.status === "Submitted" || req.status === "Pending" || req.status === "UnderReview";
+
+  const uploadMut = useMutation({
+    mutationFn: (file: File) => scholarshipProviderReviewRequestsApi.attachDocument(req.id, file),
+    onSuccess: () => {
+      toast.success(t("payments:reviewRequest.attach.success"));
+      void qc.invalidateQueries({ queryKey: ["scholarshipProviderReviewRequests", "mine", "student"] });
+    },
+    onError: (e) => toast.error(apiErrorMessage(e, t("common:status.error"))),
+  });
+
+  const download = async (id: string, name: string) => {
+    try {
+      const blob = await documentsApi.download(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(apiErrorMessage(e, t("common:status.error")));
+    }
+  };
+
+  if (!canAttach && req.documents.length === 0 && !req.providerFeedback) return null;
+
+  return (
+    <div className="mt-3 space-y-2 border-t border-border-subtle pt-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+        {t("payments:reviewRequest.attach.heading")}
+      </p>
+      {req.documents.length > 0 ? (
+        <ul className="space-y-1.5">
+          {req.documents.map((d) => (
+            <li key={d.id} className="flex items-center gap-2 text-sm">
+              <FileText aria-hidden className="size-4 shrink-0 text-text-tertiary" />
+              <button
+                type="button"
+                onClick={() => void download(d.id, d.fileName)}
+                className="text-brand-600 hover:underline"
+              >
+                {d.fileName}
+              </button>
+              <span className="text-xs text-text-tertiary">{(d.sizeBytes / 1024).toFixed(0)} KB</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-text-tertiary">{t("payments:reviewRequest.attach.empty")}</p>
+      )}
+      {canAttach && (
+        <div>
+          <input
+            ref={fileRef}
+            type="file"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) uploadMut.mutate(f);
+              e.target.value = "";
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploadMut.isPending}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border-subtle px-3 py-1.5 text-xs font-medium text-text-secondary hover:border-brand-400 hover:text-brand-600 disabled:opacity-50"
+          >
+            {uploadMut.isPending ? (
+              <Loader2 aria-hidden className="size-3 animate-spin" />
+            ) : (
+              <Upload aria-hidden className="size-3.5" />
+            )}
+            {t("payments:reviewRequest.attach.add")}
+          </button>
+        </div>
+      )}
+      {req.providerFeedback && (
+        <div className="rounded-lg border border-brand-200 bg-brand-50 p-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-brand-600">
+            {t("payments:reviewRequest.feedback")}
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-text-primary">{req.providerFeedback}</p>
+        </div>
+      )}
     </div>
   );
 }

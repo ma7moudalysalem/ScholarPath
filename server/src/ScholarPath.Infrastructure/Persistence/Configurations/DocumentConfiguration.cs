@@ -21,6 +21,7 @@ public sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
         b.HasQueryFilter(d => !d.IsDeleted);
         b.HasIndex(d => new { d.OwnerUserId, d.Category });
         b.HasIndex(d => d.ApplicationTrackerId);
+        b.HasIndex(d => d.ScholarshipProviderReviewRequestId);
 
         b.HasOne(d => d.Owner)
             .WithMany()
@@ -30,6 +31,14 @@ public sealed class DocumentConfiguration : IEntityTypeConfiguration<Document>
         b.HasOne(d => d.Application)
             .WithMany()
             .HasForeignKey(d => d.ApplicationTrackerId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // Optional link to a paid ScholarshipProvider review/support request. No inverse
+        // navigation on the request; SetNull so deleting a request never cascades
+        // away the student's vaulted file.
+        b.HasOne<ScholarshipProviderReviewRequest>()
+            .WithMany()
+            .HasForeignKey(d => d.ScholarshipProviderReviewRequestId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }

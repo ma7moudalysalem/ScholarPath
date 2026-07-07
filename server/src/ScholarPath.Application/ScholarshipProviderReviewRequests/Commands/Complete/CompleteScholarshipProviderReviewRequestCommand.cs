@@ -20,7 +20,11 @@ namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Com
 [Auditable(AuditAction.Update, "ScholarshipProviderReviewRequest",
     TargetIdProperty = nameof(RequestId),
     SummaryTemplate = "ScholarshipProvider completed ScholarshipProviderReviewRequest {RequestId}")]
-public sealed record CompleteScholarshipProviderReviewRequestCommand(Guid RequestId) : IRequest<bool>;
+public sealed record CompleteScholarshipProviderReviewRequestCommand(
+    Guid RequestId,
+    // PB-005 — the provider's completeness feedback on the student's attached
+    // documents, shown to the student. Optional.
+    string? Feedback = null) : IRequest<bool>;
 
 public sealed class CompleteScholarshipProviderReviewRequestCommandValidator
     : AbstractValidator<CompleteScholarshipProviderReviewRequestCommand>
@@ -28,6 +32,7 @@ public sealed class CompleteScholarshipProviderReviewRequestCommandValidator
     public CompleteScholarshipProviderReviewRequestCommandValidator()
     {
         RuleFor(x => x.RequestId).NotEmpty();
+        RuleFor(x => x.Feedback).MaximumLength(2000);
     }
 }
 
@@ -65,6 +70,8 @@ public sealed class CompleteScholarshipProviderReviewRequestCommandHandler(
 
         entity.Status = ScholarshipProviderReviewRequestStatus.Completed;
         entity.CompletedAt = DateTimeOffset.UtcNow;
+        if (!string.IsNullOrWhiteSpace(command.Feedback))
+            entity.ProviderFeedback = command.Feedback.Trim();
 
         await db.SaveChangesAsync(ct);
 

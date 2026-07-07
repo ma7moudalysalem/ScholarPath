@@ -40,6 +40,12 @@ public sealed record ScholarshipProviderReviewRequestDto
     public string? CancelReason { get; init; }
     public string? RejectReason { get; init; }
 
+    /// <summary>Files the student attached for the provider to review (PB-005).</summary>
+    public IReadOnlyList<ScholarshipProviderReviewRequestDocumentInfo> Documents { get; init; } = [];
+
+    /// <summary>The provider's completeness feedback, shown to the student.</summary>
+    public string? ProviderFeedback { get; init; }
+
     // ── Payment summary (denormalised for dashboard rendering) ──────────────
     public Guid? PaymentId { get; init; }
     public PaymentStatus? PaymentStatus { get; init; }
@@ -52,3 +58,10 @@ public sealed record ScholarshipProviderReviewRequestDto
     public long ScholarshipProviderShareCents { get; init; }
     public string? PaymentReference { get; init; }
 }
+
+/// <summary>A file the student attached to a review/support request (PB-005).</summary>
+public sealed record ScholarshipProviderReviewRequestDocumentInfo(
+    Guid Id,
+    string FileName,
+    string ContentType,
+    long SizeBytes);

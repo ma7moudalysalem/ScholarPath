@@ -228,6 +228,15 @@
     "requestedOn": "Requested {{date}}",
     "respondBy": "respond by {{date}}",
     "message": "Message",
+    "feedback": "Provider feedback",
+    "feedbackPrompt": "Completeness feedback for the student (optional — what's missing or to fix):",
+    "attach": {
+      "heading": "Your documents",
+      "studentFiles": "Student's attached files",
+      "empty": "No files attached yet. Add the documents you want the provider to review.",
+      "add": "Attach a file",
+      "success": "File attached."
+    },
     "cancel": "Cancel request",
     "cancelWithRefund": "Cancel (50% refund)",
     "cancelConfirm50": "Cancelling now triggers a 50% refund — the remaining 50% is retained. Continue?",

@@ -111,9 +111,10 @@ public sealed class ScholarshipProviderReviewRequestsController(ISender sender) 
     [Authorize(Roles = "ScholarshipProvider")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Complete(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Complete(
+        Guid id, [FromBody] CompleteBody? body, CancellationToken ct)
     {
-        await sender.Send(new CompleteScholarshipProviderReviewRequestCommand(id), ct);
+        await sender.Send(new CompleteScholarshipProviderReviewRequestCommand(id, body?.Feedback), ct);
         return NoContent();
     }
 
@@ -142,3 +143,4 @@ public sealed class ScholarshipProviderReviewRequestsController(ISender sender) 
 
 public sealed record CancelBody(string? Reason = null);
 public sealed record RejectBody(string? Reason = null);
+public sealed record CompleteBody(string? Feedback = null);
