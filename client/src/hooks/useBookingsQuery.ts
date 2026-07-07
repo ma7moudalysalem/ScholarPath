@@ -62,8 +62,13 @@ export function useBookingDetailQuery(id: string | undefined) {
     refetchInterval: (query) => {
       const b = query.state.data;
       if (!b) return false;
+      // Poll only a PAID booking that's genuinely waiting on the Stripe
+      // amount_capturable_updated webhook. A free (0-fee) booking has no Payment
+      // row, so paymentStatus is permanently null — without the paymentId gate
+      // this looped every 4s for the whole Requested window with no webhook to heal.
       const awaitingWebhook =
         b.status === "Requested" &&
+        b.paymentId != null &&
         (b.paymentStatus == null || b.paymentStatus === "Pending");
       return awaitingWebhook ? 4_000 : false;
     },

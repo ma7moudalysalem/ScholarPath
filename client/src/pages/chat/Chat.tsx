@@ -75,6 +75,13 @@ export function Chat() {
   const { data: conversations = [], isSuccess: conversationsLoaded } = useQuery({
     queryKey: ["chat", "conversations"],
     queryFn: () => chatApi.getConversations(),
+    // The realtime MessageReceived push only reaches the conversation group the
+    // user has currently JOINED (the open thread). A message in a NEW or
+    // unopened conversation wouldn't update this list (and its bell is suppressed
+    // while the user is connected to chat). Poll so the list + unread counts heal
+    // within the window regardless of which thread is open.
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
   });
 
   const filteredConversations = useMemo(() => {
@@ -299,10 +306,17 @@ export function Chat() {
       });
 
       setMessageBody("");
-      // Stop any pending typing-stop timer; we're done typing now.
+      // Stop any pending typing-stop timer; we're done typing now. Also emit an
+      // explicit TypingStop for a persisted conversation — the scheduled timer is
+      // cleared (not fired) on send, so without this the recipient's "…is typing"
+      // bubble stayed stuck next to the just-delivered message until they switched
+      // threads or the sender typed again.
       if (typingStopTimerRef.current) {
         clearTimeout(typingStopTimerRef.current);
         typingStopTimerRef.current = null;
+      }
+      if (!isPending) {
+        void hubConnectionRef.current?.invoke("TypingStop", selectedConv.id).catch(() => {});
       }
       setIsTyping(false);
 
