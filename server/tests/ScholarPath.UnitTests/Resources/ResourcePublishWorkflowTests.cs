@@ -55,7 +55,8 @@ public class ResourcePublishWorkflowTests
 
     private static SubmitResourceForReviewCommandHandler SubmitSut(
         ApplicationDbContext db, ICurrentUserService user) =>
-        new(db, user, NullLogger<SubmitResourceForReviewCommandHandler>.Instance);
+        new(db, user, Substitute.For<INotificationDispatcher>(),
+            NullLogger<SubmitResourceForReviewCommandHandler>.Instance);
 
     private static ApproveResourceCommandHandler ApproveSut(
         ApplicationDbContext db, ICurrentUserService user) =>

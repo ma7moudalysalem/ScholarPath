@@ -303,6 +303,9 @@ public enum NotificationType
     // Resources (PB-009)
     ResourceApproved = 600,
     ResourceRejected = 601,
+    // Admin-inbound: a consultant/provider submitted a resource/article for review
+    // and it is now sitting in the admin moderation queue (PB-009 AC#3).
+    ResourceSubmittedForReview = 602,
 
     // Chat (PB-007)
     ChatMessageReceived = 700,

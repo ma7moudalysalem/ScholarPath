@@ -117,6 +117,15 @@ public sealed class NotificationCatalog : INotificationCatalog
             $"Your resource \"{p.TitleEn ?? "resource"}\" was sent back: {p.Reason ?? "see the review notes"}.",
             $"أُعيد المورد \"{p.TitleAr ?? "المورد"}\" للتعديل: {p.Reason ?? "راجِع ملاحظات المراجعة"}."),
 
+        // Admin-inbound: a consultant/provider sent a resource/article to the
+        // moderation queue — previously silent, so the admin never learned a new
+        // item was waiting (the team lead hit this: submitted an article, no
+        // admin notification).
+        NotificationType.ResourceSubmittedForReview => new(
+            "New resource pending review", "مورد جديد بانتظار المراجعة",
+            $"{p.CounterpartyName ?? "A contributor"} submitted \"{p.TitleEn ?? "a resource"}\" for review.",
+            $"أرسل {p.CounterpartyName ?? "أحد المساهمين"} المورد \"{p.TitleAr ?? "مورد"}\" للمراجعة."),
+
         NotificationType.PostAutoHidden => new(
             "Post hidden for review", "تم إخفاء منشور للمراجعة",
             $"A community post was automatically hidden after {p.Count ?? 0} flags.",

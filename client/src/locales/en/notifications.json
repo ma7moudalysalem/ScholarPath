@@ -114,6 +114,7 @@
       "PostAutoHidden": "Post hidden by moderation",
       "ResourceApproved": "Resource approved",
       "ResourceRejected": "Resource rejected",
+      "ResourceSubmittedForReview": "Resource pending review",
       "ChatMessageReceived": "New message",
       "Broadcast": "Platform announcements",
       "OnboardingSubmitted": "Onboarding request submitted",

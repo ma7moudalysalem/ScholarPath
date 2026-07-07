@@ -1,17 +1,139 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Star } from "lucide-react";
+import { Star, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import {
   resourcesApi,
   type ResourceListItem,
   type PaginatedResources,
+  type ResourceDetail,
 } from "@/services/api/resources";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { Markdown } from "@/components/resources/ResourceMarkdown";
 import { cn } from "@/lib/utils";
 
 type Tab = "pending" | "published";
+
+// ─── Pending-review detail preview ────────────────────────────────────────────
+// An admin must be able to READ the exact content they are about to publish —
+// the queue row alone (title/type/author/tags) is a blind approval. This lazily
+// loads the full ResourceDetail (server allows an admin to fetch a PendingReview
+// resource) and renders the body with the same Markdown renderer students see.
+
+function PendingDetailPanel({ id }: { id: string }) {
+  const { t, i18n } = useTranslation(["resources", "common"]);
+  const isAr = i18n.language.startsWith("ar");
+
+  const { data, isLoading, isError } = useQuery<ResourceDetail>({
+    queryKey: ["resources", "detail", id],
+    queryFn: () => resourcesApi.getDetail(id),
+  });
+
+  if (isLoading) {
+    return (
+      <p className="text-sm text-text-tertiary">{t("resources:moderation.loading")}</p>
+    );
+  }
+  if (isError || !data) {
+    return (
+      <p className="text-sm text-danger-500">{t("resources:moderation.loadError")}</p>
+    );
+  }
+
+  const description = isAr
+    ? data.descriptionAr ?? data.descriptionEn
+    : data.descriptionEn ?? data.descriptionAr;
+  const content = isAr
+    ? data.contentMarkdownAr ?? data.contentMarkdownEn
+    : data.contentMarkdownEn ?? data.contentMarkdownAr;
+  const chapters = [...(data.chapters ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
+
+  return (
+    <div className="max-w-3xl space-y-4">
+      {/* Meta line — who wrote it + type + tags */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-tertiary">
+        {data.authorName && (
+          <span>
+            {t("resources:moderation.preview.author")}: {data.authorName} ({data.authorRole})
+          </span>
+        )}
+        <span>{t(`resources:resourceType.${data.type}`)}</span>
+        {(data.tags ?? []).length > 0 && <span>{data.tags.join(", ")}</span>}
+      </div>
+
+      {data.coverImageUrl && (
+        <img
+          src={data.coverImageUrl}
+          alt=""
+          className="max-h-48 w-full rounded-lg object-cover"
+        />
+      )}
+
+      {description && (
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+            {t("resources:moderation.preview.description")}
+          </p>
+          <p className="text-sm text-text-secondary">{description}</p>
+        </div>
+      )}
+
+      {data.externalLinkUrl && (
+        <a
+          href={data.externalLinkUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm text-brand-600 underline"
+        >
+          <ExternalLink aria-hidden className="size-3.5" />
+          {t("resources:moderation.preview.externalLink")}
+        </a>
+      )}
+
+      {content ? (
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+            {t("resources:moderation.preview.content")}
+          </p>
+          <div className="rounded-lg border border-border-subtle bg-bg-elevated p-4">
+            <Markdown source={content} />
+          </div>
+        </div>
+      ) : (
+        !data.externalLinkUrl &&
+        chapters.length === 0 && (
+          <p className="text-sm italic text-text-tertiary">
+            {t("resources:moderation.preview.noContent")}
+          </p>
+        )
+      )}
+
+      {chapters.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+            {t("resources:detail.chapters")}
+          </p>
+          {chapters.map((c) => {
+            const chTitle = isAr ? c.titleAr || c.titleEn : c.titleEn || c.titleAr;
+            const chContent = isAr
+              ? c.contentMarkdownAr ?? c.contentMarkdownEn
+              : c.contentMarkdownEn ?? c.contentMarkdownAr;
+            return (
+              <div
+                key={c.id}
+                className="rounded-lg border border-border-subtle bg-bg-elevated p-4"
+              >
+                <p className="mb-2 text-sm font-semibold text-text-primary">{chTitle}</p>
+                {chContent && <Markdown source={chContent} />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Pending-review tab ───────────────────────────────────────────────────────
 
@@ -19,6 +141,9 @@ function PendingTab() {
   const { t, i18n } = useTranslation(["resources", "common"]);
   const isAr = i18n.language.startsWith("ar");
   const qc = useQueryClient();
+
+  // Which pending row is expanded to preview its full content before deciding.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery<ResourceListItem[]>({
     queryKey: ["admin", "resources", "pending"],
@@ -96,43 +221,75 @@ function PendingTab() {
                 </td>
               </tr>
             )}
-            {data?.map((r) => (
-              <tr
-                key={r.id}
-                className="border-t border-border-subtle hover:bg-bg-subtle/40"
-              >
-                <td className="px-4 py-3 font-medium text-text-primary">
-                  {isAr ? r.titleAr || r.titleEn : r.titleEn || r.titleAr}
-                </td>
-                <td className="px-4 py-3 text-text-secondary">
-                  {t(`resources:resourceType.${r.type}`)}
-                </td>
-                <td className="px-4 py-3 text-text-secondary">{r.authorRole}</td>
-                <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {(r.tags ?? []).slice(0, 3).join(", ") || "—"}
-                </td>
-                <td className="px-4 py-3 text-end">
-                  <div className="inline-flex gap-2">
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => approveMut.mutate(r.id)}
-                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-success-500 hover:text-success-600 disabled:opacity-50"
-                    >
-                      {t("resources:moderation.approve")}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => setRejectTargetId(r.id)}
-                      className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500 disabled:opacity-50"
-                    >
-                      {t("resources:moderation.reject")}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {data?.map((r) => {
+              const isExpanded = expandedId === r.id;
+              const title = isAr ? r.titleAr || r.titleEn : r.titleEn || r.titleAr;
+              return (
+                <Fragment key={r.id}>
+                  <tr className="border-t border-border-subtle hover:bg-bg-subtle/40">
+                    <td className="px-4 py-3 font-medium text-text-primary">
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                        aria-expanded={isExpanded}
+                        className="inline-flex items-start gap-1.5 text-start transition-colors hover:text-brand-600"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown aria-hidden className="mt-0.5 size-4 shrink-0 text-text-tertiary" />
+                        ) : (
+                          <ChevronRight aria-hidden className="mt-0.5 size-4 shrink-0 text-text-tertiary rtl:rotate-180" />
+                        )}
+                        <span>{title}</span>
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">
+                      {t(`resources:resourceType.${r.type}`)}
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">{r.authorRole}</td>
+                    <td className="px-4 py-3 text-xs text-text-tertiary">
+                      {(r.tags ?? []).slice(0, 3).join(", ") || "—"}
+                    </td>
+                    <td className="px-4 py-3 text-end">
+                      <div className="inline-flex gap-2">
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                          className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-brand-400 hover:text-brand-600 disabled:opacity-50"
+                        >
+                          {isExpanded
+                            ? t("resources:moderation.preview.hide")
+                            : t("resources:moderation.preview.review")}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => approveMut.mutate(r.id)}
+                          className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-success-500 hover:text-success-600 disabled:opacity-50"
+                        >
+                          {t("resources:moderation.approve")}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setRejectTargetId(r.id)}
+                          className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500 disabled:opacity-50"
+                        >
+                          {t("resources:moderation.reject")}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr className="border-t border-border-subtle bg-bg-subtle/30">
+                      <td colSpan={5} className="px-4 py-4">
+                        <PendingDetailPanel id={r.id} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>

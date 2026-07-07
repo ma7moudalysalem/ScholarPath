@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using ScholarPath.Application.Common.Auditing;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.Notifications;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
@@ -38,6 +39,7 @@ public sealed class SubmitResourceForReviewCommandValidator
 public sealed class SubmitResourceForReviewCommandHandler(
     IApplicationDbContext db,
     ICurrentUserService currentUser,
+    INotificationDispatcher notifications,
     ILogger<SubmitResourceForReviewCommandHandler> logger)
     : IRequestHandler<SubmitResourceForReviewCommand, ResourceStatus>
 {
@@ -87,9 +89,66 @@ public sealed class SubmitResourceForReviewCommandHandler(
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
+        // PB-009 AC#3 — a resource that entered the review queue must surface in
+        // the admin moderation inbox. An admin's own draft published directly
+        // (no queue), so only notify on the PendingReview path. Best-effort:
+        // a notification failure must never break the submission itself.
+        if (resource.Status == ResourceStatus.PendingReview)
+        {
+            await NotifyAdminsAsync(resource, userId, now, ct);
+        }
+
         logger.LogInformation(
             "Resource {ResourceId} submitted by {UserId} -> {Status}.",
             resource.Id, userId, resource.Status);
         return resource.Status;
+    }
+
+    // Alert every active admin so a resource awaiting review never sits unseen.
+    private async Task NotifyAdminsAsync(
+        Resource resource, Guid submitterId, DateTimeOffset submittedAt, CancellationToken ct)
+    {
+        try
+        {
+            var submitterName = await db.Users
+                .Where(u => u.Id == submitterId)
+                .Select(u => ((u.FirstName ?? "") + " " + (u.LastName ?? "")).Trim())
+                .FirstOrDefaultAsync(ct)
+                .ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(submitterName))
+                submitterName = "A contributor";
+
+            var adminIds = await db.Users
+                .Where(u => (u.ActiveRole == "Admin" || u.ActiveRole == "SuperAdmin")
+                            && u.AccountStatus == AccountStatus.Active)
+                .Select(u => u.Id)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+            if (adminIds.Count == 0) return;
+
+            foreach (var adminId in adminIds)
+            {
+                await notifications.DispatchAsync(
+                    adminId,
+                    NotificationType.ResourceSubmittedForReview,
+                    new NotificationParams
+                    {
+                        CounterpartyName = submitterName,
+                        TitleEn = resource.TitleEn,
+                        TitleAr = resource.TitleAr,
+                    },
+                    deepLink: "/admin/articles",
+                    // The submission instant keeps the key unique per submission so
+                    // a resubmit after a rejection re-notifies, while a retry inside
+                    // the same handler run stays idempotent.
+                    idempotencyKey: $"resource-submitted:{resource.Id:N}:{submittedAt.UtcTicks}:{adminId:N}",
+                    ct).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to notify admins of resource {ResourceId} pending review.", resource.Id);
+        }
     }
 }
