@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Audit.DTOs;
 using ScholarPath.Application.Common.Exceptions;
 using ScholarPath.Application.Common.Interfaces;
+using ScholarPath.Application.ScholarshipProviderReviews;
 using ScholarPath.Domain.Enums;
 using ScholarPath.Domain.Interfaces;
 
@@ -48,10 +49,16 @@ public sealed class GetLowRatedCompaniesQueryHandler(
         // Join Users → UserProfiles. The filtered index on
         // UserProfile.ScholarshipProviderLowRatingFlaggedAt keeps the scan small even on a
         // large user base.
+        // Only surface providers that are STILL below the threshold. The flag is
+        // sticky (cleared by an admin), so without this a provider that recovered
+        // to 4.5 would keep showing under a "below 2.5" heading — the exact
+        // contradiction an admin hits when a flag is stale.
         var flaggedQuery =
             from u in db.Users.AsNoTracking()
             join p in db.UserProfiles.AsNoTracking() on u.Id equals p.UserId
             where p.ScholarshipProviderLowRatingFlaggedAt != null
+                && p.ScholarshipProviderAverageRating != null
+                && p.ScholarshipProviderAverageRating < ScholarshipProviderRatingThresholds.LowRatingThreshold
             select new { User = u, Profile = p };
 
         var total = await flaggedQuery.CountAsync(ct).ConfigureAwait(false);

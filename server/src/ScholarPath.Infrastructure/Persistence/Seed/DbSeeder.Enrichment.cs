@@ -360,11 +360,14 @@ public static partial class DbSeeder
     private static async Task EnrichAdminQueuesAsync(
         ApplicationDbContext db, ILogger logger, CancellationToken ct)
     {
-        // Put genuinely low-rated consultants / providers into the admin
-        // low-rating review queues, so those screens aren't empty.
+        // Put GENUINELY low-rated consultants / providers into the admin
+        // low-rating review queues. Only flag accounts actually below the 2.5
+        // threshold — flagging high-rated ones "so the queue isn't empty" made the
+        // queue lie (a 4.5-rated provider under a "below 2.5" heading) AND, because
+        // this runs on every startup, kept flagging the next-lowest few each time,
+        // accumulating dozens of false flags. If nobody is genuinely low, the queue
+        // is legitimately empty.
         var now = DateTimeOffset.UtcNow;
-        // Flag the LOWEST-rated few so the admin review queue is never empty (the
-        // data is mostly high-rated, so an absolute threshold would flag nobody).
         // NOTE: pass parameters as an explicit array so `ct` binds to the
         // CancellationToken overload rather than being treated as a SQL param.
         var flaggedConsultants = await db.Database.ExecuteSqlRawAsync(@"
@@ -373,6 +376,7 @@ UPDATE UserProfiles SET ConsultantLowRatingFlaggedAt = {0}
 WHERE UserId IN (
     SELECT TOP 6 UserId FROM UserProfiles
     WHERE ConsultantAverageRating IS NOT NULL AND ConsultantReviewCount >= 3
+      AND ConsultantAverageRating < 2.5
       AND ConsultantLowRatingFlaggedAt IS NULL
     ORDER BY ConsultantAverageRating ASC);",
             new object[] { now.AddDays(-14) }, ct)
@@ -384,6 +388,7 @@ UPDATE UserProfiles SET ScholarshipProviderLowRatingFlaggedAt = {0}
 WHERE UserId IN (
     SELECT TOP 4 UserId FROM UserProfiles
     WHERE ScholarshipProviderAverageRating IS NOT NULL
+      AND ScholarshipProviderAverageRating < 2.5
       AND ScholarshipProviderLowRatingFlaggedAt IS NULL
     ORDER BY ScholarshipProviderAverageRating ASC);",
             new object[] { now.AddDays(-10) }, ct)
