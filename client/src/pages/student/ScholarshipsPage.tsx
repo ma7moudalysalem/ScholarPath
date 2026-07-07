@@ -23,6 +23,7 @@ import {
   useFeaturedScholarshipsQuery,
 } from "@/hooks/useScholarshipsQuery";
 import { SCHOLARSHIP_FIELDS_OF_STUDY } from "@/constants/scholarshipFields";
+import { COUNTRIES, countryLabel } from "@/lib/countryLabel";
 import type { FundingType, AcademicLevel } from "@/types/domain";
 import type {
   SearchScholarshipsRequest,
@@ -265,6 +266,7 @@ export function ScholarshipsPage() {
   const [deadlineFrom, setDeadlineFrom]     = useState("");
   const [deadlineTo, setDeadlineTo]         = useState("");
   const [fieldOfStudy, setFieldOfStudy]     = useState("");
+  const [country, setCountry]               = useState("");
   const [showFilters, setShowFilters]       = useState(false);
   const [page, setPage]                     = useState(1);
 
@@ -275,6 +277,7 @@ export function ScholarshipsPage() {
     deadlineFrom:   deadlineFrom   || undefined,
     deadlineTo:     deadlineTo     || undefined,
     fieldOfStudy:   fieldOfStudy   || undefined,
+    country:        country        || undefined,
     page,
     pageSize: 12,
   };
@@ -319,6 +322,7 @@ export function ScholarshipsPage() {
     setDeadlineFrom("");
     setDeadlineTo("");
     setFieldOfStudy("");
+    setCountry("");
     setPage(1);
   };
 
@@ -327,14 +331,16 @@ export function ScholarshipsPage() {
     academicLevels.length > 0 ||
     !!deadlineFrom             ||
     !!deadlineTo               ||
-    !!fieldOfStudy;
+    !!fieldOfStudy             ||
+    !!country;
 
   const activeFilterCount =
     fundingTypes.length +
     academicLevels.length +
     (deadlineFrom ? 1 : 0) +
     (deadlineTo   ? 1 : 0) +
-    (fieldOfStudy ? 1 : 0);
+    (fieldOfStudy ? 1 : 0) +
+    (country      ? 1 : 0);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -457,6 +463,22 @@ export function ScholarshipsPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
+                {t("scholarships:filters.country")}
+              </p>
+              <select
+                value={country}
+                onChange={(e) => { setCountry(e.target.value); setPage(1); }}
+                className="w-full rounded-lg border border-border-default bg-bg-canvas px-3 py-2 text-sm transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              >
+                <option value="">{t("scholarships:filters.countryAll")}</option>
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c}>{countryLabel(c, i18n.language)}</option>
+                ))}
+              </select>
             </div>
 
             <div>
