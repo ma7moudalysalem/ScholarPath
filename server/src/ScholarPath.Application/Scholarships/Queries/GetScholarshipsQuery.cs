@@ -94,6 +94,17 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserS
         if (request.DeadlineFrom.HasValue) query = query.Where(s => s.Deadline >= request.DeadlineFrom);
         if (request.DeadlineTo.HasValue) query = query.Where(s => s.Deadline <= request.DeadlineTo);
 
+        // A past-deadline listing is not applyable, so the public Open catalog must
+        // never surface one — even in the window before ScholarshipAutoCloseJob flips
+        // it to Closed, and regardless of any (possibly past) DeadlineFrom the caller
+        // passed. Only applies to the default Open catalog; an admin inspecting other
+        // statuses explicitly is unaffected.
+        if (request.Status == ScholarshipStatus.Open)
+        {
+            var nowUtc = DateTimeOffset.UtcNow;
+            query = query.Where(s => s.Deadline >= nowUtc);
+        }
+
         if (!string.IsNullOrEmpty(request.Country))
         {
             // FR-SCH-14: match the country as a whole JSON-array element (same fix as

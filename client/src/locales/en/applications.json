@@ -109,7 +109,12 @@
     "filterAll": "All",
     "detail": {
       "title": "Application details",
-      "close": "Close"
+      "close": "Close",
+      "formAnswers": "Form answers",
+      "documents": "Documents",
+      "attachments": "Attached files",
+      "download": "Download",
+      "noContent": "No form answers or documents were submitted."
     }
   }
 }

@@ -88,16 +88,28 @@ public sealed class SubmitApplicationCommandHandler(
                 .ToList();
             if (attachedNames.Count > 0)
             {
-                var ownedNames = await db.Documents
+                // Load the backing vault Document ENTITIES (not just names) so we
+                // can both validate ownership AND link them to this application.
+                var ownedDocs = await db.Documents
                     .Where(d => d.OwnerUserId == userId && !d.IsDeleted && attachedNames.Contains(d.FileName))
-                    .Select(d => d.FileName)
-                    .Distinct()
                     .ToListAsync(ct);
 
+                var ownedNames = ownedDocs.Select(d => d.FileName).ToHashSet();
                 var unbacked = attachedNames.Where(n => !ownedNames.Contains(n)).ToList();
                 if (unbacked.Count > 0)
                     throw new ConflictException(
                         $"These attached documents weren't found in your uploaded files: {string.Join(", ", unbacked)}. Upload them through the application form.");
+
+                // Link the backing documents to THIS application so the reviewing
+                // provider can actually see and download them. Reuse-from-vault
+                // previously copied only the file NAME into AttachedDocumentsJson and
+                // never linked the Document row, so the provider's
+                // ApplicationTrackerId-keyed query (and the download authz gate) found
+                // nothing — the "No documents submitted" bug the provider hit even
+                // though the student clearly attached files. `??=` so a file already
+                // linked to another application isn't yanked off it.
+                foreach (var doc in ownedDocs)
+                    doc.ApplicationTrackerId ??= application.Id;
             }
         }
 

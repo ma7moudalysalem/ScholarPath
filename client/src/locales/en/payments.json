@@ -236,7 +236,7 @@
     "accept": "Accept",
     "acceptSuccess": "Request accepted and payment captured.",
     "reject": "Reject",
-    "rejectPrompt": "Optional reason for rejecting this request (leave blank to skip):",
+    "rejectPrompt": "Reason for rejecting this request (the student will see this):",
     "rejectSuccess": "Request rejected and hold released.",
     "complete": "Mark as completed",
     "completeSuccess": "Request marked as completed.",

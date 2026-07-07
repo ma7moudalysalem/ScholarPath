@@ -109,7 +109,12 @@
     "filterAll": "الكل",
     "detail": {
       "title": "تفاصيل الطلب",
-      "close": "إغلاق"
+      "close": "إغلاق",
+      "formAnswers": "إجابات النموذج",
+      "documents": "المستندات",
+      "attachments": "الملفات المرفقة",
+      "download": "تنزيل",
+      "noContent": "لم يتم تقديم أي إجابات أو مستندات."
     }
   }
 }

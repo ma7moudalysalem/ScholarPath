@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { expertiseTagLabelByLang } from "@/lib/expertiseTagLabel";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   ArrowLeft,
@@ -92,6 +92,7 @@ export function ScholarshipDetail() {
   const navigate     = useNavigate();
   const { data, isLoading, isError } = useScholarshipDetailQuery(id);
   const bookmarkMut = useToggleBookmarkMutation();
+  const queryClient = useQueryClient();
   // Master payments switch — when off, every listing is treated as free
   // regardless of its stored ReviewFeeUsd.
   const paymentsEnabled = usePaymentsEnabled();
@@ -160,6 +161,13 @@ export function ScholarshipDetail() {
           ? t("scholarships:detail.supportRequested")
           : t("scholarships:detail.applyStarted"),
       );
+      // Invalidate the student's support-requests list so a fresh (re)submit
+      // shows immediately. Without this the list was served from the 30s
+      // staleTime cache, so a request made right after withdrawing another
+      // didn't appear until the window lapsed — the "shows up after ~3 tries" bug.
+      void queryClient.invalidateQueries({
+        queryKey: ["scholarshipProviderReviewRequests", "mine", "student"],
+      });
       navigate(`/student/review-requests/${res.requestId}`);
     },
     onError: handleActionError,

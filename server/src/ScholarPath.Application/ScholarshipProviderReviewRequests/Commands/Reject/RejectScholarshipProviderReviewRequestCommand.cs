@@ -30,7 +30,11 @@ public sealed class RejectScholarshipProviderReviewRequestCommandValidator
     public RejectScholarshipProviderReviewRequestCommandValidator()
     {
         RuleFor(x => x.RequestId).NotEmpty();
-        RuleFor(x => x.Reason).MaximumLength(500);
+        // A reason is REQUIRED so the student always learns why their paid
+        // support request was declined (business rule — reject must be justified).
+        RuleFor(x => x.Reason)
+            .NotEmpty().WithMessage("A reason is required to reject a support request.")
+            .MaximumLength(500);
     }
 }
 
