@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ScholarPath.Application.Notifications.Commands.MarkAllAsRead;
 using ScholarPath.Application.Notifications.Commands.MarkAsRead;
+using ScholarPath.Application.Notifications.Commands.SendTestNotification;
 using ScholarPath.Application.Notifications.Commands.UpdateNotificationPreference;
+using ScholarPath.Application.Notifications.Commands.UpdateNotificationSettings;
 using ScholarPath.Application.Notifications.DTOs;
 using ScholarPath.Application.Notifications.Queries.GetNotificationPreferences;
 using ScholarPath.Application.Notifications.Queries.GetNotifications;
@@ -74,6 +76,32 @@ public sealed class NotificationController(IMediator mediator) : ControllerBase
             ct);
         return NoContent();
     }
+
+    /// <summary>
+    /// Updates the current user's global "do not disturb" settings — mute-all and
+    /// quiet hours (FR-228).
+    /// </summary>
+    [HttpPut("settings")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> UpdateSettings(
+        [FromBody] UpdateNotificationSettingsRequest request,
+        CancellationToken ct)
+    {
+        await mediator.Send(new UpdateNotificationSettingsCommand(
+            request.Muted, request.QuietHoursEnabled,
+            request.QuietStart, request.QuietEnd, request.QuietTimezone), ct);
+        return NoContent();
+    }
+
+    /// <summary>Sends the current user a one-off test notification (FR-228).</summary>
+    [HttpPost("test")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> SendTest(CancellationToken ct)
+    {
+        await mediator.Send(new SendTestNotificationCommand(), ct);
+        return NoContent();
+    }
 }
 
 /// <summary>Body of <c>PUT /api/notifications/preferences</c> (FR-228).</summary>
@@ -81,3 +109,12 @@ public sealed record UpdateNotificationPreferenceRequest(
     NotificationType Type,
     NotificationChannel Channel,
     bool IsEnabled);
+
+/// <summary>Body of <c>PUT /api/notifications/settings</c> (FR-228). Quiet times are
+/// "HH:mm" in the supplied IANA <c>QuietTimezone</c>.</summary>
+public sealed record UpdateNotificationSettingsRequest(
+    bool Muted,
+    bool QuietHoursEnabled,
+    string? QuietStart,
+    string? QuietEnd,
+    string? QuietTimezone);

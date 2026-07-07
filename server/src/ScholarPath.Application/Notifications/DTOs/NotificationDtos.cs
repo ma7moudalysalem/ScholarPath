@@ -30,6 +30,18 @@ public sealed record NotificationPreferenceDto(
     string Channel,
     bool IsEnabled);
 
-/// <summary>The current user's full notification-preference matrix (FR-228).</summary>
+/// <summary>
+/// Global "do not disturb" settings (FR-228). Quiet times are "HH:mm" strings in
+/// <see cref="QuietTimezone"/> (an IANA zone), or null when unset.
+/// </summary>
+public sealed record NotificationSettingsDto(
+    bool Muted,
+    bool QuietHoursEnabled,
+    string? QuietStart,
+    string? QuietEnd,
+    string? QuietTimezone);
+
+/// <summary>The current user's full notification-preference matrix + DND settings (FR-228).</summary>
 public sealed record NotificationPreferencesDto(
-    IReadOnlyList<NotificationPreferenceDto> Preferences);
+    IReadOnlyList<NotificationPreferenceDto> Preferences,
+    NotificationSettingsDto Settings);

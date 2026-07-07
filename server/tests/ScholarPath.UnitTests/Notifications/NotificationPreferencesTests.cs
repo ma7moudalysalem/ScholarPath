@@ -28,8 +28,10 @@ public class NotificationPreferencesTests
         return currentUser;
     }
 
+    // SystemTest is a user-fired diagnostic, excluded from the preference matrix.
     private static readonly int ExpectedRowCount =
-        Enum.GetValues<NotificationType>().Length * Enum.GetValues<NotificationChannel>().Length;
+        Enum.GetValues<NotificationType>().Count(t => t != NotificationType.SystemTest)
+        * Enum.GetValues<NotificationChannel>().Length;
 
     // ─── GetNotificationPreferencesQuery ─────────────────────────────────────
 

@@ -28,6 +28,9 @@ public sealed class GetNotificationPreferencesQueryHandler(
         var preferences = new List<NotificationPreferenceDto>();
         foreach (var type in Enum.GetValues<NotificationType>())
         {
+            // SystemTest is a user-fired diagnostic, not a delivery preference — never
+            // surface it as a toggle row.
+            if (type == NotificationType.SystemTest) continue;
             foreach (var channel in Enum.GetValues<NotificationChannel>())
             {
                 var isEnabled = !stored.TryGetValue((type, channel), out var value) || value;
@@ -36,6 +39,16 @@ public sealed class GetNotificationPreferencesQueryHandler(
             }
         }
 
-        return new NotificationPreferencesDto(preferences);
+        var profile = await db.UserProfiles.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.UserId == userId, ct);
+
+        var settings = new NotificationSettingsDto(
+            Muted: profile?.NotificationsMuted ?? false,
+            QuietHoursEnabled: profile?.QuietHoursEnabled ?? false,
+            QuietStart: profile?.QuietHoursStart?.ToString("HH:mm"),
+            QuietEnd: profile?.QuietHoursEnd?.ToString("HH:mm"),
+            QuietTimezone: profile?.QuietHoursTimezone);
+
+        return new NotificationPreferencesDto(preferences, settings);
     }
 }

@@ -81,4 +81,38 @@ public class NotificationDispatcherTests
         var rows = await db.Notifications.Where(n => n.RecipientUserId == userId).ToListAsync();
         rows.Should().ContainSingle().Which.Channel.Should().Be(NotificationChannel.InApp);
     }
+
+    [Fact]
+    public async Task Muted_user_keeps_the_inapp_row_but_gets_no_email()
+    {
+        using var db = CreateDb();
+        var userId = Guid.NewGuid();
+        db.UserProfiles.Add(new UserProfile { Id = Guid.NewGuid(), UserId = userId, NotificationsMuted = true });
+        await db.SaveChangesAsync();
+
+        await Sut(db).DispatchAsync(userId, NotificationType.ResourceApproved,
+            NotificationParams.Empty, null, null, default);
+
+        // Do-Not-Disturb suppresses email (and the real-time push) but the in-app
+        // row is still recorded so nothing is lost.
+        var rows = await db.Notifications.Where(n => n.RecipientUserId == userId).ToListAsync();
+        rows.Should().ContainSingle().Which.Channel.Should().Be(NotificationChannel.InApp);
+    }
+
+    [Fact]
+    public async Task SystemTest_bypasses_mute_and_still_delivers_email()
+    {
+        using var db = CreateDb();
+        var userId = Guid.NewGuid();
+        db.UserProfiles.Add(new UserProfile { Id = Guid.NewGuid(), UserId = userId, NotificationsMuted = true });
+        await db.SaveChangesAsync();
+
+        await Sut(db).DispatchAsync(userId, NotificationType.SystemTest,
+            NotificationParams.Empty, null, null, default);
+
+        // The user-fired test must arrive even under mute — that's how they verify DND.
+        var rows = await db.Notifications.Where(n => n.RecipientUserId == userId).ToListAsync();
+        rows.Should().HaveCount(2);
+        rows.Should().Contain(n => n.Channel == NotificationChannel.Email);
+    }
 }
