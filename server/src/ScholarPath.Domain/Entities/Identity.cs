@@ -107,6 +107,18 @@ public class UserProfile : AuditableEntity
     public BookingBlockReason? BookingBlockReason { get; set; }
     public DateTimeOffset? BookingBlockUntil { get; set; }
 
+    // Global notification "do not disturb" settings (FR-228). When muted, or when
+    // the current time falls inside the quiet-hours window, the dispatcher still
+    // records the in-app notification (so nothing is lost) but suppresses the
+    // real-time push and the email — a standard Do-Not-Disturb, not a drop.
+    // QuietHoursTimezone is the IANA zone the start/end were entered in, so the
+    // server can evaluate the window in the user's local time.
+    public bool NotificationsMuted { get; set; }
+    public bool QuietHoursEnabled { get; set; }
+    public TimeOnly? QuietHoursStart { get; set; }
+    public TimeOnly? QuietHoursEnd { get; set; }
+    public string? QuietHoursTimezone { get; set; }
+
     // ScholarshipProvider fields
     public string? OrganizationLegalName { get; set; }
     public string? OrganizationRegistrationNumber { get; set; }

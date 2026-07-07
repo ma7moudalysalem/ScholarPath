@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import {
   useQuery,
@@ -29,6 +29,7 @@ import {
 import {
   notificationsApi,
   type NotificationPreference,
+  type NotificationSettings,
 } from "@/services/api/notifications";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { cn } from "@/lib/utils";
@@ -217,6 +218,49 @@ export function NotificationPreferences() {
   const [quietStart, setQuietStart] = useState("22:00");
   const [quietEnd, setQuietEnd] = useState("08:00");
 
+  // Hydrate the DND controls from the server ONCE (a later refetch must not
+  // clobber an edit the user just made and we optimistically kept locally).
+  const settingsHydrated = useRef(false);
+  useEffect(() => {
+    if (settingsHydrated.current || !data?.settings) return;
+    settingsHydrated.current = true;
+    const s = data.settings;
+    /* eslint-disable react-hooks/set-state-in-effect -- one-time hydration of local
+       edit-state from the server fetch; the ref guard prevents any re-sync. */
+    setMuteAll(s.muted);
+    setQuietHoursEnabled(s.quietHoursEnabled);
+    if (s.quietStart) setQuietStart(s.quietStart);
+    if (s.quietEnd) setQuietEnd(s.quietEnd);
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [data]);
+
+  const settingsMut = useMutation({
+    mutationFn: (s: NotificationSettings) => notificationsApi.updateSettings(s),
+    onError: () => toast.error(t("notifications:preferences.saveError")),
+  });
+
+  // Persist the current DND state; `overrides` carries a just-changed value that
+  // React's setState hasn't flushed into the closure yet.
+  const persistSettings = (overrides?: Partial<NotificationSettings>) => {
+    settingsMut.mutate({
+      muted: overrides?.muted ?? muteAll,
+      quietHoursEnabled: overrides?.quietHoursEnabled ?? quietHoursEnabled,
+      quietStart: overrides?.quietStart ?? quietStart,
+      quietEnd: overrides?.quietEnd ?? quietEnd,
+      quietTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    });
+  };
+
+  const testMut = useMutation({
+    mutationFn: () => notificationsApi.sendTest(),
+    onSuccess: () => {
+      toast.success(t("notifications:preferences.test.sent"));
+      // Surface the freshly-created test notification in the bell + list.
+      void qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+    onError: () => toast.error(t("notifications:preferences.saveError")),
+  });
+
   const updateMut = useMutation({
     mutationFn: ({
       type,
@@ -234,7 +278,7 @@ export function NotificationPreferences() {
           const updated = old.preferences.map((p) =>
             p.type === type && p.channel === channel ? { ...p, isEnabled } : p,
           );
-          return { preferences: updated };
+          return { ...old, preferences: updated };
         },
       );
       return { prev };
@@ -388,7 +432,10 @@ export function NotificationPreferences() {
                 </div>
                 <Toggle
                   checked={muteAll}
-                  onChange={setMuteAll}
+                  onChange={(v) => {
+                    setMuteAll(v);
+                    persistSettings({ muted: v });
+                  }}
                   label={t("notifications:preferences.muteAll.title")}
                 />
               </div>
@@ -412,7 +459,10 @@ export function NotificationPreferences() {
                 </div>
                 <Toggle
                   checked={quietHoursEnabled}
-                  onChange={setQuietHoursEnabled}
+                  onChange={(v) => {
+                    setQuietHoursEnabled(v);
+                    persistSettings({ quietHoursEnabled: v });
+                  }}
                   label={t("notifications:preferences.quietHours.title")}
                 />
               </div>
@@ -429,6 +479,7 @@ export function NotificationPreferences() {
                       type="time"
                       value={quietStart}
                       onChange={(e) => setQuietStart(e.target.value)}
+                      onBlur={() => persistSettings()}
                       className="input-premium mt-1 text-sm"
                     />
                   </label>
@@ -438,6 +489,7 @@ export function NotificationPreferences() {
                       type="time"
                       value={quietEnd}
                       onChange={(e) => setQuietEnd(e.target.value)}
+                      onBlur={() => persistSettings()}
                       className="input-premium mt-1 text-sm"
                     />
                   </label>
@@ -459,8 +511,9 @@ export function NotificationPreferences() {
           </div>
           <button
             type="button"
-            onClick={() => toast.info(t("notifications:preferences.test.sent"))}
-            className="btn btn-secondary btn-sm"
+            onClick={() => testMut.mutate()}
+            disabled={testMut.isPending}
+            className="btn btn-secondary btn-sm disabled:opacity-50"
           >
             <TestTube aria-hidden className="size-3.5" />
             {t("notifications:preferences.test.send")}

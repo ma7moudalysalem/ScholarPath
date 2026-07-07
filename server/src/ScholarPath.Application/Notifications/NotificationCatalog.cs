@@ -13,6 +13,12 @@ public sealed class NotificationCatalog : INotificationCatalog
 {
     public NotificationContent Render(NotificationType type, NotificationParams p) => type switch
     {
+        // User-fired diagnostic from the notification-preferences page.
+        NotificationType.SystemTest => new(
+            "Test notification", "إشعار تجريبي",
+            "If you can see this, your in-app notifications are working. 🎉",
+            "لو وصلك ده، فإشعاراتك داخل التطبيق شغّالة. 🎉"),
+
         NotificationType.ApplicationStatusChanged => new(
             "Application updated", "تحديث على الطلب",
             $"Your application status changed to {p.StatusText ?? "updated"}." +

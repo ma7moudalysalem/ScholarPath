@@ -34,9 +34,19 @@ export interface NotificationPreference {
   isEnabled: boolean;
 }
 
-/** Full preference matrix — mirrors NotificationPreferencesDto. */
+/** Global "do not disturb" settings — mirrors NotificationSettingsDto. */
+export interface NotificationSettings {
+  muted: boolean;
+  quietHoursEnabled: boolean;
+  quietStart: string | null; // "HH:mm" in quietTimezone
+  quietEnd: string | null;
+  quietTimezone: string | null;
+}
+
+/** Full preference matrix + DND settings — mirrors NotificationPreferencesDto. */
 export interface NotificationPreferences {
   preferences: NotificationPreference[];
+  settings: NotificationSettings;
 }
 
 export const notificationsApi = {
@@ -67,5 +77,15 @@ export const notificationsApi = {
   /** Enables or disables one delivery channel for one notification type. */
   async updatePreference(type: string, channel: string, isEnabled: boolean): Promise<void> {
     await apiClient.put("/api/notifications/preferences", { type, channel, isEnabled });
+  },
+
+  /** Updates the global do-not-disturb settings (mute-all + quiet hours). */
+  async updateSettings(settings: NotificationSettings): Promise<void> {
+    await apiClient.put("/api/notifications/settings", settings);
+  },
+
+  /** Sends the current user a one-off test notification. */
+  async sendTest(): Promise<void> {
+    await apiClient.post("/api/notifications/test");
   },
 };

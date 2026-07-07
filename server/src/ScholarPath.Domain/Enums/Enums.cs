@@ -309,6 +309,10 @@ public enum NotificationType
 
     // Broadcast
     Broadcast = 900,
+
+    // A self-service "send test notification" the user fires from the
+    // notification-preferences page to verify their channels work end to end.
+    SystemTest = 901,
 }
 
 public enum PostModerationStatus

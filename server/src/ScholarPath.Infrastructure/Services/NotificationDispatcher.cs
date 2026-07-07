@@ -33,7 +33,8 @@ public sealed class NotificationDispatcher(
         }
 
         var content = catalog.Render(type, parameters);
-        var channels = await ResolveChannelsAsync(recipientUserId, type, ct);
+        var silenced = await IsSilencedAsync(recipientUserId, type, ct);
+        var channels = await ResolveChannelsAsync(recipientUserId, type, silenced, ct);
 
         var rows = new List<Notification>();
         foreach (var channel in channels)
@@ -72,7 +73,7 @@ public sealed class NotificationDispatcher(
         }
 
         foreach (var row in rows)
-            await DeliverAsync(row, content, ct);
+            await DeliverAsync(row, content, silenced, ct);
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
@@ -85,40 +86,48 @@ public sealed class NotificationDispatcher(
             await DispatchAsync(userId, type, parameters, deepLink: null, idempotencyKey: null, ct);
     }
 
-    // InApp is always on; Email follows the user's preferences; Push has no delivery yet.
+    // InApp is always recorded; Email follows the user's per-type preferences —
+    // UNLESS the user is muted / in quiet hours, when only the in-app row is kept
+    // (no email either) so a Do-Not-Disturb spell doesn't leak out over email.
     private async Task<IReadOnlyList<NotificationChannel>> ResolveChannelsAsync(
-        Guid userId, NotificationType type, CancellationToken ct)
+        Guid userId, NotificationType type, bool silenced, CancellationToken ct)
     {
+        var channels = new List<NotificationChannel> { NotificationChannel.InApp };
+        if (silenced) return channels;
+
         var disabled = await db.NotificationPreferences
             .Where(p => p.UserId == userId && p.Type == type && !p.IsEnabled)
             .Select(p => p.Channel)
             .ToListAsync(ct);
 
-        var channels = new List<NotificationChannel> { NotificationChannel.InApp };
         if (!disabled.Contains(NotificationChannel.Email))
             channels.Add(NotificationChannel.Email);
         return channels;
     }
 
-    private async Task DeliverAsync(Notification row, NotificationContent content, CancellationToken ct)
+    private async Task DeliverAsync(Notification row, NotificationContent content, bool silenced, CancellationToken ct)
     {
         try
         {
             switch (row.Channel)
             {
                 case NotificationChannel.InApp:
-                    await hub.Clients.Group($"user:{row.RecipientUserId}")
-                        .SendAsync("notification", new
-                        {
-                            id = row.Id,
-                            type = row.Type.ToString(),
-                            row.TitleEn,
-                            row.TitleAr,
-                            row.BodyEn,
-                            row.BodyAr,
-                            row.DeepLink,
-                            createdAt = DateTimeOffset.UtcNow,
-                        }, ct);
+                    // The in-app row is always recorded; the real-time toast is
+                    // suppressed under mute / quiet hours (the user still finds it
+                    // in their list, they just aren't interrupted).
+                    if (!silenced)
+                        await hub.Clients.Group($"user:{row.RecipientUserId}")
+                            .SendAsync("notification", new
+                            {
+                                id = row.Id,
+                                type = row.Type.ToString(),
+                                row.TitleEn,
+                                row.TitleAr,
+                                row.BodyEn,
+                                row.BodyAr,
+                                row.DeepLink,
+                                createdAt = DateTimeOffset.UtcNow,
+                            }, ct);
                     break;
 
                 case NotificationChannel.Email:
@@ -158,6 +167,60 @@ public sealed class NotificationDispatcher(
                 "Notification {NotificationId} delivery failed on channel {Channel}.",
                 row.Id, row.Channel);
         }
+    }
+
+    /// <summary>
+    /// True when the recipient is muted, or the current instant falls inside their
+    /// quiet-hours window. Best-effort and fail-open: any error (missing profile,
+    /// bad timezone id) delivers the notification normally rather than dropping it.
+    /// </summary>
+    private async Task<bool> IsSilencedAsync(Guid userId, NotificationType type, CancellationToken ct)
+    {
+        // A user-fired test must always deliver — it's how they verify DND itself.
+        if (type == NotificationType.SystemTest) return false;
+        try
+        {
+            var p = await db.UserProfiles
+                .Where(x => x.UserId == userId)
+                .Select(x => new
+                {
+                    x.NotificationsMuted,
+                    x.QuietHoursEnabled,
+                    x.QuietHoursStart,
+                    x.QuietHoursEnd,
+                    x.QuietHoursTimezone,
+                })
+                .FirstOrDefaultAsync(ct);
+
+            if (p is null) return false;
+            if (p.NotificationsMuted) return true;
+            if (p.QuietHoursEnabled && p.QuietHoursStart is { } start && p.QuietHoursEnd is { } end)
+                return InQuietWindow(start, end, p.QuietHoursTimezone);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Notification silence check failed for {UserId}; delivering normally.", userId);
+            return false;
+        }
+    }
+
+    private static bool InQuietWindow(TimeOnly start, TimeOnly end, string? tzId)
+    {
+        var localNow = TimeOnly.FromDateTime(
+            TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, ResolveTimeZone(tzId)).DateTime);
+        // The window may wrap past midnight (e.g. 22:00 → 08:00).
+        return start <= end
+            ? localNow >= start && localNow < end
+            : localNow >= start || localNow < end;
+    }
+
+    private static TimeZoneInfo ResolveTimeZone(string? tzId)
+    {
+        if (string.IsNullOrWhiteSpace(tzId)) return TimeZoneInfo.Utc;
+        try { return TimeZoneInfo.FindSystemTimeZoneById(tzId); }
+        catch { return TimeZoneInfo.Utc; }
     }
 
     private static string Truncate(string value, int max) =>
