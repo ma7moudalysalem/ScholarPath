@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { Search, X } from "lucide-react";
+import { formatCalendarDate } from "@/lib/dates";
 import {
   adminApi,
   type AccountStatus,
@@ -253,9 +253,9 @@ export function UsersAdmin() {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-xs text-text-secondary">{u.roles.map((r) => t(`common:roles.${r}`, { defaultValue: r })).join("، ") || "—"}</td>
-                <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(u.createdAt), "yyyy-MM-dd", { locale: dateLocale })}</td>
+                <td className="px-4 py-3 text-xs text-text-tertiary">{formatCalendarDate(u.createdAt, "dd MMM yyyy", dateLocale)}</td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {u.lastLoginAt ? format(new Date(u.lastLoginAt), "yyyy-MM-dd HH:mm", { locale: dateLocale }) : "—"}
+                  {u.lastLoginAt ? formatCalendarDate(u.lastLoginAt, "dd MMM yyyy, HH:mm", dateLocale) : "—"}
                 </td>
                 <td className="px-4 py-3 text-end">
                   <div className="inline-flex flex-wrap items-center justify-end gap-1.5">

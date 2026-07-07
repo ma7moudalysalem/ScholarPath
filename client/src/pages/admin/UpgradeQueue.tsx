@@ -2,8 +2,8 @@ import { Fragment, useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { formatCalendarDate } from "@/lib/dates";
 import { FileText } from "lucide-react";
 import {
   adminApi,
@@ -14,6 +14,7 @@ import {
 import { apiErrorMessage } from "@/services/api/client";
 import { documentsApi } from "@/services/api/documents";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { SegmentedFilter } from "@/components/ui/SegmentedFilter";
 import { expertiseTagLabelByLang, languageNameByLang } from "@/lib/expertiseTagLabel";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 
@@ -208,18 +209,12 @@ export function UpgradeQueue() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">{t("admin:upgrades.title")}</h1>
-        <div className="inline-flex rounded-md border border-border-subtle bg-bg-elevated p-0.5">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              onClick={() => { setFilter(f.value); setPage(1); }}
-              className={`rounded px-3 py-1 text-xs font-medium transition ${filter === f.value ? "bg-brand-500 text-text-on-brand" : "text-text-secondary hover:text-text-primary"}`}
-            >
-              {t(`admin:upgrades.filters.${f.key}`)}
-            </button>
-          ))}
-        </div>
+        <SegmentedFilter
+          ariaLabel={t("admin:upgrades.title")}
+          value={filter}
+          onChange={(v) => { setFilter(v); setPage(1); }}
+          options={FILTERS.map((f) => ({ value: f.value, label: t(`admin:upgrades.filters.${f.key}`) }))}
+        />
       </div>
 
       <div className="overflow-hidden rounded-lg border border-border-subtle bg-bg-elevated">
@@ -257,7 +252,7 @@ export function UpgradeQueue() {
                     <td className="px-4 py-3">{t(`admin:upgrades.target.${r.target}`, { defaultValue: r.target })}</td>
                     <td className="px-4 py-3">{t(`admin:upgrades.status.${r.status}`, { defaultValue: r.status })}</td>
                     <td className="px-4 py-3 text-text-secondary">{r.reason ?? "—"}</td>
-                    <td className="px-4 py-3 text-xs text-text-tertiary">{format(new Date(r.createdAt), "yyyy-MM-dd", { locale: dateLocale })}</td>
+                    <td className="px-4 py-3 text-xs text-text-tertiary">{formatCalendarDate(r.createdAt, "dd MMM yyyy", dateLocale)}</td>
                     <td className="px-4 py-3 text-end">
                       <div className="inline-flex gap-1.5">
                         {hasEvidence && (

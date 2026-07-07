@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { formatCalendarDate } from "@/lib/dates";
 import {
   paymentsApi,
   formatMoneyCents,
@@ -221,7 +221,7 @@ export function AdminPayments() {
                   {formatMoneyCents(p.refundedAmountCents, p.currency, numberLocale)}
                 </td>
                 <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {format(new Date(p.createdAt), "yyyy-MM-dd", { locale: dateLocale })}
+                  {formatCalendarDate(p.createdAt, "dd MMM yyyy", dateLocale)}
                 </td>
                 <td className="px-4 py-3 text-end">
                   {canRefund(p) && (

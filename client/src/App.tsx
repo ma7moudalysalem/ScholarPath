@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Toaster } from "sonner";
+import { CheckCircle2, XCircle, AlertTriangle, Info } from "lucide-react";
 
 import { AppRouter } from "@/routes/router";
 import { getDirection } from "@/lib/i18n";
@@ -114,10 +115,19 @@ export function App() {
         theme={theme}
         position={getDirection(i18n.language) === "rtl" ? "top-left" : "top-right"}
         gap={8}
-        richColors
         expand
         closeButton
         duration={4000}
+        // Per-type coloured icons. richColors is intentionally OFF — it was being
+        // defeated by the !important neutral background below, so every type
+        // looked identical. Instead each type gets a distinct coloured glyph
+        // (shape + colour, accessible) plus a coloured title + start-accent below.
+        icons={{
+          success: <CheckCircle2 className="size-5 text-success-600" />,
+          error:   <XCircle className="size-5 text-danger-500" />,
+          warning: <AlertTriangle className="size-5 text-warning-600" />,
+          info:    <Info className="size-5 text-brand-500" />,
+        }}
         toastOptions={{
           style: { fontSize: 14, padding: 16, borderRadius: 16 },
           classNames: {
@@ -133,11 +143,14 @@ export function App() {
               "!bg-bg-canvas !text-text-tertiary",
               "hover:!bg-bg-subtle hover:!text-text-primary",
             ].join(" "),
-            // Semantic variants — keep Sonner's bg but override radius/border
-            success: "!border-success-200",
-            error:   "!border-danger-200",
-            warning: "!border-warning-500/30",
-            info:    "!border-brand-200",
+            // Semantic variants — a bold start-edge accent bar + a coloured title
+            // (the descendant selector out-specifies the neutral title rule, so
+            // the colour reliably wins). Combined with the coloured icon above,
+            // the four types are instantly distinguishable in light and dark.
+            success: "!border-s-4 !border-s-success-500 [&_[data-title]]:!text-success-700",
+            error:   "!border-s-4 !border-s-danger-500 [&_[data-title]]:!text-danger-600",
+            warning: "!border-s-4 !border-s-warning-500 [&_[data-title]]:!text-warning-700",
+            info:    "!border-s-4 !border-s-brand-500 [&_[data-title]]:!text-brand-600",
             actionButton: [
               "!rounded-lg !bg-brand-500 !text-white !text-xs !font-semibold",
               "hover:!bg-brand-600",

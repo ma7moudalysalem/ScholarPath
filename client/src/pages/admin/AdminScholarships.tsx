@@ -12,6 +12,7 @@ import {
   type ScholarshipDetail,
 } from "@/services/api/scholarships";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { SegmentedFilter } from "@/components/ui/SegmentedFilter";
 import { DeadlineHint } from "@/components/scholarships/DeadlineHint";
 import { formatCalendarDate } from "@/lib/dates";
 
@@ -234,20 +235,12 @@ export function AdminScholarships() {
         </Link>
       </div>
 
-      <select
+      <SegmentedFilter
+        ariaLabel={t("moderation:scholarshipModeration.headers.status")}
         value={status}
-        onChange={(e) => {
-          setPage(1);
-          setStatus(e.target.value as ScholarshipStatus);
-        }}
-        className="h-10 rounded-md border border-border-subtle bg-bg-elevated px-3 text-sm text-text-primary"
-      >
-        {STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {t(`moderation:scholarshipStatus.${s}`)}
-          </option>
-        ))}
-      </select>
+        onChange={(v) => { setPage(1); setStatus(v); }}
+        options={STATUSES.map((s) => ({ value: s, label: t(`moderation:scholarshipStatus.${s}`) }))}
+      />
 
       <div className="overflow-x-auto rounded-lg border border-border-subtle bg-bg-elevated">
         <table className="w-full text-sm">

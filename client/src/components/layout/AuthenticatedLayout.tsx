@@ -309,50 +309,47 @@ function SidebarContent({
         </span>
       </Link>
 
-      {/* Nav links — staggered fade-in on first mount */}
+      {/*
+        Nav links. The sidebar is app chrome, not page content — it must stay
+        visually stable. It used to run a staggered entrance animation per item,
+        which replayed on every navigation that crosses layout route-blocks
+        (e.g. /notifications ⇄ /student/*), reading as "the sidebar reloads each
+        time". The page body already animates via AnimatedRoute, so the sidebar
+        renders statically.
+      */}
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-        {navItems.map(({ to, key, icon: Icon }, idx) => (
-          <motion.div
+        {navItems.map(({ to, key, icon: Icon }) => (
+          <NavLink
             key={to}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{
-              duration: 0.28,
-              ease: [0.22, 1, 0.36, 1],
-              delay: Math.min(idx, 12) * 0.035,
-            }}
+            to={to}
+            end={to === `/${role.toLowerCase()}`}
+            onClick={onNavigate}
+            className={({ isActive }) =>
+              cn(
+                "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150",
+                isActive
+                  ? "nav-item-active"
+                  : "text-text-secondary hover:bg-bg-subtle hover:text-text-primary",
+              )
+            }
           >
-            <NavLink
-              to={to}
-              end={to === `/${role.toLowerCase()}`}
-              onClick={onNavigate}
-              className={({ isActive }) =>
-                cn(
-                  "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150",
-                  isActive
-                    ? "nav-item-active"
-                    : "text-text-secondary hover:bg-bg-subtle hover:text-text-primary",
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {/* Icon wrapper */}
-                  <span
-                    className={cn(
-                      "flex size-7 shrink-0 items-center justify-center rounded-md transition-colors duration-150",
-                      isActive
-                        ? "bg-brand-500 text-white"
-                        : "text-current",
-                    )}
-                  >
-                    <Icon aria-hidden className="size-4" />
-                  </span>
-                  {t(`nav:${key}`)}
-                </>
-              )}
-            </NavLink>
-          </motion.div>
+            {({ isActive }) => (
+              <>
+                {/* Icon wrapper */}
+                <span
+                  className={cn(
+                    "flex size-7 shrink-0 items-center justify-center rounded-md transition-colors duration-150",
+                    isActive
+                      ? "bg-brand-500 text-white"
+                      : "text-current",
+                  )}
+                >
+                  <Icon aria-hidden className="size-4" />
+                </span>
+                {t(`nav:${key}`)}
+              </>
+            )}
+          </NavLink>
         ))}
       </nav>
 

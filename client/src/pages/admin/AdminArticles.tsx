@@ -10,6 +10,7 @@ import {
   type ResourceDetail,
 } from "@/services/api/resources";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { SegmentedFilter } from "@/components/ui/SegmentedFilter";
 import { Markdown } from "@/components/resources/ResourceMarkdown";
 import { cn } from "@/lib/utils";
 
@@ -512,24 +513,16 @@ export function AdminArticles() {
         </p>
       </div>
 
-      {/* Tab strip */}
-      <div className="flex gap-1 rounded-lg border border-border-subtle bg-bg-subtle p-1">
-        {(["pending", "published"] as const).map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setTab(key)}
-            className={cn(
-              "rounded-md px-4 py-1.5 text-sm font-medium transition",
-              tab === key
-                ? "bg-bg-elevated text-text-primary shadow-sm"
-                : "text-text-secondary hover:text-text-primary",
-            )}
-          >
-            {t(`resources:moderation.tabs.${key}`)}
-          </button>
-        ))}
-      </div>
+      {/* Tabs — the same segmented control admin status filters use, for consistency. */}
+      <SegmentedFilter
+        ariaLabel={t("resources:moderation.title")}
+        value={tab}
+        onChange={setTab}
+        options={(["pending", "published"] as const).map((key) => ({
+          value: key,
+          label: t(`resources:moderation.tabs.${key}`),
+        }))}
+      />
 
       {tab === "pending" ? <PendingTab /> : <PublishedTab />}
     </div>
