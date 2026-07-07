@@ -265,6 +265,9 @@ export function ScholarshipsPage() {
   const [academicLevels, setAcademicLevels] = useState<AcademicLevel[]>([]);
   const [deadlineFrom, setDeadlineFrom]     = useState("");
   const [deadlineTo, setDeadlineTo]         = useState("");
+  // Students should never filter for an already-closed deadline — floor both
+  // pickers at today (a scholarship whose deadline has passed is not applyable).
+  const todayIso = new Date().toISOString().slice(0, 10);
   const [fieldOfStudy, setFieldOfStudy]     = useState("");
   const [country, setCountry]               = useState("");
   const [showFilters, setShowFilters]       = useState(false);
@@ -504,6 +507,7 @@ export function ScholarshipsPage() {
               <DatePicker
                 value={deadlineFrom}
                 onChange={(v) => { setDeadlineFrom(v); setPage(1); }}
+                min={todayIso}
               />
             </div>
 
@@ -514,7 +518,7 @@ export function ScholarshipsPage() {
               <DatePicker
                 value={deadlineTo}
                 onChange={(v) => { setDeadlineTo(v); setPage(1); }}
-                min={deadlineFrom || undefined}
+                min={deadlineFrom || todayIso}
               />
             </div>
           </div>

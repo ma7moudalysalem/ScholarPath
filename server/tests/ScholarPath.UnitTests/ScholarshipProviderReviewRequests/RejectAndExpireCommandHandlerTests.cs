@@ -1,4 +1,5 @@
 using FluentAssertions;
+using FluentValidation.TestHelper;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using ScholarPath.Application.Common.Exceptions;
@@ -68,6 +69,29 @@ public class RejectAndExpireCommandHandlerTests
 
         var act = () => sut.Handle(new RejectScholarshipProviderReviewRequestCommand(request.Id), default);
         await act.Should().ThrowAsync<ConflictException>().WithMessage("*Pending*");
+    }
+
+    // Business rule: a provider must give a reason when rejecting a paid support
+    // request (the student always learns why). The validator enforces it.
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Validator_requires_a_reject_reason(string? reason)
+    {
+        var validator = new RejectScholarshipProviderReviewRequestCommandValidator();
+        var result = validator.TestValidate(
+            new RejectScholarshipProviderReviewRequestCommand(Guid.NewGuid(), reason));
+        result.ShouldHaveValidationErrorFor(x => x.Reason);
+    }
+
+    [Fact]
+    public void Validator_accepts_a_non_empty_reject_reason()
+    {
+        var validator = new RejectScholarshipProviderReviewRequestCommandValidator();
+        var result = validator.TestValidate(
+            new RejectScholarshipProviderReviewRequestCommand(Guid.NewGuid(), "Documents incomplete"));
+        result.ShouldNotHaveValidationErrorFor(x => x.Reason);
     }
 
     [Fact]

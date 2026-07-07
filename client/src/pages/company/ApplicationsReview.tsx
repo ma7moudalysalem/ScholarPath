@@ -417,6 +417,24 @@ function ApplicationDetailModal({
     }
   })();
 
+  // File names the student attached (from AttachedDocumentsJson) that aren't in
+  // the downloadable `documents` join. Defense-in-depth so the provider is never
+  // told "nothing submitted" when the student clearly attached files — even if a
+  // document row somehow didn't get linked to this application.
+  const attachedNames: string[] = (() => {
+    if (!details?.attachedDocumentsJson) return [];
+    try {
+      const parsed = JSON.parse(details.attachedDocumentsJson) as unknown;
+      return Array.isArray(parsed)
+        ? parsed.filter((n): n is string => typeof n === "string" && n.trim() !== "")
+        : [];
+    } catch {
+      return [];
+    }
+  })();
+  const linkedNames = new Set((details?.documents ?? []).map((d) => d.fileName));
+  const unlinkedAttachments = attachedNames.filter((n) => !linkedNames.has(n));
+
   const isTerminal = ["Accepted", "Rejected", "Withdrawn"].includes(row.status);
 
   return (
@@ -524,8 +542,30 @@ function ApplicationDetailModal({
             </div>
           )}
 
-          {/* No documents hint */}
-          {!isLoading && details && details.documents.length === 0 && !details.formDataJson && (
+          {/* Attached files the student listed but that aren't linked as
+              downloadable documents — show the names so the provider knows they
+              exist (a stale application from before the doc-linking fix). */}
+          {!isLoading && details && unlinkedAttachments.length > 0 && (
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                {t("scholarshipProviderReview.detail.attachments", "Attached files")}
+              </h3>
+              <ul className="space-y-2">
+                {unlinkedAttachments.map((name, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center gap-3 rounded-lg border border-border-subtle bg-bg-canvas p-3 text-sm"
+                  >
+                    <FileText size={16} className="shrink-0 text-text-tertiary" />
+                    <span className="flex-1 truncate text-text-primary">{name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* No documents hint — only when there is genuinely nothing to show */}
+          {!isLoading && details && details.documents.length === 0 && unlinkedAttachments.length === 0 && !details.formDataJson && (
             <p className="text-sm text-text-tertiary">
               {t("scholarshipProviderReview.detail.noContent", "No form answers or documents were submitted.")}
             </p>

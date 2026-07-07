@@ -14,6 +14,7 @@ import { apiErrorMessage } from "@/services/api/client";
 import { formatMoneyCents } from "@/services/api/payments";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { formatCalendarDate } from "@/lib/dates";
+import { PromptDialog } from "@/components/ui/PromptDialog";
 
 /**
  * ScholarshipProvider-side queue of incoming paid ScholarshipProviderReview requests. Pending rows
@@ -29,6 +30,9 @@ export function ScholarshipProviderReviewRequests() {
   const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const queryClient = useQueryClient();
   const [busyId, setBusyId] = useState<string | null>(null);
+  // A reject needs a required, typed reason — captured via PromptDialog, not
+  // window.prompt (which allowed an empty reason to slip through).
+  const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
   // Master payments switch — collapses the money breakdown to a single Free
   // row and hides commission / share columns when the platform is free-mode.
   const paymentsEnabled = usePaymentsEnabled();
@@ -61,6 +65,7 @@ export function ScholarshipProviderReviewRequests() {
     onSettled: () => setBusyId(null),
     onSuccess: () => {
       toast.success(t("payments:reviewRequest.rejectSuccess"));
+      setRejectTargetId(null);
       void invalidate();
     },
     onError: (err) => toast.error(apiErrorMessage(err, t("common:status.error"))),
@@ -212,11 +217,7 @@ export function ScholarshipProviderReviewRequests() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          const reason = window.prompt(t("payments:reviewRequest.rejectPrompt"));
-                          if (reason === null) return; // user dismissed
-                          rejectMut.mutate({ id: req.id, reason: reason || undefined });
-                        }}
+                        onClick={() => setRejectTargetId(req.id)}
                         disabled={isBusy}
                         className="inline-flex items-center gap-1.5 rounded-md border border-danger-200 bg-bg-canvas px-3 py-1.5 text-xs font-medium text-danger-500 hover:bg-danger-50 disabled:opacity-50"
                       >
@@ -246,6 +247,23 @@ export function ScholarshipProviderReviewRequests() {
           );
         })}
       </ul>
+
+      <PromptDialog
+        open={rejectTargetId !== null}
+        onOpenChange={(open) => { if (!open) setRejectTargetId(null); }}
+        title={t("payments:reviewRequest.reject")}
+        inputLabel={t("payments:reviewRequest.rejectPrompt")}
+        inputMultiline
+        requireInput
+        variant="destructive"
+        confirmLabel={t("payments:reviewRequest.reject")}
+        loading={rejectMut.isPending}
+        onConfirm={(reason) => {
+          const trimmed = reason.trim();
+          if (!rejectTargetId || !trimmed) return;
+          rejectMut.mutate({ id: rejectTargetId, reason: trimmed });
+        }}
+      />
     </div>
   );
 }
