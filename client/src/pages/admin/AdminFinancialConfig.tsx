@@ -29,6 +29,10 @@ const fmtMoney = (cents: number) =>
     maximumFractionDigits: 2,
   })}`;
 const fmtPct = (fraction: number) => `${(fraction * 100).toFixed(2)}%`;
+// Round-trip a stored fraction (e.g. 0.29) back to a percent input string
+// ("29"), stripping IEEE-754 artifacts like 28.999999999999996 that a plain
+// `* 100` leaves behind for many rates.
+const pctToInput = (fraction: number) => String(Number((fraction * 100).toFixed(4)));
 const dateOnly = (iso: string) => iso.slice(0, 10);
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
@@ -344,13 +348,13 @@ function RuleForm({ rule, onClose }: { rule?: FinancialConfigRuleDto; onClose: (
   );
   const [feeKind, setFeeKind] = useState<FeeKind>(rule?.feeKind ?? "Percentage");
   const [feePct, setFeePct] = useState(
-    rule?.feePercentage != null ? String(rule.feePercentage * 100) : "",
+    rule?.feePercentage != null ? pctToInput(rule.feePercentage) : "",
   );
   const [feeAmount, setFeeAmount] = useState(
     rule?.feeAmountCents != null ? String(rule.feeAmountCents / 100) : "",
   );
   const [profitShare, setProfitShare] = useState(
-    rule ? String(rule.profitSharePercentage * 100) : "",
+    rule ? pctToInput(rule.profitSharePercentage) : "",
   );
   const [effectiveFrom, setEffectiveFrom] = useState(
     rule ? dateOnly(rule.effectiveFrom) : todayInput(),

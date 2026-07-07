@@ -1,9 +1,11 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
 using ScholarPath.Application.Resources;
 using ScholarPath.Application.Resources.Queries.SearchResources;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 using ScholarPath.Infrastructure.Persistence;
 using Xunit;
 
@@ -44,7 +46,7 @@ public class SearchResourcesQueryHandlerTests
         db.Resources.Add(Make(ResourceStatus.Hidden));
         await db.SaveChangesAsync();
 
-        var result = await new SearchResourcesQueryHandler(db)
+        var result = await new SearchResourcesQueryHandler(db, Substitute.For<ICurrentUserService>())
             .Handle(new SearchResourcesQuery(), default);
 
         result.TotalCount.Should().Be(1);
@@ -59,7 +61,7 @@ public class SearchResourcesQueryHandlerTests
         db.Resources.Add(Make(ResourceStatus.Published, category: "visa"));
         await db.SaveChangesAsync();
 
-        var result = await new SearchResourcesQueryHandler(db)
+        var result = await new SearchResourcesQueryHandler(db, Substitute.For<ICurrentUserService>())
             .Handle(new SearchResourcesQuery { CategorySlug = "visa" }, default);
 
         result.TotalCount.Should().Be(1);
@@ -74,7 +76,7 @@ public class SearchResourcesQueryHandlerTests
         db.Resources.Add(Make(ResourceStatus.Published, titleEn: "Visa Interview Guide"));
         await db.SaveChangesAsync();
 
-        var result = await new SearchResourcesQueryHandler(db)
+        var result = await new SearchResourcesQueryHandler(db, Substitute.For<ICurrentUserService>())
             .Handle(new SearchResourcesQuery { Term = "Visa" }, default);
 
         result.TotalCount.Should().Be(1);

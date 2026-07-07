@@ -59,8 +59,11 @@ public sealed record ResourceBookmarkDto(
     string Slug,
     string TitleEn,
     string TitleAr,
+    string? DescriptionEn,
+    string? DescriptionAr,
     ResourceType Type,
     string? CoverImageUrl,
+    IReadOnlyList<string> Tags,
     DateTimeOffset BookmarkedAt);
 
 public sealed record ResourceProgressDto(

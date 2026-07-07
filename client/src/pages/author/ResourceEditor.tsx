@@ -318,6 +318,15 @@ export function ResourceEditor() {
         </div>
       )}
 
+      {/* ── Rejection reason (draft that an admin sent back) ── */}
+      {isEdit && isDraft && detail?.rejectionReason && (
+        <div className="rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-600">
+          <p className="font-semibold">{t("resources:author.rejectedTitle")}</p>
+          <p className="mt-1 whitespace-pre-wrap text-danger-700">{detail.rejectionReason}</p>
+          <p className="mt-2 text-xs text-danger-600">{t("resources:author.rejectedHint")}</p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
         {/* ── Type + Category ── */}
         <div className="rounded-xl border border-border-subtle bg-bg-elevated p-5 shadow-xs grid gap-4 sm:grid-cols-2">

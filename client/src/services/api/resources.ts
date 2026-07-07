@@ -88,6 +88,11 @@ export interface SearchResourcesParams {
   language?: string;
   page?: number;
   pageSize?: number;
+  /**
+   * Admin-only: also include Hidden resources in the results so a moderator can
+   * see and un-hide them. Ignored by the server for non-admin callers.
+   */
+  includeHidden?: boolean;
 }
 
 export interface ResourceChapterInput {
@@ -139,6 +144,22 @@ export interface ResourceProgressDetail {
   chaptersCompletedCount: number;
   totalChapters: number;
   completedChapterIds: string[];
+}
+
+/** Server ResourceBookmarkDto — a saved resource shown on the student Bookmarks page. */
+export interface ResourceBookmark {
+  resourceId: string;
+  /** Normalized alias of `resourceId` so `.id`-based list keys / unsave work. */
+  id: string;
+  slug: string;
+  titleEn: string;
+  titleAr: string;
+  descriptionEn: string | null;
+  descriptionAr: string | null;
+  type: ResourceType;
+  coverImageUrl: string | null;
+  tags: string[];
+  bookmarkedAt: string;
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────
@@ -211,15 +232,15 @@ export const resourcesApi = {
   },
 
   /** The caller's bookmarked resources. */
-  async getMyBookmarks(): Promise<ResourceListItem[]> {
-    const { data } = await apiClient.get<(ResourceListItem & { resourceId?: string })[]>(
+  async getMyBookmarks(): Promise<ResourceBookmark[]> {
+    const { data } = await apiClient.get<Omit<ResourceBookmark, "id">[]>(
       "/api/resources/bookmarks/me",
     );
     // This endpoint returns ResourceBookmarkDto whose identifier field is
     // `resourceId`, NOT `id`. Normalize to `id` so `.id`-based code (list keys
     // and the unsave button) works — otherwise unsave posted to
     // /api/resources/undefined/bookmark and 404'd (the "delete does nothing" bug).
-    return data.map((b) => ({ ...b, id: b.id ?? b.resourceId ?? "" }));
+    return data.map((b) => ({ ...b, id: b.resourceId }));
   },
 
   /** Mark a chapter as completed. */

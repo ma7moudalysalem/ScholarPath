@@ -224,6 +224,13 @@ export function ScholarshipForm() {
       // listing stays consistent with the platform mode even when an older
       // value is still stored in the database.
       reviewFeeUsd: paymentsEnabled ? (d.reviewFeeUsd ?? 50) : 0,
+      // Keep the required `listingMode` enum (and its paired URL) valid in edit
+      // mode. `reset()` replaces the whole form-value object, so omitting these
+      // would leave listingMode `undefined` — the zodResolver then blocks Save
+      // silently, since neither field is rendered on the edit path. Re-seed both
+      // from the detail DTO so the enum stays valid and submit fires.
+      listingMode: d.mode ?? "InApp",
+      externalApplicationUrl: d.externalUrl ?? "",
     });
   }, [mode, detailQuery.data, form, paymentsEnabled]);
 

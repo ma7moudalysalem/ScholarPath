@@ -8,7 +8,6 @@ import {
   MessageSquare,
   Flag,
   Send,
-  Shield,
   Loader2,
   Bookmark,
   Pencil,
@@ -382,10 +381,6 @@ export function CommunityThread() {
                 <div className="flex items-center gap-1.5 text-text-secondary text-sm font-medium">
                   <MessageSquare size={16} aria-hidden />
                   <span>{t("thread.commentsCount", { count: thread.post.replyCount })}</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-success-600 text-sm">
-                  <Shield size={16} aria-hidden />
-                  <span className="font-medium">{t("thread.verifiedSafe")}</span>
                 </div>
               </div>
             </div>

@@ -38,8 +38,21 @@ public sealed class UpdateExternalStatusCommandHandler(
                 "External applications can only be set to Intending, Applied, or WaitingResult.");
         }
 
+        var oldStatus = application.Status;
+
         application.Status = request.Status;
         application.UpdatedAt = DateTimeOffset.UtcNow;
+
+        // FR-APP-19: record the external self-tracking transition on the status
+        // timeline. Submit/Review/Withdraw all raise this so ApplicationStatusHistoryEventHandler
+        // appends a StatusHistory row; external trackers didn't, leaving their detail
+        // timeline with an empty transition list. Mirror the sibling handlers here.
+        application.RaiseDomainEvent(new ScholarPath.Domain.Events.ApplicationStatusChangedEvent(
+            application.Id,
+            application.StudentId,
+            application.ScholarshipId,
+            oldStatus,
+            request.Status));
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 

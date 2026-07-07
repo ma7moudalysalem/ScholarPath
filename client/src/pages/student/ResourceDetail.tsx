@@ -292,7 +292,7 @@ export function ResourceDetail() {
               </h2>
 
               {/* Completion bar (signed-in students only) */}
-              {user && (() => {
+              {user && isStudentView && (() => {
                 const done = completedChapters.size;
                 const total = chapters.length;
                 const pct = total > 0 ? Math.round((done / total) * 100) : 0;

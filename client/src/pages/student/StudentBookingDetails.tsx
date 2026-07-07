@@ -31,8 +31,10 @@ type TimelineStep = {
 function buildTimeline(booking: BookingDetail): TimelineStep[] {
   const bucket = statusBucket(booking.status);
   const requested = true;
-  const reviewed =
-    booking.status !== "Requested" && booking.status !== "Expired";
+  // "Reviewed" means the consultant actually acted on the request — accepted
+  // (confirmedAt) or rejected (rejectedAt). A request that expired unanswered or
+  // was cancelled by the student before any review must NOT light this step.
+  const reviewed = Boolean(booking.confirmedAt) || Boolean(booking.rejectedAt);
   const confirmed = Boolean(booking.confirmedAt) || bucket === "completed";
   const finalised =
     bucket === "completed" || bucket === "closed";
@@ -60,7 +62,10 @@ function buildTimeline(booking: BookingDetail): TimelineStep[] {
       key: "outcome",
       titleKey: "timeline.outcomeTitle",
       descriptionKey: "timeline.outcomeDescription",
-      isDone: finalised || confirmed,
+      // Only a booking that was actually confirmed can reach a session outcome,
+      // so the terminal step stays empty for requests closed before confirmation
+      // (expired / rejected / cancelled-while-pending) — keeps the timeline monotonic.
+      isDone: confirmed && finalised,
     },
   ];
 }

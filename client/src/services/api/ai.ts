@@ -107,6 +107,12 @@ export interface AiSessionTurn {
   promptTokens: number | null;
   completionTokens: number | null;
   costUsd: number | null;
+  /**
+   * SRS PB-016 — the RAG citations behind this answer, re-hydrated from the
+   * server so they survive a session reload / cache catch-up (they used to
+   * live only on the optimistic turn and vanished on refetch).
+   */
+  sources: ChatSourceDto[];
 }
 
 export const aiApi = {

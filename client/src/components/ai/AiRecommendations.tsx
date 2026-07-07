@@ -13,9 +13,15 @@ const KEY = ["ai", "recommendations"] as const;
 
 function DeadlinePill({ deadline, isAr }: { deadline: string; isAr: boolean }) {
   const { t } = useTranslation("ai");
-  if (!deadline || deadline === "0001-01-01T00:00:00Z") return null;
+  if (!deadline) return null;
 
   const date = new Date(deadline);
+  // A recommended scholarship removed during the 24h cache window serialises its
+  // deadline as DateTimeOffset.MinValue — year 0001 with any offset ("…Z" or
+  // "…+00:00"). Treat that (and any unparseable value) as "no deadline" instead
+  // of falling through to a misleading red "Closed" pill.
+  if (Number.isNaN(date.getTime()) || date.getUTCFullYear() <= 1) return null;
+
   const daysLeft = differenceInDays(date, new Date());
 
   if (isPast(date)) {
@@ -53,10 +59,13 @@ function FundingPill({ fundingType, amountUsd }: { fundingType: string; amountUs
     fundingType === "PartiallyFunded" ? "bg-brand-100 text-brand-700" :
     "bg-bg-subtle text-text-secondary";
 
+  // The funding label strings carry a trailing "{{amount}}" placeholder; when the
+  // API gives no amount we interpolate an empty string and trim so the pill reads
+  // just "Fully Funded" rather than "Fully Funded ".
   const label = t(`recommendations.funding.${fundingType}`, {
     defaultValue: fundingType,
     amount: amountUsd ? `$${Math.round(amountUsd).toLocaleString()}` : "",
-  });
+  }).trim();
 
   return (
     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${colorClass}`}>

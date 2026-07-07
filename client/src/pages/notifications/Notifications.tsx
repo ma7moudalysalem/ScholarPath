@@ -29,6 +29,9 @@ import {
 import { cn } from "@/lib/utils";
 
 const PAGE_STEP = 20;
+// The server clamps pageSize to 100 (GetNotificationsQueryHandler); past that a
+// larger pageSize returns the same 100 rows, so cap the client to match.
+const MAX_PAGE_SIZE = 100;
 
 type Tab = "all" | "unread";
 
@@ -253,11 +256,14 @@ export function Notifications() {
           the loaded page, so gating this on the "all" tab left unread items
           beyond the first page unreachable. Compare the loaded count (allItems)
           — not the filtered `items` — against the whole-feed total. */}
-      {allItems.length < data.total && (
+      {/* The server clamps pageSize to 100, so once we've grown to that cap the
+          growing-single-page strategy can fetch no more — hide the button then
+          instead of leaving a permanent no-op that never loads new rows. */}
+      {allItems.length < data.total && pageSize < MAX_PAGE_SIZE && (
         <div className="mt-6 text-center">
           <button
             type="button"
-            onClick={() => setPageSize((p) => p + PAGE_STEP)}
+            onClick={() => setPageSize((p) => Math.min(MAX_PAGE_SIZE, p + PAGE_STEP))}
             className="btn btn-secondary btn-sm"
           >
             {t("notifications:loadMore")}

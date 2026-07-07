@@ -20,13 +20,36 @@ public sealed class GetMyResourceBookmarksQueryHandler(
         var userId = currentUser.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
-        return await (
+        // Materialize the raw rows first, then map — tags are stored as a JSON
+        // string on the entity and ResourceTags.Deserialize cannot be translated
+        // to SQL, so it must run in memory over the fetched rows.
+        var rows = await (
             from b in db.ResourceBookmarks.AsNoTracking()
             where b.UserId == userId
             join r in db.Resources.AsNoTracking() on b.ResourceId equals r.Id
             orderby b.BookmarkedAt descending
-            select new ResourceBookmarkDto(
-                r.Id, r.Slug, r.TitleEn, r.TitleAr, r.Type, r.CoverImageUrl, b.BookmarkedAt))
+            select new
+            {
+                r.Id,
+                r.Slug,
+                r.TitleEn,
+                r.TitleAr,
+                r.DescriptionEn,
+                r.DescriptionAr,
+                r.Type,
+                r.CoverImageUrl,
+                r.TagsJson,
+                b.BookmarkedAt,
+            })
             .ToListAsync(ct);
+
+        return rows
+            .Select(x => new ResourceBookmarkDto(
+                x.Id, x.Slug, x.TitleEn, x.TitleAr,
+                x.DescriptionEn, x.DescriptionAr,
+                x.Type, x.CoverImageUrl,
+                ResourceTags.Deserialize(x.TagsJson),
+                x.BookmarkedAt))
+            .ToList();
     }
 }

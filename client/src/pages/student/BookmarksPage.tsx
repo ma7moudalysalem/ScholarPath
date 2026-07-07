@@ -25,7 +25,7 @@ import {
 import type { FundingType } from "@/types/domain";
 import { SkeletonCardGrid } from "@/components/common/Skeleton";
 import { apiErrorMessage } from "@/services/api/client";
-import { resourcesApi, type ResourceListItem } from "@/services/api/resources";
+import { resourcesApi, type ResourceBookmark } from "@/services/api/resources";
 import { expertiseTagLabelByLang } from "@/lib/expertiseTagLabel";
 
 type Tab = "scholarships" | "resources";
@@ -235,7 +235,7 @@ function ResourcesTab() {
   const isAr = i18n.language.startsWith("ar");
   const qc = useQueryClient();
 
-  const { data, isLoading, isError } = useQuery<ResourceListItem[]>({
+  const { data, isLoading, isError } = useQuery<ResourceBookmark[]>({
     queryKey: ["resources", "bookmarks", "mine"],
     queryFn: () => resourcesApi.getMyBookmarks(),
   });

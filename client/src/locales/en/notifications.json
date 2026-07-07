@@ -126,7 +126,12 @@
       "ScholarshipProviderReviewRequestPaymentHoldCancelled": "Application support request closed",
       "ScholarshipProviderReviewRequestPartiallyRefunded": "Application support request cancelled",
       "ScholarshipProviderReviewRequestCompleted": "Application support completed",
-      "ScholarshipProviderLowRatingFlagged": "ScholarshipProvider flagged for low rating"
+      "ScholarshipProviderLowRatingFlagged": "ScholarshipProvider flagged for low rating",
+      "ScholarshipApproved": "Scholarship approved",
+      "ScholarshipRejected": "Scholarship rejected",
+      "ConsultantLowRatingFlagged": "Consultant flagged for low rating",
+      "NoShowReportSubmitted": "No-show report submitted",
+      "NoShowReportResolved": "No-show report resolved"
     }
   }
 }
