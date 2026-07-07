@@ -10,7 +10,6 @@ import {
   BarChart2,
   Plus,
   ArrowRight,
-  FileText,
   Users,
   Clock,
 } from 'lucide-react';
@@ -26,8 +25,10 @@ import {
   StatCard,
   QuickActions,
   ChartCard,
-  CategoryBars,
-  type CategoryBar,
+  DonutChart,
+  StatusPill,
+  type DonutSegment,
+  type StatAccent,
 } from '@/components/dashboard/primitives';
 import { formatRelativeTime } from '@/components/dashboard/utils';
 
@@ -47,10 +48,27 @@ export interface ScholarshipProviderRatingsSummaryDto {
   recentReviews: ScholarshipProviderReviewRow[];
 }
 
-// Status buckets shown in the "Applications by status" breakdown, in order.
+// Status buckets shown in the "Applications by status" donut, in order.
 // Shortlisted MUST be included — a shortlisted application is a real, non-terminal
 // state; omitting it dropped those rows from the chart and the pending count.
 const COMPANY_STATUS_ORDER = ['Applied', 'Pending', 'UnderReview', 'WaitingResult', 'Shortlisted', 'Accepted', 'Rejected'];
+
+// Per-status visual encoding: a pill tone (background chip) + a donut color
+// (design-system status token). Mirrors StudentDashboard's STATUS_META so a given
+// status reads the same everywhere (donut slice color == row pill tone). Draft /
+// Withdrawn are here purely so recent-row pills resolve a tone if a row lands in
+// one of those states — the donut only iterates COMPANY_STATUS_ORDER.
+const STATUS_META: Record<string, { tone: StatAccent; color: string }> = {
+  Applied:       { tone: 'brand',   color: 'var(--color-status-applied)' },
+  Pending:       { tone: 'warning', color: 'var(--color-status-pending)' },
+  UnderReview:   { tone: 'warning', color: 'var(--color-brand-400)' },
+  Shortlisted:   { tone: 'brand',   color: 'var(--color-status-planned)' },
+  WaitingResult: { tone: 'warning', color: 'var(--color-warning-500)' },
+  Accepted:      { tone: 'success', color: 'var(--color-status-accepted)' },
+  Rejected:      { tone: 'danger',  color: 'var(--color-status-rejected)' },
+  Withdrawn:     { tone: 'neutral', color: 'var(--color-status-withdrawn)' },
+  Draft:         { tone: 'neutral', color: 'var(--color-status-withdrawn)' },
+};
 
 function greetingKey(): 'morning' | 'afternoon' | 'evening' {
   const h = new Date().getHours();
@@ -77,7 +95,7 @@ export function ScholarshipProviderDashboard() {
     staleTime: 60_000,
   });
 
-  const { data: applicationsPage } = useQuery({
+  const { data: applicationsPage, isLoading: appsLoading } = useQuery({
     queryKey: ['applications', 'company', 'all'],
     queryFn: () => applicationsApi.getScholarshipProviderApplications(undefined, 1, 50),
     staleTime: 60_000,
@@ -110,13 +128,31 @@ export function ScholarshipProviderDashboard() {
     (byStatus['Shortlisted'] ?? 0);
 
   // Real status distribution across ALL applications (no fabricated numbers —
-  // straight from the server aggregate). Ordered + zero buckets dropped.
-  const statusBreakdown = useMemo<CategoryBar[]>(() => {
-    return COMPANY_STATUS_ORDER.map((s) => ({
-      label: t(`applications:scholarshipProviderReview.status.${s}`, { defaultValue: s }),
-      count: byStatus[s] ?? 0,
-    })).filter((x) => x.count > 0);
-  }, [byStatus, t]);
+  // straight from the server aggregate). Ordered, colored to match the pills,
+  // zero buckets dropped. Feeds the DonutChart.
+  const donutSegments = useMemo<DonutSegment[]>(
+    () =>
+      COMPANY_STATUS_ORDER.map((s) => ({
+        label: t(`applications:scholarshipProviderReview.status.${s}`, { defaultValue: s }),
+        count: byStatus[s] ?? 0,
+        color: STATUS_META[s]?.color ?? 'var(--color-text-tertiary)',
+      })).filter((x) => x.count > 0),
+    [byStatus, t],
+  );
+
+  // Newest-first slice of the recent applicant rows, surfaced as a real list with
+  // status pills (avatar initial + student + scholarship + relative time).
+  const recentApps = useMemo(
+    () =>
+      [...apps]
+        .sort((a, b) => {
+          const ta = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+          const tb = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+          return tb - ta;
+        })
+        .slice(0, 6),
+    [apps],
+  );
 
   if (ratingsLoading) {
     return (
@@ -195,19 +231,113 @@ export function ScholarshipProviderDashboard() {
       </section>
 
       <div className="grid gap-6 lg:grid-cols-12">
+        {/* Left column: application pipeline donut + live applicant list */}
         <div className="space-y-6 lg:col-span-8">
           <ChartCard
             title={t('dashboard:company.applicationsByStatus.title')}
             subtitle={t('dashboard:company.applicationsByStatus.subtitle')}
           >
-            <CategoryBars
-              items={statusBreakdown}
+            <DonutChart
+              segments={donutSegments}
+              centerValue={totalApplicants}
+              centerLabel={t('dashboard:company.stats.applicants')}
               emptyLabel={t('dashboard:company.applicationsByStatus.empty')}
             />
           </ChartCard>
 
           <section className="card-premium p-5 sm:p-6">
-            <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <header className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-text-primary">
+                {t('applications:scholarshipProviderReview.title', { defaultValue: 'Review Applications' })}
+              </h2>
+              <Link
+                to="/company/applications-review"
+                className="text-xs font-medium text-brand-600 transition-colors hover:text-brand-700 hover:underline"
+              >
+                {t('dashboard:activity.viewAll')}
+              </Link>
+            </header>
+
+            {appsLoading ? (
+              <ul className="-mx-2 divide-y divide-border-subtle">
+                {[0, 1, 2, 3].map((i) => (
+                  <li key={i} className="flex items-center gap-3 px-2 py-3">
+                    <div className="size-10 shrink-0 animate-pulse rounded-xl bg-bg-subtle" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-1/2 animate-pulse rounded bg-bg-subtle" />
+                      <div className="h-2.5 w-2/3 animate-pulse rounded bg-bg-subtle" />
+                    </div>
+                    <div className="h-5 w-16 shrink-0 animate-pulse rounded-full bg-bg-subtle" />
+                  </li>
+                ))}
+              </ul>
+            ) : recentApps.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border-subtle bg-bg-subtle/30 p-8 text-center">
+                <p className="text-sm font-medium text-text-primary">{t('dashboard:activity.emptyTitle')}</p>
+                <p className="mt-1 text-xs text-text-tertiary">{t('dashboard:activity.emptyBody')}</p>
+              </div>
+            ) : (
+              <ul className="-mx-2 divide-y divide-border-subtle">
+                {recentApps.map((app) => {
+                  const meta = STATUS_META[app.status] ?? { tone: 'neutral' as StatAccent };
+                  const initial = (app.studentName || '?').trim().charAt(0).toUpperCase();
+                  return (
+                    <li key={app.applicationId}>
+                      <Link
+                        to="/company/applications-review"
+                        className="flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-bg-subtle/60"
+                      >
+                        <span
+                          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-sm font-bold text-brand-600"
+                          aria-hidden
+                        >
+                          {initial}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-text-primary">
+                            {app.studentName}
+                          </p>
+                          <p className="truncate text-xs text-text-tertiary">
+                            {app.scholarshipTitle}
+                            {app.submittedAt && (
+                              <>
+                                {' · '}
+                                {formatRelativeTime(app.submittedAt, i18n.language)}
+                              </>
+                            )}
+                          </p>
+                        </div>
+                        <StatusPill
+                          tone={meta.tone}
+                          label={t(`applications:scholarshipProviderReview.status.${app.status}`, {
+                            defaultValue: app.status,
+                          })}
+                        />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        {/* Right column: quick actions + student ratings */}
+        <aside className="space-y-6 lg:col-span-4">
+          <QuickActions
+            title={t('dashboard:quickActions.title')}
+            actions={[
+              { icon: Plus, label: t('dashboard:company.quick.post'), to: '/company/scholarships/new', accent: 'brand' },
+              { icon: ListChecks, label: t('dashboard:company.quick.review'), to: '/company/applications-review', accent: 'success' },
+              ...(paymentsEnabled
+                ? [{ icon: Receipt, label: t('dashboard:company.quick.billing'), to: '/company/billing', accent: 'warning' as const }]
+                : []),
+              { icon: BarChart2, label: t('dashboard:company.quick.analytics'), to: '/company/insights', accent: 'neutral' },
+            ]}
+          />
+
+          <section className="card-premium p-5 sm:p-6">
+            <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-base font-semibold text-text-primary">
                   {t('dashboard:company.reviews.title')}
@@ -219,7 +349,7 @@ export function ScholarshipProviderDashboard() {
                 )}
               </div>
               {ratings && ratings.totalRatings > 0 && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <Star aria-hidden className="size-5 fill-amber-400 text-amber-400" />
                   <span className="text-2xl font-bold tabular-nums text-text-primary">
                     {ratings.averageRating.toFixed(1)}
@@ -235,7 +365,7 @@ export function ScholarshipProviderDashboard() {
                 body={t('dashboard:company.reviews.emptyBody')}
               />
             ) : (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-3">
                 {(ratings.recentReviews ?? []).slice(0, 4).map((review) => (
                   <article
                     key={review.reviewId}
@@ -268,67 +398,6 @@ export function ScholarshipProviderDashboard() {
                   </article>
                 ))}
               </div>
-            )}
-          </section>
-        </div>
-
-        <aside className="space-y-6 lg:col-span-4">
-          <QuickActions
-            title={t('dashboard:quickActions.title')}
-            actions={[
-              { icon: Plus, label: t('dashboard:company.quick.post'), to: '/company/scholarships/new', accent: 'brand' },
-              { icon: ListChecks, label: t('dashboard:company.quick.review'), to: '/company/applications-review', accent: 'success' },
-              ...(paymentsEnabled
-                ? [{ icon: Receipt, label: t('dashboard:company.quick.billing'), to: '/company/billing', accent: 'warning' as const }]
-                : []),
-              { icon: BarChart2, label: t('dashboard:company.quick.analytics'), to: '/company/insights', accent: 'neutral' },
-            ]}
-          />
-
-          {/* Recent applications mini-feed */}
-          <section className="card-premium p-5 sm:p-6">
-            <header className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-text-primary">
-                {t('dashboard:activity.title')}
-              </h2>
-              <Link
-                to="/company/applications-review"
-                className="text-xs font-medium text-brand-600 transition-colors hover:text-brand-700 hover:underline"
-              >
-                {t('dashboard:activity.viewAll')}
-              </Link>
-            </header>
-            {apps.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border-subtle bg-bg-subtle/30 p-6 text-center">
-                <p className="text-sm font-medium text-text-primary">{t('dashboard:activity.emptyTitle')}</p>
-                <p className="mt-1 text-xs text-text-tertiary">{t('dashboard:activity.emptyBody')}</p>
-              </div>
-            ) : (
-              <ul className="space-y-3">
-                {apps.slice(0, 5).map((app) => (
-                  <li key={app.applicationId}>
-                    <Link
-                      to="/company/applications-review"
-                      className="flex gap-3 rounded-lg p-1 -m-1 transition-colors hover:bg-bg-subtle/60"
-                    >
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-                        <FileText aria-hidden className="size-4" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="line-clamp-1 text-sm text-text-primary">
-                          {app.studentName} <span className="text-text-tertiary">·</span>{' '}
-                          <span className="text-text-secondary">{app.scholarshipTitle}</span>
-                        </p>
-                        {app.submittedAt && (
-                          <p className="mt-0.5 text-xs text-text-tertiary">
-                            {formatRelativeTime(app.submittedAt, i18n.language)}
-                          </p>
-                        )}
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
             )}
           </section>
         </aside>

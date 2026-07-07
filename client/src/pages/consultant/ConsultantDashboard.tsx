@@ -17,16 +17,17 @@ import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { bookingsApi } from "@/services/api/bookings";
 import { notificationsApi } from "@/services/api/notifications";
 import { queryKeys } from "@/lib/queryClient";
+import { formatDateTime } from "@/lib/bookingFormat";
 import {
   WelcomeBanner,
   StatCard,
-  HubCard,
   ActivityFeed,
   QuickActions,
   ChartCard,
-  CategoryBars,
+  DonutChart,
+  StatusPill,
   type ActivityItem,
-  type CategoryBar,
+  type DonutSegment,
   type StatAccent,
 } from "@/components/dashboard/primitives";
 import { formatRelativeTime } from "@/components/dashboard/utils";
@@ -49,8 +50,8 @@ function greetingKey(): "morning" | "afternoon" | "evening" {
 
 // Booking buckets shown in the "Bookings by status" breakdown, in order. The
 // no-show statuses (reported + both confirmed sides) are merged into a single
-// "NoShow" row at render time. Rejected (consultant declined) and Expired (no
-// response in time) are real terminal outcomes and must be shown, not dropped.
+// "NoShow" segment at render time. Rejected (consultant declined) and Expired
+// (no response in time) are real terminal outcomes and must be shown.
 const CONSULTANT_BOOKING_STATUSES = [
   "Requested",
   "Confirmed",
@@ -59,6 +60,20 @@ const CONSULTANT_BOOKING_STATUSES = [
   "Rejected",
   "Expired",
 ];
+
+// Per-status visual encoding: a pill tone (background chip) and a donut color
+// (a design-system status token). Keeps the distribution donut and the row
+// pills in sync so a status reads the same everywhere. "NoShow" is the merged
+// bucket for the three server no-show statuses.
+const STATUS_META: Record<string, { tone: StatAccent; color: string }> = {
+  Requested: { tone: "warning", color: "var(--color-brand-400)" },
+  Confirmed: { tone: "brand",   color: "var(--color-status-applied)" },
+  Completed: { tone: "success", color: "var(--color-status-accepted)" },
+  Cancelled: { tone: "neutral", color: "var(--color-status-withdrawn)" },
+  Rejected:  { tone: "danger",  color: "var(--color-status-rejected)" },
+  Expired:   { tone: "neutral", color: "var(--color-text-tertiary)" },
+  NoShow:    { tone: "warning", color: "var(--color-status-pending)" },
+};
 
 export function ConsultantDashboard() {
   const { t, i18n } = useTranslation(["dashboard"]);
@@ -121,13 +136,37 @@ export function ConsultantDashboard() {
     (bookingCounts.NoShowStudent ?? 0) +
     (bookingCounts.NoShowConsultant ?? 0) +
     (bookingCounts.NoShowReported ?? 0);
-  const bookingBreakdown: CategoryBar[] = [
+  // Donut segments encode each status by its design-system color; zero-count
+  // segments are dropped so the ring and legend only show real states.
+  const bookingSegments: DonutSegment[] = [
     ...CONSULTANT_BOOKING_STATUSES.map((s) => ({
       label: t(`dashboard:consultant.bookingsByStatus.statuses.${s}`),
       count: bookingCounts[s] ?? 0,
+      color: STATUS_META[s]?.color ?? "var(--color-text-tertiary)",
     })),
-    { label: t("dashboard:consultant.bookingsByStatus.statuses.NoShow"), count: noShowCount },
+    {
+      label: t("dashboard:consultant.bookingsByStatus.statuses.NoShow"),
+      count: noShowCount,
+      color: STATUS_META.NoShow.color,
+    },
   ].filter((x) => x.count > 0);
+
+  // The next confirmed sessions, soonest first — a real, actionable list that
+  // replaces the redundant nav-tile grid (those links live in Quick actions).
+  const nowMs = now.getTime();
+  const upcomingList = useMemo(
+    () =>
+      bookings
+        .filter(
+          (b) => b.status === "Confirmed" && new Date(b.scheduledStartAt).getTime() > nowMs,
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.scheduledStartAt).getTime() - new Date(b.scheduledStartAt).getTime(),
+        )
+        .slice(0, 6),
+    [bookings, nowMs],
+  );
 
   const activities = useMemo<ActivityItem[]>(() => {
     if (!notifPage) return [];
@@ -151,15 +190,6 @@ export function ConsultantDashboard() {
       };
     });
   }, [notifPage, i18n.language, paymentsEnabled]);
-
-  const CARDS: Array<{ icon: LucideIcon; to: string; titleKey: string; accent: StatAccent }> = [
-    { icon: Clock, to: "/consultant/availability", titleKey: "availability", accent: "brand" },
-    { icon: CalendarCheck, to: "/consultant/bookings", titleKey: "bookings", accent: "success" },
-    // Earnings hub card is money-related — only surface it when payments are on.
-    ...(paymentsEnabled
-      ? [{ icon: Wallet, to: "/consultant/earnings", titleKey: "earnings", accent: "warning" as StatAccent }]
-      : []),
-  ];
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:py-10">
@@ -234,36 +264,76 @@ export function ConsultantDashboard() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-12">
+        {/* Left column: booking distribution + upcoming-sessions list */}
         <div className="space-y-6 lg:col-span-8">
           <ChartCard
             title={t("dashboard:consultant.bookingsByStatus.title")}
             subtitle={t("dashboard:consultant.bookingsByStatus.subtitle")}
           >
-            <CategoryBars
-              items={bookingBreakdown}
+            <DonutChart
+              segments={bookingSegments}
+              centerValue={bookings.length}
+              centerLabel={t("dashboard:consultant.cards.bookings.title")}
               emptyLabel={t("dashboard:consultant.bookingsByStatus.empty")}
             />
           </ChartCard>
 
-          <section>
-            <header className="mb-4">
-              <h2 className="text-lg font-semibold text-text-primary">
-                {t("dashboard:consultant.cards.bookings.title")}
+          <section className="card-premium p-5 sm:p-6">
+            <header className="mb-4 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-text-primary">
+                {t("dashboard:consultant.stats.upcoming")}
               </h2>
+              <Link
+                to="/consultant/bookings"
+                className="text-xs font-medium text-brand-600 transition-colors hover:text-brand-700 hover:underline"
+              >
+                {t("dashboard:activity.viewAll")}
+              </Link>
             </header>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {CARDS.map(({ icon, to, titleKey, accent }, idx) => (
-                <HubCard
-                  key={to}
-                  icon={icon}
-                  to={to}
-                  title={t(`dashboard:consultant.cards.${titleKey}.title`)}
-                  description={t(`dashboard:consultant.cards.${titleKey}.desc`)}
-                  accent={accent}
-                  delay={idx * 0.04}
-                />
-              ))}
-            </div>
+
+            {upcomingList.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border-subtle bg-bg-subtle/30 p-8 text-center">
+                <p className="text-sm text-text-tertiary">
+                  {t("dashboard:consultant.upcomingSessions.empty", {
+                    defaultValue: "No upcoming sessions scheduled.",
+                  })}
+                </p>
+              </div>
+            ) : (
+              <ul className="-mx-2 divide-y divide-border-subtle">
+                {upcomingList.map((b) => {
+                  const meta = STATUS_META.Confirmed;
+                  const initial = (b.studentName || "?").trim().charAt(0).toUpperCase();
+                  return (
+                    <li key={b.id}>
+                      <Link
+                        to="/consultant/bookings"
+                        className="flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-bg-subtle/60"
+                      >
+                        <span
+                          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-sm font-bold text-brand-600"
+                          aria-hidden
+                        >
+                          {initial}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-text-primary">
+                            {b.studentName}
+                          </p>
+                          <p className="truncate text-xs text-text-tertiary">
+                            {formatDateTime(b.scheduledStartAt, i18n.language)}
+                          </p>
+                        </div>
+                        <StatusPill
+                          tone={meta.tone}
+                          label={t("dashboard:consultant.bookingsByStatus.statuses.Confirmed")}
+                        />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
         </div>
 

@@ -634,6 +634,125 @@ export function CategoryBars({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// Donut / ring chart — proportional distribution with a center total + legend.
+// A richer alternative to CategoryBars for status/composition breakdowns. Feed
+// it labelled counts and a CSS color per segment; zero-total renders an empty
+// ring so the card never looks broken. Colors are passed as CSS values (design
+// tokens) so it themes automatically in light + dark.
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface DonutSegment {
+  label: string;
+  count: number;
+  /** A CSS color value — e.g. "var(--color-brand-500)". */
+  color: string;
+}
+
+export function DonutChart({
+  segments,
+  centerValue,
+  centerLabel,
+  size = 148,
+  thickness = 18,
+  emptyLabel,
+}: {
+  segments: DonutSegment[];
+  centerValue: number | string;
+  centerLabel: string;
+  size?: number;
+  thickness?: number;
+  emptyLabel?: string;
+}) {
+  const total = segments.reduce((sum, s) => sum + s.count, 0);
+  const shown = segments.filter((s) => s.count > 0);
+  const r = (size - thickness) / 2;
+  const circ = 2 * Math.PI * r;
+  let offset = 0;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+      <div className="relative shrink-0" style={{ width: size, height: size }}>
+        <svg
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+          className="-rotate-90"
+          role="img"
+          aria-label={`${centerValue} ${centerLabel}`}
+        >
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            fill="none"
+            stroke="var(--color-bg-subtle)"
+            strokeWidth={thickness}
+          />
+          {total > 0 &&
+            shown.map((s, i) => {
+              const len = (s.count / total) * circ;
+              const el = (
+                <circle
+                  key={i}
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={r}
+                  fill="none"
+                  stroke={s.color}
+                  strokeWidth={thickness}
+                  strokeDasharray={`${len} ${circ - len}`}
+                  strokeDashoffset={-offset}
+                />
+              );
+              offset += len;
+              return el;
+            })}
+        </svg>
+        <div className="absolute inset-0 grid place-content-center text-center">
+          <span className="text-2xl font-bold tabular-nums tracking-tight text-text-primary">
+            {centerValue}
+          </span>
+          <span className="text-[10px] font-medium uppercase tracking-wide text-text-tertiary">
+            {centerLabel}
+          </span>
+        </div>
+      </div>
+
+      {shown.length > 0 ? (
+        <ul className="min-w-[150px] flex-1 space-y-2">
+          {shown.map((s) => (
+            <li key={s.label} className="flex items-center gap-2.5 text-sm">
+              <span className="size-2.5 shrink-0 rounded-sm" style={{ background: s.color }} aria-hidden />
+              <span className="flex-1 truncate text-text-secondary">{s.label}</span>
+              <span className="font-semibold tabular-nums text-text-primary">{s.count}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="flex-1 text-sm text-text-tertiary">{emptyLabel}</p>
+      )}
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Status pill — a small tinted chip encoding state in color as well as text.
+// ────────────────────────────────────────────────────────────────────────────
+
+export function StatusPill({ label, tone = "neutral" }: { label: string; tone?: StatAccent }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold",
+        ACCENT_BG[tone],
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Hub card (smaller, used for module navigation grids)
 // ────────────────────────────────────────────────────────────────────────────
 

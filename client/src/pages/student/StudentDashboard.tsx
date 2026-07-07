@@ -27,13 +27,13 @@ import { useBookmarksQuery } from "@/hooks/useScholarshipsQuery";
 import {
   WelcomeBanner,
   StatCard,
-  HubCard,
   ActivityFeed,
   QuickActions,
   ChartCard,
-  CategoryBars,
+  DonutChart,
+  StatusPill,
   type ActivityItem,
-  type CategoryBar,
+  type DonutSegment,
   type StatAccent,
 } from "@/components/dashboard/primitives";
 import { formatRelativeTime } from "@/components/dashboard/utils";
@@ -72,6 +72,24 @@ const STUDENT_APP_STATUSES = [
   "Withdrawn",
 ];
 
+// Per-status visual encoding: a pill tone (background chip) and a donut color
+// (a design-system status token). Keeps the pipeline chart and the row pills in
+// sync so a status reads the same everywhere.
+const STATUS_META: Record<string, { tone: StatAccent; color: string }> = {
+  Intending:    { tone: "neutral", color: "var(--color-status-planned)" },
+  Draft:        { tone: "neutral", color: "var(--color-status-withdrawn)" },
+  Applied:      { tone: "brand",   color: "var(--color-status-applied)" },
+  Pending:      { tone: "warning", color: "var(--color-status-pending)" },
+  UnderReview:  { tone: "warning", color: "var(--color-brand-400)" },
+  Shortlisted:  { tone: "brand",   color: "var(--color-status-planned)" },
+  WaitingResult:{ tone: "warning", color: "var(--color-warning-500)" },
+  Accepted:     { tone: "success", color: "var(--color-status-accepted)" },
+  Rejected:     { tone: "danger",  color: "var(--color-status-rejected)" },
+  Withdrawn:    { tone: "neutral", color: "var(--color-status-withdrawn)" },
+};
+
+const TERMINAL_STATUSES = new Set(["Accepted", "Rejected", "Withdrawn"]);
+
 export function StudentDashboard() {
   const { t, i18n } = useTranslation(["dashboard", "notifications", "applications"]);
   const firstName = useAuthStore((s) => s.user?.firstName ?? "");
@@ -106,9 +124,11 @@ export function StudentDashboard() {
     staleTime: 30_000,
   });
 
-  const activeApps = applications.filter(
-    (a) => a.status !== "Accepted" && a.status !== "Rejected" && a.status !== "Withdrawn",
-  ).length;
+  const activeApplications = useMemo(
+    () => applications.filter((a) => !TERMINAL_STATUSES.has(a.status)),
+    [applications],
+  );
+  const activeApps = activeApplications.length;
 
   const upcomingBookings = bookings.filter(
     (b) => b.status === "Confirmed" && new Date(b.scheduledStartAt) > new Date(),
@@ -119,10 +139,21 @@ export function StudentDashboard() {
     acc[a.status] = (acc[a.status] ?? 0) + 1;
     return acc;
   }, {});
-  const appBreakdown: CategoryBar[] = STUDENT_APP_STATUSES.map((s) => ({
+  const donutSegments: DonutSegment[] = STUDENT_APP_STATUSES.map((s) => ({
     label: t(`applications:kanban.columns.${s}`, { defaultValue: s }),
     count: appCounts[s] ?? 0,
+    color: STATUS_META[s]?.color ?? "var(--color-text-tertiary)",
   })).filter((x) => x.count > 0);
+
+  // The most-recently-updated active applications, surfaced as a real list with
+  // status pills — replaces a redundant nav-tile grid with actionable content.
+  const recentActive = useMemo(
+    () =>
+      [...activeApplications]
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+        .slice(0, 6),
+    [activeApplications],
+  );
 
   const activities = useMemo<ActivityItem[]>(() => {
     if (!notifPage) return [];
@@ -139,18 +170,6 @@ export function StudentDashboard() {
       };
     });
   }, [notifPage, i18n.language]);
-
-  const CARDS: Array<{ icon: LucideIcon; to: string; titleKey: string; descKey: string }> = [
-    { icon: GraduationCap, to: "/student/scholarships", titleKey: "scholarships", descKey: "scholarships" },
-    { icon: FileText, to: "/student/applications", titleKey: "applications", descKey: "applications" },
-    { icon: Bookmark, to: "/student/bookmarks", titleKey: "bookmarks", descKey: "bookmarks" },
-    { icon: Users, to: "/student/consultants", titleKey: "consultants", descKey: "consultants" },
-    { icon: CalendarCheck, to: "/student/bookings", titleKey: "bookings", descKey: "bookings" },
-    { icon: MessageSquare, to: "/student/community", titleKey: "community", descKey: "community" },
-    { icon: MessageCircle, to: "/student/messages", titleKey: "messages", descKey: "messages" },
-    { icon: Sparkles, to: "/student/ai", titleKey: "ai", descKey: "ai" },
-    { icon: BookOpen, to: "/student/resources", titleKey: "resources", descKey: "resources" },
-  ];
 
   return (
     <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:py-10">
@@ -222,38 +241,79 @@ export function StudentDashboard() {
 
       {/* Main 12-col grid */}
       <div className="grid gap-6 lg:grid-cols-12">
-        {/* Left column: nav hub cards */}
+        {/* Left column: application pipeline + live application list */}
         <div className="space-y-6 lg:col-span-8">
           <ChartCard
             title={t("dashboard:student.applicationsByStatus.title")}
             subtitle={t("dashboard:student.applicationsByStatus.subtitle")}
           >
-            <CategoryBars
-              items={appBreakdown}
+            <DonutChart
+              segments={donutSegments}
+              centerValue={applications.length}
+              centerLabel={t("dashboard:student.cards.applications.title")}
               emptyLabel={t("dashboard:student.applicationsByStatus.empty")}
             />
           </ChartCard>
 
-          <section>
+          <section className="card-premium p-5 sm:p-6">
             <header className="mb-4 flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-text-primary">
-                  {t("dashboard:student.cards.scholarships.title")}
-                </h2>
-              </div>
+              <h2 className="text-base font-semibold text-text-primary">
+                {t("dashboard:student.cards.applications.title")}
+              </h2>
+              <Link
+                to="/student/applications"
+                className="text-xs font-medium text-brand-600 transition-colors hover:text-brand-700 hover:underline"
+              >
+                {t("dashboard:activity.viewAll")}
+              </Link>
             </header>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {CARDS.map(({ icon, to, titleKey, descKey }, idx) => (
-                <HubCard
-                  key={to}
-                  icon={icon}
-                  to={to}
-                  title={t(`dashboard:student.cards.${titleKey}.title`)}
-                  description={t(`dashboard:student.cards.${descKey}.desc`)}
-                  delay={idx * 0.03}
-                />
-              ))}
-            </div>
+
+            {recentActive.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border-subtle bg-bg-subtle/30 p-8 text-center">
+                <p className="text-sm text-text-tertiary">
+                  {t("dashboard:student.applicationsByStatus.empty")}
+                </p>
+              </div>
+            ) : (
+              <ul className="-mx-2 divide-y divide-border-subtle">
+                {recentActive.map((a) => {
+                  const meta = STATUS_META[a.status] ?? { tone: "neutral" as StatAccent };
+                  const initial = (a.scholarshipTitle || "?").trim().charAt(0).toUpperCase();
+                  return (
+                    <li key={a.applicationId}>
+                      <Link
+                        to="/student/applications"
+                        className="flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-bg-subtle/60"
+                      >
+                        <span
+                          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-sm font-bold text-brand-600"
+                          aria-hidden
+                        >
+                          {initial}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-text-primary">
+                            {a.scholarshipTitle}
+                          </p>
+                          <p className="truncate text-xs text-text-tertiary">
+                            {a.scholarshipProviderName ??
+                              t(`applications:mode.${a.mode}`, { defaultValue: a.mode })}
+                            {" · "}
+                            {formatRelativeTime(a.updatedAt, i18n.language)}
+                          </p>
+                        </div>
+                        <StatusPill
+                          tone={meta.tone}
+                          label={t(`applications:kanban.columns.${a.status}`, {
+                            defaultValue: a.status,
+                          })}
+                        />
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
         </div>
 
