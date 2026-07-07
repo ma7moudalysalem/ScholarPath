@@ -117,6 +117,7 @@ public static partial class DbSeeder
         var team = new[]
         {
             ("Tasneem", "tasneem"),
+            ("Tasneem 2", "tasneem2"),
             ("Mimi", "mimi"),
             ("Nour", "nour"),
             ("Yousra", "yousra"),
