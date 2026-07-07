@@ -109,6 +109,7 @@
     "title": "My scholarships",
     "subtitle": "Every scholarship listing your organisation has created.",
     "rejectedReason": "Rejected by admin: {{reason}} — edit and save to resubmit.",
+    "createdOn": "Created {{date}}",
     "loading": "Loading scholarships…",
     "loadError": "Could not load your scholarships.",
     "empty": "You have not created any scholarships yet.",
@@ -142,6 +143,7 @@
       "categoryLoading": "Loading categories…",
       "deadline": "Application deadline",
       "deadlineHint": "At least 7 days from today.",
+      "deadlineHelp": "Earliest allowed date is {{date}}. Applications stay open through the whole day you pick — it closes at the end of that day (UTC).",
       "fundingType": "Funding type",
       "fundingTypeOptions": {
         "FullyFunded": "Fully funded",
@@ -221,7 +223,27 @@
     "approveError": "Could not approve the scholarship.",
     "rejectPrompt": "Reason for rejecting this scholarship:",
     "rejectSuccess": "Scholarship rejected.",
-    "rejectError": "Could not reject the scholarship."
+    "rejectError": "Could not reject the scholarship.",
+    "preview": {
+      "review": "Review",
+      "hide": "Hide details",
+      "provider": "Provider",
+      "funding": "Funding",
+      "level": "Academic level",
+      "country": "Target country",
+      "mode": "Application mode",
+      "inApp": "In-app application",
+      "external": "External link",
+      "reviewFee": "Review fee",
+      "description": "Description",
+      "eligibility": "Eligibility",
+      "fields": "Fields of study",
+      "requiredDocs": "Required documents",
+      "externalLink": "Open external application link",
+      "closed": "Closed",
+      "closesIn": "Closes in {{count}} day",
+      "closesIn_other": "Closes in {{count}} days"
+    }
   },
   "communityModeration": {
     "title": "Community moderation",

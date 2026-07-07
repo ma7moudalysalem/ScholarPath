@@ -18,6 +18,8 @@ import {
 } from "@/services/api/scholarships";
 import { apiErrorMessage } from "@/services/api/client";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
+import { formatCalendarDate } from "@/lib/dates";
+import { ar } from "date-fns/locale";
 import type { AcademicLevel, FundingType } from "@/types/domain";
 
 // ── Form schema ──────────────────────────────────────────────────────────────
@@ -262,9 +264,12 @@ export function ScholarshipForm() {
 
   const onSubmit = form.handleSubmit((values) => {
     // The HTML date input emits YYYY-MM-DD; convert to an ISO instant so the
-    // .NET DateTimeOffset binder + the "> now + 7d" rule both see a real
-    // point in time (midnight UTC of the chosen day).
-    const deadlineIso = new Date(`${values.deadline}T00:00:00Z`).toISOString();
+    // .NET DateTimeOffset binder + the "> now + 7d" rule both see a real point
+    // in time. Use the END of the chosen day (23:59:59 UTC), not the start —
+    // a deadline of "Aug 1" must let applicants submit through all of Aug 1,
+    // not slam shut at 00:00. Create + edit both use this mapping, so the edit
+    // pre-fill (which slices back to the YYYY-MM-DD date) round-trips cleanly.
+    const deadlineIso = new Date(`${values.deadline}T23:59:59Z`).toISOString();
 
     if (mode === "edit" && editingId) {
       const input: UpdateScholarshipInput = {
@@ -317,6 +322,7 @@ export function ScholarshipForm() {
   const isSubmitting = createMut.isPending || updateMut.isPending;
   const isLoadingDetail = mode === "edit" && detailQuery.isLoading;
   const minDeadline = minDeadlineDate().toISOString().slice(0, 10);
+  const dateLocale = i18n.language.startsWith("ar") ? ar : undefined;
   const errors = form.formState.errors;
 
   return (
@@ -499,7 +505,9 @@ export function ScholarshipForm() {
           <Field
             id="deadline"
             label={t("moderation:scholarshipProviderScholarships.form.deadline")}
-            hint={t("moderation:scholarshipProviderScholarships.form.deadlineHint")}
+            hint={t("moderation:scholarshipProviderScholarships.form.deadlineHelp", {
+              date: formatCalendarDate(minDeadline, "dd MMM yyyy", dateLocale),
+            })}
             error={errors.deadline?.message}
           >
             {/* Controller wraps the custom DatePicker so react-hook-form can

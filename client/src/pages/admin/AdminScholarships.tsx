@@ -1,16 +1,18 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Link } from "react-router";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, ChevronDown, ChevronRight, ExternalLink } from "lucide-react";
 import { ar } from "date-fns/locale";
 import {
   scholarshipsApi,
   type PaginatedMyScholarships,
   type ScholarshipStatus,
+  type ScholarshipDetail,
 } from "@/services/api/scholarships";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { DeadlineHint } from "@/components/scholarships/DeadlineHint";
 import { formatCalendarDate } from "@/lib/dates";
 
 const STATUSES: ScholarshipStatus[] = [
@@ -36,6 +38,120 @@ function statusBadgeClass(s: ScholarshipStatus): string {
   }
 }
 
+// An admin must READ the listing before approving it — title + deadline alone is
+// a blind approval. This lazily loads the full detail (the server lets an admin
+// read an UnderReview listing) and lays out every field that matters to the call.
+function ScholarshipModerationPanel({ id }: { id: string }) {
+  const { t, i18n } = useTranslation(["moderation", "scholarships", "common"]);
+  const isAr = i18n.language.startsWith("ar");
+
+  const { data, isLoading, isError } = useQuery<ScholarshipDetail>({
+    queryKey: ["scholarship", "detail", id],
+    queryFn: () => scholarshipsApi.getById(id),
+  });
+
+  if (isLoading) {
+    return (
+      <p className="text-sm text-text-tertiary">
+        {t("moderation:scholarshipModeration.loading")}
+      </p>
+    );
+  }
+  if (isError || !data) {
+    return (
+      <p className="text-sm text-danger-500">
+        {t("moderation:scholarshipModeration.loadError")}
+      </p>
+    );
+  }
+
+  const p = "moderation:scholarshipModeration.preview";
+  const description = isAr
+    ? data.descriptionAr || data.descriptionEn
+    : data.descriptionEn || data.descriptionAr;
+  const docs = data.requiredDocuments ?? [];
+  const fields = data.fieldsOfStudy ?? [];
+
+  return (
+    <div className="max-w-3xl space-y-4">
+      <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.provider`)}</dt>
+          <dd className="mt-0.5 text-sm text-text-secondary">{data.ownerScholarshipProviderName || "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.funding`)}</dt>
+          <dd className="mt-0.5 text-sm text-text-secondary">{t(`scholarships:fundingType.${data.fundingType}`)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.level`)}</dt>
+          <dd className="mt-0.5 text-sm text-text-secondary">{t(`scholarships:level.${data.targetLevel}`)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.country`)}</dt>
+          <dd className="mt-0.5 text-sm text-text-secondary">{data.country || "—"}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.mode`)}</dt>
+          <dd className="mt-0.5 text-sm text-text-secondary">
+            {data.mode === "ExternalUrl" ? t(`${p}.external`) : t(`${p}.inApp`)}
+          </dd>
+        </div>
+        {data.reviewFeeUsd != null && (
+          <div>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.reviewFee`)}</dt>
+            <dd className="mt-0.5 text-sm text-text-secondary">${data.reviewFeeUsd}</dd>
+          </div>
+        )}
+      </dl>
+
+      {description && (
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.description`)}</p>
+          <p className="whitespace-pre-wrap text-sm text-text-secondary">{description}</p>
+        </div>
+      )}
+
+      {data.eligibilityCriteria && (
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.eligibility`)}</p>
+          <p className="whitespace-pre-wrap text-sm text-text-secondary">{data.eligibilityCriteria}</p>
+        </div>
+      )}
+
+      {fields.length > 0 && (
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.fields`)}</p>
+          <p className="text-sm text-text-secondary">{fields.join("، ")}</p>
+        </div>
+      )}
+
+      {docs.length > 0 && (
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">{t(`${p}.requiredDocs`)}</p>
+          <ul className="list-disc space-y-0.5 ps-5 text-sm text-text-secondary">
+            {docs.map((d, i) => (
+              <li key={i}>{d}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {data.externalUrl && (
+        <a
+          href={data.externalUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm text-brand-600 underline"
+        >
+          <ExternalLink aria-hidden className="size-3.5" />
+          {t(`${p}.externalLink`)}
+        </a>
+      )}
+    </div>
+  );
+}
+
 export function AdminScholarships() {
   const { t, i18n } = useTranslation(["moderation", "common"]);
   const isAr = i18n.language.startsWith("ar");
@@ -44,6 +160,8 @@ export function AdminScholarships() {
 
   const [status, setStatus] = useState<ScholarshipStatus>("UnderReview");
   const [page, setPage] = useState(1);
+  // Which row is expanded to preview the full listing before deciding.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery<PaginatedMyScholarships>({
     queryKey: ["admin", "scholarships", status, page],
@@ -181,49 +299,85 @@ export function AdminScholarships() {
                 </td>
               </tr>
             )}
-            {data?.items.map((s) => (
-              <tr
-                key={s.id}
-                className="border-t border-border-subtle hover:bg-bg-subtle/40"
-              >
-                <td className="px-4 py-3 font-medium text-text-primary">
-                  {isAr ? s.titleAr || s.titleEn : s.titleEn || s.titleAr}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(s.status)}`}
-                  >
-                    {t(`moderation:scholarshipStatus.${s.status}`)}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-xs text-text-tertiary">
-                  {formatCalendarDate(s.deadline, "yyyy-MM-dd", dateLocale)}
-                </td>
-                <td className="px-4 py-3 text-text-secondary">{s.applicantCount}</td>
-                <td className="px-4 py-3 text-end">
-                  {canModerate && (
-                    <div className="inline-flex gap-2">
+            {data?.items.map((s) => {
+              const isExpanded = expandedId === s.id;
+              const title = isAr ? s.titleAr || s.titleEn : s.titleEn || s.titleAr;
+              return (
+                <Fragment key={s.id}>
+                  <tr className="border-t border-border-subtle hover:bg-bg-subtle/40">
+                    <td className="px-4 py-3 font-medium text-text-primary">
                       <button
                         type="button"
-                        disabled={busy}
-                        onClick={() => approveMut.mutate(s.id)}
-                        className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-success-500 hover:text-success-600 disabled:opacity-50"
+                        onClick={() => setExpandedId(isExpanded ? null : s.id)}
+                        aria-expanded={isExpanded}
+                        className="inline-flex items-start gap-1.5 text-start transition-colors hover:text-brand-600"
                       >
-                        {t("moderation:scholarshipModeration.approve")}
+                        {isExpanded ? (
+                          <ChevronDown aria-hidden className="mt-0.5 size-4 shrink-0 text-text-tertiary" />
+                        ) : (
+                          <ChevronRight aria-hidden className="mt-0.5 size-4 shrink-0 text-text-tertiary rtl:rotate-180" />
+                        )}
+                        <span>{title}</span>
                       </button>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => confirmReject(s.id)}
-                        className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500 disabled:opacity-50"
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(s.status)}`}
                       >
-                        {t("moderation:scholarshipModeration.reject")}
-                      </button>
-                    </div>
+                        {t(`moderation:scholarshipStatus.${s.status}`)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      <div className="text-text-secondary">
+                        {formatCalendarDate(s.deadline, "dd MMM yyyy", dateLocale)}
+                      </div>
+                      <DeadlineHint deadline={s.deadline} />
+                    </td>
+                    <td className="px-4 py-3 text-text-secondary">{s.applicantCount}</td>
+                    <td className="px-4 py-3 text-end">
+                      <div className="inline-flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setExpandedId(isExpanded ? null : s.id)}
+                          className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-brand-400 hover:text-brand-600"
+                        >
+                          {isExpanded
+                            ? t("moderation:scholarshipModeration.preview.hide")
+                            : t("moderation:scholarshipModeration.preview.review")}
+                        </button>
+                        {canModerate && (
+                          <>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => approveMut.mutate(s.id)}
+                              className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-success-500 hover:text-success-600 disabled:opacity-50"
+                            >
+                              {t("moderation:scholarshipModeration.approve")}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => confirmReject(s.id)}
+                              className="rounded-md border border-border-subtle px-2 py-1 text-xs hover:border-danger-400 hover:text-danger-500 disabled:opacity-50"
+                            >
+                              {t("moderation:scholarshipModeration.reject")}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr className="border-t border-border-subtle bg-bg-subtle/30">
+                      <td colSpan={5} className="px-4 py-4">
+                        <ScholarshipModerationPanel id={s.id} />
+                      </td>
+                    </tr>
                   )}
-                </td>
-              </tr>
-            ))}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>

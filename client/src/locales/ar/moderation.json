@@ -109,6 +109,7 @@
     "title": "منحي الدراسية",
     "subtitle": "كل إعلانات المنح الدراسية التي أنشأتها مؤسستك.",
     "rejectedReason": "مرفوضة من الأدمن: {{reason}} — عدّلها واحفظ لإعادة الإرسال.",
+    "createdOn": "أُنشئت في {{date}}",
     "loading": "جارٍ تحميل المنح…",
     "loadError": "تعذّر تحميل منحك الدراسية.",
     "empty": "لم تقم بإنشاء أي منح دراسية بعد.",
@@ -142,6 +143,7 @@
       "categoryLoading": "جارٍ تحميل الفئات…",
       "deadline": "الموعد النهائي للتقديم",
       "deadlineHint": "بعد سبعة أيام من اليوم على الأقل.",
+      "deadlineHelp": "أقرب تاريخ مسموح به هو {{date}}. يظل التقديم متاحًا طوال اليوم الذي تختاره — ويُغلق في نهاية ذلك اليوم (بتوقيت UTC).",
       "fundingType": "نوع التمويل",
       "fundingTypeOptions": {
         "FullyFunded": "ممولة بالكامل",
@@ -221,7 +223,31 @@
     "approveError": "تعذّرت الموافقة على المنحة.",
     "rejectPrompt": "سبب رفض هذه المنحة:",
     "rejectSuccess": "تم رفض المنحة.",
-    "rejectError": "تعذّر رفض المنحة."
+    "rejectError": "تعذّر رفض المنحة.",
+    "preview": {
+      "review": "مراجعة",
+      "hide": "إخفاء التفاصيل",
+      "provider": "الجهة المانحة",
+      "funding": "نوع التمويل",
+      "level": "المستوى الدراسي",
+      "country": "الدولة المستهدفة",
+      "mode": "طريقة التقديم",
+      "inApp": "تقديم داخل المنصّة",
+      "external": "رابط خارجي",
+      "reviewFee": "رسوم المراجعة",
+      "description": "الوصف",
+      "eligibility": "شروط الأهلية",
+      "fields": "مجالات الدراسة",
+      "requiredDocs": "المستندات المطلوبة",
+      "externalLink": "فتح رابط التقديم الخارجي",
+      "closed": "مغلقة",
+      "closesIn_zero": "تُغلق خلال {{count}} يوم",
+      "closesIn_one": "تُغلق خلال يوم واحد",
+      "closesIn_two": "تُغلق خلال يومين",
+      "closesIn_few": "تُغلق خلال {{count}} أيام",
+      "closesIn_many": "تُغلق خلال {{count}} يومًا",
+      "closesIn_other": "تُغلق خلال {{count}} يوم"
+    }
   },
   "communityModeration": {
     "title": "مراجعة المجتمع",

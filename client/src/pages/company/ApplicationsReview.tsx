@@ -8,13 +8,16 @@ import {
   type ScholarshipProviderApplicationRow,
   type ApplicationStatus,
 } from "@/services/api/applications";
+import { ar } from "date-fns/locale";
 import { documentsApi } from "@/services/api/documents";
 import { apiErrorMessage } from "@/services/api/client";
 import { PromptDialog } from "@/components/ui/PromptDialog";
+import { formatCalendarDate } from "@/lib/dates";
 
 export function ApplicationsReview() {
   const { t, i18n } = useTranslation("applications");
   const lang = i18n.language;
+  const dateLocale = lang.startsWith("ar") ? ar : undefined;
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   // Status filter chip-row, toggled by the Filters button.
@@ -206,7 +209,7 @@ export function ApplicationsReview() {
                   // which don't exist on the shape, so `new Date(undefined)`
                   // rendered "Invalid Date" for every row.
                   const submittedLabel = app.submittedAt
-                    ? new Date(app.submittedAt).toLocaleDateString(lang)
+                    ? formatCalendarDate(app.submittedAt, "dd MMM yyyy", dateLocale)
                     : "—";
                   // Pending + Applied / UnderReview / WaitingResult are all
                   // "actionable" for the company reviewer — show the Clock
@@ -381,6 +384,7 @@ function ApplicationDetailModal({
   onDecision: (id: string, status: "Accepted" | "Rejected") => void;
   onQuickAction: (id: string, status: ApplicationStatus) => void;
 }) {
+  const dateLocale = lang.startsWith("ar") ? ar : undefined;
   const { data: details, isLoading } = useQuery({
     queryKey: ["company", "application", "detail", row.applicationId],
     queryFn: () => applicationsApi.getScholarshipProviderApplicationDetails(row.applicationId),
@@ -463,7 +467,7 @@ function ApplicationDetailModal({
             <div className="flex flex-col gap-0.5">
               <dt className="text-xs uppercase tracking-wide text-text-tertiary">{t("scholarshipProviderReview.table.submitted")}</dt>
               <dd className="text-text-primary">
-                {row.submittedAt ? new Date(row.submittedAt).toLocaleDateString(lang) : "—"}
+                {row.submittedAt ? formatCalendarDate(row.submittedAt, "dd MMM yyyy", dateLocale) : "—"}
               </dd>
             </div>
           </dl>

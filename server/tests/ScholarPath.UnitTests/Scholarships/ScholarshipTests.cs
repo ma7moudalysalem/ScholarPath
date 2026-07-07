@@ -118,6 +118,65 @@ public sealed class ScholarshipTests : IDisposable
         result.Title.Should().Be("Test Scholarship");
     }
 
+    [Fact]
+    public async Task GetById_ShouldThrowNotFound_ForUnderReviewListing_WhenViewerIsNotOwnerOrAdmin()
+    {
+        // Arrange — a not-yet-public listing owned by someone else.
+        var id = Guid.NewGuid();
+        _context.Scholarships.Add(new Scholarship
+        {
+            Id = id,
+            TitleEn = "Pending Scholarship",
+            TitleAr = "منحة قيد المراجعة",
+            Slug = "pending-scholarship-unique",
+            DescriptionEn = "Desc",
+            DescriptionAr = "وصف",
+            Deadline = DateTimeOffset.UtcNow.AddDays(10),
+            Status = ScholarshipStatus.UnderReview,
+        });
+        await _context.SaveChangesAsync();
+
+        var stranger = Substitute.For<ICurrentUserService>();
+        stranger.UserId.Returns(Guid.NewGuid());
+        stranger.IsAdminOrSuperAdmin().Returns(false);
+
+        var handler = new GetScholarshipByIdQueryHandler(_context, stranger);
+
+        // Act / Assert — the IDOR gate hides the listing behind a NotFound.
+        var act = () => handler.Handle(new GetScholarshipByIdQuery(id, "en"), CancellationToken.None);
+        await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task GetById_ShouldReturnUnderReviewListing_ForAdmin()
+    {
+        // Arrange — the admin moderation preview must be able to read it.
+        var id = Guid.NewGuid();
+        _context.Scholarships.Add(new Scholarship
+        {
+            Id = id,
+            TitleEn = "Pending Scholarship",
+            TitleAr = "منحة قيد المراجعة",
+            Slug = "pending-scholarship-admin-unique",
+            DescriptionEn = "Desc",
+            DescriptionAr = "وصف",
+            Deadline = DateTimeOffset.UtcNow.AddDays(10),
+            Status = ScholarshipStatus.UnderReview,
+        });
+        await _context.SaveChangesAsync();
+
+        var admin = Substitute.For<ICurrentUserService>();
+        admin.UserId.Returns(Guid.NewGuid());
+        admin.IsAdminOrSuperAdmin().Returns(true);
+
+        var handler = new GetScholarshipByIdQueryHandler(_context, admin);
+
+        var result = await handler.Handle(new GetScholarshipByIdQuery(id, "en"), CancellationToken.None);
+
+        result.Should().NotBeNull();
+        result.Id.Should().Be(id);
+    }
+
     // FR-SCH-05: the field-of-study filter matches a whole JSON-array element
     // (not a raw substring). This mirrors the handler's exact logic —
     // storedJson.Contains(JsonSerializer.Serialize(field)) — where BOTH the stored
