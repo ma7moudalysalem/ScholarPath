@@ -165,6 +165,15 @@
     "featureSuccess": "Featured status updated.",
     "featureError": "Could not update featured status (max 6 may be featured).",
     "hideSuccess": "Visibility updated.",
-    "hideError": "Could not update visibility."
+    "hideError": "Could not update visibility.",
+    "preview": {
+      "review": "Review",
+      "hide": "Hide details",
+      "author": "Author",
+      "description": "Description",
+      "content": "Content",
+      "noContent": "This resource has no body content.",
+      "externalLink": "Open external link"
+    }
   }
 }

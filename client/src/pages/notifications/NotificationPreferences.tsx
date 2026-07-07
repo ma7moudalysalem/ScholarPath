@@ -262,8 +262,13 @@ export function NotificationPreferences() {
   const testMut = useMutation({
     mutationFn: () => notificationsApi.sendTest(),
     onSuccess: () => {
-      toast.success(t("notifications:preferences.test.sent"));
-      // Surface the freshly-created test notification in the bell + list.
+      // Deliberately NO success toast here. The test dispatches a real
+      // SystemTest notification which arrives over SignalR as its own branded
+      // toast ("If you can see this, your notifications are working 🎉") — that
+      // IS the confirmation. A second toast.success here just duplicated it
+      // (the two-toasts bug the team lead flagged). If the realtime push never
+      // lands (hub down), the notification is still persisted, so the bell +
+      // list refresh below surfaces it.
       void qc.invalidateQueries({ queryKey: ["notifications"] });
     },
     onError: () => toast.error(t("notifications:preferences.saveError")),

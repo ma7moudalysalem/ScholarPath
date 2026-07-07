@@ -1,5 +1,6 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
+import { RoleLayout } from "@/components/layout/RoleLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { AnimatedRoute } from "@/components/common/AnimatedRoute";
 import { RequireAuth, RequireRole, RequirePayments } from "@/routes/RequireAuth";
@@ -453,6 +454,23 @@ export function AppRouter() {
           }
         />
 
+        {/* Profile / Notifications / Settings — shared by every role. RoleLayout
+            renders the ADMIN shell for Admin/SuperAdmin and the role-aware
+            AuthenticatedLayout for everyone else, so a non-student never sees the
+            student sidebar here (the "sidebar flips for the same user" bug). */}
+        <Route
+          element={
+            <RequireAuth>
+              <RoleLayout />
+            </RequireAuth>
+          }
+        >
+          <Route path="/profile" element={<AnimatedRoute><Profile /></AnimatedRoute>} />
+          <Route path="/profile/privacy" element={<AnimatedRoute><DataPrivacy /></AnimatedRoute>} />
+          <Route path="/notifications" element={<AnimatedRoute><Notifications /></AnimatedRoute>} />
+          <Route path="/notifications/preferences" element={<AnimatedRoute><NotificationPreferences /></AnimatedRoute>} />
+        </Route>
+
         <Route
           element={
             <RequireAuth>
@@ -460,12 +478,6 @@ export function AppRouter() {
             </RequireAuth>
           }
         >
-          {/* Profile / Notifications — shared */}
-          <Route path="/profile" element={<AnimatedRoute><Profile /></AnimatedRoute>} />
-          <Route path="/profile/privacy" element={<AnimatedRoute><DataPrivacy /></AnimatedRoute>} />
-          <Route path="/notifications" element={<AnimatedRoute><Notifications /></AnimatedRoute>} />
-          <Route path="/notifications/preferences" element={<AnimatedRoute><NotificationPreferences /></AnimatedRoute>} />
-
           <Route
             path="/student"
             element={
