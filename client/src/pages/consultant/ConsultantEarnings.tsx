@@ -8,13 +8,13 @@ import { ExternalLink, Loader2 } from "lucide-react";
 import {
   paymentsApi,
   formatMoneyCents,
-  type PagedPayments,
   type PaymentDto,
   type PayoutDto,
   type PaymentStatus,
   type PayoutStatus,
 } from "@/services/api/payments";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
+import { useAuthStore } from "@/stores/authStore";
 
 function paymentBadge(s: PaymentStatus): string {
   switch (s) {
@@ -70,9 +70,24 @@ export function ConsultantEarnings() {
   const dash = (iso: string | null) =>
     iso ? format(new Date(iso), "yyyy-MM-dd", { locale: dateLocale }) : "—";
 
-  const paymentsQuery = useQuery<PagedPayments>({
+  const currentUserId = useAuthStore((state) => state.user?.id);
+
+  const paymentsQuery = useQuery<PaymentDto[]>({
     queryKey: ["consultant", "earnings", "payments"],
-    queryFn: () => paymentsApi.listPayments({ pageSize: 100 }),
+    // Page through the whole history. The server caps pageSize at 100, so a
+    // consultant with >100 payment rows would otherwise have their lifetime
+    // totals — and transaction list — silently truncated to the newest 100.
+    queryFn: async () => {
+      const pageSize = 100;
+      const first = await paymentsApi.listPayments({ page: 1, pageSize });
+      const items = [...first.items];
+      const totalPages = Math.ceil(first.totalCount / pageSize);
+      for (let page = 2; page <= totalPages; page += 1) {
+        const next = await paymentsApi.listPayments({ page, pageSize });
+        items.push(...next.items);
+      }
+      return items;
+    },
   });
   const payoutsQuery = useQuery<PayoutDto[]>({
     queryKey: ["consultant", "earnings", "payouts"],
@@ -83,10 +98,19 @@ export function ConsultantEarnings() {
   // every render, which would invalidate every downstream useMemo's dep array
   // (react-hooks/exhaustive-deps flags this).
   const payments = useMemo(
-    () => paymentsQuery.data?.items ?? [],
+    () => paymentsQuery.data ?? [],
     [paymentsQuery.data],
   );
   const payouts = useMemo(() => payoutsQuery.data ?? [], [payoutsQuery.data]);
+
+  // Scope to the consultant's OWN earnings. The backing endpoint returns any
+  // payment where they are the payer OR the payee; only payee rows are money
+  // they actually earned, so filter before summing / listing — otherwise a
+  // payment the consultant *made* would be counted as their income.
+  const myPayments = useMemo(
+    () => payments.filter((p) => p.payeeUserId === currentUserId),
+    [payments, currentUserId],
+  );
 
   // Roll up the gross / fee / net across every payment whose money actually
   // settled. Captured covers the simple flow; PartiallyRefunded means the
@@ -94,19 +118,19 @@ export function ConsultantEarnings() {
   // PayeeAmountCents at refund time per FR-090, so payeeAmount is the kept
   // net even after a partial refund).
   const totals = useMemo(() => {
-    const settled = payments.filter(
+    const settled = myPayments.filter(
       (p) => p.status === "Captured" || p.status === "PartiallyRefunded",
     );
     const gross = settled.reduce((sum, p) => sum + p.amountCents, 0);
     const fees = settled.reduce((sum, p) => sum + p.profitShareAmountCents, 0);
     const net = settled.reduce((sum, p) => sum + p.payeeAmountCents, 0);
     return { gross, fees, net };
-  }, [payments]);
+  }, [myPayments]);
 
   // Settled amounts share a single currency (USD on this platform); pick the
   // first available currency so future multi-currency support degrades safely
   // instead of mis-formatting EGP as USD.
-  const displayCurrency = payments[0]?.currency ?? "USD";
+  const displayCurrency = myPayments[0]?.currency ?? "USD";
 
   const totalPaidOut = payouts
     .filter((p) => p.status === "Paid")
@@ -261,14 +285,14 @@ export function ConsultantEarnings() {
                   </td>
                 </tr>
               )}
-              {!paymentsQuery.isLoading && payments.length === 0 && (
+              {!paymentsQuery.isLoading && myPayments.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
                     {t("payments:earnings.noPayments")}
                   </td>
                 </tr>
               )}
-              {payments.map((p) => (
+              {myPayments.map((p) => (
                 <tr key={p.id} className="border-t border-border-subtle hover:bg-bg-subtle/40">
                   <td className="px-4 py-3 font-medium tabular-nums">
                     {formatMoneyCents(p.amountCents, p.currency, numberLocale)}

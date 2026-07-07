@@ -25,9 +25,9 @@
     "daysLeft": "{{count}} days left",
     "deadlineClosed": "Closed",
     "funding": {
-      "FullyFunded": "Fully Funded",
-      "PartiallyFunded": "Partial",
-      "TuitionOnly": "Tuition Only"
+      "FullyFunded": "Fully Funded {{amount}}",
+      "PartiallyFunded": "Partial {{amount}}",
+      "TuitionOnly": "Tuition Only {{amount}}"
     }
   },
   "eligibility": {

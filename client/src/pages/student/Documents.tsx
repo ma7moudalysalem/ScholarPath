@@ -64,6 +64,15 @@ export function Documents() {
     queryFn: () => documentsApi.list(filter || undefined),
   });
 
+  // The category chips (count + visibility) must reflect the WHOLE vault, not
+  // the server-filtered subset — otherwise selecting a category zeroes out every
+  // sibling's count and removes the chip, stranding the user until they hit "All".
+  // This always-unfiltered query is deduped with the main list when no filter is active.
+  const { data: allDocs } = useQuery<DocumentItem[]>({
+    queryKey: ["documents", "all"],
+    queryFn: () => documentsApi.list(),
+  });
+
   const uploadMutation = useMutation({
     mutationFn: (file: File) =>
       documentsApi.upload({ file, category: uploadCategory }),
@@ -257,7 +266,7 @@ export function Documents() {
           </button>
           {documentCategories.map((c) => {
             const isActive = filter === c;
-            const count = (data ?? []).filter((d) => d.category === c).length;
+            const count = (allDocs ?? []).filter((d) => d.category === c).length;
             if (count === 0 && !isActive) return null;
             return (
               <button

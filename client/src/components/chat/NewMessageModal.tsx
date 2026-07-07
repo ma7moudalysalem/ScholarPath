@@ -107,7 +107,7 @@ export function NewMessageModal({ isOpen, onOpenChange, onSelectContact }: NewMe
                         </h4>
                         {contact.role && (
                           <p className="truncate text-xs text-text-secondary">
-                            {t(`role.${contact.role.toLowerCase()}`, contact.role)}
+                            {t(`roles.${contact.role}`, contact.role)}
                           </p>
                         )}
                       </div>

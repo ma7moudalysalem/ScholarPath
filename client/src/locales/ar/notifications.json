@@ -126,7 +126,12 @@
       "ScholarshipProviderReviewRequestPaymentHoldCancelled": "تم تحرير حجز دفعة المراجعة",
       "ScholarshipProviderReviewRequestPartiallyRefunded": "استرداد جزئي لدفعة المراجعة",
       "ScholarshipProviderReviewRequestCompleted": "اكتمل دعم التقديم",
-      "ScholarshipProviderLowRatingFlagged": "تم وضع علامة على الشركة لتقييم منخفض"
+      "ScholarshipProviderLowRatingFlagged": "تم وضع علامة على الشركة لتقييم منخفض",
+      "ScholarshipApproved": "تمت الموافقة على المنحة",
+      "ScholarshipRejected": "تم رفض المنحة",
+      "ConsultantLowRatingFlagged": "تم وضع علامة على المستشار لتقييم منخفض",
+      "NoShowReportSubmitted": "تم الإبلاغ عن عدم حضور",
+      "NoShowReportResolved": "تمت معالجة بلاغ عدم الحضور"
     }
   }
 }

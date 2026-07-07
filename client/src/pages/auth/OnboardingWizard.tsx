@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import {
   GraduationCap,
   Building2,
@@ -352,7 +353,7 @@ function DocumentsStep({ roleKey, onSubmit, onBack, submitting }: {
   onBack: () => void;
   submitting: boolean;
 }) {
-  const { t } = useTranslation(["auth", "common"]);
+  const { t, i18n } = useTranslation(["auth", "common"]);
   const { data: docs = [] } = useQuery({
     queryKey: ["onboarding-documents"],
     queryFn: () => documentsApi.list("OnboardingDocument"),
@@ -360,6 +361,11 @@ function DocumentsStep({ roleKey, onSubmit, onBack, submitting }: {
   const uploaded = new Set(docs.map((d) => d.onboardingType).filter(Boolean));
   const missing = requiredOnboardingDocTypes[roleKey].filter((tp) => !uploaded.has(tp));
   const canSubmit = missing.length === 0 && !submitting;
+  // Locale-aware list separator — Latin comma in English, Arabic comma in Arabic
+  // (was a hardcoded "، " regardless of language).
+  const missingList = new Intl.ListFormat(i18n.language, { style: "long", type: "unit" }).format(
+    missing.map((m) => t(`auth:onboarding.docTypes.${m}`, m)),
+  );
 
   return (
     <section className="mx-auto max-w-xl px-4 py-16 sm:px-6">
@@ -380,7 +386,7 @@ function DocumentsStep({ roleKey, onSubmit, onBack, submitting }: {
       {missing.length > 0 && (
         <p className="mt-3 text-sm text-danger-500">
           {t("auth:onboarding.documents.stillRequired", "Still required")}:{" "}
-          {missing.map((m) => t(`auth:onboarding.docTypes.${m}`, m)).join("، ")}
+          {missingList}
         </p>
       )}
 
@@ -443,37 +449,40 @@ function emptyScholarshipProvider(): ScholarshipProviderFormState {
   };
 }
 
-function validateScholarshipProvider(c: ScholarshipProviderFormState): Record<string, string> {
+function validateScholarshipProvider(
+  c: ScholarshipProviderFormState,
+  t: TFunction,
+): Record<string, string> {
   const errs: Record<string, string> = {};
-  if (!c.legalName.trim()) errs.legalName = "Required";
-  else if (c.legalName.length > 200) errs.legalName = "Max 200 characters";
+  if (!c.legalName.trim()) errs.legalName = t("errors:validate.required");
+  else if (c.legalName.length > 200) errs.legalName = t("errors:validate.maxLength", { max: 200 });
   // AUTH-CODE-04 — website must be a valid absolute URL (http/https).
-  if (!c.website.trim()) errs.website = "Required";
-  else if (!/^https?:\/\/.+/i.test(c.website)) errs.website = "Must be a valid absolute URL (http:// or https://)";
-  if (!c.email.trim()) errs.email = "Required";
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) errs.email = "Must be a valid email";
-  if (!c.country.trim()) errs.country = "Required";
-  if (!c.scholarshipProviderType) errs.scholarshipProviderType = "Required";
-  if (!c.description.trim()) errs.description = "Required";
+  if (!c.website.trim()) errs.website = t("errors:validate.required");
+  else if (!/^https?:\/\/.+/i.test(c.website)) errs.website = t("errors:validate.url");
+  if (!c.email.trim()) errs.email = t("errors:validate.required");
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email)) errs.email = t("errors:validate.email");
+  if (!c.country.trim()) errs.country = t("errors:validate.required");
+  if (!c.scholarshipProviderType) errs.scholarshipProviderType = t("errors:validate.required");
+  if (!c.description.trim()) errs.description = t("errors:validate.required");
   // AUTH-CODE-04 — description max is 2000 (was 1000).
-  else if (c.description.length > 2000) errs.description = "Max 2000 characters";
-  if (!c.contactName.trim()) errs.contactName = "Required";
-  if (!c.contactPosition.trim()) errs.contactPosition = "Required";
-  if (!c.contactPhone.trim()) errs.contactPhone = "Required";
-  else if (!/^[+0-9 ()-]{6,40}$/.test(c.contactPhone)) errs.contactPhone = "Invalid phone format";
+  else if (c.description.length > 2000) errs.description = t("errors:validate.maxLength", { max: 2000 });
+  if (!c.contactName.trim()) errs.contactName = t("errors:validate.required");
+  if (!c.contactPosition.trim()) errs.contactPosition = t("errors:validate.required");
+  if (!c.contactPhone.trim()) errs.contactPhone = t("errors:validate.required");
+  else if (!/^[+0-9 ()-]{6,40}$/.test(c.contactPhone)) errs.contactPhone = t("errors:validate.phone");
 
   // AUTH-CODE-03 — conditional applicability.
   if (c.isLegallyRegistered === "yes" && !c.registrationNumber.trim()) {
-    errs.registrationNumber = "Required when the organization is legally registered";
+    errs.registrationNumber = t("errors:validate.registrationNumberRequired");
   }
   if (c.isLegallyRegistered === "no" && !c.legalNotApplicableReason.trim()) {
-    errs.legalNotApplicableReason = "Tell us why a legal registration does not apply";
+    errs.legalNotApplicableReason = t("errors:validate.legalReasonRequired");
   }
   if (c.isTaxRegistered === "yes" && !c.taxNumber.trim()) {
-    errs.taxNumber = "Required when the organization is tax-registered";
+    errs.taxNumber = t("errors:validate.taxNumberRequired");
   }
   if (c.isTaxRegistered === "no" && !c.taxNotApplicableReason.trim()) {
-    errs.taxNotApplicableReason = "Tell us why a tax registration does not apply";
+    errs.taxNotApplicableReason = t("errors:validate.taxReasonRequired");
   }
   return errs;
 }
@@ -516,32 +525,33 @@ function emptyConsultant(): ConsultantFormState {
 function validateConsultant(
   c: ConsultantFormState,
   paymentsEnabled: boolean,
+  t: TFunction,
 ): Record<string, string> {
   const errs: Record<string, string> = {};
-  if (!c.bio.trim()) errs.bio = "Required";
-  else if (c.bio.length > 2000) errs.bio = "Max 2000 characters";
-  if (!c.title.trim()) errs.title = "Required";
-  if (!c.highestDegree.trim()) errs.highestDegree = "Required";
-  if (!c.fieldOfExpertise.trim()) errs.fieldOfExpertise = "Required";
+  if (!c.bio.trim()) errs.bio = t("errors:validate.required");
+  else if (c.bio.length > 2000) errs.bio = t("errors:validate.maxLength", { max: 2000 });
+  if (!c.title.trim()) errs.title = t("errors:validate.required");
+  if (!c.highestDegree.trim()) errs.highestDegree = t("errors:validate.required");
+  if (!c.fieldOfExpertise.trim()) errs.fieldOfExpertise = t("errors:validate.required");
   const years = Number(c.yearsExperience);
   // AUTH-CODE-04 — minimum 1 year of experience (was 0).
-  if (!c.yearsExperience || Number.isNaN(years) || years < 1) errs.yearsExperience = "Must be at least 1";
+  if (!c.yearsExperience || Number.isNaN(years) || years < 1) errs.yearsExperience = t("errors:validate.min", { min: 1 });
   const tagCount = c.expertiseTags.split(",").map((s) => s.trim()).filter(Boolean).length;
-  if (tagCount === 0) errs.expertiseTags = "At least one tag required";
+  if (tagCount === 0) errs.expertiseTags = t("errors:validate.tagRequired");
   // Master payments switch: when off, the fee field is hidden and the
   // value is irrelevant — the server forces it to 0 on submit. Only enforce
   // the ≥0 rule when payments are actually on.
   if (paymentsEnabled) {
     const fee = Number(c.fee);
-    if (!c.fee || Number.isNaN(fee) || fee < 0) errs.fee = "Must be zero or greater";
+    if (!c.fee || Number.isNaN(fee) || fee < 0) errs.fee = t("errors:validate.nonNegative");
   }
-  if (!c.durationMinutes) errs.durationMinutes = "Required";
+  if (!c.durationMinutes) errs.durationMinutes = t("errors:validate.required");
   const langCount = c.languages.split(",").map((s) => s.trim()).filter(Boolean).length;
-  if (langCount === 0) errs.languages = "At least one language required";
-  if (!c.country.trim()) errs.country = "Required";
-  if (!c.timezone.trim()) errs.timezone = "Required";
-  if (c.linkedIn && !/^https?:\/\/.+/i.test(c.linkedIn)) errs.linkedIn = "Must be a valid URL";
-  if (c.portfolio && !/^https?:\/\/.+/i.test(c.portfolio)) errs.portfolio = "Must be a valid URL";
+  if (langCount === 0) errs.languages = t("errors:validate.languageRequired");
+  if (!c.country.trim()) errs.country = t("errors:validate.required");
+  if (!c.timezone.trim()) errs.timezone = t("errors:validate.required");
+  if (c.linkedIn && !/^https?:\/\/.+/i.test(c.linkedIn)) errs.linkedIn = t("errors:validate.url");
+  if (c.portfolio && !/^https?:\/\/.+/i.test(c.portfolio)) errs.portfolio = t("errors:validate.url");
   return errs;
 }
 
@@ -685,7 +695,7 @@ export function OnboardingWizard() {
   function submitDetails(e: React.FormEvent) {
     e.preventDefault();
     if (detailsRole === "ScholarshipProvider") {
-      const errs = validateScholarshipProvider(company);
+      const errs = validateScholarshipProvider(company, t);
       setScholarshipProviderErrors(errs);
       if (Object.keys(errs).length > 0) {
         toast.error(t("auth:onboarding.details.required"));
@@ -720,7 +730,7 @@ export function OnboardingWizard() {
             : null,
       });
     } else {
-      const errs = validateConsultant(consultant, paymentsEnabled);
+      const errs = validateConsultant(consultant, paymentsEnabled, t);
       setConsultantErrors(errs);
       if (Object.keys(errs).length > 0) {
         toast.error(t("auth:onboarding.details.required"));

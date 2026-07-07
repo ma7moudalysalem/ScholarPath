@@ -30,6 +30,13 @@ const ACTIONS: AuditAction[] = [
   "PaymentRefunded",
   "ConfigChanged",
   "BroadcastSent",
+  "BookingRequested",
+  "BookingAccepted",
+  "BookingRejected",
+  "BookingCancelled",
+  "BookingNoShowMarked",
+  "ConsultantRatingSubmitted",
+  "ConsultantAvailabilityUpdated",
 ];
 
 function actionBadgeClass(a: AuditAction): string {
@@ -38,17 +45,24 @@ function actionBadgeClass(a: AuditAction): string {
     case "Rejected":
     case "LoginFailed":
     case "PaymentRefunded":
+    case "BookingRejected":
+    case "BookingCancelled":
+    case "BookingNoShowMarked":
       return "bg-danger-50 text-danger-500";
     case "Create":
     case "Approved":
     case "PaymentCaptured":
     case "Login":
+    case "BookingAccepted":
       return "bg-success-100 text-success-600";
     case "Update":
     case "RoleChanged":
     case "ConfigChanged":
     case "Moderated":
     case "BroadcastSent":
+    case "BookingRequested":
+    case "ConsultantRatingSubmitted":
+    case "ConsultantAvailabilityUpdated":
       return "bg-brand-500/10 text-brand-500";
     default:
       return "bg-bg-subtle text-text-secondary";

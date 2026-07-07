@@ -4,9 +4,22 @@
   "unauthorized": "Session expired. Please sign in again.",
   "forbidden": "You don't have permission to perform this action.",
   "notFound": "We couldn't find what you were looking for.",
+  "notFoundBody": "The page you're looking for doesn't exist or has been moved. Let's get you back on track.",
+  "notFoundLinks": {
+    "scholarships": {
+      "title": "Browse scholarships",
+      "subtitle": "Find your next opportunity"
+    },
+    "ai": {
+      "title": "Ask the AI assistant",
+      "subtitle": "Get instant guidance"
+    }
+  },
   "validation": "Please correct the highlighted fields.",
   "rateLimit": "Too many attempts. Please wait a moment and try again.",
   "serverError": "Our servers are having a moment. We're on it.",
+  "accountLocked": "Your account is temporarily locked after too many attempts. Please try again later.",
+  "accountInactive": "This account isn't active. Please contact support.",
   "validate": {
     "required": "This field is required",
     "email": "Enter a valid email address",
@@ -16,7 +29,18 @@
     "passwordDigit": "Must contain at least one digit",
     "passwordSpecial": "Must contain at least one special character",
     "englishOnly": "Please use English in this field.",
-    "arabicOnly": "Please use Arabic in this field."
+    "arabicOnly": "Please use Arabic in this field.",
+    "maxLength": "Must be {{max}} characters or fewer",
+    "url": "Enter a valid URL (http:// or https://)",
+    "phone": "Enter a valid phone number",
+    "min": "Must be at least {{min}}",
+    "nonNegative": "Must be zero or greater",
+    "tagRequired": "Add at least one tag",
+    "languageRequired": "Add at least one language",
+    "registrationNumberRequired": "Required when the organization is legally registered",
+    "legalReasonRequired": "Tell us why a legal registration does not apply",
+    "taxNumberRequired": "Required when the organization is tax-registered",
+    "taxReasonRequired": "Tell us why a tax registration does not apply"
   },
   "boundary": {
     "title": "Something went wrong",

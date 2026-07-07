@@ -35,7 +35,16 @@ export type AuditAction =
   | "PaymentCaptured"
   | "PaymentRefunded"
   | "ConfigChanged"
-  | "BroadcastSent";
+  | "BroadcastSent"
+  // Booking / consultant domain (server enum 100-106) — these are logged by
+  // AuditBehavior and serialized by name, so the filter must offer them too.
+  | "BookingRequested"
+  | "BookingAccepted"
+  | "BookingRejected"
+  | "BookingCancelled"
+  | "BookingNoShowMarked"
+  | "ConsultantRatingSubmitted"
+  | "ConsultantAvailabilityUpdated";
 
 export interface AuditLogDto {
   id: string;

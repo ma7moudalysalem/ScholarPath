@@ -97,7 +97,21 @@ export function ScholarshipProviderBilling() {
                   </td>
                 </tr>
               )}
-              {!paymentsQuery.isLoading && payments.length === 0 && (
+              {!paymentsQuery.isLoading && paymentsQuery.isError && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
+                    {t("payments:common.loadError")}{" "}
+                    <button
+                      type="button"
+                      onClick={() => void paymentsQuery.refetch()}
+                      className="text-brand-500 underline"
+                    >
+                      {t("payments:common.retry")}
+                    </button>
+                  </td>
+                </tr>
+              )}
+              {!paymentsQuery.isLoading && !paymentsQuery.isError && payments.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
                     {t("payments:billing.noPayments")}
@@ -151,7 +165,21 @@ export function ScholarshipProviderBilling() {
                   </td>
                 </tr>
               )}
-              {!payoutsQuery.isLoading && payouts.length === 0 && (
+              {!payoutsQuery.isLoading && payoutsQuery.isError && (
+                <tr>
+                  <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
+                    {t("payments:common.loadError")}{" "}
+                    <button
+                      type="button"
+                      onClick={() => void payoutsQuery.refetch()}
+                      className="text-brand-500 underline"
+                    >
+                      {t("payments:common.retry")}
+                    </button>
+                  </td>
+                </tr>
+              )}
+              {!payoutsQuery.isLoading && !payoutsQuery.isError && payouts.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-6 text-center text-text-tertiary">
                     {t("payments:billing.noPayouts")}

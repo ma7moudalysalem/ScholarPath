@@ -197,19 +197,14 @@ export function StudentAnalytics() {
               accent="warning"
               delay={0.1}
             />
+            {/* Completion is a static ratio, not a period-over-period trend, so it
+                must NOT render through the delta/trend pill (that pill always shows
+                a green up-arrow, fabricating "growth"). Show the raw booking count. */}
             <StatCard
               label={t("analytics:studentJourney.bookings")}
               value={data.totalBookings}
               icon={CalendarCheck}
               accent="brand"
-              delta={
-                data.completedBookings > 0
-                  ? {
-                      value: Math.round((data.completedBookings / Math.max(data.totalBookings, 1)) * 100),
-                      label: t("analytics:studentJourney.completedBookings"),
-                    }
-                  : null
-              }
               delay={0.14}
             />
           </>

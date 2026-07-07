@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Common.Models;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Domain.Interfaces;
 
 namespace ScholarPath.Application.Resources.Queries.SearchResources;
 
@@ -17,9 +18,17 @@ public sealed record SearchResourcesQuery : IRequest<PaginatedList<ResourceListI
     public string? Language { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 12;
+
+    /// <summary>
+    /// Admin-only opt-in to also include <see cref="ResourceStatus.Hidden"/> resources
+    /// so a moderator can see and un-hide them. Ignored for non-admin callers.
+    /// </summary>
+    public bool IncludeHidden { get; init; }
 }
 
-public sealed class SearchResourcesQueryHandler(IApplicationDbContext db)
+public sealed class SearchResourcesQueryHandler(
+    IApplicationDbContext db,
+    ICurrentUserService currentUser)
     : IRequestHandler<SearchResourcesQuery, PaginatedList<ResourceListItemDto>>
 {
     public async Task<PaginatedList<ResourceListItemDto>> Handle(
@@ -28,8 +37,15 @@ public sealed class SearchResourcesQueryHandler(IApplicationDbContext db)
         var page = Math.Max(1, request.Page);
         var pageSize = Math.Clamp(request.PageSize, 1, 50);
 
-        var q = db.Resources.AsNoTracking()
-            .Where(r => r.Status == ResourceStatus.Published);
+        // Public browse only ever shows Published. An admin moderating the
+        // Resources hub may opt in (IncludeHidden) to also see Hidden items so
+        // they can be restored — a non-admin passing the flag is ignored.
+        var includeHidden = request.IncludeHidden && currentUser.IsAdminOrSuperAdmin();
+
+        var q = includeHidden
+            ? db.Resources.AsNoTracking().Where(r =>
+                r.Status == ResourceStatus.Published || r.Status == ResourceStatus.Hidden)
+            : db.Resources.AsNoTracking().Where(r => r.Status == ResourceStatus.Published);
 
         if (!string.IsNullOrWhiteSpace(request.Term))
         {

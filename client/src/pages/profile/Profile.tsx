@@ -912,7 +912,8 @@ function ProfileSidebar({
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export function Profile() {
-  const { t, i18n } = useTranslation(["profile", "common"]);
+  // `admin` is loaded to reuse its shared account-status label map (status.*).
+  const { t, i18n } = useTranslation(["profile", "common", "admin"]);
   const qc = useQueryClient();
   const activeRole = useAuthStore((s) => s.user?.activeRole ?? null);
   // Master payments switch — when off, the consultant session fee field is
@@ -1242,7 +1243,9 @@ export function Profile() {
                     : "badge-neutral",
                 )}
               >
-                {profile.accountStatus}
+                {t(`admin:status.${profile.accountStatus}`, {
+                  defaultValue: profile.accountStatus,
+                })}
               </span>
             </div>
             <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-text-secondary">
@@ -1667,7 +1670,9 @@ export function Profile() {
                       {profile.organizationVerificationStatus === "Verified" ? (
                         <CheckCircle2 aria-hidden className="size-3.5" />
                       ) : null}
-                      {profile.organizationVerificationStatus}
+                      {t(`profile:verificationStatus.${profile.organizationVerificationStatus}`, {
+                        defaultValue: profile.organizationVerificationStatus,
+                      })}
                     </span>
                   </div>
                 </FieldRow>

@@ -305,16 +305,18 @@ export function ScholarshipsPage() {
     });
   };
 
+  // Single-select: the server's GetScholarshipsQuery takes ONE funding type /
+  // academic level (scholarships.ts forwards only the first), so selecting a
+  // value replaces any prior choice instead of unioning. This keeps the
+  // highlighted/counted pills in sync with what is actually applied — a
+  // multi-select would silently drop every value after the first. Clicking the
+  // active value again clears it.
   const toggleFilter = <T,>(
     value: T,
     list: T[],
     setter: (v: T[]) => void,
   ) => {
-    setter(
-      list.includes(value)
-        ? list.filter((x) => x !== value)
-        : [...list, value],
-    );
+    setter(list.includes(value) ? [] : [value]);
     setPage(1);
   };
 
@@ -337,9 +339,11 @@ export function ScholarshipsPage() {
     !!fieldOfStudy             ||
     !!country;
 
+  // Funding type + academic level are single-select (0 or 1 each), so count
+  // them as one active filter apiece — matching the single value applied.
   const activeFilterCount =
-    fundingTypes.length +
-    academicLevels.length +
+    (fundingTypes.length   > 0 ? 1 : 0) +
+    (academicLevels.length > 0 ? 1 : 0) +
     (deadlineFrom ? 1 : 0) +
     (deadlineTo   ? 1 : 0) +
     (fieldOfStudy ? 1 : 0) +
@@ -444,6 +448,31 @@ export function ScholarshipsPage() {
         {/* Expanded filter panel */}
         {showFilters && (
           <div className="mt-3 grid gap-4 rounded-xl border border-border-subtle bg-bg-elevated p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+
+            {/* Full funding-type set — the top-3 quick pills only surface three
+                of the five, so StipendOnly / Other are otherwise unreachable. */}
+            <div className="lg:col-span-2">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">
+                {t("scholarships:filters.fundingType")}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {FUNDING_TYPES.map((ft) => (
+                  <button
+                    key={ft}
+                    type="button"
+                    onClick={() => toggleFilter(ft, fundingTypes, setFundingTypes)}
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs font-medium transition",
+                      fundingTypes.includes(ft)
+                        ? "border-brand-500 bg-brand-500 text-white"
+                        : "border-border-subtle bg-bg-canvas text-text-secondary hover:border-brand-300",
+                    )}
+                  >
+                    {t(`scholarships:fundingType.${ft}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="lg:col-span-2">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-text-tertiary">

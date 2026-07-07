@@ -8,6 +8,11 @@
   "completenessDone": "ملفك الشخصي مكتمل.",
   "loading": "جارٍ تحميل ملفك…",
   "loadError": "تعذّر تحميل ملفك الشخصي.",
+  "verificationStatus": {
+    "Verified": "موثَّق",
+    "Pending": "قيد الانتظار",
+    "PendingReview": "قيد المراجعة"
+  },
   "photo": {
     "change": "تغيير الصورة",
     "uploading": "جارٍ الرفع…",
