@@ -201,11 +201,18 @@ export const Chatbot = forwardRef<ChatbotHandle>(function Chatbot(_, ref) {
   useEffect(() => {
     if (pendingTurns.length === 0 || !turnsQuery.data) return;
     const tail = serverTurns.slice(-pendingTurns.length);
+    // Match on ROLE for every turn, but only require TEXT equality for the
+    // ASSISTANT turn — the server stores the user prompt PII-REDACTED, so a raw
+    // optimistic prompt containing an email/phone/card never equalled the
+    // persisted (redacted) text, `caughtUp` never fired, and the whole turn
+    // rendered twice for the rest of the session. The assistant response is
+    // stored verbatim, so it's the reliable anchor.
     const caughtUp =
       tail.length === pendingTurns.length &&
       tail.every(
         (turn, i) =>
-          turn.role === pendingTurns[i].role && turn.text === pendingTurns[i].text,
+          turn.role === pendingTurns[i].role &&
+          (pendingTurns[i].role !== "assistant" || turn.text === pendingTurns[i].text),
       );
     if (caughtUp) setPendingTurns([]);
   }, [turnsQuery.data, serverTurns, pendingTurns]);

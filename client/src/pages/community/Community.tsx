@@ -18,7 +18,7 @@ import { motion } from "motion/react";
 import { communityApi, forumPostBody, forumPostTitle, type ForumCategory, type ForumPost, type VoteType } from "@/services/api/community";
 import { AskQuestionModal } from "@/components/community/AskQuestionModal";
 import { UserAvatar } from "@/components/common/UserAvatar";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
@@ -35,8 +35,14 @@ export function Community() {
   const isRtl = i18n.dir() === "rtl";
   const dateLocale = isRtl ? ar : undefined;
 
+  // A tag link inside a thread navigates here with ?tag=X. Seed + sync the tag
+  // filter from the URL so those deep-links (and shared/bookmarked ?tag= URLs)
+  // actually filter the feed instead of landing on the unfiltered list.
+  const [searchParams] = useSearchParams();
+  const tagParam = searchParams.get("tag") ?? undefined;
+
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
-  const [selectedTag, setSelectedTag] = useState<string | undefined>();
+  const [selectedTag, setSelectedTag] = useState<string | undefined>(tagParam);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("Newest");
   const [tab, setTab] = useState<FeedTab>("all");
