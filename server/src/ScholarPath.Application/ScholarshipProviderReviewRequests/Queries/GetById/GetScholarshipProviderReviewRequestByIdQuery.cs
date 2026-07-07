@@ -36,6 +36,9 @@ public sealed class GetScholarshipProviderReviewRequestByIdQueryHandler(
             throw new ForbiddenAccessException();
         }
 
-        return dto;
+        // Attach the student's uploaded files so both the student and the
+        // reviewing provider see them on the detail view.
+        var enriched = await new[] { dto }.WithDocumentsAsync(db, ct);
+        return enriched[0];
     }
 }

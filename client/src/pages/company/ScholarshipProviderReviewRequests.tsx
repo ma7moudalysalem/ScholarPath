@@ -3,13 +3,14 @@ import { Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, Loader2, X, CheckCircle2, MessageSquare } from "lucide-react";
+import { Check, Loader2, X, CheckCircle2, MessageSquare, FileText } from "lucide-react";
 import {
   scholarshipProviderReviewRequestsApi,
   type ScholarshipProviderReviewRequestDto,
   type ScholarshipProviderReviewRequestStatus,
 } from "@/services/api/scholarshipProviderReviewRequests";
 import { ar } from "date-fns/locale";
+import { documentsApi } from "@/services/api/documents";
 import { apiErrorMessage } from "@/services/api/client";
 import { formatMoneyCents } from "@/services/api/payments";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
@@ -33,6 +34,8 @@ export function ScholarshipProviderReviewRequests() {
   // A reject needs a required, typed reason — captured via PromptDialog, not
   // window.prompt (which allowed an empty reason to slip through).
   const [rejectTargetId, setRejectTargetId] = useState<string | null>(null);
+  // Complete opens an OPTIONAL completeness-feedback prompt for the student.
+  const [completeTargetId, setCompleteTargetId] = useState<string | null>(null);
   // Master payments switch — collapses the money breakdown to a single Free
   // row and hides commission / share columns when the platform is free-mode.
   const paymentsEnabled = usePaymentsEnabled();
@@ -46,6 +49,22 @@ export function ScholarshipProviderReviewRequests() {
     queryClient.invalidateQueries({
       queryKey: ["scholarshipProviderReviewRequests", "mine", "company"],
     });
+
+  const downloadDoc = async (id: string, name: string) => {
+    try {
+      const blob = await documentsApi.download(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, t("common:status.error")));
+    }
+  };
 
   const acceptMut = useMutation({
     mutationFn: (id: string) => scholarshipProviderReviewRequestsApi.accept(id),
@@ -72,9 +91,10 @@ export function ScholarshipProviderReviewRequests() {
   });
 
   const completeMut = useMutation({
-    mutationFn: (id: string) => scholarshipProviderReviewRequestsApi.complete(id),
-    onMutate: (id) => setBusyId(id),
-    onSettled: () => setBusyId(null),
+    mutationFn: ({ id, feedback }: { id: string; feedback?: string }) =>
+      scholarshipProviderReviewRequestsApi.complete(id, feedback),
+    onMutate: ({ id }) => setBusyId(id),
+    onSettled: () => { setBusyId(null); setCompleteTargetId(null); },
     onSuccess: () => {
       toast.success(t("payments:reviewRequest.completeSuccess"));
       void invalidate();
@@ -183,6 +203,30 @@ export function ScholarshipProviderReviewRequests() {
                 )}
               </dl>
 
+              {/* Files the student attached for review (PB-005). */}
+              {req.documents.length > 0 && (
+                <div className="mt-3 space-y-1.5 border-t border-border-subtle pt-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                    {t("payments:reviewRequest.attach.studentFiles")}
+                  </p>
+                  <ul className="space-y-1.5">
+                    {req.documents.map((d) => (
+                      <li key={d.id} className="flex items-center gap-2 text-sm">
+                        <FileText aria-hidden className="size-4 shrink-0 text-text-tertiary" />
+                        <button
+                          type="button"
+                          onClick={() => void downloadDoc(d.id, d.fileName)}
+                          className="text-brand-600 hover:underline"
+                        >
+                          {d.fileName}
+                        </button>
+                        <span className="text-xs text-text-tertiary">{(d.sizeBytes / 1024).toFixed(0)} KB</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-text-tertiary">
                 {paymentsEnabled && !req.isFree && (
                   <span>
@@ -229,7 +273,7 @@ export function ScholarshipProviderReviewRequests() {
                   {isUnderReview && (
                     <button
                       type="button"
-                      onClick={() => completeMut.mutate(req.id)}
+                      onClick={() => setCompleteTargetId(req.id)}
                       disabled={isBusy}
                       className="inline-flex items-center gap-1.5 rounded-md border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100 disabled:opacity-50"
                     >
@@ -262,6 +306,20 @@ export function ScholarshipProviderReviewRequests() {
           const trimmed = reason.trim();
           if (!rejectTargetId || !trimmed) return;
           rejectMut.mutate({ id: rejectTargetId, reason: trimmed });
+        }}
+      />
+
+      <PromptDialog
+        open={completeTargetId !== null}
+        onOpenChange={(open) => { if (!open) setCompleteTargetId(null); }}
+        title={t("payments:reviewRequest.complete")}
+        inputLabel={t("payments:reviewRequest.feedbackPrompt")}
+        inputMultiline
+        confirmLabel={t("payments:reviewRequest.complete")}
+        loading={completeMut.isPending}
+        onConfirm={(feedback) => {
+          if (!completeTargetId) return;
+          completeMut.mutate({ id: completeTargetId, feedback: feedback.trim() || undefined });
         }}
       />
     </div>

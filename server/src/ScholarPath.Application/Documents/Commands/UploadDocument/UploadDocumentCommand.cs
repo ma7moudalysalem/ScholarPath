@@ -27,7 +27,11 @@ public sealed record UploadDocumentCommand(
     Guid? ApplicationTrackerId,
     // FR-ONB-12 — the specific onboarding document type, when Category is
     // OnboardingDocument. Null for every other upload.
-    OnboardingDocumentType? OnboardingType = null) : IRequest<DocumentDto>;
+    OnboardingDocumentType? OnboardingType = null,
+    // PB-005 — optional link to a paid provider review/support request, so the
+    // student can attach files for the provider to review. Null for every other
+    // upload.
+    Guid? ScholarshipProviderReviewRequestId = null) : IRequest<DocumentDto>;
 
 // ─── Validator ────────────────────────────────────────────────────────────────
 
@@ -149,6 +153,22 @@ public sealed class UploadDocumentCommandHandler(
                 throw new NotFoundException(nameof(ApplicationTracker), appId);
         }
 
+        // Likewise a document may only be attached to one of the caller's own
+        // paid review/support requests (the provider reviews it, but the student
+        // owns it). Only while the request is still open for review.
+        if (request.ScholarshipProviderReviewRequestId is { } crrId)
+        {
+            var ownsRequest = await db.ScholarshipProviderReviewRequests
+                .AnyAsync(r => r.Id == crrId
+                    && r.StudentId == userId
+                    && (r.Status == ScholarshipProviderReviewRequestStatus.Submitted
+                        || r.Status == ScholarshipProviderReviewRequestStatus.Pending
+                        || r.Status == ScholarshipProviderReviewRequestStatus.UnderReview), ct)
+                .ConfigureAwait(false);
+            if (!ownsRequest)
+                throw new NotFoundException(nameof(ScholarshipProviderReviewRequest), crrId);
+        }
+
         var safeName = Path.GetFileName(request.FileName);
 
         // Antivirus scan BEFORE the bytes are ever persisted (security NFR).
@@ -188,6 +208,7 @@ public sealed class UploadDocumentCommandHandler(
             OnboardingType = request.Category == DocumentCategory.OnboardingDocument ? request.OnboardingType : null,
             UploadedAt = now,
             ApplicationTrackerId = request.ApplicationTrackerId,
+            ScholarshipProviderReviewRequestId = request.ScholarshipProviderReviewRequestId,
         };
 
         db.Documents.Add(document);

@@ -18,9 +18,14 @@ namespace ScholarPath.Application.ScholarshipProviderReviewRequests.Commands.Acc
 /// rule in force at capture time (FR-163..176), flips the request to
 /// UnderReview, and dispatches receipts to both parties.
 /// </summary>
-[Auditable(AuditAction.PaymentCaptured, "ScholarshipProviderReviewRequest",
+// Audit as a neutral "accepted" — NOT PaymentCaptured. The old static label
+// claimed "captured payment" on every accept, so in free mode (payments off, fee
+// 0, Stripe bypassed) the audit log still read "captured payment" even though no
+// money moved. The real payment capture, when it happens, is recorded on the
+// Payment side. This keeps the request-accept entry accurate in both modes.
+[Auditable(AuditAction.Approved, "ScholarshipProviderReviewRequest",
     TargetIdProperty = nameof(RequestId),
-    SummaryTemplate = "ScholarshipProvider accepted ScholarshipProviderReviewRequest {RequestId} — captured payment")]
+    SummaryTemplate = "ScholarshipProvider accepted review request {RequestId}")]
 public sealed record AcceptScholarshipProviderReviewRequestCommand(Guid RequestId) : IRequest<bool>;
 
 public sealed class AcceptScholarshipProviderReviewRequestCommandValidator

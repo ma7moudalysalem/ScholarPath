@@ -64,6 +64,13 @@ public class ScholarshipProviderReviewRequest : AuditableEntity, ISoftDeletable
     public string? CancelReason { get; set; }
     public string? RejectReason { get; set; }
 
+    /// <summary>
+    /// The provider's completeness feedback on the student's attached documents
+    /// (PB-005) — what's missing / what to fix before applying. Set when the
+    /// provider marks the request Completed; visible to the student.
+    /// </summary>
+    public string? ProviderFeedback { get; set; }
+
     public bool IsDeleted { get; set; }
     public DateTimeOffset? DeletedAt { get; set; }
     public Guid? DeletedByUserId { get; set; }

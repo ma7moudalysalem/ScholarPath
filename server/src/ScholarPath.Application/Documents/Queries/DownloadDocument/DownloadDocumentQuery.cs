@@ -49,7 +49,20 @@ public sealed class DownloadDocumentQueryHandler(
                         ct)
                     .ConfigureAwait(false);
 
-            if (!isScholarshipProviderReviewer)
+            // …and the provider of a paid review/support request may download the
+            // files the student attached to that request (PB-005).
+            var isReviewRequestProvider = !isScholarshipProviderReviewer
+                && currentUser.IsInRole("ScholarshipProvider")
+                && document.ScholarshipProviderReviewRequestId.HasValue
+                && await db.ScholarshipProviderReviewRequests
+                    .AsNoTracking()
+                    .AnyAsync(
+                        r => r.Id == document.ScholarshipProviderReviewRequestId.Value
+                          && r.ScholarshipProviderId == userId,
+                        ct)
+                    .ConfigureAwait(false);
+
+            if (!isScholarshipProviderReviewer && !isReviewRequestProvider)
                 throw new ForbiddenAccessException("You can only download your own documents.");
         }
 

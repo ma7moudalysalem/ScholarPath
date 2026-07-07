@@ -28,11 +28,14 @@ public sealed class GetMyScholarshipProviderReviewRequestsAsScholarshipProviderQ
         var companyId = currentUser.UserId
             ?? throw new ForbiddenAccessException("Not authenticated.");
 
-        return await db.ScholarshipProviderReviewRequests
+        var rows = await db.ScholarshipProviderReviewRequests
             .AsNoTracking()
             .Where(r => r.ScholarshipProviderId == companyId)
             .OrderByDescending(r => r.CreatedAt)
             .Select(ScholarshipProviderReviewRequestMapper.Projection)
             .ToListAsync(ct);
+
+        // Surface the files the student attached so the provider can review them.
+        return await rows.WithDocumentsAsync(db, ct);
     }
 }

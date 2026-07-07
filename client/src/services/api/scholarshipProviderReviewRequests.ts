@@ -59,6 +59,17 @@ export interface ScholarshipProviderReviewRequestDto {
   platformCommissionCents: number;
   scholarshipProviderShareCents: number;
   paymentReference?: string | null;
+  /** Files the student attached for the provider to review (PB-005). */
+  documents: ScholarshipProviderReviewRequestDocumentInfo[];
+  /** The provider's completeness feedback, shown to the student. */
+  providerFeedback?: string | null;
+}
+
+export interface ScholarshipProviderReviewRequestDocumentInfo {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
 }
 
 export interface StartScholarshipProviderReviewRequestResult {
@@ -149,7 +160,18 @@ export const scholarshipProviderReviewRequestsApi = {
     });
   },
 
-  async complete(requestId: string): Promise<void> {
-    await apiClient.post(`/api/company-review-requests/${requestId}/complete`);
+  async complete(requestId: string, feedback?: string): Promise<void> {
+    await apiClient.post(`/api/company-review-requests/${requestId}/complete`, {
+      feedback: feedback?.trim() || null,
+    });
+  },
+
+  /** Attach a vaulted file to a support request for the provider to review. */
+  async attachDocument(requestId: string, file: File): Promise<void> {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("category", "Other");
+    form.append("scholarshipProviderReviewRequestId", requestId);
+    await apiClient.post("/api/documents", form);
   },
 };

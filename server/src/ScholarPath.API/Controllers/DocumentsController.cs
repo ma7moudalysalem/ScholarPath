@@ -32,6 +32,7 @@ public sealed class DocumentsController(IMediator mediator) : ControllerBase
         [FromForm] DocumentCategory category = DocumentCategory.Other,
         [FromForm] Guid? applicationTrackerId = null,
         [FromForm] OnboardingDocumentType? onboardingType = null,
+        [FromForm] Guid? scholarshipProviderReviewRequestId = null,
         CancellationToken ct = default)
     {
         if (file is null || file.Length == 0)
@@ -39,7 +40,8 @@ public sealed class DocumentsController(IMediator mediator) : ControllerBase
 
         await using var stream = file.OpenReadStream();
         var result = await mediator.Send(new UploadDocumentCommand(
-            stream, file.FileName, file.ContentType, file.Length, category, applicationTrackerId, onboardingType), ct);
+            stream, file.FileName, file.ContentType, file.Length, category, applicationTrackerId, onboardingType,
+            scholarshipProviderReviewRequestId), ct);
 
         return CreatedAtAction(nameof(Download), new { id = result.Id }, result);
     }

@@ -1,4 +1,6 @@
 using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
+using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.ScholarshipProviderReviewRequests.DTOs;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
@@ -48,6 +50,8 @@ public static class ScholarshipProviderReviewRequestMapper
 
             CancelReason = r.CancelReason,
             RejectReason = r.RejectReason,
+            ProviderFeedback = r.ProviderFeedback,
+            // Documents are enriched post-projection by the queries that need them.
 
             PaymentId = r.PaymentId,
             PaymentStatus = r.Payment != null ? r.Payment.Status : (PaymentStatus?)null,
@@ -67,4 +71,42 @@ public static class ScholarshipProviderReviewRequestMapper
             ScholarshipProviderShareCents = r.Payment != null ? r.Payment.PayeeAmountCents : 0,
             PaymentReference = r.Payment != null ? r.Payment.StripePaymentIntentId : null,
         };
+
+    /// <summary>
+    /// Enriches already-projected rows with the files each student attached to
+    /// the request (PB-005). One extra query keyed on the request ids — the
+    /// shared EF projection can't correlate a Document subquery on its own.
+    /// </summary>
+    public static async Task<IReadOnlyList<ScholarshipProviderReviewRequestDto>> WithDocumentsAsync(
+        this IReadOnlyList<ScholarshipProviderReviewRequestDto> rows,
+        IApplicationDbContext db,
+        CancellationToken ct)
+    {
+        if (rows.Count == 0) return rows;
+
+        var ids = rows.Select(r => r.Id).ToList();
+        var docs = await db.Documents
+            .AsNoTracking()
+            .Where(d => d.ScholarshipProviderReviewRequestId != null
+                        && ids.Contains(d.ScholarshipProviderReviewRequestId.Value))
+            .Select(d => new
+            {
+                RequestId = d.ScholarshipProviderReviewRequestId!.Value,
+                Info = new ScholarshipProviderReviewRequestDocumentInfo(d.Id, d.FileName, d.ContentType, d.SizeBytes),
+            })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        if (docs.Count == 0) return rows;
+
+        var byRequest = docs
+            .GroupBy(x => x.RequestId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<ScholarshipProviderReviewRequestDocumentInfo>)g.Select(x => x.Info).ToList());
+
+        return rows
+            .Select(r => byRequest.TryGetValue(r.Id, out var d) ? r with { Documents = d } : r)
+            .ToList();
+    }
 }
