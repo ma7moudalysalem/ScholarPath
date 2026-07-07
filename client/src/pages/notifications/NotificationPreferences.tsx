@@ -24,6 +24,7 @@ import {
   Sparkles,
   TestTube,
   Users,
+  Volume2,
   VolumeX,
 } from "lucide-react";
 import {
@@ -31,6 +32,11 @@ import {
   type NotificationPreference,
   type NotificationSettings,
 } from "@/services/api/notifications";
+import {
+  isNotificationSoundEnabled,
+  playNotificationChime,
+  setNotificationSoundEnabled,
+} from "@/lib/notificationSound";
 import { usePaymentsEnabled } from "@/hooks/usePlatformStatus";
 import { cn } from "@/lib/utils";
 
@@ -217,6 +223,8 @@ export function NotificationPreferences() {
   const [quietHoursEnabled, setQuietHoursEnabled] = useState(false);
   const [quietStart, setQuietStart] = useState("22:00");
   const [quietEnd, setQuietEnd] = useState("08:00");
+  // Notification sound is a per-device preference (localStorage), not server-side.
+  const [soundEnabled, setSoundEnabled] = useState(isNotificationSoundEnabled);
 
   // Hydrate the DND controls from the server ONCE (a later refetch must not
   // clobber an edit the user just made and we optimistically kept locally).
@@ -416,6 +424,34 @@ export function NotificationPreferences() {
       >
         <div className="grid gap-5 md:grid-cols-2 md:gap-8">
           {/* Mute all */}
+          {/* Notification sound — a soft ping on new notifications (per-device). */}
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-bg-subtle text-text-secondary">
+              <Volume2 aria-hidden className="size-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {t("notifications:preferences.sound.title")}
+                  </p>
+                  <p className="mt-0.5 text-xs text-text-secondary">
+                    {t("notifications:preferences.sound.desc")}
+                  </p>
+                </div>
+                <Toggle
+                  checked={soundEnabled}
+                  onChange={(v) => {
+                    setSoundEnabled(v);
+                    setNotificationSoundEnabled(v);
+                    if (v) playNotificationChime();
+                  }}
+                  label={t("notifications:preferences.sound.title")}
+                />
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-bg-subtle text-text-secondary">
               <VolumeX aria-hidden className="size-5" />

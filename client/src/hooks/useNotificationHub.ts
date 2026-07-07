@@ -1,7 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useNavigate } from "react-router";
 import { useAuthStore } from "@/stores/authStore";
+import { playNotificationChime } from "@/lib/notificationSound";
 import { createNotificationHubConnection } from "@/services/signalR/hubs";
 import {
   UNREAD_COUNT_QUERY_KEY,
@@ -40,6 +42,7 @@ export function useNotificationHub() {
   const tokens = useAuthStore((s) => s.tokens);
   const accessToken = tokens?.accessToken;
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   // Guard against StrictMode's mount → unmount → mount cycle: the first mount
   // would otherwise leave an in-flight start() that races with the second
   // mount's connection. We track the latest effect id and ignore stale ones.
@@ -63,7 +66,18 @@ export function useNotificationHub() {
       toast(lang === "ar" ? payload.titleAr : payload.titleEn, {
         id: payload.id || undefined,
         description: lang === "ar" ? payload.bodyAr : payload.bodyEn,
+        // Make the toast actionable: jump straight to the relevant page.
+        action: payload.deepLink
+          ? {
+              label: lang === "ar" ? "عرض" : "View",
+              onClick: () => navigate(payload.deepLink!),
+            }
+          : undefined,
       });
+      // A soft ping (respects the per-device sound toggle). Only fires for
+      // notifications that reached the client — the server already suppresses the
+      // real-time push under mute / quiet hours, so Do-Not-Disturb stays silent.
+      playNotificationChime();
 
       // Bump the header bell badge the moment a notification lands.
       void queryClient.invalidateQueries({ queryKey: UNREAD_COUNT_QUERY_KEY });

@@ -37,6 +37,10 @@
     "enableRow": "Enable",
     "saveError": "Could not update preference. Please try again.",
     "footerHint": "Critical security and payment notifications cannot be disabled.",
+    "sound": {
+      "title": "Notification sound",
+      "desc": "Play a soft chime on this device when a new notification arrives."
+    },
     "muteAll": {
       "title": "Mute all notifications",
       "desc": "Pause every channel except critical alerts."
