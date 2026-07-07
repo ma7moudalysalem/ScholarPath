@@ -24,6 +24,8 @@
     "academicLevel": "Academic Level",
     "fieldOfStudy": "Field of Study",
     "fieldOfStudyAll": "All fields",
+    "country": "Country",
+    "countryAll": "All countries",
     "deadlineFrom": "Deadline from",
     "deadlineTo": "Deadline to"
   },
