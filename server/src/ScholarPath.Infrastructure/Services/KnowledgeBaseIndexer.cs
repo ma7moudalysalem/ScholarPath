@@ -14,15 +14,6 @@ using ScholarPath.Infrastructure.Settings;
 
 namespace ScholarPath.Infrastructure.Services;
 
-/// <summary>
-/// Builds and maintains the RAG knowledge base. It projects every open
-/// scholarship and every curated FAQ entry into a <see cref="KnowledgeDocument"/>,
-/// then embeds the documents with the active <see cref="IEmbeddingService"/>.
-///
-/// A document is (re)embedded only when it is new, its content changed (tracked
-/// by <see cref="KnowledgeDocument.ContentHash"/>), or it was last embedded with
-/// a different model — so a rebuild is cheap once the base is warm.
-/// </summary>
 public sealed class KnowledgeBaseIndexer(
     ApplicationDbContext db,
     IEmbeddingService embeddings,
@@ -33,13 +24,7 @@ public sealed class KnowledgeBaseIndexer(
     private const int EmbedBatchSize = 16;
     private const string FaqDatasetName = "scholarpath-faq";
 
-    // RACE-06: a rebuild reads every document, (re)embeds the pending ones against
-    // the paid embedding provider, then SaveChanges. Two overlapping rebuilds —
-    // e.g. the startup RAG bootstrap and an admin-triggered rebuild — would embed
-    // the same documents twice (duplicate spend) and race their writes. The indexer
-    // is registered Scoped, so a process-wide static gate is required to serialize
-    // across requests. Prod runs a single App Service instance, so this suffices;
-    // a DB sp_getapplock would be needed only for a multi-instance deployment.
+ 
     private static readonly SemaphoreSlim RebuildGate = new(1, 1);
 
     private static readonly JsonSerializerOptions JsonOpts = new()
@@ -49,9 +34,7 @@ public sealed class KnowledgeBaseIndexer(
 
     public async Task<KnowledgeBaseRebuildResultDto> RebuildAsync(bool force, CancellationToken ct)
     {
-        // Serialize rebuilds so a startup bootstrap and an admin rebuild never
-        // overlap. WaitAsync honours the token, so a queued caller cancelling
-        // throws OperationCanceledException rather than hanging.
+       
         await RebuildGate.WaitAsync(ct).ConfigureAwait(false);
         try
         {
@@ -68,16 +51,10 @@ public sealed class KnowledgeBaseIndexer(
         var desired = new List<DesiredDoc>();
         desired.AddRange(await BuildScholarshipDocsAsync(ct).ConfigureAwait(false));
         desired.AddRange(BuildFaqDocs());
-        // Three additional projections so the RAG retriever can match people
-        // and library content the way it already matches scholarships and
-        // help articles.
+        
         desired.AddRange(await BuildConsultantDocsAsync(ct).ConfigureAwait(false));
         desired.AddRange(await BuildResourceDocsAsync(ct).ConfigureAwait(false));
-        // DES-05: community forum threads are unvetted user-generated content, so
-        // they are grounded into the chatbot's KB only when explicitly enabled
-        // (Ai:IncludeCommunityPostsInKb=true). Off by default until a moderation /
-        // vetting workflow exists — otherwise the assistant could surface unverified
-        // claims from arbitrary users as if they were curated platform content.
+       
         if (aiOptions.Value.IncludeCommunityPostsInKb)
         {
             desired.AddRange(await BuildTopCommunityPostDocsAsync(ct).ConfigureAwait(false));
@@ -90,7 +67,7 @@ public sealed class KnowledgeBaseIndexer(
         var now = DateTimeOffset.UtcNow;
         var upserted = 0;
 
-        // ── 1. Upsert the desired documents ──
+  
         foreach (var d in desired)
         {
             desiredKeys.Add((d.SourceType, d.SourceKey));
@@ -106,7 +83,6 @@ public sealed class KnowledgeBaseIndexer(
                 doc.MetadataJson = d.MetadataJson;
                 doc.UpdatedAt = now;
 
-                // Content changed → drop the stale embedding so it is recomputed.
                 if (doc.ContentHash != hash)
                 {
                     doc.ContentHash = hash;
@@ -136,7 +112,6 @@ public sealed class KnowledgeBaseIndexer(
             }
         }
 
-        // ── 2. Remove documents whose source no longer exists ──
         var orphans = existing
             .Where(d => !desiredKeys.Contains((d.SourceType, d.SourceKey)))
             .ToList();
@@ -146,7 +121,6 @@ public sealed class KnowledgeBaseIndexer(
             foreach (var orphan in orphans) existing.Remove(orphan);
         }
 
-        // ── 3. (Re)embed everything pending ──
         var model = embeddings.ModelName;
         var pending = existing
             .Where(d => force || d.Embedding.Length == 0 || d.EmbeddingModel != model)
@@ -223,7 +197,6 @@ public sealed class KnowledgeBaseIndexer(
             LastIndexedAt: docs.Count == 0 ? null : docs.Max(d => d.IndexedAt));
     }
 
-    // ─── Document builders ────────────────────────────────────────────────
 
     private async Task<List<DesiredDoc>> BuildScholarshipDocsAsync(CancellationToken ct)
     {
@@ -284,14 +257,6 @@ public sealed class KnowledgeBaseIndexer(
         return docs;
     }
 
-    /// <summary>
-    /// Projects every verified, non-suspended consultant profile into a
-    /// KnowledgeDocument. The chatbot can then answer queries like
-    /// "who's good at SoP review in French?" by retrieving these docs and
-    /// citing the consultants by name. Unverified or suspended consultants
-    /// are excluded so the AI doesn't surface accounts the student couldn't
-    /// actually book.
-    /// </summary>
     private async Task<List<DesiredDoc>> BuildConsultantDocsAsync(CancellationToken ct)
     {
         var consultants = await (
@@ -379,11 +344,6 @@ public sealed class KnowledgeBaseIndexer(
         return docs;
     }
 
-    /// <summary>
-    /// Projects every Published, non-deleted resource (article, guide,
-    /// checklist, video link) into a KnowledgeDocument so the chatbot can
-    /// point students at relevant in-house content.
-    /// </summary>
     private async Task<List<DesiredDoc>> BuildResourceDocsAsync(CancellationToken ct)
     {
         var resources = await db.Resources
@@ -397,10 +357,6 @@ public sealed class KnowledgeBaseIndexer(
             var tags = ParseJsonArray(r.TagsJson);
             var tagsText = tags.Count > 0 ? string.Join(", ", tags) : "general";
 
-            // Trim long markdown bodies so a 50-chapter guide doesn't blow
-            // out the embedding token budget. 1500 chars is enough for the
-            // retriever to score the doc; the chatbot doesn't replay the
-            // whole body anyway.
             var bodyEn = Truncate(r.ContentMarkdownEn, 1500);
             var bodyAr = Truncate(r.ContentMarkdownAr, 1500);
 
@@ -439,13 +395,6 @@ public sealed class KnowledgeBaseIndexer(
         return docs;
     }
 
-    /// <summary>
-    /// Projects the highest-quality community threads (positive net score,
-    /// not hidden / locked) into KnowledgeDocuments so the chatbot can
-    /// surface peer wisdom alongside the official help content. Only root
-    /// threads are indexed; replies are deliberately excluded to keep the
-    /// index focused.
-    /// </summary>
     private async Task<List<DesiredDoc>> BuildTopCommunityPostDocsAsync(CancellationToken ct)
     {
         var posts = await db.ForumPosts
@@ -475,10 +424,6 @@ public sealed class KnowledgeBaseIndexer(
             var body = Truncate(p.BodyMarkdown, 1500);
             var score = p.UpvoteCount - p.DownvoteCount;
 
-            // The body is user-generated text in whatever language the
-            // author wrote — we don't try to translate it. Embed the same
-            // body under both EN and AR fields so the retriever finds the
-            // doc regardless of the query's language.
             var contentEn =
                 $"Community discussion: {title}\n" +
                 $"Score: +{score} from the community ({p.ReplyCount} replies).\n\n" +
@@ -506,7 +451,6 @@ public sealed class KnowledgeBaseIndexer(
         return docs;
     }
 
-    /// <summary>Trims a string to <paramref name="max"/> characters, preserving word boundaries.</summary>
     private static string Truncate(string? text, int max)
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
@@ -564,7 +508,6 @@ public sealed class KnowledgeBaseIndexer(
         return docs;
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────────────
 
     private static string EmbedText(KnowledgeDocument d) => d.ContentEn + "\n\n" + d.ContentAr;
 

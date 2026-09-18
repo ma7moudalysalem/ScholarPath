@@ -38,6 +38,11 @@ export function createCommunityHubConnection() {
   return buildConnection("/hubs/community");
 }
 
+/** Admin-only live diagnostics feed (API requests + SQL). */
+export function createSystemActivityHubConnection() {
+  return buildConnection("/hubs/system-activity");
+}
+
 export type ConnectionLifecycleHandlers = {
   onReconnecting?: () => void;
   onReconnected?: () => void;

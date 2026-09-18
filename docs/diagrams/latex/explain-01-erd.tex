@@ -4,8 +4,9 @@
 \usepackage{lmodern}
 \usepackage[margin=2.3cm]{geometry}
 \usepackage{graphicx}
-\graphicspath{{../img/}}
+\graphicspath{{../img/erd_suite/}{../img/class_suite/}{../img/component_suite/}{../img/}}
 \usepackage{xcolor}
+\usepackage{pdflscape}
 \definecolor{spblue}{HTML}{1F4E79}
 \definecolor{spteal}{HTML}{2C7A7B}
 \usepackage{booktabs}
@@ -41,7 +42,7 @@ Mapping $\rightarrow$ Class Diagrams}. The present document establishes the
 Diagram (ERD) drawn in Chen / Elmasri notation. We introduce the ScholarPath
 platform and its four actors, recall the vocabulary of the ER model (entities,
 relationships, attributes, keys and the $1$/$N$/$M$ cardinality ratios), and
-then present the basic conceptual diagram of roughly fifteen core entities and
+then present the basic conceptual diagram of the core entities and
 their relationships. Crucially, this is the ``before'' picture: at this stage
 the model is intentionally flat --- a single \texttt{USER} entity with role as a
 mere attribute, no specialization, no weak entities, and no multivalued or
@@ -57,9 +58,11 @@ that enhancement.
 \textbf{ScholarPath} is a web platform that connects students seeking
 educational funding with the people and organisations that can help them obtain
 it. In a single application it brings together a scholarship catalogue and
-application tracker, a paid consultant-booking and session-recording service, a
-paid company review service for applications, a community forum with private
-chat, a resources hub, and a layer of analytics and AI-assisted recommendation.
+application tracker, a consultant-booking and session-recording service, a
+scholarship-provider review service for applications, a community forum with
+private chat, a resources hub, and a layer of analytics and AI-assisted
+recommendation. The platform runs in \emph{free mode} --- all services are
+offered at no charge, so there is no money-settlement subsystem in the model.
 The system is built as a .NET backend with a React front end; this series,
 however, is concerned only with the \emph{data model} that underpins it.
 
@@ -73,16 +76,16 @@ conceptually they behave as four distinct actors:
   \item \textbf{Student} --- the primary beneficiary. A student maintains an
         academic profile (academic level, field of study, GPA, preferred
         countries), discovers and applies to scholarships, uploads supporting
-        documents, books paid consultant sessions, requests paid company
+        documents, books consultant sessions, requests scholarship-provider
         reviews of an application, and participates in the community.
-  \item \textbf{Company} --- an organisation that owns and publishes
-        scholarships, and that can be paid to review a student's application.
-        A company carries an organisation legal name, a verification status and
-        an aggregate rating.
+  \item \textbf{ScholarshipProvider} --- an organisation that owns and publishes
+        scholarships, and that can review a student's application. A provider
+        carries an organisation legal name, a verification status and an
+        aggregate rating.
   \item \textbf{Consultant} --- a domain expert who publishes availability,
-        conducts paid one-to-one booking sessions, and is rated afterwards. A
-        consultant carries a session fee, expertise tags and a payout
-        (Stripe Connect) status.
+        conducts one-to-one booking sessions, and is rated afterwards. A
+        consultant carries a session duration, expertise tags and a
+        professional title.
   \item \textbf{Admin} --- the platform operator who moderates content,
         approves verification and upgrade requests, and configures the
         platform.
@@ -98,9 +101,9 @@ later parts of this series:
   \item \textbf{Identity \& Profile} --- accounts, roles and profile data.
   \item \textbf{Scholarships, Applications \& Documents} --- the catalogue, the
         applications students submit against it, the documents that support
-        them, and paid company reviews.
-  \item \textbf{Booking, Payments \& Ratings} --- consultant availability,
-        bookings, the payments that settle them, and the reviews that follow.
+        them, and scholarship-provider reviews.
+  \item \textbf{Consultant Booking \& Ratings} --- consultant availability,
+        bookings, and the reviews that follow.
   \item \textbf{Community \& Chat} --- forum posts and private conversations.
   \item \textbf{Resources \& Notifications} --- learning resources and the
         notifications that keep users informed.
@@ -148,7 +151,7 @@ entities may share the same key value. In Chen notation a key attribute is
 \subsection{Relationships}
 
 A \textbf{relationship} is a meaningful association between entities --- a user
-\emph{submits} an application; a booking is \emph{settled by} a payment.
+\emph{submits} an application; a booking is \emph{rated by} a consultant review.
 A \textbf{relationship type} is drawn as a \textbf{diamond} on the line that
 joins the participating entity rectangles, labelled with a verb.
 
@@ -189,21 +192,21 @@ types, ovals are attributes, underlined attributes are keys, and the
 ratios. It is the source diagram for everything that follows in this series.
 
 \begin{figure}[H]\centering
-\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{ScholarPath_ERD_Basic.pdf}
-\caption{The basic conceptual ERD for ScholarPath in Chen / Elmasri notation
---- the deliberately plain starting point. \texttt{USER} is a single flat
-entity whose \texttt{Role} is just an attribute.}
+\includegraphics[width=\linewidth,height=0.86\textheight,keepaspectratio]{erd-atlas.pdf}
+\caption{The basic conceptual ERD for ScholarPath (the ``atlas'' overview) in
+Chen / Elmasri notation --- the deliberately plain starting point. \texttt{USER}
+is a single flat entity whose \texttt{Role} is just an attribute.}
 \label{fig:erd-basic}
 \end{figure}
 
 \subsection{The core entities}
 
-The diagram captures fifteen core entity types. Table~\ref{tab:entities} lists
-each one with its meaning and the key attributes shown on the conceptual
-diagram.
+The atlas gathers the platform's core entity types. Table~\ref{tab:entities}
+lists a representative selection with its meaning and the key attributes shown on
+the conceptual diagram.
 
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.9cm}>{\raggedright\arraybackslash}p{8.5cm}>{\raggedright\arraybackslash}p{2.6cm}@{}}
-\caption{The fifteen core entity types of the basic ScholarPath ERD.}
+\caption{Representative core entity types of the basic ScholarPath ERD.}
 \label{tab:entities}\\
 \toprule
 \textbf{Entity} & \textbf{Meaning} & \textbf{Key / shown attributes} \\
@@ -215,18 +218,18 @@ diagram.
 \endhead
 \bottomrule
 \endfoot
-\texttt{USER} & Any account holder. At this stage \texttt{Role} is just an attribute distinguishing Student, Company, Consultant and Admin. & \underline{Id}, Email, Name, Role \\
+\texttt{USER} & Any account holder. At this stage \texttt{Role} is just an attribute distinguishing Student, ScholarshipProvider, Consultant and Admin. & \underline{Id}, Email, Name, Role \\
 \texttt{CATEGORY} & A subject classification applied to scholarships. & \underline{Id}, Name \\
 \texttt{SCHOLARSHIP} & A funding opportunity that students apply to. & \underline{Id}, Title, Deadline, Status \\
 \texttt{APPLICATION} & A student's submission against a scholarship. & \underline{Id}, Status, SubmittedAt \\
 \texttt{DOCUMENT} & A file uploaded to support an application. & \underline{Id}, Category \\
-\texttt{COMPANY\_REVIEW} & A company's rating of a reviewed application. & \underline{Id}, Rating \\
+\texttt{SCHOLARSHIP\_PROVIDER\_REVIEW} & A provider's rating of a reviewed application. & \underline{Id}, Rating \\
 \texttt{AVAILABILITY} & A time slot a consultant publishes for booking. & \underline{Id}, IsActive \\
 \texttt{BOOKING} & A booked consultant session. & \underline{Id}, ScheduledStartAt, Status \\
-\texttt{PAYMENT} & A money settlement for a booking. & \underline{Id}, Amount, Status \\
+\texttt{NO\_SHOW\_REPORT} & A report that a booking party failed to attend. & \underline{Id}, AccusedRole, Status \\
 \texttt{CONSULTANT\_REVIEW} & A student's rating of a completed booking. & \underline{Id}, Rating \\
-\texttt{FORUM\_POST} & A post in the community forum. & \underline{Id}, Title, Status \\
-\texttt{CONVERSATION} & A private chat channel between users. & \underline{Id} \\
+\texttt{FORUM\_POST} & A post in the community forum. & \underline{Id}, BodyMarkdown, ModerationStatus \\
+\texttt{CONVERSATION} & A private chat channel between two users. & \underline{Id} \\
 \texttt{MESSAGE} & A single message inside a conversation. & \underline{Id}, Body \\
 \texttt{RESOURCE} & A learning resource authored on the platform. & \underline{Id}, Title, Type \\
 \texttt{NOTIFICATION} & A message delivered to a user. & \underline{Id}, Type, IsRead \\
@@ -234,11 +237,12 @@ diagram.
 
 \subsection{The relationships and their cardinalities}
 
-Table~\ref{tab:relationships} walks through every relationship drawn in
-Figure~\ref{fig:erd-basic}, in the order it appears in the diagram, giving the
-participating entities, the relationship verb and the cardinality ratio. All
-but one relationship are one-to-many; the lone many-to-many is the
-\textsc{participates} link between users and conversations.
+Table~\ref{tab:relationships} walks through the principal relationships drawn in
+Figure~\ref{fig:erd-basic}, giving the participating entities, the relationship
+verb and the cardinality ratio. Most of the backbone relationships are
+one-to-many; the many-to-many links (a user \textsc{participates} in many
+conversations, \textsc{saves} many scholarships, \textsc{votes} on many posts)
+are drawn as diamonds joining the two ``many'' sides.
 
 \begin{longtable}{@{}>{\raggedright\arraybackslash}p{3.0cm}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{3.0cm}cl@{}}
 \caption{Relationships of the basic ScholarPath ERD with cardinality ratios.}
@@ -253,18 +257,19 @@ but one relationship are one-to-many; the lone many-to-many is the
 \endhead
 \bottomrule
 \endfoot
-USER          & \textsc{owns}          & SCHOLARSHIP       & 1\,:\,N & a company owns many scholarships \\
+USER          & \textsc{owns}          & SCHOLARSHIP       & 1\,:\,N & a provider owns many scholarships \\
 CATEGORY      & \textsc{classifies}    & SCHOLARSHIP       & 1\,:\,N & a category classifies many scholarships \\
+USER          & \textsc{saves}         & SCHOLARSHIP       & M\,:\,N & a student saves many scholarships \\
 USER          & \textsc{submits}       & APPLICATION       & 1\,:\,N & a student submits many applications \\
 SCHOLARSHIP   & \textsc{for\_sch}      & APPLICATION       & 1\,:\,N & a scholarship receives many applications \\
 APPLICATION   & \textsc{supports}      & DOCUMENT          & 1\,:\,N & an application is supported by many documents \\
 USER          & \textsc{owns\_doc}     & DOCUMENT          & 1\,:\,N & a user owns many documents \\
-APPLICATION   & \textsc{rated\_app}    & COMPANY\_REVIEW   & 1\,:\,1 & an application is rated by one company review \\
+APPLICATION   & \textsc{rated\_app}    & SCH\_PROV\_REVIEW & 1\,:\,1 & an application is rated by one provider review \\
 USER          & \textsc{publishes}     & AVAILABILITY      & 1\,:\,N & a consultant publishes many availability slots \\
 USER          & \textsc{books}         & BOOKING           & 1\,:\,N & a student makes many bookings \\
 USER          & \textsc{conducts}      & BOOKING           & 1\,:\,N & a consultant conducts many bookings \\
 AVAILABILITY  & \textsc{for\_slot}     & BOOKING           & 1\,:\,N & a slot reserves many bookings \\
-BOOKING       & \textsc{settled\_by}   & PAYMENT           & 1\,:\,1 & a booking is settled by one payment \\
+BOOKING       & \textsc{concerns}      & NO\_SHOW\_REPORT  & 1\,:\,N & a booking may raise no-show reports \\
 BOOKING       & \textsc{rated\_bkg}    & CONSULTANT\_REVIEW& 1\,:\,1 & a booking is rated by one consultant review \\
 USER          & \textsc{authors\_post} & FORUM\_POST       & 1\,:\,N & a user authors many forum posts \\
 USER          & \textsc{participates}  & CONVERSATION      & M\,:\,N & users participate in many conversations \\
@@ -278,39 +283,74 @@ the later parts:
 
 \begin{itemize}[leftmargin=1.4em]
   \item \textbf{\texttt{USER} is the hub.} Almost every relationship has
-        \texttt{USER} on one side. The same account plays the part of company
-        owner (\textsc{owns}), student applicant (\textsc{submits}),
-        consultant (\textsc{publishes}, \textsc{conducts}) and student booker
-        (\textsc{books}). The diagram cannot tell these roles apart --- they
-        are all just ``\texttt{USER}''.
+        \texttt{USER} on one side. The same account plays the part of
+        scholarship-provider owner (\textsc{owns}), student applicant
+        (\textsc{submits}), consultant (\textsc{publishes}, \textsc{conducts})
+        and student booker (\textsc{books}). The diagram cannot tell these roles
+        apart --- they are all just ``\texttt{USER}''.
   \item \textbf{Two distinct roles on the same relationship target.} Both
         \textsc{books} and \textsc{conducts} connect \texttt{USER} to
         \texttt{BOOKING}; conceptually one end is a student and the other a
         consultant, but at this stage both are the same flat entity.
-  \item \textbf{One-to-one review links.} \textsc{rated\_app},
-        \textsc{settled\_by} and \textsc{rated\_bkg} are all $1{:}1$, capturing
-        that an application has at most one company review, a booking has at
-        most one payment, and a booking has at most one consultant review.
+  \item \textbf{One-to-one review links.} \textsc{rated\_app} and
+        \textsc{rated\_bkg} are both $1{:}1$, capturing that an application has
+        at most one scholarship-provider review and a booking has at most one
+        consultant review.
 \end{itemize}
 
-\section{Subject-Area Context}
+\section{The Six Subject-Area Modules}
 
-Before drilling into structure, it helps to see how the entities group into the
-six subject areas introduced in Section~1. Figure~\ref{fig:context} gives that
-big-picture view, with \texttt{USER} at the centre and each subject area
-hanging off it.
+The atlas is large, so the same plain ERD is also sliced into the six subject
+areas introduced in Section~1, one detail diagram per module. Each of
+Figures~\ref{fig:erd-m1}--\ref{fig:erd-m6} zooms into a single module so the
+entities, attributes and cardinalities in that area can be read clearly. Every
+module keeps \texttt{USER} in view because almost every relationship touches it.
+
+\begin{landscape}
 
 \begin{figure}[H]\centering
-\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{ScholarPath_Context.pdf}
-\caption{Subject-area context. Everything radiates from \texttt{USER}; each
-cluster is detailed in the later parts of this series.}
-\label{fig:context}
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{erd-module-1.pdf}
+\caption{Module 1 --- Identity, Access \& Profile (plain ERD).}
+\label{fig:erd-m1}
 \end{figure}
 
-This context view is intentionally coarse: it shows \emph{which} groups of
-entities exist and that they all touch the user, without committing to the
-exact relationships. It is the map that the basic ERD of
-Figure~\ref{fig:erd-basic} begins to fill in, and that Part~2 completes.
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{erd-module-2.pdf}
+\caption{Module 2 --- Scholarships, Applications \& Documents (plain ERD).}
+\label{fig:erd-m2}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{erd-module-3.pdf}
+\caption{Module 3 --- Consultant Booking \& Ratings (plain ERD).}
+\label{fig:erd-m3}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{erd-module-4.pdf}
+\caption{Module 4 --- Community \& Chat (plain ERD).}
+\label{fig:erd-m4}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{erd-module-5.pdf}
+\caption{Module 5 --- Resources Hub \& Notifications (plain ERD).}
+\label{fig:erd-m5}
+\end{figure}
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{erd-module-6.pdf}
+\caption{Module 6 --- AI, Knowledge Base \& Platform (plain ERD).}
+\label{fig:erd-m6}
+\end{figure}
+
+\end{landscape}
+
+These per-module views are intentionally the same plain ERD as the atlas, only
+partitioned: they show \emph{which} entities live in each area and how they
+relate, without yet committing to the enhancements. They are the map that the
+basic ERD of Figure~\ref{fig:erd-basic} begins to fill in, and that Part~2
+completes.
 
 \section{Limitations of the Plain ERD}
 
@@ -323,19 +363,20 @@ not a criticism of the model --- it is precisely the agenda for
 \subsection{USER is one flat entity --- role is just an attribute}
 
 The most important simplification is that there is a single \texttt{USER}
-entity, and the distinction between Student, Company, Consultant and Admin is
+entity, and the distinction between Student, ScholarshipProvider, Consultant and Admin is
 captured only by the \texttt{Role} attribute. This has visible consequences in
 the diagram:
 
 \begin{itemize}[leftmargin=1.4em]
   \item The role-specific attributes cannot be modelled. A student's academic
-        level and GPA, a company's organisation legal name and verification
-        status, and a consultant's session fee and expertise all belong to
-        \emph{some} users but not others. A flat \texttt{USER} entity has no
-        place to put them.
+        level and GPA, a scholarship provider's organisation legal name and
+        verification status, and a consultant's session duration and expertise
+        all belong to \emph{some} users but not others. A flat \texttt{USER}
+        entity has no place to put them.
   \item The semantics of relationships are blurred. ``A \texttt{USER}
-        \textsc{owns} a \texttt{SCHOLARSHIP}'' really means \emph{a company}
-        owns it; ``a \texttt{USER} \textsc{books} a \texttt{BOOKING}'' really
+        \textsc{owns} a \texttt{SCHOLARSHIP}'' really means \emph{a scholarship
+        provider} owns it; ``a \texttt{USER} \textsc{books} a \texttt{BOOKING}''
+        really
         means \emph{a student} books it. The diagram cannot enforce or even
         state these role constraints.
 \end{itemize}
@@ -344,7 +385,7 @@ the diagram:
 
 Because \texttt{USER} is flat, there is \textbf{no specialization /
 generalization}. The natural model is that \texttt{USER} is a super-type
-specialized into Student, Company, Consultant and Admin sub-types, with the
+specialized into Student, ScholarshipProvider, Consultant and Admin sub-types, with the
 sub-type-specific attributes attached to each sub-type. The plain ERD has no
 way to draw the EER specialization circle or its disjoint/overlapping and
 total/partial constraints. Adding this ISA hierarchy is the headline
@@ -369,8 +410,8 @@ contains:
         student's preferred countries are naturally a \emph{set} of values, not
         a single value. Chen notation draws these as double ovals; the plain
         ERD omits them entirely.
-  \item \textbf{Derived attributes} --- a company's average rating or a
-        scholarship's application count are \emph{computed} from related
+  \item \textbf{Derived attributes} --- a scholarship provider's average rating
+        or a forum post's upvote count are \emph{computed} from related
         entities rather than stored independently. Chen notation draws these as
         dashed ovals; again, the plain ERD does not distinguish them.
 \end{itemize}
@@ -393,7 +434,7 @@ model cannot: \emph{which} kind of user plays each role, which attributes are
 multivalued or derived, which entities are existence-dependent, and which
 references the database actually enforces.
 
-\emph{Part~2: The Enhanced ER Diagram} takes the fifteen entities of
+\emph{Part~2: The Enhanced ER Diagram} takes the entities of
 Figure~\ref{fig:erd-basic} and enriches them: it specializes \texttt{USER} into
 its four sub-types, promotes the existence-dependent entities to weak entities,
 adds the multivalued and derived attributes, and annotates the enforced-versus-

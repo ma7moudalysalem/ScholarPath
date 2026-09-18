@@ -372,6 +372,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
 
+// Live System Activity capture (no-op unless an admin has the page open). Placed
+// after auth so the streamed request record carries the resolved user/role.
+app.UseMiddleware<RequestActivityMiddleware>();
+
 app.MapControllers();
 
 // Health
@@ -381,13 +385,25 @@ app.MapHealthChecks("/health");
 app.MapHub<ChatHub>("/hubs/chat");
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHub<CommunityHub>("/hubs/community");
+app.MapHub<ScholarPath.Infrastructure.Diagnostics.SystemActivityHub>("/hubs/system-activity");
 
 // Hangfire dashboard (Admin-only) when enabled
 if (hangfireOpts.Enabled && hangfireOpts.DashboardEnabled)
 {
+    // The dashboard is a plain browser page: the SPA's JWT (localStorage) is never
+    // sent on a direct navigation, so the role-cookie filter always 401s. When
+    // Basic-Auth credentials are configured we use those (so it opens in a browser);
+    // otherwise we keep the strict admin filter (deny) rather than open it up.
+    var dashUser = app.Configuration["Hangfire:Dashboard:User"];
+    var dashPass = app.Configuration["Hangfire:Dashboard:Password"];
+    Hangfire.Dashboard.IDashboardAuthorizationFilter dashFilter =
+        !string.IsNullOrWhiteSpace(dashUser) && !string.IsNullOrWhiteSpace(dashPass)
+            ? new HangfireBasicAuthFilter(dashUser!, dashPass!)
+            : new AdminDashboardAuthorizationFilter();
+
     app.MapHangfireDashboard("/hangfire", new DashboardOptions
     {
-        Authorization = [new AdminDashboardAuthorizationFilter()],
+        Authorization = [dashFilter],
     });
 }
 
@@ -500,4 +516,52 @@ internal sealed class AdminDashboardAuthorizationFilter : Hangfire.Dashboard.IDa
 
         return false;
     }
+}
+
+/// <summary>
+/// HTTP Basic authentication for the Hangfire dashboard, so it can be opened in a
+/// browser (the SPA's bearer token isn't sent on a plain navigation). Credentials
+/// come from Hangfire:Dashboard:User / :Password (set as App Service app settings).
+/// </summary>
+internal sealed class HangfireBasicAuthFilter(string user, string password)
+    : Hangfire.Dashboard.IDashboardAuthorizationFilter
+{
+    public bool Authorize(Hangfire.Dashboard.DashboardContext context)
+    {
+        var ctxType = context.GetType();
+        var httpCtxProp = ctxType.GetProperty("HttpContext")
+            ?? ctxType.BaseType?.GetProperty("HttpContext");
+        if (httpCtxProp?.GetValue(context) is not Microsoft.AspNetCore.Http.HttpContext http)
+            return false;
+
+        var header = http.Request.Headers.Authorization.ToString();
+        if (header.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var decoded = System.Text.Encoding.UTF8.GetString(
+                    System.Convert.FromBase64String(header["Basic ".Length..].Trim()));
+                var sep = decoded.IndexOf(':');
+                if (sep > 0
+                    && FixedEquals(decoded[..sep], user)
+                    && FixedEquals(decoded[(sep + 1)..], password))
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+                // Malformed header → fall through to challenge.
+            }
+        }
+
+        // Challenge so the browser shows the username/password prompt.
+        http.Response.StatusCode = 401;
+        http.Response.Headers["WWW-Authenticate"] = "Basic realm=\"ScholarPath Hangfire\"";
+        return false;
+    }
+
+    private static bool FixedEquals(string a, string b) =>
+        System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(
+            System.Text.Encoding.UTF8.GetBytes(a), System.Text.Encoding.UTF8.GetBytes(b));
 }

@@ -4,8 +4,9 @@
 \usepackage{lmodern}
 \usepackage[margin=2.3cm]{geometry}
 \usepackage{graphicx}
-\graphicspath{{../img/}}
+\graphicspath{{../img/class_suite/}{../img/erd_suite/}{../img/component_suite/}{../img/}}
 \usepackage{xcolor}
+\usepackage{pdflscape}
 \definecolor{spblue}{HTML}{1F4E79}
 \definecolor{spteal}{HTML}{2C7A7B}
 \usepackage{booktabs}
@@ -96,12 +97,13 @@ Generalization & \texttt{Base <|-- Derived} & Inheritance: the derived class
 \texttt{Scholarship}). Hollow triangle points at the parent. \\
 Realization & \texttt{Iface <|.. Class} & A class \emph{implements} an
 interface (port). Dashed line, hollow triangle (e.g.\
-\texttt{StripeService} realizes \texttt{IStripeService}). \\
+\texttt{AzureOpenAiService} realizes \texttt{IAiService}). \\
 Composition & \texttt{Whole *-- Part} & The part cannot exist without the
 whole; filled diamond at the whole. Deleting the whole deletes the parts
 (e.g.\ \texttt{ChatConversation *-- ChatMessage}). \\
 Aggregation & \texttt{Whole o-- Part} & A weaker whole/part link; the part can
-outlive the whole. Hollow diamond (e.g.\ \texttt{Payout o-- Payment}). \\
+outlive the whole. Hollow diamond (e.g.\
+\texttt{ApplicationUser o-- Scholarship}). \\
 Association & \texttt{A "1" --> "*" B} & A plain reference with role names and
 multiplicities at each end (one-to-one, one-to-many, many-to-many). \\
 Stereotype & \texttt{<<abstract>>}, \texttt{<<interface>>} & Marks an abstract
@@ -136,10 +138,10 @@ showed on nearly every table: \texttt{CreatedAt}, \texttt{CreatedByUserId},
 optimistic-concurrency token. The overwhelming majority of ScholarPath's
 business entities --- \texttt{Scholarship}, \texttt{ApplicationTracker},
 \texttt{UserProfile}, \texttt{Document}, \texttt{ConsultantBooking},
-\texttt{Payment}, and so on --- generalize \texttt{AuditableEntity}, which is
-exactly why the relational mapping in Part~3 repeated those five audit columns
-on table after table. Inheritance in the object model explains the apparent
-duplication in the schema.
+\texttt{SessionRecording}, and so on --- generalize \texttt{AuditableEntity},
+which is exactly why the relational mapping in Part~3 repeated those five audit
+columns on table after table. Inheritance in the object model explains the
+apparent duplication in the schema.
 
 \subsection{The \texttt{ISoftDeletable} interface}
 
@@ -152,9 +154,9 @@ discussed in Part~3. The class diagrams draw the realization on a representative
 subset for legibility, but the contract is realized far more widely --- in
 addition to \texttt{ApplicationUser}, \texttt{Scholarship}, and
 \texttt{ApplicationTracker}, it is realized by \texttt{Document},
-\texttt{CompanyReview} and \texttt{CompanyReviewRequest},
+\texttt{ScholarshipProviderReview} and \texttt{ScholarshipProviderReviewRequest},
 \texttt{ConsultantReview}, \texttt{ConsultantAvailability},
-\texttt{ConsultantBooking}, \texttt{Payment}, \texttt{ChatMessage},
+\texttt{ConsultantBooking}, \texttt{NoShowReport}, \texttt{ChatMessage},
 \texttt{ForumPost}, \texttt{Resource}, \texttt{Notification},
 \texttt{SessionRecording}, and \texttt{SuccessStory}, among others.
 
@@ -185,11 +187,13 @@ associations between clusters. The subsections that follow zoom into each
 cluster so the multiplicities and the composition-versus-aggregation choices can
 be read clearly.
 
+\begin{landscape}
 \begin{figure}[H]\centering
-\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{ScholarPath_Domain_Model.pdf}
-\caption{ScholarPath full UML domain model: base types, identity, and every
-business cluster with their associations.}\label{fig:domain}
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{ScholarPath_Class_Master.pdf}
+\caption{ScholarPath full UML domain model (the master class diagram): base
+types, identity, and every business cluster with their associations.}\label{fig:domain}
 \end{figure}
+\end{landscape}
 
 \subsection{Base types}
 

@@ -28,6 +28,7 @@ import {
   Settings,
   Wallet,
   ChevronDown,
+  Activity,
   User as UserIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -76,6 +77,7 @@ const NAV: NavItem[] = [
   // System
   { to: "/admin/broadcast", key: "nav.broadcast", icon: Megaphone, divider: true },
   { to: "/admin/audit-log", key: "nav.auditLog", icon: FileText },
+  { to: "/admin/system-activity", key: "nav.systemActivity", icon: Activity },
   { to: "/admin/settings", key: "nav.settings", icon: Settings },
 ];
 

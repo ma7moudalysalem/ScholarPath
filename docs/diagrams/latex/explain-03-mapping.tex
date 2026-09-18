@@ -4,8 +4,9 @@
 \usepackage{lmodern}
 \usepackage[margin=2.3cm]{geometry}
 \usepackage{graphicx}
-\graphicspath{{../img/}}
+\graphicspath{{../img/erd_suite/}{../img/class_suite/}{../img/component_suite/}{../img/}}
 \usepackage{xcolor}
+\usepackage{pdflscape}
 \definecolor{spblue}{HTML}{1F4E79}
 \definecolor{spteal}{HTML}{2C7A7B}
 \usepackage{booktabs}
@@ -40,7 +41,7 @@ Elmasri \& Navathe's classic seven/nine-step ER/EER-to-relational mapping
 algorithm. Every rule is illustrated with a real ScholarPath construct, and
 every claim is reconciled against the \emph{live} Azure SQL schema (the deployed
 EF~Core model snapshot), so the mapping you see is the schema that actually
-runs in production --- 62 tables in total. Where ScholarPath deliberately
+runs in production. Where ScholarPath deliberately
 deviates from the textbook (multivalued attributes stored as JSON, a
 single-table specialization, loose references on high-volume tables), the
 deviation is stated plainly rather than hidden. The companion documents are
@@ -95,8 +96,7 @@ A short notation reminder, used throughout this document and in the figures:
         high-volume / audit / analytics relations.
   \item \texttt{$\star$UK} = unique index/constraint;
         \texttt{FUK} = \emph{filtered} (partial) unique index;
-        \texttt{enc} = encrypted column; \texttt{cents} = money stored as
-        integer cents.
+        \texttt{enc} = encrypted column.
   \item \texttt{\{audit\}} abbreviates the auditing columns
         (\texttt{CreatedAt}, \texttt{CreatedByUserId}, \texttt{UpdatedAt},
         \texttt{UpdatedByUserId}, \texttt{RowVersion}); \texttt{\{softdel\}}
@@ -131,7 +131,7 @@ identity = owner PK + partial key. &
 3 & 1:1 relationship & FK (plus \texttt{$\star$UK}) on the side with total
 participation. &
 \texttt{Users}--\texttt{UserProfiles}; \texttt{Bookings}--\texttt{ConsultantReviews};
-\texttt{Applications}--\texttt{CompanyReviews};
+\texttt{Applications}--\texttt{ScholarshipProviderReviews};
 \texttt{AiInteractions}--\texttt{AiRedactionAuditSamples};
 \texttt{Users}--\texttt{UserRiskFlags}. \\
 \addlinespace
@@ -152,14 +152,14 @@ Realized as JSON columns (\texttt{PreferredCountriesJson}, \texttt{TagsJson},
 deviation note. \\
 \addlinespace
 7 & N-ary relationship & New relation with a FK to each participant. &
-\texttt{CompanyReviewRequests} (Student $\times$ Company $\times$ Scholarship
-$\times$ Payment). \\
+\texttt{ScholarshipProviderReviewRequests} (Student $\times$ Provider $\times$
+Scholarship). \\
 \addlinespace
 8 & Specialization / generalization (EER) & \emph{Option~C} --- single relation
 with a type discriminator. &
-User \textbf{ISA} \{Student, Company, Consultant, Admin\}: one \texttt{Users}
-table + role rows in \texttt{UserRoles}; role-specific columns folded into one
-\texttt{UserProfiles} relation (NULL when not applicable). \\
+User \textbf{ISA} \{Student, ScholarshipProvider, Consultant, Admin\}: one
+\texttt{Users} table + role rows in \texttt{UserRoles}; role-specific columns
+folded into one \texttt{UserProfiles} relation (NULL when not applicable). \\
 \addlinespace
 9 & Union / category (EER) & --- &
 Not used (no category/union types in the model). \\
@@ -175,8 +175,8 @@ Each strong entity becomes exactly one relation, and we pick its primary key.
 ScholarPath uses surrogate \texttt{Guid} keys throughout (rather than natural
 keys), which keeps foreign keys uniform and avoids leaking business meaning into
 identifiers. \texttt{Users}, \texttt{Scholarships}, \texttt{Bookings},
-\texttt{Resources}, \texttt{ForumPosts}, \texttt{Payments}, and the lookup
-tables (\texttt{Categories}, \texttt{Roles}, \texttt{ForumTags},
+\texttt{Resources}, \texttt{ForumPosts}, \texttt{SessionRecordings}, and the
+lookup tables (\texttt{Categories}, \texttt{Roles}, \texttt{ForumTags},
 \texttt{ExpertiseTags}) are all step-1 relations.
 
 The principal example is the \texttt{Users} relation, which carries the
@@ -245,8 +245,8 @@ with \emph{total} participation and backs it with a unique constraint so the
         one user; the FK \texttt{UserId} carries a \texttt{$\star$UK}.
   \item \texttt{Bookings}--\texttt{ConsultantReviews}: at most one review per
         completed booking.
-  \item \texttt{Applications}--\texttt{CompanyReviews}: at most one company
-        review per application.
+  \item \texttt{Applications}--\texttt{ScholarshipProviderReviews}: at most one
+        provider review per application.
   \item \texttt{AiInteractions}--\texttt{AiRedactionAuditSamples}: at most one
         privacy-audit sample per AI interaction.
   \item \texttt{Users}--\texttt{UserRiskFlags}: at most one churn-risk flag row
@@ -313,8 +313,8 @@ relation keyed by (owner PK + value). ScholarPath \emph{deliberately deviates}
 from this for most multivalued attributes, storing them instead as JSON string
 columns: a student's \texttt{PreferredCountriesJson} and
 \texttt{PreferredFieldsJson} on \texttt{UserProfiles}, a scholarship's
-\texttt{TagsJson} and \texttt{TargetCountriesJson}, a payout's
-\texttt{IncludedPaymentIdsJson}, and so on.
+\texttt{TargetCountriesJson} and \texttt{FieldsOfStudyJson}, a consultant's
+\texttt{ExpertiseTagsJson} and \texttt{LanguagesJson}, and so on.
 
 This is a normalization trade-off, and it is stated honestly so the mapping
 matches the deployed schema. The reasoning:
@@ -339,26 +339,26 @@ In short: JSON for ``carried with the owner,'' a child/junction relation for
 \subsection{Step 7 --- N-ary relationships}
 
 When a relationship genuinely connects more than two participants, the algorithm
-creates a relation with a foreign key to each participant. ScholarPath's paid
-company-review workflow is exactly such an n-ary relationship: a single request
-ties together a \textbf{Student}, a \textbf{Company}, a \textbf{Scholarship},
-and a \textbf{Payment}.
+creates a relation with a foreign key to each participant. ScholarPath's
+scholarship-provider review workflow is exactly such an n-ary relationship: a
+single request ties together a \textbf{Student}, a \textbf{ScholarshipProvider},
+and a \textbf{Scholarship}. (Under free mode there is no payment leg: the request
+is a pure three-participant relationship.)
 
 \begin{lstlisting}[language=SQL]
-COMPANY_REVIEW_REQUESTS( Id, StudentId, CompanyId, ScholarshipId,
-       ApplicationTrackerId(soft), PaymentId, Status,
-       ReviewFeeUsdSnapshot(10,2), Currency, SubmittedAt, AcceptedAt,
+SCHOLARSHIP_PROVIDER_REVIEW_REQUESTS( Id, StudentId, ProviderId, ScholarshipId,
+       ApplicationTrackerId(soft), Status,
+       SubmittedAt, AcceptedAt,
        RejectedAt, CompletedAt, ClosedAt, CancelledAt, ExpiredAt,
        PendingExpiresAt, CancelReason, RejectReason, {audit}, {softdel} )
     FK StudentId     -> USERS(Id)         [Restrict]
-    FK CompanyId     -> USERS(Id)         [Restrict]
+    FK ProviderId    -> USERS(Id)         [Restrict]
     FK ScholarshipId -> SCHOLARSHIPS(Id)  [Restrict]
-    FK PaymentId     -> PAYMENTS(Id)      [SetNull]
     (filtered-unique) (StudentId, ScholarshipId)
         WHERE Status IN ('Draft','Submitted','Pending','UnderReview')
 \end{lstlisting}
 
-The four foreign keys are the literal realization of the four participants of
+The three foreign keys are the literal realization of the three participants of
 the n-ary relationship. The filtered-unique index expresses a business rule
 ``one open review request per (student, scholarship)'' and --- unlike the
 analogous rule on \texttt{Applications} --- it \emph{is} enforced in the
@@ -366,8 +366,8 @@ database (Section~\ref{sec:accuracy}).
 
 \subsection{Step 8 --- Specialization (single-table, Option C)}
 
-The EER specialization \texttt{User ISA \{Student, Company, Consultant,
-Admin\}} has three standard mapping options: (A) one relation per subclass plus
+The EER specialization \texttt{User ISA \{Student, ScholarshipProvider,
+Consultant, Admin\}} has three standard mapping options: (A) one relation per subclass plus
 the superclass, (B) one relation per subclass only, or (C) a single relation for
 the whole hierarchy with a type discriminator. ScholarPath chose
 \textbf{Option~C}.
@@ -382,11 +382,11 @@ Concretely:
   \item All role-specific attributes are folded into one \texttt{UserProfiles}
         relation, NULL when not applicable to the user's role: student fields
         (\texttt{AcademicLevel}, \texttt{Gpa}, \texttt{PreferredCountriesJson}),
-        company fields (\texttt{OrganizationLegalName},
+        provider fields (\texttt{OrganizationLegalName},
         \texttt{OrganizationVerificationStatus},
-        \texttt{CompanyAverageRating}), and consultant fields
-        (\texttt{SessionFeeUsd}, \texttt{ExpertiseTagsJson},
-        \texttt{StripeConnectAccountId}).
+        \texttt{ScholarshipProviderAverageRating}), and consultant fields
+        (\texttt{SessionDurationMinutes}, \texttt{ExpertiseTagsJson},
+        \texttt{ProfessionalTitle}).
 \end{itemize}
 
 Option~C was chosen because a ScholarPath user can hold more than one role over
@@ -399,10 +399,20 @@ read far more than it is written.
 \section{The resulting relational schemas (six areas)}
 \label{sec:figures}
 
-The full schema is large, so it is presented as six area diagrams. Each figure
-shows the relations, their primary keys, foreign keys (with delete rules), and
-the unique/filtered indexes for one functional area. Together they constitute
-the complete mapping of the Part~2 EERD.
+The full schema is large, so it is presented first as one overview ``atlas''
+sheet and then as six per-module area diagrams. Each figure shows the relations,
+their primary keys, foreign keys (with delete rules), and the unique/filtered
+indexes for one functional area. Together they constitute the complete mapping of
+the Part~2 EERD.
+
+\begin{landscape}
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{mapping-atlas.pdf}
+\caption{Relational mapping --- the full-schema atlas overview (all six areas on
+one sheet).}
+\label{fig:map-atlas}
+\end{figure}
+\end{landscape}
 
 \subsection{Identity, Access \& Profile}
 
@@ -413,49 +423,58 @@ weak entity (Step~2), alongside the ASP.NET~Identity satellite relations and the
 auth/security tables (refresh tokens, login attempts, password-reset tokens,
 upgrade requests).
 
+\begin{landscape}
 \begin{figure}[H]\centering
-\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{RelMap_Identity_Profile.pdf}
-\caption{Relational mapping --- Identity, Access \& Profile. The
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{mapping-module-1.pdf}
+\caption{Module 1 --- Relational mapping, Identity, Access \& Profile. The
 \texttt{Users}/\texttt{UserProfiles} pair shows the single-table specialization
 (Step~8) plus the 1:1 link (Step~3); \texttt{UserRoles} is the M:N junction
 (Step~5); \texttt{Education\_Entries} is the cascading weak entity (Step~2).}
 \label{fig:identity}
 \end{figure}
+\end{landscape}
 
 \subsection{Scholarships, Applications \& Documents}
 
 Here \texttt{Scholarships}$\rightarrow$\texttt{Applications} is the central 1:N
 (Step~4), \texttt{Scholarship\_Children} and \texttt{Application\_Children} are
 weak EAV entities (Step~2), \texttt{SavedScholarships} is the uniqueness-only
-M:N bookmark (Step~5), \texttt{CompanyReviewRequests} is the n-ary relationship
-(Step~7), and \texttt{CompanyReviews} is the 1:1 review (Step~3).
+M:N bookmark (Step~5), \texttt{ScholarshipProviderReviewRequests} is the n-ary
+relationship (Step~7), and \texttt{ScholarshipProviderReviews} is the 1:1 review
+(Step~3).
 
+\begin{landscape}
 \begin{figure}[H]\centering
-\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{RelMap_Scholarships_Applications.pdf}
-\caption{Relational mapping --- Scholarships, Applications \& Documents,
-showing the n-ary \texttt{CompanyReviewRequests} relation and the
-filtered-unique business rules.}
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{mapping-module-2.pdf}
+\caption{Module 2 --- Relational mapping, Scholarships, Applications \&
+Documents, showing the n-ary \texttt{ScholarshipProviderReviewRequests} relation
+and the filtered-unique business rules.}
 \label{fig:scholarships}
 \end{figure}
+\end{landscape}
 
-\subsection{Consultant Booking, Payments \& Ratings}
+\subsection{Consultant Booking \& Ratings}
 
 This area contains \texttt{Availabilities}$\rightarrow$\texttt{Bookings} (1:N),
 the \texttt{Bookings}--\texttt{ConsultantReviews} 1:1 (Step~3), the
-financial-settlement relations (\texttt{Payments}, \texttt{Payouts}), and the
-session-recording trail. It is the strongest illustration of two policies:
-\emph{all} FKs into \texttt{Users} are \textbf{Restrict} (a booking references
-\texttt{Users} twice --- student and consultant), and money for settlement is
-stored as integer cents.
+\texttt{NoShowReports} filed against a booking, and the session-recording trail.
+Under free mode there are \emph{no} financial-settlement relations
+(no \texttt{Payments}, no \texttt{Payouts}). It is the strongest illustration of
+the referential policy: \emph{all} FKs into \texttt{Users} are \textbf{Restrict}
+(a booking references \texttt{Users} twice --- student and consultant), and
+\texttt{SessionRecordings} attaches to its \texttt{Booking} by a
+\textbf{Restrict} FK, which is why it is a strong (not weak) relation.
 
+\begin{landscape}
 \begin{figure}[H]\centering
-\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{RelMap_Booking_Payments_Ratings.pdf}
-\caption{Relational mapping --- Booking, Payments \& Ratings. \texttt{Payments}
-and \texttt{Payouts} carry \emph{no} database foreign keys by design (loose
-references); the booking's \texttt{(ConsultantId, ScheduledStartAt)}
-filtered-unique index prevents double-booking.}
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{mapping-module-3.pdf}
+\caption{Module 3 --- Relational mapping, Consultant Booking \& Ratings. The
+booking's \texttt{(ConsultantId, ScheduledStartAt)} filtered-unique index
+prevents double-booking; \texttt{SessionRecordings} and \texttt{NoShowReports}
+reference \texttt{Bookings}/\texttt{Users} with \textbf{Restrict}.}
 \label{fig:booking}
 \end{figure}
+\end{landscape}
 
 \subsection{Community \& Chat}
 
@@ -465,29 +484,35 @@ relations (votes, flags, bookmarks, attachments). The chat side
 (\texttt{Conversations}, \texttt{Messages}, \texttt{UserBlocks}) leans heavily on
 loose references to keep messaging decoupled from the user principal.
 
+\begin{landscape}
 \begin{figure}[H]\centering
-\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{RelMap_Community_Chat.pdf}
-\caption{Relational mapping --- Community \& Chat. \texttt{ForumPostTags} is the
-true M:N junction; the \emph{user} leg of votes/flags/bookmarks and the chat
-participant/sender legs are loose references.}
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{mapping-module-4.pdf}
+\caption{Module 4 --- Relational mapping, Community \& Chat. \texttt{ForumPostTags}
+is the true M:N junction; the \emph{user} leg of votes/flags/bookmarks and the
+chat participant/sender legs are loose references.}
 \label{fig:community}
 \end{figure}
+\end{landscape}
 
 \subsection{Resources Hub \& Notifications}
 
 \texttt{Resources}$\rightarrow$\texttt{ResourceChapters} is a cascading 1:N with
 \texttt{ResourceChapters} as a weak entity (Step~2); progress and bookmark
 tables hang off \texttt{Resources} with cascade, while their \texttt{UserId}
-legs are loose. Notifications and notification preferences are fully
-loose-referenced.
+legs are loose. \texttt{Notifications} and \texttt{NotificationPreferences} both
+carry loose \texttt{UserId} references (no FK/cascade back to \texttt{Users}) ---
+which is precisely why \texttt{NotificationPreferences}, despite hanging off a
+user, is a \emph{strong} relation with its own \texttt{Id}, not a weak child.
 
+\begin{landscape}
 \begin{figure}[H]\centering
-\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{RelMap_Resources_Notifications.pdf}
-\caption{Relational mapping --- Resources Hub \& Notifications, showing the
-cascading chapter/progress children and the loose-referenced notification
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{mapping-module-5.pdf}
+\caption{Module 5 --- Relational mapping, Resources Hub \& Notifications, showing
+the cascading chapter/progress children and the loose-referenced notification
 tables.}
 \label{fig:resources}
 \end{figure}
+\end{landscape}
 
 \subsection{AI, Knowledge Base \& Platform}
 
@@ -499,13 +524,15 @@ The cross-cutting area holds \texttt{AiInteractions} with its 1:1
 \texttt{UserRiskFlags}). Most of these use loose references because they are
 high-volume, audit, or analytics relations.
 
+\begin{landscape}
 \begin{figure}[H]\centering
-\includegraphics[width=\linewidth,height=0.82\textheight,keepaspectratio]{RelMap_AI_Platform.pdf}
-\caption{Relational mapping --- AI, Knowledge Base \& Platform. \texttt{AuditLogs}
-and \texttt{KnowledgeDocuments} use polymorphic soft references; \texttt{UserRiskFlags}
-is a 1:1 analytics-fed relation.}
+\includegraphics[width=\linewidth,height=0.9\textheight,keepaspectratio]{mapping-module-6.pdf}
+\caption{Module 6 --- Relational mapping, AI, Knowledge Base \& Platform.
+\texttt{AuditLogs} and \texttt{KnowledgeDocuments} use polymorphic soft
+references; \texttt{UserRiskFlags} is a 1:1 analytics-fed relation.}
 \label{fig:ai}
 \end{figure}
+\end{landscape}
 
 \section{Referential-integrity strategy}
 \label{sec:refint}
@@ -535,18 +562,18 @@ The child has no meaning without its parent (existence dependency). \\
 \textbf{Restrict} &
 \emph{Every} FK into \texttt{Users} (profile, refresh/reset tokens,
 upgrade-request, user-risk-flag, applications, documents, bookings, all reviews,
-recordings, recommendation clicks, redaction samples). &
+recordings, no-show reports, recommendation clicks, redaction samples). &
 Protect history; and avoid SQL~Server's \emph{multiple cascade paths} error
 (1785) --- a row may reference \texttt{Users} two or three times. \\
 \addlinespace
 \textbf{SetNull} &
-scholarship$\rightarrow$category, scholarship$\rightarrow$owner-company,
-document$\rightarrow$application, booking$\rightarrow$availability/payment,
-request$\rightarrow$payment, post$\rightarrow$category. &
+scholarship$\rightarrow$category, scholarship$\rightarrow$owner-provider,
+document$\rightarrow$application, booking$\rightarrow$availability,
+post$\rightarrow$category. &
 Keep the row but orphan an \emph{optional} link. \\
 \addlinespace
 \textbf{none (loose)} &
-payments, payouts, notifications, the \emph{user} leg of
+notifications, notification preferences, the \emph{user} leg of
 votes/flags/bookmarks, chat participants/sender, audit actor + target, AI
 \texttt{UserId}, knowledge \texttt{SourceId}, settings/requests/stories user. &
 Decouple high-volume / audit / analytics rows from the principal so deletes and
@@ -585,9 +612,9 @@ reading of the model.
         (student, scholarship)'' is a guarantee made by the service layer, not
         the schema.
 
-  \item \textbf{By contrast, \texttt{CompanyReviewRequests} and
+  \item \textbf{By contrast, \texttt{ScholarshipProviderReviewRequests} and
         \texttt{Bookings} \emph{do} have DB-enforced filtered-unique indexes.}
-        \texttt{CompanyReviewRequests} keeps
+        \texttt{ScholarshipProviderReviewRequests} keeps
         \texttt{(StudentId, ScholarshipId)} unique \texttt{WHERE Status IN
         ('Draft','Submitted','Pending','UnderReview')}, and \texttt{Bookings}
         keeps \texttt{(ConsultantId, ScheduledStartAt)} unique \texttt{WHERE
@@ -596,23 +623,20 @@ reading of the model.
         point~(1) is the kind of detail a committee will probe, so it is stated
         plainly.
 
-  \item \textbf{Money is stored two different ways, on purpose.}
-        Settlement-grade money (the \texttt{Payments} and \texttt{Payouts}
-        relations: \texttt{AmountCents}, \texttt{PayeeAmountCents},
-        \texttt{RefundedAmountCents}, etc.) is stored as \texttt{bigint}
-        \emph{integer cents}, the standard way to avoid floating-point and
-        rounding errors in financial settlement. Display-grade money (prices and
-        fees: \texttt{PriceUsd}, \texttt{SessionFeeUsd}, \texttt{ReviewFeeUsd},
-        \texttt{FundingAmountUsd}) is stored as \texttt{decimal(p,2)}. The split
-        is deliberate: cents for arithmetic that must reconcile to the last unit,
-        decimal for catalog values that are only ever displayed or compared.
+  \item \textbf{There is no money-settlement subsystem.} The platform runs in
+        \emph{free mode}: there are no \texttt{Payments} or \texttt{Payouts}
+        relations, no integer-cents settlement columns, and no external payment
+        provider. The only monetary field in the schema is the display-grade
+        \texttt{FundingAmountUsd} on \texttt{Scholarships}, stored as
+        \texttt{decimal(p,2)} because it is only ever displayed or compared, never
+        summed for settlement.
 \end{enumerate}
 
-A handful of relations are also documented as \emph{schema-only / planned} or
-\emph{legacy / dead} (e.g.\ \texttt{ForumPostAttachments},
-\texttt{SuccessStories}, and \texttt{CompanyReviewPayments}); they exist in the
-schema for completeness but have no live write path. Documenting them as such ---
-rather than pretending they are active --- is part of keeping the mapping honest.
+A couple of relations are also documented as \emph{schema-only / planned} or
+\emph{legacy / dead} (e.g.\ \texttt{ForumPostAttachments} and
+\texttt{SuccessStories}); they exist in the schema for completeness but have no
+live write path. Documenting them as such --- rather than pretending they are
+active --- is part of keeping the mapping honest.
 
 If a reviewer wants the authoritative DDL, the project can regenerate it straight
 from the migrations:
@@ -628,15 +652,14 @@ dotnet ef migrations script \
 \section{Closing}
 
 Applying Elmasri \& Navathe's seven/nine-step algorithm to the Part~2 EERD
-yields the ScholarPath relational schema: \textbf{62 tables deployed} to Azure
-SQL, every one traceable back to a specific conceptual construct via
-Table~\ref{tab:algo}. Strong entities became relations, weak entities became
-cascading child relations, 1:1 links became unique foreign keys, M:N
-relationships became junction tables, the user hierarchy became a single
-discriminated table, and the n-ary review workflow became a four-foreign-key
-relation --- with deliberate, documented deviations (JSON multivalued columns,
-loose references) where the deployed schema favors pragmatism over textbook
-purity.
+yields the ScholarPath relational schema, deployed to Azure SQL, every table
+traceable back to a specific conceptual construct via Table~\ref{tab:algo}.
+Strong entities became relations, weak entities became cascading child relations,
+1:1 links became unique foreign keys, M:N relationships became junction tables,
+the user hierarchy became a single discriminated table, and the n-ary
+provider-review workflow became a three-foreign-key relation --- with deliberate,
+documented deviations (JSON multivalued columns, loose references) where the
+deployed schema favors pragmatism over textbook purity.
 
 This completes the relational view. The \emph{object-oriented} view --- how
 these relations map back to C\# entity classes, aggregates, and navigation
