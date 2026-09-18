@@ -199,7 +199,9 @@ public static partial class DbSeeder
                 p.Gpa = 2.5m + rng.Next(0, 16) * 0.1m;
                 p.GpaScale = "4.0";
                 p.Biography = $"A {field.En} student seeking international scholarship opportunities and mentorship.";
-                p.PreferredFieldsJson = $"[\"{field.En}\"]";
+                // Stated in the canonical vocabulary the listings use, so a preference
+                // can actually meet a listing's field rather than miss it on wording.
+                p.PreferredFieldsJson = JsonArray(field.Canonical);
                 break;
         }
 
