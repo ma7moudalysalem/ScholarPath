@@ -29,16 +29,25 @@ public sealed class LocalAiService(
     private const decimal FakeCostPerEligibility = 0.0005m;
     private const decimal FakeCostPerChatTurn = 0.0003m;
 
-    // Relative importance of the three criteria a listing can constrain. They are
-    // weights within a ratio, not points out of a hundred: the score is the share of
-    // the attainable weight a listing earns, so criteria the listing leaves open drop
-    // out of both the numerator and the denominator.
+    // Relative importance of the three criteria a listing can constrain, scored
+    // against a fixed maximum so that a listing judged against the whole of a
+    // student's profile can outrank one judged against a fraction of it.
     private const int LevelWeight = 30;
     private const int FieldWeight = 40;
     private const int CountryWeight = 25;
+    private const int MaxWeight = LevelWeight + FieldWeight + CountryWeight;
+
+    // What a criterion earns when the listing places no restriction on it. Half
+    // credit says what is true: the listing does not exclude the student, but it
+    // offers no positive evidence of fit either.
+    private const decimal NeutralCredit = 0.5m;
 
     private const int FundingBonusPoints = 5;
     private const decimal FundingBonusThresholdUsd = 10_000m;
+
+    // The fit a listing must already show before the size of the award counts for
+    // anything, so a large grant cannot carry a listing the student does not suit.
+    private const int FundingBonusFloor = 50;
 
     public async Task<AiRecommendationResult> GenerateRecommendationsAsync(
         Guid userId, int topN, CancellationToken ct)
@@ -54,9 +63,15 @@ public sealed class LocalAiService(
         var preferredCountries = ParseJsonArray(profile?.PreferredCountriesJson);
         var userLevel = profile?.AcademicLevel;
 
+        // Academic level is a gate rather than a preference: a listing for a level
+        // the student is not at can never be one they are eligible for, however well
+        // it matches on field or country. Recommending it wastes the slot, so it is
+        // excluded here rather than merely scored down. Where the student has not
+        // stated a level there is nothing to gate on and every listing stands.
         var candidates = await db.Scholarships
             .AsNoTracking()
             .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > DateTimeOffset.UtcNow)
+            .Where(s => userLevel == null || s.TargetLevel == userLevel)
             .Select(s => new
             {
                 s.Id,
@@ -81,45 +96,59 @@ public sealed class LocalAiService(
             var listingCountries = NormalizeCountries(ParseJsonArray(c.TargetCountriesJson));
             var wantedCountries = NormalizeCountries(preferredCountries);
 
-            // A criterion counts only where the listing actually constrains it and
-            // the student has stated a preference for it. Both the earned points and
-            // the attainable maximum are accumulated, so a listing that is open to
-            // every discipline is neither rewarded nor punished for that openness.
-            decimal earned = 0, attainable = 0;
+            // Every criterion is scored against the same fixed maximum, so a score
+            // reflects both how well a listing fits and how much of the student's
+            // profile it was judged against. Two silences are treated differently
+            // because they mean different things: a listing that states no
+            // restriction does not exclude the student and takes neutral credit,
+            // while a profile that states no preference offers no evidence of fit
+            // and takes none.
+            decimal earned = 0;
 
             var levelMatched = false;
             if (userLevel.HasValue)
             {
-                attainable += LevelWeight;
                 levelMatched = userLevel.Value == c.TargetLevel;
                 if (levelMatched) earned += LevelWeight;
             }
 
             var fieldHits = 0;
-            if (preferredFields.Count > 0 && listingFields.Count > 0)
+            if (listingFields.Count == 0)
             {
-                attainable += FieldWeight;
+                earned += FieldWeight * NeutralCredit;
+            }
+            else if (preferredFields.Count > 0)
+            {
                 var (share, hits) = PreferenceShare(preferredFields, listingFields);
                 earned += FieldWeight * share;
                 fieldHits = hits;
             }
 
             var countryHits = 0;
-            if (wantedCountries.Count > 0 && listingCountries.Count > 0)
+            if (listingCountries.Count == 0)
             {
-                attainable += CountryWeight;
+                earned += CountryWeight * NeutralCredit;
+            }
+            else if (wantedCountries.Count > 0)
+            {
                 var (share, hits) = PreferenceShare(wantedCountries, listingCountries);
                 earned += CountryWeight * share;
                 countryHits = hits;
             }
 
-            // With nothing to compare against, the system knows nothing about fit and
-            // says so with a zero rather than inventing agreement.
-            var score = attainable == 0 ? 0 : (int)Math.Round(100m * earned / attainable, MidpointRounding.AwayFromZero);
+            // A profile that states nothing comparable gives no basis for a score at
+            // all; reporting neutral credit against it would invent a fit from silence.
+            var profileStatesSomething =
+                userLevel.HasValue || preferredFields.Count > 0 || wantedCountries.Count > 0;
 
-            // A larger award is a nudge on top of fit, never a substitute for it.
+            var score = profileStatesSomething
+                ? (int)Math.Round(100m * earned / MaxWeight, MidpointRounding.AwayFromZero)
+                : 0;
+
+            // A larger award is a nudge on top of a listing that already fits; it can
+            // never lift one that does not.
             var fundingBonus = c.FundingAmountUsd >= FundingBonusThresholdUsd;
-            if (fundingBonus && score > 0) score += FundingBonusPoints;
+            if (fundingBonus && score >= FundingBonusFloor) score += FundingBonusPoints;
 
             scored.Add((c.Id, Math.Clamp(score, 0, 100), c.TitleEn, c.TitleAr,
                 levelMatched, fieldHits, countryHits, fundingBonus));

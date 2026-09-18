@@ -12,10 +12,12 @@ using FluentAssertions;
 namespace ScholarPath.UnitTests.Ai;
 
 /// <summary>
-/// The match score is the share of the attainable weight a listing earns across the
-/// criteria it actually constrains. These tests pin that contract: a criterion the
-/// listing leaves open must not count against it, a wording difference must not cost
-/// a student everything, and the explanation must name what actually matched.
+/// The match score is what a listing earns against a fixed maximum across three
+/// criteria, so a listing judged against the whole of a student's profile can
+/// outrank one judged against a fraction of it. These tests pin that contract: a
+/// criterion the listing leaves open takes neutral credit rather than counting
+/// against it, a profile that states nothing earns nothing, a wording difference
+/// costs half rather than everything, and the explanation names what matched.
 /// </summary>
 public sealed class RecommendationScoringTests : IDisposable
 {
@@ -92,13 +94,14 @@ public sealed class RecommendationScoringTests : IDisposable
     [Fact]
     public async Task Listing_open_to_every_discipline_is_not_penalised_for_that_openness()
     {
-        // The listing constrains only the level, and the student meets it. The field
-        // preference has nothing to be compared against, so it drops out of the ratio
-        // instead of scoring zero against the student.
+        // The listing constrains only the level, and the student meets it. Neither
+        // the field nor the country criterion is restricted, so each takes neutral
+        // credit: the listing does not exclude the student, but says nothing about
+        // fit either. 30 + 20 + 12.5 of an attainable 95.
         await SeedProfileAsync(AcademicLevel.Masters, """["Computer Science"]""");
         await SeedListingAsync(AcademicLevel.Masters, fieldsJson: "[]");
 
-        (await ScoreOfSingleListingAsync()).Should().Be(100);
+        (await ScoreOfSingleListingAsync()).Should().Be(66);
     }
 
     [Fact]
@@ -119,8 +122,8 @@ public sealed class RecommendationScoringTests : IDisposable
         await SeedProfileAsync(AcademicLevel.Masters, """["Software Engineering"]""");
         await SeedListingAsync(AcademicLevel.Masters, fieldsJson: """["Engineering"]""");
 
-        // level 30/30 + field 20/40 = 50 of an attainable 70.
-        (await ScoreOfSingleListingAsync()).Should().Be(71);
+        // Level 30, field half-met 20, country unrestricted 12.5, over 95.
+        (await ScoreOfSingleListingAsync()).Should().Be(66);
     }
 
     [Fact]
@@ -129,8 +132,8 @@ public sealed class RecommendationScoringTests : IDisposable
         await SeedProfileAsync(AcademicLevel.Masters, """["Computer Science"]""");
         await SeedListingAsync(AcademicLevel.Masters, fieldsJson: """["Law"]""");
 
-        // level 30/30 + field 0/40 = 30 of an attainable 70.
-        (await ScoreOfSingleListingAsync()).Should().Be(43);
+        // Level 30, field nothing, country unrestricted 12.5, over 95.
+        (await ScoreOfSingleListingAsync()).Should().Be(45);
     }
 
     [Fact]
@@ -147,12 +150,14 @@ public sealed class RecommendationScoringTests : IDisposable
     [Fact]
     public async Task Funding_bonus_never_substitutes_for_fit()
     {
-        // A large award nudges a listing that already fits; it cannot lift one that
-        // does not fit at all.
+        // The level is right, so the listing survives the gate, but the field is
+        // unrelated — far below the fit a listing must show before the size of its
+        // award counts for anything. The bonus is withheld.
         await SeedProfileAsync(AcademicLevel.PhD, """["Computer Science"]""");
-        await SeedListingAsync(AcademicLevel.HighSchool, fieldsJson: """["Law"]""", funding: 100_000m);
+        await SeedListingAsync(AcademicLevel.PhD, fieldsJson: """["Law"]""", funding: 100_000m);
 
-        (await ScoreOfSingleListingAsync()).Should().Be(0);
+        // Level 30, field nothing, country unrestricted 12.5, over 95.
+        (await ScoreOfSingleListingAsync()).Should().Be(45);
     }
 
     [Fact]
@@ -162,8 +167,9 @@ public sealed class RecommendationScoringTests : IDisposable
         await SeedListingAsync(AcademicLevel.Masters,
             fieldsJson: """["Computer Science"]""", funding: 25_000m);
 
-        // Full fit is already 100; the bonus cannot push the score past the ceiling.
-        (await ScoreOfSingleListingAsync()).Should().Be(100);
+        // Level and field are fully met and the country criterion is unrestricted:
+        // 30 + 40 + 12.5 over 95 is 87, and the award clears the bonus floor.
+        (await ScoreOfSingleListingAsync()).Should().Be(92);
     }
 
     [Fact]
@@ -186,12 +192,28 @@ public sealed class RecommendationScoringTests : IDisposable
     [Fact]
     public async Task Explanation_says_so_plainly_when_nothing_matched()
     {
-        await SeedProfileAsync(AcademicLevel.PhD, """["Computer Science"]""");
-        await SeedListingAsync(AcademicLevel.HighSchool, fieldsJson: """["Law"]""");
+        // A listing at the student's own level, restricted to a field and a country
+        // they have not asked for, matches nothing they stated.
+        await SeedProfileAsync(AcademicLevel.PhD, """["Computer Science"]""", """["EG"]""");
+        await SeedListingAsync(AcademicLevel.PhD, fieldsJson: """["Law"]""", countriesJson: """["JP"]""");
 
         var result = await _ai.GenerateRecommendationsAsync(_userId, 5, CancellationToken.None);
 
-        result.Items.Single().ExplanationEn.Should().Contain("does not match");
+        result.Items.Single().ExplanationEn.Should().Contain("your academic level");
+    }
+
+    [Fact]
+    public async Task Listing_for_another_academic_level_is_never_offered()
+    {
+        // The student could not be eligible for it whatever else matched, so the
+        // slot is not spent on it.
+        await SeedProfileAsync(AcademicLevel.Masters, """["Computer Science"]""", """["EG"]""");
+        await SeedListingAsync(AcademicLevel.HighSchool,
+            fieldsJson: """["Computer Science"]""", countriesJson: """["EG"]""");
+
+        var result = await _ai.GenerateRecommendationsAsync(_userId, 5, CancellationToken.None);
+
+        result.Items.Should().BeEmpty();
     }
 
     [Fact]
@@ -200,7 +222,7 @@ public sealed class RecommendationScoringTests : IDisposable
         await SeedProfileAsync(AcademicLevel.Masters, """["Computer Science"]""");
         await SeedListingAsync(AcademicLevel.Masters,
             fieldsJson: """["Computer Science"]""", funding: 1_000m, title: "Exact Fit Small Award");
-        await SeedListingAsync(AcademicLevel.HighSchool,
+        await SeedListingAsync(AcademicLevel.Masters,
             fieldsJson: """["Law"]""", funding: 500_000m, title: "Huge Unrelated Award");
 
         var result = await _ai.GenerateRecommendationsAsync(_userId, 5, CancellationToken.None);
