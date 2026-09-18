@@ -134,6 +134,9 @@ public sealed class ImportExternalScholarshipsCommandHandler(
         s.Currency = "USD";
         s.TargetLevel = level;
         s.TargetCountriesJson = JsonSerializer.Serialize(e.TargetCountries ?? []);
+        // An empty list is the dataset's way of saying the award is open to any
+        // discipline; discovery and matching read it as "no field restriction".
+        s.FieldsOfStudyJson = JsonSerializer.Serialize(e.FieldsOfStudy ?? []);
         s.TagsJson = JsonSerializer.Serialize(e.Tags ?? []);
         s.EligibilityRequirementsEn = e.EligibilityEn;
         s.EligibilityRequirementsAr = e.EligibilityAr;
@@ -161,6 +164,7 @@ public sealed class ImportExternalScholarshipsCommandHandler(
         int FundingAmountUsd,
         string TargetLevel,
         List<string>? TargetCountries,
+        List<string>? FieldsOfStudy,
         List<string>? Tags,
         string? EligibilityEn,
         string? EligibilityAr,

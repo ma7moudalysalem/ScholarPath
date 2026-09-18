@@ -177,7 +177,15 @@ builder.Services.AddRateLimiter(opts =>
 });
 
 // ─── SignalR ─────────────────────────────────────────────────────────────────
-builder.Services.AddSignalR();
+var redisOpts = builder.Configuration.GetSection(RedisOptions.SectionName).Get<RedisOptions>() ?? new();
+var signalRBuilder = builder.Services.AddSignalR();
+
+// A shared backplane is required for hub messages to reach clients held by a
+// different instance; without it, scale-out silently drops cross-instance traffic.
+if (redisOpts.Enabled && !string.IsNullOrWhiteSpace(redisOpts.ConnectionString))
+{
+    signalRBuilder.AddStackExchangeRedis(redisOpts.ConnectionString);
+}
 
 // ─── Swagger / Scalar ────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
