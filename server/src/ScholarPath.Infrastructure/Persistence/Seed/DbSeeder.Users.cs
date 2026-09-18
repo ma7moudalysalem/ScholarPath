@@ -191,7 +191,8 @@ public static partial class DbSeeder
                 p.Gpa = 3.7m;
                 p.GpaScale = "4.0";
                 p.PreferredCountriesJson = """["US","GB","DE","CA"]""";
-                p.PreferredFieldsJson = """["Computer Science","Data Science"]""";
+                // Canonical vocabulary — see CanonicalFields in DbSeeder.ScholarshipGen.
+                p.PreferredFieldsJson = """["Computer Science","Mathematics & Statistics"]""";
                 break;
 
             case "ScholarshipProvider":
@@ -329,6 +330,9 @@ public static partial class DbSeeder
         {
             var levels = new[] { AcademicLevel.Undergrad, AcademicLevel.Masters, AcademicLevel.Undergrad, AcademicLevel.HighSchool, AcademicLevel.Masters, AcademicLevel.PhD };
             var fields = new[] { "Computer Science", "Mechanical Engineering", "Public Health", "Economics", "Architecture", "Biotechnology" };
+            // The canonical field each specialism above belongs to, so the stated
+            // preference is expressed in the same vocabulary the listings use.
+            var canonicalFields = new[] { "Computer Science", "Engineering", "Medicine & Health", "Economics & Finance", "Architecture & Design", "Natural Sciences" };
             var institutions = new[] { "Cairo University", "University of Jordan", "Khalifa University", "Ain Shams University", "King Saud University", "Mohammed V University" };
             var gpas = new[] { 3.8m, 3.5m, 3.9m, 3.2m, 3.7m, 3.95m };
             var i = studentIndex % levels.Length;
@@ -342,7 +346,7 @@ public static partial class DbSeeder
             p.DateOfBirth = new DateOnly(2002, 4, 12).AddDays(i * 137);
             p.LinkedInUrl = $"https://www.linkedin.com/in/{Slugify(u.FirstName)}-{Slugify(u.LastName)}";
             p.PreferredCountriesJson = """["US","GB","DE","CA"]""";
-            p.PreferredFieldsJson = $"""["{fields[i]}","Data Science"]""";
+            p.PreferredFieldsJson = JsonArray([canonicalFields[i]]);
             return p;
         }
 

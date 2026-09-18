@@ -29,6 +29,17 @@ public sealed class LocalAiService(
     private const decimal FakeCostPerEligibility = 0.0005m;
     private const decimal FakeCostPerChatTurn = 0.0003m;
 
+    // Relative importance of the three criteria a listing can constrain. They are
+    // weights within a ratio, not points out of a hundred: the score is the share of
+    // the attainable weight a listing earns, so criteria the listing leaves open drop
+    // out of both the numerator and the denominator.
+    private const int LevelWeight = 30;
+    private const int FieldWeight = 40;
+    private const int CountryWeight = 25;
+
+    private const int FundingBonusPoints = 5;
+    private const decimal FundingBonusThresholdUsd = 10_000m;
+
     public async Task<AiRecommendationResult> GenerateRecommendationsAsync(
         Guid userId, int topN, CancellationToken ct)
     {
@@ -59,25 +70,59 @@ public sealed class LocalAiService(
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
-        var scored = new List<(Guid Id, int Score, string TitleEn, string TitleAr)>(candidates.Count);
+        // The per-criterion outcome is carried alongside the total so the
+        // explanation can name what actually matched rather than restate the score.
+        var scored = new List<(Guid Id, int Score, string TitleEn, string TitleAr,
+            bool LevelMatched, int FieldHits, int CountryHits, bool FundingBonus)>(candidates.Count);
 
         foreach (var c in candidates)
         {
-            var fosFields = ParseJsonArray(c.FieldsOfStudyJson);
-            var countries = ParseJsonArray(c.TargetCountriesJson);
+            var listingFields = ParseJsonArray(c.FieldsOfStudyJson);
+            var listingCountries = NormalizeCountries(ParseJsonArray(c.TargetCountriesJson));
+            var wantedCountries = NormalizeCountries(preferredCountries);
 
-            var score = 0;
+            // A criterion counts only where the listing actually constrains it and
+            // the student has stated a preference for it. Both the earned points and
+            // the attainable maximum are accumulated, so a listing that is open to
+            // every discipline is neither rewarded nor punished for that openness.
+            decimal earned = 0, attainable = 0;
 
-            if (userLevel.HasValue && userLevel.Value == c.TargetLevel) score += 30;
-            score += OverlapScore(preferredFields, fosFields, maxPoints: 40);
-            // Countries are compared on their canonical ISO key so a preferred
-            // "Egypt" / "مصر" overlaps a scholarship's "EG".
-            score += OverlapScore(NormalizeCountries(preferredCountries), NormalizeCountries(countries), maxPoints: 25);
+            var levelMatched = false;
+            if (userLevel.HasValue)
+            {
+                attainable += LevelWeight;
+                levelMatched = userLevel.Value == c.TargetLevel;
+                if (levelMatched) earned += LevelWeight;
+            }
 
-            // Funding bonus — bigger awards nudge up by a few points
-            if (c.FundingAmountUsd >= 10_000) score += 5;
+            var fieldHits = 0;
+            if (preferredFields.Count > 0 && listingFields.Count > 0)
+            {
+                attainable += FieldWeight;
+                var (share, hits) = PreferenceShare(preferredFields, listingFields);
+                earned += FieldWeight * share;
+                fieldHits = hits;
+            }
 
-            scored.Add((c.Id, Math.Min(score, 100), c.TitleEn, c.TitleAr));
+            var countryHits = 0;
+            if (wantedCountries.Count > 0 && listingCountries.Count > 0)
+            {
+                attainable += CountryWeight;
+                var (share, hits) = PreferenceShare(wantedCountries, listingCountries);
+                earned += CountryWeight * share;
+                countryHits = hits;
+            }
+
+            // With nothing to compare against, the system knows nothing about fit and
+            // says so with a zero rather than inventing agreement.
+            var score = attainable == 0 ? 0 : (int)Math.Round(100m * earned / attainable, MidpointRounding.AwayFromZero);
+
+            // A larger award is a nudge on top of fit, never a substitute for it.
+            var fundingBonus = c.FundingAmountUsd >= FundingBonusThresholdUsd;
+            if (fundingBonus && score > 0) score += FundingBonusPoints;
+
+            scored.Add((c.Id, Math.Clamp(score, 0, 100), c.TitleEn, c.TitleAr,
+                levelMatched, fieldHits, countryHits, fundingBonus));
         }
 
         var top = scored
@@ -87,8 +132,8 @@ public sealed class LocalAiService(
             .Select(x => new AiRecommendationItem(
                 ScholarshipId: x.Id,
                 MatchScore: x.Score,
-                ExplanationEn: BuildExplanationEn(x.Score, x.TitleEn),
-                ExplanationAr: BuildExplanationAr(x.Score, x.TitleAr)))
+                ExplanationEn: BuildExplanationEn(x.TitleEn, x.LevelMatched, x.FieldHits, x.CountryHits, x.FundingBonus),
+                ExplanationAr: BuildExplanationAr(x.TitleAr, x.LevelMatched, x.FieldHits, x.CountryHits, x.FundingBonus)))
             .ToList();
 
         // Synthetic token accounting — 40 prompt + 12 per recommendation
@@ -169,10 +214,7 @@ public sealed class LocalAiService(
             NameAr: "مجال الدراسة",
             StudentValue: string.IsNullOrWhiteSpace(fos) ? "unknown" : fos,
             ListingRequirement: fosFields.Count == 0 ? "any" : string.Join(", ", fosFields),
-            Match: fosFields.Count == 0 ? "yes"
-                : string.IsNullOrWhiteSpace(fos) ? "unknown"
-                : fosFields.Any(f => f.Contains(fos, StringComparison.OrdinalIgnoreCase)
-                                  || fos.Contains(f, StringComparison.OrdinalIgnoreCase)) ? "yes" : "partial"));
+            Match: FieldMatch(fosFields, fos)));
 
         var matches = criteria.Count(c => c.Match == "yes");
         var verdict = DeriveVerdict(criteria);
@@ -311,29 +353,139 @@ public sealed class LocalAiService(
     private static IReadOnlyList<string> NormalizeCountries(IReadOnlyList<string> countries)
         => countries.Select(CountryNormalizer.ToKey).Where(k => k.Length > 0).ToList();
 
-    private static int OverlapScore(IReadOnlyList<string> a, IReadOnlyList<string> b, int maxPoints)
+    /// <summary>
+    /// How a student's field of study stands against the disciplines a listing accepts.
+    /// </summary>
+    /// <remarks>
+    /// "partially met" is reserved for a field that is genuinely adjacent — one that
+    /// shares a significant word with a discipline the listing accepts, such as
+    /// "Software Engineering" against "Engineering". A field with nothing in common is
+    /// reported as not met, because telling a law student that a computer science award
+    /// is partially met tells them nothing they can act on.
+    /// </remarks>
+    private static string FieldMatch(IReadOnlyList<string> listingFields, string studentField)
     {
-        if (a.Count == 0 || b.Count == 0) return 0;
-        var set = new HashSet<string>(a, StringComparer.OrdinalIgnoreCase);
-        var hits = b.Count(x => set.Contains(x));
-        if (hits == 0) return 0;
-        return Math.Min(maxPoints, hits * (maxPoints / Math.Max(a.Count, 1)));
+        if (listingFields.Count == 0) return "yes";
+        if (string.IsNullOrWhiteSpace(studentField)) return "unknown";
+
+        if (listingFields.Any(f => string.Equals(f, studentField, StringComparison.OrdinalIgnoreCase)))
+        {
+            return "yes";
+        }
+
+        var studentWords = SignificantWords(studentField);
+        return studentWords.Count > 0 && listingFields.Any(f => SignificantWords(f).Overlaps(studentWords))
+            ? "partial"
+            : "no";
     }
 
-    private static string BuildExplanationEn(int score, string title) => score switch
+    /// <summary>
+    /// The share of the student's stated preferences that the listing meets, in [0, 1],
+    /// together with the number of preferences met at all.
+    /// </summary>
+    /// <remarks>
+    /// An exact match counts in full. A preference that shares a significant word with
+    /// something the listing offers counts as a half, so a student who wrote
+    /// "Software Engineering" is credited against a listing open to "Engineering"
+    /// instead of scoring nothing on a wording difference. Matching stays a pure
+    /// function of the two lists, so a score can always be explained and reproduced.
+    /// </remarks>
+    private static (decimal Share, int Hits) PreferenceShare(
+        IReadOnlyList<string> wanted, IReadOnlyList<string> offered)
     {
-        >= 80 => $"Strong match for your profile — '{title}' aligns with your preferred fields and level.",
-        >= 50 => $"Partial match — '{title}' overlaps with some of your preferences.",
-        >= 20 => $"Loose match — '{title}' touches areas you've listed; worth a quick look.",
-        _     => $"Weak match — '{title}' doesn't align well with your current profile.",
+        if (wanted.Count == 0 || offered.Count == 0) return (0m, 0);
+
+        var exact = new HashSet<string>(offered, StringComparer.OrdinalIgnoreCase);
+        var offeredWords = offered.Select(SignificantWords).ToList();
+
+        decimal credit = 0;
+        var hits = 0;
+
+        foreach (var w in wanted)
+        {
+            if (exact.Contains(w))
+            {
+                credit += 1m;
+                hits++;
+                continue;
+            }
+
+            var words = SignificantWords(w);
+            if (words.Count > 0 && offeredWords.Any(o => o.Overlaps(words)))
+            {
+                credit += 0.5m;
+                hits++;
+            }
+        }
+
+        return (Math.Min(1m, credit / wanted.Count), hits);
+    }
+
+    /// <summary>Lower-cased words of three letters or more, minus common connectives.</summary>
+    private static HashSet<string> SignificantWords(string value)
+    {
+        var words = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(value)) return words;
+
+        foreach (var token in value.Split(FieldWordSeparators, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (token.Length >= 3 && !FieldStopWords.Contains(token))
+            {
+                words.Add(token);
+            }
+        }
+
+        return words;
+    }
+
+    private static readonly char[] FieldWordSeparators = [' ', '&', ',', '/', '-', '(', ')', '\t'];
+
+    private static readonly HashSet<string> FieldStopWords =
+        new(StringComparer.OrdinalIgnoreCase) { "and", "the", "for", "of", "other", "studies", "general" };
+
+    // The explanation names the criteria that actually contributed, so a student
+    // can see why a listing was suggested rather than only how strongly.
+    private static string BuildExplanationEn(
+        string title, bool levelMatched, int fieldHits, int countryHits, bool fundingBonus)
+    {
+        var reasons = new List<string>(4);
+        if (levelMatched) reasons.Add("your academic level");
+        if (fieldHits > 0) reasons.Add(fieldHits == 1 ? "one of your preferred fields" : $"{fieldHits} of your preferred fields");
+        if (countryHits > 0) reasons.Add(countryHits == 1 ? "one of your preferred countries" : $"{countryHits} of your preferred countries");
+        if (fundingBonus) reasons.Add("an award of $10,000 or more");
+
+        if (reasons.Count == 0)
+            return $"'{title}' does not match the preferences on your profile; it is shown only because it is still open.";
+
+        return $"'{title}' matches {JoinEn(reasons)}.";
+    }
+
+    private static string JoinEn(IReadOnlyList<string> parts) => parts.Count switch
+    {
+        1 => parts[0],
+        2 => $"{parts[0]} and {parts[1]}",
+        _ => string.Join(", ", parts.Take(parts.Count - 1)) + $", and {parts[^1]}",
     };
 
-    private static string BuildExplanationAr(int score, string title) => score switch
+    private static string BuildExplanationAr(
+        string title, bool levelMatched, int fieldHits, int countryHits, bool fundingBonus)
     {
-        >= 80 => $"توافق قوي مع ملفك الشخصي — '{title}' قريبة من اهتماماتك ومستواك الأكاديمي.",
-        >= 50 => $"توافق جزئي — '{title}' تتقاطع مع بعض تفضيلاتك.",
-        >= 20 => $"توافق محدود — '{title}' تلمس المجالات التي أضفتها، يستحق نظرة سريعة.",
-        _     => $"توافق ضعيف — '{title}' لا تتماشى حالياً مع ملفك.",
+        var reasons = new List<string>(4);
+        if (levelMatched) reasons.Add("مستواك الأكاديمي");
+        if (fieldHits > 0) reasons.Add(fieldHits == 1 ? "أحد مجالاتك المفضلة" : $"{fieldHits} من مجالاتك المفضلة");
+        if (countryHits > 0) reasons.Add(countryHits == 1 ? "إحدى دولك المفضلة" : $"{countryHits} من دولك المفضلة");
+        if (fundingBonus) reasons.Add("تمويل يبلغ 10,000 دولار أو أكثر");
+
+        if (reasons.Count == 0)
+            return $"'{title}' لا تطابق التفضيلات المسجلة في ملفك، وتظهر لأنها ما زالت مفتوحة فقط.";
+
+        return $"'{title}' تطابق {JoinAr(reasons)}.";
+    }
+
+    private static string JoinAr(IReadOnlyList<string> parts) => parts.Count switch
+    {
+        1 => parts[0],
+        _ => string.Join("، ", parts.Take(parts.Count - 1)) + $" و{parts[^1]}",
     };
 
     private static string RouteChat(string message)
