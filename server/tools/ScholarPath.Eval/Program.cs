@@ -41,20 +41,32 @@ var listingCount = int.Parse(arg("listings", "100"), CultureInfo.InvariantCultur
 var topN = int.Parse(arg("topn", "5"), CultureInfo.InvariantCulture);
 var seed = int.Parse(arg("seed", "20260918"), CultureInfo.InvariantCulture);
 var csvPath = arg("csv", "");
+var ranker = arg("ranker", "current").ToLowerInvariant();
 
 var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connection).Options;
 await using var db = new ApplicationDbContext(options);
 var ai = new LocalAiService(db, new NoopRetriever(), Options.Create(new AiOptions()));
+
+// The ranker under test can be swapped for the pre-redesign rule while the
+// eligibility checker that judges its output stays current, so a before/after
+// comparison is measured against one ground truth rather than two.
+var legacy = new ScholarPath.Eval.LegacyRecommender(db);
+Func<Guid, int, CancellationToken, Task<AiRecommendationResult>> recommend = ranker switch
+{
+    "legacy" => legacy.GenerateRecommendationsAsync,
+    "current" => ai.GenerateRecommendationsAsync,
+    _ => throw new ArgumentException($"--ranker must be 'current' or 'legacy', not '{ranker}'"),
+};
 var rng = new Random(seed);
 
 var students = await db.UserProfiles.AsNoTracking()
     .Where(p => p.AcademicLevel != null || p.FieldOfStudy != null || p.PreferredCountriesJson != null)
-    .Select(p => new { p.UserId, p.FieldOfStudy })
+    .Select(p => new { p.UserId, p.FieldOfStudy, p.AcademicLevel })
     .ToListAsync().ConfigureAwait(false);
 
 var listings = await db.Scholarships.AsNoTracking()
     .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > DateTimeOffset.UtcNow)
-    .Select(s => new { s.Id, s.TitleEn, s.FieldsOfStudyJson })
+    .Select(s => new { s.Id, s.TitleEn, s.FieldsOfStudyJson, s.TargetLevel })
     .ToListAsync().ConfigureAwait(false);
 
 Console.WriteLine($"mode       : {mode}");
@@ -78,6 +90,7 @@ async Task RunRecommendationAsync()
 {
     var sampled = students.OrderBy(_ => rng.Next()).Take(studentCount).ToList();
     Console.WriteLine($"sample     : {sampled.Count} students, top-{topN} each (seed {seed})");
+    Console.WriteLine($"ranker     : {ranker}  (eligibility ground truth: current checker in both cases)");
     Console.WriteLine();
 
     // A recommender is only worth its complexity if it beats drawing at random
@@ -97,13 +110,25 @@ async Task RunRecommendationAsync()
     double recScoreSum = 0;
     var studentsWithAny = 0;
 
+    // What the score itself is worth: slots spent on a level the student is not
+    // at, lists whose five scores tie (so their order is arbitrary), and whether a
+    // higher score actually means a more usable listing.
+    var levelOf = listings.ToDictionary(l => l.Id, l => l.TargetLevel);
+    var wrongLevelSlots = 0;
+    var allTiedLists = 0;
+    var distinctScores = new HashSet<int>();
+    var bandUsable = new Dictionary<string, (int Usable, int Total)>
+    {
+        ["80-100"] = (0, 0), ["50-79"] = (0, 0), ["0-49"] = (0, 0),
+    };
+
     var csv = new StringBuilder();
     if (csvPath.Length > 0) csv.AppendLine("userId,rank,listing,matchScore,verdict,arm");
 
     var done = 0;
     foreach (var s in sampled)
     {
-        var result = await ai.GenerateRecommendationsAsync(s.UserId, topN, CancellationToken.None)
+        var result = await recommend(s.UserId, topN, CancellationToken.None)
             .ConfigureAwait(false);
 
         var anyUsable = false;
@@ -117,12 +142,23 @@ async Task RunRecommendationAsync()
             else if (v == EligibilityVerdict.PartiallyEligible) { recPartial++; anyUsable = true; }
             else recNot++;
 
+            distinctScores.Add(item.MatchScore);
+            if (s.AcademicLevel.HasValue && levelOf.TryGetValue(item.ScholarshipId, out var lvl)
+                && lvl != s.AcademicLevel.Value)
+            {
+                wrongLevelSlots++;
+            }
+            var band = item.MatchScore >= 80 ? "80-100" : item.MatchScore >= 50 ? "50-79" : "0-49";
+            var (bu, bt) = bandUsable[band];
+            bandUsable[band] = (bu + (v == EligibilityVerdict.NotEligible ? 0 : 1), bt + 1);
+
             if (csvPath.Length > 0)
             {
                 csv.AppendLine($"{s.UserId},{i + 1},\"{item.ScholarshipId}\",{item.MatchScore},{v},recommended");
             }
         }
         if (anyUsable) studentsWithAny++;
+        if (result.Items.Count > 1 && result.Items.Select(i => i.MatchScore).Distinct().Count() == 1) allTiedLists++;
 
         // Baseline: the same number of listings, drawn uniformly at random.
         foreach (var l in listings.OrderBy(_ => rng.Next()).Take(topN))
@@ -173,7 +209,7 @@ async Task RunRecommendationAsync()
         oracleUsableTotal += usable.Count;
         if (usable.Count == 0) continue;
         oracleHasAny++;
-        var top = await ai.GenerateRecommendationsAsync(s2.UserId, topN, CancellationToken.None).ConfigureAwait(false);
+        var top = await recommend(s2.UserId, topN, CancellationToken.None).ConfigureAwait(false);
         if (top.Items.Any(i => usable.Contains(i.ScholarshipId))) oracleFound++;
     }
     Console.WriteLine();
@@ -187,6 +223,16 @@ async Task RunRecommendationAsync()
     Console.WriteLine($"    lift        : {(baseUsable <= 0 ? double.PositiveInfinity : recUsable / baseUsable),5:F1}x");
     Console.WriteLine($"  students shown at least one usable listing : {Pct(studentsWithAny, sampled.Count):F1}%");
     Console.WriteLine($"  mean match score of a recommended listing  : {(recCount == 0 ? 0 : recScoreSum / recCount):F1}");
+    Console.WriteLine();
+    Console.WriteLine("WHAT THE SCORE IS WORTH");
+    Console.WriteLine($"  slots spent on a level the student is not at : {wrongLevelSlots} of {recCount}  ({Pct(wrongLevelSlots, recCount):F1}%)");
+    Console.WriteLine($"  lists whose five scores all tie              : {allTiedLists} of {sampled.Count}  ({Pct(allTiedLists, sampled.Count):F1}%)");
+    Console.WriteLine($"  distinct score values across recommendations : {distinctScores.Count}");
+    Console.WriteLine($"  usable share by score band");
+    foreach (var (bandName, (bu, bt)) in bandUsable)
+    {
+        Console.WriteLine($"    {bandName,-8}{bt,6} listings   {Pct(bu, bt),6:F1}% usable");
+    }
     Console.WriteLine();
     Console.WriteLine($"AGAINST WHAT WAS THERE TO FIND ({oracleSample.Count} students, every open listing checked)");
     Console.WriteLine($"  usable listings per student, on average    : {(double)oracleUsableTotal / Math.Max(1, oracleSample.Count):F1} of {listings.Count}");
