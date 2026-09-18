@@ -8,10 +8,10 @@ the study has not been run.
 |---|---|
 | `protocol.md` | How the session is run, start to finish. Read this first. |
 | `consent-en.md`, `consent-ar.md` | Participant information sheet and consent form. |
-| `screening.md` | Six questions that decide whether someone is eligible to take part. |
+| `screening.md`, `screening-ar.md` | Six questions that decide whether someone is eligible to take part. |
 | `tasks-en.md`, `tasks-ar.md` | The six task scenarios, with success criteria. |
 | `sus-en.md`, `sus-ar.md` | The System Usability Scale, ten items. |
-| `debrief.md` | The open questions asked after the tasks. |
+| `debrief.md`, `debrief-ar.md` | The open questions asked after the tasks. |
 | `responses.template.csv` | The data sheet. One row per participant. |
 | `analyze.py` | Computes every reported figure from that sheet. |
 

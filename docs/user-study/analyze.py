@@ -50,15 +50,12 @@ def sus_score(row):
 
 
 def band(score):
-    if score < 51:
-        return "poor"
-    if score < 68:
-        return "fair"
-    if score < 69:
-        return "average"
-    if score < 80:
-        return "good"
-    return "excellent"
+    """Acceptability ranges of Bangor, Kortum & Miller (2008)."""
+    if score < 50:
+        return "not acceptable"
+    if score <= 70:
+        return "marginal"
+    return "acceptable"
 
 
 def read(path):
@@ -119,7 +116,7 @@ def main():
     scores = [s for s in (sus_score(r) for r in rows) if s is not None]
     if not scores:
         print("System Usability Scale: no complete response sheets yet.")
-        print("  (0-100, not a percentage. Average across published studies is 68.)")
+        print("  (0-100, not a percentage. Read against Bangor et al. 2008: <50, 50-70, >70.)")
         return 0
 
     mean = statistics.mean(scores)
@@ -129,12 +126,12 @@ def main():
     print("  mean            : %.1f  (sd %.1f)" % (mean, sd))
     print("  median          : %.1f" % statistics.median(scores))
     print("  range           : %.1f to %.1f" % (min(scores), max(scores)))
-    print("  reading         : %s  (average across studies is 68)" % band(mean))
+    print("  reading         : %s  (Bangor et al. 2008: <50 not acceptable, 50-70 marginal, >70 acceptable)" % band(mean))
     print()
     print("  distribution")
-    for label in ("poor", "fair", "average", "good", "excellent"):
+    for label in ("not acceptable", "marginal", "acceptable"):
         c = sum(1 for s in scores if band(s) == label)
-        print("    %-10s %2d  %s" % (label, c, "#" * c))
+        print("    %-15s %2d  %s" % (label, c, "#" * c))
     return 0
 
 

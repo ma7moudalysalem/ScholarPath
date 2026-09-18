@@ -12,9 +12,10 @@ participants across a full application cycle and is out of scope.
 
 ## Participants
 
-- **Target:** 12–15 participants. Task-based usability testing surfaces the
-  majority of recurring problems in this range, and the marginal problem found
-  per additional participant falls sharply beyond it (Nielsen & Landauer, 1993).
+- **Target:** 12–15 participants. Problem discovery saturates well below this
+  number (Nielsen & Landauer, 1993); the larger sample is for the usability
+  scale, whose score needs roughly a dozen respondents to give a stable result
+  (Tullis & Stetson, 2004).
 - **Who:** final-year undergraduates and graduate students who have looked for a
   scholarship in the last two years, or intend to in the next one.
 - **Who may not:** anyone who contributed to ScholarPath's design, code,
@@ -75,7 +76,7 @@ wherever the times are reported.
 
 Run `analyze.py`. It reports, for each task, the completion rate and the median
 time; overall, the mean SUS score with its standard deviation and the
-distribution of scores across the interpretation bands of Bangor, Kortum &
+distribution of scores across the acceptability ranges of Bangor, Kortum &
 Miller (2008).
 
 No figure is computed any other way, and the script is not edited after the

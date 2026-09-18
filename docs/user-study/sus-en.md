@@ -39,12 +39,10 @@ recorded here so the computation can be checked by hand.
 The result is a number from 0 to 100. **It is not a percentage**, and it must
 not be written as one.
 
-Interpretation bands (Bangor, Kortum & Miller, 2008):
+Acceptability ranges (Bangor, Kortum & Miller, 2008):
 
 | Score | Reading |
 |---|---|
-| below 51 | poor |
-| 51 – 67 | fair |
-| 68 | the average across studies |
-| 69 – 79 | good |
-| 80 and above | excellent |
+| below 50 | not acceptable |
+| 50 – 70 | marginal |
+| above 70 | acceptable |

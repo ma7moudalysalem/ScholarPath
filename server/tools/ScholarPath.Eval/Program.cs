@@ -11,7 +11,13 @@
 //   --listings    how many listings to sample (eligibility mode)
 //   --topn        recommendations requested per student (recommendation mode)
 //   --seed        sample seed
+//   --ranker      current | legacy | intermediate  (recommendation mode; the checker
+//                 that judges the ranking is the current one in every case)
+//   --oracle      how many sampled students get the exhaustive pass (recommendation mode)
 //   --csv         write a per-pair / per-student row file
+//
+//   dotnet run --project server/tools/ScholarPath.Eval -- --mode retrieval --students 120
+//   (in retrieval mode --students is the number of queries drawn)
 
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +48,7 @@ var topN = int.Parse(arg("topn", "5"), CultureInfo.InvariantCulture);
 var seed = int.Parse(arg("seed", "20260918"), CultureInfo.InvariantCulture);
 var csvPath = arg("csv", "");
 var ranker = arg("ranker", "current").ToLowerInvariant();
+var oracleCount = int.Parse(arg("oracle", "40"), CultureInfo.InvariantCulture);
 
 var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connection).Options;
 await using var db = new ApplicationDbContext(options);
@@ -51,17 +58,19 @@ var ai = new LocalAiService(db, new NoopRetriever(), Options.Create(new AiOption
 // eligibility checker that judges its output stays current, so a before/after
 // comparison is measured against one ground truth rather than two.
 var legacy = new ScholarPath.Eval.LegacyRecommender(db);
+var intermediate = new ScholarPath.Eval.IntermediateRecommender(db);
 Func<Guid, int, CancellationToken, Task<AiRecommendationResult>> recommend = ranker switch
 {
     "legacy" => legacy.GenerateRecommendationsAsync,
+    "intermediate" => intermediate.GenerateRecommendationsAsync,
     "current" => ai.GenerateRecommendationsAsync,
-    _ => throw new ArgumentException($"--ranker must be 'current' or 'legacy', not '{ranker}'"),
+    _ => throw new ArgumentException($"--ranker must be 'current', 'legacy' or 'intermediate', not '{ranker}'"),
 };
 var rng = new Random(seed);
 
 var students = await db.UserProfiles.AsNoTracking()
     .Where(p => p.AcademicLevel != null || p.FieldOfStudy != null || p.PreferredCountriesJson != null)
-    .Select(p => new { p.UserId, p.FieldOfStudy, p.AcademicLevel })
+    .Select(p => new { p.UserId, p.FieldOfStudy, p.AcademicLevel, p.PreferredFieldsJson })
     .ToListAsync().ConfigureAwait(false);
 
 var listings = await db.Scholarships.AsNoTracking()
@@ -71,6 +80,25 @@ var listings = await db.Scholarships.AsNoTracking()
 
 Console.WriteLine($"mode       : {mode}");
 Console.WriteLine($"population : {students.Count} student profiles, {listings.Count} open listings");
+{
+    // How much there is for a field criterion to work with: listings that declare a
+    // discipline at all, and pairs whose declared fields meet exactly.
+    var listingSets = listings
+        .Select(l => new HashSet<string>(Parse(l.FieldsOfStudyJson), StringComparer.OrdinalIgnoreCase))
+        .ToList();
+    long sharing = 0, pairs = 0;
+    foreach (var st in students)
+    {
+        var preferred = Parse(st.PreferredFieldsJson);
+        foreach (var set in listingSets)
+        {
+            pairs++;
+            if (preferred.Count > 0 && set.Count > 0 && preferred.Any(set.Contains)) sharing++;
+        }
+    }
+    Console.WriteLine($"fields     : {listingSets.Count(x => x.Count > 0)} of {listings.Count} open listings declare a discipline; " +
+        $"{(pairs == 0 ? 0 : sharing * 100.0 / pairs):F1}% of all (student, listing) pairs share a declared field exactly");
+}
 
 if (mode == "retrieval")
 {
@@ -193,7 +221,9 @@ async Task RunRecommendationAsync()
     // holds nothing a student is eligible for, an empty top-5 is the correct answer.
     // The oracle pass checks every open listing for a smaller sample of students, so
     // the top-5 can be judged against what was actually available to find.
-    var oracleSample = sampled.Take(Math.Min(40, sampled.Count)).ToList();
+    var oracleSample = sampled.Take(Math.Min(oracleCount, sampled.Count)).ToList();
+    double chanceSum = 0, levelChanceSum = 0;
+    var levelChanceStudents = 0;
     var oracleHasAny = 0;
     var oracleFound = 0;
     var oracleUsableTotal = 0;
@@ -207,6 +237,20 @@ async Task RunRecommendationAsync()
             if (v != EligibilityVerdict.NotEligible) usable.Add(l.Id);
         }
         oracleUsableTotal += usable.Count;
+
+        // The exact expectation of a uniform draw, rather than one realised draw:
+        // with a handful of usable listings in the whole catalogue a single random
+        // sample is two or three events, and a ratio over it means little.
+        chanceSum += usable.Count / (double)listings.Count;
+        if (s2.AcademicLevel.HasValue)
+        {
+            var atLevel = listings.Where(l => l.TargetLevel == s2.AcademicLevel.Value).Select(l => l.Id).ToList();
+            if (atLevel.Count > 0)
+            {
+                levelChanceSum += atLevel.Count(usable.Contains) / (double)atLevel.Count;
+                levelChanceStudents++;
+            }
+        }
         if (usable.Count == 0) continue;
         oracleHasAny++;
         var top = await recommend(s2.UserId, topN, CancellationToken.None).ConfigureAwait(false);
@@ -218,8 +262,8 @@ async Task RunRecommendationAsync()
     var baseUsable = Pct(baseEligible + basePartial, baseCount);
     Console.WriteLine("HEADLINE");
     Console.WriteLine($"  precision@{topN}, counting eligible or partially eligible as usable");
-    Console.WriteLine($"    recommended : {recUsable,5:F1}%");
-    Console.WriteLine($"    random      : {baseUsable,5:F1}%");
+    Console.WriteLine($"    recommended : {recUsable,5:F1}%   ({recEligible + recPartial} of {recCount} slots)");
+    Console.WriteLine($"    random      : {baseUsable,5:F1}%   ({baseEligible + basePartial} of {baseCount} slots, one realised draw)");
     Console.WriteLine($"    lift        : {(baseUsable <= 0 ? double.PositiveInfinity : recUsable / baseUsable),5:F1}x");
     Console.WriteLine($"  students shown at least one usable listing : {Pct(studentsWithAny, sampled.Count):F1}%");
     Console.WriteLine($"  mean match score of a recommended listing  : {(recCount == 0 ? 0 : recScoreSum / recCount):F1}");
@@ -237,6 +281,10 @@ async Task RunRecommendationAsync()
     Console.WriteLine($"AGAINST WHAT WAS THERE TO FIND ({oracleSample.Count} students, every open listing checked)");
     Console.WriteLine($"  usable listings per student, on average    : {(double)oracleUsableTotal / Math.Max(1, oracleSample.Count):F1} of {listings.Count}");
     Console.WriteLine($"  students with at least one anywhere        : {oracleHasAny} of {oracleSample.Count}  ({Pct(oracleHasAny, oracleSample.Count):F1}%)");
+    var exactChance = oracleSample.Count == 0 ? 0 : chanceSum * 100.0 / oracleSample.Count;
+    var levelChance = levelChanceStudents == 0 ? 0 : levelChanceSum * 100.0 / levelChanceStudents;
+    Console.WriteLine($"  chance a uniformly drawn slot is usable    : {exactChance:F2}%   (exact expectation)   -> lift {(exactChance <= 0 ? 0 : recUsable / exactChance):F1}x");
+    Console.WriteLine($"  same, drawing only at the student's level  : {levelChance:F2}%   (exact expectation)   -> lift {(levelChance <= 0 ? 0 : recUsable / levelChance):F1}x");
     if (oracleHasAny > 0)
     {
         Console.WriteLine($"  of those, top-{topN} surfaced one           : {oracleFound} of {oracleHasAny}  ({Pct(oracleFound, oracleHasAny):F1}%)   <- recall@{topN}");
@@ -264,6 +312,7 @@ async Task RunEligibilityAsync()
     var verdictCounts = new Dictionary<string, int>(StringComparer.Ordinal);
     var unrelatedReportedPartial = 0;
     var substringOnlyMatch = 0;
+    var metWithoutExact = 0;
     var fieldEvaluated = 0;
 
     var csv = new StringBuilder();
@@ -304,6 +353,11 @@ async Task RunEligibilityAsync()
                 wordsShared = listingFields.Any(f => Words(f).Overlaps(Words(studentField)));
                 if (string.Equals(field.Match, "partial", StringComparison.OrdinalIgnoreCase) && !wordsShared) unrelatedReportedPartial++;
                 if (string.Equals(field.Match, "yes", StringComparison.OrdinalIgnoreCase) && !wordsShared) substringOnlyMatch++;
+                if (string.Equals(field.Match, "yes", StringComparison.OrdinalIgnoreCase)
+                    && !listingFields.Any(f => string.Equals(f.Trim(), studentField.Trim(), StringComparison.OrdinalIgnoreCase)))
+                {
+                    metWithoutExact++;
+                }
             }
 
             if (csvPath.Length > 0)
@@ -342,6 +396,7 @@ async Task RunEligibilityAsync()
     {
         Console.WriteLine($"  unrelated field reported as 'partially met'            : {unrelatedReportedPartial,8}  {unrelatedReportedPartial * 100.0 / fieldEvaluated,5:F1}%");
         Console.WriteLine($"  'met' on substring containment with no word in common  : {substringOnlyMatch,8}  {substringOnlyMatch * 100.0 / fieldEvaluated,5:F1}%");
+        Console.WriteLine($"  'met' although no accepted field equals the student's  : {metWithoutExact,8}  {metWithoutExact * 100.0 / fieldEvaluated,5:F1}%");
     }
 
     if (csvPath.Length > 0)
@@ -400,8 +455,9 @@ async Task RunRetrievalAsync()
         if (seen[key] == 1) queries.Add((docId, query));
     }
 
+    var uniqueCount = queries.Count;
     queries = queries.OrderBy(_ => rng.Next()).Take(studentCount).ToList();
-    Console.WriteLine($"queries    : {queries.Count} listings whose field/level/country/funding combination is unique");
+    Console.WriteLine($"queries    : {queries.Count} drawn at the seed from the {uniqueCount} listings whose (level, first field, first country, funding type) combination is unique");
     Console.WriteLine();
 
     var services = new ServiceCollection();
@@ -441,6 +497,50 @@ async Task RunRetrievalAsync()
 
     const int TopK = 4;   // Ai:RagTopK
     Console.WriteLine($"{"provider",-34}{"recall@" + TopK,12}{"MRR",10}{"mean rank",12}");
+
+    // A lexical baseline. The queries reuse words that occur in the documents, so
+    // an embedding model has to be read against what plain term matching achieves.
+    {
+        static List<string> Tokens(string text) =>
+            System.Text.RegularExpressions.Regex.Split(text.ToLowerInvariant(), "[^a-z0-9]+")
+                .Where(t => t.Length > 1).ToList();
+
+        const double K1 = 1.2, B = 0.75;
+        var docTokens = docs.Select(d => Tokens(d.Text)).ToList();
+        var avgLen = docTokens.Average(t => (double)t.Count);
+        var df = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var toks in docTokens)
+        {
+            foreach (var t in toks.Distinct()) df[t] = df.GetValueOrDefault(t) + 1;
+        }
+        var tf = docTokens.Select(toks => toks.GroupBy(t => t).ToDictionary(g => g.Key, g => g.Count())).ToList();
+        var docIndex = docs.Select((d, i) => (d.Id, i)).ToDictionary(x => x.Id, x => x.i);
+
+        int bmHits = 0; double bmMrr = 0, bmRank = 0;
+        foreach (var (docId, query) in queries)
+        {
+            var qTokens = Tokens(query).Distinct().ToList();
+            var scores = new double[docs.Count];
+            for (var di = 0; di < docs.Count; di++)
+            {
+                double sc = 0;
+                foreach (var t in qTokens)
+                {
+                    if (!tf[di].TryGetValue(t, out var f)) continue;
+                    var idf = Math.Log(1 + (docs.Count - df[t] + 0.5) / (df[t] + 0.5));
+                    sc += idf * f * (K1 + 1) / (f + K1 * (1 - B + B * docTokens[di].Count / avgLen));
+                }
+                scores[di] = sc;
+            }
+            var target = docIndex[docId];
+            // Ties are counted against the target, so a tie never flatters the baseline.
+            var rank = 1 + scores.Where((sc, di) => di != target && sc >= scores[target]).Count();
+            bmRank += rank;
+            if (rank <= TopK) bmHits++;
+            bmMrr += 1.0 / rank;
+        }
+        Console.WriteLine($"{"BM25 (lexical baseline)",-34}{bmHits * 100.0 / queries.Count,11:F1}%{bmMrr / queries.Count,10:F3}{bmRank / queries.Count,12:F1}");
+    }
 
     foreach (var (label, svc) in providers)
     {
