@@ -104,6 +104,7 @@ function makeSchema(t: TFunction) {
     fundingType: z.enum(FUNDING_TYPES),
     targetLevel: z.enum(ACADEMIC_LEVELS),
     fieldsOfStudy: z.array(z.string()).optional(),
+    eligibleNationalities: z.array(z.string()).optional(),
     // PB-005: per-scholarship Review Service Fee in USD. Required for in-app
     // listings — the server rejects negative or >500 values. A fee of 0 marks
     // the listing as free (no payment authorisation, no commission). The
@@ -170,6 +171,7 @@ export function ScholarshipForm() {
       fundingType: "FullyFunded",
       targetLevel: "Undergrad",
       fieldsOfStudy: [],
+      eligibleNationalities: [],
       requiredDocuments: [],
       // Sensible default so a ScholarshipProvider can submit quickly. When the platform's
       // master payments switch is off, the form auto-populates 0 and hides the
@@ -217,6 +219,7 @@ export function ScholarshipForm() {
       // Pre-fill fields of study so the company sees what they picked before
       // and can toggle items on/off without losing the existing selection.
       fieldsOfStudy: d.fieldsOfStudy ?? [],
+      eligibleNationalities: d.eligibleNationalities ?? [],
       requiredDocuments: d.requiredDocuments ?? [],
       // Pre-fill the configured fee; default to 50 USD when the legacy
       // listing has no fee yet so saving the edit fills it in. When the
@@ -291,6 +294,8 @@ export function ScholarshipForm() {
           values.fieldsOfStudy && values.fieldsOfStudy.length > 0
             ? values.fieldsOfStudy
             : undefined,
+        // Always sent on edit, so clearing every nationality reopens the listing.
+        eligibleNationalities: values.eligibleNationalities ?? [],
         reviewFeeUsd: values.reviewFeeUsd,
         requiredDocuments: values.requiredDocuments ?? [],
       };
@@ -314,6 +319,7 @@ export function ScholarshipForm() {
       fieldsOfStudy: values.fieldsOfStudy && values.fieldsOfStudy.length > 0
         ? values.fieldsOfStudy
         : undefined,
+      eligibleNationalities: values.eligibleNationalities ?? [],
       // External listings settle off-platform — no review fee. In-app keeps its fee.
       reviewFeeUsd: isExternal ? undefined : values.reviewFeeUsd,
       requiredDocuments: values.requiredDocuments ?? [],
@@ -571,6 +577,41 @@ export function ScholarshipForm() {
                       >
                         {f}
                       </button>
+                    ))}
+                  </div>
+                );
+              }}
+            />
+          </Field>
+
+          <Field
+            id="eligibleNationalities"
+            label={t("moderation:scholarshipProviderScholarships.form.eligibleNationalities")}
+            hint={t("moderation:scholarshipProviderScholarships.form.eligibleNationalitiesHint")}
+          >
+            <Controller
+              control={form.control}
+              name="eligibleNationalities"
+              render={({ field }) => {
+                const selected = field.value ?? [];
+                const toggle = (v: string) => {
+                  field.onChange(
+                    selected.includes(v)
+                      ? selected.filter((x) => x !== v)
+                      : [...selected, v],
+                  );
+                };
+                return (
+                  <div className="mt-1 grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-lg border border-border-subtle p-2 sm:grid-cols-3">
+                    {COUNTRIES.map((c) => (
+                      <label key={c} className="flex items-center gap-2 rounded px-1 py-0.5 text-xs text-text-secondary hover:bg-bg-subtle">
+                        <input
+                          type="checkbox"
+                          checked={selected.includes(c)}
+                          onChange={() => toggle(c)}
+                        />
+                        {isAr ? countryLabel(c, "ar") : c}
+                      </label>
                     ))}
                   </div>
                 );

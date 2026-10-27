@@ -16,7 +16,7 @@ namespace ScholarPath.Eval;
 /// commit 789968f: additive points (level 30, exact-string field overlap 40,
 /// country overlap 25, funding 5), no level gate, ties broken by title.
 /// </summary>
-public sealed class LegacyRecommender(ApplicationDbContext db)
+public sealed class LegacyRecommender(ApplicationDbContext db, DateTimeOffset asOf)
 {
     private const string Disclaimer = "AI-generated guidance. Verify with official sources before acting.";
 
@@ -36,7 +36,7 @@ public sealed class LegacyRecommender(ApplicationDbContext db)
 
         var candidates = await db.Scholarships
             .AsNoTracking()
-            .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > DateTimeOffset.UtcNow)
+            .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > asOf)
             .Select(s => new
             {
                 s.Id,

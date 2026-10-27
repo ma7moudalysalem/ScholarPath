@@ -20,8 +20,13 @@ namespace ScholarPath.Infrastructure.Services;
 public sealed class LocalAiService(
     ApplicationDbContext db,
     IKnowledgeRetriever retriever,
-    IOptions<AiOptions> opts) : IAiService
+    IOptions<AiOptions> opts,
+    TimeProvider? clock = null) : IAiService
 {
+    // The clock decides which listings are still open. It is injectable so the
+    // evaluation harness can judge the catalog as it stood on a fixed date.
+    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
+
     private const string Disclaimer = "AI-generated guidance. Verify with official sources before acting.";
 
     // Synthetic cost model so cost caps behave reasonably in stub mode.
@@ -62,15 +67,17 @@ public sealed class LocalAiService(
         var preferredFields = ParseJsonArray(profile?.PreferredFieldsJson);
         var preferredCountries = ParseJsonArray(profile?.PreferredCountriesJson);
         var userLevel = profile?.AcademicLevel;
+        var nationality = profile?.Nationality;
 
         // Academic level is a gate rather than a preference: a listing for a level
         // the student is not at can never be one they are eligible for, however well
         // it matches on field or country. Recommending it wastes the slot, so it is
         // excluded here rather than merely scored down. Where the student has not
         // stated a level there is nothing to gate on and every listing stands.
+        var now = _clock.GetUtcNow();
         var candidates = await db.Scholarships
             .AsNoTracking()
-            .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > DateTimeOffset.UtcNow)
+            .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > now)
             .Where(s => userLevel == null || s.TargetLevel == userLevel)
             .Select(s => new
             {
@@ -81,14 +88,28 @@ public sealed class LocalAiService(
                 s.TargetCountriesJson,
                 s.FieldsOfStudyJson,
                 s.FundingAmountUsd,
+                s.Deadline,
+                s.EligibleNationalitiesJson,
             })
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
+        // Nationality is a gate for the same reason as level: a listing closed to the
+        // student's nationality can never be one they are eligible for. Where the
+        // student has not stated a nationality there is nothing to gate on.
+        if (!string.IsNullOrWhiteSpace(nationality))
+        {
+            candidates = candidates
+                .Where(c => ParseJsonArray(c.EligibleNationalitiesJson) is var open
+                    && (open.Count == 0 || open.Any(n => CountryNormalizer.Matches(n, nationality))))
+                .ToList();
+        }
+
         // The per-criterion outcome is carried alongside the total so the
         // explanation can name what actually matched rather than restate the score.
         var scored = new List<(Guid Id, int Score, string TitleEn, string TitleAr,
-            bool LevelMatched, int FieldHits, int CountryHits, bool FundingBonus)>(candidates.Count);
+            bool LevelMatched, int FieldHits, int CountryHits, bool FundingBonus,
+            DateTimeOffset Deadline, decimal FundingAmountUsd)>(candidates.Count);
 
         foreach (var c in candidates)
         {
@@ -151,11 +172,18 @@ public sealed class LocalAiService(
             if (fundingBonus && score >= FundingBonusFloor) score += FundingBonusPoints;
 
             scored.Add((c.Id, Math.Clamp(score, 0, 100), c.TitleEn, c.TitleAr,
-                levelMatched, fieldHits, countryHits, fundingBonus));
+                levelMatched, fieldHits, countryHits, fundingBonus,
+                c.Deadline, c.FundingAmountUsd ?? 0m));
         }
 
         var top = scored
+            // Equal scores are common on a catalog where most listings restrict nothing
+            // but level, so ties are broken by what the student acts on: the nearer
+            // deadline first, then the larger award. The title only orders what is
+            // still tied, so the order stays deterministic.
             .OrderByDescending(x => x.Score)
+            .ThenBy(x => x.Deadline)
+            .ThenByDescending(x => x.FundingAmountUsd)
             .ThenBy(x => x.TitleEn)
             .Take(topN)
             .Select(x => new AiRecommendationItem(
@@ -234,6 +262,21 @@ public sealed class LocalAiService(
             Match: listingCountries.Count == 0 ? "yes"
                 : studentCountries.Count == 0 ? "unknown"
                 : listingCountries.Any(lc => studentCountries.Any(sc => CountryNormalizer.Matches(lc, sc))) ? "yes" : "no"));
+
+        // Nationality, judged only where the listing restricts it. Kept apart from the
+        // destination above: an award held in Germany may still admit only some
+        // countries' citizens, and preferring a destination does not change that.
+        var nationalities = ParseJsonArray(scholarship.EligibleNationalitiesJson);
+        if (nationalities.Count > 0)
+        {
+            criteria.Add(new AiEligibilityCriterion(
+                NameEn: "Nationality",
+                NameAr: "الجنسية",
+                StudentValue: string.IsNullOrWhiteSpace(nationality) ? "unknown" : nationality,
+                ListingRequirement: string.Join(", ", nationalities),
+                Match: string.IsNullOrWhiteSpace(nationality) ? "unknown"
+                    : nationalities.Any(n => CountryNormalizer.Matches(n, nationality)) ? "yes" : "no"));
+        }
 
         // Field of study — use dedicated FieldsOfStudyJson; fall back to tags only if not set
         var fosFields = ParseJsonArray(scholarship.FieldsOfStudyJson);
@@ -398,6 +441,14 @@ public sealed class LocalAiService(
         if (string.IsNullOrWhiteSpace(studentField)) return "unknown";
 
         if (listingFields.Any(f => string.Equals(f, studentField, StringComparison.OrdinalIgnoreCase)))
+        {
+            return "yes";
+        }
+
+        // A known major is judged by the fields it belongs to, so "Nursing" meets a
+        // listing for "Medicine & Health" instead of failing on the wording.
+        var majorFields = FieldTaxonomy.FieldsOf(studentField);
+        if (majorFields.Any(m => listingFields.Contains(m, StringComparer.OrdinalIgnoreCase)))
         {
             return "yes";
         }

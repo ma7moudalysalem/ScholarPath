@@ -26,6 +26,13 @@ public sealed class KnowledgeRetriever(
 
         var model = embeddings.ModelName;
 
+        // Without a trained embedding model the hashing vectors carry little
+        // meaning, so the fallback ranks by BM25 instead. English and Arabic
+        // are indexed separately so a question in either language is scored
+        // against text in its own language.
+        if (model == LocalEmbeddingService.Model)
+            return await RetrieveLexicalAsync(query, topK, ct).ConfigureAwait(false);
+
         var docs = await db.KnowledgeDocuments
             .AsNoTracking()
             .Where(d => d.EmbeddingModel == model && d.EmbeddingDimensions > 0)
@@ -55,6 +62,56 @@ public sealed class KnowledgeRetriever(
                 Doc = d,
                 Score = VectorMath.CosineSimilarity(queryVector, VectorMath.Unpack(d.Embedding)),
             })
+            .OrderByDescending(x => x.Score)
+            .Take(topK)
+            .Select(x => new RetrievedDocument(
+                x.Doc.Id,
+                x.Doc.SourceType,
+                x.Doc.SourceId,
+                x.Doc.TitleEn,
+                x.Doc.TitleAr,
+                x.Doc.ContentEn,
+                x.Doc.ContentAr,
+                x.Doc.MetadataJson,
+                x.Score))];
+    }
+
+    private async Task<IReadOnlyList<RetrievedDocument>> RetrieveLexicalAsync(
+        string query, int topK, CancellationToken ct)
+    {
+        var docs = await db.KnowledgeDocuments
+            .AsNoTracking()
+            .Select(d => new
+            {
+                d.Id,
+                d.SourceType,
+                d.SourceId,
+                d.TitleEn,
+                d.TitleAr,
+                d.ContentEn,
+                d.ContentAr,
+                d.MetadataJson,
+            })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        if (docs.Count == 0) return [];
+
+        var en = new Bm25Index([.. docs.Select(d => d.TitleEn + " " + d.ContentEn)]);
+        var ar = new Bm25Index([.. docs.Select(d => d.TitleAr + " " + d.ContentAr)]);
+        var enScores = en.Score(query);
+        var arScores = ar.Score(query);
+        var enMax = en.MaxScore(query);
+        var arMax = ar.MaxScore(query);
+
+        return [.. docs
+            .Select((d, i) => new
+            {
+                Doc = d,
+                Score = Math.Max(
+                    enMax > 0 ? enScores[i] / enMax : 0,
+                    arMax > 0 ? arScores[i] / arMax : 0),
+            })
+            .Where(x => x.Score > 0)
             .OrderByDescending(x => x.Score)
             .Take(topK)
             .Select(x => new RetrievedDocument(

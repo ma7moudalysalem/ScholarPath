@@ -15,7 +15,7 @@ namespace ScholarPath.Eval;
 /// release. It is kept here, transcribed verbatim, so that the column reporting it
 /// can be reproduced from the command line like the other two.
 /// </summary>
-public sealed class IntermediateRecommender(ApplicationDbContext db)
+public sealed class IntermediateRecommender(ApplicationDbContext db, DateTimeOffset asOf)
 {
     private const string Disclaimer = "AI-generated guidance. Verify with official sources before acting.";
     private const int LevelWeight = 30;
@@ -40,7 +40,7 @@ public sealed class IntermediateRecommender(ApplicationDbContext db)
 
         var candidates = await db.Scholarships
             .AsNoTracking()
-            .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > DateTimeOffset.UtcNow)
+            .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > asOf)
             .Select(s => new
             {
                 s.Id,

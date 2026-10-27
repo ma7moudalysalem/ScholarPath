@@ -15,6 +15,13 @@
 //                 that judges the ranking is the current one in every case)
 //   --oracle      how many sampled students get the exhaustive pass (recommendation mode)
 //   --csv         write a per-pair / per-student row file
+//   --as-of       the date the catalog is judged on (listings whose deadline has
+//                 passed by then are closed); default 2026-09-18, the date of the
+//                 paper's measurements, so a later run reproduces them
+//
+//   dotnet run --project server/tools/ScholarPath.Eval -- --mode answers --students 120
+//   (asks the assistant the known-item questions end to end and checks each answer
+//   against the listing it should be about; OPENAI_API_KEY adds the hosted model)
 //
 //   dotnet run --project server/tools/ScholarPath.Eval -- --mode retrieval --students 120
 //   (in retrieval mode --students is the number of queries drawn)
@@ -49,16 +56,19 @@ var seed = int.Parse(arg("seed", "20260918"), CultureInfo.InvariantCulture);
 var csvPath = arg("csv", "");
 var ranker = arg("ranker", "current").ToLowerInvariant();
 var oracleCount = int.Parse(arg("oracle", "40"), CultureInfo.InvariantCulture);
+var asOf = DateTimeOffset.Parse(arg("as-of", "2026-09-18T00:00:00Z"), CultureInfo.InvariantCulture,
+    DateTimeStyles.AssumeUniversal);
+var clock = new FixedClock(asOf);
 
 var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connection).Options;
 await using var db = new ApplicationDbContext(options);
-var ai = new LocalAiService(db, new NoopRetriever(), Options.Create(new AiOptions()));
+var ai = new LocalAiService(db, new NoopRetriever(), Options.Create(new AiOptions()), clock);
 
 // The ranker under test can be swapped for the pre-redesign rule while the
 // eligibility checker that judges its output stays current, so a before/after
 // comparison is measured against one ground truth rather than two.
-var legacy = new ScholarPath.Eval.LegacyRecommender(db);
-var intermediate = new ScholarPath.Eval.IntermediateRecommender(db);
+var legacy = new ScholarPath.Eval.LegacyRecommender(db, asOf);
+var intermediate = new ScholarPath.Eval.IntermediateRecommender(db, asOf);
 Func<Guid, int, CancellationToken, Task<AiRecommendationResult>> recommend = ranker switch
 {
     "legacy" => legacy.GenerateRecommendationsAsync,
@@ -74,11 +84,12 @@ var students = await db.UserProfiles.AsNoTracking()
     .ToListAsync().ConfigureAwait(false);
 
 var listings = await db.Scholarships.AsNoTracking()
-    .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > DateTimeOffset.UtcNow)
+    .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > asOf)
     .Select(s => new { s.Id, s.TitleEn, s.FieldsOfStudyJson, s.TargetLevel })
     .ToListAsync().ConfigureAwait(false);
 
 Console.WriteLine($"mode       : {mode}");
+Console.WriteLine($"as of      : {asOf:yyyy-MM-dd} (listings open on that date)");
 Console.WriteLine($"population : {students.Count} student profiles, {listings.Count} open listings");
 {
     // How much there is for a field criterion to work with: listings that declare a
@@ -103,6 +114,10 @@ Console.WriteLine($"population : {students.Count} student profiles, {listings.Co
 if (mode == "retrieval")
 {
     await RunRetrievalAsync().ConfigureAwait(false);
+}
+else if (mode == "answers")
+{
+    await RunAnswersAsync().ConfigureAwait(false);
 }
 else if (mode == "recommendation")
 {
@@ -313,6 +328,7 @@ async Task RunEligibilityAsync()
     var unrelatedReportedPartial = 0;
     var substringOnlyMatch = 0;
     var metWithoutExact = 0;
+    var metByTaxonomy = 0;
     var fieldEvaluated = 0;
 
     var csv = new StringBuilder();
@@ -351,9 +367,15 @@ async Task RunEligibilityAsync()
             {
                 fieldEvaluated++;
                 wordsShared = listingFields.Any(f => Words(f).Overlaps(Words(studentField)));
+                // A major placed under an accepted field by the taxonomy is a match by
+                // design, not a divergence; it is counted on a line of its own.
+                var inTaxonomy = FieldTaxonomy.FieldsOf(studentField)
+                    .Any(m => listingFields.Contains(m, StringComparer.OrdinalIgnoreCase));
+                var met = string.Equals(field.Match, "yes", StringComparison.OrdinalIgnoreCase);
                 if (string.Equals(field.Match, "partial", StringComparison.OrdinalIgnoreCase) && !wordsShared) unrelatedReportedPartial++;
-                if (string.Equals(field.Match, "yes", StringComparison.OrdinalIgnoreCase) && !wordsShared) substringOnlyMatch++;
-                if (string.Equals(field.Match, "yes", StringComparison.OrdinalIgnoreCase)
+                if (met && inTaxonomy) metByTaxonomy++;
+                if (met && !wordsShared && !inTaxonomy) substringOnlyMatch++;
+                if (met && !inTaxonomy
                     && !listingFields.Any(f => string.Equals(f.Trim(), studentField.Trim(), StringComparison.OrdinalIgnoreCase)))
                 {
                     metWithoutExact++;
@@ -397,6 +419,7 @@ async Task RunEligibilityAsync()
         Console.WriteLine($"  unrelated field reported as 'partially met'            : {unrelatedReportedPartial,8}  {unrelatedReportedPartial * 100.0 / fieldEvaluated,5:F1}%");
         Console.WriteLine($"  'met' on substring containment with no word in common  : {substringOnlyMatch,8}  {substringOnlyMatch * 100.0 / fieldEvaluated,5:F1}%");
         Console.WriteLine($"  'met' although no accepted field equals the student's  : {metWithoutExact,8}  {metWithoutExact * 100.0 / fieldEvaluated,5:F1}%");
+        Console.WriteLine($"  'met' because the major belongs to an accepted field   : {metByTaxonomy,8}  {metByTaxonomy * 100.0 / fieldEvaluated,5:F1}%");
     }
 
     if (csvPath.Length > 0)
@@ -407,14 +430,16 @@ async Task RunEligibilityAsync()
     }
 }
 
-// ==================================================================== retrieval
-async Task RunRetrievalAsync()
+// ==================================================================== known-item queries
+// Retrieval and answer modes draw the same queries: listings whose (level, first
+// field, first country, funding type) is unique, shuffled at the seed.
+async Task<(List<KDoc> Docs, List<(Guid DocId, string Query)> Queries)> KnownItemQueriesAsync()
 {
     // The knowledge base is re-embedded from scratch by each provider, so the two
     // are compared on identical text rather than on whatever happened to be stored.
     var docs = await db.KnowledgeDocuments.AsNoTracking()
         .Where(k => k.SourceType == KnowledgeSourceType.Scholarship && k.SourceId != null)
-        .Select(k => new { k.Id, k.SourceId, Text = (k.TitleEn ?? "") + " " + (k.ContentEn ?? "") })
+        .Select(k => new KDoc(k.Id, k.SourceId, (k.TitleEn ?? "") + " " + (k.ContentEn ?? "")))
         .ToListAsync().ConfigureAwait(false);
 
     var meta = await db.Scholarships.AsNoTracking()
@@ -460,6 +485,14 @@ async Task RunRetrievalAsync()
     Console.WriteLine($"queries    : {queries.Count} drawn at the seed from the {uniqueCount} listings whose (level, first field, first country, funding type) combination is unique");
     Console.WriteLine();
 
+    return (docs, queries);
+}
+
+// ==================================================================== retrieval
+async Task RunRetrievalAsync()
+{
+    var (docs, queries) = await KnownItemQueriesAsync().ConfigureAwait(false);
+
     var services = new ServiceCollection();
     services.AddHttpClient();
     var sp = services.BuildServiceProvider();
@@ -479,7 +512,7 @@ async Task RunRetrievalAsync()
     var local = new LocalEmbeddingService();
     var providers = new List<(string Label, IEmbeddingService Service)>
     {
-        ("local-hash-v1 (shipped default)", local),
+        ("local-hash-v1 (previous fallback)", local),
     };
     if (!string.IsNullOrWhiteSpace(aiOpts.Value.AzureOpenAi.Endpoint))
     {
@@ -498,48 +531,23 @@ async Task RunRetrievalAsync()
     const int TopK = 4;   // Ai:RagTopK
     Console.WriteLine($"{"provider",-34}{"recall@" + TopK,12}{"MRR",10}{"mean rank",12}");
 
-    // A lexical baseline. The queries reuse words that occur in the documents, so
-    // an embedding model has to be read against what plain term matching achieves.
+    // BM25 is the retriever the platform now uses when no embedding model is
+    // configured, so this row measures the shipped Bm25Index itself.
     {
-        static List<string> Tokens(string text) =>
-            System.Text.RegularExpressions.Regex.Split(text.ToLowerInvariant(), "[^a-z0-9]+")
-                .Where(t => t.Length > 1).ToList();
-
-        const double K1 = 1.2, B = 0.75;
-        var docTokens = docs.Select(d => Tokens(d.Text)).ToList();
-        var avgLen = docTokens.Average(t => (double)t.Count);
-        var df = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var toks in docTokens)
-        {
-            foreach (var t in toks.Distinct()) df[t] = df.GetValueOrDefault(t) + 1;
-        }
-        var tf = docTokens.Select(toks => toks.GroupBy(t => t).ToDictionary(g => g.Key, g => g.Count())).ToList();
+        var bm25 = new Bm25Index([.. docs.Select(d => d.Text)]);
         var docIndex = docs.Select((d, i) => (d.Id, i)).ToDictionary(x => x.Id, x => x.i);
-
         int bmHits = 0; double bmMrr = 0, bmRank = 0;
         foreach (var (docId, query) in queries)
         {
-            var qTokens = Tokens(query).Distinct().ToList();
-            var scores = new double[docs.Count];
-            for (var di = 0; di < docs.Count; di++)
-            {
-                double sc = 0;
-                foreach (var t in qTokens)
-                {
-                    if (!tf[di].TryGetValue(t, out var f)) continue;
-                    var idf = Math.Log(1 + (docs.Count - df[t] + 0.5) / (df[t] + 0.5));
-                    sc += idf * f * (K1 + 1) / (f + K1 * (1 - B + B * docTokens[di].Count / avgLen));
-                }
-                scores[di] = sc;
-            }
+            var scores = bm25.Score(query);
             var target = docIndex[docId];
-            // Ties are counted against the target, so a tie never flatters the baseline.
+            // Ties are counted against the target, so a tie never flatters the result.
             var rank = 1 + scores.Where((sc, di) => di != target && sc >= scores[target]).Count();
             bmRank += rank;
             if (rank <= TopK) bmHits++;
             bmMrr += 1.0 / rank;
         }
-        Console.WriteLine($"{"BM25 (lexical baseline)",-34}{bmHits * 100.0 / queries.Count,11:F1}%{bmMrr / queries.Count,10:F3}{bmRank / queries.Count,12:F1}");
+        Console.WriteLine($"{"BM25 (shipped fallback)",-34}{bmHits * 100.0 / queries.Count,11:F1}%{bmMrr / queries.Count,10:F3}{bmRank / queries.Count,12:F1}");
     }
 
     foreach (var (label, svc) in providers)
@@ -548,7 +556,7 @@ async Task RunRetrievalAsync()
         for (var i = 0; i < docs.Count; i += 64)
         {
             var slice = docs.Skip(i).Take(64).Select(d => d.Text).ToList();
-            docVectors.AddRange(await svc.EmbedBatchAsync(slice, CancellationToken.None).ConfigureAwait(false));
+            docVectors.AddRange(await ScholarPath.Eval.StrictEmbed.BatchAsync(svc, slice).ConfigureAwait(false));
             if (i % 320 == 0) Console.WriteLine($"  {label}: embedded {Math.Min(i + 64, docs.Count)}/{docs.Count} documents");
         }
 
@@ -556,30 +564,146 @@ async Task RunRetrievalAsync()
         for (var i = 0; i < queries.Count; i += 64)
         {
             var slice = queries.Skip(i).Take(64).Select(q => q.Query).ToList();
-            queryVectors.AddRange(await svc.EmbedBatchAsync(slice, CancellationToken.None).ConfigureAwait(false));
+            queryVectors.AddRange(await ScholarPath.Eval.StrictEmbed.BatchAsync(svc, slice).ConfigureAwait(false));
         }
 
         var index = docs.Select((d, i) => (d.Id, i)).ToDictionary(x => x.Id, x => x.i);
+        var lexicalIndex = new Bm25Index([.. docs.Select(d => d.Text)]);
+        var hybrid = label != "local-hash-v1 (previous fallback)";
         int hits = 0; double mrrSum = 0, rankSum = 0;
+        int hHits = 0; double hMrr = 0, hRank = 0;
         for (var qi = 0; qi < queries.Count; qi++)
         {
             var qv = queryVectors[qi];
             var target = index[queries[qi].DocId];
-            var scored = new List<(int Idx, double Score)>(docs.Count);
-            for (var di = 0; di < docs.Count; di++) scored.Add((di, Cosine(qv, docVectors[di])));
-            scored.Sort((a, b) => b.Score.CompareTo(a.Score));
-            var rank = scored.FindIndex(x => x.Idx == target) + 1;
+            var cos = new double[docs.Count];
+            for (var di = 0; di < docs.Count; di++) cos[di] = Cosine(qv, docVectors[di]);
+            var rank = 1 + cos.Where((c, di) => di != target && c > cos[target]).Count();
             rankSum += rank;
             if (rank <= TopK) hits++;
-            if (rank > 0) mrrSum += 1.0 / rank;
+            mrrSum += 1.0 / rank;
+
+            if (hybrid)
+            {
+                var fused = ScholarPath.Eval.RankFusion.Fuse([cos.Select(c => Math.Max(c, 0)).ToArray(), lexicalIndex.Score(queries[qi].Query)]);
+                var hr = 1 + fused.Where((f, di) => di != target && f >= fused[target]).Count();
+                hRank += hr;
+                if (hr <= TopK) hHits++;
+                hMrr += 1.0 / hr;
+            }
         }
 
         Console.WriteLine($"{label,-34}{hits * 100.0 / queries.Count,11:F1}%{mrrSum / queries.Count,10:F3}{rankSum / queries.Count,12:F1}");
+        if (hybrid)
+        {
+            var hl = "hybrid: " + label.Split(' ')[0] + " + BM25 (RRF)";
+            Console.WriteLine($"{hl,-34}{hHits * 100.0 / queries.Count,11:F1}%{hMrr / queries.Count,10:F3}{hRank / queries.Count,12:F1}");
+        }
     }
 
     Console.WriteLine();
     Console.WriteLine($"  recall@{TopK} is the share of queries whose one correct document appeared in the");
     Console.WriteLine($"  top {TopK} the retriever actually returns; mean rank is out of {docs.Count}.");
+}
+
+// ==================================================================== answers
+// End-to-end check of the assistant. Each known-item question is asked through the
+// chat entry point the platform uses, and the answer is judged on two counts:
+// whether it is about the listing the question describes (its first source is that
+// listing), and whether every figure it states (amounts, dates, counts) appears in
+// the documents it was given. The second is the grounding rule of Section 5.2
+// checked mechanically: a figure absent from the retrieved text was not taken from it.
+async Task RunAnswersAsync()
+{
+    var (docs, queries) = await KnownItemQueriesAsync().ConfigureAwait(false);
+    var sourceOf = docs.ToDictionary(d => d.Id, d => d.SourceId);
+    var textBySource = docs.Where(d => d.SourceId != null)
+        .GroupBy(d => d.SourceId!.Value).ToDictionary(g => g.Key, g => string.Join(" ", g.Select(x => x.Text)));
+
+    var aiOptions = new AiOptions();
+    var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+    if (!string.IsNullOrWhiteSpace(apiKey)) aiOptions.OpenAi.ApiKey = apiKey;
+    var opts = Options.Create(aiOptions);
+
+    var retriever = new KnowledgeRetriever(db, new LocalEmbeddingService());
+    var local = new LocalAiService(db, retriever, opts, clock);
+    var providers = new List<(string Label, IAiService Service)> { ("local (BM25 + extractive)", local) };
+    var azEndpoint = Environment.GetEnvironmentVariable("AZ_OAI_ENDPOINT");
+    var azKey = Environment.GetEnvironmentVariable("AZ_OAI_KEY");
+    if (!string.IsNullOrWhiteSpace(azEndpoint) && !string.IsNullOrWhiteSpace(azKey))
+    {
+        aiOptions.AzureOpenAi.Endpoint = azEndpoint;
+        aiOptions.AzureOpenAi.ApiKey = azKey;
+        aiOptions.AzureOpenAi.DeploymentName = Environment.GetEnvironmentVariable("AZ_OAI_CHAT") ?? "gpt-4.1-mini";
+        aiOptions.AzureOpenAi.EmbeddingDeploymentName = "text-embedding-3-small";
+        var azServices = new ServiceCollection();
+        azServices.AddHttpClient("azure-openai");
+        var azHttp = azServices.BuildServiceProvider().GetRequiredService<IHttpClientFactory>();
+        var azEmbed = new AzureOpenAiEmbeddingService(azHttp, opts, new LocalEmbeddingService(),
+            NullLogger<AzureOpenAiEmbeddingService>.Instance);
+        var hybridRetriever = await ScholarPath.Eval.HybridRetriever.BuildAsync(db, azEmbed).ConfigureAwait(false);
+        providers.Add(($"azure {aiOptions.AzureOpenAi.DeploymentName} + embeddings", new AzureOpenAiService(
+            azHttp, opts, hybridRetriever, local, db, NullLogger<AzureOpenAiService>.Instance)));
+    }
+    if (!string.IsNullOrWhiteSpace(apiKey))
+    {
+        var services = new ServiceCollection();
+        services.AddHttpClient("openai");
+        var http = services.BuildServiceProvider().GetRequiredService<IHttpClientFactory>();
+        providers.Add(($"openai ({aiOptions.OpenAi.Model}) + BM25", new OpenAiService(
+            http, opts, retriever, local, NullLogger<OpenAiService>.Instance)));
+    }
+
+    // A figure is an amount, a date part, or a count stated in the answer. List
+    // numbering ("1.", "2." at the start of an item) is formatting, not a claim,
+    // so it is removed before figures are read.
+    static IEnumerable<string> Figures(string text)
+    {
+        var body = System.Text.RegularExpressions.Regex.Replace(text, @"(?m)^\s*(?:[-*]\s*)?\d+[.)]\s|\[\d+\]", " ");
+        return System.Text.RegularExpressions.Regex.Matches(body, @"\d[\d,.]*\d|\d")
+            .Select(m => m.Value.TrimEnd('.', ',').Replace(",", "", StringComparison.Ordinal).TrimStart('0'))
+            .Where(v => v.Length > 0);
+    }
+
+    var ungrounded = new StringBuilder();
+    Console.WriteLine($"{"provider",-34}{"answered",10}{"right listing",15}{"figures",9}{"grounded",10}{"fell back",11}");
+    foreach (var (label, svc) in providers)
+    {
+        int answered = 0, right = 0, figures = 0, grounded = 0, fellBack = 0;
+        foreach (var (docId, query) in queries)
+        {
+            var r = await svc.AskAsync(Guid.Empty, "eval", query, [], CancellationToken.None).ConfigureAwait(false);
+            // The hosted providers answer with the local router when the call fails;
+            // such answers are counted, so a fallback is never reported as the model.
+            if (svc != local && r.Message.StartsWith("Here is what I found in ScholarPath's knowledge base", StringComparison.Ordinal)) fellBack++;
+            if (r.Sources.Count == 0) continue;
+            answered++;
+            if (r.Sources[0].ScholarshipId == sourceOf[docId]) right++;
+
+            var given = string.Join(" ", r.Sources
+                .Where(s => s.ScholarshipId != null && textBySource.ContainsKey(s.ScholarshipId.Value))
+                .Select(s => textBySource[s.ScholarshipId!.Value]));
+            var givenFigures = new HashSet<string>(Figures(given), StringComparer.Ordinal);
+            foreach (var f in Figures(r.Message))
+            {
+                figures++;
+                if (givenFigures.Contains(f)) grounded++;
+                else if (csvPath.Length > 0)
+                {
+                    var at = r.Message.IndexOf(f, StringComparison.Ordinal);
+                    var ctx = at < 0 ? r.Message : r.Message.Substring(Math.Max(0, at - 60), Math.Min(140, r.Message.Length - Math.Max(0, at - 60)));
+                    var flat = System.Text.RegularExpressions.Regex.Replace(ctx, @"\s+", " ");
+                    ungrounded.AppendLine(label + "|" + f + "|" + flat);
+                }
+            }
+        }
+        Console.WriteLine($"{label,-34}{answered,10}{$"{right} ({right * 100.0 / queries.Count:F1}%)",15}{figures,9}" +
+            $"{(figures == 0 ? "-" : $"{grounded * 100.0 / figures:F1}%"),10}{fellBack,11}");
+    }
+    Console.WriteLine();
+    Console.WriteLine("  right listing: the first source of the answer is the listing the question describes.");
+    Console.WriteLine("  grounded: share of figures in the answers that occur in the documents the answer was given.");
+    if (csvPath.Length > 0) await File.WriteAllTextAsync(csvPath, ungrounded.ToString()).ConfigureAwait(false);
 }
 
 static List<string> Parse(string? json)
@@ -600,6 +724,13 @@ static HashSet<string> Words(string value)
 }
 
 static string Quote(string v) => '"' + v.Replace("\"", "\"\"", StringComparison.Ordinal) + '"';
+
+internal sealed record KDoc(Guid Id, Guid? SourceId, string Text);
+
+internal sealed class FixedClock(DateTimeOffset now) : TimeProvider
+{
+    public override DateTimeOffset GetUtcNow() => now;
+}
 
 internal sealed class NoopRetriever : IKnowledgeRetriever
 {

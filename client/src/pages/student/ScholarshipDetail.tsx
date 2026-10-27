@@ -381,6 +381,22 @@ export function ScholarshipDetail() {
               </div>
             )}
 
+            {/* Nationalities, shown only when the listing restricts them */}
+            {data.eligibleNationalities.length > 0 && (
+              <div className="mt-5 border-t border-border-subtle pt-5">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                  {t("scholarships:detail.eligibleNationalities")}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {data.eligibleNationalities.map((c) => (
+                    <span key={c} className="badge badge-neutral">
+                      {isRtl ? countryLabel(c, "ar") : c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {data.categoryName && (
               <div className="mt-5 flex items-center gap-2 border-t border-border-subtle pt-5 text-sm">
                 <Globe aria-hidden className="size-4 text-text-tertiary" />

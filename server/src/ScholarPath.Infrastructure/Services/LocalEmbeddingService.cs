@@ -20,7 +20,9 @@ public sealed class LocalEmbeddingService : IEmbeddingService
 {
     private const int Dim = 384;
 
-    public string ModelName => "local-hash-v1";
+    public const string Model = "local-hash-v1";
+
+    public string ModelName => Model;
     public int Dimensions => Dim;
 
     public Task<float[]> EmbedAsync(string text, CancellationToken ct)

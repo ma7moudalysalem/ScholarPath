@@ -87,7 +87,8 @@ public sealed class EligibilityFieldMatchTests : IDisposable
 
     [Fact]
     public async Task Adjacent_discipline_sharing_a_word_is_partially_met()
-        => (await FieldMatchAsync("""["Engineering"]""", "Software Engineering"))
+        // A major the taxonomy does not know falls back to word overlap.
+        => (await FieldMatchAsync("""["Engineering"]""", "Petroleum Engineering"))
             .Should().Be("partial");
 
     [Fact]
@@ -130,6 +131,22 @@ public sealed class EligibilityFieldMatchTests : IDisposable
         result.Verdict.Should().Be(EligibilityVerdict.NotEligible);
         result.SummaryEn.Should().Contain("not met");
     }
+
+    [Fact]
+    public async Task A_known_major_meets_the_field_it_belongs_to()
+        // "Nursing" shares no word with "Medicine & Health" but is part of it.
+        => (await FieldMatchAsync("""["Medicine & Health"]""", "Nursing"))
+            .Should().Be("yes");
+
+    [Fact]
+    public async Task A_major_written_in_arabic_meets_its_field_too()
+        => (await FieldMatchAsync("""["Social Sciences"]""", "علم النفس"))
+            .Should().Be("yes");
+
+    [Fact]
+    public async Task A_known_major_still_fails_a_field_it_does_not_belong_to()
+        => (await FieldMatchAsync("""["Engineering"]""", "Nursing"))
+            .Should().Be("no");
 
     public void Dispose() => _db.Dispose();
 }

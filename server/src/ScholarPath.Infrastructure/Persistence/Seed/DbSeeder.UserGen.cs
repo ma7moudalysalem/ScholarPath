@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Infrastructure.Services;
 
 namespace ScholarPath.Infrastructure.Persistence.Seed;
 
@@ -201,7 +202,7 @@ public static partial class DbSeeder
                 p.Biography = $"A {field.En} student seeking international scholarship opportunities and mentorship.";
                 // Stated in the canonical vocabulary the listings use, so a preference
                 // can actually meet a listing's field rather than miss it on wording.
-                p.PreferredFieldsJson = JsonArray(field.Canonical);
+                p.PreferredFieldsJson = JsonArray(FieldTaxonomy.FieldsOf(field.En));
                 break;
         }
 

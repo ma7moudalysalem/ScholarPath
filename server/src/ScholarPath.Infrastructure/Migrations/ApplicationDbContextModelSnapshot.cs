@@ -2830,6 +2830,9 @@ namespace ScholarPath.Infrastructure.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<string>("EligibleNationalitiesJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ExternalApplicationUrl")
                         .HasMaxLength(2048)
                         .HasColumnType("nvarchar(2048)");
