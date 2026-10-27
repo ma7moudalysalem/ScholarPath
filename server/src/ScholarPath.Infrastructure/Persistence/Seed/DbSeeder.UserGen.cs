@@ -203,9 +203,30 @@ public static partial class DbSeeder
                 // Stated in the canonical vocabulary the listings use, so a preference
                 // can actually meet a listing's field rather than miss it on wording.
                 p.PreferredFieldsJson = JsonArray(FieldTaxonomy.FieldsOf(field.En));
+                p.PreferredCountriesJson = JsonArray(GenDestinations(u.Email ?? u.Id.ToString()));
                 break;
         }
 
         return p;
+    }
+
+    /// <summary>
+    /// One to three study destinations, as onboarding asks every student for.
+    /// Drawn from a generator keyed on the email rather than the shared one, so
+    /// adding them leaves every other generated value exactly as it was.
+    /// </summary>
+    private static List<string> GenDestinations(string key)
+    {
+        var hash = 2166136261u;
+        foreach (var ch in key) hash = (hash ^ ch) * 16777619u;
+        var rng = new Random((int)(hash & 0x7FFFFFFF));
+        var picked = new List<string>();
+        var count = rng.Next(1, 4);
+        while (picked.Count < count)
+        {
+            var c = GenCountries[rng.Next(GenCountries.Length)];
+            if (!picked.Contains(c)) picked.Add(c);
+        }
+        return picked;
     }
 }
