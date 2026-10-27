@@ -269,7 +269,18 @@ async Task RunRecommendationAsync()
         if (usable.Count == 0) continue;
         oracleHasAny++;
         var top = await recommend(s2.UserId, topN, CancellationToken.None).ConfigureAwait(false);
-        if (top.Items.Any(i => usable.Contains(i.ScholarshipId))) oracleFound++;
+        if (top.Items.Any(i => usable.Contains(i.ScholarshipId))) { oracleFound++; continue; }
+        if (args.Contains("--show-missed"))
+        {
+            var titles = await db.Scholarships.AsNoTracking()
+                .Where(x => usable.Contains(x.Id) || top.Items.Select(i => i.ScholarshipId).Contains(x.Id))
+                .Select(x => new { x.Id, x.TitleEn, x.TargetCountriesJson, x.FieldsOfStudyJson })
+                .ToDictionaryAsync(x => x.Id).ConfigureAwait(false);
+            var p = await db.UserProfiles.AsNoTracking().FirstAsync(x => x.UserId == s2.UserId).ConfigureAwait(false);
+            Console.WriteLine($"  MISSED {s2.AcademicLevel} major={p.FieldOfStudy} fields={p.PreferredFieldsJson} countries={p.PreferredCountriesJson} nat={p.Nationality}");
+            foreach (var id in usable) Console.WriteLine($"    usable : {titles[id].TitleEn} {titles[id].TargetCountriesJson} {titles[id].FieldsOfStudyJson}");
+            foreach (var i in top.Items) Console.WriteLine($"    shown {i.MatchScore,3}: {titles[i.ScholarshipId].TitleEn} {titles[i.ScholarshipId].TargetCountriesJson} {titles[i.ScholarshipId].FieldsOfStudyJson}");
+        }
     }
     Console.WriteLine();
 

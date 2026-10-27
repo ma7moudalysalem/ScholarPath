@@ -238,9 +238,9 @@ public sealed class LocalAiService(
         // you study; the UI asks students for exactly that as "preferred study
         // destinations" (preferredCountries) and promises to "match scholarships
         // in those countries with you". So the listing is matched against the
-        // student's preferred destinations AND their nationality (some awards
-        // are nationality-restricted) — not nationality alone, which made an
-        // Egyptian who wants to study in France read "no" on a France award.
+        // student's preferred destinations only. Nationality is judged on its own
+        // below: counting it as a destination made a German student "eligible" for
+        // every award held in Germany whatever they wanted.
         // CountryNormalizer folds ISO codes ("FR"), full names ("France") and
         // Arabic to a common key so the spelling/format no longer matters.
         var listingCountries = ParseJsonArray(scholarship.TargetCountriesJson);
@@ -249,8 +249,6 @@ public sealed class LocalAiService(
             .Select(c => c.Trim())
             .ToList();
         var nationality = profile?.Nationality?.Trim();
-        if (!string.IsNullOrWhiteSpace(nationality))
-            studentCountries.Add(nationality);
 
         criteria.Add(new AiEligibilityCriterion(
             NameEn: "Country",

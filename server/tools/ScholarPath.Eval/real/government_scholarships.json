@@ -1,0 +1,35 @@
+{
+  "_note": "Facts read from each programme's official site on 2026-10-27. A null deadline means the site states none for the next cycle; the builder then uses as-of + 365 days, as for DAAD's rolling programmes. Nationalities are listed only when the site restricts them to named countries; null means open or not stated.",
+  "programmes": [
+    {
+      "title": "Chevening Scholarship",
+      "source": "https://www.chevening.org/scholarships/who-can-apply/",
+      "levels": ["Masters"], "destination": ["GB"], "fields": [], "nationalities": null, "deadline": null
+    },
+    {
+      "title": "Eiffel Excellence Scholarship Programme",
+      "source": "https://www.campusfrance.org/en/eiffel-scholarship-program-of-excellence",
+      "levels": ["Masters", "PhD"], "destination": ["FR"], "fields": [], "nationalities": null, "deadline": "2027-01-06"
+    },
+    {
+      "title": "Fulbright Master's and PhD Programs for Egyptians",
+      "source": "https://fulbright-egypt.org/",
+      "levels": ["Masters", "PhD"], "destination": ["US"], "fields": [], "nationalities": ["Egypt"], "deadline": null
+    },
+    {
+      "title": "MEXT Japanese Government Scholarship",
+      "source": "https://www.studyinjapan.go.jp/en/planning/scholarships/mext-scholarships/",
+      "levels": ["Undergrad", "Masters", "PhD"], "destination": ["JP"], "fields": [], "nationalities": null, "deadline": null
+    },
+    {
+      "title": "Türkiye Scholarships",
+      "source": "https://www.turkiyeburslari.gov.tr/",
+      "levels": ["Undergrad", "Masters", "PhD"], "destination": ["TR"], "fields": [], "nationalities": null, "deadline": null
+    },
+    {
+      "title": "Stipendium Hungaricum",
+      "source": "https://stipendiumhungaricum.hu/partners/",
+      "levels": ["Undergrad", "PhD"], "destination": ["HU"], "fields": [], "nationalities": null, "deadline": null
+    }
+  ]
+}
