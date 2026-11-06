@@ -761,6 +761,8 @@ async Task RunAnswersAsync()
     }
 
     var annotate = new List<(string Q, string Ctx, string A, bool F, bool R)>();
+    // One line per question and provider, for paired tests between providers.
+    var perQuestion = new StringBuilder();
     var ungrounded = new StringBuilder();
     Console.WriteLine($"{"provider",-34}{"answered",10}{"right listing",15}{"figures",9}{"grounded",10}{"fell back",11}{"faithful",10}{"relevant",10}");
     foreach (var (label, svc) in providers)
@@ -789,6 +791,7 @@ async Task RunAnswersAsync()
             var givenFigures = new HashSet<string>(Figures(given), StringComparer.Ordinal);
             var j = await JudgeAsync(query, given, r.Message).ConfigureAwait(false);
             if (j is { } jv) { judged++; if (jv.Faithful) faithful++; if (jv.Relevant) relevant++; }
+            perQuestion.AppendLine($"{label}	{docId}	{(r.Sources.Count > 0 && r.Sources[0].ScholarshipId == sourceOf[docId] ? 1 : 0)}	{(j?.Faithful == true ? 1 : 0)}	{(j?.Relevant == true ? 1 : 0)}");
             if (j is { } ja && svc != local)
                 annotate.Add((query, given.Length > 1500 ? given[..1500] : given, r.Message, ja.Faithful, ja.Relevant));
             foreach (var f in Figures(r.Message))
@@ -816,6 +819,9 @@ async Task RunAnswersAsync()
     Console.WriteLine("  grounded: share of figures in the answers that occur in the documents the answer was given.");
     Console.WriteLine("  faithful / relevant: share of answered questions judged by a separate Azure model (AZ_OAI_JUDGE, default gpt-5) as supported by the given documents / addressing the question.");
     if (csvPath.Length > 0) await File.WriteAllTextAsync(csvPath, ungrounded.ToString()).ConfigureAwait(false);
+
+    var perQuestionPath = arg("answers-csv", "");
+    if (perQuestionPath.Length > 0) await File.WriteAllTextAsync(perQuestionPath, perQuestion.ToString()).ConfigureAwait(false);
 
     // A sample of judged answers for human raters, who see the question, the
     // documents and the answer but not the judge's verdicts (kept in a key file).
