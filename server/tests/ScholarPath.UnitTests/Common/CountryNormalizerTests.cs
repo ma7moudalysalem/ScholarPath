@@ -54,6 +54,15 @@ public sealed class CountryNormalizerTests
         => CountryNormalizer.Matches("", "").Should().BeFalse();
 
     [Theory]
+    [InlineData("Tanzania, United Republic of", "TZ")]
+    [InlineData("Syrian Arab Republic (Syria)", "SY")]
+    [InlineData("Zambia", "ZM")]
+    [InlineData("Saint Lucia", "LC")]
+    [InlineData("Côte d'Ivoire", "CI")]
+    public void ToKey_ResolvesOfficialAndLongForms(string input, string expected)
+        => CountryNormalizer.ToKey(input).Should().Be(expected);
+
+    [Theory]
     [InlineData("DE", false, "Germany")]
     [InlineData("DE", true, "ألمانيا")]
     [InlineData("Egypt", true, "مصر")]
