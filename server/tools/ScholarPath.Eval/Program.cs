@@ -111,9 +111,22 @@ Console.WriteLine($"population : {students.Count} student profiles, {listings.Co
         $"{(pairs == 0 ? 0 : sharing * 100.0 / pairs):F1}% of all (student, listing) pairs share a declared field exactly");
 }
 
-if (mode == "retrieval")
+if (mode == "reindex")
+{
+    // Rebuilds the knowledge documents of the target database with the platform's
+    // own indexer, without starting the API (whose startup also seeds demo data).
+    var indexer = new KnowledgeBaseIndexer(db, new LocalEmbeddingService(), new EmbeddedDatasetProvider(),
+        Options.Create(new AiOptions()), NullLogger<KnowledgeBaseIndexer>.Instance);
+    var result = await indexer.RebuildAsync(force: true, CancellationToken.None).ConfigureAwait(false);
+    Console.WriteLine($"reindexed: {System.Text.Json.JsonSerializer.Serialize(result)}");
+}
+else if (mode == "retrieval")
 {
     await RunRetrievalAsync().ConfigureAwait(false);
+}
+else if (mode == "retrieval-lang")
+{
+    await RunRetrievalLangAsync().ConfigureAwait(false);
 }
 else if (mode == "answers")
 {
@@ -252,6 +265,9 @@ async Task RunRecommendationAsync()
             if (v != EligibilityVerdict.NotEligible) usable.Add(l.Id);
         }
         oracleUsableTotal += usable.Count;
+        // One row per student with what the catalog held for them, so recall and
+        // paired comparisons between rankers can be computed from the CSV alone.
+        if (csvPath.Length > 0) csv.AppendLine($"{s2.UserId},0,,{usable.Count},,oracle");
 
         // The exact expectation of a uniform draw, rather than one realised draw:
         // with a handful of usable listings in the whole catalogue a single random
@@ -464,8 +480,9 @@ async Task<(List<KDoc> Docs, List<(Guid DocId, string Query)> Queries)> KnownIte
     // wording, so retrieval has to bridge from a description to a document rather
     // than match strings. Only listings whose combination is unique in the corpus
     // are used, so exactly one document is the right answer.
+    // The country is named as a person would name it, not by its ISO code.
     static string QueryFor(string level, string field, string country, string funding) =>
-        $"{funding} {level} scholarship in {field} to study in {country}";
+        $"{funding} {level} scholarship in {field} to study in {CountryNormalizer.DisplayName(country, arabic: false)}";
 
     var seen = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
     var candidates = new List<(Guid DocId, string Query)>();
@@ -676,11 +693,48 @@ async Task RunAnswersAsync()
             .Where(v => v.Length > 0);
     }
 
+    // Optional LLM judge (RAGAs-style): with Azure credentials, each answer is
+    // judged against the documents it was given for faithfulness (every claim is
+    // supported by them) and relevance (it answers the question).
+    using var judgeHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+    async Task<(bool Faithful, bool Relevant)?> JudgeAsync(string question, string context, string answer)
+    {
+        if (string.IsNullOrWhiteSpace(azEndpoint) || string.IsNullOrWhiteSpace(azKey)) return null;
+        // The judge is a different, larger model than the one that answers, so no
+        // model grades its own output.
+        var dep = Environment.GetEnvironmentVariable("AZ_OAI_JUDGE") ?? "gpt-5";
+        var url = $"{azEndpoint!.TrimEnd('/')}/openai/deployments/{dep}/chat/completions?api-version=2025-04-01-preview";
+        var sys = "You grade an assistant's answer. Reply ONLY with JSON {\"faithful\":true|false,\"relevant\":true|false}. "
+            + "faithful: every factual claim in the ANSWER about scholarships (names, levels, fields, countries, amounts, dates) is supported by the CONTEXT; general advice is allowed. "
+            + "relevant: the ANSWER addresses the QUESTION.";
+        var user = $"QUESTION:\n{question}\n\nCONTEXT:\n{(context.Length > 6000 ? context[..6000] : context)}\n\nANSWER:\n{answer}";
+        var body = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            messages = new object[] { new { role = "system", content = sys }, new { role = "user", content = user } },
+            response_format = new { type = "json_object" },
+        });
+        for (var attempt = 0; attempt < 4; attempt++)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+            req.Headers.Add("api-key", azKey);
+            using var res = await judgeHttp.SendAsync(req).ConfigureAwait(false);
+            if ((int)res.StatusCode == 429) { await Task.Delay(5000 * (attempt + 1)).ConfigureAwait(false); continue; }
+            res.EnsureSuccessStatusCode();
+            using var doc = System.Text.Json.JsonDocument.Parse(await res.Content.ReadAsStringAsync().ConfigureAwait(false));
+            var text = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "{}";
+            using var verdict = System.Text.Json.JsonDocument.Parse(text);
+            return (verdict.RootElement.GetProperty("faithful").GetBoolean(), verdict.RootElement.GetProperty("relevant").GetBoolean());
+        }
+        throw new InvalidOperationException("judge rate-limited");
+    }
+
+    var annotate = new List<(string Q, string Ctx, string A, bool F, bool R)>();
     var ungrounded = new StringBuilder();
-    Console.WriteLine($"{"provider",-34}{"answered",10}{"right listing",15}{"figures",9}{"grounded",10}{"fell back",11}");
+    Console.WriteLine($"{"provider",-34}{"answered",10}{"right listing",15}{"figures",9}{"grounded",10}{"fell back",11}{"faithful",10}{"relevant",10}");
     foreach (var (label, svc) in providers)
     {
         int answered = 0, right = 0, figures = 0, grounded = 0, fellBack = 0;
+        int judged = 0, faithful = 0, relevant = 0;
         foreach (var (docId, query) in queries)
         {
             var r = await svc.AskAsync(Guid.Empty, "eval", query, [], CancellationToken.None).ConfigureAwait(false);
@@ -695,6 +749,10 @@ async Task RunAnswersAsync()
                 .Where(s => s.ScholarshipId != null && textBySource.ContainsKey(s.ScholarshipId.Value))
                 .Select(s => textBySource[s.ScholarshipId!.Value]));
             var givenFigures = new HashSet<string>(Figures(given), StringComparer.Ordinal);
+            var j = await JudgeAsync(query, given, r.Message).ConfigureAwait(false);
+            if (j is { } jv) { judged++; if (jv.Faithful) faithful++; if (jv.Relevant) relevant++; }
+            if (j is { } ja && svc != local)
+                annotate.Add((query, given.Length > 1500 ? given[..1500] : given, r.Message, ja.Faithful, ja.Relevant));
             foreach (var f in Figures(r.Message))
             {
                 figures++;
@@ -709,12 +767,85 @@ async Task RunAnswersAsync()
             }
         }
         Console.WriteLine($"{label,-34}{answered,10}{$"{right} ({right * 100.0 / queries.Count:F1}%)",15}{figures,9}" +
-            $"{(figures == 0 ? "-" : $"{grounded * 100.0 / figures:F1}%"),10}{fellBack,11}");
+            $"{(figures == 0 ? "-" : $"{grounded * 100.0 / figures:F1}%"),10}{fellBack,11}" +
+            $"{(judged == 0 ? "-" : $"{faithful * 100.0 / judged:F1}%"),10}{(judged == 0 ? "-" : $"{relevant * 100.0 / judged:F1}%"),10}");
     }
     Console.WriteLine();
     Console.WriteLine("  right listing: the first source of the answer is the listing the question describes.");
     Console.WriteLine("  grounded: share of figures in the answers that occur in the documents the answer was given.");
+    Console.WriteLine("  faithful / relevant: share of answered questions judged by a separate Azure model (AZ_OAI_JUDGE, default gpt-5) as supported by the given documents / addressing the question.");
     if (csvPath.Length > 0) await File.WriteAllTextAsync(csvPath, ungrounded.ToString()).ConfigureAwait(false);
+
+    // A sample of judged answers for human raters, who see the question, the
+    // documents and the answer but not the judge's verdicts (kept in a key file).
+    var annotatePath = arg("annotate", "");
+    if (annotatePath.Length > 0 && annotate.Count > 0)
+    {
+        var sample = annotate.OrderBy(_ => rng.Next()).Take(30).ToList();
+        static string Q(string v) => "\"" + v.Replace("\"", "\"\"") + "\"";
+        var sheet = new StringBuilder().AppendLine("item,question,documents,answer,faithful (yes/no),relevant (yes/no)");
+        var key = new StringBuilder().AppendLine("item,judge_faithful,judge_relevant");
+        for (var i = 0; i < sample.Count; i++)
+        {
+            sheet.AppendLine($"{i + 1},{Q(sample[i].Q)},{Q(sample[i].Ctx)},{Q(sample[i].A)},,");
+            key.AppendLine($"{i + 1},{(sample[i].F ? "yes" : "no")},{(sample[i].R ? "yes" : "no")}");
+        }
+        await File.WriteAllTextAsync(annotatePath, sheet.ToString(), new UTF8Encoding(true)).ConfigureAwait(false);
+        await File.WriteAllTextAsync(Path.ChangeExtension(annotatePath, ".key.csv"), key.ToString()).ConfigureAwait(false);
+    }
+}
+
+// The same known-item questions asked in English and in Arabic through the
+// platform's own offline retriever (BM25 over the English and the Arabic text of
+// each document), so the two languages are compared on one ground truth.
+async Task RunRetrievalLangAsync()
+{
+    var (docs, queries) = await KnownItemQueriesAsync().ConfigureAwait(false);
+    var sourceOf = docs.ToDictionary(d => d.Id, d => d.SourceId);
+    var meta = await db.Scholarships.AsNoTracking()
+        .Select(x => new { x.Id, x.TargetLevel, x.FieldsOfStudyJson, x.TargetCountriesJson, x.FundingType })
+        .ToDictionaryAsync(x => x.Id).ConfigureAwait(false);
+
+    var fieldAr = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Arts & Humanities"] = "الآداب والعلوم الإنسانية", ["Law"] = "القانون",
+        ["Economics & Finance"] = "الاقتصاد والتمويل", ["Social Sciences"] = "العلوم الاجتماعية",
+        ["Business & Management"] = "إدارة الأعمال", ["Education"] = "التربية والتعليم",
+        ["Media & Communications"] = "الإعلام والاتصال", ["Mathematics & Statistics"] = "الرياضيات والإحصاء",
+        ["Natural Sciences"] = "العلوم الطبيعية", ["Computer Science"] = "علوم الحاسب",
+        ["Medicine & Health"] = "الطب والصحة", ["Agriculture & Environment"] = "الزراعة والبيئة",
+        ["Engineering"] = "الهندسة", ["Architecture & Design"] = "العمارة والتصميم",
+    };
+    static string LevelAr(AcademicLevel l) => l switch
+    {
+        AcademicLevel.HighSchool => "الثانوية", AcademicLevel.Undergrad => "البكالوريوس",
+        AcademicLevel.Masters => "الماجستير", AcademicLevel.PhD => "الدكتوراه", _ => "ما بعد الدكتوراه",
+    };
+    static string FundingAr(FundingType f) => f switch
+    {
+        FundingType.FullyFunded => "ممولة بالكامل", FundingType.PartiallyFunded => "ممولة جزئياً",
+        FundingType.TuitionOnly => "الرسوم الدراسية فقط", FundingType.StipendOnly => "راتب شهري فقط", _ => "",
+    };
+
+    var retriever = new KnowledgeRetriever(db, new LocalEmbeddingService());
+    Console.WriteLine($"{"language",-10}{"recall@4",10}{"MRR@4",8}");
+    foreach (var lang in new[] { "English", "Arabic" })
+    {
+        int hit = 0; double rr = 0;
+        foreach (var (docId, enQuery) in queries)
+        {
+            var m = meta[sourceOf[docId]!.Value];
+            var field = Parse(m.FieldsOfStudyJson)[0];
+            var country = Parse(m.TargetCountriesJson)[0];
+            var q = lang == "English"
+                ? $"{m.FundingType} {m.TargetLevel} scholarship in {field} to study in {CountryNormalizer.DisplayName(country, arabic: false)}"
+                : $"منحة {FundingAr(m.FundingType)} لمرحلة {LevelAr(m.TargetLevel)} في مجال {fieldAr.GetValueOrDefault(field, field)} للدراسة في {CountryNormalizer.DisplayName(country, arabic: true)}";
+            var top = await retriever.RetrieveAsync(q, 4, CancellationToken.None).ConfigureAwait(false);
+            var at = top.Select((d, i) => (d, i)).FirstOrDefault(x => x.d.DocumentId == docId);
+            if (at.d is not null) { hit++; rr += 1.0 / (at.i + 1); }
+        }
+        Console.WriteLine($"{lang,-10}{$"{hit * 100.0 / queries.Count:F1}%",10}{rr / queries.Count,8:F3}");
+    }
 }
 
 static List<string> Parse(string? json)

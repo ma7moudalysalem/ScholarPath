@@ -1,35 +1,229 @@
 {
-  "_note": "Facts read from each programme's official site on 2026-10-27. A null deadline means the site states none for the next cycle; the builder then uses as-of + 365 days, as for DAAD's rolling programmes. Nationalities are listed only when the site restricts them to named countries; null means open or not stated.",
+  "_note": "Facts read from each programme's official site on 2026-10-27 and 2026-11-06. A null deadline means the site states none for the next cycle; the builder then uses as-of + 365 days, as for DAAD's rolling programmes. Nationalities are listed only when the site restricts them to named countries; null means open or not stated. The Czech deadline of 30 September 2026 recurs yearly and is rolled forward one year, as for DAAD's stated dates.",
   "programmes": [
     {
       "title": "Chevening Scholarship",
       "source": "https://www.chevening.org/scholarships/who-can-apply/",
-      "levels": ["Masters"], "destination": ["GB"], "fields": [], "nationalities": null, "deadline": null
+      "levels": [
+        "Masters"
+      ],
+      "destination": [
+        "GB"
+      ],
+      "fields": [],
+      "nationalities": null,
+      "deadline": null
     },
     {
       "title": "Eiffel Excellence Scholarship Programme",
       "source": "https://www.campusfrance.org/en/eiffel-scholarship-program-of-excellence",
-      "levels": ["Masters", "PhD"], "destination": ["FR"], "fields": [], "nationalities": null, "deadline": "2027-01-06"
+      "levels": [
+        "Masters",
+        "PhD"
+      ],
+      "destination": [
+        "FR"
+      ],
+      "fields": [],
+      "nationalities": null,
+      "deadline": "2027-01-06"
     },
     {
       "title": "Fulbright Master's and PhD Programs for Egyptians",
       "source": "https://fulbright-egypt.org/",
-      "levels": ["Masters", "PhD"], "destination": ["US"], "fields": [], "nationalities": ["Egypt"], "deadline": null
+      "levels": [
+        "Masters",
+        "PhD"
+      ],
+      "destination": [
+        "US"
+      ],
+      "fields": [],
+      "nationalities": [
+        "Egypt"
+      ],
+      "deadline": null
     },
     {
       "title": "MEXT Japanese Government Scholarship",
       "source": "https://www.studyinjapan.go.jp/en/planning/scholarships/mext-scholarships/",
-      "levels": ["Undergrad", "Masters", "PhD"], "destination": ["JP"], "fields": [], "nationalities": null, "deadline": null
+      "levels": [
+        "Undergrad",
+        "Masters",
+        "PhD"
+      ],
+      "destination": [
+        "JP"
+      ],
+      "fields": [],
+      "nationalities": null,
+      "deadline": null
     },
     {
       "title": "Türkiye Scholarships",
-      "source": "https://www.turkiyeburslari.gov.tr/",
-      "levels": ["Undergrad", "Masters", "PhD"], "destination": ["TR"], "fields": [], "nationalities": null, "deadline": null
+      "source": "https://www.turkiyeburslari.gov.tr/calendar",
+      "levels": [
+        "Undergrad",
+        "Masters",
+        "PhD"
+      ],
+      "destination": [
+        "TR"
+      ],
+      "fields": [],
+      "nationalities": null,
+      "deadline": "2027-02-20"
     },
     {
       "title": "Stipendium Hungaricum",
       "source": "https://stipendiumhungaricum.hu/partners/",
-      "levels": ["Undergrad", "PhD"], "destination": ["HU"], "fields": [], "nationalities": null, "deadline": null
+      "levels": [
+        "Undergrad",
+        "PhD"
+      ],
+      "destination": [
+        "HU"
+      ],
+      "fields": [],
+      "nationalities": null,
+      "deadline": null
+    },
+    {
+      "title": "Qatar University International Admission Scholarship",
+      "source": "https://www.qu.edu.qa/ar/students/admission/scholarships/Pages/types.aspx",
+      "levels": [
+        "Undergrad"
+      ],
+      "destination": [
+        "QA"
+      ],
+      "fields": [],
+      "nationalities": null,
+      "deadline": null
+    },
+    {
+      "title": "Malaysia International Scholarship",
+      "source": "https://biasiswa.mohe.gov.my/INTER/",
+      "levels": [
+        "Masters",
+        "PhD"
+      ],
+      "destination": [
+        "MY"
+      ],
+      "fields": [],
+      "nationalities": null,
+      "deadline": null
+    },
+    {
+      "title": "Global Korea Scholarship",
+      "source": "https://www.studyinkorea.go.kr/ko/plan/scholarship.do?tab=gks-tab1",
+      "levels": [
+        "Undergrad",
+        "Masters",
+        "PhD"
+      ],
+      "destination": [
+        "KR"
+      ],
+      "fields": [],
+      "nationalities": null,
+      "deadline": null
+    },
+    {
+      "title": "Holland Scholarship",
+      "source": "https://www.studyinnl.org/finances/holland-scholarship",
+      "levels": [
+        "Undergrad",
+        "Masters"
+      ],
+      "destination": [
+        "NL"
+      ],
+      "fields": [],
+      "nationalities": null,
+      "deadline": null
+    },
+    {
+      "title": "Swiss Government Excellence Scholarships",
+      "source": "https://www.sbfi.admin.ch/dam/en/sd-web/tFFyoJ2KGeGB/2026-08-04_Africa_List_of_countries_and_territories_complete.pdf",
+      "levels": [
+        "PhD"
+      ],
+      "destination": [
+        "CH"
+      ],
+      "fields": [],
+      "nationalities": null,
+      "deadline": "2026-11-10"
+    },
+    {
+      "title": "Czech Government Scholarships for Developing Countries",
+      "source": "https://msmt.gov.cz/eu-a-zahranici/studium-cizincu-v-cr/stipendia-vlady-cr-rozvojove-zeme-2",
+      "levels": [
+        "Masters",
+        "PhD"
+      ],
+      "destination": [
+        "CZ"
+      ],
+      "fields": [],
+      "deadline": "2027-09-30",
+      "nationalities": [
+        "Bosnia and Herzegovina",
+        "Georgia",
+        "Ukraine",
+        "Belarus",
+        "Ethiopia",
+        "Gabon",
+        "Mauritania",
+        "Zambia",
+        "Bangladesh",
+        "Cambodia",
+        "Palestine",
+        "Guatemala",
+        "Honduras"
+      ]
+    },
+    {
+      "title": "VLIR-UOS ICP Scholarships",
+      "source": "https://www.vliruos.be/country-list-icp-scholarships",
+      "levels": [
+        "Undergrad",
+        "Masters"
+      ],
+      "destination": [
+        "BE"
+      ],
+      "fields": [],
+      "deadline": null,
+      "nationalities": [
+        "Benin",
+        "Burkina Faso",
+        "Burundi",
+        "Cameroon",
+        "Democratic Republic of the Congo",
+        "Ethiopia",
+        "Guinea",
+        "Kenya",
+        "Madagascar",
+        "Mozambique",
+        "Niger",
+        "Senegal",
+        "South Africa",
+        "Tanzania",
+        "Uganda",
+        "Zimbabwe",
+        "Morocco",
+        "Palestine",
+        "Bolivia",
+        "Cuba",
+        "Ecuador",
+        "Peru",
+        "Indonesia",
+        "Philippines",
+        "Vietnam"
+      ]
     }
   ]
 }
