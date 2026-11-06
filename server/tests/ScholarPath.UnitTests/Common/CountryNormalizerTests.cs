@@ -52,4 +52,12 @@ public sealed class CountryNormalizerTests
     [Fact]
     public void Matches_BothBlank_IsFalse()
         => CountryNormalizer.Matches("", "").Should().BeFalse();
+
+    [Theory]
+    [InlineData("DE", false, "Germany")]
+    [InlineData("DE", true, "ألمانيا")]
+    [InlineData("Egypt", true, "مصر")]
+    [InlineData("ZZ", true, "ZZ")]
+    public void DisplayName_NamesTheCountryInEitherLanguage(string input, bool arabic, string expected)
+        => CountryNormalizer.DisplayName(input, arabic).Should().Be(expected);
 }

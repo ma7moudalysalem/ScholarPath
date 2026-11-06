@@ -79,8 +79,20 @@ public static class CountryNormalizer
         return sb.ToString().TrimEnd().Normalize(NormalizationForm.FormC);
     }
 
+    // ISO alpha-2 → display name, filled by BuildLookup (declared first so the
+    // lookup's initializer can fill them).
+    private static readonly Dictionary<string, string> EnglishByIso = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, string> ArabicByIso = new(StringComparer.OrdinalIgnoreCase);
+
     // Folded name / alias / Arabic name → ISO alpha-2. Built once.
     private static readonly IReadOnlyDictionary<string, string> Lookup = BuildLookup();
+
+    /// <summary>The country's name in English or Arabic; the input when it is not known.</summary>
+    public static string DisplayName(string? value, bool arabic)
+    {
+        var iso = ToKey(value);
+        return (arabic ? ArabicByIso : EnglishByIso).TryGetValue(iso, out var name) ? name : value ?? string.Empty;
+    }
 
     private static Dictionary<string, string> BuildLookup()
     {
@@ -163,9 +175,9 @@ public static class CountryNormalizer
         };
 
         var map = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var (name, iso) in names) map[Fold(name)] = iso;
+        foreach (var (name, iso) in names) { map[Fold(name)] = iso; EnglishByIso.TryAdd(iso, name); }
         foreach (var (alias, iso) in aliases) map[Fold(alias)] = iso;
-        foreach (var (name, iso) in arabic) map[Fold(name)] = iso;
+        foreach (var (name, iso) in arabic) { map[Fold(name)] = iso; ArabicByIso.TryAdd(iso, name); }
         return map;
     }
 }

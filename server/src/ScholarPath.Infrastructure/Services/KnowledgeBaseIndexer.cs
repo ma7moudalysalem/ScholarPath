@@ -225,6 +225,25 @@ public sealed class KnowledgeBaseIndexer(
 
     // ─── Document builders ────────────────────────────────────────────────
 
+    private static string LevelAr(AcademicLevel level) => level switch
+    {
+        AcademicLevel.HighSchool => "الثانوية",
+        AcademicLevel.Undergrad => "البكالوريوس",
+        AcademicLevel.Masters => "الماجستير",
+        AcademicLevel.PhD => "الدكتوراه",
+        AcademicLevel.PostDoc => "ما بعد الدكتوراه",
+        _ => level.ToString(),
+    };
+
+    private static string FundingAr(FundingType funding) => funding switch
+    {
+        FundingType.FullyFunded => "ممولة بالكامل",
+        FundingType.PartiallyFunded => "ممولة جزئياً",
+        FundingType.TuitionOnly => "الرسوم الدراسية فقط",
+        FundingType.StipendOnly => "راتب شهري فقط",
+        _ => "تمويل آخر",
+    };
+
     private async Task<List<DesiredDoc>> BuildScholarshipDocsAsync(CancellationToken ct)
     {
         var scholarships = await db.Scholarships
@@ -237,7 +256,14 @@ public sealed class KnowledgeBaseIndexer(
         {
             var countries = ParseJsonArray(s.TargetCountriesJson);
             var tags = ParseJsonArray(s.TagsJson);
-            var countriesText = countries.Count > 0 ? string.Join(", ", countries) : "any country";
+            // Country names, not codes, in each language, so a question that names a
+            // country in either language can meet the document.
+            var countriesText = countries.Count > 0
+                ? string.Join(", ", countries.Select(c => CountryNormalizer.DisplayName(c, arabic: false)))
+                : "any country";
+            var countriesTextAr = countries.Count > 0
+                ? string.Join("، ", countries.Select(c => CountryNormalizer.DisplayName(c, arabic: true)))
+                : "أي دولة";
             var tagsText = tags.Count > 0 ? string.Join(", ", tags) : "any field";
             var amount = s.FundingAmountUsd is > 0 ? $"{s.FundingAmountUsd:N0} USD" : "amount varies";
 
@@ -253,8 +279,8 @@ public sealed class KnowledgeBaseIndexer(
             var contentAr =
                 $"منحة دراسية: {s.TitleAr}\n" +
                 $"{s.DescriptionAr}\n" +
-                $"التمويل: {s.FundingType} ({amount}). المستوى الدراسي: {s.TargetLevel}.\n" +
-                $"الدول المؤهَّلة: {countriesText}.\n" +
+                $"التمويل: {FundingAr(s.FundingType)} ({amount}). المستوى الدراسي: {LevelAr(s.TargetLevel)}.\n" +
+                $"الدول المؤهَّلة: {countriesTextAr}.\n" +
                 $"الأهلية: {s.EligibilityRequirementsAr ?? "راجع القائمة الرسمية."}\n" +
                 $"المجالات: {tagsText}.\n" +
                 $"الموعد النهائي للتقديم: {s.Deadline:yyyy-MM-dd}.";
