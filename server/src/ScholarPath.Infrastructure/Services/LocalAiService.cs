@@ -352,6 +352,16 @@ public sealed class LocalAiService(
         return criteria;
     }
 
+    private static string LevelNameAr(AcademicLevel level) => level switch
+    {
+        AcademicLevel.HighSchool => "الثانوية",
+        AcademicLevel.Undergrad => "البكالوريوس",
+        AcademicLevel.Masters => "الماجستير",
+        AcademicLevel.PhD => "الدكتوراه",
+        AcademicLevel.PostDoc => "ما بعد الدكتوراه",
+        _ => level.ToString(),
+    };
+
     public async Task<IReadOnlyList<AiUnlockSuggestion>> SuggestUnlocksAsync(
         Guid userId, int topN, CancellationToken ct)
     {
@@ -389,7 +399,7 @@ public sealed class LocalAiService(
                 $"Add {CountryNormalizer.DisplayName(kv.Key, arabic: false)} to your destinations",
                 $"أضف {CountryNormalizer.DisplayName(kv.Key, arabic: true)} إلى وجهاتك", kv.Value))
             .Concat(byLevel.Select(kv => new AiUnlockSuggestion("ReachLevel", kv.Key.ToString(),
-                $"Reach the {kv.Key} level", $"الوصول إلى مرحلة {kv.Key}", kv.Value)))
+                $"Reach the {kv.Key} level", $"الوصول إلى مرحلة {LevelNameAr(kv.Key)}", kv.Value)))
             .OrderByDescending(x => x.ListingsUnlocked)
             .ThenBy(x => x.Value, StringComparer.Ordinal)
             .Take(Math.Clamp(topN, 1, 20))];

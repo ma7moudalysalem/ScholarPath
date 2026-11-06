@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { aiApi, type RecommendationItem, type RecommendationsDto } from "@/services/api/ai";
 import { AiDisclaimer } from "./AiDisclaimer";
 import { MatchScoreBadge } from "./MatchScoreBadge";
+import { UnlockSuggestions } from "./UnlockSuggestions";
 
 const KEY = ["ai", "recommendations"] as const;
 
@@ -205,6 +206,8 @@ export function AiRecommendations() {
           })}
         </p>
       )}
+
+      <UnlockSuggestions />
 
       <AiDisclaimer />
     </section>

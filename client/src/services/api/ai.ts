@@ -115,6 +115,15 @@ export interface AiSessionTurn {
   sources: ChatSourceDto[];
 }
 
+/** A single profile change and how many open scholarships it would make the student eligible for. */
+export interface UnlockSuggestion {
+  change: "AddDestination" | "ReachLevel" | string;
+  value: string;
+  labelEn: string;
+  labelAr: string;
+  listingsUnlocked: number;
+}
+
 export const aiApi = {
   /**
    * GET the user's cached recommendations (last 24h). Resolves to null when
@@ -138,6 +147,12 @@ export const aiApi = {
     );
     return data;
   },
+  /** Counterfactual advice: which single change would open more scholarships. */
+  async unlocks(topN = 3): Promise<UnlockSuggestion[]> {
+    const { data } = await apiClient.get<UnlockSuggestion[]>("/api/ai/unlocks", { params: { topN } });
+    return data;
+  },
+
   async eligibility(scholarshipId: string): Promise<EligibilityDto> {
     const { data } = await apiClient.post<EligibilityDto>(
       `/api/ai/eligibility/${scholarshipId}`,
