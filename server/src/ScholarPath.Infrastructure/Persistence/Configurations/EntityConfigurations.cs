@@ -292,6 +292,12 @@ public sealed class ScholarshipConfiguration : IEntityTypeConfiguration<Scholars
         b.HasIndex(s => s.Status);
         b.HasIndex(s => s.Deadline);
         b.HasIndex(s => new { s.Status, s.Deadline });
+        // The catalog's default page: open listings, featured first, newest first.
+        // Keyed in that order so a page is read from the index without a sort.
+        b.HasIndex(s => new { s.Status, s.IsFeatured, s.CreatedAt, s.Id })
+            .IsDescending(false, true, true, false)
+            .IncludeProperties(s => s.Deadline)
+            .HasDatabaseName("IX_Scholarships_Catalog");
         b.HasIndex(s => s.IsFeatured);
         b.HasIndex(s => s.Mode);
 
