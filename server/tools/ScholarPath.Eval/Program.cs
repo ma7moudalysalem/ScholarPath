@@ -117,7 +117,30 @@ Console.WriteLine($"population : {students.Count} student profiles, {listings.Co
         $"{(pairs == 0 ? 0 : sharing * 100.0 / pairs):F1}% of all (student, listing) pairs share a declared field exactly");
 }
 
-if (mode == "reindex")
+if (mode == "verdicts")
+{
+    // The platform's per-criterion outcome for sampled students against every
+    // open DAAD listing, for comparison with DAAD's own data (real/external_check.py).
+    var vStudents = await db.UserProfiles.AsNoTracking().Where(p => p.AcademicLevel != null)
+        .Select(p => new { p.UserId, p.AcademicLevel, p.Nationality }).ToListAsync().ConfigureAwait(false);
+    var vSample = vStudents.OrderBy(x => x.UserId).OrderBy(_ => rng.Next()).Take(studentCount).ToList();
+    var daad = await db.Scholarships.AsNoTracking().Where(x => x.Slug.StartsWith("daad-") && x.Status == ScholarshipStatus.Open && x.Deadline > asOf)
+        .Select(x => new { x.Id, x.Slug }).ToListAsync().ConfigureAwait(false);
+    var outTsv = new StringBuilder();
+    foreach (var st in vSample)
+    {
+        foreach (var l in daad)
+        {
+            var r = await ai.CheckEligibilityAsync(st.UserId, l.Id, CancellationToken.None).ConfigureAwait(false);
+            var lv = r.Criteria.First(c => c.NameEn == "Academic level").Match;
+            var nat = r.Criteria.FirstOrDefault(c => c.NameEn == "Nationality")?.Match ?? "none";
+            outTsv.AppendLine($"{st.UserId}	{l.Slug}	{st.AcademicLevel}	{CountryNormalizer.ToKey(st.Nationality)}	{lv}	{nat}");
+        }
+    }
+    await File.WriteAllTextAsync(arg("out", "verdicts.tsv"), outTsv.ToString()).ConfigureAwait(false);
+    Console.WriteLine($"verdicts: {vSample.Count} students x {daad.Count} DAAD listings");
+}
+else if (mode == "reindex")
 {
     // Rebuilds the knowledge documents of the target database with the platform's
     // own indexer, without starting the API (whose startup also seeds demo data).
@@ -726,12 +749,12 @@ async Task RunAnswersAsync()
     // judged against the documents it was given for faithfulness (every claim is
     // supported by them) and relevance (it answers the question).
     using var judgeHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(300) };
-    async Task<(bool Faithful, bool Relevant)?> JudgeAsync(string question, string context, string answer)
+    async Task<(bool Faithful, bool Relevant)?> JudgeAsync(string question, string context, string answer, string? judgeDeployment = null)
     {
         if (string.IsNullOrWhiteSpace(azEndpoint) || string.IsNullOrWhiteSpace(azKey)) return null;
         // The judge is a different, larger model than the one that answers, so no
         // model grades its own output.
-        var dep = Environment.GetEnvironmentVariable("AZ_OAI_JUDGE") ?? "gpt-5";
+        var dep = judgeDeployment ?? Environment.GetEnvironmentVariable("AZ_OAI_JUDGE") ?? "gpt-5";
         var url = $"{azEndpoint!.TrimEnd('/')}/openai/deployments/{dep}/chat/completions?api-version=2025-04-01-preview";
         var sys = "You grade an assistant's answer. Reply ONLY with JSON {\"faithful\":true|false,\"relevant\":true|false}. "
             + "faithful: every factual claim in the ANSWER about scholarships (names, levels, fields, countries, amounts, dates) is supported by the CONTEXT; general advice is allowed. "
@@ -770,6 +793,8 @@ async Task RunAnswersAsync()
         int answered = 0, right = 0, figures = 0, grounded = 0, fellBack = 0;
         int judged = 0, faithful = 0, relevant = 0;
         var latencies = new List<double>();
+        var pairsF = new List<(bool A, bool B)>();
+        var pairsR = new List<(bool A, bool B)>();
         long promptTok = 0, completionTok = 0;
         foreach (var (docId, query) in queries)
         {
@@ -790,6 +815,13 @@ async Task RunAnswersAsync()
                 .Select(s => textBySource[s.ScholarshipId!.Value]));
             var givenFigures = new HashSet<string>(Figures(given), StringComparer.Ordinal);
             var j = await JudgeAsync(query, given, r.Message).ConfigureAwait(false);
+            // A second, independent judge (AZ_OAI_JUDGE2) for inter-judge agreement.
+            var judge2 = Environment.GetEnvironmentVariable("AZ_OAI_JUDGE2");
+            if (j is { } j1 && !string.IsNullOrWhiteSpace(judge2) && svc != local)
+            {
+                var k = await JudgeAsync(query, given, r.Message, judge2).ConfigureAwait(false);
+                if (k is { } j2) { pairsF.Add((j1.Faithful, j2.Faithful)); pairsR.Add((j1.Relevant, j2.Relevant)); }
+            }
             if (j is { } jv) { judged++; if (jv.Faithful) faithful++; if (jv.Relevant) relevant++; }
             perQuestion.AppendLine($"{label}	{docId}	{(r.Sources.Count > 0 && r.Sources[0].ScholarshipId == sourceOf[docId] ? 1 : 0)}	{(j?.Faithful == true ? 1 : 0)}	{(j?.Relevant == true ? 1 : 0)}");
             if (j is { } ja && svc != local)
@@ -810,6 +842,19 @@ async Task RunAnswersAsync()
         Console.WriteLine($"{label,-34}{answered,10}{$"{right} ({right * 100.0 / queries.Count:F1}%)",15}{figures,9}" +
             $"{(figures == 0 ? "-" : $"{grounded * 100.0 / figures:F1}%"),10}{fellBack,11}" +
             $"{(judged == 0 ? "-" : $"{faithful * 100.0 / judged:F1}%"),10}{(judged == 0 ? "-" : $"{relevant * 100.0 / judged:F1}%"),10}");
+        if (pairsF.Count > 0)
+        {
+            static (double Agree, double Kappa) Kappa(List<(bool A, bool B)> p)
+            {
+                double n = p.Count, agree = p.Count(x => x.A == x.B) / n;
+                double pa = p.Count(x => x.A) / n, pb = p.Count(x => x.B) / n;
+                var expected = pa * pb + (1 - pa) * (1 - pb);
+                return (agree, expected >= 1 ? 1 : (agree - expected) / (1 - expected));
+            }
+            var (af, kf) = Kappa(pairsF);
+            var (ar, kr) = Kappa(pairsR);
+            Console.WriteLine($"    second judge on {pairsF.Count} answers: faithful agreement {af * 100:F1}% (kappa {kf:F2}), relevant agreement {ar * 100:F1}% (kappa {kr:F2}); second judge faithful {pairsF.Count(x => x.B) * 100.0 / pairsF.Count:F1}%, relevant {pairsR.Count(x => x.B) * 100.0 / pairsR.Count:F1}%");
+        }
         latencies.Sort();
         Console.WriteLine($"    latency median {latencies[latencies.Count / 2]:F0} ms, p95 {latencies[(int)(latencies.Count * 0.95)]:F0} ms; " +
             $"tokens per answer {promptTok / (double)queries.Count:F0} in / {completionTok / (double)queries.Count:F0} out");

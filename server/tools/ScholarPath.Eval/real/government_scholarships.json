@@ -355,6 +355,77 @@
         "Zambia"
       ],
       "deadline": "2027-02-24"
+    },
+    {
+      "title": "KAUST Graduate Fellowship",
+      "source": "https://admissions.kaust.edu.sa/how-to-apply/admission-timelines",
+      "levels": [
+        "Masters",
+        "PhD"
+      ],
+      "destination": [
+        "SA"
+      ],
+      "fields": [
+        "Mathematics & Statistics",
+        "Natural Sciences",
+        "Engineering",
+        "Computer Science",
+        "Agriculture & Environment"
+      ],
+      "nationalities": null,
+      "deadline": "2027-01-03"
+    },
+    {
+      "title": "Khalifa University Postgraduate Scholarships",
+      "source": "https://www.ku.ac.ae/scholarships-postgraduate",
+      "levels": [
+        "Masters",
+        "PhD"
+      ],
+      "destination": [
+        "AE"
+      ],
+      "fields": [
+        "Natural Sciences",
+        "Engineering",
+        "Computer Science",
+        "Medicine & Health"
+      ],
+      "nationalities": null,
+      "deadline": null
+    },
+    {
+      "title": "GREAT Scholarships",
+      "source": "https://study-uk.britishcouncil.org/scholarships-funding/great-scholarships",
+      "levels": [
+        "Masters"
+      ],
+      "destination": [
+        "GB"
+      ],
+      "fields": [],
+      "deadline": null,
+      "nationalities": [
+        "Bangladesh",
+        "China",
+        "Egypt",
+        "France",
+        "Ghana",
+        "Greece",
+        "India",
+        "Indonesia",
+        "Italy",
+        "Kenya",
+        "Malaysia",
+        "Mexico",
+        "Nigeria",
+        "Pakistan",
+        "Spain",
+        "Thailand",
+        "Turkey",
+        "Vietnam"
+      ]
     }
   ]
 }
