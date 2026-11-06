@@ -11,6 +11,7 @@ using ScholarPath.Application.Notifications;
 using ScholarPath.Application.Scholarships.Commands;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Interfaces;
+using ScholarPath.Infrastructure.Diagnostics;
 using ScholarPath.Infrastructure.Hubs;
 using ScholarPath.Infrastructure.Jobs;
 using ScholarPath.Infrastructure.Persistence;
@@ -60,7 +61,12 @@ public static class DependencyInjection
         var connectionString = config.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is required.");
 
-        services.AddDbContext<ApplicationDbContext>(opts =>
+        // Live System Activity diagnostics (admin-only, self-activating, safe in prod).
+        services.Configure<DiagnosticsOptions>(config.GetSection(DiagnosticsOptions.SectionName));
+        services.AddSingleton<ISystemActivityBroadcaster, SystemActivityBroadcaster>();
+        services.AddSingleton<DiagnosticsSqlInterceptor>();
+
+        services.AddDbContext<ApplicationDbContext>((sp, opts) =>
         {
             opts.UseSqlServer(connectionString, sql =>
             {
@@ -69,6 +75,8 @@ public static class DependencyInjection
                 sql.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
             });
             opts.EnableSensitiveDataLogging(false);
+            // No-op unless an admin is watching the System Activity page.
+            opts.AddInterceptors(sp.GetRequiredService<DiagnosticsSqlInterceptor>());
         });
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());

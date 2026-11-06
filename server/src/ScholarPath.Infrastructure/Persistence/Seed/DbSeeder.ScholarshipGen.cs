@@ -1,6 +1,7 @@
 using System.Text;
 using ScholarPath.Domain.Entities;
 using ScholarPath.Domain.Enums;
+using ScholarPath.Infrastructure.Services;
 
 namespace ScholarPath.Infrastructure.Persistence.Seed;
 
@@ -23,43 +24,43 @@ public static partial class DbSeeder
         "Architecture & Design", "Agriculture & Environment", "Media & Communications", "Other",
     ];
 
-    // Each specialism carries the canonical field or fields it belongs to, so a
-    // seeded listing and a seeded student profile are expressed in one vocabulary
-    // rather than two that never meet.
-    private static readonly (string En, string Ar, string Cat, string[] Canonical)[] GenFields =
+    // Each specialism is placed under its canonical field or fields by
+    // FieldTaxonomy, the table the eligibility checker reads, so a seeded listing,
+    // a seeded profile and the checker share one vocabulary.
+    private static readonly (string En, string Ar, string Cat)[] GenFields =
     [
-        ("Computer Science", "علوم الحاسب", "stem", ["Computer Science"]),
-        ("Software Engineering", "هندسة البرمجيات", "stem", ["Computer Science", "Engineering"]),
-        ("Artificial Intelligence", "الذكاء الاصطناعي", "stem", ["Computer Science"]),
-        ("Data Science", "علم البيانات", "stem", ["Computer Science", "Mathematics & Statistics"]),
-        ("Cybersecurity", "الأمن السيبراني", "stem", ["Computer Science"]),
-        ("Electrical Engineering", "الهندسة الكهربائية", "stem", ["Engineering"]),
-        ("Mechanical Engineering", "الهندسة الميكانيكية", "stem", ["Engineering"]),
-        ("Civil Engineering", "الهندسة المدنية", "stem", ["Engineering"]),
-        ("Renewable Energy", "الطاقة المتجددة", "stem", ["Engineering", "Agriculture & Environment"]),
-        ("Mathematics", "الرياضيات", "stem", ["Mathematics & Statistics"]),
-        ("Physics", "الفيزياء", "stem", ["Natural Sciences"]),
-        ("Environmental Science", "العلوم البيئية", "stem", ["Agriculture & Environment", "Natural Sciences"]),
-        ("Medicine", "الطب", "medical", ["Medicine & Health"]),
-        ("Pharmacy", "الصيدلة", "medical", ["Medicine & Health"]),
-        ("Public Health", "الصحة العامة", "medical", ["Medicine & Health"]),
-        ("Nursing", "التمريض", "medical", ["Medicine & Health"]),
-        ("Dentistry", "طب الأسنان", "medical", ["Medicine & Health"]),
-        ("Biotechnology", "التقنية الحيوية", "medical", ["Natural Sciences", "Medicine & Health"]),
-        ("Business Administration", "إدارة الأعمال", "business", ["Business & Management"]),
-        ("Finance", "التمويل", "business", ["Economics & Finance"]),
-        ("Economics", "الاقتصاد", "business", ["Economics & Finance"]),
-        ("Marketing", "التسويق", "business", ["Business & Management", "Media & Communications"]),
-        ("Accounting", "المحاسبة", "business", ["Economics & Finance"]),
-        ("Entrepreneurship", "ريادة الأعمال", "business", ["Business & Management"]),
-        ("Law", "القانون", "arts-humanities", ["Law"]),
-        ("Education", "التربية والتعليم", "arts-humanities", ["Education"]),
-        ("Architecture", "العمارة", "arts-humanities", ["Architecture & Design"]),
-        ("Fine Arts", "الفنون الجميلة", "arts-humanities", ["Arts & Humanities"]),
-        ("Graphic Design", "التصميم الجرافيكي", "arts-humanities", ["Architecture & Design", "Media & Communications"]),
-        ("Literature", "الأدب", "arts-humanities", ["Arts & Humanities"]),
-        ("Psychology", "علم النفس", "arts-humanities", ["Social Sciences"]),
-        ("International Relations", "العلاقات الدولية", "arts-humanities", ["Social Sciences"]),
+        ("Computer Science", "علوم الحاسب", "stem"),
+        ("Software Engineering", "هندسة البرمجيات", "stem"),
+        ("Artificial Intelligence", "الذكاء الاصطناعي", "stem"),
+        ("Data Science", "علم البيانات", "stem"),
+        ("Cybersecurity", "الأمن السيبراني", "stem"),
+        ("Electrical Engineering", "الهندسة الكهربائية", "stem"),
+        ("Mechanical Engineering", "الهندسة الميكانيكية", "stem"),
+        ("Civil Engineering", "الهندسة المدنية", "stem"),
+        ("Renewable Energy", "الطاقة المتجددة", "stem"),
+        ("Mathematics", "الرياضيات", "stem"),
+        ("Physics", "الفيزياء", "stem"),
+        ("Environmental Science", "العلوم البيئية", "stem"),
+        ("Medicine", "الطب", "medical"),
+        ("Pharmacy", "الصيدلة", "medical"),
+        ("Public Health", "الصحة العامة", "medical"),
+        ("Nursing", "التمريض", "medical"),
+        ("Dentistry", "طب الأسنان", "medical"),
+        ("Biotechnology", "التقنية الحيوية", "medical"),
+        ("Business Administration", "إدارة الأعمال", "business"),
+        ("Finance", "التمويل", "business"),
+        ("Economics", "الاقتصاد", "business"),
+        ("Marketing", "التسويق", "business"),
+        ("Accounting", "المحاسبة", "business"),
+        ("Entrepreneurship", "ريادة الأعمال", "business"),
+        ("Law", "القانون", "arts-humanities"),
+        ("Education", "التربية والتعليم", "arts-humanities"),
+        ("Architecture", "العمارة", "arts-humanities"),
+        ("Fine Arts", "الفنون الجميلة", "arts-humanities"),
+        ("Graphic Design", "التصميم الجرافيكي", "arts-humanities"),
+        ("Literature", "الأدب", "arts-humanities"),
+        ("Psychology", "علم النفس", "arts-humanities"),
+        ("International Relations", "العلاقات الدولية", "arts-humanities"),
     ];
 
     private static readonly (string En, string Ar)[] GenProviders =
@@ -207,7 +208,7 @@ public static partial class DbSeeder
                 FundingAmountUsd = fund.Amount,
                 TargetLevel = lvl.Level,
                 TargetCountriesJson = JsonArray(countries),
-                FieldsOfStudyJson = JsonArray(field.Canonical),
+                FieldsOfStudyJson = JsonArray(FieldTaxonomy.FieldsOf(field.En)),
                 EligibilityRequirementsEn = elig.En,
                 EligibilityRequirementsAr = elig.Ar,
                 TagsJson = JsonArray([field.Cat, funding.ToString()]),

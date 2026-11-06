@@ -50,6 +50,11 @@ public class Scholarship : AuditableEntity, ISoftDeletable
     public string? TargetCountriesJson { get; set; }
     /// <summary>JSON array of eligible academic fields, e.g. ["Computer Science","Engineering"].</summary>
     public string? FieldsOfStudyJson { get; set; }
+
+    // Nationalities the award is open to, distinct from TargetCountriesJson (where
+    // the award is held): a German-hosted programme may admit only some countries'
+    // citizens. Null or empty means open to every nationality.
+    public string? EligibleNationalitiesJson { get; set; }
     public string? EligibilityRequirementsEn { get; set; }
     public string? EligibilityRequirementsAr { get; set; }
     public string? TagsJson { get; set; }

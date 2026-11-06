@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using ScholarPath.Application.Common.Interfaces;
 using ScholarPath.Application.Common.Models;
 using ScholarPath.Application.Scholarships.DTOs;
@@ -40,9 +41,34 @@ public record GetScholarshipsQuery : IRequest<PaginatedList<ScholarshipDto>>
     public string? Sort { get; init; }
 }
 
-public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserService currentUser)
+public class GetScholarshipsQueryHandler(
+    IApplicationDbContext db, ICurrentUserService currentUser, IMemoryCache cache)
     : IRequestHandler<GetScholarshipsQuery, PaginatedList<ScholarshipDto>>
 {
+    private const string SearchTextKey = "scholarships:search-text";
+    private static readonly TimeSpan SearchTextTtl = TimeSpan.FromSeconds(30);
+
+    private sealed record SearchText(Guid Id, string Text);
+
+    private Task<List<SearchText>> GetSearchTextAsync(CancellationToken ct) =>
+        cache.GetOrCreateAsync(SearchTextKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = SearchTextTtl;
+            var rows = await db.Scholarships.AsNoTracking()
+                .Select(s => new
+                {
+                    s.Id, s.TitleEn, s.TitleAr, s.DescriptionEn, s.DescriptionAr,
+                    Provider = s.OwnerScholarshipProvider != null
+                        ? s.OwnerScholarshipProvider.FirstName + " " + s.OwnerScholarshipProvider.LastName
+                        : null,
+                })
+                .ToListAsync(ct);
+            return rows
+                .Select(r => new SearchText(r.Id, string.Join('\n',
+                    r.TitleEn, r.TitleAr, r.DescriptionEn, r.DescriptionAr, r.Provider)))
+                .ToList();
+        })!;
+
     public async Task<PaginatedList<ScholarshipDto>> Handle(GetScholarshipsQuery request, CancellationToken ct)
     {
         var lang = request.Language.ToLower() == "ar" ? "ar" : "en";
@@ -56,32 +82,22 @@ public class GetScholarshipsQueryHandler(IApplicationDbContext db, ICurrentUserS
         if (request.Status.HasValue)
             query = query.Where(s => s.Status == request.Status.Value);
 
-        //  Search (LIKE — no full-text index required)
+        //  Search — substring match over titles, descriptions (both languages) and
+        //  the provider's name (FR-SCH-04).
         if (!string.IsNullOrWhiteSpace(request.Term))
         {
-            // Previously used SQL Server CONTAINS, which needs a full-text catalog
-            // on Scholarships that is not provisioned in this DB — so every search
-            // threw and surfaced to users as "search failed". LIKE works without an
-            // index. Escape LIKE wildcards so user input can't act as a pattern.
-            var sanitized = request.Term.Trim();
-            if (!string.IsNullOrWhiteSpace(sanitized))
-            {
-                var escaped = sanitized
-                    .Replace("[", "[[]")
-                    .Replace("%", "[%]")
-                    .Replace("_", "[_]");
-                var like = $"%{escaped}%";
-                query = query.Where(s =>
-                    EF.Functions.Like(s.TitleEn, like) ||
-                    EF.Functions.Like(s.TitleAr, like) ||
-                    EF.Functions.Like(s.DescriptionEn, like) ||
-                    EF.Functions.Like(s.DescriptionAr, like) ||
-                    // FR-SCH-04: also match on the provider's name.
-                    (s.OwnerScholarshipProvider != null &&
-                     EF.Functions.Like(
-                         s.OwnerScholarshipProvider.FirstName + " " + s.OwnerScholarshipProvider.LastName,
-                         like)));
-            }
+            // A LIKE '%term%' over four nvarchar(max) columns scanned every listing
+            // and, under load, kept the database CPU at its ceiling. The searchable
+            // text is small, so it is held in memory and matched here; the database
+            // then only resolves the matching ids. A change to a listing reaches the
+            // search within SearchTextTtl.
+            var term = request.Term.Trim();
+            var texts = await GetSearchTextAsync(ct);
+            var matchingIds = texts
+                .Where(t => t.Text.Contains(term, StringComparison.OrdinalIgnoreCase))
+                .Select(t => t.Id)
+                .ToList();
+            query = query.Where(s => matchingIds.Contains(s.Id));
         }
 
         //  Filters

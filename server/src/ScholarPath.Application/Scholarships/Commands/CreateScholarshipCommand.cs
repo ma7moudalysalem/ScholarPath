@@ -22,6 +22,8 @@ public record CreateScholarshipCommand : IRequest<Guid>
     public AcademicLevel TargetLevel { get; init; }
     /// <summary>Optional list of eligible academic fields of study.</summary>
     public string[]? FieldsOfStudy { get; init; }
+    /// <summary>Nationalities the award is restricted to; empty or null means any.</summary>
+    public string[]? EligibleNationalities { get; init; }
 
     /// <summary>
     /// Listing mode — defaults to <see cref="ListingMode.InApp"/>. Companies
@@ -74,6 +76,9 @@ public class CreateScholarshipCommandValidator : AbstractValidator<CreateScholar
         RuleFor(v => v.CategoryId).NotEmpty();
         // FR-SCH-21: Country is a required listing field.
         RuleFor(v => v.Country).NotEmpty().MaximumLength(100);
+        RuleFor(v => v.EligibleNationalities).Must(n => n is null || n.Length <= 250)
+            .WithMessage("At most 250 nationalities may be listed.");
+        RuleForEach(v => v.EligibleNationalities).NotEmpty().MaximumLength(100);
 
         // Spec: deadline must be at least 7 days out. Evaluated per-request
         // (a lambda) — NOT captured once at validator construction.
@@ -186,6 +191,7 @@ public class CreateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
             TargetCountriesJson = !string.IsNullOrWhiteSpace(request.Country)
                 ? System.Text.Json.JsonSerializer.Serialize(new[] { request.Country.Trim() })
                 : null,
+            EligibleNationalitiesJson = NormalizeRequiredDocs(request.EligibleNationalities),
             RequiredDocumentsJson = NormalizeRequiredDocs(request.RequiredDocuments),
             Mode = request.Mode,
             ExternalApplicationUrl = request.Mode == ListingMode.ExternalUrl

@@ -85,7 +85,8 @@ public sealed class EligibilityVerdictTests : IDisposable
         var userId = Guid.NewGuid();
         var scholarshipId = await SeedScholarshipAsync(
             AcademicLevel.Masters, "[\"Egypt\"]", "[\"Engineering\"]");
-        await SeedProfileAsync(userId, AcademicLevel.Masters, "Egypt", "Engineering");
+        await SeedProfileAsync(userId, AcademicLevel.Masters, "Egypt", "Engineering",
+            preferredCountriesJson: "[\"Egypt\"]");
 
         var result = await _ai.CheckEligibilityAsync(userId, scholarshipId, CancellationToken.None);
 
@@ -123,7 +124,7 @@ public sealed class EligibilityVerdictTests : IDisposable
     }
 
     [Fact]
-    public async Task IsoCodeCountry_MatchesFullNameNationality()
+    public async Task IsoCodeCountry_MatchesFullNameDestination()
     {
         // Real-world data shape: scholarships store ISO alpha-2 codes while the
         // profile stores a full country name. Before normalization "EG" never
@@ -132,7 +133,8 @@ public sealed class EligibilityVerdictTests : IDisposable
         var userId = Guid.NewGuid();
         var scholarshipId = await SeedScholarshipAsync(
             AcademicLevel.Masters, "[\"EG\",\"JO\",\"AE\"]", "[\"Engineering\"]");
-        await SeedProfileAsync(userId, AcademicLevel.Masters, "Egypt", "Engineering");
+        await SeedProfileAsync(userId, AcademicLevel.Masters, "Egypt", "Engineering",
+            preferredCountriesJson: "[\"Egypt\"]");
 
         var result = await _ai.CheckEligibilityAsync(userId, scholarshipId, CancellationToken.None);
 
@@ -161,17 +163,33 @@ public sealed class EligibilityVerdictTests : IDisposable
     }
 
     [Fact]
-    public async Task IsoCodeCountry_NonMatchingNationality_ReadsNo()
+    public async Task IsoCodeCountry_NonMatchingDestination_ReadsNo()
     {
         var userId = Guid.NewGuid();
         var scholarshipId = await SeedScholarshipAsync(
             AcademicLevel.Masters, "[\"EG\",\"JO\"]", "[\"Engineering\"]");
-        await SeedProfileAsync(userId, AcademicLevel.Masters, "Germany", "Engineering");
+        await SeedProfileAsync(userId, AcademicLevel.Masters, "Egypt", "Engineering",
+            preferredCountriesJson: "[\"Germany\"]");
 
         var result = await _ai.CheckEligibilityAsync(userId, scholarshipId, CancellationToken.None);
 
         result.Criteria.Single(c => c.NameEn == "Country").Match.Should().Be("no");
         result.Verdict.Should().Be(EligibilityVerdict.NotEligible);
+    }
+
+    [Fact]
+    public async Task Nationality_IsNotCountedAsADestination()
+    {
+        // A German citizen who states no destination is not thereby matched to every
+        // award held in Germany; nationality has its own criterion.
+        var userId = Guid.NewGuid();
+        var scholarshipId = await SeedScholarshipAsync(
+            AcademicLevel.Masters, "[\"DE\"]", "[\"Engineering\"]");
+        await SeedProfileAsync(userId, AcademicLevel.Masters, "Germany", "Engineering");
+
+        var result = await _ai.CheckEligibilityAsync(userId, scholarshipId, CancellationToken.None);
+
+        result.Criteria.Single(c => c.NameEn == "Country").Match.Should().Be("unknown");
     }
 
     [Fact]

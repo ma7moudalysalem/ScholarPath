@@ -42,5 +42,9 @@ public class UpdateScholarshipCommandValidator : AbstractValidator<UpdateScholar
 
         RuleFor(v => v.CategoryId)
             .NotEmpty().WithMessage("Scholarship category is required.");
+
+        RuleFor(v => v.EligibleNationalities).Must(n => n is null || n.Length <= 250)
+            .WithMessage("At most 250 nationalities may be listed.");
+        RuleForEach(v => v.EligibleNationalities).NotEmpty().MaximumLength(100);
     }
 }

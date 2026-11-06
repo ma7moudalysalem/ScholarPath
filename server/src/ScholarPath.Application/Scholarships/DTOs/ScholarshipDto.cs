@@ -27,6 +27,8 @@ namespace ScholarPath.Application.Scholarships.DTOs
     {
         public string? ExternalApplicationUrl { get; init; }
         public string Mode { get; init; } = default!;
+        /// <summary>Nationalities the award is restricted to; empty means any.</summary>
+        public List<string> EligibleNationalities { get; init; } = [];
         /// <summary>Target country (FR-SCH-08). Null for legacy listings with none.</summary>
         public string? Country { get; init; }
         public string? EligibilityRequirements { get; init; }

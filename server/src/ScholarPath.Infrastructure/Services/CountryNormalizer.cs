@@ -48,6 +48,23 @@ public static class CountryNormalizer
         if (trimmed.Length == 2 && trimmed.All(char.IsLetter))
             return trimmed.ToUpperInvariant();
 
+        // Official long forms: "Tanzania, United Republic of", "Syrian Arab
+        // Republic (Syria)". Try the part before the comma, then the bracketed
+        // short name, then the name without the bracket.
+        var open = trimmed.IndexOf('(', StringComparison.Ordinal);
+        var close = trimmed.IndexOf(')', StringComparison.Ordinal);
+        var comma = trimmed.IndexOf(',', StringComparison.Ordinal);
+        var variants = new List<string>();
+        if (comma > 0) variants.Add(trimmed[..comma]);
+        if (open >= 0 && close > open)
+        {
+            variants.Add(trimmed[(open + 1)..close]);
+            variants.Add(trimmed[..open]);
+        }
+        foreach (var v in variants)
+            if (Lookup.TryGetValue(Fold(v), out var viso))
+                return viso;
+
         return folded;
     }
 
@@ -79,8 +96,20 @@ public static class CountryNormalizer
         return sb.ToString().TrimEnd().Normalize(NormalizationForm.FormC);
     }
 
+    // ISO alpha-2 → display name, filled by BuildLookup (declared first so the
+    // lookup's initializer can fill them).
+    private static readonly Dictionary<string, string> EnglishByIso = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, string> ArabicByIso = new(StringComparer.OrdinalIgnoreCase);
+
     // Folded name / alias / Arabic name → ISO alpha-2. Built once.
     private static readonly IReadOnlyDictionary<string, string> Lookup = BuildLookup();
+
+    /// <summary>The country's name in English or Arabic; the input when it is not known.</summary>
+    public static string DisplayName(string? value, bool arabic)
+    {
+        var iso = ToKey(value);
+        return (arabic ? ArabicByIso : EnglishByIso).TryGetValue(iso, out var name) ? name : value ?? string.Empty;
+    }
 
     private static Dictionary<string, string> BuildLookup()
     {
@@ -163,9 +192,41 @@ public static class CountryNormalizer
         };
 
         var map = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var (name, iso) in names) map[Fold(name)] = iso;
+        foreach (var (name, iso) in names) { map[Fold(name)] = iso; EnglishByIso.TryAdd(iso, name); }
         foreach (var (alias, iso) in aliases) map[Fold(alias)] = iso;
-        foreach (var (name, iso) in arabic) map[Fold(name)] = iso;
+        foreach (var (name, iso) in arabic) { map[Fold(name)] = iso; ArabicByIso.TryAdd(iso, name); }
+
+        // Every other ISO 3166 region the runtime knows, by its English name, so
+        // catalogs that list countries by name (e.g. DAAD's origin lists) resolve
+        // even where the curated list above does not cover them.
+        for (var a = 'A'; a <= 'Z'; a++)
+        {
+            for (var b = 'A'; b <= 'Z'; b++)
+            {
+                var code = $"{a}{b}";
+                RegionInfo region;
+                try { region = new RegionInfo(code); }
+                catch (ArgumentException) { continue; }
+                if (region.TwoLetterISORegionName != code) continue;
+                map.TryAdd(Fold(region.EnglishName), code);
+                // "Antigua & Barbuda" / "St. Lucia" are also written out in full.
+                map.TryAdd(Fold(region.EnglishName.Replace("&", "and", StringComparison.Ordinal)
+                    .Replace("St. ", "Saint ", StringComparison.Ordinal)), code);
+                EnglishByIso.TryAdd(code, region.EnglishName);
+            }
+        }
+        foreach (var (alias, iso) in new (string, string)[]
+        {
+            ("Palestinian Territories", "PS"), ("Tahiti", "PF"), ("Bermudas", "BM"),
+            ("Brunei Darussalam", "BN"), ("Cape Verde", "CV"), ("Côte d'Ivoire", "CI"),
+            ("Cote d'Ivoire", "CI"), ("Ivory Coast", "CI"),
+            ("Democratic Republic of the Congo", "CD"), ("DR Congo", "CD"), ("Eswatini", "SZ"),
+            ("Eswatani", "SZ"), ("Swaziland", "SZ"), ("French Guiana", "GF"), ("French Guayana", "GF"),
+            ("Hong Kong", "HK"), ("Macao", "MO"), ("Macau", "MO"),
+            ("Lao People's Democratic Republic", "LA"), ("Laos", "LA"),
+            ("Sao Tome and Principe", "ST"), ("Saint Vincent and the Grenadines", "VC"),
+        })
+            map.TryAdd(Fold(alias), iso);
         return map;
     }
 }

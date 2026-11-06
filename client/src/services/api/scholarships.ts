@@ -37,6 +37,8 @@ export interface ScholarshipDetail extends ScholarshipListItem {
   externalUrl?: string | null;
   /** Target country (FR-SCH-08). Null for legacy listings without one. */
   country?: string | null;
+  /** Nationalities the award is restricted to; empty means open to all. */
+  eligibleNationalities: string[];
   eligibilityCriteria?: string | null;
   applicationFormSchemaJson?: string | null;
   requiredDocuments?: string[];
@@ -122,6 +124,8 @@ export interface CreateScholarshipInput {
   fundingType: FundingType;
   targetLevel: AcademicLevel;
   fieldsOfStudy?: string[];
+  /** Nationalities the award is restricted to; empty means open to all. */
+  eligibleNationalities?: string[];
   /** Per-scholarship Review Service Fee in USD (PB-005). Required for in-app
    *  listings — the server rejects null / non-positive values. */
   reviewFeeUsd?: number;
@@ -212,6 +216,7 @@ interface ScholarshipDetailWireDto extends ScholarshipWireDto {
   externalApplicationUrl: string | null;
   mode: ListingMode;
   country?: string | null;
+  eligibleNationalities?: string[];
   eligibilityRequirements: string | null;
   children: ScholarshipChildWireDto[];
   applicationFormSchemaJson: string | null;
@@ -306,6 +311,7 @@ function toDetail(dto: ScholarshipDetailWireDto): ScholarshipDetail {
     mode: dto.mode,
     externalUrl: dto.externalApplicationUrl,
     country: dto.country ?? null,
+    eligibleNationalities: dto.eligibleNationalities ?? [],
     eligibilityCriteria: dto.eligibilityRequirements,
     applicationFormSchemaJson: dto.applicationFormSchemaJson,
     requiredDocuments: parseStringArray(dto.requiredDocumentsJson) ?? (childDocs.length > 0 ? childDocs : undefined),

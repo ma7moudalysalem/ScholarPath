@@ -25,6 +25,11 @@ public record UpdateScholarshipCommand : IRequest<bool>
     public string? Country { get; init; }
     /// <summary>Optional updated list of eligible academic fields of study.</summary>
     public string[]? FieldsOfStudy { get; init; }
+    /// <summary>
+    /// Nationalities the award is restricted to. Null leaves the existing value
+    /// untouched; an empty array opens the listing to every nationality.
+    /// </summary>
+    public string[]? EligibleNationalities { get; init; }
 
     /// <summary>
     /// Optional updated Review Service Fee. Null leaves the existing value
@@ -89,6 +94,9 @@ public class UpdateScholarshipCommandHandler(IApplicationDbContext db, ICurrentU
         entity.FieldsOfStudyJson = request.FieldsOfStudy is { Length: > 0 }
             ? System.Text.Json.JsonSerializer.Serialize(request.FieldsOfStudy)
             : null;
+
+        if (request.EligibleNationalities is not null)
+            entity.EligibleNationalitiesJson = CreateScholarshipCommandHandler.NormalizeRequiredDocs(request.EligibleNationalities);
 
         // Only overwrite required documents when the caller sent the field.
         if (request.RequiredDocuments is not null)

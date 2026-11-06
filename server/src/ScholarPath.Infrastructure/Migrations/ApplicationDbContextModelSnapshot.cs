@@ -2830,6 +2830,9 @@ namespace ScholarPath.Infrastructure.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)");
 
+                    b.Property<string>("EligibleNationalitiesJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ExternalApplicationUrl")
                         .HasMaxLength(2048)
                         .HasColumnType("nvarchar(2048)");
@@ -2939,6 +2942,12 @@ namespace ScholarPath.Infrastructure.Migrations
                     b.HasIndex("Status");
 
                     b.HasIndex("Status", "Deadline");
+
+                    b.HasIndex("Status", "IsFeatured", "CreatedAt", "Id")
+                        .IsDescending(false, true, true, false)
+                        .HasDatabaseName("IX_Scholarships_Catalog");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Status", "IsFeatured", "CreatedAt", "Id"), new[] { "Deadline" });
 
                     b.ToTable("Scholarships");
                 });

@@ -1,3 +1,4 @@
+using ScholarPath.Domain.Entities;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -20,8 +21,13 @@ namespace ScholarPath.Infrastructure.Services;
 public sealed class LocalAiService(
     ApplicationDbContext db,
     IKnowledgeRetriever retriever,
-    IOptions<AiOptions> opts) : IAiService
+    IOptions<AiOptions> opts,
+    TimeProvider? clock = null) : IAiService
 {
+    // The clock decides which listings are still open. It is injectable so the
+    // evaluation harness can judge the catalog as it stood on a fixed date.
+    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
+
     private const string Disclaimer = "AI-generated guidance. Verify with official sources before acting.";
 
     // Synthetic cost model so cost caps behave reasonably in stub mode.
@@ -32,10 +38,16 @@ public sealed class LocalAiService(
     // Relative importance of the three criteria a listing can constrain, scored
     // against a fixed maximum so that a listing judged against the whole of a
     // student's profile can outrank one judged against a fraction of it.
-    private const int LevelWeight = 30;
-    private const int FieldWeight = 40;
-    private const int CountryWeight = 25;
-    private const int MaxWeight = LevelWeight + FieldWeight + CountryWeight;
+    /// <summary>
+    /// The ranker's weights and gates. The defaults are the platform's rule; the
+    /// evaluation harness varies them to measure what each part contributes.
+    /// </summary>
+    public RankerSettings Ranking { get; init; } = new();
+
+    private int LevelWeight => Ranking.LevelWeight;
+    private int FieldWeight => Ranking.FieldWeight;
+    private int CountryWeight => Ranking.CountryWeight;
+    private int MaxWeight => LevelWeight + FieldWeight + CountryWeight;
 
     // What a criterion earns when the listing places no restriction on it. Half
     // credit says what is true: the listing does not exclude the student, but it
@@ -62,16 +74,18 @@ public sealed class LocalAiService(
         var preferredFields = ParseJsonArray(profile?.PreferredFieldsJson);
         var preferredCountries = ParseJsonArray(profile?.PreferredCountriesJson);
         var userLevel = profile?.AcademicLevel;
+        var nationality = profile?.Nationality;
 
         // Academic level is a gate rather than a preference: a listing for a level
         // the student is not at can never be one they are eligible for, however well
         // it matches on field or country. Recommending it wastes the slot, so it is
         // excluded here rather than merely scored down. Where the student has not
         // stated a level there is nothing to gate on and every listing stands.
+        var now = _clock.GetUtcNow();
         var candidates = await db.Scholarships
             .AsNoTracking()
-            .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > DateTimeOffset.UtcNow)
-            .Where(s => userLevel == null || s.TargetLevel == userLevel)
+            .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > now)
+            .Where(s => !Ranking.LevelGate || userLevel == null || s.TargetLevel == userLevel)
             .Select(s => new
             {
                 s.Id,
@@ -81,14 +95,28 @@ public sealed class LocalAiService(
                 s.TargetCountriesJson,
                 s.FieldsOfStudyJson,
                 s.FundingAmountUsd,
+                s.Deadline,
+                s.EligibleNationalitiesJson,
             })
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
+        // Nationality is a gate for the same reason as level: a listing closed to the
+        // student's nationality can never be one they are eligible for. Where the
+        // student has not stated a nationality there is nothing to gate on.
+        if (Ranking.NationalityGate && !string.IsNullOrWhiteSpace(nationality))
+        {
+            candidates = candidates
+                .Where(c => ParseJsonArray(c.EligibleNationalitiesJson) is var open
+                    && (open.Count == 0 || open.Any(n => CountryNormalizer.Matches(n, nationality))))
+                .ToList();
+        }
+
         // The per-criterion outcome is carried alongside the total so the
         // explanation can name what actually matched rather than restate the score.
         var scored = new List<(Guid Id, int Score, string TitleEn, string TitleAr,
-            bool LevelMatched, int FieldHits, int CountryHits, bool FundingBonus)>(candidates.Count);
+            bool LevelMatched, int FieldHits, int CountryHits, bool FundingBonus,
+            DateTimeOffset Deadline, decimal FundingAmountUsd)>(candidates.Count);
 
         foreach (var c in candidates)
         {
@@ -151,12 +179,34 @@ public sealed class LocalAiService(
             if (fundingBonus && score >= FundingBonusFloor) score += FundingBonusPoints;
 
             scored.Add((c.Id, Math.Clamp(score, 0, 100), c.TitleEn, c.TitleAr,
-                levelMatched, fieldHits, countryHits, fundingBonus));
+                levelMatched, fieldHits, countryHits, fundingBonus,
+                c.Deadline, c.FundingAmountUsd ?? 0m));
         }
 
-        var top = scored
+        var ordered = scored
+            // Equal scores are common on a catalog where most listings restrict nothing
+            // but level, so ties are broken by what the student acts on: the nearer
+            // deadline first, then the larger award. The title only orders what is
+            // still tied, so the order stays deterministic.
             .OrderByDescending(x => x.Score)
+            .ThenBy(x => x.Deadline)
+            .ThenByDescending(x => x.FundingAmountUsd)
             .ThenBy(x => x.TitleEn)
+            .ToList();
+
+        // Optional diversification: take the best listing of each first destination
+        // before a second one from the same country, then fill by rank.
+        if (Ranking.Diversify)
+        {
+            var destination = candidates.ToDictionary(c => c.Id,
+                c => ParseJsonArray(c.TargetCountriesJson).Select(CountryNormalizer.ToKey).FirstOrDefault() ?? string.Empty);
+            var used = new HashSet<string>(StringComparer.Ordinal);
+            var picked = ordered.Where(x => used.Add(destination[x.Id])).Take(topN).ToList();
+            picked.AddRange(ordered.Where(x => !picked.Contains(x)).Take(topN - picked.Count));
+            ordered = picked;
+        }
+
+        var top = ordered
             .Take(topN)
             .Select(x => new AiRecommendationItem(
                 ScholarshipId: x.Id,
@@ -195,55 +245,7 @@ public sealed class LocalAiService(
             .FirstOrDefaultAsync(p => p.UserId == userId, ct)
             .ConfigureAwait(false);
 
-        var criteria = new List<AiEligibilityCriterion>();
-
-        // Academic level
-        criteria.Add(new AiEligibilityCriterion(
-            NameEn: "Academic level",
-            NameAr: "المستوى الأكاديمي",
-            StudentValue: profile?.AcademicLevel?.ToString() ?? "unknown",
-            ListingRequirement: scholarship.TargetLevel.ToString(),
-            Match: profile?.AcademicLevel == scholarship.TargetLevel ? "yes"
-                : profile?.AcademicLevel is null ? "unknown" : "no"));
-
-        // Country match. A scholarship's target country is where the award lets
-        // you study; the UI asks students for exactly that as "preferred study
-        // destinations" (preferredCountries) and promises to "match scholarships
-        // in those countries with you". So the listing is matched against the
-        // student's preferred destinations AND their nationality (some awards
-        // are nationality-restricted) — not nationality alone, which made an
-        // Egyptian who wants to study in France read "no" on a France award.
-        // CountryNormalizer folds ISO codes ("FR"), full names ("France") and
-        // Arabic to a common key so the spelling/format no longer matters.
-        var listingCountries = ParseJsonArray(scholarship.TargetCountriesJson);
-        var studentCountries = ParseJsonArray(profile?.PreferredCountriesJson)
-            .Where(c => !string.IsNullOrWhiteSpace(c))
-            .Select(c => c.Trim())
-            .ToList();
-        var nationality = profile?.Nationality?.Trim();
-        if (!string.IsNullOrWhiteSpace(nationality))
-            studentCountries.Add(nationality);
-
-        criteria.Add(new AiEligibilityCriterion(
-            NameEn: "Country",
-            NameAr: "الدولة",
-            StudentValue: studentCountries.Count == 0
-                ? "unknown"
-                : string.Join(", ", studentCountries.Distinct(StringComparer.OrdinalIgnoreCase)),
-            ListingRequirement: listingCountries.Count == 0 ? "any" : string.Join(", ", listingCountries),
-            Match: listingCountries.Count == 0 ? "yes"
-                : studentCountries.Count == 0 ? "unknown"
-                : listingCountries.Any(lc => studentCountries.Any(sc => CountryNormalizer.Matches(lc, sc))) ? "yes" : "no"));
-
-        // Field of study — use dedicated FieldsOfStudyJson; fall back to tags only if not set
-        var fosFields = ParseJsonArray(scholarship.FieldsOfStudyJson);
-        var fos = profile?.FieldOfStudy ?? string.Empty;
-        criteria.Add(new AiEligibilityCriterion(
-            NameEn: "Field of study",
-            NameAr: "مجال الدراسة",
-            StudentValue: string.IsNullOrWhiteSpace(fos) ? "unknown" : fos,
-            ListingRequirement: fosFields.Count == 0 ? "any" : string.Join(", ", fosFields),
-            Match: FieldMatch(fosFields, fos)));
+        var criteria = BuildCriteria(scholarship, profile);
 
         var matches = criteria.Count(c => c.Match == "yes");
         var verdict = DeriveVerdict(criteria);
@@ -279,6 +281,128 @@ public sealed class LocalAiService(
             };
 
         return new AiEligibilityResult(criteria, summaryEn, summaryAr, Disclaimer, verdict);
+    }
+
+    /// <summary>The per-criterion outcomes of a listing for a profile (see CheckEligibilityAsync).</summary>
+    internal static List<AiEligibilityCriterion> BuildCriteria(Scholarship scholarship, UserProfile? profile)
+    {
+        var criteria = new List<AiEligibilityCriterion>();
+
+        // Academic level
+        criteria.Add(new AiEligibilityCriterion(
+            NameEn: "Academic level",
+            NameAr: "المستوى الأكاديمي",
+            StudentValue: profile?.AcademicLevel?.ToString() ?? "unknown",
+            ListingRequirement: scholarship.TargetLevel.ToString(),
+            Match: profile?.AcademicLevel == scholarship.TargetLevel ? "yes"
+                : profile?.AcademicLevel is null ? "unknown" : "no"));
+
+        // Country match. A scholarship's target country is where the award lets
+        // you study; the UI asks students for exactly that as "preferred study
+        // destinations" (preferredCountries) and promises to "match scholarships
+        // in those countries with you". So the listing is matched against the
+        // student's preferred destinations only. Nationality is judged on its own
+        // below: counting it as a destination made a German student "eligible" for
+        // every award held in Germany whatever they wanted.
+        // CountryNormalizer folds ISO codes ("FR"), full names ("France") and
+        // Arabic to a common key so the spelling/format no longer matters.
+        var listingCountries = ParseJsonArray(scholarship.TargetCountriesJson);
+        var studentCountries = ParseJsonArray(profile?.PreferredCountriesJson)
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim())
+            .ToList();
+        var nationality = profile?.Nationality?.Trim();
+
+        criteria.Add(new AiEligibilityCriterion(
+            NameEn: "Country",
+            NameAr: "الدولة",
+            StudentValue: studentCountries.Count == 0
+                ? "unknown"
+                : string.Join(", ", studentCountries.Distinct(StringComparer.OrdinalIgnoreCase)),
+            ListingRequirement: listingCountries.Count == 0 ? "any" : string.Join(", ", listingCountries),
+            Match: listingCountries.Count == 0 ? "yes"
+                : studentCountries.Count == 0 ? "unknown"
+                : listingCountries.Any(lc => studentCountries.Any(sc => CountryNormalizer.Matches(lc, sc))) ? "yes" : "no"));
+
+        // Nationality, judged only where the listing restricts it. Kept apart from the
+        // destination above: an award held in Germany may still admit only some
+        // countries' citizens, and preferring a destination does not change that.
+        var nationalities = ParseJsonArray(scholarship.EligibleNationalitiesJson);
+        if (nationalities.Count > 0)
+        {
+            criteria.Add(new AiEligibilityCriterion(
+                NameEn: "Nationality",
+                NameAr: "الجنسية",
+                StudentValue: string.IsNullOrWhiteSpace(nationality) ? "unknown" : nationality,
+                ListingRequirement: string.Join(", ", nationalities),
+                Match: string.IsNullOrWhiteSpace(nationality) ? "unknown"
+                    : nationalities.Any(n => CountryNormalizer.Matches(n, nationality)) ? "yes" : "no"));
+        }
+
+        // Field of study — use dedicated FieldsOfStudyJson; fall back to tags only if not set
+        var fosFields = ParseJsonArray(scholarship.FieldsOfStudyJson);
+        var fos = profile?.FieldOfStudy ?? string.Empty;
+        criteria.Add(new AiEligibilityCriterion(
+            NameEn: "Field of study",
+            NameAr: "مجال الدراسة",
+            StudentValue: string.IsNullOrWhiteSpace(fos) ? "unknown" : fos,
+            ListingRequirement: fosFields.Count == 0 ? "any" : string.Join(", ", fosFields),
+            Match: FieldMatch(fosFields, fos)));
+
+        return criteria;
+    }
+
+    private static string LevelNameAr(AcademicLevel level) => level switch
+    {
+        AcademicLevel.HighSchool => "الثانوية",
+        AcademicLevel.Undergrad => "البكالوريوس",
+        AcademicLevel.Masters => "الماجستير",
+        AcademicLevel.PhD => "الدكتوراه",
+        AcademicLevel.PostDoc => "ما بعد الدكتوراه",
+        _ => level.ToString(),
+    };
+
+    public async Task<IReadOnlyList<AiUnlockSuggestion>> SuggestUnlocksAsync(
+        Guid userId, int topN, CancellationToken ct)
+    {
+        var profile = await db.UserProfiles.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.UserId == userId, ct).ConfigureAwait(false);
+        if (profile is null) return [];
+
+        var now = _clock.GetUtcNow();
+        var listings = await db.Scholarships.AsNoTracking()
+            .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > now)
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        // A listing is opened by one change when exactly one criterion fails and
+        // every other is met: adding one of its destinations, or reaching its level.
+        var byDestination = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var byLevel = new Dictionary<AcademicLevel, int>();
+        foreach (var s in listings)
+        {
+            var criteria = BuildCriteria(s, profile);
+            var failing = criteria.Where(c => c.Match == "no").ToList();
+            if (failing.Count != 1 || criteria.Any(c => c.Match != "yes" && c.Match != "no")) continue;
+            if (failing[0].NameEn == "Country")
+            {
+                foreach (var code in ParseJsonArray(s.TargetCountriesJson).Select(CountryNormalizer.ToKey).Distinct())
+                    byDestination[code] = byDestination.GetValueOrDefault(code) + 1;
+            }
+            else if (failing[0].NameEn == "Academic level")
+            {
+                byLevel[s.TargetLevel] = byLevel.GetValueOrDefault(s.TargetLevel) + 1;
+            }
+        }
+
+        return [.. byDestination
+            .Select(kv => new AiUnlockSuggestion("AddDestination", kv.Key,
+                $"Add {CountryNormalizer.DisplayName(kv.Key, arabic: false)} to your destinations",
+                $"أضف {CountryNormalizer.DisplayName(kv.Key, arabic: true)} إلى وجهاتك", kv.Value))
+            .Concat(byLevel.Select(kv => new AiUnlockSuggestion("ReachLevel", kv.Key.ToString(),
+                $"Reach the {kv.Key} level", $"الوصول إلى مرحلة {LevelNameAr(kv.Key)}", kv.Value)))
+            .OrderByDescending(x => x.ListingsUnlocked)
+            .ThenBy(x => x.Value, StringComparer.Ordinal)
+            .Take(Math.Clamp(topN, 1, 20))];
     }
 
     /// <summary>
@@ -398,6 +522,14 @@ public sealed class LocalAiService(
         if (string.IsNullOrWhiteSpace(studentField)) return "unknown";
 
         if (listingFields.Any(f => string.Equals(f, studentField, StringComparison.OrdinalIgnoreCase)))
+        {
+            return "yes";
+        }
+
+        // A known major is judged by the fields it belongs to, so "Nursing" meets a
+        // listing for "Medicine & Health" instead of failing on the wording.
+        var majorFields = FieldTaxonomy.FieldsOf(studentField);
+        if (majorFields.Any(m => listingFields.Contains(m, StringComparer.OrdinalIgnoreCase)))
         {
             return "yes";
         }
@@ -600,3 +732,12 @@ public sealed class LocalAiService(
             : "I can help with scholarships, eligibility, deadlines, and applications — and also with writing recommendation letters, structuring a Statement of Purpose, interview prep, and language tests. Ask me something specific and I'll point you to the right place.";
     }
 }
+
+/// <summary>Weights (points) and gates of the recommendation ranker.</summary>
+public sealed record RankerSettings(
+    int LevelWeight = 30,
+    int FieldWeight = 40,
+    int CountryWeight = 25,
+    bool LevelGate = true,
+    bool NationalityGate = true,
+    bool Diversify = false);

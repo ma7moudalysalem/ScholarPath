@@ -81,6 +81,9 @@ namespace ScholarPath.Application.Scholarships.Queries
                 FieldsOfStudy = entity.FieldsOfStudyJson is not null
                     ? JsonSerializer.Deserialize<List<string>>(entity.FieldsOfStudyJson) ?? []
                     : [],
+                EligibleNationalities = entity.EligibleNationalitiesJson is not null
+                    ? JsonSerializer.Deserialize<List<string>>(entity.EligibleNationalitiesJson) ?? []
+                    : [],
 
                 // Raw bilingual + categoryId for the company edit form (PB-005).
                 TitleEn = entity.TitleEn,

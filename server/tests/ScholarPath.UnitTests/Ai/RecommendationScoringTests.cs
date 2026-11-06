@@ -24,6 +24,7 @@ public sealed class RecommendationScoringTests : IDisposable
     private readonly ApplicationDbContext _db;
     private readonly LocalAiService _ai;
     private readonly Guid _userId = Guid.NewGuid();
+    private readonly DateTimeOffset _now = DateTimeOffset.UtcNow;
 
     public RecommendationScoringTests()
     {
@@ -46,7 +47,8 @@ public sealed class RecommendationScoringTests : IDisposable
         string? fieldsJson = null,
         string? countriesJson = null,
         decimal funding = 0m,
-        string title = "Test Scholarship")
+        string title = "Test Scholarship",
+        int deadlineInDays = 30)
     {
         var s = new Scholarship
         {
@@ -59,7 +61,7 @@ public sealed class RecommendationScoringTests : IDisposable
             Slug = $"sch-{Guid.NewGuid():N}",
             CategoryId = Guid.NewGuid(),
             Status = ScholarshipStatus.Open,
-            Deadline = DateTimeOffset.UtcNow.AddDays(30),
+            Deadline = _now.AddDays(deadlineInDays),
             TargetLevel = level,
             FieldsOfStudyJson = fieldsJson,
             TargetCountriesJson = countriesJson,
@@ -228,6 +230,36 @@ public sealed class RecommendationScoringTests : IDisposable
         var result = await _ai.GenerateRecommendationsAsync(_userId, 5, CancellationToken.None);
 
         result.Items[0].ExplanationEn.Should().Contain("Exact Fit Small Award");
+    }
+
+    [Fact]
+    public async Task Tied_scores_put_the_nearer_deadline_first()
+    {
+        await SeedProfileAsync(AcademicLevel.Masters, """["Computer Science"]""");
+        await SeedListingAsync(AcademicLevel.Masters, fieldsJson: """["Computer Science"]""",
+            title: "A Later Deadline", deadlineInDays: 60);
+        await SeedListingAsync(AcademicLevel.Masters, fieldsJson: """["Computer Science"]""",
+            title: "Z Sooner Deadline", deadlineInDays: 10);
+
+        var result = await _ai.GenerateRecommendationsAsync(_userId, 5, CancellationToken.None);
+
+        result.Items[0].MatchScore.Should().Be(result.Items[1].MatchScore);
+        result.Items[0].ExplanationEn.Should().Contain("Z Sooner Deadline");
+    }
+
+    [Fact]
+    public async Task Tied_scores_and_deadlines_put_the_larger_award_first()
+    {
+        await SeedProfileAsync(AcademicLevel.Masters, """["Computer Science"]""");
+        await SeedListingAsync(AcademicLevel.Masters, fieldsJson: """["Computer Science"]""",
+            funding: 2_000m, title: "A Small Award");
+        await SeedListingAsync(AcademicLevel.Masters, fieldsJson: """["Computer Science"]""",
+            funding: 8_000m, title: "Z Larger Award");
+
+        var result = await _ai.GenerateRecommendationsAsync(_userId, 5, CancellationToken.None);
+
+        result.Items[0].MatchScore.Should().Be(result.Items[1].MatchScore);
+        result.Items[0].ExplanationEn.Should().Contain("Z Larger Award");
     }
 
     public void Dispose() => _db.Dispose();
