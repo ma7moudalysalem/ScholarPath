@@ -9,7 +9,7 @@ namespace ScholarPath.Eval;
 /// The retriever the platform runs with a hosted embedding model, rebuilt in
 /// memory for the harness: the evaluation database stores only the offline
 /// vectors, so the knowledge base is embedded once here and ranked as the
-/// platform ranks it (cosine similarity). Nothing is
+/// platform ranks it (cosine similarity fused with BM25). Nothing is
 /// written to the database.
 /// </summary>
 public sealed class HybridRetriever : IKnowledgeRetriever
@@ -45,11 +45,13 @@ public sealed class HybridRetriever : IKnowledgeRetriever
     public async Task<IReadOnlyList<RetrievedDocument>> RetrieveAsync(string query, int topK, CancellationToken ct)
     {
         var qv = (await StrictEmbed.BatchAsync(_embeddings, [query]).ConfigureAwait(false))[0];
-        var cosine = _vectors.Select(v => Cosine(qv, v)).ToArray();
-        // The platform ranks by cosine similarity alone with a hosted model; the
-        // fused ranking was measured in retrieval mode and not adopted.
+        var cosine = _vectors.Select(v => Math.Max(0d, Cosine(qv, v))).ToArray();
+        // Ranked as the platform ranks with a hosted model: embedding similarity
+        // fused with bilingual BM25 by reciprocal rank.
+        var lexical = KnowledgeRetriever.LexicalScores([.. _docs.Select(d => (d.TitleEn + " " + d.ContentEn, d.TitleAr + " " + d.ContentAr))], query);
+        var fused = RankFusion.Fuse([cosine, lexical]);
         return [.. Enumerable.Range(0, _docs.Count)
-            .OrderByDescending(i => cosine[i])
+            .OrderByDescending(i => fused[i])
             .Take(topK)
             .Select(i => new RetrievedDocument(_docs[i].Id, _docs[i].SourceType, _docs[i].SourceId,
                 _docs[i].TitleEn, _docs[i].TitleAr, _docs[i].ContentEn, _docs[i].ContentAr,

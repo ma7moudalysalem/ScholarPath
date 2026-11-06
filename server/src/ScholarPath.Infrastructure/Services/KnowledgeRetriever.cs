@@ -56,13 +56,23 @@ public sealed class KnowledgeRetriever(
         var queryVector = await embeddings.EmbedAsync(query, ct).ConfigureAwait(false);
         if (queryVector.Length == 0) return [];
 
+        // Embedding similarity and BM25 are fused by reciprocal rank: a document
+        // near the top of either ranking rises, so an exact term the embedding
+        // blurs (a country, a field) still counts. Measured above either alone.
+        var cosine = docs.Select(d => Math.Max(0d, VectorMath.CosineSimilarity(queryVector, VectorMath.Unpack(d.Embedding)))).ToArray();
+        var lexical = LexicalScores([.. docs.Select(d => (d.TitleEn + " " + d.ContentEn, d.TitleAr + " " + d.ContentAr))], query);
+        var fused = RankFusion.Fuse([cosine, lexical]);
+
+        // Ordered by the fused rank; the score reported with each document stays
+        // its embedding similarity, which the relevance floor (RagMinScore) reads.
         return [.. docs
-            .Select(d => new
+            .Select((d, i) => new
             {
                 Doc = d,
-                Score = VectorMath.CosineSimilarity(queryVector, VectorMath.Unpack(d.Embedding)),
+                Fused = fused[i],
+                Score = cosine[i],
             })
-            .OrderByDescending(x => x.Score)
+            .OrderByDescending(x => x.Fused)
             .Take(topK)
             .Select(x => new RetrievedDocument(
                 x.Doc.Id,
@@ -96,20 +106,13 @@ public sealed class KnowledgeRetriever(
             .ConfigureAwait(false);
         if (docs.Count == 0) return [];
 
-        var en = new Bm25Index([.. docs.Select(d => d.TitleEn + " " + d.ContentEn)]);
-        var ar = new Bm25Index([.. docs.Select(d => d.TitleAr + " " + d.ContentAr)]);
-        var enScores = en.Score(query);
-        var arScores = ar.Score(query);
-        var enMax = en.MaxScore(query);
-        var arMax = ar.MaxScore(query);
+        var scores = LexicalScores([.. docs.Select(d => (d.TitleEn + " " + d.ContentEn, d.TitleAr + " " + d.ContentAr))], query);
 
         return [.. docs
             .Select((d, i) => new
             {
                 Doc = d,
-                Score = Math.Max(
-                    enMax > 0 ? enScores[i] / enMax : 0,
-                    arMax > 0 ? arScores[i] / arMax : 0),
+                Score = scores[i],
             })
             .Where(x => x.Score > 0)
             .OrderByDescending(x => x.Score)
@@ -124,5 +127,23 @@ public sealed class KnowledgeRetriever(
                 x.Doc.ContentAr,
                 x.Doc.MetadataJson,
                 x.Score))];
+    }
+
+    /// <summary>
+    /// BM25 over the English and the Arabic text of each document, each scaled
+    /// to its best match, so a question in either language is scored against text
+    /// in its own language.
+    /// </summary>
+    public static double[] LexicalScores(IReadOnlyList<(string En, string Ar)> docs, string query)
+    {
+        var en = new Bm25Index([.. docs.Select(d => d.En)]);
+        var ar = new Bm25Index([.. docs.Select(d => d.Ar)]);
+        var enScores = en.Score(query);
+        var arScores = ar.Score(query);
+        var enMax = en.MaxScore(query);
+        var arMax = ar.MaxScore(query);
+        return [.. Enumerable.Range(0, docs.Count).Select(i => Math.Max(
+            enMax > 0 ? enScores[i] / enMax : 0,
+            arMax > 0 ? arScores[i] / arMax : 0))];
     }
 }

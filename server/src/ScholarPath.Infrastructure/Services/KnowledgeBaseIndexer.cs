@@ -265,6 +265,13 @@ public sealed class KnowledgeBaseIndexer(
                 ? string.Join("، ", countries.Select(c => CountryNormalizer.DisplayName(c, arabic: true)))
                 : "أي دولة";
             var tagsText = tags.Count > 0 ? string.Join(", ", tags) : "any field";
+            // The fields a listing accepts, in each language, so a question that
+            // names a discipline meets the listings open to it.
+            var fields = ParseJsonArray(s.FieldsOfStudyJson);
+            var fieldsText = fields.Count > 0 ? string.Join(", ", fields) : "all fields";
+            var fieldsTextAr = fields.Count > 0
+                ? string.Join("، ", fields.Select(FieldTaxonomy.ArabicName))
+                : "جميع المجالات";
             var amount = s.FundingAmountUsd is > 0 ? $"{s.FundingAmountUsd:N0} USD" : "amount varies";
 
             var contentEn =
@@ -274,6 +281,7 @@ public sealed class KnowledgeBaseIndexer(
                 $"Eligible countries: {countriesText}.\n" +
                 $"Eligibility: {s.EligibilityRequirementsEn ?? "See the official listing."}\n" +
                 $"Topics: {tagsText}.\n" +
+                $"Fields of study: {fieldsText}.\n" +
                 $"Application deadline: {s.Deadline:yyyy-MM-dd}.";
 
             var contentAr =
@@ -283,6 +291,7 @@ public sealed class KnowledgeBaseIndexer(
                 $"الدول المؤهَّلة: {countriesTextAr}.\n" +
                 $"الأهلية: {s.EligibilityRequirementsAr ?? "راجع القائمة الرسمية."}\n" +
                 $"المجالات: {tagsText}.\n" +
+                $"مجالات الدراسة المقبولة: {fieldsTextAr}.\n" +
                 $"الموعد النهائي للتقديم: {s.Deadline:yyyy-MM-dd}.";
 
             var metadata = JsonSerializer.Serialize(new

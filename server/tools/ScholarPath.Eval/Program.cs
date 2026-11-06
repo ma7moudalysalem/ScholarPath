@@ -622,7 +622,7 @@ async Task RunRetrievalAsync()
 
             if (hybrid)
             {
-                var fused = ScholarPath.Eval.RankFusion.Fuse([cos.Select(c => Math.Max(c, 0)).ToArray(), lexicalIndex.Score(queries[qi].Query)]);
+                var fused = RankFusion.Fuse([cos.Select(c => Math.Max(c, 0)).ToArray(), lexicalIndex.Score(queries[qi].Query)]);
                 var hr = 1 + fused.Where((f, di) => di != target && f >= fused[target]).Count();
                 hRank += hr;
                 if (hr <= TopK) hHits++;
@@ -706,7 +706,7 @@ async Task RunAnswersAsync()
     // Optional LLM judge (RAGAs-style): with Azure credentials, each answer is
     // judged against the documents it was given for faithfulness (every claim is
     // supported by them) and relevance (it answers the question).
-    using var judgeHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+    using var judgeHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(300) };
     async Task<(bool Faithful, bool Relevant)?> JudgeAsync(string question, string context, string answer)
     {
         if (string.IsNullOrWhiteSpace(azEndpoint) || string.IsNullOrWhiteSpace(azKey)) return null;
@@ -727,8 +727,11 @@ async Task RunAnswersAsync()
         {
             using var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
             req.Headers.Add("api-key", azKey);
-            using var res = await judgeHttp.SendAsync(req).ConfigureAwait(false);
-            if ((int)res.StatusCode == 429) { await Task.Delay(5000 * (attempt + 1)).ConfigureAwait(false); continue; }
+            HttpResponseMessage res;
+            try { res = await judgeHttp.SendAsync(req).ConfigureAwait(false); }
+            catch (TaskCanceledException) { await Task.Delay(5000).ConfigureAwait(false); continue; }
+            using var _ = res;
+            if ((int)res.StatusCode is 429 or >= 500) { await Task.Delay(5000 * (attempt + 1)).ConfigureAwait(false); continue; }
             res.EnsureSuccessStatusCode();
             using var doc = System.Text.Json.JsonDocument.Parse(await res.Content.ReadAsStringAsync().ConfigureAwait(false));
             var text = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "{}";

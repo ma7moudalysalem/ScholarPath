@@ -17,9 +17,9 @@ public static class StrictEmbed
         {
             var vectors = await svc.EmbedBatchAsync(texts, CancellationToken.None).ConfigureAwait(false);
             if (vectors.All(v => v.Length == svc.Dimensions)) return vectors;
-            if (attempt == 8)
+            if (attempt == 16)
                 throw new InvalidOperationException($"{svc.ModelName}: the hosted model kept failing; the run is stopped rather than mixing vector spaces.");
-            await Task.Delay(TimeSpan.FromSeconds(5 * attempt)).ConfigureAwait(false);
+            await Task.Delay(TimeSpan.FromSeconds(Math.Min(60, 5 * attempt))).ConfigureAwait(false);
         }
     }
 }

@@ -54,6 +54,22 @@ public static class FieldTaxonomy
         .SelectMany(m => new[] { (Key: m.En, m.Fields), (Key: m.Ar, m.Fields) })
         .ToDictionary(x => x.Key, x => x.Fields, StringComparer.OrdinalIgnoreCase);
 
+    // Arabic names of the canonical listing fields.
+    private static readonly Dictionary<string, string> ArabicByField = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Arts & Humanities"] = "الآداب والعلوم الإنسانية", ["Law"] = "القانون",
+        ["Economics & Finance"] = "الاقتصاد والتمويل", ["Social Sciences"] = "العلوم الاجتماعية",
+        ["Business & Management"] = "إدارة الأعمال", ["Education"] = "التربية والتعليم",
+        ["Media & Communications"] = "الإعلام والاتصال", ["Mathematics & Statistics"] = "الرياضيات والإحصاء",
+        ["Natural Sciences"] = "العلوم الطبيعية", ["Computer Science"] = "علوم الحاسب",
+        ["Medicine & Health"] = "الطب والصحة", ["Agriculture & Environment"] = "الزراعة والبيئة",
+        ["Engineering"] = "الهندسة", ["Architecture & Design"] = "العمارة والتصميم",
+    };
+
+    /// <summary>The Arabic name of a canonical field; the input when it is not one.</summary>
+    public static string ArabicName(string field) =>
+        ArabicByField.TryGetValue(field.Trim(), out var ar) ? ar : field;
+
     /// <summary>The canonical fields a major belongs to; empty when the major is not known.</summary>
     public static IReadOnlyList<string> FieldsOf(string major) =>
         FieldsByMajor.TryGetValue(major.Trim(), out var fields) ? fields : [];

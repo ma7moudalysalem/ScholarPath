@@ -1,10 +1,10 @@
-namespace ScholarPath.Eval;
+namespace ScholarPath.Infrastructure.Services;
 
 /// <summary>
 /// Reciprocal rank fusion: each ranking contributes 1 / (k + rank) for every
 /// document, so a document near the top of either list rises without the two
-/// scoring scales having to be comparable. The harness tests it as a hybrid of BM25 and
-/// embedding similarity; it was measured and not adopted (see the retrieval mode).
+/// scoring scales having to be comparable. The knowledge retriever fuses BM25 with
+/// embedding similarity this way when a hosted embedding model is configured.
 /// </summary>
 public static class RankFusion
 {
