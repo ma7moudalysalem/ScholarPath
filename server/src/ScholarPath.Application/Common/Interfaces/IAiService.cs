@@ -13,6 +13,17 @@ public interface IAiService
         CancellationToken ct);
 
     /// <summary>
+    /// The single profile changes that would make the student fully eligible for
+    /// more open listings (a destination to add, a level to reach), each with the
+    /// number of listings it would open. Computed from the same criteria as
+    /// <see cref="CheckEligibilityAsync"/>.
+    /// </summary>
+    Task<IReadOnlyList<AiUnlockSuggestion>> SuggestUnlocksAsync(
+        Guid userId,
+        int topN,
+        CancellationToken ct);
+
+    /// <summary>
     /// Generates a chatbot answer. <paramref name="history"/> contains the prior
     /// turns of the same session (in chronological order, alternating user /
     /// assistant) so the LLM has memory of the conversation — without it every
@@ -96,3 +107,8 @@ public sealed record ChatSource(
     string SourceType,            // "Scholarship" | "Faq"
     Guid? ScholarshipId,
     double Score);
+
+/// <summary>A single profile change and how many open listings it would make the student eligible for.</summary>
+/// <param name="Change">"AddDestination" or "ReachLevel".</param>
+/// <param name="Value">The ISO country code or the academic level.</param>
+public sealed record AiUnlockSuggestion(string Change, string Value, string LabelEn, string LabelAr, int ListingsUnlocked);

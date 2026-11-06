@@ -83,6 +83,9 @@ public sealed class OpenAiService(
         // Eligibility is structured — local scoring is strictly better than LLM guesswork.
         => localAi.CheckEligibilityAsync(userId, scholarshipId, ct);
 
+    public Task<IReadOnlyList<AiUnlockSuggestion>> SuggestUnlocksAsync(Guid userId, int topN, CancellationToken ct)
+        => localAi.SuggestUnlocksAsync(userId, topN, ct);
+
     public async Task<AiChatResponse> AskAsync(
         Guid userId,
         string sessionId,

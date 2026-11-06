@@ -43,6 +43,9 @@ public sealed class AzureOpenAiService(
         Guid userId, Guid scholarshipId, CancellationToken ct)
         => local.CheckEligibilityAsync(userId, scholarshipId, ct);
 
+    public Task<IReadOnlyList<AiUnlockSuggestion>> SuggestUnlocksAsync(Guid userId, int topN, CancellationToken ct)
+        => local.SuggestUnlocksAsync(userId, topN, ct);
+
     public async Task<AiChatResponse> AskAsync(
         Guid userId,
         string sessionId,

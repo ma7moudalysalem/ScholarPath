@@ -66,7 +66,8 @@ await using var db = new ApplicationDbContext(options);
 // the platform's ranker for ablation and sensitivity runs; the defaults are its rule.
 var w = arg("weights", "30,40,25").Split(',').Select(int.Parse).ToArray();
 var ranking = new RankerSettings(w[0], w[1], w[2],
-    LevelGate: !args.Contains("--no-level-gate"), NationalityGate: !args.Contains("--no-nationality-gate"));
+    LevelGate: !args.Contains("--no-level-gate"), NationalityGate: !args.Contains("--no-nationality-gate"),
+    Diversify: args.Contains("--diversify"));
 var ai = new LocalAiService(db, new NoopRetriever(), Options.Create(new AiOptions()), clock) { Ranking = ranking };
 
 // The ranker under test can be swapped for the pre-redesign rule while the
@@ -178,6 +179,7 @@ async Task RunRecommendationAsync()
     var levelOf = listings.ToDictionary(l => l.Id, l => l.TargetLevel);
     var wrongLevelSlots = 0;
     var allTiedLists = 0;
+    double distinctDestSum = 0; var listsWithItems = 0;
     var distinctScores = new HashSet<int>();
     var bandUsable = new Dictionary<string, (int Usable, int Total)>
     {
@@ -192,6 +194,13 @@ async Task RunRecommendationAsync()
     {
         var result = await recommend(s.UserId, topN, CancellationToken.None)
             .ConfigureAwait(false);
+
+        // How many different first destinations the list covers (diversity).
+        var recIds = result.Items.Select(x => x.ScholarshipId).ToList();
+        var firstDest = await db.Scholarships.AsNoTracking().Where(x => recIds.Contains(x.Id))
+            .Select(x => x.TargetCountriesJson).ToListAsync().ConfigureAwait(false);
+        distinctDestSum += firstDest.Select(j => Parse(j).FirstOrDefault() ?? "").Distinct().Count();
+        listsWithItems += result.Items.Count > 0 ? 1 : 0;
 
         var anyUsable = false;
         for (var i = 0; i < result.Items.Count; i++)
@@ -259,6 +268,7 @@ async Task RunRecommendationAsync()
     double chanceSum = 0, levelChanceSum = 0;
     var levelChanceStudents = 0;
     var oracleHasAny = 0;
+    int unlockStudents = 0, unlockSum = 0, emptyStudents = 0, emptyRescued = 0;
     var oracleFound = 0;
     var oracleUsableTotal = 0;
     Console.WriteLine($"  oracle pass over {oracleSample.Count} students x {listings.Count} listings...");
@@ -274,6 +284,12 @@ async Task RunRecommendationAsync()
         // One row per student with what the catalog held for them, so recall and
         // paired comparisons between rankers can be computed from the CSV alone.
         if (csvPath.Length > 0) csv.AppendLine($"{s2.UserId},0,,{usable.Count},,oracle");
+        // Counterfactual advice: the best single destination to add, and whether a
+        // student with nothing eligible anywhere gains at least one listing.
+        var unlocks = await ai.SuggestUnlocksAsync(s2.UserId, 20, CancellationToken.None).ConfigureAwait(false);
+        var bestDest = unlocks.Where(u => u.Change == "AddDestination").Select(u => u.ListingsUnlocked).DefaultIfEmpty(0).Max();
+        if (bestDest > 0) { unlockStudents++; unlockSum += bestDest; }
+        if (usable.Count == 0) { emptyStudents++; if (bestDest > 0) emptyRescued++; }
 
         // The exact expectation of a uniform draw, rather than one realised draw:
         // with a handful of usable listings in the whole catalogue a single random
@@ -318,6 +334,7 @@ async Task RunRecommendationAsync()
     Console.WriteLine();
     Console.WriteLine("WHAT THE SCORE IS WORTH");
     Console.WriteLine($"  slots spent on a level the student is not at : {wrongLevelSlots} of {recCount}  ({Pct(wrongLevelSlots, recCount):F1}%)");
+    Console.WriteLine($"  distinct first destinations per list         : {distinctDestSum / Math.Max(1, listsWithItems):F2}");
     Console.WriteLine($"  lists whose five scores all tie              : {allTiedLists} of {sampled.Count}  ({Pct(allTiedLists, sampled.Count):F1}%)");
     Console.WriteLine($"  distinct score values across recommendations : {distinctScores.Count}");
     Console.WriteLine($"  usable share by score band");
@@ -329,6 +346,8 @@ async Task RunRecommendationAsync()
     Console.WriteLine($"AGAINST WHAT WAS THERE TO FIND ({oracleSample.Count} students, every open listing checked)");
     Console.WriteLine($"  usable listings per student, on average    : {(double)oracleUsableTotal / Math.Max(1, oracleSample.Count):F1} of {listings.Count}");
     Console.WriteLine($"  students with at least one anywhere        : {oracleHasAny} of {oracleSample.Count}  ({Pct(oracleHasAny, oracleSample.Count):F1}%)");
+    Console.WriteLine($"  one destination added would open listings   : {unlockStudents} of {oracleSample.Count} students, {(double)unlockSum / Math.Max(1, unlockStudents):F1} listings on average for the best one");
+    Console.WriteLine($"  of students with none eligible, gain one     : {emptyRescued} of {emptyStudents}");
     var exactChance = oracleSample.Count == 0 ? 0 : chanceSum * 100.0 / oracleSample.Count;
     var levelChance = levelChanceStudents == 0 ? 0 : levelChanceSum * 100.0 / levelChanceStudents;
     Console.WriteLine($"  chance a uniformly drawn slot is usable    : {exactChance:F2}%   (exact expectation)   -> lift {(exactChance <= 0 ? 0 : recUsable / exactChance):F1}x");

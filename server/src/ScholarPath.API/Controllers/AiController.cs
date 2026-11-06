@@ -1,3 +1,5 @@
+using ScholarPath.Application.Ai.Queries.GetUnlockSuggestions;
+using ScholarPath.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -54,6 +56,16 @@ public sealed class AiController(IMediator mediator) : ControllerBase
         var result = await mediator.Send(new GenerateRecommendationsCommand(topN), ct).ConfigureAwait(false);
         return Ok(result);
     }
+
+    /// <summary>
+    /// The single profile changes that would make the student eligible for more
+    /// open scholarships, with the number each would open (counterfactual advice).
+    /// </summary>
+    [HttpGet("unlocks")]
+    [EnableRateLimiting("ai")]
+    [ProducesResponseType(typeof(IReadOnlyList<AiUnlockSuggestion>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Unlocks([FromQuery] int topN = 5, CancellationToken ct = default)
+        => Ok(await mediator.Send(new GetUnlockSuggestionsQuery(topN), ct).ConfigureAwait(false));
 
     [HttpPost("eligibility/{scholarshipId:guid}")]
     [EnableRateLimiting("ai")]

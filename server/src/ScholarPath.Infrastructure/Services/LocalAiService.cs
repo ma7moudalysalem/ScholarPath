@@ -1,3 +1,4 @@
+using ScholarPath.Domain.Entities;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -182,7 +183,7 @@ public sealed class LocalAiService(
                 c.Deadline, c.FundingAmountUsd ?? 0m));
         }
 
-        var top = scored
+        var ordered = scored
             // Equal scores are common on a catalog where most listings restrict nothing
             // but level, so ties are broken by what the student acts on: the nearer
             // deadline first, then the larger award. The title only orders what is
@@ -191,6 +192,21 @@ public sealed class LocalAiService(
             .ThenBy(x => x.Deadline)
             .ThenByDescending(x => x.FundingAmountUsd)
             .ThenBy(x => x.TitleEn)
+            .ToList();
+
+        // Optional diversification: take the best listing of each first destination
+        // before a second one from the same country, then fill by rank.
+        if (Ranking.Diversify)
+        {
+            var destination = candidates.ToDictionary(c => c.Id,
+                c => ParseJsonArray(c.TargetCountriesJson).Select(CountryNormalizer.ToKey).FirstOrDefault() ?? string.Empty);
+            var used = new HashSet<string>(StringComparer.Ordinal);
+            var picked = ordered.Where(x => used.Add(destination[x.Id])).Take(topN).ToList();
+            picked.AddRange(ordered.Where(x => !picked.Contains(x)).Take(topN - picked.Count));
+            ordered = picked;
+        }
+
+        var top = ordered
             .Take(topN)
             .Select(x => new AiRecommendationItem(
                 ScholarshipId: x.Id,
@@ -229,6 +245,47 @@ public sealed class LocalAiService(
             .FirstOrDefaultAsync(p => p.UserId == userId, ct)
             .ConfigureAwait(false);
 
+        var criteria = BuildCriteria(scholarship, profile);
+
+        var matches = criteria.Count(c => c.Match == "yes");
+        var verdict = DeriveVerdict(criteria);
+
+        // When every criterion is "unknown" the student's profile holds no
+        // usable data — any verdict would be misleading, so the summary says
+        // so plainly and points the student at completing their profile.
+        var profileIncomplete = criteria.Count > 0
+            && criteria.All(c => string.Equals(c.Match, "unknown", StringComparison.OrdinalIgnoreCase));
+
+        var summaryEn = profileIncomplete
+            ? "We couldn't assess your eligibility — your profile has no academic level, nationality, or field of study yet. Complete your profile, then run the check again."
+            : verdict switch
+            {
+                EligibilityVerdict.Eligible =>
+                    "You appear to meet all listed criteria.",
+                EligibilityVerdict.NotEligible =>
+                    $"You match {matches} of {criteria.Count} criteria, but one or more requirements are not met. Review the items marked 'no' before applying.",
+                _ =>
+                    $"You match {matches} of {criteria.Count} criteria. Review the partial items before applying.",
+            };
+
+        var summaryAr = profileIncomplete
+            ? "تعذّر تقييم أهليتك — ملفك لا يحتوي بعد على المستوى الأكاديمي أو الجنسية أو مجال الدراسة. أكمل ملفك ثم أعد الفحص."
+            : verdict switch
+            {
+                EligibilityVerdict.Eligible =>
+                    "يبدو أنك تستوفي جميع المعايير المدرجة.",
+                EligibilityVerdict.NotEligible =>
+                    $"تطابقت مع {matches} من {criteria.Count} معايير، لكن واحدًا أو أكثر من المتطلبات غير مستوفى. راجع البنود غير المطابقة قبل التقديم.",
+                _ =>
+                    $"تطابقت مع {matches} من {criteria.Count} معايير. راجع البنود الجزئية قبل التقديم.",
+            };
+
+        return new AiEligibilityResult(criteria, summaryEn, summaryAr, Disclaimer, verdict);
+    }
+
+    /// <summary>The per-criterion outcomes of a listing for a profile (see CheckEligibilityAsync).</summary>
+    internal static List<AiEligibilityCriterion> BuildCriteria(Scholarship scholarship, UserProfile? profile)
+    {
         var criteria = new List<AiEligibilityCriterion>();
 
         // Academic level
@@ -292,40 +349,50 @@ public sealed class LocalAiService(
             ListingRequirement: fosFields.Count == 0 ? "any" : string.Join(", ", fosFields),
             Match: FieldMatch(fosFields, fos)));
 
-        var matches = criteria.Count(c => c.Match == "yes");
-        var verdict = DeriveVerdict(criteria);
+        return criteria;
+    }
 
-        // When every criterion is "unknown" the student's profile holds no
-        // usable data — any verdict would be misleading, so the summary says
-        // so plainly and points the student at completing their profile.
-        var profileIncomplete = criteria.Count > 0
-            && criteria.All(c => string.Equals(c.Match, "unknown", StringComparison.OrdinalIgnoreCase));
+    public async Task<IReadOnlyList<AiUnlockSuggestion>> SuggestUnlocksAsync(
+        Guid userId, int topN, CancellationToken ct)
+    {
+        var profile = await db.UserProfiles.AsNoTracking()
+            .FirstOrDefaultAsync(p => p.UserId == userId, ct).ConfigureAwait(false);
+        if (profile is null) return [];
 
-        var summaryEn = profileIncomplete
-            ? "We couldn't assess your eligibility — your profile has no academic level, nationality, or field of study yet. Complete your profile, then run the check again."
-            : verdict switch
+        var now = _clock.GetUtcNow();
+        var listings = await db.Scholarships.AsNoTracking()
+            .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > now)
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        // A listing is opened by one change when exactly one criterion fails and
+        // every other is met: adding one of its destinations, or reaching its level.
+        var byDestination = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var byLevel = new Dictionary<AcademicLevel, int>();
+        foreach (var s in listings)
+        {
+            var criteria = BuildCriteria(s, profile);
+            var failing = criteria.Where(c => c.Match == "no").ToList();
+            if (failing.Count != 1 || criteria.Any(c => c.Match != "yes" && c.Match != "no")) continue;
+            if (failing[0].NameEn == "Country")
             {
-                EligibilityVerdict.Eligible =>
-                    "You appear to meet all listed criteria.",
-                EligibilityVerdict.NotEligible =>
-                    $"You match {matches} of {criteria.Count} criteria, but one or more requirements are not met. Review the items marked 'no' before applying.",
-                _ =>
-                    $"You match {matches} of {criteria.Count} criteria. Review the partial items before applying.",
-            };
-
-        var summaryAr = profileIncomplete
-            ? "تعذّر تقييم أهليتك — ملفك لا يحتوي بعد على المستوى الأكاديمي أو الجنسية أو مجال الدراسة. أكمل ملفك ثم أعد الفحص."
-            : verdict switch
+                foreach (var code in ParseJsonArray(s.TargetCountriesJson).Select(CountryNormalizer.ToKey).Distinct())
+                    byDestination[code] = byDestination.GetValueOrDefault(code) + 1;
+            }
+            else if (failing[0].NameEn == "Academic level")
             {
-                EligibilityVerdict.Eligible =>
-                    "يبدو أنك تستوفي جميع المعايير المدرجة.",
-                EligibilityVerdict.NotEligible =>
-                    $"تطابقت مع {matches} من {criteria.Count} معايير، لكن واحدًا أو أكثر من المتطلبات غير مستوفى. راجع البنود غير المطابقة قبل التقديم.",
-                _ =>
-                    $"تطابقت مع {matches} من {criteria.Count} معايير. راجع البنود الجزئية قبل التقديم.",
-            };
+                byLevel[s.TargetLevel] = byLevel.GetValueOrDefault(s.TargetLevel) + 1;
+            }
+        }
 
-        return new AiEligibilityResult(criteria, summaryEn, summaryAr, Disclaimer, verdict);
+        return [.. byDestination
+            .Select(kv => new AiUnlockSuggestion("AddDestination", kv.Key,
+                $"Add {CountryNormalizer.DisplayName(kv.Key, arabic: false)} to your destinations",
+                $"أضف {CountryNormalizer.DisplayName(kv.Key, arabic: true)} إلى وجهاتك", kv.Value))
+            .Concat(byLevel.Select(kv => new AiUnlockSuggestion("ReachLevel", kv.Key.ToString(),
+                $"Reach the {kv.Key} level", $"الوصول إلى مرحلة {kv.Key}", kv.Value)))
+            .OrderByDescending(x => x.ListingsUnlocked)
+            .ThenBy(x => x.Value, StringComparer.Ordinal)
+            .Take(Math.Clamp(topN, 1, 20))];
     }
 
     /// <summary>
@@ -662,4 +729,5 @@ public sealed record RankerSettings(
     int FieldWeight = 40,
     int CountryWeight = 25,
     bool LevelGate = true,
-    bool NationalityGate = true);
+    bool NationalityGate = true,
+    bool Diversify = false);
