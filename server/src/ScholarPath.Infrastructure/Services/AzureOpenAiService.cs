@@ -164,12 +164,15 @@ public sealed class AzureOpenAiService(
         }
         messages.Add(new { role = "user", content = user });
 
-        var body = new
-        {
-            messages,
-            temperature = 0.3,
-            max_tokens = 400,
-        };
+        // Reasoning models (gpt-5, o-series) take no temperature and count their
+        // reasoning against max_completion_tokens, so they get a larger budget.
+        var reasoning = deployment.StartsWith("gpt-5", StringComparison.OrdinalIgnoreCase)
+            || deployment.StartsWith("gpt-6", StringComparison.OrdinalIgnoreCase)
+            || (deployment.Length > 1 && deployment[0] is 'o' or 'O' && char.IsDigit(deployment[1]));
+        if (reasoning) url = url.Replace($"api-version={az.ApiVersion}", "api-version=2025-04-01-preview", StringComparison.Ordinal);
+        object body = reasoning
+            ? new { messages, max_completion_tokens = 4000 }
+            : new { messages, temperature = 0.3, max_tokens = 400 };
 
         using var request = new HttpRequestMessage(HttpMethod.Post, url)
         {
