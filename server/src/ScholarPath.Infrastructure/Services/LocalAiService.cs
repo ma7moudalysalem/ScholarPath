@@ -37,10 +37,16 @@ public sealed class LocalAiService(
     // Relative importance of the three criteria a listing can constrain, scored
     // against a fixed maximum so that a listing judged against the whole of a
     // student's profile can outrank one judged against a fraction of it.
-    private const int LevelWeight = 30;
-    private const int FieldWeight = 40;
-    private const int CountryWeight = 25;
-    private const int MaxWeight = LevelWeight + FieldWeight + CountryWeight;
+    /// <summary>
+    /// The ranker's weights and gates. The defaults are the platform's rule; the
+    /// evaluation harness varies them to measure what each part contributes.
+    /// </summary>
+    public RankerSettings Ranking { get; init; } = new();
+
+    private int LevelWeight => Ranking.LevelWeight;
+    private int FieldWeight => Ranking.FieldWeight;
+    private int CountryWeight => Ranking.CountryWeight;
+    private int MaxWeight => LevelWeight + FieldWeight + CountryWeight;
 
     // What a criterion earns when the listing places no restriction on it. Half
     // credit says what is true: the listing does not exclude the student, but it
@@ -78,7 +84,7 @@ public sealed class LocalAiService(
         var candidates = await db.Scholarships
             .AsNoTracking()
             .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > now)
-            .Where(s => userLevel == null || s.TargetLevel == userLevel)
+            .Where(s => !Ranking.LevelGate || userLevel == null || s.TargetLevel == userLevel)
             .Select(s => new
             {
                 s.Id,
@@ -97,7 +103,7 @@ public sealed class LocalAiService(
         // Nationality is a gate for the same reason as level: a listing closed to the
         // student's nationality can never be one they are eligible for. Where the
         // student has not stated a nationality there is nothing to gate on.
-        if (!string.IsNullOrWhiteSpace(nationality))
+        if (Ranking.NationalityGate && !string.IsNullOrWhiteSpace(nationality))
         {
             candidates = candidates
                 .Where(c => ParseJsonArray(c.EligibleNationalitiesJson) is var open
@@ -649,3 +655,11 @@ public sealed class LocalAiService(
             : "I can help with scholarships, eligibility, deadlines, and applications — and also with writing recommendation letters, structuring a Statement of Purpose, interview prep, and language tests. Ask me something specific and I'll point you to the right place.";
     }
 }
+
+/// <summary>Weights (points) and gates of the recommendation ranker.</summary>
+public sealed record RankerSettings(
+    int LevelWeight = 30,
+    int FieldWeight = 40,
+    int CountryWeight = 25,
+    bool LevelGate = true,
+    bool NationalityGate = true);

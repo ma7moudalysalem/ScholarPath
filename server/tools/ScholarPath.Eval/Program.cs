@@ -62,7 +62,12 @@ var clock = new FixedClock(asOf);
 
 var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlServer(connection).Options;
 await using var db = new ApplicationDbContext(options);
-var ai = new LocalAiService(db, new NoopRetriever(), Options.Create(new AiOptions()), clock);
+// --weights level,field,country and --no-level-gate / --no-nationality-gate vary
+// the platform's ranker for ablation and sensitivity runs; the defaults are its rule.
+var w = arg("weights", "30,40,25").Split(',').Select(int.Parse).ToArray();
+var ranking = new RankerSettings(w[0], w[1], w[2],
+    LevelGate: !args.Contains("--no-level-gate"), NationalityGate: !args.Contains("--no-nationality-gate"));
+var ai = new LocalAiService(db, new NoopRetriever(), Options.Create(new AiOptions()), clock) { Ranking = ranking };
 
 // The ranker under test can be swapped for the pre-redesign rule while the
 // eligibility checker that judges its output stays current, so a before/after
@@ -147,6 +152,7 @@ async Task RunRecommendationAsync()
     var sampled = students.OrderBy(_ => rng.Next()).Take(studentCount).ToList();
     Console.WriteLine($"sample     : {sampled.Count} students, top-{topN} each (seed {seed})");
     Console.WriteLine($"ranker     : {ranker}  (eligibility ground truth: current checker in both cases)");
+    Console.WriteLine($"ranking    : weights {ranking.LevelWeight}/{ranking.FieldWeight}/{ranking.CountryWeight}, level gate {ranking.LevelGate}, nationality gate {ranking.NationalityGate}");
     Console.WriteLine();
 
     // A recommender is only worth its complexity if it beats drawing at random
@@ -526,16 +532,17 @@ async Task RunRetrievalAsync()
     var sp = services.BuildServiceProvider();
     var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
 
-    var aiOpts = Options.Create(new AiOptions
+    IOptions<AiOptions> EmbedOptions(string deployment, int dimensions) => Options.Create(new AiOptions
     {
         AzureOpenAi = new AzureOpenAiOptions
         {
             Endpoint = Environment.GetEnvironmentVariable("AZ_OAI_ENDPOINT"),
             ApiKey = Environment.GetEnvironmentVariable("AZ_OAI_KEY"),
-            EmbeddingDeploymentName = "text-embedding-3-small",
-            EmbeddingDimensions = 1536,
+            EmbeddingDeploymentName = deployment,
+            EmbeddingDimensions = dimensions,
         },
     });
+    var aiOpts = EmbedOptions("text-embedding-3-small", 1536);
 
     var local = new LocalEmbeddingService();
     var providers = new List<(string Label, IEmbeddingService Service)>
@@ -546,6 +553,8 @@ async Task RunRetrievalAsync()
     {
         providers.Add(("text-embedding-3-small", new AzureOpenAiEmbeddingService(
             httpFactory, aiOpts, local, NullLogger<AzureOpenAiEmbeddingService>.Instance)));
+        providers.Add(("text-embedding-3-large", new AzureOpenAiEmbeddingService(
+            httpFactory, EmbedOptions("text-embedding-3-large", 3072), local, NullLogger<AzureOpenAiEmbeddingService>.Instance)));
     }
 
     static double Cosine(float[] a, float[] b)
@@ -663,7 +672,8 @@ async Task RunAnswersAsync()
         aiOptions.AzureOpenAi.Endpoint = azEndpoint;
         aiOptions.AzureOpenAi.ApiKey = azKey;
         aiOptions.AzureOpenAi.DeploymentName = Environment.GetEnvironmentVariable("AZ_OAI_CHAT") ?? "gpt-4.1-mini";
-        aiOptions.AzureOpenAi.EmbeddingDeploymentName = "text-embedding-3-small";
+        aiOptions.AzureOpenAi.EmbeddingDeploymentName = Environment.GetEnvironmentVariable("AZ_OAI_EMBED") ?? "text-embedding-3-large";
+        aiOptions.AzureOpenAi.EmbeddingDimensions = aiOptions.AzureOpenAi.EmbeddingDeploymentName.EndsWith("large", StringComparison.Ordinal) ? 3072 : 1536;
         var azServices = new ServiceCollection();
         azServices.AddHttpClient("azure-openai");
         var azHttp = azServices.BuildServiceProvider().GetRequiredService<IHttpClientFactory>();
@@ -735,9 +745,15 @@ async Task RunAnswersAsync()
     {
         int answered = 0, right = 0, figures = 0, grounded = 0, fellBack = 0;
         int judged = 0, faithful = 0, relevant = 0;
+        var latencies = new List<double>();
+        long promptTok = 0, completionTok = 0;
         foreach (var (docId, query) in queries)
         {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             var r = await svc.AskAsync(Guid.Empty, "eval", query, [], CancellationToken.None).ConfigureAwait(false);
+            latencies.Add(sw.Elapsed.TotalMilliseconds);
+            promptTok += r.PromptTokens;
+            completionTok += r.CompletionTokens;
             // The hosted providers answer with the local router when the call fails;
             // such answers are counted, so a fallback is never reported as the model.
             if (svc != local && r.Message.StartsWith("Here is what I found in ScholarPath's knowledge base", StringComparison.Ordinal)) fellBack++;
@@ -769,6 +785,9 @@ async Task RunAnswersAsync()
         Console.WriteLine($"{label,-34}{answered,10}{$"{right} ({right * 100.0 / queries.Count:F1}%)",15}{figures,9}" +
             $"{(figures == 0 ? "-" : $"{grounded * 100.0 / figures:F1}%"),10}{fellBack,11}" +
             $"{(judged == 0 ? "-" : $"{faithful * 100.0 / judged:F1}%"),10}{(judged == 0 ? "-" : $"{relevant * 100.0 / judged:F1}%"),10}");
+        latencies.Sort();
+        Console.WriteLine($"    latency median {latencies[latencies.Count / 2]:F0} ms, p95 {latencies[(int)(latencies.Count * 0.95)]:F0} ms; " +
+            $"tokens per answer {promptTok / (double)queries.Count:F0} in / {completionTok / (double)queries.Count:F0} out");
     }
     Console.WriteLine();
     Console.WriteLine("  right listing: the first source of the answer is the listing the question describes.");
