@@ -139,7 +139,10 @@ public static partial class DbSeeder
                 AccountStatus = AccountStatus.Active,
                 IsOnboardingComplete = true,
                 ActiveRole = role,
-                CountryOfResidence = GenUserCountries[rng.Next(GenUserCountries.Length)],
+                // Students are generated as Egyptian, the population the student profile
+                // statistics below describe; the draw is kept so the sequence is unchanged.
+                CountryOfResidence = GenUserCountries[rng.Next(GenUserCountries.Length)] is var drawn
+                    && role == "Student" ? "EG" : drawn,
                 PreferredLanguage = rng.Next(2) == 0 ? "ar" : "en",
                 CreatedAt = DateTimeOffset.UtcNow.AddDays(-rng.Next(1, 400)),
             };
@@ -192,17 +195,19 @@ public static partial class DbSeeder
                 break;
 
             default: // Student
-                var field = GenFields[rng.Next(GenFields.Length)];
+                // One draw from the shared generator, as before, so every value
+                // generated after it is unchanged in kind.
+                var major = PickStudentMajor(rng.NextDouble());
                 AcademicLevel[] levels =
                     [AcademicLevel.HighSchool, AcademicLevel.Undergrad, AcademicLevel.Masters, AcademicLevel.PhD];
                 p.AcademicLevel = levels[rng.Next(levels.Length)];
-                p.FieldOfStudy = field.En;
+                p.FieldOfStudy = major;
                 p.Gpa = 2.5m + rng.Next(0, 16) * 0.1m;
                 p.GpaScale = "4.0";
-                p.Biography = $"A {field.En} student seeking international scholarship opportunities and mentorship.";
+                p.Biography = $"A {major} student seeking international scholarship opportunities and mentorship.";
                 // Stated in the canonical vocabulary the listings use, so a preference
                 // can actually meet a listing's field rather than miss it on wording.
-                p.PreferredFieldsJson = JsonArray(FieldTaxonomy.FieldsOf(field.En));
+                p.PreferredFieldsJson = JsonArray(FieldTaxonomy.FieldsOf(major));
                 p.PreferredCountriesJson = JsonArray(GenDestinations(u.Email ?? u.Id.ToString()));
                 break;
         }
@@ -210,22 +215,68 @@ public static partial class DbSeeder
         return p;
     }
 
+    // Host countries of internationally mobile students from Egypt, UNESCO
+    // Institute for Statistics, indicator 26436 ("Inbound internationally mobile
+    // students from Africa: Students from Egypt"), latest year per host from 2020
+    // on (2023-2025); the 20 largest hosts, 94.8 percent of the total.
+    private static readonly (string Country, int Students)[] EgyptOutboundHosts =
+    [
+        ("RU", 15408), ("TR", 9595), ("DE", 7896), ("JO", 4945), ("US", 4069),
+        ("GB", 3538), ("SA", 3509), ("FR", 2312), ("CA", 2085), ("MY", 1958),
+        ("QA", 1926), ("IT", 1831), ("GE", 1053), ("HU", 781), ("AT", 546),
+        ("ES", 426), ("AU", 419), ("OM", 413), ("PL", 390), ("BH", 363),
+    ];
+
+    // Share of tertiary graduates in Egypt by ISCED-F broad field, UNESCO
+    // Institute for Statistics, indicators FOSGP.5T8.F110-F900 (2025), split
+    // evenly across the generated majors in each field. Services (0.3 percent)
+    // has no generated major and is left out.
+    private static readonly (double Share, string[] Majors)[] EgyptGraduateFields =
+    [
+        (14.02, ["Education"]),
+        (4.88, ["Fine Arts", "Literature", "Graphic Design"]),
+        (11.89, ["Psychology", "International Relations", "Economics"]),
+        (26.50, ["Business Administration", "Finance", "Marketing", "Accounting", "Entrepreneurship", "Law"]),
+        (3.42, ["Mathematics", "Physics", "Environmental Science", "Biotechnology"]),
+        (2.60, ["Computer Science", "Software Engineering", "Artificial Intelligence", "Data Science", "Cybersecurity"]),
+        (8.03, ["Electrical Engineering", "Mechanical Engineering", "Civil Engineering", "Renewable Energy", "Architecture"]),
+        (6.75, ["Agriculture"]),
+        (17.13, ["Medicine", "Pharmacy", "Public Health", "Nursing", "Dentistry"]),
+    ];
+
+    private static string PickStudentMajor(double u)
+    {
+        var total = EgyptGraduateFields.Sum(f => f.Share);
+        var x = u * total;
+        foreach (var (share, majors) in EgyptGraduateFields)
+        {
+            if (x < share) return majors[(int)(x / share * majors.Length)];
+            x -= share;
+        }
+        return EgyptGraduateFields[^1].Majors[^1];
+    }
+
     /// <summary>
-    /// One to three study destinations, as onboarding asks every student for.
-    /// Drawn from a generator keyed on the email rather than the shared one, so
-    /// adding them leaves every other generated value exactly as it was.
+    /// One to three study destinations, as onboarding asks every student for,
+    /// drawn in proportion to where students from Egypt study (above). Drawn from
+    /// a generator keyed on the email rather than the shared one.
     /// </summary>
     private static List<string> GenDestinations(string key)
     {
         var hash = 2166136261u;
         foreach (var ch in key) hash = (hash ^ ch) * 16777619u;
         var rng = new Random((int)(hash & 0x7FFFFFFF));
+        var total = EgyptOutboundHosts.Sum(h => h.Students);
         var picked = new List<string>();
         var count = rng.Next(1, 4);
         while (picked.Count < count)
         {
-            var c = GenCountries[rng.Next(GenCountries.Length)];
-            if (!picked.Contains(c)) picked.Add(c);
+            var x = rng.Next(total);
+            foreach (var (country, students) in EgyptOutboundHosts)
+            {
+                if (x < students) { if (!picked.Contains(country)) picked.Add(country); break; }
+                x -= students;
+            }
         }
         return picked;
     }

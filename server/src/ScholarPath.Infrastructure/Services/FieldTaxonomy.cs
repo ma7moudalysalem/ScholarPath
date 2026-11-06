@@ -27,6 +27,7 @@ public static class FieldTaxonomy
         ("Mathematics", "الرياضيات", ["Mathematics & Statistics"]),
         ("Physics", "الفيزياء", ["Natural Sciences"]),
         ("Environmental Science", "العلوم البيئية", ["Agriculture & Environment", "Natural Sciences"]),
+        ("Agriculture", "الزراعة", ["Agriculture & Environment"]),
         ("Medicine", "الطب", ["Medicine & Health"]),
         ("Pharmacy", "الصيدلة", ["Medicine & Health"]),
         ("Public Health", "الصحة العامة", ["Medicine & Health"]),
