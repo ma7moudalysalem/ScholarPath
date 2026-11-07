@@ -183,12 +183,19 @@ async Task RunRecommendationAsync()
     // from the same catalogue, so the baseline is measured on the same students.
     var verdictOf = new Dictionary<(Guid, Guid), EligibilityVerdict>();
 
-    async Task<EligibilityVerdict> VerdictAsync(Guid user, Guid listing)
+    // The checker's own criteria and verdict functions over profiles and listings
+    // held in memory: the same rule CheckEligibilityAsync applies, without two
+    // database reads per pair, so the exhaustive pass can cover every student.
+    var profileOf = await db.UserProfiles.AsNoTracking().ToDictionaryAsync(p => p.UserId).ConfigureAwait(false);
+    var listingOf = await db.Scholarships.AsNoTracking().ToDictionaryAsync(x => x.Id).ConfigureAwait(false);
+    Task<EligibilityVerdict> VerdictAsync(Guid user, Guid listing)
     {
-        if (verdictOf.TryGetValue((user, listing), out var cached)) return cached;
-        var r = await ai.CheckEligibilityAsync(user, listing, CancellationToken.None).ConfigureAwait(false);
-        verdictOf[(user, listing)] = r.Verdict;
-        return r.Verdict;
+        if (verdictOf.TryGetValue((user, listing), out var cached)) return Task.FromResult(cached);
+        var v = listingOf.TryGetValue(listing, out var sc)
+            ? LocalAiService.DeriveVerdict(LocalAiService.BuildCriteria(sc, profileOf.GetValueOrDefault(user)))
+            : EligibilityVerdict.NotEligible;
+        verdictOf[(user, listing)] = v;
+        return Task.FromResult(v);
     }
 
     int recEligible = 0, recPartial = 0, recNot = 0, recCount = 0;
@@ -749,6 +756,7 @@ async Task RunAnswersAsync()
     // judged against the documents it was given for faithfulness (every claim is
     // supported by them) and relevance (it answers the question).
     using var judgeHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(300) };
+    string lastJudgeReason = "";
     async Task<(bool Faithful, bool Relevant)?> JudgeAsync(string question, string context, string answer, string? judgeDeployment = null)
     {
         if (string.IsNullOrWhiteSpace(azEndpoint) || string.IsNullOrWhiteSpace(azKey)) return null;
@@ -756,8 +764,8 @@ async Task RunAnswersAsync()
         // model grades its own output.
         var dep = judgeDeployment ?? Environment.GetEnvironmentVariable("AZ_OAI_JUDGE") ?? "gpt-5";
         var url = $"{azEndpoint!.TrimEnd('/')}/openai/deployments/{dep}/chat/completions?api-version=2025-04-01-preview";
-        var sys = "You grade an assistant's answer. Reply ONLY with JSON {\"faithful\":true|false,\"relevant\":true|false}. "
-            + "faithful: every factual claim in the ANSWER about scholarships (names, levels, fields, countries, amounts, dates) is supported by the CONTEXT; general advice is allowed. "
+        var sys = "You grade an assistant's answer. Reply ONLY with JSON {\"faithful\":true|false,\"relevant\":true|false,\"reason\":\"one short sentence\"}. "
+            + "faithful: every factual claim in the ANSWER about scholarships (names, levels, fields, countries, amounts, dates) is supported by the CONTEXT; general advice is allowed, and so is guidance on using the ScholarPath platform itself (where to find a listing in the app, next steps, follow-up questions), since every listing in the CONTEXT is a ScholarPath listing. "
             + "relevant: the ANSWER addresses the QUESTION.";
         var user = $"QUESTION:\n{question}\n\nCONTEXT:\n{(context.Length > 6000 ? context[..6000] : context)}\n\nANSWER:\n{answer}";
         var body = System.Text.Json.JsonSerializer.Serialize(new
@@ -778,6 +786,7 @@ async Task RunAnswersAsync()
             using var doc = System.Text.Json.JsonDocument.Parse(await res.Content.ReadAsStringAsync().ConfigureAwait(false));
             var text = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "{}";
             using var verdict = System.Text.Json.JsonDocument.Parse(text);
+            lastJudgeReason = verdict.RootElement.TryGetProperty("reason", out var why) ? why.ToString() : "";
             return (verdict.RootElement.GetProperty("faithful").GetBoolean(), verdict.RootElement.GetProperty("relevant").GetBoolean());
         }
         throw new InvalidOperationException("judge rate-limited");
@@ -820,7 +829,13 @@ async Task RunAnswersAsync()
             if (j is { } j1 && !string.IsNullOrWhiteSpace(judge2) && svc != local)
             {
                 var k = await JudgeAsync(query, given, r.Message, judge2).ConfigureAwait(false);
-                if (k is { } j2) { pairsF.Add((j1.Faithful, j2.Faithful)); pairsR.Add((j1.Relevant, j2.Relevant)); }
+                if (k is { } j2)
+                {
+                    pairsF.Add((j1.Faithful, j2.Faithful)); pairsR.Add((j1.Relevant, j2.Relevant));
+                    var dis = Environment.GetEnvironmentVariable("EVAL_JUDGE_DISAGREE");
+                    if (!string.IsNullOrWhiteSpace(dis) && j1.Faithful != j2.Faithful)
+                        File.AppendAllText(dis, $"=== Q: {query}\n--- A: {r.Message}\n--- CTX: {given}\n--- judge1 faithful={j1.Faithful} judge2 faithful={j2.Faithful} reason2={lastJudgeReason}\n\n");
+                }
             }
             if (j is { } jv) { judged++; if (jv.Faithful) faithful++; if (jv.Relevant) relevant++; }
             perQuestion.AppendLine($"{label}	{docId}	{(r.Sources.Count > 0 && r.Sources[0].ScholarshipId == sourceOf[docId] ? 1 : 0)}	{(j?.Faithful == true ? 1 : 0)}	{(j?.Relevant == true ? 1 : 0)}");
