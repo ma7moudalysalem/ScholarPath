@@ -117,7 +117,34 @@ Console.WriteLine($"population : {students.Count} student profiles, {listings.Co
         $"{(pairs == 0 ? 0 : sharing * 100.0 / pairs):F1}% of all (student, listing) pairs share a declared field exactly");
 }
 
-if (mode == "reindex")
+if (mode == "verdicts")
+{
+    // The platform's per-criterion outcome for sampled students against every
+    // open DAAD listing, for comparison with DAAD's own data (real/external_check.py).
+    var vStudents = await db.UserProfiles.AsNoTracking().Where(p => p.AcademicLevel != null)
+        .Select(p => new { p.UserId, p.AcademicLevel, p.Nationality }).ToListAsync().ConfigureAwait(false);
+    var vSample = vStudents.OrderBy(x => x.UserId).OrderBy(_ => rng.Next()).Take(studentCount).ToList();
+    var daad = await db.Scholarships.AsNoTracking().Where(x => x.Slug.StartsWith("daad-") && x.Status == ScholarshipStatus.Open && x.Deadline > asOf)
+        .Select(x => new { x.Id, x.Slug }).ToListAsync().ConfigureAwait(false);
+    var outTsv = new StringBuilder();
+    foreach (var st in vSample)
+    {
+        foreach (var l in daad)
+        {
+            var r = await ai.CheckEligibilityAsync(st.UserId, l.Id, CancellationToken.None).ConfigureAwait(false);
+            var lv = r.Criteria.First(c => c.NameEn == "Academic level").Match;
+            var nat = r.Criteria.FirstOrDefault(c => c.NameEn == "Nationality")?.Match ?? "none";
+            outTsv.AppendLine($"{st.UserId}	{l.Slug}	{st.AcademicLevel}	{CountryNormalizer.ToKey(st.Nationality)}	{lv}	{nat}");
+        }
+    }
+    await File.WriteAllTextAsync(arg("out", "verdicts.tsv"), outTsv.ToString()).ConfigureAwait(false);
+    Console.WriteLine($"verdicts: {vSample.Count} students x {daad.Count} DAAD listings");
+}
+else if (mode == "questions")
+{
+    await RunQuestionsAsync().ConfigureAwait(false);
+}
+else if (mode == "reindex")
 {
     // Rebuilds the knowledge documents of the target database with the platform's
     // own indexer, without starting the API (whose startup also seeds demo data).
@@ -147,6 +174,186 @@ else
     await RunEligibilityAsync().ConfigureAwait(false);
 }
 
+// ==================================================================== questions
+// A bilingual benchmark of eligibility questions for verifying assistant answers.
+// Each question states the student's facts in words (nationality, level, major,
+// destination) and names one open listing; its answer is computed by the
+// platform's eligibility rule on exactly those facts, the rule that agrees with
+// DAAD's published criteria on every compared pair. Items are drawn per category,
+// so hard cases (a nationality that is also a destination, a missing fact, a
+// field adjacent to the accepted one) are not left to chance. Every item is
+// written in English and in Arabic with the same facts and the same answer.
+//   --mode questions --students <items per category> --out <file.jsonl>
+async Task RunQuestionsAsync()
+{
+    // Erasmus Mundus programmes whose fields could not be read from the title carry
+    // no field restriction by assumption, not by the source; they are left out so
+    // every answer rests on facts the source states.
+    var all = (await db.Scholarships.AsNoTracking()
+        .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > asOf).ToListAsync().ConfigureAwait(false))
+        .Where(s => !(s.Slug.StartsWith("em-", StringComparison.Ordinal) && Parse(s.FieldsOfStudyJson).Count == 0))
+        .ToList();
+    // The twelve nationalities of the study's students, plus a few others so that
+    // "not admitted" cases are not all the same country.
+    string[] nationalities = ["EG", "MA", "SA", "DZ", "JO", "TN", "LB", "PS", "OM", "MR", "QA", "BH",
+                              "DE", "FR", "US", "IN", "NG", "TR"];
+    (string En, string Ar)[] majors =
+    [
+        ("Computer Science", "علوم الحاسب"), ("Software Engineering", "هندسة البرمجيات"),
+        ("Data Science", "علم البيانات"), ("Electrical Engineering", "الهندسة الكهربائية"),
+        ("Civil Engineering", "الهندسة المدنية"), ("Mathematics", "الرياضيات"), ("Physics", "الفيزياء"),
+        ("Environmental Science", "العلوم البيئية"), ("Agriculture", "الزراعة"), ("Medicine", "الطب"),
+        ("Pharmacy", "الصيدلة"), ("Public Health", "الصحة العامة"), ("Business Administration", "إدارة الأعمال"),
+        ("Economics", "الاقتصاد"), ("Law", "القانون"), ("Education", "التربية والتعليم"),
+        ("Architecture", "العمارة"), ("Literature", "الأدب"), ("Psychology", "علم النفس"),
+        ("International Relations", "العلاقات الدولية"),
+    ];
+    AcademicLevel[] levels = [AcademicLevel.Undergrad, AcademicLevel.Masters, AcademicLevel.PhD, AcademicLevel.PostDoc];
+    var destinations = all.SelectMany(s => Parse(s.TargetCountriesJson)).Select(CountryNormalizer.ToKey)
+        .Where(k => k.Length == 2).Distinct().OrderBy(k => k, StringComparer.Ordinal).ToArray();
+
+    // The category a (facts, listing) pair falls in, read from the rule's own outcome.
+    static string CategoryOf(IReadOnlyList<AiEligibilityCriterion> c, string? nat, Scholarship s)
+    {
+        string M(string name) => c.FirstOrDefault(x => x.NameEn == name)?.Match ?? "absent";
+        var level = M("Academic level"); var country = M("Country"); var n = M("Nationality"); var field = M("Field of study");
+        var fails = new[] { level, country, n, field }.Count(m => m == "no");
+        if (fails >= 2) return "multiple_fail";
+        bool Ok(string m) => m is "yes" or "absent";
+        if (fails == 0 && Ok(level) && Ok(country) && Ok(n) && Ok(field)) return "eligible";
+        if (fails == 0 && n == "unknown" && Ok(level) && Ok(country) && Ok(field)) return "unknown_nationality";
+        if (fails == 0 && field == "partial" && Ok(level) && Ok(country) && Ok(n)) return "partial_field";
+        if (fails == 1 && level == "no") return "only_level";
+        if (fails == 1 && country == "no") return "only_destination";
+        if (fails == 1 && field == "no") return "only_field";
+        if (fails == 1 && n == "no")
+        {
+            var isDest = Parse(s.TargetCountriesJson).Any(d => CountryNormalizer.Matches(d, nat));
+            return isDest ? "nationality_is_destination" : "only_nationality";
+        }
+        return "other";
+    }
+
+    string LevelEn(AcademicLevel l) => l switch
+    {
+        AcademicLevel.Undergrad => "a bachelor's", AcademicLevel.Masters => "a master's",
+        AcademicLevel.PhD => "a PhD", AcademicLevel.PostDoc => "a postdoctoral", _ => l.ToString(),
+    };
+    string LevelAr(AcademicLevel l) => l switch
+    {
+        AcademicLevel.Undergrad => "البكالوريوس", AcademicLevel.Masters => "الماجستير",
+        AcademicLevel.PhD => "الدكتوراه", AcademicLevel.PostDoc => "ما بعد الدكتوراه", _ => l.ToString(),
+    };
+
+    string[] categories = ["eligible", "only_level", "only_destination", "only_nationality", "nationality_is_destination",
+                           "only_field", "partial_field", "unknown_nationality", "multiple_fail"];
+    var items = new List<object>();
+    var natDest = new Dictionary<string, int>(StringComparer.Ordinal);
+    // English country names that read with "the".
+    string The(string name) =>
+        name.StartsWith("United ", StringComparison.Ordinal) || name is "Netherlands" or "Czech Republic" or "Philippines"
+            ? "the " + name : name;
+    var seen = new HashSet<string>(StringComparer.Ordinal);
+    var counts = categories.ToDictionary(c => c, _ => 0);
+    var restricted = all.Where(s => Parse(s.EligibleNationalitiesJson).Count > 0).ToList();
+
+    foreach (var cat in categories)
+    {
+        // Three times as many eligible items, so "yes" is not a rare answer.
+        var perCategory = cat == "eligible" ? studentCount * 3 : studentCount;
+        // Nationality cases need a listing that restricts nationality.
+        var pool = cat is "only_nationality" or "nationality_is_destination" or "unknown_nationality" ? restricted : all;
+        for (var attempt = 0; attempt < 400_000 && counts[cat] < perCategory; attempt++)
+        {
+            var s = pool[rng.Next(pool.Count)];
+            var allowed = Parse(s.EligibleNationalitiesJson).Select(CountryNormalizer.ToKey).ToList();
+            var dests = Parse(s.TargetCountriesJson).Select(CountryNormalizer.ToKey).Where(k => k.Length == 2).ToList();
+            var fields = Parse(s.FieldsOfStudyJson);
+
+            // Draw the facts, steered towards the category so the search ends quickly.
+            var level = cat == "only_level" ? levels.Where(l => l != s.TargetLevel).ElementAt(rng.Next(3)) : s.TargetLevel;
+            // Nationalities come from the study's list (names known in both languages).
+            var allowedKnown = allowed.Where(a => nationalities.Contains(a)).ToList();
+            string? nat = cat switch
+            {
+                "unknown_nationality" => null,
+                "nationality_is_destination" => dests.Count > 0 ? dests[rng.Next(dests.Count)] : null,
+                "only_nationality" => nationalities[rng.Next(nationalities.Length)],
+                _ => allowedKnown.Count > 0 && rng.Next(4) > 0 ? allowedKnown[rng.Next(allowedKnown.Count)] : nationalities[rng.Next(nationalities.Length)],
+            };
+            if (cat == "nationality_is_destination" && nat is null) continue;
+            // No one destination may make up more than a third of this category.
+            if (cat == "nationality_is_destination" && natDest.GetValueOrDefault(nat!) >= Math.Max(1, perCategory / 3)) continue;
+            var dest = cat == "only_destination" || dests.Count == 0
+                ? destinations[rng.Next(destinations.Length)]
+                : dests[rng.Next(dests.Count)];
+            var major = majors[rng.Next(majors.Length)];
+            if (cat is "eligible" or "only_level" or "only_destination" or "only_nationality" or "nationality_is_destination"
+                    or "unknown_nationality" && fields.Count > 0)
+            {
+                var fitting = majors.Where(m => FieldTaxonomy.FieldsOf(m.En).Any(f => fields.Contains(f, StringComparer.OrdinalIgnoreCase))).ToArray();
+                if (fitting.Length > 0) major = fitting[rng.Next(fitting.Length)];
+            }
+
+            var profile = new UserProfile
+            {
+                AcademicLevel = level, Nationality = nat, FieldOfStudy = major.En,
+                PreferredCountriesJson = JsonSerializer.Serialize(new[] { dest }),
+            };
+            var criteria = LocalAiService.BuildCriteria(s, profile);
+            if (CategoryOf(criteria, nat, s) != cat) continue;
+            var key = $"{s.Id}|{level}|{nat}|{major.En}|{dest}";
+            if (!seen.Add(key)) continue;
+
+            var verdict = LocalAiService.DeriveVerdict(criteria);
+            var natEn = nat is null ? null : CountryNormalizer.DisplayName(nat, arabic: false);
+            var natAr = nat is null ? null : CountryNormalizer.DisplayName(nat, arabic: true);
+            if (cat == "nationality_is_destination") natDest[nat!] = natDest.GetValueOrDefault(nat!) + 1;
+            var destEn = The(CountryNormalizer.DisplayName(dest, arabic: false));
+            var destAr = CountryNormalizer.DisplayName(dest, arabic: true);
+            // The question names the four criteria the answer is judged on, so a
+            // requirement the platform does not hold (gender, age, experience) is
+            // outside what is asked.
+            var who = natEn is null ? "" : $"I am a citizen of {The(natEn)}. ";
+            var what = level == AcademicLevel.PostDoc
+                ? $"I am looking for a postdoctoral position in {major.En} in {destEn}."
+                : $"I want to study for {LevelEn(level)} degree in {major.En} in {destEn}.";
+            var award = System.Text.RegularExpressions.Regex.IsMatch(s.TitleEn, @"(Scholarships?|Fellowships?|Grants?|Awards?|Programmes?|Programs?)\W*$")
+                ? $"the \"{s.TitleEn}\"" : $"the \"{s.TitleEn}\" scholarship";
+            var qEn = $"{who}{what} Considering my academic level, field, study destination and nationality, am I eligible for {award}?";
+            var whoAr = natAr is null ? "" : $"أنا من {natAr}. ";
+            var whatAr = level == AcademicLevel.PostDoc
+                ? $"أبحث عن فرصة ما بعد الدكتوراه في تخصص {major.Ar} في {destAr}."
+                : $"أريد دراسة {LevelAr(level)} في تخصص {major.Ar} في {destAr}.";
+            var qAr = $"{whoAr}{whatAr} بالنظر إلى مستواي الدراسي وتخصصي ووجهة الدراسة وجنسيتي، هل أنا مؤهل لمنحة \"{s.TitleAr}\"؟";
+
+            var id = $"q{items.Count / 2 + 1:D5}";
+            var truth = new
+            {
+                verdict = verdict.ToString(),
+                criteria = criteria.Select(c => new { c.NameEn, c.StudentValue, c.ListingRequirement, c.Match }),
+            };
+            var facts = new { nationality = nat, level = level.ToString(), major = major.En, destination = dest };
+            var listing = new { id = s.Id, s.Slug, title_en = s.TitleEn, title_ar = s.TitleAr };
+            items.Add(new { id, lang = "en", category = cat, question = qEn, facts, listing, truth });
+            items.Add(new { id, lang = "ar", category = cat, question = qAr, facts, listing, truth });
+            counts[cat]++;
+        }
+    }
+
+    // Countries in the catalog or the study's list that have no Arabic name.
+    var noArabic = all.SelectMany(s => Parse(s.TargetCountriesJson).Concat(Parse(s.EligibleNationalitiesJson)))
+        .Concat(nationalities).Select(CountryNormalizer.ToKey).Where(k => k.Length == 2).Distinct()
+        .Where(k => CountryNormalizer.DisplayName(k, arabic: true) == k).OrderBy(k => k, StringComparer.Ordinal).ToList();
+    Console.WriteLine($"no Arabic name: {noArabic.Count} [{string.Join(",", noArabic)}]");
+
+    var outPath = arg("out", "eligibility-questions.jsonl");
+    var jsonOpts = new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    await File.WriteAllLinesAsync(outPath, items.Select(i => JsonSerializer.Serialize(i, jsonOpts)), new UTF8Encoding(false)).ConfigureAwait(false);
+    Console.WriteLine($"questions  : {items.Count / 2} items x 2 languages = {items.Count} questions -> {outPath}");
+    foreach (var c in categories) Console.WriteLine($"  {c,-28}{counts[c],6}");
+}
+
 // ==================================================================== recommendation
 async Task RunRecommendationAsync()
 {
@@ -160,12 +367,19 @@ async Task RunRecommendationAsync()
     // from the same catalogue, so the baseline is measured on the same students.
     var verdictOf = new Dictionary<(Guid, Guid), EligibilityVerdict>();
 
-    async Task<EligibilityVerdict> VerdictAsync(Guid user, Guid listing)
+    // The checker's own criteria and verdict functions over profiles and listings
+    // held in memory: the same rule CheckEligibilityAsync applies, without two
+    // database reads per pair, so the exhaustive pass can cover every student.
+    var profileOf = await db.UserProfiles.AsNoTracking().ToDictionaryAsync(p => p.UserId).ConfigureAwait(false);
+    var listingOf = await db.Scholarships.AsNoTracking().ToDictionaryAsync(x => x.Id).ConfigureAwait(false);
+    Task<EligibilityVerdict> VerdictAsync(Guid user, Guid listing)
     {
-        if (verdictOf.TryGetValue((user, listing), out var cached)) return cached;
-        var r = await ai.CheckEligibilityAsync(user, listing, CancellationToken.None).ConfigureAwait(false);
-        verdictOf[(user, listing)] = r.Verdict;
-        return r.Verdict;
+        if (verdictOf.TryGetValue((user, listing), out var cached)) return Task.FromResult(cached);
+        var v = listingOf.TryGetValue(listing, out var sc)
+            ? LocalAiService.DeriveVerdict(LocalAiService.BuildCriteria(sc, profileOf.GetValueOrDefault(user)))
+            : EligibilityVerdict.NotEligible;
+        verdictOf[(user, listing)] = v;
+        return Task.FromResult(v);
     }
 
     int recEligible = 0, recPartial = 0, recNot = 0, recCount = 0;
@@ -726,15 +940,16 @@ async Task RunAnswersAsync()
     // judged against the documents it was given for faithfulness (every claim is
     // supported by them) and relevance (it answers the question).
     using var judgeHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(300) };
-    async Task<(bool Faithful, bool Relevant)?> JudgeAsync(string question, string context, string answer)
+    string lastJudgeReason = "";
+    async Task<(bool Faithful, bool Relevant)?> JudgeAsync(string question, string context, string answer, string? judgeDeployment = null)
     {
         if (string.IsNullOrWhiteSpace(azEndpoint) || string.IsNullOrWhiteSpace(azKey)) return null;
         // The judge is a different, larger model than the one that answers, so no
         // model grades its own output.
-        var dep = Environment.GetEnvironmentVariable("AZ_OAI_JUDGE") ?? "gpt-5";
+        var dep = judgeDeployment ?? Environment.GetEnvironmentVariable("AZ_OAI_JUDGE") ?? "gpt-5";
         var url = $"{azEndpoint!.TrimEnd('/')}/openai/deployments/{dep}/chat/completions?api-version=2025-04-01-preview";
-        var sys = "You grade an assistant's answer. Reply ONLY with JSON {\"faithful\":true|false,\"relevant\":true|false}. "
-            + "faithful: every factual claim in the ANSWER about scholarships (names, levels, fields, countries, amounts, dates) is supported by the CONTEXT; general advice is allowed. "
+        var sys = "You grade an assistant's answer. Reply ONLY with JSON {\"faithful\":true|false,\"relevant\":true|false,\"reason\":\"one short sentence\"}. "
+            + "faithful: every factual claim in the ANSWER about scholarships (names, levels, fields, countries, amounts, dates) is supported by the CONTEXT; general advice is allowed, and so is guidance on using the ScholarPath platform itself (where to find a listing in the app, next steps, follow-up questions), since every listing in the CONTEXT is a ScholarPath listing. "
             + "relevant: the ANSWER addresses the QUESTION.";
         var user = $"QUESTION:\n{question}\n\nCONTEXT:\n{(context.Length > 6000 ? context[..6000] : context)}\n\nANSWER:\n{answer}";
         var body = System.Text.Json.JsonSerializer.Serialize(new
@@ -755,12 +970,15 @@ async Task RunAnswersAsync()
             using var doc = System.Text.Json.JsonDocument.Parse(await res.Content.ReadAsStringAsync().ConfigureAwait(false));
             var text = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? "{}";
             using var verdict = System.Text.Json.JsonDocument.Parse(text);
+            lastJudgeReason = verdict.RootElement.TryGetProperty("reason", out var why) ? why.ToString() : "";
             return (verdict.RootElement.GetProperty("faithful").GetBoolean(), verdict.RootElement.GetProperty("relevant").GetBoolean());
         }
         throw new InvalidOperationException("judge rate-limited");
     }
 
     var annotate = new List<(string Q, string Ctx, string A, bool F, bool R)>();
+    // One line per question and provider, for paired tests between providers.
+    var perQuestion = new StringBuilder();
     var ungrounded = new StringBuilder();
     Console.WriteLine($"{"provider",-34}{"answered",10}{"right listing",15}{"figures",9}{"grounded",10}{"fell back",11}{"faithful",10}{"relevant",10}");
     foreach (var (label, svc) in providers)
@@ -768,6 +986,8 @@ async Task RunAnswersAsync()
         int answered = 0, right = 0, figures = 0, grounded = 0, fellBack = 0;
         int judged = 0, faithful = 0, relevant = 0;
         var latencies = new List<double>();
+        var pairsF = new List<(bool A, bool B)>();
+        var pairsR = new List<(bool A, bool B)>();
         long promptTok = 0, completionTok = 0;
         foreach (var (docId, query) in queries)
         {
@@ -788,7 +1008,21 @@ async Task RunAnswersAsync()
                 .Select(s => textBySource[s.ScholarshipId!.Value]));
             var givenFigures = new HashSet<string>(Figures(given), StringComparer.Ordinal);
             var j = await JudgeAsync(query, given, r.Message).ConfigureAwait(false);
+            // A second, independent judge (AZ_OAI_JUDGE2) for inter-judge agreement.
+            var judge2 = Environment.GetEnvironmentVariable("AZ_OAI_JUDGE2");
+            if (j is { } j1 && !string.IsNullOrWhiteSpace(judge2) && svc != local)
+            {
+                var k = await JudgeAsync(query, given, r.Message, judge2).ConfigureAwait(false);
+                if (k is { } j2)
+                {
+                    pairsF.Add((j1.Faithful, j2.Faithful)); pairsR.Add((j1.Relevant, j2.Relevant));
+                    var dis = Environment.GetEnvironmentVariable("EVAL_JUDGE_DISAGREE");
+                    if (!string.IsNullOrWhiteSpace(dis) && j1.Faithful != j2.Faithful)
+                        File.AppendAllText(dis, $"=== Q: {query}\n--- A: {r.Message}\n--- CTX: {given}\n--- judge1 faithful={j1.Faithful} judge2 faithful={j2.Faithful} reason2={lastJudgeReason}\n\n");
+                }
+            }
             if (j is { } jv) { judged++; if (jv.Faithful) faithful++; if (jv.Relevant) relevant++; }
+            perQuestion.AppendLine($"{label}	{docId}	{(r.Sources.Count > 0 && r.Sources[0].ScholarshipId == sourceOf[docId] ? 1 : 0)}	{(j?.Faithful == true ? 1 : 0)}	{(j?.Relevant == true ? 1 : 0)}");
             if (j is { } ja && svc != local)
                 annotate.Add((query, given.Length > 1500 ? given[..1500] : given, r.Message, ja.Faithful, ja.Relevant));
             foreach (var f in Figures(r.Message))
@@ -807,6 +1041,19 @@ async Task RunAnswersAsync()
         Console.WriteLine($"{label,-34}{answered,10}{$"{right} ({right * 100.0 / queries.Count:F1}%)",15}{figures,9}" +
             $"{(figures == 0 ? "-" : $"{grounded * 100.0 / figures:F1}%"),10}{fellBack,11}" +
             $"{(judged == 0 ? "-" : $"{faithful * 100.0 / judged:F1}%"),10}{(judged == 0 ? "-" : $"{relevant * 100.0 / judged:F1}%"),10}");
+        if (pairsF.Count > 0)
+        {
+            static (double Agree, double Kappa) Kappa(List<(bool A, bool B)> p)
+            {
+                double n = p.Count, agree = p.Count(x => x.A == x.B) / n;
+                double pa = p.Count(x => x.A) / n, pb = p.Count(x => x.B) / n;
+                var expected = pa * pb + (1 - pa) * (1 - pb);
+                return (agree, expected >= 1 ? 1 : (agree - expected) / (1 - expected));
+            }
+            var (af, kf) = Kappa(pairsF);
+            var (ar, kr) = Kappa(pairsR);
+            Console.WriteLine($"    second judge on {pairsF.Count} answers: faithful agreement {af * 100:F1}% (kappa {kf:F2}), relevant agreement {ar * 100:F1}% (kappa {kr:F2}); second judge faithful {pairsF.Count(x => x.B) * 100.0 / pairsF.Count:F1}%, relevant {pairsR.Count(x => x.B) * 100.0 / pairsR.Count:F1}%");
+        }
         latencies.Sort();
         Console.WriteLine($"    latency median {latencies[latencies.Count / 2]:F0} ms, p95 {latencies[(int)(latencies.Count * 0.95)]:F0} ms; " +
             $"tokens per answer {promptTok / (double)queries.Count:F0} in / {completionTok / (double)queries.Count:F0} out");
@@ -816,6 +1063,9 @@ async Task RunAnswersAsync()
     Console.WriteLine("  grounded: share of figures in the answers that occur in the documents the answer was given.");
     Console.WriteLine("  faithful / relevant: share of answered questions judged by a separate Azure model (AZ_OAI_JUDGE, default gpt-5) as supported by the given documents / addressing the question.");
     if (csvPath.Length > 0) await File.WriteAllTextAsync(csvPath, ungrounded.ToString()).ConfigureAwait(false);
+
+    var perQuestionPath = arg("answers-csv", "");
+    if (perQuestionPath.Length > 0) await File.WriteAllTextAsync(perQuestionPath, perQuestion.ToString()).ConfigureAwait(false);
 
     // A sample of judged answers for human raters, who see the question, the
     // documents and the answer but not the judge's verdicts (kept in a key file).
