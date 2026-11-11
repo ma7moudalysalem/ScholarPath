@@ -1,0 +1,49 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam dpi 150
+skinparam maxMessageSize 240
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #2E4A7B
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #EAF1FB
+  ParticipantBorderColor #2E5496
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor #1A1A1A
+  ParticipantFontStyle bold
+  ActorBorderColor #2E5496
+  ActorBackgroundColor #DAE8FC
+  ActorFontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+  FontColor #1A1A1A
+}
+title Track External Application
+
+actor "Student" as ST
+participant "ScholarshipDetail" as PAGE <<page>>
+participant "applicationsApi" as API <<api>>
+participant "ApplicationsController" as CTRL <<controller>>
+participant "ExternalIntentCommand" as CMD <<command>>
+database "ApplicationTracker" as APP <<entity>>
+ST -> PAGE : Apply Now on external scholarship
+PAGE -> ST : redirect to ExternalApplicationUrl
+PAGE -> API : applicationsApi.createExternal(intent)
+API -> CTRL : POST /api/applications/external
+CTRL -> CMD : ExternalIntentCommand
+alt linked external listing
+  CMD -> APP : create tracker (ScholarshipId, Mode = External, Status = Intending)
+else pure off-platform
+  CMD -> APP : create tracker (Title / Provider / Deadline, Status = Intending)
+end
+APP --> CMD : tracker
+CMD --> CTRL : created
+CTRL --> API : 201 Created
+API --> PAGE : external tracker
+PAGE --> ST : external application tracked
+
+@enduml

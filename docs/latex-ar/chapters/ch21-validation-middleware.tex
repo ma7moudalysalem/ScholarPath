@@ -1,0 +1,322 @@
+% ch21 — مستويات التحقّق (Validation) والوسطاء (Middleware / Filters / Behaviors)
+\section{مستويات التحقّق والوسطاء}
+
+في الفصل السابق مشينا مع الطلب من ساعة ما يدخل الخادم لحدّ ما يرجع الردّ، وشُفنا الـ\en{pipeline behaviors} اللي بتلفّ كل حالة استخدام. في الفصل ده هنركّز على سؤالين عمليّين جدًّا: أين نتحقّق من المدخلات؟ وكيف نعترض الطلب في المكان الصحّ؟
+
+هنفهم إيه بالظبط؟ أولًا: ليه بنكرّر التحقّق أربع مرّات (عند العميل، ثم \en{FluentValidation}، ثم قواعد العمل داخل الـ\en{handler}، ثم قاعدة البيانات) وكل طبقة بتحرس إيه. ثانيًا: الفرق بين ثلاث آليّات اعتراض مختلفة \en{middleware} و\en{filters} و\en{behaviors}، وكل واحدة بتشتغل على أيّ مستوى. ثالثًا: الوسطاء الحقيقية عندنا بمقتطفات كود فعليّة. رابعًا: إزّاي مجرّد سمة (\en{attribute}) فوق كلاس بتغيّر سلوك الطلب. خلّينا نبدأ واحدة واحدة.
+
+\begin{idea}[الفكرة: دفاع في العمق]
+التحقّق مش خطوة واحدة، ده أربع حلقات متتالية. كل حلقة أرخص وأسرع من اللي بعدها لكن أقلّ ثقة، والحلقة الأخيرة (قاعدة البيانات) أبطأ لكن لا تُخترَق حتى تحت التزامن. لو طبقة فشلت، اللي بعدها تمسك الكرة.
+\end{idea}
+
+\subsection{أربع طبقات تحقّق — وليه بنكرّرها}
+
+تخيّل التحقّق كأنّه قِمع (\en{funnel}): المدخلات تدخل من فوق، وكل طبقة بتصفّي شيئًا معيّنًا، وما ينزل للقاع هو بس الطلب النظيف اللي يستحقّ إنه يُحفَظ. الرسمة دي بتوضّح الأربع طبقات ونقاط الرفض عند كل واحدة.
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.5cm]
+  \node[wbox,text width=8cm,fill=spLightBlue] (l1)
+    {1 — Client (React form): fast UX, not trusted};
+  \node[wbox,text width=8cm,fill=spLightTeal,below=of l1] (l2)
+    {2 — FluentValidation: shape / limits};
+  \node[wbox,text width=8cm,fill=spLightPurple,below=of l2] (l3)
+    {3 — Handler: business rules, ownership};
+  \node[wbox,text width=8cm,fill=spLightGreen,below=of l3] (l4)
+    {4 — Database: unique filtered index, FK, RowVersion};
+  \node[dbbox,below=of l4] (ok) {Persisted};
+  \draw[arr] (l1) -- (l2);
+  \draw[arr] (l2) -- (l3);
+  \draw[arr] (l3) -- (l4);
+  \draw[arr] (l4) -- (ok);
+  \node[fbox,right=1.1cm of l2] (r2) {400 rejected};
+  \node[fbox,right=1.1cm of l3] (r3) {403 / 409 / 422};
+  \node[fbox,right=1.1cm of l4] (r4) {2601 -> 409};
+  \draw[arrd] (l2) -- (r2);
+  \draw[arrd] (l3) -- (r3);
+  \draw[arrd] (l4) -- (r4);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+\subsubsection{الطبقة الأولى — العميل (نموذج \en{React})}
+
+أوّل تحقّق بيحصل في المتصفّح: النموذج بيمنعك تبعت رسالة فاضية، أو بيقولك «الحقل ده مطلوب» قبل ما تضغط إرسال. ده ممتاز لتجربة المستخدم لأنه فوريّ وبدون رحلة شبكة. لكنه غير موثوق أمنيًّا إطلاقًا: الكود ده بيشتغل على جهاز المستخدم، وأيّ حدّ يقدر يفتح أدوات المطوّر أو يبعت طلبًا مباشرًا بـ\en{curl} يتخطّى النموذج بالكامل. القاعدة الذهبية: تحقّق العميل للراحة، مش للأمان.
+
+\begin{why}
+لو اعتمدنا على تحقّق العميل وحده، أيّ مهاجم يبعت \en{JSON} يدويّ ويحقن قيمًا مستحيلة. عشان كده كل تحقّق مهمّ لازم يتكرّر على الخادم — العميل مجرّد طبقة تجميل سريعة.
+\end{why}
+
+\subsubsection{الطبقة الثانية — \en{FluentValidation} عبر \en{ValidationBehavior}}
+
+أوّل خطّ دفاع حقيقيّ على الخادم. قبل ما أيّ \en{handler} يشتغل، بيمرّ الطلب على \en{ValidationBehavior} اللي بيجمع كل الـ\en{validators} المسجّلة للأمر ده وينفّذها. لو فيه فشل واحد، بيرمي \en{ValidationException} فورًا، والطلب يتوقّف قبل أيّ شغل أو أيّ لمسة لقاعدة البيانات. ده المقتطف الحقيقيّ من \code{ValidationBehavior}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+if (!_validators.Any())
+    return await next(cancellationToken).ConfigureAwait(false);
+
+var context = new ValidationContext<TRequest>(request);
+var validationResults = await Task.WhenAll(
+    _validators.Select(v => v.ValidateAsync(context, cancellationToken)))
+    .ConfigureAwait(false);
+
+var failures = validationResults
+    .Where(r => !r.IsValid)
+    .SelectMany(r => r.Errors)
+    .ToList();
+
+if (failures.Count > 0)
+    throw new AppValidationException(failures);
+
+return await next(cancellationToken).ConfigureAwait(false);
+\end{lstlisting}
+\end{english}
+
+نقرأ الأسطر المهمّة: لو مفيش \en{validators} للأمر، بنعدّي مباشرة على \code{next} بدون أيّ تكلفة. لو فيه، بننفّذهم كلهم بالتوازي بـ\code{Task.WhenAll}. بعدين بنجمّع كل الأخطاء من كل النتائج في قائمة واحدة بـ\code{SelectMany}. لو القائمة فيها ولو خطأ واحد، بنرمي \code{AppValidationException} — ولاحظ إن الطلب ما وصلش أبدًا للـ\en{handler}. ده معناه إننا بنرفض بسرعة قبل أيّ عمل، وده رخيص جدًّا.
+
+طيب الـ\en{validator} نفسه شكله إيه؟ ده مثال حقيقيّ لأمر إرسال رسالة في الشات:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public sealed class SendMessageCommandValidator
+    : AbstractValidator<SendMessageCommand>
+{
+    public SendMessageCommandValidator()
+    {
+        RuleFor(v => v.RecipientId).NotEmpty();
+        RuleFor(v => v.Body).NotEmpty().MaximumLength(2000);
+    }
+}
+\end{lstlisting}
+\end{english}
+
+القواعد هنا «شكليّة» بحتة: المستلِم مش فاضي، ونصّ الرسالة مش فاضي وطوله ما يتعدّاش 2000 حرف. لاحظ إن الـ\en{validator} ما بيعرفش حاجة عن قواعد العمل: هل المستخدم محظور؟ هل المحادثة موجودة؟ دي أسئلة مش من شغله — دي شغل الطبقة اللي بعده. الـ\en{validator} بيحرس الشكل والحدود فقط.
+
+\begin{keyp}[نقطة مهمة: حدّ الطبقة الثانية]
+\en{FluentValidation} بيجاوب على سؤال «هل المدخلات لها شكل صحيح؟» — أنواع، مش فاضي، حدود دنيا وعليا، صيغة \en{email}. مش بيجاوب على «هل مسموح للمستخدم ده يعمل ده دلوقتي؟» — ده قرار عمل، محلّه الطبقة الثالثة.
+\end{keyp}
+
+\subsubsection{الطبقة الثالثة — قواعد العمل داخل الـ\en{handler}}
+
+هنا بنطبّق ثوابت الدومين اللي محتاجة تقرأ من قاعدة البيانات أو تفهم السياق. أمثلة حقيقية: منع التقديم على منحة بعد انتهاء موعدها، فحص إن المستخدم فعلًا يملك المورد اللي بيعدّله (الملكيّة)، ومنع إرسال رسالة لمستخدم حظرك. في نفس أمر إرسال الرسالة، الـ\en{handler} بيعمل الفحص ده:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var isBlocked = await db.UserBlocks.AnyAsync(b =>
+    (b.BlockerId == recipientId && b.BlockedUserId == currentUser.UserId) ||
+    (b.BlockerId == currentUser.UserId && b.BlockedUserId == recipientId), ct);
+
+if (isBlocked)
+    throw new ConflictException("Cannot send message. User is blocked.");
+\end{lstlisting}
+\end{english}
+
+الفحص ده مستحيل نعمله في \en{FluentValidation}، لأنه محتاج يستعلم قاعدة البيانات ويعرف مين المستخدم الحاليّ. فحوصات الملكيّة والحالة والمواعيد كلها من نوعية «قواعد عمل»، فمحلّها الطبيعيّ داخل الـ\en{handler} حيث السياق الكامل متاح. لو القاعدة اتكسرت، بنرمي استثناءً دلاليًّا (\code{ConflictException} أو \code{ForbiddenAccessException}) والوسيط بيترجمه لكود \en{HTTP} مناسب — هنشوف ده بعد شويّة.
+
+\subsubsection{الطبقة الرابعة — قيود قاعدة البيانات (الحصن الأخير)}
+
+الطبقات الثلاث السابقة كلها في الكود، والكود ممكن يتسابق. تخيّل مستخدمين، أو ضغطتين متتاليتين سريعتين، بيقدّموا على نفس المنحة في نفس اللحظة. الطبقة الثالثة بتقرأ «هل فيه تقديم سابق؟» وتلاقي لأ في الحالتين، فتسمح للاتنين — لأنهم قروا قبل ما أيّ واحد يكتب. ده اسمه \en{race condition}، وميقدرش يمسكه أيّ كود تطبيقيّ لوحده.
+
+هنا بييجي دور قاعدة البيانات: الفهرس الفريد المصفّى (\en{unique filtered index}) بيرفض ذرّيًّا (\en{atomically}) الصفّ التاني على مستوى المحرّك، مهما كان التزامن. ده التعريف الحقيقيّ لتقديمات المنح عندنا:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+b.HasIndex(a => new { a.StudentId, a.ScholarshipId })
+    .IsUnique()
+    .HasFilter(
+        "[ScholarshipId] IS NOT NULL " +
+        "AND [Status] <> 'Withdrawn' " +
+        "AND [Status] <> 'Rejected' " +
+        "AND [Status] <> 'Accepted'")
+    .HasDatabaseName("UX_Applications_Student_Scholarship_Active");
+\end{lstlisting}
+\end{english}
+
+نقرأه: الفهرس فريد على الزوج (الطالب، المنحة)، يعني ممنوع صفّين نشطين لنفس الزوج. كلمة «مصفّى» هي شرط الـ\code{HasFilter}: الفهرس بيطبّق قيد التفرّد فقط على الصفوف اللي حالتها نشطة — مش منسحبة ولا مرفوضة ولا مقبولة. ليه؟ عشان لو الطالب انسحب من منحة، نسمحله يقدّم عليها تاني؛ الفهرس بيتجاهل الصفوف القديمة غير النشطة. وشرط \code{[ScholarshipId] IS NOT NULL} بيستثني تتبّع المنح الخارجية (اللي مالهاش رابط منحة داخليّة) من قاعدة التفرّد. لمّا التزامن يحاول يدخل صفّ ثانٍ نشط، \en{SQL Server} بيرمي خطأ 2601، والطبقة بتترجمه لـ\en{HTTP} 409.
+
+\begin{secnote}
+لاحظ إن الـ\en{predicate} بتاع الفهرس المصفّى في \en{SQL Server} ما بيقبلش \code{NOT IN} ولا \code{OR} في بعض المواضع؛ عشان كده اتكتب كـ\code{<>} متسلسلة بـ\code{AND}. نفس المعنى، صيغة مقبولة. التفصيلة دي مهمّة: القيد لازم يكون صحيحًا على مستوى المحرّك، مش بس نيّة في الكود.
+\end{secnote}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: كل طبقة تحرس شيئًا مختلفًا]
+لو سألتك اللجنة «ليه بتكرّروا التحقّق أربع مرّات؟» الإجابة القويّة: مش تكرار، ده دفاع في العمق. العميل يحرس تجربة المستخدم، \en{FluentValidation} يحرس شكل المدخلات، الـ\en{handler} يحرس قواعد العمل، وقاعدة البيانات تحرس التكامل تحت التزامن. الفهرس الفريد هو آخر حصن لا يُخترَق حتى لو وصل طلبان في نفس الميلّي-ثانية — وده اللي أيّ كود تطبيقيّ لوحده ميقدرش يضمنه.
+\end{spotlight}
+
+\subsection{ثلاث آليّات اعتراض — أين يعمل كلٌّ}
+
+عندنا ثلاث أماكن نقدر نعترض فيها الطلب، وكل واحدة على مستوى مختلف. أسهل طريقة لفهمها إنك تتخيّلهم طبقات بصل (\en{onion}): الأبعد يلفّ الأقرب، والقلب هو الـ\en{handler} اللي فيه المنطق الفعليّ.
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}
+  \draw[draw=spSec!65,fill=spLightOrange,rounded corners=6pt] (0,0) rectangle (11,7.2);
+  \node[color=spSec!80,font=\small\bfseries] at (5.5,6.8) {Middleware — HTTP level};
+  \draw[draw=spHow!65,fill=spLightBlue,rounded corners=6pt] (1,0.8) rectangle (10,6.1);
+  \node[color=spHow!80,font=\small\bfseries] at (5.5,5.7) {Filter / Attribute — MVC action};
+  \draw[draw=spQA!65,fill=spLightPurple,rounded corners=6pt] (2,1.7) rectangle (9,5.0);
+  \node[color=spQA!80,font=\small\bfseries] at (5.5,4.6) {Pipeline Behavior — use case};
+  \draw[draw=spAccent!70,fill=spLightTeal,rounded corners=6pt] (3.2,2.6) rectangle (7.8,3.9);
+  \node[color=spAccent!80,font=\small\bfseries,align=center] at (5.5,3.25) {Handler\\core logic};
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+\en{Middleware} بيشتغل على مستوى \en{HTTP} الخام: بيلفّ كل طلب داخل ولا خارج، حتى الطلبات اللي مالهاش أكشن أصلًا (زيّ \code{/health}). \en{Filters} و\en{attributes} بيشتغلوا على مستوى الـ\en{MVC}: بعد ما \en{ASP.NET} يحدّد الأكشن، وبيقدروا يقروا سماته زيّ \code{[Authorize]}. أخيرًا \en{MediatR pipeline behaviors} بتشتغل على مستوى حالة الاستخدام: جوّه الـ\en{handler} تقريبًا، وبتعرف نوع الأمر بالظبط. الجدول ده بيلخّص متى تختار أيًّا:
+
+\begin{center}
+\begin{tabular}{L{3.4cm} L{5.4cm} L{5.2cm}}
+\toprule
+الآليّة & المستوى & تختارها لِـ \\
+\midrule
+\en{Middleware} & \en{HTTP} — يلفّ كل الطلبات & رؤوس أمان، صيانة، ترجمة استثناءات، \en{CORS} \\
+\en{Filter / Attribute} & الأكشن (\en{MVC}) & مصادقة وتفويض، تقييد الأدوار، علامات مثل \code{[Auditable]} \\
+\en{Pipeline Behavior} & حالة الاستخدام (\en{MediatR}) & تحقّق، تدقيق، معاملات، سجلّ لكل أمر \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{note}
+القاعدة العمليّة: لو الاهتمام يخصّ كل طلب \en{HTTP} بلا استثناء (زيّ رؤوس الأمان)، حطّه في \en{middleware}. لو يخصّ الأوامر والاستعلامات فقط (زيّ التحقّق والتدقيق)، حطّه في \en{behavior}. لو يخصّ سلوك الأكشن نفسه (زيّ التفويض)، استخدم \en{attribute/filter}.
+\end{note}
+
+\subsection{الوسطاء الكاستم عندنا}
+
+عندنا كذا \en{middleware} مكتوبة بإيدينا. خلّينا ناخد أهمّ ثلاثة.
+
+\subsubsection{\en{ExceptionHandlerMiddleware} — ترجمة الاستثناءات}
+
+ده أهمّهم. مكانه بيلفّ باقي الـ\en{pipeline} كله في \code{try/catch} واحد. الفكرة: بدل ما أيّ استثناء يطلع للمستخدم كـ500 مكشوف (مع أثر مكدّس محرج وربّما تسريب معلومات)، بنترجم كل نوع استثناء لكود \en{HTTP} نظيف وجسم \en{ProblemDetails} موحّد. مقتطف من قلب الوسيط:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+catch (ValidationException vex)
+{
+    await WriteProblemAsync(context, HttpStatusCode.UnprocessableEntity,
+        "Validation failed", detail: vex.Message, errors: vex.Errors);
+}
+catch (NotFoundException nex)
+{
+    await WriteProblemAsync(context, HttpStatusCode.NotFound,
+        "Not found", nex.Message);
+}
+// ... ConflictException -> 409, ForbiddenAccessException -> 403 ...
+catch (Exception ex)
+{
+    logger.LogError(ex, "Unhandled exception at {Path}", context.Request.Path);
+    var detail = env.IsDevelopment() ? ex.ToString()
+        : "An error occurred. Please try again.";
+    await WriteProblemAsync(context, HttpStatusCode.InternalServerError,
+        "Internal server error", detail);
+}
+\end{lstlisting}
+\end{english}
+
+كل \code{catch} بيربط نوع استثناء دلاليّ بكود \en{HTTP} صحيح: فشل التحقّق يبقى 422، «غير موجود» يبقى 404، التعارض يبقى 409، الممنوع يبقى 403. لاحظ الـ\code{catch} الأخير: أيّ استثناء غير متوقّع بيتسجّل في اللوج (عشان نشوفه)، لكن التفاصيل الخام ما بتظهرش للمستخدم في الإنتاج — بيشوف رسالة عامّة نظيفة. دالة \code{WriteProblemAsync} بتكتب \en{JSON} بنوع \code{application/problem+json} فيه \code{title} و\code{status} و\code{detail} و\code{traceId} — والأخير بيربط شكوى المستخدم بسطر اللوج المحدّد.
+
+الرسمة دي بتوضّح الفكرة: كل الأنواع بتتجمّع في مكان واحد وتتفرّع لأكواد \en{HTTP} نظيفة (\en{fan-in} ثم \en{fan-out}):
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.45cm and 2.3cm]
+  \node[gbox,text width=3.2cm] (h) {ExceptionHandler};
+  \node[srcbox,above left=0.3cm and 2.3cm of h] (e1) {ValidationException};
+  \node[srcbox,left=2.3cm of h] (e2) {NotFoundException};
+  \node[srcbox,below left=0.3cm and 2.3cm of h] (e3) {ForbiddenAccess};
+  \node[srcbox,below left=1.5cm and 2.3cm of h] (e4) {Exception (unknown)};
+  \node[fbox,above right=0.3cm and 2.3cm of h] (c1) {422};
+  \node[fbox,right=2.3cm of h] (c2) {404};
+  \node[fbox,below right=0.3cm and 2.3cm of h] (c3) {403};
+  \node[fbox,below right=1.5cm and 2.3cm of h] (c4) {500 + log};
+  \draw[arr] (e1) -- (h);
+  \draw[arr] (e2) -- (h);
+  \draw[arr] (e3) -- (h);
+  \draw[arr] (e4) -- (h);
+  \draw[arr] (h) -- (c1);
+  \draw[arr] (h) -- (c2);
+  \draw[arr] (h) -- (c3);
+  \draw[arr] (h) -- (c4);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: الترجمة مرّة واحدة في مكان واحد]
+النقطة اللي بتفرّق مشروع محترف: مفيش \code{try/catch} متناثر في كل \en{controller}. كل الأخطاء بتُترجَم في نقطة واحدة (\en{ExceptionHandler})، فالردود متّسقة، وما فيش 500 مكشوف بيسرّب تفاصيل داخلية، وكل خطأ 500 حقيقيّ بيتسجّل مع \code{traceId} يخلّي الدعم يلاقيه في ثانية. مركزيّة معالجة الأخطاء = اتّساق + أمان + قابليّة تشخيص.
+\end{spotlight}
+
+\subsubsection{\en{MaintenanceMiddleware} — وضع الصيانة}
+
+لمّا نحتاج نوقف المنصّة مؤقّتًا (ترحيل قاعدة بيانات مثلًا)، بنقلب مفتاح \code{maintenance.enabled} في الإعدادات، والوسيط ده بيردّ 503 على كل طلب — إلا مسارات مستثناة بعناية عشان الأدمن نفسه ما يتقفلش برّه:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var path = context.Request.Path.Value ?? string.Empty;
+if (BypassedPrefixes.Any(p =>
+        path.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+{
+    await next(context).ConfigureAwait(false);
+    return;
+}
+// ... read maintenance.enabled from cache (30s TTL) ...
+if (isInMaintenance)
+{
+    context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+    await context.Response.WriteAsJsonAsync(new { maintenance = true });
+    return;
+}
+\end{lstlisting}
+\end{english}
+
+المسارات المستثناة بتشمل \code{/health} (فحص الخادم)، و\code{/api/auth} (عشان الأدمن يقدر يسجّل دخول ويطفّي الصيانة)، و\code{/api/admin/settings} (نفس المفتاح لازم يفضل قابل للوصول). ولاحظ إن قراءة الإعداد بتتخزّن مؤقّتًا 30 ثانية عشان ما نضربش قاعدة البيانات في كل طلب. وفي حال فشل القراءة، الوسيط «يفشل مفتوحًا» — ما بيحجبش الطلبات الشرعيّة بسبب عطل مؤقّت في القراءة.
+
+\subsubsection{\en{SecurityHeadersMiddleware} — رؤوس الأمان}
+
+وسيط بسيط لكن مهمّ: بيضيف رؤوس أمان على كل ردّ. بيستخدم \code{OnStarting} عشان الرؤوس تتكتب بالظبط قبل ما جسم الردّ يبدأ يتبعت:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+context.Response.OnStarting(() =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    // ... Permissions-Policy, Cross-Origin-Opener-Policy ...
+    if (context.Request.IsHttps)
+        headers["Strict-Transport-Security"] =
+            "max-age=63072000; includeSubDomains; preload";
+    return Task.CompletedTask;
+});
+\end{lstlisting}
+\end{english}
+
+كل رأس بيسدّ ثغرة معروفة: \code{X-Content-Type-Options: nosniff} بيمنع المتصفّح من تخمين نوع المحتوى، \code{X-Frame-Options: DENY} بيمنع تضمين الموقع في \en{iframe} (حماية من \en{clickjacking})، و\code{Strict-Transport-Security} بيجبر المتصفّح يستخدم \en{HTTPS} لمدّة سنتين. النقطة إن ده اهتمام يخصّ كل ردّ بلا استثناء — فمحلّه الطبيعيّ \en{middleware}، مش \en{filter} ولا \en{behavior}.
+
+\subsection{السمات كـ\en{filters} — يعني إيه \en{attribute} بيغيّر السلوك}
+
+آخر قطعة في اللغز: إزّاي مجرّد سطر فوق كلاس بيغيّر مصير الطلب؟ السمة (\en{attribute}) هي وسم بيتحطّ على كود، وحاجة تانية بتقرأه وتتصرّف بناءً عليه.
+
+أوضح مثال \code{[Authorize]}. لمّا تحطّ \code{[Authorize(Roles = "Admin")]} فوق \en{controller}، إنت مش بتكتب منطق فحص؛ إنت بتحطّ علامة. الـ\en{authorization filter} في \en{ASP.NET} بيقرا العلامة دي قبل ما الأكشن يشتغل، ولو المستخدم مش أدمن بيردّ 403 من غير ما الأكشن يتنفّذ أصلًا. السمة أعلنت النيّة؛ الـ\en{filter} نفّذها.
+
+عندنا نفس النمط في التدقيق. الأمر بيتوسم بـ\code{[Auditable]}، والـ\en{AuditBehavior} (اللي شفناه في الفصل السابق) بيقرا العلامة دي ويسجّل الفعل تلقائيًّا:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+[Auditable(AuditAction.Create, "ChatMessage",
+    TargetIdProperty = nameof(RecipientId),
+    SummaryTemplate = "Sent message to {RecipientId}")]
+public sealed record SendMessageCommand(
+    Guid RecipientId,
+    string Body) : IRequest<Guid>;
+\end{lstlisting}
+\end{english}
+
+الأمر ده ما فيهوش أيّ كود تدقيق. مجرّد سمة \code{[Auditable]} بتقول: «لمّا ينجح ده، سجّل فعل إنشاء على كيان \en{ChatMessage}، والهدف هو \code{RecipientId}». الـ\en{AuditBehavior} بيقرا السمة بالـ\en{reflection} ويكتب سجلّ التدقيق. الجمال هنا الفصل: الأمر بيعلن «أنا قابل للتدقيق»، والآليّة بتتكفّل بالتنفيذ في مكان واحد — نفس فلسفة \code{[Authorize]} بالظبط.
+
+\begin{qa}[سؤال متوقّع: ليه سمة بدل استدعاء دالة؟]
+لأن السمة تصريحيّة (\en{declarative}): بتقول «إيه» مش «إزّاي». ده بيخلّي الأمر نظيف ومركّز على منطقه، وبيضمن إن كل الأوامر القابلة للتدقيق تتعامل بنفس الطريقة تلقائيًّا — مستحيل حد ينسى يستدعي دالة التدقيق، لأنها مش استدعاء أصلًا، دي علامة بتتقرا مركزيًّا.
+\end{qa}
+
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+  \item التحقّق أربع طبقات، كل واحدة تحرس شيئًا مختلفًا: العميل (تجربة سريعة، غير موثوقة)، \en{FluentValidation} (شكل وحدود المدخلات، رفض 400)، الـ\en{handler} (قواعد العمل والملكيّة والمواعيد)، وقاعدة البيانات (تكامل تحت التزامن).
+  \item الفهرس الفريد المصفّى هو الحصن الأخير: يرفض ذرّيًّا الصفّ المكرّر مهما كان التزامن — وده اللي الكود التطبيقيّ لوحده ميقدرش يضمنه.
+  \item ثلاث آليّات اعتراض على مستويات مختلفة: \en{middleware} (كل طلب \en{HTTP})، \en{filter/attribute} (الأكشن)، \en{behavior} (حالة الاستخدام). اختر بحسب نطاق الاهتمام.
+  \item وسطاؤنا الحقيقية: \en{ExceptionHandler} يترجم كل استثناء لكود \en{HTTP} نظيف في مكان واحد (لا 500 مكشوف)، \en{Maintenance} يردّ 503 مع مسارات مستثناة، \en{SecurityHeaders} يضيف رؤوس أمان لكل ردّ.
+  \item السمة تصريحيّة: \code{[Authorize]} و\code{[Auditable]} علامات تقرأها آليّة مركزيّة وتتصرّف — تفصل «الإعلان عن النيّة» عن «تنفيذها».
+\end{itemize}
+\end{summary}

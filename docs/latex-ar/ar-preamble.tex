@@ -1,0 +1,191 @@
+% =====================================================================
+%  ScholarPath — دليل الشرح العربي/الإنجليزي — الـ preamble المشترك
+%  Compile with:  xelatex  (NOT pdflatex — Arabic needs XeTeX)
+%  عربي أساسي (RTL) + مصطلحات إنجليزية داخلية + صناديق mdframed
+% =====================================================================
+
+% ── اللغة والخطوط ─────────────────────────────────────────────────────
+\usepackage{fontspec}
+\usepackage{polyglossia}
+% numerals=maghrib → أرقام لاتينية (0-9) للأقسام والصفحات، أنسب لمستند تقني ثنائي اللغة
+\setmainlanguage[numerals=maghrib]{arabic}
+\setotherlanguage{english}
+\newfontfamily\arabicfont[Script=Arabic,Scale=1.06]{Amiri}
+\newfontfamily\englishfont{TeX Gyre Termes}
+\setmainfont{TeX Gyre Termes}
+% خط أحادي المسافة للأكواد/المعرّفات
+\newfontfamily\monofont{Consolas}[Scale=0.92]
+
+% ── الهندسة والألوان ─────────────────────────────────────────────────
+\usepackage[a4paper,margin=2.3cm,top=2.7cm,bottom=2.5cm,headheight=26pt,headsep=12pt]{geometry}
+\usepackage[table]{xcolor}
+\definecolor{spInk}{HTML}{1F2A44}
+\definecolor{spPrimary}{HTML}{2A4D9B}
+\definecolor{spAccent}{HTML}{0E7C7B}
+\definecolor{spHow}{HTML}{1565C0}
+\definecolor{spWhy}{HTML}{2E7D32}
+\definecolor{spSec}{HTML}{B23A00}
+\definecolor{spQA}{HTML}{5E35B1}
+\definecolor{spGrayBg}{HTML}{F4F6FB}
+\definecolor{spRule}{HTML}{C9D2E8}
+\definecolor{spLightBlue}{HTML}{E3F2FD}
+\definecolor{spLightGreen}{HTML}{E8F5E9}
+\definecolor{spLightPurple}{HTML}{EDE7F6}
+\definecolor{spLightOrange}{HTML}{FBE9E7}
+\definecolor{spLightTeal}{HTML}{E0F2F1}
+\definecolor{spLightYellow}{HTML}{FFF9C4}
+\definecolor{spYellow}{HTML}{F9A825}
+\definecolor{spOrange}{HTML}{E65100}
+
+% ── حزم عامة ─────────────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{pdflscape}   % صفحات landscape لإدماج الديجرامات الرسمية العريضة
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,backgrounds,calc,fit}
+% ── أنماط عُقَد الرسومات (تُستخدَم داخل \begin{LTR}) — ألوان متّسقة مع الكتاب ──
+\tikzset{
+  pbox/.style={rectangle,rounded corners=4pt,text width=2.7cm,minimum height=0.8cm,
+    align=center,draw=spPrimary!65,fill=spLightBlue,font=\small\bfseries,text=spPrimary!80},
+  sbox/.style={rectangle,rounded corners=3pt,text width=2.7cm,minimum height=0.72cm,
+    align=center,draw=spPrimary!40,fill=spGrayBg,font=\small,text=spInk},
+  gbox/.style={rectangle,rounded corners=4pt,text width=2.7cm,minimum height=0.8cm,
+    align=center,draw=spQA!70,fill=spLightPurple,font=\small\bfseries,text=spQA!80},
+  fbox/.style={rectangle,rounded corners=3pt,text width=2.7cm,minimum height=0.72cm,
+    align=center,draw=spSec!65,fill=spLightOrange,font=\small,text=spSec!80},
+  tbox/.style={rectangle,rounded corners=3pt,text width=2.7cm,minimum height=0.72cm,
+    align=center,draw=spAccent!65,fill=spLightTeal,font=\small,text=spAccent!80},
+  srcbox/.style={rectangle,rounded corners=4pt,text width=2.6cm,minimum height=0.66cm,
+    align=center,draw=spWhy!60,fill=spLightGreen,font=\scriptsize,text=spWhy!80},
+  dbbox/.style={rectangle,rounded corners=3pt,text width=2.1cm,minimum height=0.8cm,
+    align=center,draw=spAccent!70,fill=spLightTeal,font=\small\bfseries,text=spAccent!80,
+    double,double distance=1.4pt},
+  dbox/.style={rectangle,rounded corners=2pt,text width=2.6cm,minimum height=0.7cm,
+    align=center,draw=spYellow!85!black,fill=spLightYellow,font=\scriptsize\itshape,text=spOrange!90},
+  wbox/.style={rectangle,rounded corners=3pt,text width=11.4cm,minimum height=0.68cm,
+    align=center,draw=spPrimary!35,fill=spGrayBg,font=\small,text=spInk},
+  actor/.style={rectangle,rounded corners=2pt,text width=2.2cm,minimum height=0.7cm,
+    align=center,draw=spInk!45,fill=white,font=\small\bfseries,text=spInk},
+  arr/.style={->,>=Stealth,semithick,color=spInk!55},
+  arrd/.style={->,>=Stealth,semithick,dashed,color=spInk!40},
+  arrb/.style={<->,>=Stealth,semithick,color=spInk!55},
+  lbl/.style={font=\scriptsize,text=spInk!60},
+}
+\usepackage[framemethod=default]{mdframed}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage[hidelinks]{hyperref}
+
+% ── أدوات نصية مساعدة ────────────────────────────────────────────────
+% مصطلح إنجليزي داخل جملة عربية: اتجاه LTR + خط لاتيني نظيف
+\newcommand{\en}[1]{\textenglish{#1}}
+% معرّف كود/تقني بخط أحادي المسافة
+\newcommand{\code}[1]{{\monofont #1}}
+
+% ── تنسيق العناوين (RTL: الرقم على اليمين) ───────────────────────────
+% أرقام الأقسام المركّبة (2.1) تُجبَر على الاتجاه LTR حتى تُقرأ صحيحة لا معكوسة
+\renewcommand{\thesection}{\textenglish{\arabic{section}}}
+\renewcommand{\thesubsection}{\textenglish{\arabic{section}.\arabic{subsection}}}
+\renewcommand{\thesubsubsection}{\textenglish{\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}}
+\titleformat{\section}{\Large\bfseries\color{spPrimary}}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\large\bfseries\color{spAccent}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{spInk}}{\thesubsubsection}{0.5em}{}
+\titlespacing*{\section}{0pt}{16pt}{6pt}
+\titlespacing*{\subsection}{0pt}{11pt}{4pt}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+\setlist{topsep=2pt,itemsep=1pt,parsep=0pt,leftmargin=1.6em,rightmargin=0.2em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt plus 1pt minus 1pt}
+
+% ── الترويسة والتذييل ────────────────────────────────────────────────
+\pagestyle{fancy}\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhead[R]{\small\color{spPrimary}\textbf{ScholarPath}}
+% الترويسة اليسرى: «الفصل N» — نتجنّب عرض عنوان القسم في الترويسة لأن العناوين
+% المختلطة (عربي + إنجليزي بين أقواس) تتبعثر في وضع الـ mark مع bidi.
+\fancyhead[L]{\small\color{spInk}\ifnum\value{section}>0 {\arabicfont الفصل}~\thesection\fi}
+\fancyfoot[C]{\small\thepage}
+
+% ── تنسيق الأكواد (listings) — تُستخدَم داخل بيئة english ────────────
+\lstset{basicstyle=\monofont\small,backgroundcolor=\color{spGrayBg},
+  frame=single,rulecolor=\color{spRule},breaklines=true,breakatwhitespace=true,
+  keywordstyle=\color{spPrimary}\bfseries,commentstyle=\color{spWhy}\itshape,
+  stringstyle=\color{spSec},columns=fullflexible,showstringspaces=false,
+  xleftmargin=4pt,framexleftmargin=2pt,tabsize=2}
+% ملاحظة: الأكواد تُكتب دائمًا داخل بيئة english يدويًّا (نمط مثبَّت مع RTL):
+%   \begin{english}\begin{lstlisting}[language={[Sharp]C}] ... \end{lstlisting}\end{english}
+% لا تستخدم lstnewenvironment مع english (يبتلع باقي المستند في وضع bidi).
+
+% ── الجداول ──────────────────────────────────────────────────────────
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\arrayrulecolor{spRule}
+\renewcommand{\arraystretch}{1.28}
+\setlength{\tabcolsep}{5pt}
+
+% ── الصناديق الملوّنة (mdframed آمن مع RTL — لا تستخدم tcolorbox) ────
+% نمط أساسي مشترك لكل الصناديق المعنونة
+\global\mdfdefinestyle{spbase}{%
+  linewidth=0.8pt,roundcorner=3pt,
+  innerleftmargin=9pt,innerrightmargin=9pt,
+  innertopmargin=7pt,innerbottommargin=7pt,
+  skipabove=7pt,skipbelow=7pt,
+  frametitlefont=\bfseries\color{white},
+  frametitlerule=false,
+  frametitleaboveskip=4pt,frametitlebelowskip=4pt}
+
+% مولّد بيئة صندوق: #1 مفتاح لوني نصّي، #2 خلفية، #3 خلفية العنوان، #4 عنوان افتراضي
+% كل بيئة تقبل عنوانًا اختياريًا لتخصيص السطر (مثل «الفكرة: RAG»)
+\newenvironment{idea}[1][الفكرة]%
+  {\begin{mdframed}[style=spbase,linecolor=spHow!75!black,backgroundcolor=spLightBlue,
+     frametitlebackgroundcolor=spHow,frametitle={\strut #1}]}%
+  {\end{mdframed}}
+\newenvironment{why}[1][ليه بالطريقة دي؟]%
+  {\begin{mdframed}[style=spbase,linecolor=spWhy!70!black,backgroundcolor=spLightGreen,
+     frametitlebackgroundcolor=spWhy!80!black,frametitle={\strut #1}]}%
+  {\end{mdframed}}
+\newenvironment{keyp}[1][نقطة مهمة]%
+  {\begin{mdframed}[style=spbase,linecolor=spQA!70!black,backgroundcolor=spLightPurple,
+     frametitlebackgroundcolor=spQA!80!black,frametitle={\strut #1}]}%
+  {\end{mdframed}}
+\newenvironment{secnote}[1][زاوية الأمان]%
+  {\begin{mdframed}[style=spbase,linecolor=spSec!75!black,backgroundcolor=spLightOrange,
+     frametitlebackgroundcolor=spSec!80!black,frametitle={\strut #1}]}%
+  {\end{mdframed}}
+\newenvironment{qa}[1][سؤال متوقع في المناقشة]%
+  {\begin{mdframed}[style=spbase,linecolor=spQA!70!black,backgroundcolor=spLightPurple,
+     frametitlebackgroundcolor=spQA!70!black,frametitle={\strut #1}]}%
+  {\end{mdframed}}
+\newenvironment{note}[1][ملاحظة]%
+  {\begin{mdframed}[style=spbase,linecolor=spAccent!70!black,backgroundcolor=spLightTeal,
+     frametitlebackgroundcolor=spAccent!80!black,frametitle={\strut #1}]}%
+  {\end{mdframed}}
+% صندوق «ملخّص الأفكار بالعربي» — الأبرز؛ حدّ أعرض
+\newenvironment{summary}[1][الخلاصة في سطور]%
+  {\begin{mdframed}[style=spbase,linewidth=1.1pt,linecolor=spPrimary,
+     backgroundcolor=spGrayBg,frametitlebackgroundcolor=spPrimary,frametitle={\strut #1}]}%
+  {\end{mdframed}}
+% صندوق «ركّز هنا لإبهار اللجنة» — تمييز ذهبيّ بعنوان داكن لتباين واضح
+\newenvironment{spotlight}[1][ركّز هنا لإبهار اللجنة]%
+  {\begin{mdframed}[style=spbase,linewidth=1.1pt,linecolor=spYellow!85!black,
+     backgroundcolor=spLightYellow,frametitlebackgroundcolor=spYellow,
+     frametitlefont=\bfseries\color{spInk},frametitle={\strut #1}]}%
+  {\end{mdframed}}
+
+% صندوق العنوان (الغلاف) لكل مستند
+\newcommand{\coverbox}[2]{%
+  \begin{mdframed}[style=spbase,linewidth=0pt,roundcorner=4pt,
+     backgroundcolor=spPrimary,innertopmargin=12pt,innerbottommargin=12pt]%
+  {\color{white}\Huge\bfseries ScholarPath}\\[3pt]
+  {\color{white}\LARGE #1}\\[6pt]
+  {\color{white}\normalsize #2}%
+  \end{mdframed}}

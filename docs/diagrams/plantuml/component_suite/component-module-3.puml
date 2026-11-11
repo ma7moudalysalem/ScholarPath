@@ -1,0 +1,72 @@
+' =====================================================================
+'  ScholarPath — MODULE 3: Consultant Booking & Ratings
+'  BookingsController + ConsultantsController -> ConsultantBookings CQRS
+'  -> Domain -> Infrastructure (Azure Communication Services for video +
+'  recording, Blob for stored recordings, Hangfire for the no-show /
+'  reminder / expiry sweeps). Ratings + reputation-penalty ledger live
+'  here. Free-mode: no payout adapter; RefundCalculatorService computes
+'  the cancellation policy only.
+' =====================================================================
+@startuml ScholarPath_Module3_Bookings
+title Module 3 — Consultant Booking & Ratings (component view)
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam component {
+  BackgroundColor #F7F8FC
+  BorderColor #3F4A5A
+}
+
+node "Web API" as API {
+  [BookingsController] as CTRL
+  [ConsultantsController] as CCTRL
+}
+
+node "Application (CQRS)" as APP {
+  [Commands\nRequest · Accept · Reject · Cancel\nReschedule · MarkNoShow\nRecordMeetingJoin · StartMeetingRecording\nStoreSessionRecording · UpdateAvailability\nSubmitConsultantRating · HideConsultantReview] as CMD
+  [Queries\nGetBookings · GetById · Availability\nRecordings · DownloadRecording] as QRY
+  [Services\nBookingBlockService\nConsultantRatingService\nRefundCalculatorService] as SVC
+  [EventHandlers] as EVT
+}
+
+node "Domain" as DOM {
+  [ConsultantBooking\nConsultantAvailability\nConsultantReview · SessionRecording] as ENT
+}
+
+node "Infrastructure (adapters)" as INF {
+  [EF Core DbContext] as DB
+  [AzureCommunicationMeetingService\n(IMeetingService)] as MEET
+  [FileStorageService\n(IBlobStorageService)] as STORE
+  [MeetingNoShowSweepJob\nBookingReminderJob · SessionExpiryJob\n«Hangfire · optional»] as JOB #FFFDE0
+  [NotificationDispatcher] as NOTIF
+}
+
+database "Azure SQL" as SQL
+[Azure Comm. Services\n(video + recording)] as ACS
+database "Blob Storage" as BLOB
+
+CTRL  --> CMD : MediatR
+CTRL  --> QRY : MediatR
+CCTRL --> QRY : MediatR
+CMD   --> SVC
+CMD   --> ENT
+QRY   --> ENT
+CMD   --> MEET : join / start recording
+CMD   --> STORE : store recording file
+CMD   --> EVT
+EVT   --> NOTIF
+CMD   ..> DB
+QRY   ..> DB
+JOB   --> DB   : no-show · reminder · expiry
+JOB   --> NOTIF
+DB    --> SQL
+MEET  --> ACS
+STORE --> BLOB
+
+note bottom of INF
+  RefundCalculatorService applies the cancellation policy only;
+  there is no payout/settlement adapter (free-mode). Meeting join,
+  recording start, and no-show sweep run through IMeetingService (ACS).
+end note
+@enduml

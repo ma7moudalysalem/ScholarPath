@@ -1,0 +1,73 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #DAE8FC
+  ParticipantBorderColor #6C8EBF
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor black
+  ActorBorderColor #6C8EBF
+  ActorBackgroundColor #DAE8FC
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+}
+title Send Message (Real-Time and Offline Notification)
+actor Student as ST
+participant "Chat" as PAGE
+participant "chatApi" as API
+participant "ChatController" as CTRL
+participant "SendMessageCommand" as CMD
+participant "ChatConversation" as CONV
+participant "ChatMessage" as MSG
+participant "ChatRealtimeNotifier" as RT
+participant "ChatHub" as HUB
+participant "ChatMessageNotificationEventHandler" as HANDLER
+participant "NotificationDispatcher" as NOTIF
+actor "Message Recipient" as MR
+ST -> PAGE ++ : type and send
+PAGE -> API ++ : POST messages
+API -> CTRL ++ : send(conversationId, body)
+CTRL -> CMD ++ : execute()
+CMD -> CMD : verify participant, block, body <= 2000
+CMD -> MSG ++ : create ChatMessage
+MSG --> CMD -- : message
+CMD -> CONV : update LastMessageAt / LastMessageId
+CMD -> CMD : SaveChangesAsync (persist first)
+CMD -> RT ++ : NotifyNewMessageAsync
+RT -> HUB : emit MessageReceived
+HUB --> MR : live message (if online)
+RT --> CMD -- : delivered
+CMD -> HANDLER ++ : publish ChatMessageReceivedEvent
+alt recipient offline
+  HANDLER -> NOTIF : ChatMessageReceived notification
+else recipient online
+  HANDLER -> HANDLER : skip offline notification
+end
+HANDLER --> CMD -- : handled
+CMD --> CTRL -- : sent (messageId)
+CTRL --> API -- : 200 OK(messageId)
+API --> PAGE -- : show sent message
+deactivate PAGE
+note over CMD, HANDLER
+  Order matches the code: SaveChangesAsync first, then
+  NotifyNewMessageAsync (realtime), then publish
+  ChatMessageReceivedEvent - all synchronously BEFORE
+  the handler returns to the controller. Send returns
+  200 OK, not 201.
+end note
+note over RT, NOTIF
+  ChatRealtimeNotifier pushes live MessageReceived via
+  ChatHub; NotificationDispatcher sends the offline
+  ChatMessageReceived notification only when the
+  recipient is offline. A thread is a ChatConversation
+  (two participants); there is no Channel/Room/Thread
+  entity.
+end note
+@enduml

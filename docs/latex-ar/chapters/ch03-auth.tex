@@ -1,0 +1,420 @@
+% ch03-auth
+\section{التوثيق والصلاحيّات}
+
+في الفصلين السابقين عرفنا الطبقات و\en{CQRS} والمنافذ (\en{ports}). في هذا الفصل
+ننتقل إلى أول ما يقابله أي مستخدم عند فتح \en{ScholarPath}: كيف يُثبت أنه \emph{هو}،
+وكيف يقرّر النظام بعد ذلك ما \emph{يُسمح} له بعمله. الموضوعان متلازمان لكنهما مختلفان
+تمامًا، ومن المهم التفريق بينهما من البداية.
+
+\begin{idea}[الفكرة: توثيق مقابل تفويض]
+\textbf{التوثيق (\en{Authentication})} يجيب على سؤال: «مَن أنت؟» — أي التأكّد من
+هويّة المستخدم عبر كلمة مرور أو حساب \en{Google} أو رمز.
+أمّا \textbf{التفويض (\en{Authorization})} فيجيب على سؤال آخر: «طيّب، وأنت مين، تقدر
+تعمل إيه؟» — أي هل يحقّ لهذا المستخدم رؤية هذا المورد أو تعديله؟
+النظام ينفّذ الأول عند الدخول (ويصدر رمزين)، ثم ينفّذ الثاني في \emph{كل} طلب لاحق.
+\end{idea}
+
+كل ما سنشرحه هنا مأخوذ من الكود الحيّ داخل \code{server/src}، تحديدًا من طبقة
+\en{Infrastructure} (الخدمات) وطبقة \en{Application} (المُعالِجات / \en{handlers}).
+
+% ====================================================================
+\subsection{الهويّة عبر ASP.NET Core Identity}
+
+بدلًا من كتابة نظام مستخدمين من الصفر (وهو أمر خطير أمنيًّا)، يبني \en{ScholarPath}
+على \en{ASP.NET Core Identity}: مكتبة مايكروسوفت الناضجة لإدارة الحسابات وكلمات المرور
+والأدوار. نقطة الوصل هي الصنف \code{ApplicationUser} الذي \emph{يرث} من
+\code{IdentityUser<Guid>}، فيأخذ كل ما توفّره \en{Identity} (كلمة المرور المُجزّأة،
+عدّاد المحاولات الفاشلة، تأكيد البريد) ويضيف فوقه حقول العمل الخاصّة بنا.
+
+\begin{note}
+اخترنا \code{Guid} كنوع للمُعرِّف بدل الرقم المتسلسل: المُعرِّفات العشوائية لا تُخمَّن
+ولا تكشف عدد المستخدمين، وتناسب التوزيع دون تصادم.
+\end{note}
+
+هنشوف تعريف \code{ApplicationUser} (مختصرًا) من ملف \code{Identity.cs}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public class ApplicationUser : IdentityUser<Guid>, ISoftDeletable
+{
+    public string FirstName { get; set; } = default!;
+    public string LastName  { get; set; } = default!;
+    public AccountStatus AccountStatus { get; set; } = AccountStatus.Unassigned;
+    public bool IsOnboardingComplete { get; set; }
+    public DateTimeOffset? LastLoginAt { get; set; }
+
+    // Dual-role support: the role active for the current session
+    public string? ActiveRole { get; set; }
+
+    public ICollection<RefreshToken> RefreshTokens { get; } = [];
+    public ICollection<LoginAttempt> LoginAttempts { get; } = [];
+
+    public string FullName => $"{FirstName} {LastName}".Trim();
+}
+\end{lstlisting}
+\end{english}
+
+نقرأ الأسطر المهمّة واحدة واحدة:
+\begin{itemize}
+\item \code{: IdentityUser<Guid>} — الوراثة التي تجلب البنية التحتية للهوية جاهزة،
+  فلا نُخزّن كلمة المرور بأنفسنا أبدًا.
+\item \code{AccountStatus} و\code{IsOnboardingComplete} — حقول عمل تُقرّر مسار
+  المستخدم بعد الدخول (مثلًا: هل أكمل خطوات التسجيل؟).
+\item \code{ActiveRole} — لأن المستخدم قد يملك أكثر من دور، نحفظ الدور الفعّال للجلسة.
+\item \code{RefreshTokens} — مجموعة رموز التحديث المرتبطة بالمستخدم؛ سنعود إليها بعد قليل.
+\end{itemize}
+
+\subsubsection{تجزئة كلمة المرور}
+النظام لا يخزّن كلمة المرور نصًّا صريحًا، بل \emph{تجزئتها} فقط عبر المنفذ
+\code{IPasswordHasher}، وتنفيذه \code{IdentityPasswordHasher} يفوّض العمل إلى
+\code{PasswordHasher} من \en{Identity} (خوارزمية \en{PBKDF2} مع مِلح
+عشوائي لكل تجزئة). عند الدخول نستدعي \code{Verify} الذي يعيد النتيجة
+دون أن يفكّ التجزئة أبدًا (التجزئة عملية باتجاه واحد).
+
+\begin{secnote}
+لماذا مِلح (\en{salt}) لكل مستخدم؟ لأنه يجعل تجزئتين لكلمتَي مرور متطابقتين
+\emph{مختلفتين} في القاعدة، فيُبطل هجمات جداول \en{rainbow} الجاهزة، ويمنع
+معرفة أن مستخدِمَين يستعملان الكلمة نفسها. ولأن التجزئة خلف المنفذ
+\code{IPasswordHasher}، يمكن استبدال الخوارزمية مستقبلًا دون لمس بقية الكود.
+\end{secnote}
+
+\subsubsection{القفل بعد المحاولات الفاشلة}
+لصدّ هجمات التخمين، يعدّ \code{LoginCommandHandler} المحاولات الفاشلة
+\emph{المتتالية} داخل نافذة زمنية؛ فإذا بلغت الحدّ يُقفَل الحساب مؤقّتًا. هنشوف
+قلب هذا المنطق:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+private const int MaxFailedAttempts = 5;
+private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(30);
+// ...
+var priorFailures = await db.LoginAttempts
+    .CountAsync(a => a.Email == normalizedEmail && !a.Succeeded
+                     && a.OccurredAt >= windowStart, ct);
+
+if (priorFailures + 1 >= MaxFailedAttempts)
+{
+    user.LockoutEnd = now + LockoutDuration;   // lock for 30 minutes
+    user.AccessFailedCount = priorFailures + 1;
+}
+\end{lstlisting}
+\end{english}
+
+الشرح:
+\begin{itemize}
+\item \code{MaxFailedAttempts = 5} — بعد خمس محاولات فاشلة متتالية يُقفَل الحساب.
+\item \code{CountAsync(...)} — يحسب الفشل \emph{غير الناجح} منذ بداية النافذة فقط،
+  فأي دخول ناجح يصفّر العدّاد عمليًّا.
+\item \code{user.LockoutEnd = now + LockoutDuration} — يضبط لحظة انتهاء القفل (30 دقيقة)؛
+  وأي محاولة قبلها تُرفَض مباشرة برسالة «الحساب مقفول مؤقّتًا».
+\end{itemize}
+
+كل محاولة — ناجحة أو فاشلة — تُسجَّل كصفٍّ في \code{LoginAttempts} مع الوقت وعنوان
+\en{IP}، فيصبح لدينا سِجلّ يمكن تدقيقه لاحقًا. أمّا \textbf{تأكيد البريد} فتديره
+\en{Identity} عبر خاصية \code{EmailConfirmed}؛ فحساب لم يؤكّد بريده يظل محدود
+الصلاحيات حتى يضغط رابط التفعيل.
+
+% ====================================================================
+\subsection{الرمزان: access JWT و refresh token}
+
+بعد نجاح التوثيق يُصدر \code{TokenService} \emph{زوجًا} من الرموز، لكل منهما دور مختلف:
+
+\begin{center}
+\begin{tabular}{L{3.2cm} L{11.4cm}}
+\toprule
+\textbf{\color{spPrimary}الرمز} & \textbf{\color{spPrimary}دوره وعمره} \\
+\midrule
+\en{Access JWT} & رمز حامل (\en{bearer}) قصير العمر جدًّا — \textbf{15 دقيقة} —
+يُرفَق مع كل طلب في ترويسة \en{Authorization}. يحمل هويّة المستخدم وأدواره موقّعةً. \\
+\en{Refresh token} & رمز عشوائي أطول عمرًا (7 أيام، أو 30 مع «تذكُّرني») وظيفته
+\emph{الوحيدة} استبدال رمز الوصول المنتهي دون إعادة إدخال كلمة المرور. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{why}
+لماذا رمز وصول قصير جدًّا؟ لأن الـ\en{JWT} — بمجرد إصداره — لا يمكن سحبه فعليًّا حتى
+ينتهي (فحصه يتم دون الرجوع للقاعدة). فلو سُرِّب، نريد نافذة خطر ضيّقة: 15 دقيقة فقط.
+والثمن (تجديد متكرّر) رخيص لأن التجديد يتم بصمت عبر رمز التحديث دون إزعاج المستخدم.
+\end{why}
+
+\subsubsection{كيف يُولَّد رمز التحديث ويُخزَّن؟}
+النقطة الحسّاسة: رمز التحديث \emph{لا} يُخزَّن كما هو في القاعدة، بل تُخزَّن
+\emph{تجزئته} فقط في الحقل \code{RefreshToken.TokenHash}. هنشوف التوليد والتجزئة من
+\code{TokenService}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+private static string GenerateSecureRefreshToken()
+{
+    var bytes = RandomNumberGenerator.GetBytes(64);   // 64 crypto-random bytes
+    return Convert.ToBase64String(bytes);
+}
+
+private static string HashRefreshToken(string token)
+{
+    var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+    return Convert.ToHexString(bytes);                // store the hash, not the token
+}
+\end{lstlisting}
+\end{english}
+
+الشرح:
+\begin{itemize}
+\item \code{RandomNumberGenerator.GetBytes(64)} — مولّد عشوائي \emph{تشفيري} (لا
+  \code{Random} العادي)، فالرمز غير قابل للتخمين.
+\item الرمز الخام يُرسَل للعميل فقط. أمّا ما يُحفَظ في القاعدة فهو ناتج
+  \code{HashRefreshToken} — تجزئة \en{SHA-256} بصيغة \en{hex}.
+\end{itemize}
+
+\begin{keyp}[نقطة مهمة: تسريب القاعدة لا يعطي رمزًا صالحًا]
+لو تسرّبت قاعدة البيانات كاملة، لن يجد المهاجم إلا \emph{تجزئات} لا يمكن عكسها إلى
+الرمز الأصلي. وبما أن النظام يقارن بتجزئة ما يُقدَّم إليه، فالتجزئة المسروقة عديمة
+الفائدة. نفس المبدأ نطبّقه على رمز إعادة تعيين كلمة المرور (سيأتي بعد قليل).
+\end{keyp}
+
+\subsubsection{التدوير عند كل استخدام}
+رمز التحديث \textbf{يُدوَّر}: كل مرة يُستخدَم فيها، يُبطَل القديم فورًا ويُصدَر بديل
+جديد. وإذا عاد رمزٌ مُبطَل للظهور مرّة أخرى، فهذه إشارة سرقة، فنُلغي \emph{كل} جلسات
+المستخدم احتياطًا. هنشوف \code{RotateRefreshTokenAsync} (مختصرًا):
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// Reuse detection: a revoked token presented again means it was already
+// rotated -- a replay attack or a stale client. Revoke the whole family
+// so a stolen token can never be exchanged.
+if (stored.IsRevoked)
+{
+    await RevokeAllForUserAsync(stored.UserId, "Refresh token reuse detected", ct);
+    return null;
+}
+
+// Otherwise: mark the old one revoked and issue a fresh replacement pair.
+stored.IsRevoked = true;
+stored.RevokedAt = clock.UtcNow;
+stored.RevokedReason = "Rotated";
+var pair = IssueTokens(stored.User, roles, stored.User.ActiveRole, rememberMe);
+stored.ReplacedByTokenId = newToken.Id;   // chain old -> new for traceability
+\end{lstlisting}
+\end{english}
+
+الشرح:
+\begin{itemize}
+\item \code{if (stored.IsRevoked)} — لو الرمز المُقدَّم مُبطَل سلفًا فهذا «إعادة
+  استخدام»؛ نستدعي \code{RevokeAllForUserAsync} فنقطع كل جلسات المستخدم.
+\item \code{stored.IsRevoked = true} — نُبطِل القديم أوّلًا، ثم نُصدر زوجًا جديدًا،
+  فلا يبقى رمزان صالحان في وقت واحد.
+\item \code{ReplacedByTokenId} — نربط القديم بالجديد، فيصير لدينا سلسلة يمكن تتبّعها.
+\end{itemize}
+
+\subsubsection{نفس الحماية لرمز إعادة تعيين كلمة المرور}
+حقل \code{PasswordResetToken.TokenHash} يتبع نفس الفلسفة: يُولَّد رمز خام، يُرسَل
+بالبريد، ويُخزَّن \emph{مُجزَّأً} فقط، صالحًا لساعة واحدة ولمرّة واحدة:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+db.PasswordResetTokens.Add(new PasswordResetToken
+{
+    UserId    = user.Id,
+    TokenHash = Hash(rawToken),        // only the hash is persisted
+    ExpiresAt = now + TokenLifetime,   // 1 hour, single use (UsedAt)
+});
+// the raw token travels only inside the emailed link, never to the DB
+\end{lstlisting}
+\end{english}
+
+لاحظ أيضًا أن معالج «نسيت كلمة المرور» \emph{لا} يكشف إن كان البريد مسجّلًا أم لا —
+يعيد نجاحًا صامتًا دائمًا — حتى لا يُستغَل لاكتشاف الحسابات الموجودة.
+
+% ====================================================================
+\subsection{خوارزميّة التوقيع: RS256 مقابل HS256}
+
+الـ\en{JWT} يُوقَّع كي لا يستطيع أحد تزييف محتواه. أمامنا خياران شائعان، واختار
+\en{ScholarPath} الأأمن منهما:
+
+\begin{center}
+\begin{tabular}{L{3.4cm} L{5.5cm} L{5.5cm}}
+\toprule
+\textbf{\color{spPrimary}الوجه} & \textbf{\color{spPrimary}\en{HS256} (متماثل)} & \textbf{\color{spPrimary}\en{RS256} (غير متماثل)} \\
+\midrule
+المفتاح & سرّ واحد مشترك يُوقّع ويتحقّق & زوج: مفتاح خاصّ يوقّع، وعامّ يتحقّق \\
+مَن يحتاج السرّ؟ & كل طرف يتحقّق يحتاج السرّ نفسه & المتحقّق يحتاج المفتاح العامّ فقط \\
+خطر التسريب & مَن يعرف السرّ يستطيع \emph{تزوير} الرموز & المفتاح العامّ يتحقّق ولا يوقّع \\
+التدوير & صعب (السرّ منتشر في كل مكان) & سهل عبر منفذ مفاتيح مستقلّ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+في \code{TokenService} نوقّع بالمفتاح الخاصّ الآتي من منفذ المفاتيح
+\code{IJwtKeyProvider}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// RS256: sign with the RSA private key supplied by the key provider
+// (Azure Key Vault in production, a local key in development).
+var signingKey = keyProvider.GetSigningKey();
+var creds = new SigningCredentials(signingKey, SecurityAlgorithms.RsaSha256);
+
+var token = new JwtSecurityToken(
+    issuer:   _opts.Issuer,
+    audience: _opts.Audience,
+    claims:   claims,
+    notBefore: clock.UtcNow.UtcDateTime,
+    expires:   expires.UtcDateTime,
+    signingCredentials: creds);
+
+return new JwtSecurityTokenHandler().WriteToken(token);
+\end{lstlisting}
+\end{english}
+
+الشرح:
+\begin{itemize}
+\item \code{keyProvider.GetSigningKey()} — يجلب المفتاح \emph{الخاصّ}
+  (\en{RSA private key})؛ في الإنتاج من \en{Azure Key Vault}، وفي التطوير مفتاح محلّي.
+\item \code{SecurityAlgorithms.RsaSha256} — هذا هو \en{RS256} بالضبط.
+\item \code{claims} — تحمل هويّة المستخدم وأدواره؛ لأنها موقّعة، أي تلاعب بها يُبطِل
+  التوقيع فيُرفَض الرمز.
+\end{itemize}
+
+\begin{why}
+لماذا \en{RS256}؟ لأن الخدمات التي \emph{تتحقّق} من الرمز تحتاج المفتاح
+\emph{العامّ} فقط، والمفتاح العامّ لا يستطيع التوقيع؛ فحتى لو تسرّب لا يستطيع أحد
+تزوير رموز. أمّا \en{HS256} فسرّه الواحد يوقّع \emph{ويتحقّق}، فمن يقرأه يقدر يزوّر.
+وبفصل المفتاح خلف المنفذ \code{IJwtKeyProvider} صار \textbf{تدوير المفاتيح} عملية
+تشغيلية بلا إعادة نشر للكود.
+\end{why}
+
+% ====================================================================
+\subsection{الدخول الاجتماعي (SSO) والتحقّق بخطوتين (2FA)}
+
+إلى جانب كلمة المرور، يدعم النظام الدخول عبر \en{Google} و\en{Microsoft} بمعيار
+\en{OAuth 2.0} (تدفّق كود التفويض)، ويديره \code{SsoService}. الفكرة أن المستخدم
+يوثّق نفسه عند \en{Google}، فيعود متصفّحه إلينا حاملًا \emph{كودًا} مؤقّتًا، ونحن
+نبادل هذا الكود بمعلومات المستخدم في مكالمتين خلفيتين.
+
+هنشوف قلب المبادلة من \code{SsoService.ExchangeCodeForTokenAsync} (مختصرًا):
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var form = new Dictionary<string, string>
+{
+    ["code"]          = code,
+    ["client_id"]     = provider.ClientId!,
+    ["client_secret"] = provider.ClientSecret!,
+    ["redirect_uri"]  = redirectUri,
+    ["grant_type"]    = "authorization_code",
+};
+
+var response = await client.PostAsync(tokenEndpoint, content, ct);
+// on success -> read the access_token, then GET the userinfo endpoint
+// (email, name, picture) to build our SsoUserInfo
+\end{lstlisting}
+\end{english}
+
+الشرح:
+\begin{itemize}
+\item \code{["code"]} — الكود المؤقّت العائد من المزوّد؛ يُبادَل مرّة واحدة فقط.
+\item \en{client secret} — سرّ تطبيقنا لدى المزوّد، يأتي من الإعدادات لا من
+  الكود، فلا يظهر أبدًا للمتصفّح.
+\item بعد الحصول على \en{access token} نطلب نقطة \en{userinfo} لجلب البريد والاسم
+  والصورة، ونبني منها \code{SsoUserInfo} لإنشاء الحساب أو ربطه.
+\end{itemize}
+
+\begin{secnote}
+عنوان العودة (\en{redirect URI}) لا يُعكَس كما جاء من العميل؛ يفضّل النظام عنوانًا
+ثابتًا من الإعدادات، أو يطابقه بقائمة سماح صريحة. هذا يسدّ ثغرة إعادة توجيه الكود إلى
+موقع مهاجم — نقطة ضعف كلاسيكية في \en{OAuth}.
+\end{secnote}
+
+\begin{note}
+للحسابات التي تريد حماية أقوى، يدعم النظام \textbf{التحقّق بخطوتين (\en{2FA})} عبر
+\en{TOTP} — رمز لمرّة واحدة يتغيّر كل 30 ثانية من تطبيق مصادقة (مثل \en{Google
+Authenticator}) — مبنيًّا على تدفّق \en{TwoFactor} في \en{ASP.NET Identity}. حتى لو
+سُرِّبت كلمة المرور، يبقى الرمز الدوري حاجزًا ثانيًا.
+\end{note}
+
+% ====================================================================
+\subsection{التفويض: الأدوار وفحوص الملكيّة}
+
+بعد أن عرفنا \emph{مَن} المستخدم، يبدأ التفويض. يعمل على مستويين متكاملين:
+
+\textbf{أولًا: الأدوار (\en{roles}).} لكل مستخدم دور أو أكثر، ويُحدَّد المسموح لكل دور:
+
+\begin{center}
+\begin{tabular}{L{3.4cm} L{11.3cm}}
+\toprule
+\textbf{\color{spPrimary}الدور} & \textbf{\color{spPrimary}صلاحيّته العامّة} \\
+\midrule
+\en{SuperAdmin} & أعلى صلاحية؛ إدارة المسؤولين والإعدادات الحسّاسة للمنصّة. \\
+\en{Admin} & إدارة المحتوى والمستخدمين والمراجعات ومهامّ التشغيل اليومية. \\
+\en{Student} & البحث عن المنح، التقديم، حجز الاستشارات، المشاركة في المجتمع. \\
+\en{Consultant} & استقبال الحجوزات، عقد الجلسات، إدارة ملفّه المهني. \\
+\en{Company} & نشر المنح ومراجعة الطلبات (مزوّد المنح). \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+الأدوار تحمى نقاط النهاية على مستوى واسع (مثلًا: لوحة الإدارة لِـ\en{Admin} فقط).
+لكن الدور وحده لا يكفي: كوْن المستخدم \en{Student} لا يعني أن له حقّ تعديل طلب
+\emph{طالب آخر}.
+
+\textbf{ثانيًا: فحوص الملكيّة (\en{ownership checks}).} داخل كل \en{handler} يتحقّق
+النظام أن المورد المطلوب يخصّ صاحب الطلب فعلًا — بمقارنة مُعرِّف المستخدم الحالي
+(من المنفذ \code{ICurrentUserService}) بمالك المورد — وإلّا يرفض العملية.
+
+\begin{keyp}[نقطة مهمة: الدور طبقة أولى، والملكيّة طبقة ثانية]
+الدور يجيب «هل يحقّ لهذا \emph{النوع} من المستخدمين استعمال هذه الوظيفة؟»، والملكيّة
+تجيب «وهل يملك \emph{هذا} المستخدم \emph{هذا} المورد بالذات؟». الطبقتان معًا تمنعان
+ثغرة الوصول المباشر لمورد غير مملوك (\en{IDOR}) — من أخطر أخطاء تطبيقات الويب.
+\end{keyp}
+
+% ====================================================================
+\subsection{مخطّط تدفّق تسجيل الدخول}
+
+نجمع كل ما سبق في تدفّق واحد: من وصول الطلب حتى إصدار الرمزين. اقرأ الجدول من أعلى
+إلى أسفل:
+
+\begin{center}
+\begin{tabular}{L{1.1cm} L{13.4cm}}
+\toprule
+\textbf{\color{spPrimary}\#} & \textbf{\color{spPrimary}ما يحدث} \\
+\midrule
+1 & يصل طلب \en{POST} إلى نقطة الدخول ومعه البريد وكلمة المرور. \\
+2 & يبحث \code{LoginCommandHandler} عن المستخدم بالبريد المُطبَّع؛ إن لم يوجد يُسجَّل فشل ويُرفَض برسالة عامّة. \\
+3 & إن كان الحساب مقفولًا (\code{LockoutEnd} في المستقبل) يُرفَض فورًا. \\
+4 & تُتحقّق كلمة المرور عبر \code{IPasswordHasher.Verify}؛ عند الفشل يُزاد العدّاد وقد يُقفَل الحساب (5 محاولات $\rightarrow$ 30 دقيقة). \\
+5 & إن كان الحساب موقوفًا أو مُعطَّلًا يُرفَض الدخول رغم صحّة كلمة المرور. \\
+6 & عند النجاح: تُصفَّر المحاولات، ويُحدَّث \code{LastLoginAt}، وتُسجَّل محاولة ناجحة. \\
+7 & يجلب النظام أدوار المستخدم، ثم يستدعي \code{TokenService.IssueTokens}. \\
+8 & يُنشأ \en{access JWT} موقّع بـ\en{RS256} (15 دقيقة) $+$ \en{refresh token} عشوائي. \\
+9 & تُخزَّن \emph{تجزئة} رمز التحديث في \code{RefreshToken.TokenHash}، ويُعاد الزوج للعميل. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{qa}
+\textbf{سؤال متوقّع:} «لو انتهى رمز الوصول والمستخدم لسّه شغّال، هيحصل إيه؟»\\
+\textbf{الإجابة:} العميل يرسل رمز التحديث إلى نقطة التجديد، فيدوّره
+\code{RotateRefreshTokenAsync}: يُبطِل القديم ويصدر زوجًا جديدًا، فتستمرّ الجلسة بلا
+إدخال كلمة مرور. ولو ظهر رمز مُبطَل ثانيةً، تُلغى كل الجلسات كإجراء ضدّ السرقة.
+\end{qa}
+
+% ====================================================================
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item \textbf{التوثيق} يجيب «مَن أنت؟»، و\textbf{التفويض} يجيب «تقدر تعمل إيه؟» —
+  الأول عند الدخول، والثاني في كل طلب.
+\item \code{ApplicationUser : IdentityUser<Guid>} يبني على \en{ASP.NET Core Identity}:
+  كلمة مرور مُجزّأة بـ\en{PBKDF2}$+$مِلح، قفل بعد 5 محاولات، وتأكيد بريد.
+\item النظام يُصدر \textbf{رمزين}: \en{access JWT} قصير (15 دقيقة) و\en{refresh token}
+  يُدوَّر عند كل استخدام، ويُخزَّن \emph{مُجزَّأً} في \code{RefreshToken.TokenHash}.
+\item نفس التجزئة تحمي \code{PasswordResetToken}: تسريب القاعدة لا يعطي رمزًا صالحًا.
+\item التوقيع بـ\en{RS256} (غير متماثل) أأمن من \en{HS256}: المتحقّق يحتاج المفتاح
+  العامّ فقط، والتدوير سهل عبر المنفذ \code{IJwtKeyProvider}.
+\item \code{SsoService} يبادل أكواد \en{OAuth} مع \en{Google} و\en{Microsoft}،
+  ويُتاح \en{2FA} عبر \en{TOTP}.
+\item التفويض طبقتان: \textbf{الأدوار} (\en{SuperAdmin/Admin/Student/Consultant/Company})
+  ثم \textbf{فحوص الملكيّة} داخل الـ\en{handlers} لسدّ ثغرات \en{IDOR}.
+\end{itemize}
+\end{summary}

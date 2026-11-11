@@ -1,0 +1,124 @@
+' =====================================================================
+'  ScholarPath — Class diagram · Module 3 · Bookings, Consultations
+'  & Ratings  (PB-006 Consultant sessions, PB-006R No-show / penalty policy)
+'  All classes : AuditableEntity + ISoftDeletable.
+'  Payment columns excluded per scope (Booking.PriceUsd / PaymentId /
+'  StripePaymentIntentId).
+' =====================================================================
+
+@startuml Class_Module3_Bookings_Ratings
+title Module 3 — Bookings, Consultations & Ratings  (all classes : AuditableEntity + ISoftDeletable)
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+
+abstract class AuditableEntity {
+  -CreatedAt : DateTimeOffset
+  -CreatedByUserId : Guid?
+  -UpdatedAt : DateTimeOffset?
+  -UpdatedByUserId : Guid?
+  -RowVersion : byte[]?
+}
+interface ISoftDeletable {
+  +IsDeleted : bool
+  +DeletedAt : DateTimeOffset?
+  +DeletedByUserId : Guid?
+}
+class ApplicationUser <<Module 1 · actor (student / consultant)>>
+
+class ConsultantAvailability {
+  -ConsultantId : Guid
+  -DayOfWeek : DayOfWeek?
+  -StartTime : TimeOnly?
+  -EndTime : TimeOnly?
+  -SpecificStartAt : DateTimeOffset?
+  -SpecificEndAt : DateTimeOffset?
+  -Timezone : string
+  -IsRecurring : bool
+  -IsActive : bool
+}
+class ConsultantBooking {
+  -StudentId : Guid
+  -ConsultantId : Guid
+  -AvailabilityId : Guid?
+  -ScheduledStartAt : DateTimeOffset
+  -ScheduledEndAt : DateTimeOffset
+  -DurationMinutes : int
+  -StudentNotes : string?
+  -MeetingRoomId : string?
+  -RecordingStartedAt : DateTimeOffset?
+  -RecordingId : string?
+  -Status : BookingStatus
+  -ConfirmedAt : DateTimeOffset?
+  -CompletedAt : DateTimeOffset?
+  -CancellationReason : CancellationReason?
+  -CancelledByUserId : Guid?
+  -IsNoShowStudent : bool
+  -IsNoShowConsultant : bool
+  -NoShowMarkedAt : DateTimeOffset?
+  -StudentJoinedAt : DateTimeOffset?
+  -ConsultantJoinedAt : DateTimeOffset?
+}
+class NoShowReport {
+  -BookingId : Guid
+  -ReporterUserId : Guid
+  -AccusedUserId : Guid
+  -AccusedRole : NoShowAccusedRole
+  -Status : NoShowReportStatus
+  -ResolvedByAdminId : Guid?
+  -ResolvedAt : DateTimeOffset?
+  -AdminNote : string?
+  -ReporterNote : string?
+}
+class SessionRecording {
+  -BookingId : Guid
+  -RecordingId : string
+  -StoragePath : string
+  -ContentType : string
+  -SizeBytes : long
+  -RecordedAt : DateTimeOffset
+}
+class ConsultantReview {
+  -BookingId : Guid
+  -StudentId : Guid
+  -ConsultantId : Guid
+  -Rating : int
+  -Comment : string?
+  -IsHiddenByAdmin : bool
+  -AdminNote : string?
+}
+
+' Inheritance
+AuditableEntity <|-- ConsultantAvailability
+AuditableEntity <|-- ConsultantBooking
+AuditableEntity <|-- NoShowReport
+AuditableEntity <|-- SessionRecording
+AuditableEntity <|-- ConsultantReview
+ISoftDeletable <|.. ConsultantAvailability
+ISoftDeletable <|.. ConsultantBooking
+ISoftDeletable <|.. NoShowReport
+ISoftDeletable <|.. SessionRecording
+ISoftDeletable <|.. ConsultantReview
+
+' Associations
+ApplicationUser "1" o-- "*" ConsultantAvailability : publishes(consultant) >
+ConsultantAvailability "0..1" -- "*" ConsultantBooking : reserves >
+ApplicationUser "1" -- "*" ConsultantBooking : books(student) >
+ApplicationUser "1" -- "*" ConsultantBooking : conducts(consultant) >
+ConsultantBooking "1" -- "*" NoShowReport : disputed >
+ApplicationUser "1" -- "*" NoShowReport : reports >
+ApplicationUser "1" -- "*" NoShowReport : accused >
+ConsultantBooking "1" *-- "*" SessionRecording : recordedAs >
+ConsultantBooking "1" -- "0..1" ConsultantReview : ratedBy >
+ApplicationUser "1" -- "*" ConsultantReview : writes(student) >
+
+note bottom of NoShowReport
+  PB-006R (FR-CBR-25..32): either party may report the other; NO penalty
+  or booking-block applies until an admin validates the report.
+  A validated report drives the penalty ledger on the accused's UserProfile
+  (ConsultantRatingPenaltyFactor *= 0.80 / 0.60 / 0.30; student
+  BookingBlockUntil). Adds BookingStatus.NoShowReported to freeze the booking.
+end note
+@enduml

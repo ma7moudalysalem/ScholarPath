@@ -1,0 +1,48 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #DAE8FC
+  ParticipantBorderColor #6C8EBF
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor black
+  ActorBorderColor #6C8EBF
+  ActorBackgroundColor #DAE8FC
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+}
+title Unblock User
+actor Student as ST
+participant "Chat" as PAGE
+participant "chatApi" as API
+participant "ChatController" as CTRL
+participant "UnblockUserCommand" as CMD
+participant "UserBlock" as BLOCK
+ST -> PAGE ++ : unblock user
+PAGE -> API ++ : DELETE blocks/{userId}
+API -> CTRL ++ : unblock(userId)
+CTRL -> CMD ++ : execute()
+CMD -> BLOCK ++ : find block (Blocker=current, Blocked=userId)
+BLOCK --> CMD -- : block or none
+opt block exists
+  CMD -> BLOCK : remove UserBlock
+  CMD -> CMD : re-evaluate messaging and Community restrictions
+end
+CMD --> CTRL -- : done (no-op if none)
+CTRL --> API -- : 204 No Content
+API --> PAGE -- : unblocked
+PAGE --> ST : messaging may resume
+deactivate PAGE
+note over CMD, BLOCK
+  Unblock is a silent no-op when no block exists
+  (always returns true) - it is NOT a 404. Success
+  returns 204 No Content.
+end note
+@enduml

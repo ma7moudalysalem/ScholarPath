@@ -1,0 +1,95 @@
+@startchen eerd_module_4
+skinparam DefaultFontName Segoe UI
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam titleFontSize 24
+skinparam titleFontStyle bold
+title ScholarPath EERD  —  Module 4: Community & Chat
+entity FORUM_CATEGORY {
+  Id <<key>>
+  Slug
+  Name
+}
+entity FORUM_POST {
+  Id <<key>>
+  ModerationStatus
+  UpvoteCount <<derived>>
+  DownvoteCount <<derived>>
+  FlagCount <<derived>>
+  ReplyCount <<derived>>
+}
+entity FORUM_POST_ATTACHMENT <<weak>> {
+  FileName <<key>>
+}
+entity FORUM_TAG {
+  Id <<key>>
+  Slug
+}
+entity CONVERSATION {
+  Id <<key>>
+}
+entity MESSAGE <<weak>> {
+  SentAt <<key>>
+}
+entity USER {
+  Id <<key>>
+}
+relationship GROUPS {
+}
+relationship AUTHORS {
+}
+relationship REPLIES_TO {
+}
+relationship ATTACHED {
+}
+relationship VOTES {
+  VoteType
+  VotedAt
+}
+relationship FLAGS {
+  Reason
+  AdditionalDetails
+  FlaggedAt
+  IsValid
+}
+relationship BOOKMARKS {
+  CreatedAt
+}
+relationship TAGGED_WITH {
+}
+relationship PARTICIPATES {
+}
+relationship CONTAINS {
+}
+relationship SENDS {
+}
+relationship BLOCKS {
+  BlockedAt
+  Reason
+}
+FORUM_CATEGORY -1- GROUPS
+GROUPS -N- FORUM_POST
+USER -1- AUTHORS
+AUTHORS =N= FORUM_POST
+FORUM_POST -1- REPLIES_TO
+REPLIES_TO -N- FORUM_POST
+FORUM_POST -1- ATTACHED
+ATTACHED =N= FORUM_POST_ATTACHMENT
+USER -M- VOTES
+VOTES -N- FORUM_POST
+USER -M- FLAGS
+FLAGS -N- FORUM_POST
+USER -M- BOOKMARKS
+BOOKMARKS -N- FORUM_POST
+FORUM_POST -M- TAGGED_WITH
+TAGGED_WITH -N- FORUM_TAG
+USER -M- PARTICIPATES
+PARTICIPATES -N- CONVERSATION
+CONVERSATION -1- CONTAINS
+CONTAINS =N= MESSAGE
+USER -1- SENDS
+SENDS -N- MESSAGE
+USER -M- BLOCKS
+BLOCKS -N- USER
+@endchen

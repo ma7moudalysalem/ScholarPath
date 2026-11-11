@@ -1,0 +1,92 @@
+' =====================================================================
+'  ScholarPath — MASTER UML Component & Deployment diagram.
+'  Clean-Architecture monolith on Azure. Free-mode build:
+'  payment / payout / Stripe components are intentionally EXCLUDED.
+'
+'  Layering (inward Clean-Architecture dependencies):
+'    React 19 SPA
+'      -> Web API (controllers) / ASP.NET Identity / SignalR Hubs / Hangfire Jobs
+'         -> Application (CQRS handlers + ports)
+'            -> Domain (entities · enums · events)
+'         Infrastructure (adapters) ..> Application (implements ports), -> Domain
+'    Infrastructure -> Azure SQL / OpenAI / Blob / Key Vault / ACS / Event Hub / Power BI
+' =====================================================================
+@startuml ScholarPath_Components_Master
+title ScholarPath — master component & deployment diagram (free-mode)
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam component {
+  BackgroundColor #F7F8FC
+  BorderColor #3F4A5A
+}
+
+node "Azure Static Web Apps" as SWA {
+  [React 19 SPA] as SPA
+}
+
+node "Azure App Service (Linux) — monolith" as APPSVC {
+  [Web API\n(REST controllers)] as API
+  [ASP.NET Core Identity\n+ JWT Bearer] as IDN
+  [SignalR Hubs\nChat · Community · Notification] as HUBS
+  [Hangfire Jobs\n«optional · Hangfire:Enabled»] as JOBS #FFFDE0
+  [Application\n(CQRS handlers + ports)] as APP
+  [Domain\n(entities · enums · events)] as DOM
+  [Infrastructure\n(adapters implementing ports)] as INF
+  [IMemoryCache\n«planned: Redis»] as CACHE #FFFDE0
+}
+
+cloud "Azure data, AI & messaging" as AZ {
+  database "Azure SQL" as SQL
+  [Azure OpenAI\n(gpt-4o-mini + embeddings)] as AOAI
+  [Azure Comm. Services\n(video + recording)] as ACS
+  database "Blob Storage" as BLOB
+  [Key Vault] as KV
+  [Event Hub] as EH
+  [Power BI] as PBI
+}
+[OpenAI direct\n(chat + embeddings)\n«alt · Ai:Provider»] as OAI #FFFDE0
+[SMTP mail / dev stub] as SMTP
+[ClamAV\n«optional · FileScanning:Enabled»] as CLAM #FFFDE0
+node "External IdP" as IDP {
+  [Google OAuth] as GOOG
+  [Microsoft OAuth] as MSFT
+}
+
+' client -> server
+SPA --> API   : HTTPS / REST + JWT
+SPA ..> HUBS  : WebSocket
+API --> IDN
+
+' inward (Clean Architecture) dependencies
+API  --> APP
+HUBS --> APP
+JOBS --> APP
+APP  --> DOM
+INF  ..> APP  : implements ports
+INF  --> DOM
+APP  --> CACHE
+
+' infrastructure -> external systems
+INF --> SQL    : EF Core
+INF --> AOAI   : chat + embeddings
+INF --> OAI    : alt provider
+INF --> ACS    : meeting + recording
+INF --> BLOB   : Storage:Provider
+INF --> CLAM   : file scan
+INF --> KV     : field-key + JWT-key providers
+INF --> EH
+INF --> SMTP   : Email:Provider
+INF --> GOOG   : SSO
+INF --> MSFT   : SSO
+EH  --> PBI
+PBI --> API    : embed tokens
+
+note bottom of INF
+  Recommendations & eligibility come from the deterministic
+  LocalAiService (offline metadata scoring + RAG). Azure/OpenAI
+  back chatbot Q&A and embeddings only. Key Vault is reached via
+  IFieldEncryptionService and the JWT key provider.
+end note
+@enduml

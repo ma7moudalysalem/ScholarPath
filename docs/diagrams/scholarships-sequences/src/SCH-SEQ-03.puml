@@ -1,0 +1,49 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam dpi 150
+skinparam maxMessageSize 240
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #2E4A7B
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #EAF1FB
+  ParticipantBorderColor #2E5496
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor #1A1A1A
+  ParticipantFontStyle bold
+  ActorBorderColor #2E5496
+  ActorBackgroundColor #DAE8FC
+  ActorFontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+  FontColor #1A1A1A
+}
+title Bookmark / Unbookmark Scholarship
+
+actor "Student" as ST
+participant "ScholarshipsPage /\nScholarshipDetail" as PAGE <<page>>
+participant "scholarshipsApi" as API <<api>>
+participant "ScholarshipsController" as CTRL <<controller>>
+participant "BookmarkToggleCommand" as CMD <<command>>
+database "SavedScholarship" as SS <<entity>>
+ST -> PAGE : click bookmark
+PAGE -> API : scholarshipsApi.toggleBookmark(id)
+API -> CTRL : POST /api/scholarships/{id}/bookmark
+CTRL -> CMD : BookmarkToggleCommand
+alt not yet bookmarked
+  CMD -> SS : create SavedScholarship
+else already bookmarked
+  CMD -> SS : remove SavedScholarship
+end
+SS --> CMD : new state
+CMD --> CTRL : bookmarked?
+CTRL --> API : 200 OK
+API --> PAGE : state
+PAGE --> ST : update bookmark icon
+note over SS : Bookmark entity is SavedScholarship\n(not Bookmark / ScholarshipBookmark).
+
+@enduml

@@ -1,0 +1,53 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam dpi 150
+skinparam maxMessageSize 240
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #2E4A7B
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #EAF1FB
+  ParticipantBorderColor #2E5496
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor #1A1A1A
+  ParticipantFontStyle bold
+  ActorBorderColor #2E5496
+  ActorBackgroundColor #DAE8FC
+  ActorFontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+  FontColor #1A1A1A
+}
+title Withdraw Application
+
+actor "Student" as ST
+participant "StudentApplicationDetail" as PAGE <<page>>
+participant "applicationsApi" as API <<api>>
+participant "ApplicationsController" as CTRL <<controller>>
+participant "WithdrawApplicationCommand" as CMD <<command>>
+database "ApplicationTracker" as APP <<entity>>
+participant "NotificationDispatcher" as NOT <<service>>
+ST -> PAGE : click Withdraw
+PAGE -> API : applicationsApi.withdraw(id)
+API -> CTRL : POST /api/applications/{id}/withdraw
+CTRL -> CMD : WithdrawApplicationCommand
+CMD -> APP : verify ownership; check IsReadOnly
+alt not read-only (active application)
+  CMD -> APP : set Status = Withdrawn
+  CMD -> NOT : NotificationType.ApplicationWithdrawn -> student
+  NOT --> CMD : notified (also raises ApplicationStatusChangedEvent)
+  CMD --> CTRL : withdrawn
+else Accepted / Rejected / already Withdrawn
+  APP --> CMD : blocked (read-only)
+  CMD --> CTRL : conflict
+end
+CTRL --> API : result
+API --> PAGE : status
+PAGE --> ST : show Withdrawn / show reason
+note over CMD : Withdraw gates on ApplicationTracker.IsReadOnly\n(Accepted / Rejected / Withdrawn) — NOT the ApplicationStateMachine.
+
+@enduml

@@ -1,0 +1,53 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam dpi 150
+skinparam maxMessageSize 240
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #2E4A7B
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #EAF1FB
+  ParticipantBorderColor #2E5496
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor #1A1A1A
+  ParticipantFontStyle bold
+  ActorBorderColor #2E5496
+  ActorBackgroundColor #DAE8FC
+  ActorFontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+  FontColor #1A1A1A
+}
+title Provider Creates Scholarship Listing
+
+actor "Scholarship Provider" as SP
+actor "Admin / SuperAdmin" as AD
+participant "ScholarshipForm" as PAGE <<page>>
+participant "scholarshipsApi" as API <<api>>
+participant "ScholarshipsController" as CTRL <<controller>>
+participant "CreateScholarshipCommand" as CMD <<command>>
+database "Scholarship" as DB <<entity>>
+alt created by Scholarship Provider
+  SP -> PAGE : fill in-app listing form
+  PAGE -> API : scholarshipsApi.createScholarship(data)
+  API -> CTRL : POST /api/scholarships
+  CTRL -> CMD : CreateScholarshipCommand
+  CMD -> DB : create Scholarship(Status = UnderReview)
+else created by Admin
+  AD -> PAGE : fill listing form (may be ExternalUrl)
+  PAGE -> API : scholarshipsApi.createScholarship(data)
+  API -> CTRL : POST /api/scholarships
+  CTRL -> CMD : CreateScholarshipCommand
+  CMD -> DB : create Scholarship(Status = Open)
+end
+DB --> CMD : listing id
+CMD --> CTRL : created
+CTRL --> API : 201 Created
+API --> PAGE : listing
+note over CMD : Provider listings start in UnderReview; Admin listings open\nimmediately. ExternalUrl is Admin-only; Providers create InApp only.
+
+@enduml

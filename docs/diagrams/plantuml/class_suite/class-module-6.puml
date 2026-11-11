@@ -1,0 +1,153 @@
+' =====================================================================
+'  ScholarPath — Class diagram · Module 6 · AI, Knowledge, Platform
+'  & Cross-cutting  (PB-011 Admin/Platform, PB-017 AI, PB-018 Analytics)
+'  All classes : AuditableEntity unless a stereotype marks : BaseEntity.
+' =====================================================================
+
+@startuml Class_Module6_AI_Platform
+title Module 6 — AI, Knowledge, Platform & Cross-cutting  (: AuditableEntity unless noted)
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+
+abstract class BaseEntity {
+  -Id : Guid
+  +DomainEvents : IReadOnlyCollection<DomainEvent>
+}
+abstract class AuditableEntity {
+  -CreatedAt : DateTimeOffset
+  -CreatedByUserId : Guid?
+  -UpdatedAt : DateTimeOffset?
+  -UpdatedByUserId : Guid?
+  -RowVersion : byte[]?
+}
+interface ISoftDeletable {
+  +IsDeleted : bool
+  +DeletedAt : DateTimeOffset?
+  +DeletedByUserId : Guid?
+}
+class ApplicationUser <<Module 1 · actor>>
+class Scholarship <<Module 2>>
+
+class AiInteraction {
+  -UserId : Guid
+  -Feature : AiFeature
+  -Provider : AiProvider
+  -ModelName : string?
+  -SessionId : string?
+  -PromptText : string
+  -ResponseText : string
+  -PromptTokens : int
+  -CompletionTokens : int
+  -CostUsd : decimal
+  -MetadataJson : string?
+  -StartedAt : DateTimeOffset
+}
+class RecommendationClickEvent <<: BaseEntity>> {
+  -UserId : Guid
+  -ScholarshipId : Guid
+  -AiInteractionId : Guid?
+  -ClickedAt : DateTimeOffset
+  -Source : string
+}
+class AiRedactionAuditSample <<: BaseEntity>> {
+  -AiInteractionId : Guid
+  -UserId : Guid
+  -RedactedPrompt : string
+  -SampledAt : DateTimeOffset
+  -Verdict : RedactionVerdict?
+  -ReviewerUserId : Guid?
+}
+class KnowledgeDocument {
+  -SourceType : KnowledgeSourceType
+  -SourceId : Guid?
+  -SourceKey : string
+  -TitleEn : string
+  -ContentEn : string
+  -ContentHash : string
+  -Embedding : byte[]
+  -EmbeddingDimensions : int
+  -EmbeddingModel : string?
+  -IndexedAt : DateTimeOffset?
+  +/IsEmbedded : bool
+}
+class AuditLog <<: BaseEntity>> {
+  -ActorUserId : Guid?
+  -Action : AuditAction
+  -TargetType : string
+  -TargetId : Guid? «polymorphic»
+  -BeforeJson : string?
+  -AfterJson : string?
+  -OccurredAt : DateTimeOffset
+  -CorrelationId : string?
+}
+class UserDataRequest {
+  -UserId : Guid
+  -Type : UserDataRequestType
+  -Status : UserDataRequestStatus
+  -ScheduledProcessAt : DateTimeOffset?
+  -DownloadUrl : string?
+  -FailureReason : string?
+}
+class SuccessStory <<+ ISoftDeletable>> {
+  -StudentId : Guid?
+  -AuthorDisplayName : string
+  -HeadlineEn : string
+  -BodyEn : string
+  -CountryCode : string?
+  -IsApproved : bool
+  -IsFeatured : bool
+}
+class UserRiskFlag <<: BaseEntity (reverse-ETL)>> {
+  -UserId : Guid
+  -Score : decimal
+  -IsAtRisk : bool
+  -Reason : string?
+  -ComputedAt : DateTimeOffset
+  -SourceRefreshId : Guid?
+}
+class PlatformSetting {
+  -Key : string
+  -Value : string
+  -ValueType : PlatformSettingType
+  -Category : string
+  -UpdatedByAdminId : Guid?
+}
+
+' Inheritance
+BaseEntity <|-- AuditableEntity
+BaseEntity <|-- RecommendationClickEvent
+BaseEntity <|-- AiRedactionAuditSample
+BaseEntity <|-- AuditLog
+BaseEntity <|-- UserRiskFlag
+AuditableEntity <|-- AiInteraction
+AuditableEntity <|-- KnowledgeDocument
+AuditableEntity <|-- UserDataRequest
+AuditableEntity <|-- SuccessStory
+AuditableEntity <|-- PlatformSetting
+ISoftDeletable <|.. SuccessStory
+
+' Associations
+ApplicationUser "1" -- "*" AiInteraction : runs >
+AiInteraction "1" -- "0..1" AiRedactionAuditSample : sampled >
+AiInteraction "0..1" -- "*" RecommendationClickEvent : aiAttributed >
+ApplicationUser "1" -- "*" RecommendationClickEvent : clicks >
+Scholarship "1" -- "*" RecommendationClickEvent : clicked >
+ApplicationUser "1" -- "0..1" UserRiskFlag : scored >
+ApplicationUser "1" -- "*" UserDataRequest : files >
+ApplicationUser "0..1" -- "*" SuccessStory : featuredAs(student) >
+ApplicationUser "0..1" -- "*" AuditLog : actor >
+AiInteraction ..> KnowledgeDocument : cites (RAG, via MetadataJson — no FK)
+
+note bottom of KnowledgeDocument
+  RAG corpus (one row per indexed scholarship / FAQ / resource /
+  consultant / community post). Embedding is a packed little-endian
+  float[]; retrieval ranks by cosine similarity in-process (no vector DB).
+end note
+note bottom of UserRiskFlag
+  Reverse-ETL landing table (PB-018). Written ONLY by the daily Power BI
+  churn-risk dataflow; the API reads, never writes. Not audited (: BaseEntity).
+end note
+@enduml

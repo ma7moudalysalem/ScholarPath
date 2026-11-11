@@ -1,0 +1,77 @@
+@startchen erd_module_3
+skinparam DefaultFontName Segoe UI
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam titleFontSize 24
+skinparam titleFontStyle bold
+title ScholarPath ERD  —  Module 3: Consultant Booking & Ratings
+entity AVAILABILITY {
+  Id <<key>>
+  IsActive
+}
+entity BOOKING {
+  Id <<key>>
+  Status
+}
+entity NO_SHOW_REPORT {
+  Id <<key>>
+  AccusedRole
+  Status
+}
+entity CONSULTANT_REVIEW {
+  Id <<key>>
+  Rating
+}
+entity SESSION_RECORDING {
+  Id <<key>>
+  RecordingId
+}
+entity USER {
+  Id <<key>>
+}
+relationship PUBLISHES {
+}
+relationship BOOKS {
+}
+relationship CONDUCTS {
+}
+relationship RESERVES {
+}
+relationship CONCERNS {
+}
+relationship FILES {
+}
+relationship ACCUSES {
+}
+relationship RATED {
+}
+relationship WRITES_CR {
+}
+relationship ABOUT_CR {
+}
+relationship RECORDED {
+}
+USER -1- PUBLISHES
+PUBLISHES =N= AVAILABILITY
+USER -1- BOOKS
+BOOKS =N= BOOKING
+USER -1- CONDUCTS
+CONDUCTS =N= BOOKING
+AVAILABILITY -1- RESERVES
+RESERVES -N- BOOKING
+BOOKING -1- CONCERNS
+CONCERNS =N= NO_SHOW_REPORT
+USER -1- FILES
+FILES =N= NO_SHOW_REPORT
+USER -1- ACCUSES
+ACCUSES =N= NO_SHOW_REPORT
+BOOKING -1- RATED
+RATED =1= CONSULTANT_REVIEW
+USER -1- WRITES_CR
+WRITES_CR =N= CONSULTANT_REVIEW
+USER -1- ABOUT_CR
+ABOUT_CR =N= CONSULTANT_REVIEW
+BOOKING -1- RECORDED
+RECORDED =N= SESSION_RECORDING
+@endchen

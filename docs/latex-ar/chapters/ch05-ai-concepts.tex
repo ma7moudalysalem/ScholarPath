@@ -1,0 +1,307 @@
+% ch05-ai-concepts
+\section{الذكاء الاصطناعيّ (1): المفاهيم الأساسية}
+
+في هذا الفصل نبني الأساس النظريّ الذي يقوم عليه كلّ ما يخصّ الذكاء الاصطناعيّ في
+\en{ScholarPath}. لن نكتب كودًا كثيرًا هنا؛ هدفنا أن نفهم \emph{الأفكار} أولًا:
+كيف يحوّل الحاسوب النصّ إلى أرقام؟ وكيف يقيس أنّ جملتين متقاربتان في المعنى؟ وما
+\en{RAG} ولماذا نحتاجه أصلًا؟ ثمّ نُنهي الفصل بالصورة الكاملة: عندنا ثلاث ميزات
+ذكاء اصطناعيّ، لكنّ \textbf{واحدة فقط} منها تستعمل نموذجًا لُغويًّا حقيقيًّا. نمشي
+واحدة واحدة، وكلّ فكرة نربطها بسطر كود حقيقيّ من المشروع.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{الـ Embeddings — تحويل النصّ إلى أرقام}
+
+\begin{idea}[الفكرة: \en{Embedding}]
+الـ \en{Embedding} يأخذ أيّ نصّ — كلمة أو جملة أو فقرة — ويحوّله إلى مصفوفة أرقام
+عشريّة ثابتة الطول اسمها \en{vector} (مُتّجه). الخاصّيّة الجوهريّة: \textbf{النصوص
+المتقاربة في المعنى تُنتج مُتّجهات متقاربة عدديًّا}، بغضّ النظر عن الصياغة الحرفيّة،
+بل وحتى عبر اللغات. سؤال بالإنجليزيّة ونفس السؤال بالعربيّة يُنتجان مُتّجهين يشيران
+إلى نفس الاتّجاه تقريبًا داخل فضاء ذي 1536 بُعدًا.
+\end{idea}
+
+تخيّل خريطة ضخمة، لكن بدل بُعدين (طول وعرض) فيها 1536 بُعدًا. كلّ نصّ يصير نقطةً على
+هذه الخريطة. المنح الدراسيّة تتجمّع في ناحية، وأسئلة الأمور الشائعة في ناحية، وملفّات
+المستشارين في ناحية ثالثة. لمّا يسأل الطالب سؤالًا، نحوّل سؤاله إلى نقطة أيضًا، ثمّ
+نبحث عن أقرب النقاط إليه — وتلك النقاط هي المستندات الأوثق صِلةً بسؤاله.
+
+في \en{ScholarPath} نموذج الـ \en{Embeddings} هو \en{Azure OpenAI}
+\code{text-embedding-3-small}، وهو يُنتج مُتّجهات بطول \textbf{1536} رقمًا. لكن هنا
+تفصيلة مهمّة: لو خزّنّا المُتّجهات في القاعدة دون أن نُسجّل \emph{أيّ نموذج} ولّدها،
+فسنقع في كارثة صامتة يوم نغيّر النموذج — لأنّ مُتّجهات نموذجٍ لا تُقارَن أبدًا
+بمُتّجهات نموذجٍ آخر. الحلّ بسيط: نضع بادئة \code{sp:} أمام اسم النموذج، فتصير هويّة
+المُتّجه واضحة ومحجوزة.
+
+\textbf{هنشوف إزّاي الكود بيبني اسم النموذج بالبادئة \code{sp:}} — المقتطف من الملفّ
+\code{AzureOpenAiEmbeddingService.cs}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// Provider-neutral model tag. The prefix namespaces the vector space so
+// documents embedded with a different model are never matched here.
+public string ModelName =>
+    IsAzureEmbeddingConfigured()
+        ? $"sp:{opts.Value.AzureOpenAi.EmbeddingDeploymentName}"
+        // -> "sp:text-embedding-3-small"
+        : local.ModelName;   // fallback when Azure isn't configured
+
+public int Dimensions => opts.Value.AzureOpenAi.EmbeddingDimensions; // 1536
+\end{lstlisting}
+\end{english}
+
+نقرأ الكود سطرًا سطرًا:
+\begin{itemize}
+  \item \code{ModelName} خاصّيّة محسوبة: لو \en{Azure} مُهيّأ، تُرجِع الاسم مسبوقًا
+    بـ \code{sp:} (فيصير \code{sp:text-embedding-3-small}).
+  \item لو \en{Azure} غير مُهيّأ، ترجع لاسم النموذج المحلّيّ عبر \code{local.ModelName}
+    — هذا مبدأ الاختيار بالإعداد الذي عرفناه سابقًا.
+  \item \code{Dimensions} تُرجِع 1536، وهو طول المُتّجه الذي نلتزم به في القاعدة.
+\end{itemize}
+
+\begin{note}
+البادئة \code{sp:} ليست جزءًا من اسم النموذج عند \en{Azure}؛ هي مجرّد «مساحة أسماء»
+(\en{namespace}) داخل قاعدتنا. فائدتها الوحيدة: تمييز أيّ نموذجٍ ولّد كلّ مُتّجه،
+حتى لا نخلط مُتّجهات نموذجين مختلفين في بحثٍ واحد.
+\end{note}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{الـ Cosine Similarity — قياس التقارب المعنويّ}
+
+عرفنا أنّ النصوص المتقاربة تُنتج مُتّجهات متقاربة الاتّجاه. لكن كيف نقيس هذا التقارب
+بالضبط؟ الجواب: نقيس \emph{الزاوية} بين المُتّجهين، لا المسافة بينهما ولا طولهما.
+هذا هو \en{Cosine Similarity} (تشابه جيب التمام). لو كان لدينا مُتّجهان
+$\mathbf{a}$ و $\mathbf{b}$، فالمعادلة:
+
+\[
+\cos(\theta)
+= \frac{\mathbf{a}\cdot\mathbf{b}}{\|\mathbf{a}\|\;\|\mathbf{b}\|}
+= \frac{\displaystyle\sum_{i=1}^{n} a_i\, b_i}
+       {\displaystyle\sqrt{\sum_{i=1}^{n} a_i^2}\;\sqrt{\sum_{i=1}^{n} b_i^2}}
+\quad\in[0,\,1]
+\]
+
+\begin{idea}[الفكرة: الزاوية الصغيرة = تشابه عالٍ]
+البَسط $\mathbf{a}\cdot\mathbf{b}$ هو الضرب النقطيّ، والمقام يقسم على طولَي
+المُتّجهين حتى يُلغي أثر الطول تمامًا ويُبقي الاتّجاه وحده. النتيجة رقم بين $0$
+و $1$: كلّما \textbf{صغُرت الزاوية} بين المُتّجهين اقتربت النتيجة من $1$ (تشابه
+عالٍ)، وكلّما كبُرت الزاوية اقتربت من $0$ (لا علاقة). ببساطة: مُتّجهان يشيران لنفس
+الاتّجاه $\Rightarrow$ نصّان يتحدّثان عن نفس الموضوع.
+\end{idea}
+
+لكن ليس كلّ تقاربٍ يُقبَل. نحتاج \emph{عتبة} (\en{threshold}) نقول عندها: «هذا
+المستند قريب بما يكفي لِنُرفقه للنموذج». هذه العتبة مضبوطة في الإعداد
+\code{RagMinScore} وقيمتها \textbf{0.6}. الجدول التالي يوضّح كيف نُفسّر الدرجات:
+
+\begin{center}
+\begin{tabular}{L{2.8cm} L{4.2cm} L{6.6cm}}
+\toprule
+\textbf{\color{spPrimary}الدرجة} & \textbf{\color{spPrimary}التفسير} & \textbf{\color{spPrimary}السلوك في \en{ScholarPath}}\\
+\midrule
+$\geq 0.85$ & معنى شبه مطابق & يُسترجَع ويُستشهَد به في الإجابة\\
+$0.70$–$0.84$ & متشابه جدًّا & يُسترجَع ويُستشهَد به\\
+$0.60$–$0.69$ & مرتبط بوضوح & يُسترجَع (عند حدّ \code{RagMinScore})\\
+$< 0.60$ & ارتباط ضعيف & يُستبعَد قبل إرسال البرومبت للنموذج\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{keyp}[نقطة مهمة: العتبة تحمي الجودة]
+لو أرسلنا للنموذج مستندات ضعيفة الصِّلة، سيبني إجابته على معلومات لا تخصّ السؤال —
+وهذا مصدرٌ رئيسيّ للهلوسة. العتبة \code{RagMinScore = 0.6} هي صمّام الأمان: أيّ مستند
+تحت 0.6 يُرمى قبل أن يرى النموذجُ سؤالَ المستخدم أصلًا.
+\end{keyp}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{ما هو الـ RAG؟}
+
+\begin{idea}[الفكرة: \en{Retrieval-Augmented Generation}]
+النموذج اللُّغويّ (\en{LLM}) يعرف الكثير، لكن معرفته مُجمّدة عند لحظة تدريبه، ولا
+يعرف شيئًا عن بيانات \en{ScholarPath} الخاصّة (منحنا، مستشارونا، مقالاتنا). لو سألناه
+مباشرةً «ما المنح المتاحة لمصر؟» فسيُخمّن من ذاكرته — وقد يخترع منحًا لا وجود لها.
+الـ \en{RAG} يحلّ هذه \emph{فجوة المعرفة}: بدل التخمين، نبحث أوّلًا في قاعدة معرفتنا
+الحيّة عن المستندات الأوثق صِلةً بالسؤال، ثمّ نُرفقها للنموذج \textbf{كسياق} مع
+السؤال، فتُبنى الإجابة على بياناتٍ حقيقيّة ومحدَّثة.
+\end{idea}
+
+الاسم نفسه يشرح المكوّنات الثلاثة: \en{Retrieval} (استرجاع المستندات)، ثمّ
+\en{Augmented} (تعزيز البرومبت بها)، ثمّ \en{Generation} (توليد الإجابة). التدفّق في
+\en{ScholarPath} \textbf{خطّيّ ومرّة واحدة} — لا حلقات ولا تكرار:
+
+\begin{center}
+\begin{tabular}{L{1.4cm} L{12.4cm}}
+\toprule
+\textbf{\color{spPrimary}الخطوة} & \textbf{\color{spPrimary}ما يحدث}\\
+\midrule
+1 & يكتب المستخدم سؤالًا نصّيًّا.\\
+2 & نحوّل السؤال إلى مُتّجه (\code{EmbedAsync} $\Rightarrow$ \code{float[1536]}).\\
+3 & نحسب \en{cosine} بين مُتّجه السؤال وكلّ مستند، ونأخذ الأعلى تشابهًا.\\
+4 & نُبقي المستندات فوق العتبة (0.6) فقط، ونصوغها في كتلة سياق.\\
+5 & نُرسل: تعليمات النظام + السياق + السؤال إلى النموذج \en{GPT-4o-mini}.\\
+6 & يُرجِع النموذج إجابةً مسنودةً، مع قائمة المصادر التي استُشهد بها.\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{note}
+لاحظ الفرق الجوهريّ: النموذج لا «يتذكّر» المنح من تدريبه، بل \emph{يقرؤها} من السياق
+الذي حضّرناه له لحظتها. لو أضاف الأدمِن منحةً جديدة اليوم وأعاد بناء قاعدة المعرفة،
+صار النموذج قادرًا على ذكرها فورًا — دون إعادة تدريبٍ ولا تعديل كود.
+\end{note}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{الـ Standard RAG مقابل الـ Agentic RAG}
+
+التدفّق الذي شرحناه يُسمّى \en{Standard RAG}: خطّ أنابيب مستقيم، تمريرة واحدة، بلا
+خطوة تقييم. هذا بسيط وسريع، لكن له ثلاثة أنماط فشل معروفة:
+
+\begin{enumerate}
+  \item \textbf{الأسئلة الغامضة}: «إزّاي أقدّم؟» سؤال ناقص السياق — هل يقصد التسجيل في
+    المنصّة أم التقديم على منحة بعينها؟ الـ \en{Standard RAG} يسترجع دون أن يستوضح.
+  \item \textbf{الأدلّة المبعثرة}: سؤال يحتاج تجميعًا من عدّة عناقيد مستندات (مثل «قارِن
+    \en{Erasmus} بـ \en{Chevening} في التمويل») يحصل على إجابةٍ جزئيّة، لأنّ خطّ
+    الأنابيب يستنفد تمريرة استرجاعٍ واحدة فقط.
+  \item \textbf{الثقة الزائفة}: مستندات سجّلت تشابهًا عاليًا لكنّها لا تحوي الإجابة فعلًا،
+    فيملأ النموذج الفراغ بتفاصيل مُقنعة لكنّها مُختلَقة.
+\end{enumerate}
+
+الـ \en{Agentic RAG} يعالج هذا باستبدال الخطّ المستقيم بـ \textbf{حلقة تحكّم}
+(\en{control loop}) يقودها وكيلٌ (\en{agent}) ذاتيّ القرار: يستوضح لو كان السؤال
+غامضًا، ويختار مصدر البحث المناسب، ويُقيّم هل النتائج كافية، ولو لم تكن كافية يُعيد
+صياغة السؤال ويبحث مجدّدًا — قبل أن يُولّد الإجابة النهائيّة. أي أنّه يكرّر ويصحّح
+نفسه، لكن بثمن. الجدول التالي يوازن بينهما:
+
+\begin{center}
+\begin{tabularx}{\linewidth}{L{3.6cm} Y Y}
+\toprule
+\textbf{\color{spPrimary}المعيار} & \textbf{\color{spPrimary}\en{Standard RAG}} & \textbf{\color{spPrimary}\en{Agentic RAG}}\\
+\midrule
+زمن الاستجابة & 1–3 ثوانٍ & 5–15+ ثانية (نداءات نموذج متعدّدة)\\
+التكلفة لكلّ استعلام & $\approx \$0.0002$ & $\approx \$0.001$–$\$0.002$ ($3$–$10$ أضعاف)\\
+سؤال بسيط أحاديّ المصدر & ممتاز & بلا تحسّن يُذكَر\\
+سؤال معقّد متعدّد المصادر & متوسّط & أفضل بوضوح\\
+تصحيح الأخطاء & حتميّ وقابل للاختبار & غير حتميّ، يصعُب تكراره\\
+حجم المتون الأمثل & حتى $\sim$10 آلاف مستند & 10 آلاف+ ومجالات متعدّدة\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{why}
+اخترنا \en{Standard RAG} للشات بوت. قاعدة معرفتنا فيها \textbf{692} مستندًا فقط،
+والأسئلة موضوعيّة ومحدّدة (منح، مستشارون، نصائح تقديم). تمريرة استرجاعٍ واحدة تجد
+المستند الصحيح باستمرار في \textbf{أقلّ من 10 ملّي ثانية}. إضافة حلقة \en{agentic}
+كانت ستضرب الزمن في $5$ والتكلفة في $10$ دون أيّ مكسبٍ ملموس في الدقّة على مجموعة
+أسئلتنا. عتبة الانتقال إلى \en{Agentic RAG} تقارب 10 آلاف مستندٍ بمجالاتٍ متغايرة —
+ونحن بعيدون عنها.
+\end{why}
+
+\begin{qa}
+\textbf{س: أليس \en{Agentic RAG} «أذكى» دائمًا؟ لماذا لا نستعمله لِنبدو متطوّرين؟}\\
+لأنّ الهندسة الجيّدة تختار الأبسط الذي يفي بالغرض. «الأذكى» هنا يعني أبطأ بخمسة
+أضعاف، وأغلى بعشرة، وأصعب في الاختبار وتتبّع الأخطاء — مقابل صفر تحسّنٍ قابلٍ للقياس
+على 692 مستندًا. القرار الهندسيّ السليم أن نضيف التعقيد يوم تفرضه البيانات، لا قبله.
+\end{qa}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{الصورة الكاملة — ثلاث ميزات، مسارٌ واحد فقط يستعمل GPT}
+
+\begin{keyp}[نقطة مهمة: تمييزٌ جوهريّ]
+في \en{ScholarPath} \textbf{ثلاث} ميزات ذكاء اصطناعيّ، لكن \textbf{واحدة فقط}
+تستعمل \en{RAG} + \en{GPT} حقيقيًّا (وهي الشات بوت). الميزتان الأخريان — التوصيات
+والأهليّة — حسابيّتان بالكامل: خوارزميّة تسجيل نقاط حتميّة تعمل محلّيًّا داخل الخادم،
+بلا أيّ نداء شبكة ولا نموذجٍ لُغويّ.
+\end{keyp}
+
+الجدول التالي يلخّص التوجيه (\en{routing}):
+
+\begin{center}
+\begin{tabular}{L{3.4cm} C{3.4cm} C{2.6cm} L{4.0cm}}
+\toprule
+\textbf{\color{spPrimary}الميزة} & \textbf{\color{spPrimary}تستعمل \en{GPT}؟} & \textbf{\color{spPrimary}تستعمل \en{RAG}؟} & \textbf{\color{spPrimary}الأسلوب}\\
+\midrule
+الشات بوت & نعم — \en{GPT-4o-mini} & نعم (بحث \en{cosine}) & \en{Standard RAG}\\
+التوصيات & لا & لا & تسجيل نقاط محلّيّ\\
+الأهليّة & لا & لا & مطابقة ملفٍّ محلّيّة\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+كيف يظهر هذا في الكود؟ الخدمة \code{AzureOpenAiService} هي الواجهة الرسميّة حين يكون
+\code{Ai:Provider = AzureOpenAi}، لكنّها لا تُنفّذ التوصيات والأهليّة بنفسها — بل
+\textbf{تفوّضها} فورًا إلى \code{LocalAiService}. فقط \code{AskAsync} (الشات) هي التي
+تشغّل مسار \en{RAG} الحقيقيّ.
+
+\textbf{هنشوف التفويض في الكود} — المقتطف من \code{AzureOpenAiService.cs}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// Recommendations & eligibility are structured profile-matching tasks:
+// deterministic scoring beats LLM guesswork, so delegate to the local service.
+public Task<AiRecommendationResult> GenerateRecommendationsAsync(
+    Guid userId, int topN, CancellationToken ct)
+    => local.GenerateRecommendationsAsync(userId, topN, ct);
+
+public Task<AiEligibilityResult> CheckEligibilityAsync(
+    Guid userId, Guid scholarshipId, CancellationToken ct)
+    => local.CheckEligibilityAsync(userId, scholarshipId, ct);
+
+// Only AskAsync runs the real RAG pipeline (retrieve -> augment -> generate).
+public async Task<AiChatResponse> AskAsync(...) { /* ... */ }
+\end{lstlisting}
+\end{english}
+
+نقرأ المقتطف:
+\begin{itemize}
+  \item الدالّتان \code{GenerateRecommendationsAsync} و \code{CheckEligibilityAsync}
+    ليستا إلا سطر تمرير: \code{=> local.\dots} — أي أنّهما تُعيدان النداء حرفيًّا إلى
+    \code{LocalAiService} بلا أيّ نداء \en{Azure}.
+  \item الدالّة \code{AskAsync} وحدها هي التي تحمل جسدًا حقيقيًّا (\code{async \dots})
+    فيه خطوات \en{RAG}. هذا هو الفرق العمليّ بين «ميزة تستعمل \en{GPT}» وأخرى لا تستعمله.
+\end{itemize}
+
+والآن ننظر داخل \code{AskAsync} نفسها لِنرى خطوتَي «الاسترجاع» و«الترشيح» — وهنا
+يظهر الإعدادان اللذان تحدّثنا عنهما، \code{RagTopK} و \code{RagMinScore}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// Retrieve (the "R" in RAG): the top-K most similar knowledge docs.
+docs = await retriever.RetrieveAsync(msg, ai.RagTopK, ct);   // RagTopK = 5
+
+// Keep only docs above the similarity threshold before building the prompt.
+var relevant = docs.Where(d => d.Score >= ai.RagMinScore).ToList(); // 0.6
+var context  = RagSupport.BuildContextBlock(relevant, arabic);
+\end{lstlisting}
+\end{english}
+
+نقرأ:
+\begin{itemize}
+  \item \code{RetrieveAsync(msg, ai.RagTopK, ct)} تُرجِع أعلى \code{RagTopK} مستندًا
+    تشابهًا مع السؤال — والقيمة \textbf{5}. أي نأخذ أفضل خمسة مرشّحين لا أكثر.
+  \item \code{Where(d => d.Score >= ai.RagMinScore)} تُرشّح المرشّحين بحدّ \textbf{0.6}؛
+    فلو لم يبلغ أيٌّ منها العتبة، تخرج كتلة سياقٍ فارغة، ويُجيب النموذج بحذرٍ بدل أن
+    يخترع.
+  \item \code{BuildContextBlock} تصوغ الناجين في نصٍّ مُرقّم يُلصَق داخل البرومبت.
+\end{itemize}
+
+\begin{secnote}
+تفويض التوصيات والأهليّة محلّيًّا ليس اختصارًا فقط، بل قرار خصوصيّة وأمان: بيانات
+الطالب الحسّاسة (مستواه الأكاديميّ، بلده، تخصّصه) تُطابَق داخل خادمنا ولا تغادره إلى
+أيّ خدمة خارجيّة. لا يخرج إلى \en{Azure} إلا نصّ سؤال الشات وسياقٌ عامّ من قاعدة
+المعرفة — لا ملفّات المستخدمين.
+\end{secnote}
+
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+  \item الـ \en{Embedding} يحوّل النصّ إلى مُتّجه ثابت الطول (1536 رقمًا عبر
+    \code{text-embedding-3-small})؛ النصوص المتقاربة معنى تُنتج مُتّجهات متقاربة
+    اتّجاهًا، حتى عبر اللغات.
+  \item بادئة \code{sp:} تحجز «هويّة النموذج» في القاعدة حتى لا نخلط مُتّجهات نموذجين.
+  \item الـ \en{Cosine Similarity} يقيس الزاوية بين مُتّجهين (رقم بين 0 و1)؛ الزاوية
+    الصغيرة تعني تشابهًا عاليًا، والعتبة \code{RagMinScore = 0.6} تُبعد الضعيف قبل
+    النموذج.
+  \item الـ \en{RAG} يسدّ فجوة معرفة النموذج: نسترجع سياقًا حيًّا ونُرفقه بالسؤال بدل
+    التخمين من الذاكرة — تدفّق خطّيّ واحد.
+  \item اخترنا \en{Standard RAG} لا \en{Agentic}: 692 مستندًا واسترجاع أقلّ من 10
+    ملّي ثانية لا يبرّران مضاعفة الزمن $5\times$ والتكلفة $10\times$.
+  \item ثلاث ميزات \en{AI}، لكن الشات بوت وحده يستعمل \en{RAG}+\en{GPT}؛ التوصيات
+    والأهليّة حسابيّتان محلّيًّا عبر \code{LocalAiService}.
+\end{itemize}
+\end{summary}

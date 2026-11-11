@@ -1,0 +1,454 @@
+% ch24-community-block
+\section{المجتمع والحظر: كيف يعمل بالكامل}
+
+مجتمع \en{ScholarPath} هو المساحة التي يتناقش فيها الطلاب: يسألون عن المنح، يشاركون
+تجاربهم، ويصوّتون على أفضل الإجابات. لكن أيّ مساحة مفتوحة تحتاج قواعد تحكمها: مَن
+يكتب؟ كيف نمنع المحتوى الضارّ؟ وماذا يحدث حين يريد طالبٌ ألّا يرى شخصًا آخر إطلاقًا؟
+
+في هذا الفصل هنفهم ثلاثة أشياء متتالية. أولًا: كيانات المجتمع — الفئات والمنشورات
+والردود والتصويت والإبلاغ والإشارات المرجعيّة — وكيف تترابط. ثانيًا: دورة حياة منشور
+كاملة، من لحظة كتابته حتى إخفائه تلقائيًّا لو أبلغ عنه عدد كافٍ من الناس. ثالثًا: نظام
+الحظر (\en{Block}) — وهو سؤالنا الأهمّ: كيف يُنشَأ الحظر، والأهمّ: أين يُنفَّذ؟
+هنكتشف أنّ الحظر لا يُطبَّق في مكان واحد، بل دفاعيًّا في كل مسار: فحص عند الكتابة،
+وفلتر عند القراءة.
+
+نفترض أنّك تعرف من الفصول السابقة فكرة \en{CQRS} (كل عملية إمّا أمر أو استعلام)،
+و\en{soft delete} (الحذف المنطقيّ بعلَم بدل المحو الفعليّ)، و\en{SignalR} وقنوات البثّ
+الحيّ (\en{hubs} ومجموعات المشتركين)، وتنقية \en{HTML} قبل التخزين. سنشير إليها بسطر
+عند الحاجة فقط.
+
+% ====================================================================
+\subsection{كيانات المجتمع: الخريطة الكاملة}
+
+المجتمع مبنيّ على حفنة كيانات بسيطة. أذكى قرار في التصميم أنّ المنشور والردّ نفس
+الكيان: كلاهما \code{ForumPost}. الفرق الوحيد حقلٌ اسمه \code{ParentPostId}: لو كان
+\code{null} فهذا منشور جذر (\en{thread})، ولو كان يحمل مُعرّفًا فهذا ردّ على منشور آخر.
+هذا يوفّر علينا جدولًا ومنطقًا مكرّرًا.
+
+\begin{center}
+\begin{tabular}{L{3.2cm} L{9cm}}
+\toprule
+الكيان & الدور \\
+\midrule
+\en{ForumCategory} & فئة نقاش (منح، تأشيرات، سكن...) لها \code{Slug} وعلَم \code{IsActive}. \\
+\en{ForumPost} & منشور جذر أو ردّ (يفرّقهما \code{ParentPostId}). يحمل عدّادات مخزّنة و\code{ModerationStatus}. \\
+\en{ForumVote} & صوت واحد لكل مستخدم على منشور: \code{Up} أو \code{Down}. \\
+\en{ForumFlag} & بلاغ من مستخدم عن منشور، بسبب و\code{IsValid} يقدر الأدمن يبطله. \\
+\en{ForumBookmark} & إشارة مرجعيّة تربط طالبًا بمنشور حفظه ليرجع إليه. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+المقتطف التالي من ملف \code{Community.cs} يبيّن قلب \code{ForumPost} — لاحظ حقلين مصيريّين:
+\code{ModerationStatus} (حالة الإشراف) و\code{IsAutoHidden} (الإخفاء التلقائيّ):
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public class ForumPost : AuditableEntity, ISoftDeletable
+{
+    public Guid AuthorId { get; set; }
+    public Guid? CategoryId { get; set; }
+    public Guid? ParentPostId { get; set; } // null = root thread; else a reply
+
+    public PostModerationStatus ModerationStatus { get; set; }
+        = PostModerationStatus.Visible;
+
+    // Cached aggregates (kept in sync on write, cheap to read)
+    public int UpvoteCount { get; set; }
+    public int FlagCount { get; set; }
+    public int ReplyCount { get; set; }
+
+    public bool IsAutoHidden { get; set; } // hidden by the threshold rule
+    public bool IsDeleted { get; set; }    // soft delete
+    // ... navigations: Replies, Votes, Flags, Bookmarks ...
+}
+\end{lstlisting}
+\end{english}
+
+شرح سريع لأهمّ الأسطر:
+\begin{itemize}
+\item \code{ParentPostId} هو المفتاح الذكيّ: منشور وردّ في نفس الجدول، والفرق حقل واحد.
+\item \code{ModerationStatus} حالة إشراف من نوع \code{PostModerationStatus}: \code{Visible}
+  أو \code{Removed} (حذفه الأدمن) أو \code{PendingReview} (بانتظار مراجعة) أو \code{Hidden}.
+\item \code{IsAutoHidden} علَمٌ منفصل: صحيح حين تتخطّى البلاغاتُ العتبةَ فيُخفى المنشور
+  تلقائيًّا قبل أن يتدخّل أيّ إنسان.
+\item العدّادات \code{UpvoteCount} و\code{FlagCount} و\code{ReplyCount} مخزّنة مسبقًا
+  (\en{cached aggregates}): نحدّثها لحظة الكتابة حتى تكون القراءة رخيصة بلا عدٍّ متكرّر.
+\item \code{IsDeleted} هو الـ \en{soft delete}: المنشور المحذوف يبقى صفًّا في القاعدة لكن
+  يختفي من كل الاستعلامات.
+\end{itemize}
+
+الرسم التالي يجمع العلاقات: الفئة تحوي منشورات، والمنشور له ردود، وحوله التصويت والإبلاغ
+والإشارة المرجعيّة.
+
+\begin{center}
+\begin{LTR}
+\begin{tikzpicture}[node distance=0.6cm and 1.4cm]
+  \node[dbbox] (cat) {Category};
+  \node[dbbox,right=1.7cm of cat] (post) {Post\\(root)};
+  \node[dbbox,right=1.7cm of post] (reply) {Reply};
+  \node[sbox,text width=2.0cm,above=0.95cm of post] (vote) {Vote\\Up / Down};
+  \node[sbox,text width=2.0cm,below=0.95cm of post] (flag) {Flag};
+  \node[sbox,text width=2.0cm,above=0.95cm of reply] (book) {Bookmark};
+  \draw[arr] (cat) -- (post) node[lbl,midway,above] {posts};
+  \draw[arr] (post) -- (reply) node[lbl,midway,above] {ParentPostId};
+  \draw[arrb] (post) -- (vote);
+  \draw[arrb] (post) -- (flag);
+  \draw[arrb] (post) -- (book);
+\end{tikzpicture}
+\end{LTR}
+\end{center}
+
+% ====================================================================
+\subsection{دورة حياة منشور: من الكتابة إلى العرض}
+
+المنشور يبدأ حياته بأمر \code{CreatePostCommand}. أوّل خطوة حارسة: مَن يكتب؟ فقط الطالب.
+المستشارون والجهات لا ينتجون محتوى هنا. ثانيًا: كل نصٍّ يمرّ على مُنقِّي \en{HTML} قبل
+التخزين، حتى لا يُحقَن سكربت خبيث. المقتطف من \code{CreatePostCommand} يبيّن الحارسَين
+معًا، ثم إطلاق حدث البثّ الحيّ:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+if (!currentUser.IsInRole("Student"))
+    throw new ForbiddenAccessException("Only students can create community posts.");
+
+var sanitizer = new Ganss.Xss.HtmlSanitizer();
+var titleEn = sanitizer.Sanitize(request.TitleEn);
+var bodyEn  = sanitizer.Sanitize(request.BodyEn);
+// ... TitleAr / BodyAr sanitized the same way (posts are bilingual) ...
+
+var post = new ForumPost { AuthorId = authorId, CategoryId = request.CategoryId,
+    TitleEn = titleEn, BodyEn = bodyEn /* ... */ };
+db.ForumPosts.Add(post);
+
+// Raise BEFORE save so the dispatcher (runs after SaveChanges) broadcasts it.
+post.RaiseDomainEvent(new ForumPostCreatedEvent(post.Id, authorId, request.CategoryId));
+await db.SaveChangesAsync(ct);
+\end{lstlisting}
+\end{english}
+
+الأسطر المهمّة:
+\begin{itemize}
+\item الفحص \code{IsInRole("Student")} يرفض أيّ دور آخر برمي \code{ForbiddenAccessException}.
+\item \code{HtmlSanitizer} ينظّف العنوان والنصّ باللغتين — منشورات المجتمع ثنائيّة اللغة
+  مثل المنح تمامًا.
+\item \code{RaiseDomainEvent} يُطلَق قبل \code{SaveChangesAsync} عمدًا: الموزّع
+  يلتقط الحدث بعد الحفظ فيبثّ الإشعار الحيّ. لو أطلقناه بعد الحفظ لضاع البثّ.
+\end{itemize}
+
+بعد أن يُعرَض المنشور، يتفاعل الطلاب معه: يردّون، ويصوّتون. التصويت أمرٌ لطيف اسمه
+\code{ToggleVoteCommand}: نفس الزرّ يضيف الصوت أو يزيله أو يقلبه. لاحظ قاعدتين: لا تصوّت
+على محتواك، وعدّاد المنشور يتحدّث في نفس اللحظة.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+if (post.AuthorId == currentUser.UserId)
+    throw new ConflictException("You can't vote on your own content.");
+
+var existingVote = post.Votes.FirstOrDefault(v => v.UserId == currentUser.UserId);
+if (existingVote != null && existingVote.VoteType == request.VoteType)
+{
+    db.ForumVotes.Remove(existingVote);            // same vote again -> toggle off
+    if (request.VoteType == VoteType.Up) post.UpvoteCount--; else post.DownvoteCount--;
+}
+// ... else: swap direction, or add a brand-new vote ...
+await db.SaveChangesAsync(ct);
+\end{lstlisting}
+\end{english}
+
+الفكرة أنّ العدّاد المخزّن \code{UpvoteCount} يتغيّر مع كل عمليّة، فلا نضطرّ لعدّ الأصوات
+عند كل قراءة. والقيد الفريد على (المنشور، المستخدم) في القاعدة يضمن صوتًا واحدًا لكل شخص
+مهما تكرّرت الطلبات.
+
+\begin{keyp}[نقطة مهمة: العدّادات المخزّنة]
+\code{UpvoteCount} و\code{FlagCount} و\code{ReplyCount} كلّها أرقام محفوظة على صفّ المنشور،
+نحدّثها لحظة الكتابة. النتيجة: صفحة المجتمع تقرأ عددًا جاهزًا بدل \code{COUNT} على آلاف
+الأصوات في كل تحميل. الثمن أن نبقيها متّسقة في كل أمر — وهو ما نراه في التصويت والإبلاغ.
+\end{keyp}
+
+% ====================================================================
+\subsection{الإبلاغ والإخفاء التلقائيّ: حماية بلا تدخّل بشريّ فوريّ}
+
+هنا تكمن أذكى قاعدة في المجتمع. حين يرى طالبٌ منشورًا مسيئًا، يبلّغ عنه بأمر
+\code{FlagPostCommand}. لكن بلاغًا واحدًا لا يكفي لإخفاء منشور — قد يكون كيديًّا. القاعدة:
+لو أبلغ ثلاثة أشخاص مختلفين (بلاغات صالحة متمايزة) عن نفس المنشور، يُخفى تلقائيًّا
+ويُحوَّل إلى \code{PendingReview} بانتظار قرار الأدمن.
+
+المقتطف من \code{FlagPostCommand} هو قلب القاعدة:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// distinct valid flaggers already persisted, + our own new one
+var distinctValidFlags = priorDistinctValidFlags + 1;
+post.FlagCount++;
+
+// Auto-hide rule: 3 distinct valid flags route the post to moderation.
+if (distinctValidFlags >= 3 && !post.IsAutoHidden)
+{
+    post.IsAutoHidden = true;
+    post.AutoHiddenAt = DateTimeOffset.UtcNow;
+    post.ModerationStatus = PostModerationStatus.PendingReview;
+    post.RaiseDomainEvent(new PostAutoHiddenEvent(post.Id, distinctValidFlags));
+}
+await db.SaveChangesAsync(ct);
+\end{lstlisting}
+\end{english}
+
+ملاحظات دقيقة:
+\begin{itemize}
+\item نعدّ المُبلِّغين المتمايزين (\code{Distinct}) لا عدد البلاغات — حتى لا يخفي
+  شخصٌ واحد منشورًا بتكرار البلاغ. والفحص المسبق على تكرار المُبلِّغ نفسه يمنع ذلك أصلًا.
+\item عند بلوغ الثلاثة يُرفع علَم \code{IsAutoHidden} وتتحوّل الحالة إلى \code{PendingReview}،
+  ويُطلَق حدث \code{PostAutoHiddenEvent} لإخطار الأدمن.
+\item الشرط \code{!post.IsAutoHidden} يمنع الإخفاء وإطلاق الحدث مرّتين لو أُعيدت المحاولة.
+\end{itemize}
+
+الرسم يلخّص القرار: هل بلغت البلاغاتُ المتمايزة الصالحة العتبةَ؟
+
+\begin{center}
+\begin{LTR}
+\begin{tikzpicture}[node distance=0.6cm and 1.1cm]
+  \node[pbox] (flag) {FlagPost};
+  \node[sbox,text width=2.2cm,right=1.1cm of flag] (count) {distinct valid flags};
+  \node[dbox,right=1.1cm of count] (dec) {flags $\geq 3$ ?};
+  \node[fbox,above right=0.35cm and 1.2cm of dec] (hide) {AutoHidden\\PendingReview};
+  \node[tbox,below right=0.35cm and 1.2cm of dec] (stay) {stays Visible};
+  \draw[arr] (flag) -- (count);
+  \draw[arr] (count) -- (dec);
+  \draw[arr] (dec) -- node[lbl,above] {yes} (hide);
+  \draw[arr] (dec) -- node[lbl,below] {no} (stay);
+\end{tikzpicture}
+\end{LTR}
+\end{center}
+
+بعد الإخفاء التلقائيّ يأتي دور الأدمن. أمامه مساران: \code{DismissPostFlags} (يقرّر أنّ
+المنشور سليم فيُبطل كل البلاغات ويعيده \code{Visible})، أو \code{DeletePost} (يحذفه
+منطقيًّا). المقتطف من \code{DismissPostFlags} يبيّن الرجوع للحالة الطبيعيّة:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+foreach (var flag in post.Flags) flag.IsValid = false; // invalidate every flag
+post.FlagCount = 0;
+post.IsAutoHidden = false;
+post.AutoHiddenAt = null;
+post.ModerationStatus = PostModerationStatus.Visible;
+post.ModeratedByAdminId = adminId;
+post.ModeratedAt = DateTimeOffset.UtcNow;
+await db.SaveChangesAsync(ct);
+\end{lstlisting}
+\end{english}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: حماية ذاتيّة بلا انتظار]
+عتبة البلاغ الثلاثيّ تجعل المجتمع يحمي نفسه. المحتوى المسيء يختفي لحظة يتّفق ثلاثة
+مستخدمين مستقلّين عليه — بلا انتظار أدمن يقظ على مدار الساعة. وفي الوقت نفسه، اشتراط
+ثلاثة مُبلِّغين متمايزين يمنع إساءة استخدام الزرّ لإسكات رأي واحد. إنّها موازنة
+هندسيّة أنيقة بين سرعة الحماية وعدالة القرار، والقرار النهائيّ يبقى للأدمن (إبقاء أو حذف).
+\end{spotlight}
+
+% ====================================================================
+\subsection{البثّ الحيّ عبر CommunityHub وبوّابات الرؤية}
+
+حين يُنشر ردّ جديد على منشور، نريد أن يظهر فورًا لكل مَن يشاهد ذلك الموضوع دون تحديث
+الصفحة. هذا يتمّ عبر \code{CommunityHub} (قناة \en{SignalR}). العميل يشترك في مجموعتين:
+مجموعة الفئة (\code{JoinCategory}) ليعرف بالمنشورات الجديدة، ومجموعة المنشور
+(\code{JoinPost}) ليعرف بالردود الجديدة على موضوع بعينه.
+
+لكن الاشتراك ليس مفتوحًا للجميع. هنا تعمل بوّابة الرؤية \en{SEC-02}: لا تشترك إلّا في فئة
+نشطة فعلًا، ولا في منشور مرئيّ فعلًا — غير محذوف، وغير مخفيّ تلقائيًّا، وحالته
+\code{Visible}. المقتطف من \code{CommunityHub} يبيّن حارس \code{JoinPost}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public async Task JoinPost(string postId)
+{
+    if (!Guid.TryParse(postId, out var id))
+        throw new HubException("Invalid post id.");
+
+    var visible = await db.ForumPosts.AsNoTracking()
+        .AnyAsync(p => p.Id == id && !p.IsDeleted && !p.IsAutoHidden
+            && p.ModerationStatus == PostModerationStatus.Visible);
+    if (!visible)
+        throw new HubException("Post not found.");
+
+    await Groups.AddToGroupAsync(Context.ConnectionId, $"forum-post:{postId}");
+}
+\end{lstlisting}
+\end{english}
+
+لماذا نفحص الرؤية قبل الاشتراك؟ لأنّ بدون هذا الحارس يقدر أيّ مستخدم مُصادَق أن ينضمّ
+لمجموعة \code{forum-post} لمنشور محذوف أو مخفيّ، فيتنصّت على ردوده الحيّة. الحارس يغلق
+الباب عند لحظة الانضمام.
+
+بعد الاشتراك، حين يُنشأ ردّ، يُطلَق حدث \code{ForumReplyCreatedEvent}، ومعالِجه ينادي
+\code{CommunityRealtimeNotifier} الذي يبثّ للمجموعة فقط:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public Task NotifyNewReplyAsync(Guid replyId, Guid parentPostId, CancellationToken ct) =>
+    hub.Clients
+       .Group($"forum-post:{parentPostId}")
+       .SendAsync("ReplyCreated", new { replyId, parentPostId }, ct);
+\end{lstlisting}
+\end{english}
+
+الرسم يوضّح الـ \en{fan-out}: ردٌّ واحد يصل لكل المشتركين في مجموعة المنشور دفعة واحدة.
+
+\begin{center}
+\begin{LTR}
+\begin{tikzpicture}[node distance=0.5cm and 1.0cm]
+  \node[actor] (author) {Student reply};
+  \node[pbox,right=1.0cm of author] (cmd) {CreateReply};
+  \node[gbox,right=1.0cm of cmd] (hub) {CommunityHub};
+  \node[dbbox,text width=2.4cm,right=1.0cm of hub] (grp) {group\\forum-post:id};
+  \node[sbox,text width=1.9cm,above right=0.5cm and 1.0cm of grp] (s1) {subscriber};
+  \node[sbox,text width=1.9cm,right=1.1cm of grp] (s2) {subscriber};
+  \node[sbox,text width=1.9cm,below right=0.5cm and 1.0cm of grp] (s3) {subscriber};
+  \draw[arr] (author) -- (cmd);
+  \draw[arr] (cmd) -- node[lbl,above] {ReplyCreated} (hub);
+  \draw[arr] (hub) -- (grp);
+  \draw[arr] (grp) -- (s1);
+  \draw[arr] (grp) -- (s2);
+  \draw[arr] (grp) -- (s3);
+\end{tikzpicture}
+\end{LTR}
+\end{center}
+
+% ====================================================================
+\subsection{الحظر: كيف يُنشَأ وأين يُنفَّذ}
+
+نصل الآن للسؤال الأهمّ. حين يريد طالبٌ ألّا يتعامل مع مستخدم آخر، يُصدر
+\code{BlockUserCommand}. هذا الأمر بسيط: ينشئ صفًّا واحدًا في جدول \code{UserBlock} يربط
+الحاجب بالمحجوب.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+if (request.UserIdToBlock == currentUser.UserId)
+    throw new ConflictException("You cannot block yourself.");
+// ... return early if the block row already exists (idempotent) ...
+
+var block = new UserBlock
+{
+    BlockerId = currentUser.UserId ?? throw new ForbiddenAccessException(),
+    BlockedUserId = request.UserIdToBlock,
+    Reason = request.Reason
+};
+db.UserBlocks.Add(block);
+await db.SaveChangesAsync(ct);
+\end{lstlisting}
+\end{english}
+
+لكنّ إنشاء الصفّ نصف القصّة. الصفّ مجرّد بيان بأنّ هناك حظرًا؛ السؤال الحقيقيّ:
+مَن يقرأ هذا الصفّ ويطبّقه؟ الجواب المهمّ: التنفيذ موزّع دفاعيًّا على كل مسار، وينقسم
+لنوعين — فحص عند الكتابة، وفلتر عند القراءة.
+
+\begin{idea}[الفكرة: تنفيذ الحظر = كتابة + قراءة]
+عند \en{الكتابة}: كل أمر يُنتج تفاعلًا (إرسال رسالة، كتابة ردّ) يفحص جدول \code{UserBlock}
+قبل التنفيذ ويرفض لو كان هناك حظر. عند \en{القراءة}: كل استعلام يعرض محتوى شخص آخر
+يمرّ على فلتر يُسقط محتوى المحجوبين. لو غاب أيّ طرف، تسرّب المحتوى — لذا نطبّقه في الطرفين.
+\end{idea}
+
+المسار الأوّل (كتابة) — أمر \code{SendMessageCommand} يفحص الحظر قبل حفظ الرسالة:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var isBlocked = await db.UserBlocks.AnyAsync(b =>
+    (b.BlockerId == recipientId          && b.BlockedUserId == currentUser.UserId) ||
+    (b.BlockerId == currentUser.UserId   && b.BlockedUserId == recipientId), ct);
+
+if (isBlocked)
+    throw new ConflictException("Cannot send message. User is blocked.");
+\end{lstlisting}
+\end{english}
+
+لاحظ أنّ الفحص ثنائيّ الاتجاه: يرفض سواء حجبتُ أنا الطرف الآخر أو حجبني هو. نفس
+المنطق في المجتمع: أمر \code{CreateReplyCommand} ينادي \code{AreBlockedAsync} فيرفض الردّ
+لو كان بينهما حظر في أيّ اتجاه.
+
+المسار الثاني (قراءة) — الفلتر المشترك \code{CommunityBlockFilter.NotBlockedWith}. هو تعبير
+\code{Expression} واحد تستخدمه كل استعلامات المجتمع، حتى لا تنحرف دلالة الحظر بين مكان
+وآخر:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public static Expression<Func<ForumPost, bool>> NotBlockedWith(
+    IApplicationDbContext db, Guid viewerId) =>
+    p => !db.UserBlocks.Any(b =>
+        (b.BlockerId == viewerId    && b.BlockedUserId == p.AuthorId) ||
+        (b.BlockerId == p.AuthorId  && b.BlockedUserId == viewerId));
+\end{lstlisting}
+\end{english}
+
+هذا التعبير يعني: «أرِني المنشور فقط إن لم يكن صاحبه في علاقة حظر معي في أيّ اتّجاه».
+تستدعيه \code{GetPostsQuery} على قائمة المنشورات، و\code{GetMyBookmarksQuery} يطبّق نفس
+الشرط بيده فيُسقِط من إشاراتي المرجعيّة أيّ منشور صار صاحبه محجوبًا. الجدول التالي يجمع
+نقاط التنفيذ:
+
+\begin{center}
+\begin{tabular}{L{3.4cm} L{2.6cm} L{6cm}}
+\toprule
+الموضع & النوع & السلوك \\
+\midrule
+\en{SendMessage} & كتابة & يرفض إرسال الرسالة. \\
+\en{CreateReply} & كتابة & يرفض الردّ (\code{AreBlockedAsync}). \\
+\en{GetPosts} & قراءة & يُخفي منشورات المحجوب من القائمة. \\
+\en{GetMyBookmarks} & قراءة & يُسقط المحجوب من الإشارات المرجعيّة. \\
+\en{GetConversations} & قراءة & يعلّم مَن حجبتُ لعرض زرّ إلغاء الحظر. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+الرسم يجسّد الفكرة: أمرٌ واحد ينشئ صفًّا واحدًا، ثم يُقرأ في مسارين متعامدين.
+
+\begin{center}
+\begin{LTR}
+\begin{tikzpicture}[node distance=0.55cm and 1.1cm]
+  \node[actor] (u) {Blocker};
+  \node[pbox,right=1.1cm of u] (cmd) {BlockUser};
+  \node[dbbox,text width=2.3cm,right=1.1cm of cmd] (row) {UserBlock row};
+  \node[fbox,text width=2.9cm,above right=0.45cm and 1.3cm of row] (write) {write path\\SendMessage rejected};
+  \node[tbox,text width=2.9cm,below right=0.45cm and 1.3cm of row] (read) {read path\\BlockFilter hides};
+  \draw[arr] (u) -- (cmd);
+  \draw[arr] (cmd) -- (row);
+  \draw[arr] (row) -- node[lbl,above] {on write} (write);
+  \draw[arr] (row) -- node[lbl,below] {on read} (read);
+\end{tikzpicture}
+\end{LTR}
+\end{center}
+
+\begin{secnote}
+الفحص ثنائيّ الاتجاه مقصود ومهمّ. لو كان الفلتر يفحص «مَن حجبتُ أنا» فقط، لتمكّن مَن حجبني
+من متابعة محتواي والردّ عليّ. توحيد الدلالة في تعبير \code{NotBlockedWith} واحد يضمن أنّ
+كل استعلام يطبّق النسخة المتبادلة نفسها، فلا تنشأ ثغرة من اختلاف التطبيق بين شاشة وأخرى.
+\end{secnote}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: الحظر دفاعيّ في كل مسار]
+لو سألتك اللجنة «أين يُنفَّذ الحظر؟» فالإجابة القويّة ليست «في مكان واحد»، بل: في كل
+مسار كتابة وقراءة على حِدة. أمر واحد (\code{BlockUser}) يكتب صفًّا واحدًا، لكن هذا الصفّ
+يُقرأ في \code{SendMessage} و\code{CreateReply} (كتابة) وفي \code{GetPosts} و\code{GetMyBookmarks}
+و\code{GetConversations} (قراءة). هذا نمط \en{defense-in-depth}: لا نعتمد على طبقة واحدة
+تحرس كل شيء، بل نغلق الباب عند كل نقطة تماسّ. النتيجة: لا مسار واحد يتسرّب منه محتوى المحجوب.
+\end{spotlight}
+
+\begin{qa}[سؤال متوقّع: لماذا لا تحرس مكانًا مركزيًّا واحدًا فقط؟]
+لأنّ المسارات مختلفة الطبيعة: الكتابة تحتاج رفضًا صريحًا برسالة خطأ، والقراءة تحتاج
+إسقاطًا صامتًا من النتائج. لا توجد نقطة مركزيّة واحدة يمرّ منها الاثنان. لذلك نضع
+الفحص عند كل أمر كتابة، والفلتر (\code{NotBlockedWith}) عند كل استعلام قراءة — مع توحيد
+الدلالة المتبادلة في مكان واحد حتى لا تتكرّر ولا تنحرف.
+\end{qa}
+
+% ====================================================================
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item المنشور والردّ نفس الكيان \code{ForumPost}؛ يفرّقهما \code{ParentPostId}.
+\item حول المنشور: تصويت (\code{ForumVote}) وبلاغ (\code{ForumFlag}) وإشارة مرجعيّة
+  (\code{ForumBookmark})، وعدّادات مخزّنة تجعل القراءة رخيصة.
+\item الإنشاء يحرسه دورٌ (طالب فقط) وتنقية \en{HTML}، ويُطلق حدثًا للبثّ الحيّ قبل الحفظ.
+\item الإبلاغ يحمي المجتمع ذاتيًّا: ثلاثة مُبلِّغين متمايزين يُخفون المنشور تلقائيًّا
+  (\code{IsAutoHidden}) ويحوّلونه \code{PendingReview}، والقرار النهائيّ للأدمن.
+\item البثّ الحيّ عبر \code{CommunityHub} مع بوّابة رؤية \en{SEC-02}: لا اشتراك إلّا في
+  فئة نشطة أو منشور مرئيّ فعلًا.
+\item الحظر يُنشَأ بصفّ \code{UserBlock} واحد، لكنّه يُنفَّذ دفاعيًّا في كل مسار: فحص عند
+  الكتابة (\code{SendMessage}، \code{CreateReply})، وفلتر عند القراءة (\code{NotBlockedWith})
+  — وكلّه ثنائيّ الاتجاه فلا ثغرة.
+\end{itemize}
+\end{summary}

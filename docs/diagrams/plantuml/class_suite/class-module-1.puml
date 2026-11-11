@@ -1,0 +1,191 @@
+' =====================================================================
+'  ScholarPath — Class diagram · Module 1 · Identity & Profile
+'  (PB-001 Auth, PB-002 Onboarding, PB-010 Role upgrades)
+'  All classes : AuditableEntity unless a stereotype says otherwise;
+'  ApplicationUser : IdentityUser<Guid> + ISoftDeletable (NOT AuditableEntity).
+' =====================================================================
+
+@startuml Class_Module1_Identity_Profile
+title Module 1 — Identity & Profile  (all classes : AuditableEntity, except where noted)
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+
+' Referenced base types
+abstract class AuditableEntity {
+  -CreatedAt : DateTimeOffset
+  -CreatedByUserId : Guid?
+  -UpdatedAt : DateTimeOffset?
+  -UpdatedByUserId : Guid?
+  -RowVersion : byte[]?
+}
+interface ISoftDeletable {
+  +IsDeleted : bool
+  +DeletedAt : DateTimeOffset?
+  +DeletedByUserId : Guid?
+}
+class "IdentityUser<Guid>" as IdentityUser <<ASP.NET Identity>>
+class "IdentityRole<Guid>" as IdentityRole <<ASP.NET Identity>>
+
+class ApplicationUser <<: IdentityUser<Guid> + ISoftDeletable>> {
+  -Email : string
+  -FirstName : string
+  -LastName : string
+  -ProfileImageUrl : string?
+  -AccountStatus : AccountStatus
+  -ActiveRole : string?
+  -IsOnboardingComplete : bool
+  -PreferredLanguage : string?
+  -CountryOfResidence : string?
+  -LastLoginAt : DateTimeOffset?
+  -CreatedAt : DateTimeOffset
+  -UpdatedAt : DateTimeOffset?
+  -RowVersion : byte[]?
+  -IsDeleted : bool
+  +/FullName : string
+  +RaiseDomainEvent(e) : void
+}
+class ApplicationRole <<: IdentityRole<Guid>>> {
+  -Name : string
+  -Description : string?
+  -CreatedAt : DateTimeOffset
+}
+class UserProfile {
+  -UserId : Guid
+  -Biography : string? «enc»
+  -BiographyAr : string?
+  -DateOfBirth : DateOnly?
+  -Nationality : string?
+  -LinkedInUrl : string?
+  -Timezone : string?
+  __ student __
+  -AcademicLevel : AcademicLevel?
+  -FieldOfStudy : string?
+  -CurrentInstitution : string?
+  -Gpa : decimal?
+  -GpaScale : string?
+  -PreferredCountriesJson : string?
+  -BookingAccessStatus : BookingAccessStatus
+  -BookingBlockReason : BookingBlockReason?
+  -BookingBlockUntil : DateTimeOffset?
+  __ scholarship provider __
+  -OrganizationLegalName : string?
+  -OrganizationRegistrationNumber : string?
+  -OrganizationVerificationStatus : string?
+  -ScholarshipProviderType : string?
+  -IsTaxRegistered : bool?
+  -IsLegallyRegistered : bool?
+  -LastOnboardingRejectionReason : string?
+  -ScholarshipProviderAverageRating : decimal?
+  -ScholarshipProviderReviewCount : int
+  -ScholarshipProviderLowRatingFlaggedAt : DateTimeOffset?
+  __ consultant __
+  -SessionDurationMinutes : int?
+  -ExpertiseTagsJson : string?
+  -LanguagesJson : string?
+  -ProfessionalTitle : string?
+  -HighestDegree : string?
+  -YearsOfExperience : int?
+  -ConsultantVerifiedAt : DateTimeOffset?
+  -BookingIntakeSuspendedAt : DateTimeOffset?
+  -ConsultantAverageRating : decimal?
+  -ConsultantReviewCount : int
+  -ConsultantLowRatingFlaggedAt : DateTimeOffset?
+  -ConsultantRatingPenaltyFactor : decimal
+  __ computed __
+  -ProfileCompletenessPercent : int?
+}
+class EducationEntry {
+  -UserProfileId : Guid
+  -InstitutionName : string
+  -Degree : string
+  -FieldOfStudy : string
+  -StartDate : DateOnly?
+  -EndDate : DateOnly?
+  -Gpa : decimal?
+}
+class ExpertiseTag <<lookup : BaseEntity>> {
+  -NameEn : string
+  -NameAr : string
+  -Slug : string
+  -Category : string?
+}
+class RefreshToken {
+  -UserId : Guid
+  -TokenHash : string
+  -ExpiresAt : DateTimeOffset
+  -IsRevoked : bool
+  -RevokedReason : string?
+  -ReplacedByTokenId : Guid?
+}
+class PasswordResetToken {
+  -UserId : Guid
+  -TokenHash : string
+  -ExpiresAt : DateTimeOffset
+  -UsedAt : DateTimeOffset?
+}
+class LoginAttempt <<: BaseEntity>> {
+  -Email : string
+  -UserId : Guid?
+  -Succeeded : bool
+  -FailureReason : string?
+  -OccurredAt : DateTimeOffset
+}
+class UpgradeRequest <<+ ISoftDeletable>> {
+  -UserId : Guid
+  -Target : UpgradeTarget
+  -Status : UpgradeRequestStatus
+  -Reason : string?
+  -ReviewerNotes : string?
+  -ReviewedByAdminId : Guid?
+  -ReviewedAt : DateTimeOffset?
+}
+class UpgradeRequestFile <<: BaseEntity>> {
+  -UpgradeRequestId : Guid
+  -FileName : string
+  -BlobUrl : string
+  -SizeBytes : long
+  -ContentType : string
+}
+class UpgradeRequestLink <<: BaseEntity>> {
+  -UpgradeRequestId : Guid
+  -Label : string
+  -Url : string
+}
+
+' Inheritance
+IdentityUser <|-- ApplicationUser
+IdentityRole <|-- ApplicationRole
+ISoftDeletable <|.. ApplicationUser
+ISoftDeletable <|.. UpgradeRequest
+AuditableEntity <|-- UserProfile
+AuditableEntity <|-- EducationEntry
+AuditableEntity <|-- RefreshToken
+AuditableEntity <|-- PasswordResetToken
+AuditableEntity <|-- UpgradeRequest
+
+' Associations
+ApplicationUser "1" -- "0..1" UserProfile : profile >
+ApplicationUser "*" -- "*" ApplicationRole : roles >
+UserProfile "1" *-- "*" EducationEntry : education >
+ApplicationUser "1" -- "*" RefreshToken : issues >
+ApplicationUser "1" -- "*" PasswordResetToken : resets >
+ApplicationUser "1" -- "*" LoginAttempt : attempts >
+ApplicationUser "1" -- "*" UpgradeRequest : requests >
+UpgradeRequest "1" *-- "*" UpgradeRequestFile : files >
+UpgradeRequest "1" *-- "*" UpgradeRequestLink : links >
+
+note bottom of ApplicationUser
+  ApplicationUser does NOT inherit AuditableEntity. It extends
+  IdentityUser<Guid>, implements ISoftDeletable, and carries a
+  stripped audit triple (CreatedAt, UpdatedAt, RowVersion) —
+  no CreatedByUserId / UpdatedByUserId.
+end note
+note bottom of UserProfile
+  Rating snapshots (ScholarshipProvider* / Consultant*) plus the
+  ConsultantRatingPenaltyFactor ledger are recomputed on each new
+  review; booking-block fields gate a student's NEW-booking access.
+end note
+@enduml

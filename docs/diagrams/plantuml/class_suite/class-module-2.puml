@@ -1,0 +1,161 @@
+' =====================================================================
+'  ScholarPath — Class diagram · Module 2 · Scholarships, Applications
+'  & Documents  (PB-003 Listings, PB-004 Applications, PB-005 Provider review)
+'  All classes : AuditableEntity unless a stereotype says otherwise.
+'  Payment columns excluded per scope (Scholarship.ReviewFeeUsd,
+'  ScholarshipProviderReviewRequest.ReviewFeeUsdSnapshot/PaymentId).
+' =====================================================================
+
+@startuml Class_Module2_Scholarships_Applications
+title Module 2 — Scholarships, Applications & Documents  (all classes : AuditableEntity)
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+
+abstract class AuditableEntity {
+  -CreatedAt : DateTimeOffset
+  -CreatedByUserId : Guid?
+  -UpdatedAt : DateTimeOffset?
+  -UpdatedByUserId : Guid?
+  -RowVersion : byte[]?
+}
+interface ISoftDeletable {
+  +IsDeleted : bool
+  +DeletedAt : DateTimeOffset?
+  +DeletedByUserId : Guid?
+}
+' Cross-module actor (defined fully in Module 1)
+class ApplicationUser <<Module 1 · actor>>
+
+class Category {
+  -NameEn : string
+  -NameAr : string
+  -Slug : string
+  -DisplayOrder : int
+}
+class Scholarship <<+ ISoftDeletable>> {
+  -TitleEn : string
+  -TitleAr : string
+  -Slug : string
+  -CategoryId : Guid?
+  -OwnerScholarshipProviderId : Guid?
+  -CreatedByAdminId : Guid?
+  -Mode : ListingMode
+  -ExternalApplicationUrl : string?
+  -Status : ScholarshipStatus
+  -Deadline : DateTimeOffset
+  -RejectionReason : string?
+  -IsFeatured : bool
+  -FundingType : FundingType
+  -TargetLevel : AcademicLevel
+  -TargetCountriesJson : string?
+  -FieldsOfStudyJson : string?
+  -ApplicationFormSchemaJson : string?
+}
+class ScholarshipChild <<: BaseEntity>> {
+  -ScholarshipId : Guid
+  -ChildType : string
+  -KeyEn : string
+  -ValueEn : string?
+  -SortOrder : int
+}
+class SavedScholarship <<: BaseEntity>> {
+  -UserId : Guid
+  -ScholarshipId : Guid
+  -SavedAt : DateTimeOffset
+  -Note : string?
+}
+class ApplicationTracker <<+ ISoftDeletable>> {
+  -StudentId : Guid
+  -ScholarshipId : Guid?
+  -Mode : ApplicationMode
+  -Status : ApplicationStatus
+  -FormDataJson : string?
+  -ExternalTitle : string?
+  -ExternalProvider : string?
+  -Deadline : DateTimeOffset?
+  -SubmittedAt : DateTimeOffset?
+  -DecisionAt : DateTimeOffset?
+  -PersonalNotes : string?
+  +/IsActive : bool
+  +/IsReadOnly : bool
+}
+class ApplicationTrackerChild <<: BaseEntity>> {
+  -ApplicationTrackerId : Guid
+  -ChildType : string
+  -Title : string?
+  -Content : string?
+  -OccurredAt : DateTimeOffset
+  -SortOrder : int
+}
+class Document <<+ ISoftDeletable>> {
+  -OwnerUserId : Guid
+  -FileName : string
+  -ContentType : string
+  -SizeBytes : long
+  -StoragePath : string
+  -Category : DocumentCategory
+  -OnboardingType : OnboardingDocumentType?
+  -ApplicationTrackerId : Guid?
+  -UploadedAt : DateTimeOffset
+}
+class ScholarshipProviderReviewRequest <<+ ISoftDeletable>> {
+  -StudentId : Guid
+  -ScholarshipProviderId : Guid
+  -ScholarshipId : Guid
+  -ApplicationTrackerId : Guid?
+  -Status : ScholarshipProviderReviewRequestStatus
+  -Currency : string
+  -SubmittedAt : DateTimeOffset?
+  -PendingExpiresAt : DateTimeOffset?
+  -CancelReason : string?
+  -RejectReason : string?
+}
+class ScholarshipProviderReview <<+ ISoftDeletable>> {
+  -ApplicationTrackerId : Guid
+  -StudentId : Guid
+  -ScholarshipProviderId : Guid
+  -Rating : int
+  -Comment : string?
+  -IsHiddenByAdmin : bool
+  -AdminNote : string?
+}
+
+' Inheritance
+AuditableEntity <|-- Category
+AuditableEntity <|-- Scholarship
+AuditableEntity <|-- ApplicationTracker
+AuditableEntity <|-- Document
+AuditableEntity <|-- ScholarshipProviderReviewRequest
+AuditableEntity <|-- ScholarshipProviderReview
+ISoftDeletable <|.. Scholarship
+ISoftDeletable <|.. ApplicationTracker
+ISoftDeletable <|.. Document
+ISoftDeletable <|.. ScholarshipProviderReviewRequest
+ISoftDeletable <|.. ScholarshipProviderReview
+
+' Associations
+Category "0..1" -- "*" Scholarship : classifies >
+ApplicationUser "1" o-- "*" Scholarship : owns(provider) >
+Scholarship "1" *-- "*" ScholarshipChild : details >
+Scholarship "1" -- "*" SavedScholarship : bookmarks >
+ApplicationUser "1" -- "*" SavedScholarship : saves(student) >
+Scholarship "0..1" -- "*" ApplicationTracker : receives >
+ApplicationUser "1" -- "*" ApplicationTracker : submits(student) >
+ApplicationTracker "1" *-- "*" ApplicationTrackerChild : history >
+ApplicationUser "1" -- "*" Document : owns >
+ApplicationTracker "0..1" -- "*" Document : supportedBy >
+Scholarship "1" -- "*" ScholarshipProviderReviewRequest : under >
+ApplicationUser "1" -- "*" ScholarshipProviderReviewRequest : buys(student) >
+ApplicationTracker "0..1" -- "0..1" ScholarshipProviderReviewRequest : trackedFor >
+ApplicationTracker "1" -- "0..1" ScholarshipProviderReview : ratedBy >
+ApplicationUser "1" -- "*" ScholarshipProviderReview : writes(student) >
+
+note bottom of ScholarshipProviderReviewRequest
+  Application-support engagement (PB-005): a student's request for a
+  provider to review a draft application before submission. Its state
+  machine is distinct from ApplicationStatus.
+end note
+@enduml

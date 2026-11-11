@@ -1,0 +1,60 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #DAE8FC
+  ParticipantBorderColor #6C8EBF
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor black
+  ActorBorderColor #6C8EBF
+  ActorBackgroundColor #DAE8FC
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+}
+title Search Contacts and Start Conversation
+actor Student as ST
+participant "NewMessageModal" as MODAL
+participant "chatApi" as API
+participant "ChatController" as CTRL
+participant "SearchContactsQuery" as SCQ
+participant "ChatContactReadService" as READ
+participant "SendMessageCommand" as CMD
+participant "ChatConversation" as CONV
+participant "ChatMessage" as MSG
+ST -> MODAL ++ : open New Message
+MODAL -> API ++ : GET contacts?q
+API -> CTRL ++ : searchContacts(q)
+CTRL -> SCQ ++ : execute(q)
+SCQ -> READ ++ : eligible contacts (exclude self / inactive / soft-deleted / blocked)
+READ --> SCQ -- : contacts
+SCQ --> CTRL -- : results
+CTRL --> API -- : 200
+API --> MODAL -- : contact list
+ST -> MODAL : pick contact + type first message
+MODAL -> API ++ : POST messages
+API -> CTRL ++ : send(first message)
+CTRL -> CMD ++ : execute()
+alt existing conversation
+  CMD -> CONV : reuse conversation
+else no conversation
+  CMD -> CONV ++ : create ChatConversation
+  CONV --> CMD -- : conversation
+end
+CMD -> MSG ++ : create first ChatMessage
+MSG --> CMD -- : message
+CMD --> CTRL -- : sent (messageId)
+CTRL --> API -- : 200 OK(messageId)
+API --> MODAL -- : conversation opened
+deactivate MODAL
+note over CTRL, MSG
+  Send returns 200 OK carrying the new message Guid
+  (Ok(result)) - not 201 Created.
+end note
+@enduml

@@ -107,3 +107,34 @@ test-results/
 .nyc_output/
 coverage-reports/
 ~$*
+
+# ============================== Generated documentation ==============================
+# LaTeX build by-products (sources and final PDFs stay tracked)
+*.aux
+*.out
+*.toc
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.xdv
+# Large generated books and diagram bundles: rebuilt from their sources, kept out of git
+docs/book/
+docs/book-latex/
+docs/diagrams/book-diagram-sets/
+docs/diagrams/messaging-review/
+docs/diagrams/ScholarPath-Diagrams/
+docs/diagrams/ScholarPath-Module-Diagrams/
+docs/diagrams/ScholarPath-All*.pdf
+docs/diagrams/img/_show/
+docs/diagrams/img/class_suite/
+docs/diagrams/img/component_suite/
+docs/diagrams/img/erd_suite/
+docs/latex-ar/*.pdf
+docs/diagrams/scholarships-sequences/*.pdf
+docs/diagrams/scholarships-sequences/*.docx
+docs/Messaging-*.docx
+docs/*-eval*.csv
+# Local-only files
+AGENTS.md
+verify-*.png

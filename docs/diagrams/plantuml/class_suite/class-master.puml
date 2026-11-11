@@ -1,0 +1,450 @@
+' =====================================================================
+'  ScholarPath — UML Class Diagram (MASTER / full domain model)
+'  Single @startuml covering all 6 domain modules, base types,
+'  inheritance and key associations. Rendered on a large canvas —
+'  no cropping (skinparam dpi 150 + PlantUML auto-layout).
+'
+'  Notation (matches class-diagrams.puml / class-clusters.puml):
+'   * plain rectangle, three compartments (name / attributes / operations)
+'   * "hide circle" drops the stereotype icon; empty members kept
+'   * members are "name : Type", visibility  - private  + public  # protected
+'   * derived members carry a leading '/'  ;  «enc» = encrypted-at-rest column
+'   * generalization = hollow triangle, composition = filled diamond,
+'     aggregation = hollow diamond, association = line + multiplicities + role
+'   * ApplicationUser inherits IdentityUser<Guid> (NOT AuditableEntity) and
+'     implements ISoftDeletable — see Class_Base_Types.
+'
+'  Truth source: server/src/ScholarPath.Domain/Entities/*.cs  +
+'                Infrastructure/Migrations/ApplicationDbContextModelSnapshot.cs
+'  Scope: PAYMENTS EXCLUDED by product decision (no Payment/Payout/
+'         StripeWebhookEvent/ProfitShareConfig/FinancialConfigRule/
+'         ScholarshipProviderReviewPayment, and no price/settlement columns).
+' =====================================================================
+
+@startuml ScholarPath_Class_Master
+title ScholarPath — Domain Model (UML class diagram, full)
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+skinparam nodesep 40
+skinparam ranksep 70
+hide circle
+hide members
+skinparam linetype polyline
+left to right direction
+note as N1
+  **Inheritance (uniform, omitted here for clarity):**
+  every entity extends **AuditableEntity** (CreatedAt/UpdatedAt/RowVersion...) and
+  implements **ISoftDeletable**; **ApplicationUser** extends IdentityUser<Guid>.
+  Composition (filled diamond) = owner -> its weak child. Full members +
+  inheritance are in the per-module class diagrams.
+end note
+
+
+' ── Base types (shown once) ──────────────────────────────────────────
+abstract class BaseEntity {
+  -Id : Guid
+  +DomainEvents : IReadOnlyCollection<DomainEvent>
+  +RaiseDomainEvent(e) : void
+  +ClearDomainEvents() : void
+}
+abstract class AuditableEntity {
+  -CreatedAt : DateTimeOffset
+  -CreatedByUserId : Guid?
+  -UpdatedAt : DateTimeOffset?
+  -UpdatedByUserId : Guid?
+  -RowVersion : byte[]?
+}
+interface ISoftDeletable {
+  +IsDeleted : bool
+  +DeletedAt : DateTimeOffset?
+  +DeletedByUserId : Guid?
+}
+class "IdentityUser<Guid>" as IdentityUser <<ASP.NET Identity>>
+class "IdentityRole<Guid>" as IdentityRole <<ASP.NET Identity>>
+
+' =====================================================================
+'  MODULE 1 — Identity & Profile  (PB-001/002/010)
+' =====================================================================
+package "1 · Identity & Profile" {
+  class ApplicationUser <<identity + ISoftDeletable>> {
+    -Email : string
+    -FirstName : string
+    -LastName : string
+    -ProfileImageUrl : string?
+    -AccountStatus : AccountStatus
+    -ActiveRole : string?
+    -IsOnboardingComplete : bool
+    -PreferredLanguage : string?
+    -CountryOfResidence : string?
+    -LastLoginAt : DateTimeOffset?
+    +/FullName : string
+  }
+  class ApplicationRole <<: IdentityRole<Guid>>> {
+    -Name : string
+    -Description : string?
+  }
+  class UserProfile {
+    -Biography : string? «enc»
+    -BiographyAr : string?
+    -Gpa : decimal?
+    -AcademicLevel : AcademicLevel?
+    -FieldOfStudy : string?
+    -BookingAccessStatus : BookingAccessStatus
+    -BookingBlockReason : BookingBlockReason?
+    -BookingBlockUntil : DateTimeOffset?
+    -OrganizationLegalName : string?
+    -OrganizationVerificationStatus : string?
+    -ScholarshipProviderAverageRating : decimal?
+    -ScholarshipProviderReviewCount : int
+    -ScholarshipProviderLowRatingFlaggedAt : DateTimeOffset?
+    -ProfessionalTitle : string?
+    -SessionDurationMinutes : int?
+    -BookingIntakeSuspendedAt : DateTimeOffset?
+    -ConsultantAverageRating : decimal?
+    -ConsultantReviewCount : int
+    -ConsultantLowRatingFlaggedAt : DateTimeOffset?
+    -ConsultantRatingPenaltyFactor : decimal
+    -ProfileCompletenessPercent : int?
+  }
+  class EducationEntry {
+    -InstitutionName : string
+    -Degree : string
+    -FieldOfStudy : string
+    -Gpa : decimal?
+  }
+  class ExpertiseTag <<lookup : BaseEntity>> {
+    -NameEn : string
+    -NameAr : string
+    -Slug : string
+    -Category : string?
+  }
+  class RefreshToken {
+    -TokenHash : string
+    -ExpiresAt : DateTimeOffset
+    -IsRevoked : bool
+  }
+  class PasswordResetToken {
+    -TokenHash : string
+    -ExpiresAt : DateTimeOffset
+    -UsedAt : DateTimeOffset?
+  }
+  class LoginAttempt <<: BaseEntity>> {
+    -Email : string
+    -Succeeded : bool
+    -OccurredAt : DateTimeOffset
+  }
+  class UpgradeRequest {
+    -Target : UpgradeTarget
+    -Status : UpgradeRequestStatus
+    -Reason : string?
+  }
+  class UpgradeRequestFile <<: BaseEntity>> {
+    -FileName : string
+    -BlobUrl : string
+  }
+  class UpgradeRequestLink <<: BaseEntity>> {
+    -Label : string
+    -Url : string
+  }
+}
+
+' =====================================================================
+'  MODULE 2 — Scholarships, Applications & Documents  (PB-003/004/005)
+' =====================================================================
+package "2 · Scholarships, Applications & Documents" {
+  class Category {
+    -NameEn : string
+    -Slug : string
+    -DisplayOrder : int
+  }
+  class Scholarship {
+    -TitleEn : string
+    -Slug : string
+    -Mode : ListingMode
+    -Status : ScholarshipStatus
+    -Deadline : DateTimeOffset
+    -FundingType : FundingType
+    -TargetLevel : AcademicLevel
+    -RejectionReason : string?
+    -IsFeatured : bool
+  }
+  class ScholarshipChild <<: BaseEntity>> {
+    -ChildType : string
+    -KeyEn : string
+    -ValueEn : string?
+  }
+  class SavedScholarship <<: BaseEntity>> {
+    -SavedAt : DateTimeOffset
+    -Note : string?
+  }
+  class ApplicationTracker {
+    -Status : ApplicationStatus
+    -Mode : ApplicationMode
+    -ExternalTitle : string?
+    -ExternalProvider : string?
+    -PersonalNotes : string?
+    +/IsActive : bool
+    +/IsReadOnly : bool
+  }
+  class ApplicationTrackerChild <<: BaseEntity>> {
+    -ChildType : string
+    -Content : string?
+    -OccurredAt : DateTimeOffset
+  }
+  class Document {
+    -FileName : string
+    -ContentType : string
+    -StoragePath : string
+    -Category : DocumentCategory
+    -OnboardingType : OnboardingDocumentType?
+  }
+  class ScholarshipProviderReviewRequest {
+    -Status : ScholarshipProviderReviewRequestStatus
+    -SubmittedAt : DateTimeOffset?
+    -PendingExpiresAt : DateTimeOffset?
+    -RejectReason : string?
+  }
+  class ScholarshipProviderReview {
+    -Rating : int
+    -Comment : string?
+    -IsHiddenByAdmin : bool
+  }
+}
+
+' =====================================================================
+'  MODULE 3 — Bookings, Consultations & Ratings  (PB-006 / PB-006R)
+' =====================================================================
+package "3 · Bookings, Consultations & Ratings" {
+  class ConsultantAvailability {
+    -DayOfWeek : DayOfWeek?
+    -StartTime : TimeOnly?
+    -EndTime : TimeOnly?
+    -SpecificStartAt : DateTimeOffset?
+    -Timezone : string
+    -IsRecurring : bool
+    -IsActive : bool
+  }
+  class ConsultantBooking {
+    -ScheduledStartAt : DateTimeOffset
+    -ScheduledEndAt : DateTimeOffset
+    -DurationMinutes : int
+    -StudentNotes : string?
+    -MeetingRoomId : string?
+    -Status : BookingStatus
+    -CancellationReason : CancellationReason?
+    -IsNoShowStudent : bool
+    -IsNoShowConsultant : bool
+    -NoShowMarkedAt : DateTimeOffset?
+    -StudentJoinedAt : DateTimeOffset?
+    -ConsultantJoinedAt : DateTimeOffset?
+  }
+  class NoShowReport {
+    -ReporterUserId : Guid
+    -AccusedUserId : Guid
+    -AccusedRole : NoShowAccusedRole
+    -Status : NoShowReportStatus
+    -ResolvedByAdminId : Guid?
+    -AdminNote : string?
+  }
+  class SessionRecording {
+    -RecordingId : string
+    -StoragePath : string
+    -ContentType : string
+    -RecordedAt : DateTimeOffset
+  }
+  class ConsultantReview {
+    -Rating : int
+    -Comment : string?
+    -IsHiddenByAdmin : bool
+  }
+}
+
+' =====================================================================
+'  MODULE 4 — Community & Chat  (PB-007)
+' =====================================================================
+package "4 · Community & Chat" {
+  class ForumCategory {
+    -NameEn : string
+    -Slug : string
+    -IsActive : bool
+  }
+  class ForumPost {
+    -Title : string?
+    -BodyMarkdown : string
+    -TitleEn : string?
+    -TitleAr : string?
+    -ModerationStatus : PostModerationStatus
+    -UpvoteCount : int
+    -DownvoteCount : int
+    -FlagCount : int
+    -ReplyCount : int
+    -IsAutoHidden : bool
+  }
+  class ForumPostAttachment <<: BaseEntity>> {
+    -FileName : string
+    -BlobUrl : string
+  }
+  class ForumVote <<: BaseEntity>> {
+    -VoteType : VoteType
+    -VotedAt : DateTimeOffset
+  }
+  class ForumFlag <<: BaseEntity>> {
+    -Reason : string
+    -IsValid : bool
+  }
+  class ForumBookmark <<: BaseEntity>> {
+    -CreatedAt : DateTimeOffset
+  }
+  class ForumTag <<: BaseEntity>> {
+    -Name : string
+    -Slug : string
+  }
+  class ForumPostTag <<join / composite PK>> {
+    -ForumPostId : Guid
+    -ForumTagId : Guid
+  }
+  class ChatConversation {
+    -ParticipantOneId : Guid
+    -ParticipantTwoId : Guid
+    -LastMessageAt : DateTimeOffset?
+  }
+  class ChatMessage {
+    -Body : string
+    -SentAt : DateTimeOffset
+    -ReadAt : DateTimeOffset?
+  }
+  class UserBlock <<: BaseEntity>> {
+    -BlockerId : Guid
+    -BlockedUserId : Guid
+    -Reason : string?
+  }
+}
+
+' =====================================================================
+'  MODULE 5 — Resources & Notifications  (PB-009 / PB-008)
+' =====================================================================
+package "5 · Resources & Notifications" {
+  class Resource {
+    -TitleEn : string
+    -Slug : string
+    -Type : ResourceType
+    -Status : ResourceStatus
+    -AuthorRole : string
+    -IsFeatured : bool
+  }
+  class ResourceChild <<: BaseEntity>> {
+    -TitleEn : string
+    -SortOrder : int
+    -EstimatedReadMinutes : int
+  }
+  class ResourceBookmark <<: BaseEntity>> {
+    -BookmarkedAt : DateTimeOffset
+  }
+  class ResourceProgress {
+    -ChaptersCompletedCount : int
+    -LastAccessedAt : DateTimeOffset
+  }
+  class ResourceProgressChild <<: BaseEntity>> {
+    -IsCompleted : bool
+    -CompletedAt : DateTimeOffset?
+  }
+  class Notification {
+    -Type : NotificationType
+    -Channel : NotificationChannel
+    -TitleEn : string
+    -IsRead : bool
+    -Priority : int
+    -IdempotencyKey : string?
+  }
+  class NotificationPreference {
+    -Type : NotificationType
+    -Channel : NotificationChannel
+    -IsEnabled : bool
+  }
+}
+
+' =====================================================================
+'  MODULE 6 — AI, Knowledge, Platform & Cross-cutting  (PB-011/017/018)
+' =====================================================================
+package "6 · AI, Knowledge, Platform & Cross-cutting" {
+  class AiInteraction {
+    -Feature : AiFeature
+    -Provider : AiProvider
+    -PromptTokens : int
+    -CompletionTokens : int
+    -CostUsd : decimal
+  }
+  class RecommendationClickEvent <<: BaseEntity>> {
+    -Source : string
+    -ClickedAt : DateTimeOffset
+  }
+  class AiRedactionAuditSample <<: BaseEntity>> {
+    -RedactedPrompt : string
+    -Verdict : RedactionVerdict?
+    -SampledAt : DateTimeOffset
+  }
+  class KnowledgeDocument {
+    -SourceType : KnowledgeSourceType
+    -SourceKey : string
+    -EmbeddingDimensions : int
+    +/IsEmbedded : bool
+  }
+  class AuditLog <<: BaseEntity>> {
+    -Action : AuditAction
+    -TargetType : string
+    -TargetId : Guid? «polymorphic»
+  }
+  class UserDataRequest {
+    -Type : UserDataRequestType
+    -Status : UserDataRequestStatus
+    -ScheduledProcessAt : DateTimeOffset?
+  }
+  class SuccessStory {
+    -HeadlineEn : string
+    -IsApproved : bool
+    -IsFeatured : bool
+  }
+  class UserRiskFlag <<: BaseEntity>> {
+    -Score : decimal
+    -IsAtRisk : bool
+    -ComputedAt : DateTimeOffset
+  }
+  class PlatformSetting {
+    -Key : string
+    -Value : string
+    -ValueType : PlatformSettingType
+    -Category : string
+  }
+}
+
+' ── Inheritance ──────────────────────────────────────────────────────
+
+
+
+
+' ── Associations (with multiplicities + roles) ───────────────────────
+' Identity & Profile
+UserProfile "1" *-- "*" EducationEntry : education >
+UpgradeRequest "1" *-- "*" UpgradeRequestFile : files >
+UpgradeRequest "1" *-- "*" UpgradeRequestLink : links >
+
+' Scholarships & Applications
+Scholarship "1" *-- "*" ScholarshipChild : details >
+ApplicationTracker "1" *-- "*" ApplicationTrackerChild : history >
+
+' Bookings & Ratings
+ConsultantBooking "1" *-- "*" SessionRecording : recordedAs >
+
+' Community & Chat
+ForumPost "1" *-- "*" ForumPostAttachment : attaches >
+ForumPost "1" *-- "*" ForumPostTag : postTags >
+ForumTag "1" *-- "*" ForumPostTag : tagLinks >
+ChatConversation "1" *-- "*" ChatMessage : messages >
+
+' Resources & Notifications
+Resource "1" *-- "*" ResourceChild : chapters >
+ResourceProgress "1" *-- "*" ResourceProgressChild : perChapter >
+
+' AI & Cross-cutting
+AiInteraction ..> KnowledgeDocument : cites (RAG, via MetadataJson — no FK)
+@enduml

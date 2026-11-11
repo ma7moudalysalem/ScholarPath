@@ -1,0 +1,45 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #DAE8FC
+  ParticipantBorderColor #6C8EBF
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor black
+  ActorBorderColor #6C8EBF
+  ActorBackgroundColor #DAE8FC
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+}
+title Typing Indicator (Realtime Only)
+actor Student as ST
+participant "Chat" as PAGE
+participant "chatHub" as CLIENT
+participant "ChatHub" as HUB
+actor "Other Participant" as OTHER
+ST -> PAGE ++ : start typing
+PAGE -> CLIENT ++ : typingStart(conversationId)
+CLIENT -> HUB ++ : TypingStart
+HUB --> OTHER : TypingStart (other participant only)
+HUB --> CLIENT -- : ack
+CLIENT --> PAGE -- : done
+ST -> PAGE : stop typing or send
+PAGE -> CLIENT ++ : typingStop(conversationId)
+CLIENT -> HUB ++ : TypingStop
+HUB --> OTHER : TypingStop
+HUB --> CLIENT -- : ack
+CLIENT --> PAGE -- : done
+deactivate PAGE
+note over PAGE, HUB
+  Typing is hub-only; it never reaches ChatController
+  or a command, and nothing is stored. The client
+  module is chatHub (services/signalR/chatHub.ts).
+end note
+@enduml

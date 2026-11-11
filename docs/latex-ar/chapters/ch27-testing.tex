@@ -1,0 +1,257 @@
+% ch27-testing — الاختبارات: كيف نضمن أن كل شيء يعمل
+\section{الاختبارات \en{(Testing)}: كيف نضمن أنّ كلّ شيء يعمل}
+
+في الفصل ده هنفهم إزاي بنتأكّد إنّ \en{ScholarPath} شغّال صحّ، مش بس أوّل يوم، لكن بعد كلّ تعديل بنعمله. هنعرف ليه نكتب اختبارات أصلًا، وإيه الفرق بين اختبار \en{unit} واختبار \en{integration}، وإيه «هرم الاختبار». وأهمّ حاجة: هنشوف إزاي فكرة الـ \en{ports/adapters} اللي اتكلّمنا عنها قبل كده (المنفذ = واجهة \en{interface}، والمحوِّل = تنفيذ حقيقيّ أو وهميّ خلفه) هي اللي بتخلّي الاختبار ممكنًا أصلًا: نحقن بديلًا وهميًّا \en{(stub)} بدل الخدمة الحقيقيّة، فالاختبار يشتغل بلا إنترنت وبنتيجة ثابتة كلّ مرّة. وفي الآخر هنشرّح اختبارًا حقيقيًّا من مشروع الاختبارات سطرًا بسطر.
+
+\begin{idea}[الفكرة: الاختبار شبكة أمان]
+كلّ اختبار هو جملة تقول: «لو النظام اشتغل صحّ، لازم تطلع النتيجة دي». لمّا نجمّع مئات الجُمَل دي ونشغّلها في ثوانٍ بعد أيّ تعديل، بنمسك أيّ كسر جديد فورًا قبل ما يوصل للمستخدم. الاختبار مش رفاهية؛ هو اللي بيخلّينا نعدّل في الكود ونحن مطمئنّين.
+\end{idea}
+
+\subsection{ليه نختبر أصلًا؟}
+
+النظام فيه قواعد عمل كتير وحسّاسة: حساب الاسترداد \en{(refund)}، صلاحيّات مين يقدر يعمل إيه، خصم تقييم المستشار، ساعات الهدوء للإشعارات. أيّ خطأ صغير في القواعد دي ممكن يرجّع فلوس غلط أو يكشف بيانات مستخدم لمستخدم تاني. لو اعتمدنا على «نجرّب بإيدينا» كلّ مرّة، ده بطيء وبينسى حالات، وبيتعب مع كِبَر النظام.
+
+\begin{why}
+الاختبار الآليّ بيحوّل «أعتقد إنّه شغّال» إلى «أثبتُّ إنّه شغّال». وبيدّينا جُرأة نعيد هيكلة الكود \en{(refactor)} من غير خوف: طالما الاختبارات خضراء، السلوك اتحافظ عليه. ده بالظبط اللي خلّانا نصلّح عشرات الأخطاء في المشروع من غير ما نكسر حاجة تانية.
+\end{why}
+
+\subsection{أنواع الاختبارات وهرم الاختبار}
+
+عندنا تلات مستويات، كلّ واحد بيجاوب على سؤال مختلف:
+
+\begin{center}
+\begin{tabular}{L{3.2cm} L{9.2cm}}
+\toprule
+النوع & بيتأكّد من إيه؟ \\
+\midrule
+\en{Unit} (وحدة) & قطعة صغيرة معزولة: \en{handler} أو \en{validator} أو خدمة حساب. سريع جدًّا، بلا قاعدة بيانات حقيقيّة ولا شبكة. \\
+\en{Integration} (تكامل) & كذا طبقة مع بعض عبر قاعدة بيانات وخدمات وهميّة: هل الطلب \en{HTTP} بيمرّ صحّ من الـ \en{API} للـ \en{handler} للقاعدة؟ \\
+\en{E2E} (طرف لطرف) & رحلة المستخدم كاملة في المتصفّح. أبطأ وأغلى، فبنعمل منه أقلّ عدد. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+الشكل ده بيترجم القاعدة المعروفة: «كتير \en{unit}، أقلّ \en{integration}، قليل \en{e2e}». كلّما نزلنا لتحت، الاختبار أسرع وأرخص وأكتر عددًا؛ وكلّما طلعنا لفوق، أبطأ وأغلى فبنقلّله.
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=3pt]
+  \node[fbox, text width=3.2cm, minimum height=0.75cm] (e2e) {E2E $\approx$ few};
+  \node[tbox, text width=6.2cm, minimum height=0.78cm, below=of e2e] (int) {Integration $\approx$ 35};
+  \node[pbox, text width=9.4cm, minimum height=0.82cm, below=of int] (unit) {Unit $\approx$ 800};
+  % سهم جانبي يبيّن الاتجاه: أبطأ/أغلى لفوق، أسرع/أرخص لتحت
+  \draw[arr] ([xshift=6mm]unit.east) -- ([xshift=6mm]e2e.east)
+     node[lbl, midway, right, align=left] {slower\\ costlier};
+  \draw[arr] ([xshift=-6mm]e2e.west) -- ([xshift=-6mm]unit.west)
+     node[lbl, midway, left, align=right] {faster\\ more};
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+\begin{note}
+عندنا في المشروع أكثر من \textenglish{800} اختبار \en{unit} (على \textenglish{123} ملفًّا) وحوالي \textenglish{35} اختبار \en{integration}. النسبة دي هي شكل الهرم بالظبط: القاعدة عريضة والقمّة ضيّقة.
+\end{note}
+
+\subsection{إزاي الـ \en{ports} بيخلّوا الاختبار ممكنًا؟}
+
+المشكلة: الـ \en{handler} بتاع إلغاء الحجز محتاج يكلّم \en{Stripe} علشان يرجّع الفلوس، وغرفة الجلسة محتاجة \en{Azure}. لو الاختبار كلّم الخدمات دي حقيقةً هيبقى بطيء، ومحتاج إنترنت ومفاتيح، وأسوأ حاجة: نتيجته مش ثابتة (ممكن \en{Stripe} يرجّع خطأ شبكة النهاردة). الحلّ اللي شرحناه في الجزء الأوّل: الكود بيعتمد على منفذ \en{(interface)} زي \code{IStripeService}، مش على التنفيذ الحقيقيّ. في الإنتاج نحقن المحوِّل الحقيقيّ، وفي الاختبار نحقن \en{stub} وهميّ يرجّع نتيجة جاهزة فورًا.
+
+الكود ده من تسجيل الخدمات بيوضّح المبدأ: نفس الواجهة، تنفيذان، والاختيار بيتمّ حسب الإعداد.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// Stripe: the real client only when a genuine secret key is configured;
+// placeholder / missing values fall through to the deterministic dev stub.
+var key = config.GetValue<string>($"{StripeOptions.SectionName}:SecretKey");
+if (key is not null && key.StartsWith("sk_", StringComparison.Ordinal))
+    services.AddSingleton<IStripeService, StripeService>();       // prod adapter
+else
+    services.AddSingleton<IStripeService, StubStripeService>();   // offline stub
+
+// Same config-driven fallback for the video-meeting provider:
+if (!string.IsNullOrWhiteSpace(acsConnString))
+    services.AddSingleton<IMeetingService, AzureCommunicationMeetingService>();
+else
+    services.AddSingleton<IMeetingService, StubMeetingService>();
+\end{lstlisting}
+\end{english}
+
+شرح الأسطر المهمّة:
+\begin{itemize}
+  \item السطر بتاع \code{key.StartsWith(...)}: لو فيه مفتاح \en{Stripe} حقيقيّ نستخدم \code{StripeService}؛ غير كده نقع على \code{StubStripeService}.
+  \item نفس النمط بالظبط للـ \code{IMeetingService}: \en{Azure} الحقيقيّ لو فيه اتّصال، وإلّا \code{StubMeetingService} الحتميّ.
+  \item الكلاس اللي بيستهلك الواجهة مش بيفرق عنده مين اللي اتحقن — ده كلّ سرّ قابليّة الاختبار.
+\end{itemize}
+
+الـ \en{stub} نفسه بسيط: بيرجّع كائن نتيجة جاهز من غير ما يلمس الشبكة. مثال \code{StubStripeService} لمّا يُطلب منه استرداد بيرجّع فورًا نتيجة بحالة \code{"succeeded"}. وكمان \code{NoOpFileScanService} بيقول عن أيّ ملفّ إنّه «نظيف» علشان تختبر رفع الملفّات بلا خادم فحص فيروسات. الرسم ده بيلخّص الحكاية:
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=10mm and 16mm]
+  \node[actor] (sut) {System under test};
+  \node[gbox, right=of sut] (port) {IStripeService (port)};
+  \node[srcbox, above right=6mm and 18mm of port, text width=2.7cm] (stub) {StubStripeService};
+  \node[sbox, below right=6mm and 18mm of port, text width=2.7cm] (real) {StripeService};
+  \node[tbox, right=of stub, text width=2.6cm] (mem) {in-memory offline};
+  \node[fbox, right=of real, text width=2.6cm] (cloud) {Stripe cloud (network)};
+  \draw[arr] (sut) -- (port);
+  \draw[arr] (port) -- (stub) node[lbl, midway, above, sloped] {test injects};
+  \draw[arr] (port) -- (real) node[lbl, midway, below, sloped] {prod injects};
+  \draw[arr] (stub) -- (mem);
+  \draw[arr] (real) -- (cloud);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: الاختبارات حتميّة وبلا إنترنت]
+لأنّ كلّ تكامل خارجيّ (\en{Stripe}، \en{Azure}، فحص الفيروسات، البريد) مخفيّ خلف منفذ، بنحقن مكانه \en{stub} في الاختبار. النتيجة: مجموعة الاختبارات كلّها بتشتغل \en{offline}، في ثوانٍ، وبتدّي نفس النتيجة كلّ مرّة — مفيش «فشل عشوائيّ» بسبب الشبكة. ده هو العائد العمليّ المباشر لمعماريّة \en{ports/adapters}: مش بس كود نظيف، ده اختبار ممكن أصلًا.
+\end{spotlight}
+
+\subsection{ماذا اختبرنا فعلًا؟}
+
+مش بنختبر كلّ سطر بالتساوي؛ بنركّز على القواعد اللي لو غلطت تعمل ضررًا. أهمّ العائلات اللي غطّيناها:
+
+\begin{center}
+\begin{tabular}{L{4cm} L{8.4cm}}
+\toprule
+المجال & أمثلة اختبارات حقيقيّة \\
+\midrule
+حساب الاسترداد & \code{RefundCalculatorService}: استرداد \textenglish{100}\% قبل \textenglish{24} ساعة، \textenglish{50}\% بعدها، ورفض من مش طرف في الحجز. \\
+درجات الترشيح/الأهليّة & \code{LocalAiService}: تحويل نتائج المعايير إلى حكم \en{Eligible / PartiallyEligible / NotEligible}. \\
+المُتحقِّقات \en{(validators)} & رفض التطبيق بحالة غلط، ومنع الرفض بلا سبب، ورفض نوع إشعار غير معرّف. \\
+بوّابات الملكيّة/الصلاحيّة & مستخدم لا يرى تفضيلات إشعارات مستخدم تاني، والطلب بلا تسجيل دخول يُرفض. \\
+منطق ساعات الهدوء \en{(DND)} & المستخدم الصامت يحتفظ بإشعار داخل التطبيق لكن بلا بريد. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{keyp}[نقطة مهمة: نختبر السلوك لا التفاصيل]
+لاحظ إنّ الاختبارات بتتكلّم بلغة العمل: «قبل \textenglish{24} ساعة» و«استرداد كامل» و«ممنوع بلا سبب». مش بنختبر أسماء المتغيّرات الداخليّة؛ بنختبر القاعدة اللي المستخدم بيهتمّ بيها. كده لو غيّرنا التنفيذ الداخليّ والقاعدة اتحافظ عليها، الاختبار يفضل أخضر.
+\end{keyp}
+
+\subsection{تشريح اختبار حقيقيّ: نمط \en{Arrange / Act / Assert}}
+
+كلّ اختبار عندنا بيمشي على تلات خطوات: \en{Arrange} (نجهّز المدخلات)، \en{Act} (نستدعي السلوك مرّة واحدة)، \en{Assert} (نتأكّد من النتيجة). الرسم ده بيوضّح التدفّق التلاتيّ ده:
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=14mm]
+  \node[sbox, text width=3cm] (arr) {Arrange\\ set up inputs};
+  \node[pbox, text width=3cm, right=of arr] (act) {Act\\ one call};
+  \node[gbox, text width=3cm, right=of act] (asr) {Assert\\ check result};
+  \node[wbox, below=8mm of act] (det) {deterministic $\cdot$ offline $\cdot$ same result every run};
+  \draw[arr] (arr) -- (act);
+  \draw[arr] (act) -- (asr);
+  \draw[arrd] (act) -- (det);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+ده اختبار حقيقيّ من \code{RefundCalculatorServiceTests} بيتحقّق من الحالة الحدّيّة: إلغاء حجز مؤكّد قبل \textenglish{24} ساعة بالظبط لازم يرجّع نصّ المبلغ.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+private readonly RefundCalculatorService _sut = new();   // fresh service, no deps
+
+[Fact]
+public void Calculate_ConfirmedBookingExactly24HoursBefore_ReturnsHalfRefund()
+{
+    // Arrange - a fixed "now" so the test never depends on the wall clock.
+    var nowUtc = new DateTimeOffset(2026, 4, 25, 10, 0, 0, TimeSpan.Zero);
+
+    // Act - one call to the behaviour under test.
+    var result = _sut.Calculate(
+        bookingStatus: BookingStatus.Confirmed,
+        cancelledByUserId: StudentId, studentId: StudentId, consultantId: ConsultantId,
+        scheduledStartAt: nowUtc.AddHours(24),      // exactly on the 24h boundary
+        amountCents: 10_000, nowUtc: nowUtc);
+
+    // Assert - the business rule, stated as expectations.
+    Assert.Equal(50, result.RefundPercentage);
+    Assert.Equal(5_000, result.RefundAmountCents);
+    Assert.Equal(CancellationReason.StudentCancelledLessThan24HoursBefore,
+                 result.CancellationReason);
+}
+\end{lstlisting}
+\end{english}
+
+نقرأه سطرًا بسطر:
+\begin{itemize}
+  \item السطر الأوّل: الخدمة دي حساب صافٍ بلا اعتماديّات؛ منفيش قاعدة بيانات ولا شبكة، فالاختبار سريع وبسيط.
+  \item \code{nowUtc} ثابت: ده أهمّ سطر. لأنّنا بنمرّر «الآن» كوسيط بدل ما الخدمة تقرأ ساعة النظام، الاختبار بقى حتميًّا — مش هيفشل بكرة الساعة \textenglish{3} فجرًا.
+  \item خطوة \en{Act} استدعاء واحد لـ \code{Calculate} — الاختبار بيركّز على سلوك واحد.
+  \item خطوات \en{Assert}: بنتحقّق من تلات حاجات مترابطة — النسبة \textenglish{50}\%، والمبلغ \textenglish{5000} سنت، وسبب الإلغاء الصحيح. لو أيّ واحدة غلطت، الاختبار يحمرّ ويقول لنا بالظبط فين الكسر.
+\end{itemize}
+
+\begin{qa}[سؤال متوقّع: ليه تمرّر «الآن» كوسيط بدل قراءة ساعة النظام؟]
+لأنّ أيّ اختبار بيقرأ الساعة الحقيقيّة بيبقى «هشًّا» \en{(flaky)}: ينجح دلوقتي ويفشل عند حدّ زمنيّ. بحقن الوقت من برّه، بنثبّت الزمن فنقدر نختبر الحالات الحدّيّة (بالظبط \textenglish{24} ساعة) بثقة. نفس الفلسفة بتاعة حقن الـ \en{stub}: نتحكّم في كلّ مدخل عشان النتيجة تبقى ثابتة.
+\end{qa}
+
+مثال تاني على قاعدة عمل حسّاسة: ساعات الهدوء. لمّا المستخدم يفعّل «عدم الإزعاج»، لازم البريد يتوقّف لكن الإشعار داخل التطبيق يفضل محفوظ (مش نخسر حاجة). الاختبار ده من \code{NotificationDispatcherTests} بيثبّت القاعدة دي:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+[Fact]
+public async Task Muted_user_keeps_inapp_row_but_gets_no_email()
+{
+    // Arrange - a user who switched Do-Not-Disturb on.
+    var userId = Guid.NewGuid();
+    db.UserProfiles.Add(new UserProfile { UserId = userId, NotificationsMuted = true });
+    await db.SaveChangesAsync();
+
+    // Act - something tries to notify them.
+    await Sut(db).DispatchAsync(userId, NotificationType.ResourceApproved,
+        NotificationParams.Empty, null, null, default);
+
+    // Assert - the in-app row survives; the email channel is suppressed.
+    var rows = await db.Notifications.Where(n => n.RecipientUserId == userId).ToListAsync();
+    rows.Should().ContainSingle().Which.Channel.Should().Be(NotificationChannel.InApp);
+}
+\end{lstlisting}
+\end{english}
+
+هنا بنستخدم قاعدة \en{InMemory} من \en{EF Core} (قاعدة بيانات في الذاكرة) بدل \en{SQL Server} حقيقيّ، فالاختبار سريع ومعزول. والتوكيدات مكتوبة بأسلوب \code{FluentAssertions} القريب من اللغة الطبيعيّة: «لازم يكون فيه صفّ واحد، وقناته \en{InApp}».
+
+\subsection{اختبارات التكامل: نفس الفكرة عبر الطبقات}
+
+اختبار الوحدة بيختبر قطعة معزولة. اختبار التكامل بيختبر الرحلة الكاملة: طلب \en{HTTP} حقيقيّ بيدخل الـ \en{API}، يعدّي على المصادقة، الـ \en{handler}، وقاعدة بيانات حقيقيّة. بنستخدم \code{WebApplicationFactory} علشان نشغّل التطبيق كلّه في الذاكرة، و\en{Testcontainers} علشان نطلّع \en{SQL Server} حقيقيّ مؤقّت في حاوية \en{Docker}. وبرضه بنحقن بدائل اختبار للأجزاء اللي مش عايزين نعتمد فيها على العالم الخارجيّ:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+builder.ConfigureServices(services =>
+{
+    // Point EF Core at a throwaway SQL Server container, not production.
+    services.AddDbContext<ApplicationDbContext>(o =>
+        o.UseSqlServer(_sqlContainer.GetConnectionString()));
+
+    // Swap the real identity for a deterministic, controllable test user.
+    services.RemoveAll<ICurrentUserService>();
+    services.AddSingleton<TestCurrentUserService>();
+    services.AddSingleton<ICurrentUserService>(
+        sp => sp.GetRequiredService<TestCurrentUserService>());
+
+    // ... plus a fake auth scheme so requests authenticate fully offline.
+    services.AddAuthentication(/* TestAuthHandler.SchemeName */)
+        .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
+            TestAuthHandler.SchemeName, _ => { });
+});
+\end{lstlisting}
+\end{english}
+
+النقاط المهمّة:
+\begin{itemize}
+  \item توجيه \en{EF Core} لقاعدة الحاوية المؤقّتة اللي بتتولد وتتمسح مع الاختبار — قاعدة حقيقيّة لكن معزولة ونظيفة.
+  \item \code{RemoveAll} ثمّ \code{TestCurrentUserService}: بنشيل المستخدم الحقيقيّ ونحطّ مستخدم اختبار نتحكّم في دوره وهويّته — نفس مبدأ حقن الـ \en{stub}، بس للهويّة.
+  \item \code{TestAuthHandler}: مخطّط مصادقة وهميّ يخلّي الطلب «مسجّل دخول» بلا \en{JWT} حقيقيّ، فنختبر البوّابات الأمنيّة \en{offline}.
+\end{itemize}
+
+كده اختبار التكامل بيتأكّد إنّ القطع مركّبة صحّ مع بعض (التوجيه، المصادقة، الصلاحيّات، حفظ القاعدة)، والوقت نفسه بيفضل \en{offline} وحتميّ لأنّ \en{Stripe} و\en{Azure} لسّه خلف الـ \en{stubs}.
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: كلّ قاعدة مال/صلاحيّة مغطّاة]
+أيّ قاعدة تلمس الفلوس أو الصلاحيّات لها اختبار صريح: نسبة الاسترداد قبل/بعد \textenglish{24} ساعة، خصم \textenglish{20}\% من تقييم المستشار، حَجْب الطالب \textenglish{3} أيّام، منع رفض التطبيق بلا سبب، ومنع مستخدم من رؤية بيانات غيره. مش شرط تكون كثافة الاختبار متساوية في كلّ مكان — الكثافة بتتركّز حيث الخطر. ده اللي بيدّي اللجنة ثقة إنّ الأجزاء الحرجة محميّة بشبكة أمان، مش بحُسن النيّة.
+\end{spotlight}
+
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+  \item الاختبار بيحوّل «أعتقد إنّه شغّال» إلى «أثبتُّ إنّه شغّال»، وبيدّينا جُرأة نعدّل بلا خوف.
+  \item هرم الاختبار: كتير \en{unit} في القاعدة، أقلّ \en{integration} في الوسط، قليل \en{e2e} في القمّة — عندنا أكثر من \textenglish{800} اختبار \en{unit}.
+  \item الـ \en{ports/adapters} هي اللي بتخلّي الاختبار ممكنًا: نحقن \en{stub} بدل \en{Stripe}/\en{Azure}، فالاختبارات تشتغل \en{offline} وبنتيجة ثابتة.
+  \item بنركّز التغطية على القواعد الحرجة: الاسترداد، الأهليّة، المُتحقِّقات، بوّابات الصلاحيّة، ساعات الهدوء.
+  \item كلّ اختبار = \en{Arrange / Act / Assert}؛ وحقن «الآن» كوسيط بيخلّي الحالات الزمنيّة الحدّيّة حتميّة.
+  \item اختبار التكامل بيركّب الطبقات مع \code{WebApplicationFactory} و\en{Testcontainers}، وبيفضل \en{offline} لأنّ الخدمات الخارجيّة خلف \en{stubs}.
+\end{itemize}
+\end{summary}

@@ -1,0 +1,56 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #DAE8FC
+  ParticipantBorderColor #6C8EBF
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor black
+  ActorBorderColor #6C8EBF
+  ActorBackgroundColor #DAE8FC
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+}
+title View Message History
+actor "Conversation Participant" as CP
+participant "Chat" as PAGE
+participant "chatApi" as API
+participant "ChatController" as CTRL
+participant "GetMessagesQuery" as Q
+participant "ChatMessage" as MSG
+CP -> PAGE ++ : open conversation
+PAGE -> API ++ : GET conversations/{id}/messages
+API -> CTRL ++ : getMessages(id)
+CTRL -> Q ++ : execute(id, userId)
+alt conversation not found
+  Q --> CTRL : throw NotFoundException
+  CTRL --> API : 404
+  API --> PAGE : not found
+  PAGE --> CP : show not-found error
+else not participant
+  Q --> CTRL : access denied
+  CTRL --> API : 403
+  API --> PAGE : denied
+  PAGE --> CP : show access error
+else is participant
+  Q -> MSG ++ : load messages (read-only, AsNoTracking)
+  MSG --> Q -- : message history
+  Q --> CTRL : messages
+  CTRL --> API : 200
+  API --> PAGE : history
+  PAGE --> CP : show message history
+end
+deactivate Q
+deactivate PAGE
+note over Q, MSG
+  Read-only projection: ReadAt is selected but never
+  written here. Read receipts are out of scope.
+end note
+@enduml

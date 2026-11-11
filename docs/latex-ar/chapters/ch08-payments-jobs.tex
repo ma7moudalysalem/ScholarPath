@@ -1,0 +1,416 @@
+% ch08-payments-jobs — الحجز والدفع (Money Flow) والمهامّ الخلفيّة
+\section{الحجز والدفع (Money Flow) والمهامّ الخلفيّة}
+
+في هذا الفصل نمشي مع «الفلوس» من أوّل ما الطالب يحجز جلسة مع مستشار، لحدّ ما
+تصل صافي أرباحها لجيب المستشار. الفكرة الأساسية بسيطة جدًّا في جملة واحدة:
+\textbf{فلوس الطالب تتحجز ولا تتاخد}، ولا تُخصَم فعليًّا إلا لمّا المستشار يقبل
+الجلسة. ده نموذج شبيه بالـ \en{escrow} (الوسيط الأمين) مبنيّ على \en{Stripe}.
+وفي آخر الفصل هنشوف «المهامّ الخلفيّة» (\en{background jobs}) اللي بتشتغل لوحدها
+في الخلفية: تذكيرات، صرف أرباح، تنظيف، والتزامات \en{GDPR}.
+
+كل الكلام اللي جاي مقتبس من الكود الحقيقي للنظام في \code{server/src/...}؛
+هنعرض مقتطفات قصيرة حقيقية ونشرحها سطرًا بسطر.
+
+\subsection{لماذا نموذج authorize-then-capture؟}
+
+تخيّل إنّ الطالب دفع كامل المبلغ لحظة الحجز، وبعدين المستشار رفض أو مردّش. دلوقتي
+إحنا ماسكين فلوس الطالب ولازم نعمل عملية استرداد كاملة. الأفضل من كده إنّنا
+\textbf{نحجز} المبلغ على البطاقة (نأخذ «تفويضًا» فقط) من غير ما نخصمه، ونستنّى.
+
+\begin{idea}[الفكرة: التفويض ثم القبض (authorize then capture)]
+عملية الدفع على البطاقة بتتقسّم لخطوتين منفصلتين:
+\begin{itemize}
+\item \textbf{التفويض} (\en{authorize}): البنك بيحجز المبلغ على بطاقة الطالب
+  ويضمن إنّه موجود، لكن الفلوس \emph{لسه ما اتحوّلتش} لحسابنا.
+\item \textbf{القبض} (\en{capture}): دي الخطوة اللي بتحوّل الفلوس فعليًّا. إحنا
+  بنأجّلها لحدّ ما المستشار يقبل الجلسة.
+\end{itemize}
+ما بين الخطوتين، فلوس الطالب «محجوزة» في مكان آمن: لا هو خسرها، ولا إحنا أخدناها.
+\end{idea}
+
+المنفذ (\en{port}) اللي بيمثّل كل تعاملاتنا مع \en{Stripe} اسمه \code{IStripeService}،
+وله محوّلان (\en{adapters}): \code{StripeService} (الحقيقي، بيتكلّم مع \en{Stripe}
+فعلًا) و\code{StubStripeService} (بديل وهميّ للتطوير والاختبار، بيردّ نتائج جاهزة
+من غير أي اتّصال بالإنترنت). زيّ ما اتكلّمنا في مبدأ الـ \en{ports} قبل كده، ده
+بيخلّي منطق الحجز نفسه ما يعرفش حاجة عن \en{Stripe}، ونقدر نبدّل المزوّد أو نختبر
+من غير ما نلمس قواعد العمل.
+
+\begin{why}
+ليه التفويض-ثم-القبض ومش الخصم المباشر؟ لأنّه بيحمي الطرفين. الطالب مش هيتخصم منه
+قرش إلا لو الخدمة اتأكّدت فعلًا (المستشار قبل)، والمنصّة مش محتاجة تعمل عمليات
+استرداد كتير ومعقّدة لو الحجز اتلغى قبل ما يبدأ. ده كمان بيقلّل نزاعات البطاقات
+(\en{chargebacks}) لأنّ المبلغ ما بيتقبضش غير مقابل خدمة حقيقية.
+\end{why}
+
+\subsection{دورة الحياة خطوةً بخطوة}
+
+خلّينا نتفرّج على رحلة الدفعة الواحدة من أوّلها لآخرها. الجدول ده بيلخّص المحطّات
+الخمس، وبعده هنفصّل كل واحدة بالكود:
+
+\begin{center}
+\begin{tabular}{L{3.6cm} L{4.2cm} L{5.2cm}}
+\toprule
+\textbf{\color{spPrimary}المحطّة} & \textbf{\color{spPrimary}الفعل التقني} & \textbf{\color{spPrimary}مصير الفلوس} \\
+\midrule
+حجز + تفويض & \en{PaymentIntent} بـ \en{manual capture} & محجوزة على البطاقة (لا مخصومة) \\
+المستشار يقبل & \code{CapturePaymentIntentAsync} & تُقبَض فعليًّا وتدخل النظام \\
+رفض / انتهاء المهلة & \code{CancelPaymentIntentAsync} & يُفَكّ الحجز، الطالب ما اتخصمش \\
+\en{no-show} / إلغاء & \code{RefundPaymentAsync} + \code{RefundCalculatorService} & استرداد كامل أو جزئيّ حسب السياسة \\
+صرف للمستشار & \code{StripePayoutJob} + \en{Stripe Connect} & صافي الأرباح يوصل للمستشار \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection{المحطّة الأولى: الحجز والتفويض}
+
+هنشوف إزاي بننشئ الـ \en{PaymentIntent} بنمط \en{manual capture} لحظة الحجز.
+ده مقتطف من إنشاء نيّة الدفع في \code{StripeService}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var createOptions = new PaymentIntentCreateOptions
+{
+    Amount = amountCents,           // integer cents — no floating point
+    Currency = currency,            // "usd"
+    CaptureMethod = captureMethod,  // "manual" -> authorize, don't charge
+    Metadata = metadata?.ToDictionary(k => k.Key, v => v.Value),
+    PaymentMethodTypes = ["card"],  // card only
+};
+
+var requestOptions = new RequestOptions
+{
+    ApiKey = _opts.SecretKey,
+    IdempotencyKey = idempotencyKey, // retry-safe: never double-charge
+};
+
+var intent = await service.CreateAsync(createOptions, requestOptions, ct);
+\end{lstlisting}
+\end{english}
+
+نفصّص أهمّ الأسطر:
+\begin{itemize}
+\item \code{Amount = amountCents}: المبلغ دايمًا بالسنتات كعدد صحيح
+  (\en{integer cents}). يعني 10.50 دولار بتتخزّن 1050. ليه؟ عشان نتجنّب أخطاء
+  الكسور العشرية في أرقام الفاصلة العائمة (\en{floating point}). قرش واحد
+  ضايع في حسابات الفلوس مشكلة كبيرة.
+\item \code{CaptureMethod = "manual"}: ده قلب الموضوع كلّه. «\en{manual}» معناها
+  «فوّض دلوقتي، واقبض لمّا أنا أقولك». من غير السطر ده، \en{Stripe} كان هيخصم
+  فورًا.
+\item \code{PaymentMethodTypes} بقيمة \code{card}: نقصر الدفع على الكروت بس. من
+  غير كده \en{Stripe} بيورّي كل المحافظ المفعّلة في لوحة التحكّم وده كان بيلخبط
+  المستخدمين.
+\item \code{IdempotencyKey}: مفتاح «عدم التكرار». لو الطلب اتبعت مرّتين (بسبب
+  ضغطة زرّ مكرّرة أو إعادة محاولة الشبكة)، \en{Stripe} بيتعرّف على المفتاح ده
+  ويرجّع نفس النتيجة \emph{من غير ما يعمل حجزًا تاني}. الطالب ما بيتخصمش مرّتين.
+\end{itemize}
+
+الطريف إنّ صفّ \code{Payment} في قاعدة بياناتنا بيبدأ بحالة \code{Pending} (مش
+\code{Held})، لأنّ نيّة الدفع اليدوية «مش محجوزة فعلًا» إلا بعد ما الطالب يفوّض
+البطاقة في المتصفّح. ساعتها \en{Stripe} بيبعت لنا \en{webhook} يقول «تمّ التفويض»،
+فنقلب الحالة لـ \code{Held}. (هنرجع للـ \en{webhooks} بعد شوية.)
+
+\subsubsection{المحطّة الثانية: القبول يعني القبض}
+
+لمّا المستشار يقبل الحجز، بنستدعي \code{CapturePaymentIntentAsync} عشان نقبض
+المبلغ المحجوز. لو النيّة مش في حالة «جاهزة للقبض» (يعني الطالب ما فوّضش أصلًا)،
+بنترجم الخطأ لرسالة واضحة بدل خطأ 500 غامض:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+catch (StripeException ex)
+{
+    // A capture failure is almost always a payment-state problem — the
+    // student never authorized the card, so the intent is not in
+    // requires_capture. Surface it as a clean 422, not an opaque 500.
+    throw new BookingDomainException(
+        "The session fee could not be captured. The student may not have "
+        + "completed the card authorization for this booking yet — ask them "
+        + "to finish payment, then try accepting again.",
+        ex);
+}
+\end{lstlisting}
+\end{english}
+
+هنا الفكرة: لو القبض فشل، غالبًا السبب إنّ الطالب ما كمّلش التفويض. فبدل ما
+نرمي خطأ سيرفر مبهم، بنرمي استثناء عمل (\en{domain exception}) بيتحوّل لردّ 422
+برسالة مفهومة للمستشار: «كمّل الطالب الدفع الأوّل، وبعدين اقبل تاني». تجربة أفضل
+بكتير من شاشة خطأ حمرا.
+
+\subsubsection{المحطّة الثالثة والرابعة: الإفراج والاسترداد}
+
+لو المستشار رفض الحجز أو انتهت مهلة ردّه، بنفكّ الحجز عبر
+\code{CancelPaymentIntentAsync}، والطالب ما بيتخصمش أصلًا. أما لو حصل إلغاء بعد
+القبول، أو حصل \en{no-show} (حد ما حضرش)، فالموضوع محتاج حساب: كام نرجّع للطالب؟
+ده شغل \code{RefundCalculatorService}. خلّينا نشوف منطق الطالب اللي بيلغي:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var moreThan24HoursBefore = scheduledStartAt.ToUniversalTime() > nowUtc.AddHours(24);
+
+if (moreThan24HoursBefore)
+{
+    return new RefundCalculationResult
+    {
+        RefundPercentage = 100,
+        RefundAmountCents = amountCents,
+        CancellationReason = CancellationReason.StudentCancelledMoreThan24HoursBefore
+    };
+}
+
+return new RefundCalculationResult
+{
+    RefundPercentage = 50,
+    RefundAmountCents = amountCents / 2,
+    CancellationReason = CancellationReason.StudentCancelledLessThan24HoursBefore
+};
+\end{lstlisting}
+\end{english}
+
+القاعدة زيّ ما بتشوف مباشرة وعادلة:
+\begin{itemize}
+\item لو الطالب لغى قبل الموعد بأكتر من 24 ساعة: استرداد كامل 100\%.
+\item لو لغى في آخر 24 ساعة: استرداد 50\% بس (لأنّ المستشار حجز وقته).
+\item لو \emph{المستشار} هو اللي لغى: الطالب بياخد 100\% دايمًا (ولو كان في آخر
+  24 ساعة، بيتّطبق كمان خصم على تقييم المستشار من قِبَل المُعالِج).
+\end{itemize}
+
+\begin{keyp}[نقطة مهمة: أساس الاسترداد هو المبلغ المخزَّن]
+لاحظ إنّ الحساب بيستخدم \code{amountCents} المخزَّن على صفّ الـ \code{Payment}،
+مش سعر الحجز الحاليّ. ليه؟ لأنّ السعر ممكن يتغيّر بعد كده (خصم، عملة، إعادة
+تسعير)، فاللقطة (\en{snapshot}) المخزَّنة وقت الدفع هي المرجع الموثوق. ده مبدأ
+مهمّ: في المحاسبة، بنعتمد على القيمة وقت المعاملة مش القيمة الحالية.
+\end{keyp}
+
+بعد ما الحاسبة تقرّر المبلغ، بيتنفّذ الاسترداد فعليًّا عبر \code{RefundPaymentAsync}
+على \en{Stripe}. ولو الاسترداد بسبب \en{no-show}، فالمهمّة الخلفيّة
+\code{MeetingNoShowSweepJob} هي اللي بترصد الموقف وتشغّل المسار ده تلقائيًّا.
+
+\subsection{تقسيم الأرباح}
+
+كل صفّ \code{Payment} بيخزّن ثلاثة أرقام رئيسية بالسنتات:
+
+\begin{center}
+\begin{tabular}{L{4.4cm} L{8.4cm}}
+\toprule
+\textbf{\color{spPrimary}الحقل} & \textbf{\color{spPrimary}معناه} \\
+\midrule
+\code{AmountCents} & إجمالي المبلغ اللي دفعه الطالب (الجُملة). \\
+\code{ProfitShareAmountCents} & حصّة المنصّة (الرسوم + نسبة الربح). \\
+\code{PayeeAmountCents} & صافي نصيب المستشار بعد خصم حصّة المنصّة. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+النِّسَب نفسها مش مكتوبة في الكود؛ هي بتيجي من قاعدة ماليّة قابلة للتهيئة اسمها
+\code{FinancialConfigRule} (ومعاها \code{ProfitShareConfig}). الحساب نفسه دالة
+رياضية نقيّة (\en{pure function}) بتشتغل بالسنتات الصحيحة عشان المجموع يرجع
+مظبوط بالظبط:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var feeCents = feeKind switch
+{
+    FeeKind.Percentage => (long)Math.Round(
+        grossAmountCents * (feePercentage ?? 0m), MidpointRounding.AwayFromZero),
+    FeeKind.FixedAmount => feeAmountCents ?? 0L,
+    _ => 0L,
+};
+
+var profitShareCents = (long)Math.Round(
+    grossAmountCents * profitSharePercentage, MidpointRounding.AwayFromZero);
+
+var platformTotalCents = feeCents + profitShareCents;
+// Payee takes the remainder so the split always re-sums to gross exactly.
+var payeeNetCents = grossAmountCents - platformTotalCents;
+\end{lstlisting}
+\end{english}
+
+السطر الأخير هو الحيلة الذكية: نصيب المستشار = الإجمالي ناقص حصّة المنصّة.
+بكده مهما حصل تقريب في الكسور، \textbf{مجموع الحصّتين بيساوي الإجمالي بالظبط}
+ولا يضيع قرش. الرسوم ممكن تكون نسبة مئوية أو مبلغًا ثابتًا (حسب \code{FeeKind})،
+لكن نسبة الربح دايمًا نسبة مئوية.
+
+\begin{note}
+النِّسَب بتتحدّد عند القبول، مش عند الحجز. عند الحجز بيتخزّن
+\code{ProfitShareAmountCents} بصفر و\code{PayeeAmountCents} بكامل المبلغ (كأنّ
+كل المبلغ للمستشار مؤقّتًا)، وبس لمّا المستشار يقبل والقبض ينجح، بيتعاد حساب
+الحصّتين من القاعدة الماليّة السارية ساعتها. كده لو الأدمن غيّر النِّسَب، الحجوزات
+القديمة المدفوعة ما تتأثّرش.
+\end{note}
+
+\subsubsection{قاعدة فعّالة واحدة لكل نوع}
+
+طب لو في أكتر من قاعدة ماليّة لنفس نوع الدفع، نستخدم أنهي واحدة؟ الحلّ أنيق:
+\textbf{فهرس فريد مُصفّى} (\en{filtered unique index}) في قاعدة البيانات بيضمن إنّه
+لا يمكن وجود أكتر من قاعدة \emph{فعّالة} واحدة لكل نوع:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// FR-170: at most one Active rule per payment type.
+b.HasIndex(r => r.PaymentType)
+    .IsUnique()
+    .HasFilter("[Status] = 'Active'")
+    .HasDatabaseName("UX_FinancialConfigRule_ActivePerType");
+\end{lstlisting}
+\end{english}
+
+الشرط \code{HasFilter} بقيمة \code{[Status] = 'Active'} معناه إنّ قيد التفرّد
+بيتطبّق بس على الصفوف الفعّالة. يعني ممكن يكون عندك عشر قواعد قديمة بحالة غير
+فعّالة، لكن \emph{واحدة بس} فعّالة لكل نوع. لو حد حاول يفعّل تانية، قاعدة البيانات
+نفسها بترفض. القاعدة دي محفورة في الداتابيز مش في كود التطبيق، فمستحيل تتنسى.
+
+\subsection{الصرف للاستشاري عبر Stripe Connect}
+
+لحدّ دلوقتي، الفلوس المقبوضة موجودة في حساب المنصّة على \en{Stripe}. إزاي توصل
+للمستشار؟ عن طريق \en{Stripe Connect}: كل مستشار بيعمل حساب \en{Express} خاص بيه
+(عبر \code{CreateConnectAccountAsync} + رابط تسجيل)، وبعدين مهمّة خلفيّة اسمها
+\code{StripePayoutJob} بتشتغل كل ليلة وتجمّع كل الدفعات المقبوضة اللي لسه ما
+اتصرفتش لكل مستشار، وتبعتله دفعة واحدة (\en{payout}) بمجموع \code{PayeeAmountCents}
+بتاعته.
+
+\begin{idea}[الفكرة: المطالبة المُسبقة قبل استدعاء Stripe]
+مهمّة الصرف بتعمل حاجة ذكية: قبل ما تنادي \en{Stripe} خالص، بتسجّل صفّ الـ
+\code{Payout} في قاعدة البيانات وتربط الدفعات بيه (\code{PayoutId}). ليه الأول؟
+عشان لو المهمّة اتشغّلت مرّتين بالغلط، النسخة التانية تلاقي الدفعات «متطالَب بيها»
+فما تصرفهاش تاني. ولو استدعاء \en{Stripe} فشل بعد كده، بيتشال الربط
+(بترجع \code{PayoutId} فاضية) عشان الليلة الجاية تحاول من جديد. وكمان الصرف نفسه
+بيتبعت بمفتاح عدم تكرار مشتقّ من معرّف الـ \code{Payout}، فمفيش صرف مزدوج.
+\end{idea}
+
+\subsection{مطابقة الـ webhook والضمانات الثلاث}
+
+\en{Stripe} بيكلّمنا رجوعًا عن طريق \en{webhooks}: رسائل \en{HTTP} بيبعتها لخادمنا
+لمّا يحصل حدث (اكتمل تفويض، حصل استرداد، اكتمل صرف...). المشكلة: أي حد يقدر يبعت
+طلب \en{HTTP} مزيّف يدّعي إنّه من \en{Stripe}. عشان كده لازم \textbf{نتحقّق من
+التوقيع} قبل ما نصدّق أي رسالة. ده بيحصل في \code{ParseWebhook}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var stripeEvent = EventUtility.ConstructEvent(
+    payload,
+    signatureHeader,
+    webhookSecret,
+    throwOnApiVersionMismatch: false);
+// throws StripeException if the signature is invalid -> we reject the request
+
+switch (stripeEvent.Data?.Object)
+{
+    case PaymentIntent pi: paymentIntentId = pi.Id; amountCents = pi.Amount; break;
+    case Charge ch:        chargeId = ch.Id; paymentIntentId = ch.PaymentIntentId; break;
+    case Payout po:        payoutId = po.Id; break;
+    // Account / Dispute cases ...
+}
+\end{lstlisting}
+\end{english}
+
+الدالة \code{EventUtility.ConstructEvent} بتاخد الحمولة الخام والتوقيع والسرّ
+المشترك (\code{webhookSecret})، وتتأكّد إنّ التوقيع مطابق. لو مش مطابق، بترمي
+استثناء ونرفض الطلب فورًا. بعد التحقّق، بنستخرج الكائن المناسب (نيّة دفع، فاتورة،
+صرف...) عشان المُعالِج يقدر يطابقه مع صفّ الـ \code{Payment} الصحيح.
+
+وعشان \en{Stripe} بيعيد إرسال نفس الحدث لحدّ 3 أيّام لو ما ردّيناش بنجاح، لازم
+\textbf{نتجنّب معالجته مرّتين}. ده بيحصل بإزالة التكرار عبر
+\code{StripeWebhookEvent.StripeEventId}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// Idempotency: Stripe retries the same event for up to 3 days.
+if (await db.StripeWebhookEvents.AnyAsync(e => e.StripeEventId == request.EventId, ct))
+{
+    logger.LogInformation("Webhook {EventId} already processed, skipping.", request.EventId);
+    return true;
+}
+\end{lstlisting}
+\end{english}
+
+قبل ما نعمل أي حاجة، بنسأل: «الحدث ده اتعالج قبل كده؟». لو أيوة، بنتجاهله
+ونرجّع نجاح. حقل \code{StripeEventId} عليه فهرس فريد في الداتابيز، فحتى لو
+اتبعت نفس الحدث مرّتين في نفس اللحظة، واحد بس بينجح والتاني بيتعامل معاه كنجاح
+مكرّر.
+
+\begin{secnote}[زاوية الأمان: ثلاث ضمانات تحمي مسار الفلوس]
+\begin{itemize}
+\item \textbf{مفاتيح عدم التكرار} (\en{idempotency keys}): ما فيش خصم مزدوج ولا
+  صرف مزدوج مهما اتكرّرت المحاولات.
+\item \textbf{القبض اليدويّ} (\en{manual capture}): الفلوس ما بتتاخدش إلا لمّا
+  الخدمة تتأكّد فعلًا (المستشار قبل).
+\item \textbf{\en{webhooks} موقَّعة + إزالة تكرار الأحداث}: ما فيش حدث دفع مزيّف
+  أو معاد إرساله يقدر يخدعنا.
+\end{itemize}
+وفوق ده كلّه: \textbf{بيانات الكروت لا تلمس خوادمنا أبدًا}. المتصفّح بيكلّم
+\en{Stripe} مباشرة عن طريق الـ \en{client secret}، وإحنا بس بنشوف معرّف نيّة
+الدفع (\en{intent id}). فحتى لو تسرّبت قاعدة بياناتنا، ما فيش أرقام كروت تتسرّب.
+\end{secnote}
+
+\begin{qa}
+\textbf{سؤال متوقّع: «فين الفلوس ما بين الحجز والجلسة؟»} \\
+الإجابة: مُفوَّضة ومحجوزة على بطاقة الطالب عبر نيّة دفع بنمط \en{manual capture}.
+بنقبضها بس لمّا المستشار يقبل؛ ولو رفض أو انتهت المهلة بنفكّ الحجز؛ ولو حصل
+\en{no-show} أو إلغاء مؤهَّل، \code{RefundCalculatorService} بيقرّر الاسترداد.
+وصافي الأرباح بيوصل للمستشار عبر صرف \en{Stripe Connect}.
+\end{qa}
+
+\subsection{المهامّ الخلفيّة (Hangfire)}
+
+كتير من الشغل في النظام مش بيحصل لحظة طلب المستخدم، لكن بيحصل «لوحده» في الخلفية
+على فترات منتظمة. إحنا بنستخدم \en{Hangfire} لجدولة المهامّ دي. كل المهامّ
+متحكَّم فيها بمفتاح إعداد واحد: \code{Hangfire:Enabled}؛ لو اتقفل، ما بيتشغّلش أي
+جدول (مفيد في بيئات التطوير والاختبار).
+
+الجدول ده بيلخّص المهامّ المُجدوَلة الفعليّة في النظام (13 مهمّة):
+
+\begin{center}
+\begin{tabular}{L{4.9cm} L{2.5cm} L{5.1cm}}
+\toprule
+\textbf{\color{spPrimary}المهمّة} & \textbf{\color{spPrimary}الجدولة} & \textbf{\color{spPrimary}الغرض} \\
+\midrule
+\code{StripePayoutJob} & يوميًّا 02:00 & صرف صافي الأرباح للمستشارين دفعة واحدة \\
+\code{MeetingNoShowSweepJob} & كل 15 دقيقة & رصد غياب أحد الطرفين وفتح مسار الاسترداد \\
+\code{SessionExpiryJob} & كل 15 دقيقة & إنهاء الحجوزات اللي فاتت مهلة ردّ المستشار \\
+\code{CompletionJob} & كل 15 دقيقة & إغلاق الجلسات المكتملة تلقائيًّا \\
+\code{BookingReminderJob} & كل 15 دقيقة & تذكير الطالب والمستشار قبل الجلسة \\
+\code{DeadlineReminderJob} & يوميًّا 09:00 & تنبيه الطلاب بقرب انتهاء مواعيد المنح \\
+\code{NotificationDispatcherJob} & يوميًّا 10:00 & تذكير بالمسودّات غير المُرسَلة \\
+\code{ScholarshipAutoCloseJob} & كل ساعة & إغلاق المنح اللي فات موعدها تلقائيًّا \\
+\code{ReviewTimeoutRefundJob} & يوميًّا 05:00 & استرداد رسوم مراجعة تأخّرت عن مهلتها \\
+\code{DataExportJob} & كل ساعة & تجهيز تصدير بيانات المستخدم (\en{GDPR}) \\
+\code{DataDeleteJob} & يوميًّا 03:00 & حذف/تعمية بيانات المستخدم (\en{GDPR}) \\
+\code{RedactionAuditSamplingJob} & شهريًّا & عيّنات تنقية للتحقّق من حجب الـ \en{PII} \\
+\code{IntegrityCheckJob} & يوميًّا 04:00 & فحوص سلامة للصفوف اليتيمة والعالقة \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+نلاحظ إنّ المهامّ دي مش بس تذكيرات؛ فيها منها اللي بيمسّ الفلوس مباشرة
+(\code{StripePayoutJob}، واسترداد المراجعة)، ومنها اللي بيخدم الالتزام القانونيّ
+(\en{GDPR})، ومنها اللي بيراقب صحّة النظام نفسه (\code{IntegrityCheckJob} بيعدّ
+الدفعات اليتيمة والـ \en{webhooks} العالقة). كلها مبنيّة عشان تكون
+\textbf{آمنة للتكرار}: لو المهمّة اتشغّلت مرّتين، مفيش ضرر — نفس مبدأ عدم التكرار
+اللي شفناه في مسار الدفع.
+
+\begin{why}
+ليه نفصل الشغل ده في الخلفية بدل ما نعمله لحظة الطلب؟ عشان تجربة المستخدم تفضل
+سريعة (ما نخلّيهوش يستنّى صرف فلوس أو تصدير بيانات)، وعشان الشغل الدوريّ (زيّ
+إغلاق المنح المنتهية) ما ليهوش «طلب مستخدم» أصلًا يشغّله — لازم حد يفتكره ويشغّله،
+والـ \en{Hangfire} هو ده «الحد».
+\end{why}
+
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item النظام بيستخدم \en{authorize-then-capture} (شبه \en{escrow}) على \en{Stripe}:
+  فلوس الطالب \textbf{محجوزة لا مأخوذة} لحدّ ما المستشار يقبل.
+\item المنفذ \code{IStripeService} له محوّلان: \code{StripeService} الحقيقي و
+  \code{StubStripeService} للتطوير — نبدّل من غير ما نلمس منطق الحجز.
+\item دورة الحياة: حجز + تفويض (\en{manual capture}، سنتات صحيحة، مفتاح عدم تكرار)
+  ثمّ قبول = قبض ثمّ رفض/انتهاء = إفراج ثمّ \en{no-show}/إلغاء = استرداد بحساب
+  \code{RefundCalculatorService} ثمّ صرف عبر \code{StripePayoutJob}.
+\item تقسيم الأرباح بالسنتات: \code{AmountCents} تساوي \code{ProfitShareAmountCents}
+  (المنصّة) + \code{PayeeAmountCents} (المستشار)، من قاعدة ماليّة قابلة للتهيئة،
+  بفهرس فريد مُصفّى يضمن قاعدة فعّالة واحدة لكل نوع.
+\item الـ \en{webhook} بيتحقّق من توقيع \en{Stripe} ويزيل التكرار عبر
+  \code{StripeEventId}. ثلاث ضمانات: عدم التكرار + القبض اليدويّ + \en{webhooks}
+  موقَّعة. وبيانات الكروت \textbf{ما بتلمسش خوادمنا}.
+\item 13 مهمّة \en{Hangfire} خلفيّة (تذكيرات، صرف، \en{no-show}، إغلاق منح،
+  \en{GDPR}، تنقية، فحوص سلامة) متحكَّم فيها بـ \code{Hangfire:Enabled}.
+\end{itemize}
+\end{summary}

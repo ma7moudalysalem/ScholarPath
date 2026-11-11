@@ -1,0 +1,102 @@
+@startchen erd_module_6
+skinparam DefaultFontName Segoe UI
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam titleFontSize 24
+skinparam titleFontStyle bold
+title ScholarPath ERD  —  Module 6: AI, Knowledge Base & Platform
+entity AI_INTERACTION {
+  Id <<key>>
+  Feature
+  Provider
+  CostUsd <<derived>>
+}
+entity RECOMMENDATION_CLICK_EVENT {
+  Id <<key>>
+  Source
+}
+entity AI_REDACTION_AUDIT_SAMPLE {
+  Id <<key>>
+  Verdict
+}
+entity KNOWLEDGE_DOCUMENT {
+  Id <<key>>
+  SourceType
+  SourceKey
+}
+entity PLATFORM_SETTING {
+  Id <<key>>
+  SettingKey
+  ValueType
+}
+entity SUCCESS_STORY {
+  Id <<key>>
+  IsApproved
+}
+entity USER_RISK_FLAG {
+  Id <<key>>
+  Score <<derived>>
+  IsAtRisk
+}
+entity AUDIT_LOG {
+  Id <<key>>
+  Action
+  TargetType
+}
+entity USER_DATA_REQUEST {
+  Id <<key>>
+  Type
+  Status
+}
+entity USER {
+  Id <<key>>
+}
+entity SCHOLARSHIP {
+  Id <<key>>
+}
+relationship INVOKES {
+}
+relationship CLICKS {
+}
+relationship ON_SCH {
+}
+relationship FROM_AI {
+}
+relationship SAMPLED {
+}
+relationship SUBJECT {
+}
+relationship REVIEWS {
+}
+relationship SCORED {
+}
+relationship ACTS {
+}
+relationship RAISES_DR {
+}
+relationship FEATURED {
+}
+USER -1- INVOKES
+INVOKES -N- AI_INTERACTION
+USER -1- CLICKS
+CLICKS =N= RECOMMENDATION_CLICK_EVENT
+SCHOLARSHIP -1- ON_SCH
+ON_SCH =N= RECOMMENDATION_CLICK_EVENT
+AI_INTERACTION -1- FROM_AI
+FROM_AI -N- RECOMMENDATION_CLICK_EVENT
+AI_INTERACTION -1- SAMPLED
+SAMPLED =1= AI_REDACTION_AUDIT_SAMPLE
+USER -1- SUBJECT
+SUBJECT =N= AI_REDACTION_AUDIT_SAMPLE
+USER -1- REVIEWS
+REVIEWS -N- AI_REDACTION_AUDIT_SAMPLE
+USER -1- SCORED
+SCORED =1= USER_RISK_FLAG
+USER -1- ACTS
+ACTS -N- AUDIT_LOG
+USER -1- RAISES_DR
+RAISES_DR =N= USER_DATA_REQUEST
+USER -1- FEATURED
+FEATURED -N- SUCCESS_STORY
+@endchen

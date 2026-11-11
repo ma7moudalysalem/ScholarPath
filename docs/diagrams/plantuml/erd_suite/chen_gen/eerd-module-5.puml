@@ -1,0 +1,74 @@
+@startchen eerd_module_5
+skinparam DefaultFontName Segoe UI
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam titleFontSize 24
+skinparam titleFontStyle bold
+title ScholarPath EERD  —  Module 5: Resources Hub & Notifications
+entity RESOURCE {
+  Id <<key>>
+  Slug
+  Title
+  Type
+  Status
+}
+entity RESOURCE_CHAPTER <<weak>> {
+  SortOrder <<key>>
+  TitleEn
+}
+entity RESOURCE_PROGRESS {
+  Id <<key>>
+  ChaptersCompletedCount <<derived>>
+}
+entity RESOURCE_PROGRESS_CHILD <<weak>> {
+  ResourceChildId <<key>>
+  IsCompleted
+}
+entity NOTIFICATION {
+  Id <<key>>
+  Type
+  Channel
+}
+entity NOTIFICATION_PREFERENCE {
+  Id <<key>>
+  Type
+  Channel
+}
+entity USER {
+  Id <<key>>
+}
+relationship AUTHORS_RES {
+}
+relationship SPLIT_INTO {
+}
+relationship BOOKMARKS_RES {
+  BookmarkedAt
+}
+relationship TRACKED_BY {
+}
+relationship PROGRESS_ON {
+}
+relationship PER_CHAPTER {
+}
+relationship RECEIVES {
+}
+relationship CONFIGURES {
+}
+USER -1- AUTHORS_RES
+AUTHORS_RES =N= RESOURCE
+RESOURCE -1- SPLIT_INTO
+SPLIT_INTO =N= RESOURCE_CHAPTER
+USER -M- BOOKMARKS_RES
+BOOKMARKS_RES -N- RESOURCE
+USER -1- TRACKED_BY
+TRACKED_BY =N= RESOURCE_PROGRESS
+RESOURCE -1- PROGRESS_ON
+PROGRESS_ON =N= RESOURCE_PROGRESS
+RESOURCE_PROGRESS -1- PER_CHAPTER
+PER_CHAPTER =N= RESOURCE_PROGRESS_CHILD
+USER -1- RECEIVES
+RECEIVES =N= NOTIFICATION
+USER -1- CONFIGURES
+CONFIGURES =N= NOTIFICATION_PREFERENCE
+@endchen
