@@ -1,0 +1,353 @@
+% ch07b-notifications-chat
+\section{الإشعارات والشات: إزاي بيشتغلوا فعلاً}
+
+في الفصل السابق فكّكنا \en{SignalR}: ثلاثة \en{hubs} ترث قاعدةً واحدة مصادَقة
+بـ\en{JWT}، ومجموعات مثل \code{user:<id>} و\code{conversation:<id>}، والدفع اللحظيّ
+سطرٌ واحد عبر \code{IHubContext}. الآن نبني \emph{فوق} تلك الأساسات ميزتين
+يستعملهما كلّ مستخدم كل يوم: \textbf{جرس الإشعارات} الذي يومض دون تحديث الصفحة،
+و\textbf{الشات الخاصّ 1:1} بين طرفين. لن نُعيد شرح \en{SignalR} نفسه؛ سنتتبّع
+بدلًا من ذلك رحلة \emph{الحدث} — من اللحظة التي يقع فيها شيء في النظام حتى تظهر
+النتيجة على شاشة الطرف الآخر.
+
+\begin{idea}[الفكرة: ميزتان حيّتان فوق طبقةٍ واحدة]
+الجرس والشات يبدوان مختلفَين، لكنّهما يتشاركان الهيكل نفسه: \textbf{يحفظ النظام
+الحقيقة أوّلًا في قاعدة البيانات}، ثمّ \textbf{يدفعها حيّةً} عبر \en{SignalR} لِمن
+هو متّصل الآن. الحفظ يضمن ألّا يضيع شيء (المستخدم غير المتّصل يجده حين يعود)،
+والدفع يضمن الفوريّة لِمن هو حاضر. كل ما يلي مجرّد تفصيل لهاتين الخطوتين.
+\end{idea}
+
+\subsection{نقطة الدخول: \code{DispatchAsync} خطوة بخطوة}
+
+كل إشعار في النظام — تأكيد حجز، دفعة نجحت، رسالة جديدة — يمرّ عبر باب واحد اسمه
+\code{INotificationDispatcher.DispatchAsync}. المُرسِل لا يعرف شيئًا عن اللغات أو
+القنوات أو ساعات الهدوء؛ يقول فقط «أبلِغ هذا المستخدم بهذا النوع»، والموزّع يتكفّل
+بالباقي بترتيب ثابت. هذا هو قلب الدالة (مقتصّ):
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public async Task DispatchAsync(
+    Guid recipientUserId, NotificationType type, NotificationParams parameters,
+    string? deepLink, string? idempotencyKey, CancellationToken ct)
+{
+    // 1) Idempotency — Stripe/event replays must not double-insert.
+    if (!string.IsNullOrEmpty(idempotencyKey)
+        && await db.Notifications.AnyAsync(n => n.IdempotencyKey == idempotencyKey, ct))
+        return;
+
+    var content  = catalog.Render(type, parameters);                  // 2) EN + AR
+    var silenced = await IsSilencedAsync(recipientUserId, type, ct);   // 3) DND?
+    var channels = await ResolveChannelsAsync(recipientUserId, type, silenced, ct);
+    // 4) build a Notification row per channel, SaveChanges, then DeliverAsync each.
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه سطرًا-بسطر:
+\begin{itemize}
+\item الخطوة \textbf{الأولى} حارس ضدّ التكرار: إن وُجد \code{idempotencyKey} وسبق أن
+  خُزِّن إشعارٌ بنفس المفتاح، نخرج فورًا (\code{return}). هذا يمنع الإشعار المكرَّر
+  حين تعيد \en{Stripe} إرسال الحدث نفسه مرّتين.
+\item الخطوة \textbf{الثانية} \code{catalog.Render}: تحوّل النوعَ والمعاملات إلى نصّ
+  فعليّ \textbf{بالعربية والإنجليزية معًا} (عنوان + نصّ لكل لغة). المُرسِل لا يكتب
+  نصوصًا، بل يمرّر نوعًا وقيمًا فقط.
+\item الخطوة \textbf{الثالثة} \code{IsSilencedAsync}: هل هذا المستخدم في وضع «عدم
+  إزعاج» الآن؟ نتيجة \code{silenced} تسري على كل ما بعدها.
+\item الخطوة \textbf{الرابعة} \code{ResolveChannelsAsync}: تقرّر القنوات (جرس داخل
+  التطبيق؟ بريد؟)، ثمّ يُبنى صفّ \code{Notification} لكل قناة، يُحفَظ، ثمّ يُسلَّم.
+\end{itemize}
+
+\subsubsection{منع التكرار: الفحص المسبق وسباق الفهرس الفريد}
+
+الحارس المسبق (\code{AnyAsync}) يكفي في الحالة العاديّة، لكنّه لا يكفي وحده لو وصل
+حدثان بنفس المفتاح في اللحظة ذاتها: قد يمرّ كلاهما من الفحص قبل أن يحفظ أيٌّ منهما.
+لذلك توجد شبكة أمان ثانية على مستوى قاعدة البيانات: فهرس فريد على
+\code{(IdempotencyKey, Channel)}. من يصل ثانيًا يصطدم بالفهرس، فنترجم الاصطدام إلى
+«لا عمل» (\en{no-op}) بدل خطأ:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+try { await db.SaveChangesAsync(ct); }
+catch (ConflictException) when (!string.IsNullOrEmpty(idempotencyKey))
+{
+    // A concurrent dispatch with the same key won the race; the unique
+    // (IdempotencyKey, Channel) index rejected our rows — detach and no-op.
+    db.Notifications.RemoveRange(rows);
+    return;
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه: لو نجح حفظ الطرف الآخر أوّلًا، يرفض الفهرسُ صفوفَنا فتُرمى
+\code{ConflictException}. نلتقطها \textbf{بشرط} وجود مفتاح تكرار (\code{when})، ثمّ
+نفصل صفوفنا المرفوضة (\code{RemoveRange}) ونخرج بهدوء. النتيجة النهائيّة واحدة سواء
+وصل الحدث مرّة أو ألف مرّة: إشعارٌ واحد فقط.
+
+\begin{why}
+لماذا حارسان لا حارس واحد؟ الفحص المسبق يوفّر عملًا في الحالة الشائعة (لا نحاول
+الحفظ أصلًا)، لكنّه ليس ذرّيًّا. الفهرس الفريد ذرّيّ ومضمون من قاعدة البيانات لكنّه
+يكلّف استثناءً. الجمع بينهما يعطي الأداء الجيّد \textbf{و} الصحّة تحت التزامن معًا —
+وهو نمط الحماية بطبقتين نفسه الذي رأيناه في المدفوعات.
+\end{why}
+
+\subsection{«عدم الإزعاج»: مكتوم، ساعات هدوء، وسياسة \en{fail-open}}
+
+الدالة \code{IsSilencedAsync} تجيب عن سؤال واحد: هل نكتم هذا المستخدم الآن؟ الجواب
+«نعم» في حالتين: إمّا أنّه فعّل الكتم الكامل (\code{NotificationsMuted})، أو أنّ
+اللحظة الحاليّة تقع داخل \textbf{ساعات الهدوء} (\code{QuietHours}) التي حدّدها.
+وفيها ثلاث دقائق مهمّة:
+
+\begin{itemize}
+\item \textbf{بمنطقة المستخدم الزمنيّة}: نافذة الهدوء تُحسَب بتوقيت المستخدم لا
+  بتوقيت الخادم، فـ«العاشرة مساءً» تعني مساءه هو.
+\item \textbf{قد تلفّ حول منتصف الليل}: نافذة مثل \en{22:00 $\rightarrow$ 08:00}
+  تبدأ في يوم وتنتهي في اليوم التالي.
+\item \textbf{اختبار المستخدم يمرّ دائمًا}: النوع \code{SystemTest} يُعيد «غير مكتوم»
+  فورًا — لأنّه الوسيلة التي يتحقّق بها المستخدم من إعداداته نفسها.
+\end{itemize}
+
+منطق «اللفّ حول منتصف الليل» هو النقطة الذكيّة، وهذا هو الكود:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+private static bool InQuietWindow(TimeOnly start, TimeOnly end, string? tzId)
+{
+    var localNow = TimeOnly.FromDateTime(
+        TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, ResolveTimeZone(tzId)).DateTime);
+    // The window may wrap past midnight (e.g. 22:00 -> 08:00).
+    return start <= end
+        ? localNow >= start && localNow < end    // same day
+        : localNow >= start || localNow < end;   // 22:00 -> 08:00
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه:
+\begin{itemize}
+\item نحوّل «الآن» \en{UTC} إلى الوقت المحلّي للمستخدم عبر \code{ConvertTime} ثمّ
+  نأخذ الجزء الزمنيّ فقط (\code{localNow}).
+\item إن كانت \code{start <= end} فالنافذة داخل اليوم نفسه، فنطلب أن يقع «الآن»
+  بينهما (\code{and}).
+\item وإلّا فالنافذة ملتفّة حول منتصف الليل، فنطلب أن يقع «الآن» \textbf{بعد} البداية
+  \textbf{أو قبل} النهاية (\code{or}) — فتشمل ليلة كاملة تعبر منتصف الليل.
+\end{itemize}
+
+\begin{secnote}
+لاحظ فلسفة \code{IsSilencedAsync} كلّها: \textbf{تفشل مفتوحةً} (\en{fail-open}). لو
+كان ملفّ المستخدم مفقودًا، أو مُعرِّف المنطقة الزمنيّة تالفًا، أو أيّ استثناء آخر —
+تُرجِع «غير مكتوم» فيصل الإشعار عاديًّا. القاعدة: خطأٌ في منطق الكتم يجب ألّا
+\textbf{يبتلع} إشعارًا مهمًّا. الأسوأ المقبول هو إزعاجٌ عابر، لا معلومة ضائعة.
+\end{secnote}
+
+\subsection{القنوات والدفع الحيّ للجرس}
+
+بعد معرفة حالة الكتم، تقرّر \code{ResolveChannelsAsync} أين يذهب الإشعار. القاعدة
+بسيطة: \code{InApp} (الجرس) \textbf{دائمًا}، و\code{Email} حسب تفضيلات المستخدم لكل
+\emph{نوع} إشعار على حدة. أمّا تحت «عدم الإزعاج» فالاثنان يُكتَمان — \textbf{لكن}
+صفّ \code{InApp} يظلّ يُخزَّن في قاعدة البيانات. الجدول يلخّص السلوك:
+
+\begin{center}
+\begin{tabular}{L{4.4cm} C{2.4cm} C{2.9cm} C{2.0cm}}
+\toprule
+\textbf{\color{spPrimary}الحالة} & \textbf{\color{spPrimary}صفّ \code{InApp}} & \textbf{\color{spPrimary}دفعة حيّة (\en{toast})} & \textbf{\color{spPrimary}\code{Email}} \\
+\midrule
+عاديّ، وتفضيل البريد مفعّل   & يُخزَّن & يُدفَع & يُرسَل \\
+عاديّ، وتفضيل البريد معطَّل  & يُخزَّن & يُدفَع & لا \\
+تحت «عدم الإزعاج»           & يُخزَّن & لا     & لا \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+المفتاح في السطر الأخير: تحت الكتم تُرجِع \code{ResolveChannelsAsync} قناة
+\code{InApp} وحدها (تُسقِط \code{Email})، وفي داخل التسليم تُكتَم أيضًا الدفعةُ الحيّة
+لتلك القناة. النتيجة: المستخدم \emph{يجد} الإشعار في قائمته لاحقًا، لكنّه لا يُزعَج
+به لحظتَها. وهذا هو سطر الدفع الحيّ داخل \code{DeliverAsync} لقناة \code{InApp}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// The in-app row is always stored; the live toast is suppressed under DND.
+if (!silenced)
+    await hub.Clients.Group($"user:{row.RecipientUserId}")
+        .SendAsync("notification", new {
+            id = row.Id, type = row.Type.ToString(),
+            row.TitleEn, row.TitleAr, row.BodyEn, row.BodyAr,
+            row.DeepLink, createdAt = DateTimeOffset.UtcNow }, ct);
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه: الشرط \code{if (!silenced)} هو ما يكتم الدفعة الحيّة فقط (الصفّ خُزِّن قبل
+هذا السطر أصلًا). نستهدف مجموعة \code{user:<id>} — التي انضمّ إليها المستخدم عند
+الاتّصال — ونرسل حدثًا اسمه \code{notification} يحمل العنوان والنصّ باللغتين مع
+رابط عميق (\code{DeepLink}). الواجهة تستمع لهذا الاسم فيومض الجرس فورًا.
+
+\begin{qa}
+\textbf{سؤال متوقّع:} «تحت عدم الإزعاج، لماذا نخزّن صفّ الجرس أصلًا بدل تجاهله؟» لأنّ
+الكتم يعني «لا تُزعِجني الآن»، لا «احذف الخبر». المستخدم قد يفتح قائمة الإشعارات بعد
+ساعات الهدوء ويريد أن يجد كل ما فاته. الكتم يقمع \emph{المقاطعة} لا \emph{المعلومة}.
+\end{qa}
+
+\begin{keyp}[نقطة مهمة: لماذا \code{await} في \code{OnConnectedAsync}؟]
+رأينا في الفصل السابق أنّ \code{NotificationHub} يضيف الاتّصال إلى مجموعة
+\code{user:<id>} عند الاتّصال، \textbf{وينتظر} الإضافة (\code{await}) لا يطلقها
+ويمضي. السبب حرِج هنا تحديدًا: لو دُفِع إشعارٌ في اللحظة التالية للاتّصال مباشرةً،
+ومجموعةُ المستخدم لم تكتمل بعد، لَسَبَق الإشعارُ الانضمامَ وضاع على صاحبه — ثمّ ظهر
+لاحقًا كأنّه «مكرَّر» بعد إعادة الإرسال. الانتظار يقفل هذه الفجوة الزمنيّة.
+\end{keyp}
+
+\subsection{الشات 1:1: الحضور والبوّابة قبل أي رسالة}
+
+ننتقل للميزة الثانية. \code{ChatHub} يرث \code{AuthenticatedHub} المعلَّم
+بـ\code{[Authorize]}، فلا يتّصل به إلّا حاملُ \en{JWT} صالح. فوق ذلك يتتبّع
+\textbf{الحضور} (\en{online/offline}) بعدّاد مرجعيّ: أوّل اتّصال للمستخدم يعلنه
+«متّصلًا» للآخرين، وآخر اتّصال يسقط (وصل العدّاد صفرًا) يعلنه «غير متّصل». والعميلُ
+حديثُ الاتّصال يستدعي \code{GetOnlineUsers} ليهيّئ حالته دفعةً واحدة بدل انتظار
+الأحداث تتقاطر.
+
+لكن قبل أن ينضمّ أي عميل إلى مجموعة محادثة أو يبثّ مؤشّر كتابة، تمرّ كل عمليّة عبر
+بوّابة واحدة، \code{EnsureParticipantAsync}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+private async Task EnsureParticipantAsync(string conversationId)
+{
+    if (!Guid.TryParse(Context.UserIdentifier, out var userId))
+        throw new HubException("Unauthorized.");
+    if (!Guid.TryParse(conversationId, out var convId))
+        throw new HubException("Invalid conversation id.");
+
+    var isParticipant = await db.Conversations.AsNoTracking()
+        .AnyAsync(c => c.Id == convId
+            && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
+    if (!isParticipant)
+        throw new HubException("You are not a participant in this conversation.");
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه: نأخذ هويّة المتّصل من \code{Context.UserIdentifier} (من الـ\en{JWT} لا من
+طلب العميل)، ثمّ نسأل قاعدة البيانات: هل هذا المستخدم أحد طرفَي المحادثة
+(\code{ParticipantOneId} أو \code{ParticipantTwoId})؟ إن لم يكن، نرمي
+\code{HubException} فورًا فلا انضمام ولا كتابة. الدوالّ \code{JoinConversation}
+و\code{TypingStart} و\code{TypingStop} كلّها تستدعي هذه البوّابة أوّلًا.
+
+\begin{secnote}
+هذه بوّابة \en{SEC-02 IDOR}. بدونها كان \textbf{أي} مستخدم مصادَق يستطيع الانضمام
+إلى \code{conversation:<id>} لأي محادثة — بمجرّد تخمين المُعرِّف — والتنصّت على
+رسائل خاصّة تُدفَع لتلك المجموعة. الدرس: المصادقة (\en{authentication}) تُثبِت
+\emph{مَن أنت}، لكنّ التفويض (\en{authorization}) — أنت طرفٌ في \emph{هذه}
+المحادثة تحديدًا — يجب فحصه على الخادم قبل كل اشتراك، لا الاكتفاء بأنّك مسجَّل
+دخولك.
+\end{secnote}
+
+مؤشّرات الكتابة تتبع النمط نفسه: \code{TypingStart}/\code{TypingStop} تبثّان — بعد
+البوّابة — إلى \code{OthersInGroup} أي «كل مَن في المجموعة عداي». فيرى الطرف الآخر
+«يكتب الآن…» دون أن يرى المرسِلُ إشعارَ نفسه.
+
+\subsection{من الرسالة إلى الطرف الآخر: \code{SendMessageCommandHandler}}
+
+إرسال رسالة يمرّ بستّ خطوات مرتّبة داخل معالِج واحد. المقتطف التالي يجمع أهمّها
+(مقتصّ):
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// 1) canonical order (smaller GUID first) -> one conversation per pair
+var (participantOne, participantTwo) = senderId.CompareTo(request.RecipientId) <= 0
+    ? (senderId, request.RecipientId)
+    : (request.RecipientId, senderId);
+// ... find-or-create the conversation with that ordered pair ...
+
+// 2) block check (either direction)
+if (isBlocked) throw new ConflictException("Cannot send message. User is blocked.");
+
+// 3) SEC-07 defense-in-depth: strip HTML before it hits any sink
+var sanitizedBody = new Ganss.Xss.HtmlSanitizer().Sanitize(request.Body);
+
+// 4) persist the message + touch the conversation
+db.Messages.Add(new ChatMessage { ConversationId = conversation.Id,
+    SenderId = senderId, Body = sanitizedBody, SentAt = DateTimeOffset.UtcNow });
+await db.SaveChangesAsync(ct);
+
+// 5) live push to whoever has the conversation open
+await chatNotifier.NotifyNewMessageAsync(
+    conversation.Id, message.Id, senderId, sanitizedBody, message.SentAt, ct);
+// 6) bell + email for the absent party (elsewhere in the app)
+await publisher.Publish(new ChatMessageReceivedEvent(/* ... */), ct);
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه خطوةً-خطوة:
+\begin{itemize}
+\item \textbf{(1) الترتيب \en{canonical}}: نرتّب الطرفين بحيث يكون الأصغر
+  (\code{CompareTo}) أوّلًا قبل إنشاء المحادثة. هذا يجعل الفهرس الفريد على الزوج
+  يضمن \textbf{محادثة واحدة لكل ثنائيّ}، ويمنع سباق رسالتين متزامنتين من الطرفين
+  يُنشئان صفّين بأعمدة مقلوبة.
+\item \textbf{(2) فحص الحظر}: إن كان أيٌّ من الطرفين حاظرًا للآخر (في أيّ اتّجاه)
+  نرمي \code{ConflictException} فلا رسالة تُرسَل.
+\item \textbf{(3) تنقية \en{HTML}} عبر \code{HtmlSanitizer}: نجرّد أي وسوم أو سكربتات
+  من النصّ \emph{قبل} تخزينه.
+\item \textbf{(4) الحفظ}: نضيف \code{ChatMessage} ونحدّث المحادثة (آخر رسالة
+  ووقتها)، ثمّ \code{SaveChanges}.
+\item \textbf{(5) الدفع الحيّ}: \code{NotifyNewMessageAsync} يبثّ لمجموعة المحادثة.
+\item \textbf{(6) الحدث}: ننشر \code{ChatMessageReceivedEvent} ليتكفّل بجرس الطرف
+  الغائب وبريده.
+\end{itemize}
+
+\begin{secnote}
+لماذا ننقّي \en{HTML} والواجهةُ \en{React} تعرض النصّ آمنًا أصلًا؟ لأنّ نفس النصّ
+المخزَّن يذهب إلى \textbf{ثلاثة مصارف} (\en{sinks}): عقدة نصّ في \en{React}
+(آمنة)، ودفعة \en{SignalR} حيّة، ومعاينة داخل بريد \en{HTML} — والأخيران ليسا
+\en{React}. التنقية \textbf{عند التخزين} تجعل كل مصرف آمنًا مرّة واحدة بدل الاعتماد
+على أن يتذكّر كلُّ مستهلِك أن يهرب النصّ. هذا معنى \en{SEC-07}: دفاعٌ في العمق.
+\end{secnote}
+
+الدفع الحيّ نفسه سطرٌ واحد في \code{ChatRealtimeNotifier}، يبثّ لمجموعة المحادثة:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+hub.Clients.Group($"conversation:{conversationId}")
+   .SendAsync("MessageReceived",
+       new { conversationId, messageId, senderId, body, sentAt }, ct);
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه: نستهدف مجموعة \code{conversation:<id>} — التي لا ينضمّ إليها إلّا من
+اجتاز بوّابة \code{EnsureParticipantAsync} — ونرسل حدثًا اسمه \code{MessageReceived}.
+كلّ عميل يشاهد هذه المحادثة الآن يستقبله فتظهر الرسالة فورًا في الخيط.
+
+\begin{keyp}[نقطة مهمة: المسار المزدوج]
+لماذا خطوتان (5) و(6) معًا؟ لأنّهما تصلان إلى شخصين مختلفين. الدفع الحيّ
+(\code{NotifyNewMessageAsync}) يصل \textbf{فقط} لِمن يفتح المحادثة على شاشته الآن —
+هو مشترِكٌ في مجموعة \code{conversation:<id>}. أمّا الطرف الموجود في مكان آخر من
+التطبيق (صفحة المنح مثلًا) فليس في تلك المجموعة، فيتكفّل به الحدثُ
+\code{ChatMessageReceivedEvent}: يُطلِق إشعار جرسٍ عبر المسار الذي شرحناه في أوّل
+الفصل. \textbf{الخلاصة}: المفتوحة أمامك تصلك حيّةً، والمغلقة يذكّرك بها الجرس — فلا
+رسالة تفوت.
+\end{keyp}
+
+\begin{note}
+لاحظ التناظر بين الميزتين: كلتاهما \textbf{تحفظ ثمّ تدفع}. الإشعار يحفظ صفّ
+\code{Notification} ثمّ يدفع لمجموعة \code{user:<id>}؛ والرسالة تحفظ \code{ChatMessage}
+ثمّ تدفع لمجموعة \code{conversation:<id>} \emph{و}تنشر حدثًا للجرس. الدوام أوّلًا،
+الفوريّة ثانيًا — هو النمط الذي يجعل الميزتين موثوقتين لا مجرّد «حيّتين».
+\end{note}
+
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item كل إشعار يمرّ عبر \code{DispatchAsync} بترتيب ثابت: منع تكرار
+  \en{$\rightarrow$} تصيير النصّ باللغتين (\code{catalog.Render}) \en{$\rightarrow$}
+  فحص الكتم \en{$\rightarrow$} تحديد القنوات \en{$\rightarrow$} حفظ \en{$\rightarrow$}
+  تسليم.
+\item منع التكرار بطبقتين: فحص \code{IdempotencyKey} المسبق + فهرس فريد على
+  \code{(IdempotencyKey, Channel)} يترجم السباق إلى \en{no-op}.
+\item «عدم الإزعاج» = مكتوم أو داخل ساعات الهدوء (بمنطقة المستخدم، وقد تلفّ حول منتصف
+  الليل)؛ السياسة \en{fail-open}، و\code{SystemTest} يمرّ دائمًا. تحت الكتم يُخزَّن
+  صفّ \code{InApp} لكن لا \en{toast} ولا \code{Email}.
+\item الشات محميّ ببوّابة \code{EnsureParticipantAsync} (\en{SEC-02 IDOR}) قبل أي
+  انضمام أو كتابة — المتّصل من الـ\en{JWT} يجب أن يكون طرفًا في المحادثة.
+\item \code{SendMessageCommandHandler}: ترتيب \en{canonical} (محادثة واحدة لكل زوج)
+  \en{$\rightarrow$} فحص حظر \en{$\rightarrow$} تنقية \en{HTML} (\en{SEC-07}، لثلاثة
+  مصارف) \en{$\rightarrow$} حفظ \en{$\rightarrow$} دفع حيّ \en{$\rightarrow$} حدثٌ
+  للغائب.
+\item المسار المزدوج: الدفع الحيّ لِمن يفتح المحادثة، وحدث الجرس لِمن هو في مكانٍ
+  آخر — فلا رسالة تُفوَّت.
+\end{itemize}
+\end{summary}

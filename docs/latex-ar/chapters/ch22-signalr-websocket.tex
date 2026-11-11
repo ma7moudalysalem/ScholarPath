@@ -1,0 +1,420 @@
+% الفصل 22 — الزمن الحقيقيّ بعمق: WebSocket و SignalR وفكرة الـ Hubs
+\section{الزمن الحقيقيّ بعمق: \en{WebSocket} و\en{SignalR} وفكرة الـ \en{Hubs}}
+
+في الجزء الأول رأينا الإشعارات والشات وهما يشتغلان: رسالة تظهر عند الطرف
+الآخر لحظيًّا، وجرس الإشعارات يرنّ بلا تحديث للصفحة. هذا الفصل يفتح الغطاء ويجيب
+عن السؤال الأصعب: كيف يصل التحديث من الخادم إلى المتصفّح في نفس اللحظة،
+بلا أن يسأل المتصفّح أصلًا؟ هنمشي «واحدة واحدة»: نبدأ من مشكلة الـ \en{HTTP}
+العاديّ، ثم نفهم الـ \en{WebSocket} كحلّ، ثم نرى \en{SignalR} كطبقة تجريد فوقه،
+وأخيرًا نغوص في الكود الحقيقيّ لثلاثة \en{hubs} في \en{ScholarPath}: كيف يتوثّق
+الاتصال، وكيف يُوجَّه الدفع بالمجموعات، وأين يجلس «المشتركون» على الطرفين.
+
+هذه المفاهيم من المفترض أنّك رأيتها مستخدَمة في الجزء الأول؛ هنا نشرح الآليّة
+تحتها لا الاستخدام.
+
+% ─────────────────────────────────────────────────────────────
+\subsection{المشكلة أولًا: لماذا لا يكفي \en{HTTP} العاديّ؟}
+
+الـ \en{HTTP} التقليديّ يعمل بنمط «طلب ثم ردّ»: المتصفّح يفتح اتصالًا، يرسل
+طلبًا، يستقبل الردّ، ثم يُغلَق الاتصال. الخادم لا يملك أي طريقة ليبدأ
+الحديث من نفسه؛ هو يردّ فقط حين يُسأل. طيب، ماذا لو وصلت رسالة شات جديدة وأنا لا
+أسأل؟ لن أعرف بها.
+
+الحلّ الساذج اسمه \en{polling}: اجعل المتصفّح يسأل الخادم كل ثانية «في جديد؟».
+هذا يعمل، لكنّه مكلف: آلاف الطلبات الفارغة (\en{no data}) لكل مستخدم، كل واحد منها
+يحمل ترويسات \en{HTTP} كاملة ومصافحة \en{TLS}، وتأخير يصل إلى ثانية كاملة قبل أن
+يرى المستخدم أي تحديث. تخيّلها مضروبة في آلاف المتّصلين.
+
+\begin{why}
+اللحظيّة الحقيقيّة تحتاج أن يدفع الخادم البيانات متى شاء — لا أن ينتظر
+سؤالًا. الـ \en{polling} يقلب المعادلة: يجعل العميل يسأل باستمرار، فيدفع
+ثمن التأخير والحِمل معًا. نحتاج قناةً يبقى الخادم قادرًا فيها على الكلام.
+\end{why}
+
+% ─────────────────────────────────────────────────────────────
+\subsection{\en{WebSocket}: مصافحة تُرقّي الاتصال إلى قناة دائمة}
+
+الـ \en{WebSocket} بروتوكول يحلّ هذا بالضبط. يبدأ حياته كطلب \en{HTTP} عاديّ، لكن
+بترويسة خاصة \code{Upgrade: websocket}. الخادم يوافق بردّ الحالة
+\code{101 Switching Protocols}، وهذه اللحظة تُسمّى «المصافحة» \en{(handshake)}.
+بعدها لا يُغلَق الاتصال، بل يُرقّى إلى قناة دائمة ثنائية الاتجاه
+\en{(full-duplex)}: الطرفان يرسلان في أي وقت وعبر نفس الاتصال المفتوح.
+
+النتيجة المهمة: صار الخادم قادرًا على أن يدفع \en{(push)} رسالةً للعميل بلا
+أي طلب سابق. لا مزيد من \en{polling}، ولا تأخير، واتصال واحد يخدم كل التحديثات.
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}
+  % ---- polling (المشكلة) ----
+  \node[actor] (cp) at (0,0) {Client};
+  \node[actor] (sp) at (6,0) {Server};
+  \draw[arr] ([yshift=5pt]cp.east) -- node[lbl,above]{GET /updates?} ([yshift=5pt]sp.west);
+  \draw[arrd] ([yshift=-7pt]sp.west) -- node[lbl,below]{204 no data} ([yshift=-7pt]cp.east);
+  \node[fbox,text width=6cm] at (3,-1.25) {polling: يتكرّر كل ثانية = حِمل + تأخير};
+
+  % ---- websocket (الحل) ----
+  \node[actor] (cw) at (0,-3.1) {Client};
+  \node[actor] (sw) at (6,-3.1) {Server};
+  \draw[arr] ([yshift=9pt]cw.east) -- node[lbl,above]{HTTP Upgrade (handshake)} ([yshift=9pt]sw.west);
+  \draw[arrb] (cw.east) -- (sw.east);
+  \draw[arr] ([yshift=-9pt]sw.west) -- node[lbl,below]{server push (بلا طلب)} ([yshift=-9pt]cw.east);
+  \node[tbox,text width=6cm] at (3,-4.4) {قناة واحدة دائمة ثنائية الاتجاه (full-duplex)};
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+في الأعلى: الـ \en{polling} يرسل طلبًا بعد طلب فيرجع أغلبها فارغًا. في الأسفل:
+مصافحة واحدة تفتح قناة دائمة، ثم يدفع الخادم متى شاء عبرها.
+
+% ─────────────────────────────────────────────────────────────
+\subsection{\en{SignalR} فوق الـ \en{WebSocket}: تجريد يخفي النقل}
+
+الـ \en{WebSocket} قويّ لكنّه منخفض المستوى: أنت تدير أُطُر البايتات
+\en{(frames)}، وإعادة الاتصال عند القطع، وماذا تفعل على المتصفّحات أو الشبكات
+التي تحظر الـ \en{WebSocket}. هنا يدخل \en{SignalR}: مكتبة من \en{ASP.NET Core}
+تجلس فوق الـ \en{WebSocket} وتخفي كل هذا التعقيد.
+
+\begin{idea}[الفكرة: \en{SignalR} = تجريد النقل + إدارة الاتصالات]
+\en{SignalR} يفاوض تلقائيًّا \en{(negotiate)} على أفضل نقل متاح: يستخدم الـ
+\en{WebSocket} أولًا، وإن تعذّر يسقط \en{(fallback)} إلى \en{Server-Sent Events}
+ثم \en{Long Polling}. كودك لا يتغيّر إطلاقًا مهما كان النقل تحته. زيادةً على ذلك،
+يدير \en{SignalR} تعريف كل اتصال \en{(ConnectionId)}، وتجميع الاتصالات في
+مجموعات، وإعادة الاتصال بعد القطع.
+\end{idea}
+
+القلب المفاهيميّ في \en{SignalR} اسمه الـ \en{Hub}: صنف \en{C\#} على الخادم يعمل
+كنقطة نداء ثنائية الاتجاه. العميل يقدر يستدعي دوالّ هذا الصنف (مثل
+\code{JoinConversation})، والخادم يقدر يدفع أحداثًا مسمّاة للعميل (مثل
+\code{"notification"}). كأنّه هاتف: كلا الطرفين يرفع السماعة ويتكلّم.
+
+\begin{keyp}[نقطة مهمة: الـ \en{Hub} ثنائيّ الاتجاه]
+لا تتخيّل الـ \en{Hub} كـ \en{controller} يردّ على الطلبات فقط. هو قناة في
+الاتجاهين: صعودًا العميل ينادي دوالّ الـ \en{Hub}، ونزولًا
+الخادم يدفع أحداثًا عبر \code{Clients} إلى عميل أو مجموعة عملاء.
+\end{keyp}
+
+في \en{ScholarPath} ثلاثة \en{hubs} مربوطة على مسارات ثابتة: \code{/hubs/chat}
+و\code{/hubs/notifications} و\code{/hubs/community}.
+
+% ─────────────────────────────────────────────────────────────
+\subsection{دورة حياة الاتصال والهُويّة من الـ \en{JWT}}
+
+لكل \en{hub} دالّتان تُستدعيان تلقائيًّا: \code{OnConnectedAsync} لحظة اتصال
+عميل جديد، و\code{OnDisconnectedAsync} لحظة انقطاعه. هذا المكان المثاليّ لضمّ
+الاتصال إلى مجموعاته أو إعلان حالة الحضور.
+
+لكن قبل أي شيء: مَن هذا المتّصل؟ كل \en{hubs} النظام ترث من صنف أساس واحد يفرض
+التوثيق. هنشوف الملف الحقيقيّ.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+[Authorize]                              // only authenticated connections
+public abstract class AuthenticatedHub : Hub
+{
+    public Task<string> Ping() =>
+        Task.FromResult($"pong from {GetType().Name}");
+}
+
+public sealed class NotificationHub : AuthenticatedHub
+{
+    public override async Task OnConnectedAsync()
+    {
+        // AddToGroup MUST be awaited (see the last section on the race)
+        if (Context.UserIdentifier is not null)
+        {
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId, $"user:{Context.UserIdentifier}");
+        }
+        await base.OnConnectedAsync();
+    }
+}
+\end{lstlisting}
+\end{english}
+
+الشرح سطرًا بسطر لأهم الأسطر:
+\begin{itemize}
+\item \code{[Authorize]} فوق \code{AuthenticatedHub}: بوّابة توثيق على مستوى
+  الاتصال كلّه. أي عميل يحاول فتح قناة بلا \en{JWT} صالح يُرفَض في المصافحة نفسها،
+  فلا يصل إلى أي دالّة.
+\item \code{Context.UserIdentifier}: هوية المتّصل مستخرَجة تلقائيًّا من الـ
+  \en{JWT} (من مطالبة المعرّف). هذه القيمة موثوقة لأن الـ \en{token} موقَّع؛
+  العميل لا يستطيع تزويرها.
+\item \code{Groups.AddToGroupAsync(Context.ConnectionId, "user:\{id\}")}: بمجرّد
+  الاتصال، نضمّ هذا الاتصال إلى مجموعته الشخصية \code{user:\{id\}}. بعد هذا السطر
+  يصبح العميل جاهزًا لاستقبال أي إشعار يُدفَع إلى تلك المجموعة.
+\end{itemize}
+
+\begin{secnote}
+التوثيق على مستوى الـ \en{hub} فارق أمنيّ جوهريّ: القناة الحيّة ليست ثغرة خلفية
+تتجاوز التوثيق. نفس الـ \en{JWT} الذي يحمي الـ \en{REST API} يحمي الـ
+\en{WebSocket}، والهُويّة تأتي من الـ \en{token} لا من أي معطى يرسله العميل.
+\end{secnote}
+
+الرسم التالي يلخّص دورة الحياة من الاتصال إلى الجاهزية للاستقبال:
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.42cm]
+  \node[wbox] (s1) {Client connects: withUrl("/hubs/notifications") + JWT};
+  \node[wbox,below=0.42cm of s1] (s2) {[Authorize] gate: verify JWT, set Context.UserIdentifier};
+  \node[wbox,below=0.42cm of s2] (s3) {OnConnectedAsync()};
+  \node[wbox,below=0.42cm of s3] (s4) {await Groups.AddToGroupAsync(ConnectionId, "user:id")};
+  \node[wbox,below=0.42cm of s4,fill=spLightTeal] (s5) {جاهز لاستقبال أي push فوريًّا};
+  \draw[arr] (s1)--(s2); \draw[arr] (s2)--(s3);
+  \draw[arr] (s3)--(s4); \draw[arr] (s4)--(s5);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+% ─────────────────────────────────────────────────────────────
+\subsection{المجموعات والتوجيه \en{(Groups \& Routing)}}
+
+المجموعة \en{(Group)} في \en{SignalR} مجرّد اسم نصّي يجمع تحته عدّة اتصالات.
+الدفع يصير للاسم لا للاتصال الفرديّ، وهذا يحلّ مشكلتين: المستخدم الواحد قد يفتح
+عدّة تبويبات (عدّة اتصالات، مجموعة واحدة \code{user:\{id\}})، والحدث الواحد قد
+يخصّ عدّة مستخدمين (مثل محادثة أو تصنيف منتدى).
+
+\en{ScholarPath} يستعمل ثلاث عائلات أسماء واضحة:
+
+\begin{center}
+\begin{tabular}{L{4cm} L{8cm}}
+\toprule
+{\color{spPrimary}المجموعة} & {\color{spPrimary}المعنى} \\
+\midrule
+\code{user:\{id\}} & كل اتصالات مستخدم واحد — قناته الشخصية للإشعارات \\
+\code{conversation:\{id\}} & طرفا محادثة شات — رسائل ومؤشّر الكتابة \\
+\code{forum-category:\{slug\}} & متابعو تصنيف في المنتدى — مواضيع جديدة \\
+\code{forum-post:\{id\}} & مشاهدو موضوع واحد — الردود الجديدة \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+أما التوجيه فيتمّ عبر خصائص \code{Clients} داخل الـ \en{hub}:
+\code{Clients.Group(name)} للدفع لمجموعة كاملة، و\code{Clients.User(id)} لمستخدم
+بعينه، و\code{Clients.Others} لكل المتّصلين ما عدا المُرسِل، و
+\code{Clients.OthersInGroup(name)} لكل أعضاء المجموعة ما عدا المُرسِل — مثاليّ
+لمؤشّر «يكتب الآن» حتى لا يرى المرسِل نفسه يكتب.
+
+خلّينا نشوف \code{ChatHub} حقيقيًّا: كيف يضمّ اتصالًا لمحادثة، وكيف يبثّ الكتابة،
+والأهمّ: بوّابة تمنع التنصّت.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public async Task JoinConversation(string conversationId)
+{
+    await EnsureParticipantAsync(conversationId);          // IDOR gate
+    await Groups.AddToGroupAsync(
+        Context.ConnectionId, $"conversation:{conversationId}");
+}
+
+public async Task TypingStart(string conversationId)
+{
+    await EnsureParticipantAsync(conversationId);
+    await Clients.OthersInGroup($"conversation:{conversationId}")
+        .SendAsync("TypingStart", conversationId, Context.UserIdentifier);
+}
+
+private async Task EnsureParticipantAsync(string conversationId)
+{
+    // the JWT caller must be one of the two participants
+    // ... parse ids ...
+    var isParticipant = await db.Conversations.AsNoTracking()
+        .AnyAsync(c => c.Id == convId
+            && (c.ParticipantOneId == userId || c.ParticipantTwoId == userId));
+    if (!isParticipant)
+        throw new HubException("You are not a participant.");
+}
+\end{lstlisting}
+\end{english}
+
+الشرح سطرًا بسطر لأهم الأسطر:
+\begin{itemize}
+\item \code{JoinConversation}: العميل ينادي هذه الدالّة صعودًا حين يفتح محادثة.
+  لاحظ أنّها تستدعي \code{EnsureParticipantAsync} قبل الضمّ للمجموعة.
+\item \code{Clients.OthersInGroup(...)}: مؤشّر الكتابة يُبثّ لكل أعضاء
+  \code{conversation:\{id\}} ما عدا المُرسِل — فلا أرى نفسي «أكتب».
+\item \code{EnsureParticipantAsync}: البوّابة الأمنية. تتأكّد من قاعدة البيانات
+  أنّ صاحب الـ \en{JWT} أحد طرفَي المحادثة فعلًا؛ وإلا ترمي \code{HubException}.
+\end{itemize}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: بوّابة \en{IDOR} على القناة الحيّة]
+اسم المجموعة \code{conversation:\{id\}} قابل للتخمين. لولا
+\code{EnsureParticipantAsync} لاستطاع أي مستخدم موثَّق أن ينادي
+\code{JoinConversation} بمعرّف محادثة غيره ويتنصّت على رسائل خاصّة تُبثّ لتلك
+المجموعة. الدرس: التوجيه بالمجموعات لا يكفي وحده كأمان — لا بدّ من بوّابة
+تتحقّق أنّك طرفٌ فعليّ قبل الانضمام. نفس المنطق مطبَّق في \code{CommunityHub} على
+التصنيفات والمواضيع (تصنيف نشِط، وموضوع مرئيّ غير محذوف).
+\end{spotlight}
+
+% ─────────────────────────────────────────────────────────────
+\subsection{أين المشتركون؟ على الخادم عبر \en{IHubContext}، وعلى العميل عبر \code{.on}}
+
+سؤال جوهريّ: الدفع رأيناه داخل الـ \en{hub}. لكن الإشعار يُولَد عادةً في
+مكان بعيد — بعد نجاح دفعة، أو قبول حجز. كيف ندفع من خارج الـ \en{hub}؟ الجواب:
+\code{IHubContext<THub>}، وهو مقبض للـ \en{hub} تحقنه أي خدمة عبر حقن التبعيّات.
+
+هذا بالضبط ما يفعله \code{NotificationDispatcher}: يحفظ صفوف الإشعار في قاعدة
+البيانات، ثم يدفع النسخة الحيّة عبر \code{IHubContext} إلى مجموعة المستخدم.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public sealed class NotificationDispatcher(
+    IHubContext<NotificationHub> hub, /* ... */) : INotificationDispatcher
+{
+    // ... persist a Notification row per channel first ...
+
+    private async Task DeliverAsync(Notification row, /* ... */)
+    {
+        // InApp: real-time toast to the recipient's personal group
+        if (!silenced)
+            await hub.Clients.Group($"user:{row.RecipientUserId}")
+                .SendAsync("notification", new
+                {
+                    id = row.Id,
+                    type = row.Type.ToString(),
+                    row.TitleAr, row.BodyAr, row.DeepLink,
+                }, ct);
+    }
+}
+\end{lstlisting}
+\end{english}
+
+الشرح: \code{IHubContext<NotificationHub>} محقون في الباني \en{(constructor)}؛
+الخدمة لا ترث من الـ \en{hub} ولا تعرف تفاصيله، فقط تدفع عبره. السطر
+\code{hub.Clients.Group("user:\{id\}").SendAsync("notification", ...)} يبثّ حدثًا
+اسمه \code{"notification"} لمجموعة المستخدم، فيصل لكل تبويباته المفتوحة دفعةً
+واحدة. لاحظ الحقول العربية \code{TitleAr} و\code{BodyAr}: الحمولة ثنائية اللغة.
+
+أما «المشترك» على الطرف الآخر، فيجلس على العميل ويربط اسم الحدث بدالّة معالجة عبر
+\code{connection.on("event", handler)}. هنشوف كود الواجهة الحقيقيّ (\en{TypeScript}):
+
+\begin{english}
+\begin{lstlisting}[language=Java]
+const connection = new signalR.HubConnectionBuilder()
+  .withUrl(apiBase + "/hubs/notifications", {
+    // current token on every (re)connect — survives token refresh
+    accessTokenFactory: () =>
+      useAuthStore.getState().tokens?.accessToken ?? "",
+    // offer all transports so it works where WebSockets are blocked
+    transport:
+      signalR.HttpTransportType.WebSockets |
+      signalR.HttpTransportType.ServerSentEvents |
+      signalR.HttpTransportType.LongPolling,
+  })
+  .withAutomaticReconnect()
+  .build();
+
+// subscriber: fires whenever the server pushes "notification"
+connection.on("notification", (payload) => {
+  toast(payload.titleAr, { description: payload.bodyAr });
+});
+await connection.start();
+\end{lstlisting}
+\end{english}
+
+الشرح سطرًا بسطر لأهم الأسطر:
+\begin{itemize}
+\item \code{withUrl(apiBase + "/hubs/notifications")}: نفس مسار الـ \en{hub}
+  المربوط على الخادم؛ الـ \en{apiBase} يتبع الـ \en{API} المنشور على \en{Azure}.
+\item \code{accessTokenFactory}: يُقرأ الـ \en{token} الحاليّ من المخزن في كل
+  اتصال أو إعادة اتصال، فلا ينكسر الاتصال بعد تدوير الـ \en{token}.
+\item \code{transport: WebSockets | ServerSentEvents | LongPolling}: نعرض كل
+  وسائل النقل ونُبقي خطوة التفاوض، فلو تعذّر الـ \en{WebSocket} يسقط تلقائيًّا.
+\item \code{connection.on("notification", ...)}: هنا المشترك. أي دفعة يبثّها
+  \code{NotificationDispatcher} بهذا الاسم تُشغّل هذه الدالّة فورًا فيظهر الـ
+  \en{toast}.
+\end{itemize}
+
+الرسم التالي يجمع الصورة: حدث واحد على الخادم يتفرّع \en{(fan-out)} إلى كل عملاء
+المجموعة.
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.7cm and 1.25cm]
+  \node[srcbox,text width=2.7cm] (evt) {NotificationDispatcher\\(server event)};
+  \node[tbox,right=1.25cm of evt,text width=2.7cm] (ctx) {IHubContext\\Clients.Group(...)};
+  \node[gbox,right=1.25cm of ctx,text width=2.1cm] (grp) {group\\user:id};
+  \node[actor,above right=0.35cm and 1.25cm of grp] (c1) {browser tab};
+  \node[actor,right=1.25cm of grp] (c2) {second tab};
+  \node[actor,below right=0.35cm and 1.25cm of grp] (c3) {phone};
+  \draw[arr] (evt) -- node[lbl,above]{SendAsync} (ctx);
+  \draw[arr] (ctx) -- (grp);
+  \draw[arr] (grp) -- (c1);
+  \draw[arr] (grp) -- (c2);
+  \draw[arr] (grp) -- (c3);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: اتصال واحد دائم يخدم كل التحديثات]
+كل مستخدم يفتح اتصالًا حيًّا واحدًا لكل \en{hub}، ويبقى مفتوحًا طوال
+الجلسة. الإشعارات، والشات، ومؤشّر الكتابة، والحضور، وردود المنتدى — كلها تسري في
+نفس القناة الدائمة. صفر \en{polling}، صفر تأخير، وحِمل أدنى بكثير من سؤال
+الخادم كل ثانية. هذا هو الفرق بين واجهة «تحسّها حيّة» وأخرى تحتاج تحديثًا يدويًّا.
+\end{spotlight}
+
+% ─────────────────────────────────────────────────────────────
+\subsection{الـ \en{hubs} الثلاثة: خريطة الجروبات والأحداث المدفوعة}
+
+نلخّص المعمار كلّه في جدول واحد: كل \en{hub}، ومساره، ومجموعاته، وأحداثه المدفوعة
+نزولًا إلى العميل.
+
+\begin{center}
+\begin{tabular}{L{2.9cm} L{3.9cm} L{5.2cm}}
+\toprule
+{\color{spPrimary}الـ \en{Hub}} & {\color{spPrimary}المجموعات} & {\color{spPrimary}أحداث تُدفَع للعميل} \\
+\midrule
+\code{NotificationHub}\newline \code{/hubs/notifications} & \code{user:\{id\}} &
+\code{"notification"} (إشعار حيّ لكل تبويبات المستخدم) \\
+\code{ChatHub}\newline \code{/hubs/chat} & \code{conversation:\{id\}} &
+\code{"MessageReceived"}، \code{"TypingStart"}، \code{"TypingStop"}،
+\code{"UserOnline"}، \code{"UserOffline"} \\
+\code{CommunityHub}\newline \code{/hubs/community} & \code{forum-category:\{slug\}}،
+\code{forum-post:\{id\}} & \code{"ReplyCreated"} وتحديثات المواضيع الحيّة \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{note}
+لاحظ الاتساق: الأحداث النازلة أسماء نصّية (\code{"MessageReceived"}) يشترك فيها
+العميل عبر \code{.on}، والدوالّ الصاعدة (\code{JoinConversation}) يناديها العميل
+عبر \code{invoke}. اسم الحدث على الطرفين يجب أن يتطابق حرفيًّا؛ خطأ حرف واحد =
+مشترك لا يسمع شيئًا.
+\end{note}
+
+% ─────────────────────────────────────────────────────────────
+\subsection{تفصيلة دقيقة: لماذا \code{await} على \code{AddToGroupAsync}؟}
+
+عُد لكود \code{NotificationHub.OnConnectedAsync}: الضمّ للمجموعة مسبوق بـ
+\code{await}. لماذا لا نتركه «أطلِق وانسَ» \en{(fire-and-forget)}؟ لأن هذا يفتح
+باب \en{race condition} خبيث.
+
+\begin{qa}[سؤال متوقّع: ماذا يحدث لو لم نضع \code{await}؟]
+تخيّل السيناريو: العميل اتصل، وبدأ ضمّه للمجموعة \code{user:\{id\}} في الخلفية بلا
+انتظار. في نفس اللحظة أطلق حدثٌ آخر إشعارًا فوريًّا لتلك المجموعة. لو سبق الإشعارُ
+اكتمالَ الانضمام، يُدفَع لمجموعة لا يوجد بها هذا الاتصال بعد — فيضيع
+الإشعار الحيّ. المستخدم لن يراه إلا بعد إعادة اتصال لاحقة، وربما يظهر عندها كأنّه
+«مكرَّر». وضع \code{await} يضمن أن الاتصال صار عضوًا كامل العضوية قبل أن
+يعود التحكّم، فلا نافذة سباق.
+\end{qa}
+
+هذه التفصيلة الصغيرة درسٌ عام: في الكود غير المتزامن، ترتيب اكتمال العمليّات ليس
+تفصيلًا تجميليًّا — قد يكون الفرق بين إشعار يصل وإشعار يضيع.
+
+% ─────────────────────────────────────────────────────────────
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item الـ \en{HTTP} العاديّ طلب-وردّ ثم يُغلَق؛ لِعرض التحديثات نحتاج \en{polling}
+  مكلفًا وبطيئًا لأن الخادم لا يبدأ الحديث.
+\item الـ \en{WebSocket} يبدأ بمصافحة \en{(HTTP Upgrade)} تُرقّي الاتصال إلى قناة
+  دائمة ثنائية الاتجاه، فيدفع الخادم \en{(push)} متى شاء بلا سؤال.
+\item \en{SignalR} تجريد فوق الـ \en{WebSocket}: يفاوض على أفضل نقل ويسقط للأقدم
+  عند الحاجة، ويدير الاتصالات والمجموعات. القلب هو الـ \en{Hub}: قناة ثنائية —
+  العميل ينادي دوالّه، والخادم يدفع أحداثه.
+\item التوثيق عبر \code{[Authorize]} على الـ \en{hub}، والهُويّة من الـ \en{JWT}
+  عبر \code{Context.UserIdentifier} (لا يمكن تزويرها).
+\item التوجيه بالمجموعات: \code{user:\{id\}}، \code{conversation:\{id\}}،
+  \code{forum-category:\{slug\}}؛ والدفع عبر \code{Clients.Group} / \code{User} /
+  \code{Others} / \code{OthersInGroup}.
+\item المشتركون: على العميل عبر \code{connection.on("event")}، وعلى الخادم من خارج
+  الـ \en{hub} عبر \code{IHubContext} (كما في \code{NotificationDispatcher} و
+  \code{ChatRealtimeNotifier}).
+\item بوّابة \en{IDOR} (لازم تكون طرفًا) تمنع التنصّت على قنوات الغير، و
+  \code{await} على \code{AddToGroupAsync} يمنع سباقًا يفوّت إشعارًا.
+\end{itemize}
+\end{summary}

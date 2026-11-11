@@ -1,0 +1,116 @@
+% =====================================================================
+%  ScholarPath — الدليل العربي الشارح للنظام (كورس من الصفر)
+%  الملف الرئيسي — يجمّع كل الفصول
+%  Compile:  xelatex ScholarPath-AR-Guide.tex   (مرّتين للفهرس)
+% =====================================================================
+\documentclass[12pt,a4paper]{article}
+\input{ar-preamble.tex}
+
+\begin{document}
+
+% ── الغلاف ───────────────────────────────────────────────────────────
+\coverbox{الدليل الشارح للنظام — من الصفر}{%
+شرحٌ عربيٌّ متدرّج لِمنصّة \en{ScholarPath} كاملةً: المعمارية، الأمان،
+الذكاء الاصطناعي، الجلسات المرئية، والمدفوعات — من غير أيّ خلفية سابقة عن
+النظام. كلّ فكرة مشروحة واحدةً واحدة، ومعها قِطَعٌ حقيقيّة من كود التطبيق.}
+
+\vspace{6pt}
+{\small\color{spInk}
+\textbf{المنصّة باختصار:} \en{.NET 10} خلفيّة \en{(backend)} $\cdot$
+\en{React 19} واجهة \en{(frontend)} $\cdot$ \en{SQL Server} قاعدة بيانات $\cdot$
+\en{Azure} سحابة $\cdot$ ثنائيّة اللغة \en{EN/AR} باتّجاه \en{RTL} كامل.}
+
+\vspace{4pt}\hrule height 0.4pt\vspace{8pt}
+
+% ── عن هذا الكتاب + مسار الثلاث ساعات ───────────────────────────────
+\begin{summary}[كيف تقرأ هذا الكتاب — مسار الـ 3 ساعات]
+الكتاب مُرتَّب كَـ«رحلة» من الصفر. لو مُبتدئ تمامًا اقرأه بالترتيب؛ كلّ فصل
+يبني على اللي قبله. الجدول ده تقسيمٌ زمنيٌّ مُقترَح:
+\begin{center}
+\begin{tabular}{C{1.7cm} L{7.4cm} C{2.4cm}}
+\toprule
+\textbf{الفصل} & \textbf{الموضوع} & \textbf{زمن مُقترَح} \\
+\midrule
+1 & من الصفر: يعني إيه نظام برمجيّ أصلًا؟ & 20 دقيقة \\
+2--5 & المعمارية و\en{CQRS} والتوثيق والأمان & 60 دقيقة \\
+6--7 & الذكاء الاصطناعي: المفاهيم ثمّ البناء & 45 دقيقة \\
+8--9 & الجلسات المرئية والإشعارات والشات (زمن حقيقيّ) & 25 دقيقة \\
+10--11 & المدفوعات والتحليلات والخلاصة & 15 دقيقة \\
+12 & دليل المناقشة والعرض (تحضير الـ \en{defense}) & 15 دقيقة \\
+\bottomrule
+\end{tabular}
+\end{center}
+كلّ فصل يُغلَق بصندوق \textbf{«الخلاصة في سطور»} — لو مستعجل اقرأ صناديق
+الخلاصة الأول، وبعدين ارجع للتفاصيل.
+\end{summary}
+
+\vspace{4pt}
+{\small\tableofcontents}
+\vspace{4pt}\hrule height 0.4pt
+
+\clearpage
+% ── الفصول ───────────────────────────────────────────────────────────
+\input{chapters/ch00-primer.tex}
+\clearpage
+\input{chapters/ch01-clean-architecture.tex}
+\clearpage
+\input{chapters/ch02-cqrs-integrity.tex}
+\clearpage
+\input{chapters/ch03-auth.tex}
+\clearpage
+\input{chapters/ch04-security.tex}
+\clearpage
+\input{chapters/ch05-ai-concepts.tex}
+\clearpage
+\input{chapters/ch06-ai-build.tex}
+\clearpage
+\input{chapters/ch07-meetings-realtime.tex}
+\clearpage
+\input{chapters/ch07b-notifications-chat.tex}
+\clearpage
+\input{chapters/ch08-payments-jobs.tex}
+\clearpage
+\input{chapters/ch09-analytics-summary.tex}
+
+% ── الجزء الثاني: تعمّق تقنيّ ───────────────────────────────────────
+\clearpage
+\begin{mdframed}[style=spbase,linewidth=0pt,roundcorner=4pt,
+   backgroundcolor=spAccent,innertopmargin=14pt,innerbottommargin=14pt]
+{\color{white}\Huge\bfseries الجزء الثاني}\\[4pt]
+{\color{white}\LARGE تعمّق تقنيّ ورحلات كاملة}\\[6pt]
+{\color{white}\normalsize للي عايز يغوص أعمق: إزاي الطلب بيمشي من الواجهة للقاعدة،
+مستويات التحقّق والوسطاء، \en{WebSocket}\slash\en{SignalR} والمهامّ الخلفيّة،
+المجتمع والحظر، الأحداث الدوميّة والتدقيق، الهُوية والتوكنات و\en{SSO}،
+الاختبارات، وأخيرًا رحلة طالب كاملة عبر النظام كلّه.}
+\end{mdframed}
+\clearpage
+\input{chapters/ch20-request-lifecycle.tex}
+\clearpage
+\input{chapters/ch21-validation-middleware.tex}
+\clearpage
+\input{chapters/ch22-signalr-websocket.tex}
+\clearpage
+\input{chapters/ch23-hangfire-jobs.tex}
+\clearpage
+\input{chapters/ch24-community-block.tex}
+\clearpage
+\input{chapters/ch25-events-notifications-audit.tex}
+\clearpage
+\input{chapters/ch26-identity-tokens-sso.tex}
+\clearpage
+\input{chapters/ch27-testing.tex}
+\clearpage
+\input{chapters/ch28-student-journey.tex}
+\clearpage
+\input{chapters/ch10-defense-demo.tex}
+\clearpage
+\input{chapters/ch29-code-map.tex}
+\clearpage
+\input{chapters/ch30-appendix-diagrams.tex}
+
+\vspace{10pt}\hrule height 0.4pt\vspace{4pt}
+{\small\itshape\color{spInk}
+كلّ الآليّات المشروحة في هذا الكتاب مُنفَّذة فعليًّا في \code{server/src/...}
+و\code{client/src/...}، ومُتحقَّقٌ منها مقابل الكود المصدريّ الحيّ.}
+
+\end{document}

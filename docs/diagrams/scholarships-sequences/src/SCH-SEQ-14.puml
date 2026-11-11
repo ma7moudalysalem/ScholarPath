@@ -1,0 +1,39 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam dpi 150
+skinparam maxMessageSize 240
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #2E4A7B
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #EAF1FB
+  ParticipantBorderColor #2E5496
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor #1A1A1A
+  ParticipantFontStyle bold
+  ActorBorderColor #2E5496
+  ActorBackgroundColor #DAE8FC
+  ActorFontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+  FontColor #1A1A1A
+}
+title Auto-Close Scholarship on Deadline
+
+participant "Scheduled Job" as JOB <<job>>
+participant "ScholarshipAutoCloseJob" as ACJ <<job>>
+database "Scholarship" as DB <<entity>>
+JOB -> ACJ : run on schedule
+ACJ -> DB : select Status = Open AND Deadline < now
+DB --> ACJ : expired open scholarships
+loop each expired scholarship
+  ACJ -> DB : set Status = Closed
+end
+ACJ --> JOB : closed count (logged)
+note over ACJ : Closes ONLY Open scholarships whose Deadline is in the past.\nNo notification is dispatched by the job.
+
+@enduml

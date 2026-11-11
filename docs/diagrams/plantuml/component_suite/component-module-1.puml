@@ -1,0 +1,97 @@
+' =====================================================================
+'  ScholarPath — MODULE 1: Identity, Access & Profile
+'  AuthController + ProfileController + UpgradeRequestsController + the
+'  Admin onboarding/upgrade review surface -> Auth / Profile / UpgradeRequests
+'  CQRS -> ASP.NET Identity + Domain -> Infrastructure adapters.
+'  ASP.NET Identity + JWT, Google/Microsoft SSO (OAuth2), refresh-token
+'  rotation, password reset & email verification, AES-GCM field encryption.
+'  Key Vault backs the JWT signing key + the field-encryption key.
+'  Free-mode: no payment components anywhere in this module.
+' =====================================================================
+@startuml ScholarPath_Module1_Identity
+title Module 1 — Identity, Access & Profile (component view)
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam component {
+  BackgroundColor #F7F8FC
+  BorderColor #3F4A5A
+}
+
+node "Web API" as API {
+  [AuthController] as ACTRL
+  [ProfileController] as PCTRL
+  [UpgradeRequestsController] as UCTRL
+  [AdminController\n(onboarding + upgrade review)] as ADMCTRL
+}
+
+node "Application (CQRS)" as APP {
+  [Auth.Commands\nRegister · Login · RefreshToken · Logout\nForgotPassword · ResetPassword\nVerifyEmail · Request/ConfirmEmailChange\nSsoLogin · SelectRole · SwitchRole] as AUTHCMD
+  [Auth.Queries\nGetCurrentUser] as AUTHQRY
+  [Profile.Commands + Queries\nUpdateProfile · ChangePassword\nUploadProfilePhoto · GetProfile · GetPhoto] as PROF
+  [UpgradeRequests.Commands\nSubmitConsultantUpgradeRequest] as UPG
+  [Admin (identity lifecycle)\nReviewOnboarding · ReviewUpgradeRequest\nSetUserStatus · ChangeUserRole\nSoftDeleteUser · GetOnboarding/UpgradeQueue] as ADM
+  [ports\nITokenService · ISsoService · ISsoStateStore\nIEmailService · IFieldEncryptionService] as PORT
+}
+
+node "Domain (ASP.NET Identity)" as DOM {
+  [ApplicationUser · ApplicationRole\nUserProfile · EducationEntry\nRefreshToken · LoginAttempt\nPasswordResetToken · UpgradeRequest] as ENT
+}
+
+node "Infrastructure (adapters)" as INF {
+  [EF Core DbContext + Identity stores\n(IApplicationDbContext)] as DB
+  [TokenService\n(JWT issue / rotate)] as TOK
+  [SsoService\n(Google · Microsoft OAuth2)] as SSO
+  [EmailVerification / EmailChange\n+ MailKitEmailService] as MAIL
+  [AesGcmFieldEncryptionService\n(IFieldEncryptionService)] as ENC
+  [FileStorageService\n(IBlobStorageService)] as STORE
+  [Jwt / FieldEncryption KeyProviders\n(KeyVault ⇄ Local)] as KEYS
+  [NotificationDispatcher] as NOTIF
+}
+
+database "Azure SQL" as SQL
+database "Blob Storage" as BLOB
+cloud "Google / Microsoft\nOAuth2 IdP" as IDP
+cloud "Azure Key Vault\n(JWT + field-encryption keys)" as KV
+[SMTP mail / dev stub] as SMTP
+
+ACTRL   --> AUTHCMD : MediatR
+ACTRL   --> AUTHQRY : MediatR
+ACTRL   --> SSO     : authorize / callback
+PCTRL   --> PROF    : MediatR
+UCTRL   --> UPG     : MediatR
+ADMCTRL --> ADM     : MediatR
+AUTHCMD --> ENT
+PROF    --> ENT
+UPG     --> ENT
+ADM     --> ENT
+AUTHCMD --> PORT
+PROF    --> PORT
+PORT   ..> TOK  : implements
+PORT   ..> SSO  : implements
+PORT   ..> MAIL : implements
+PORT   ..> ENC  : implements
+PROF    --> STORE : profile photo
+ADM     --> NOTIF : review outcome
+AUTHCMD ..> DB
+PROF    ..> DB
+UPG     ..> DB
+ADM     ..> DB
+ENC     ..> DB    : encrypt PII at rest
+TOK     --> KEYS
+ENC     --> KEYS
+KEYS    --> KV
+SSO     --> IDP   : code ⇄ profile
+MAIL    --> SMTP
+STORE   --> BLOB
+DB      --> SQL
+
+note bottom of INF
+  Credentials are managed by ASP.NET Identity; TokenService mints the
+  JWT access token + rotating refresh token (signed with a Key Vault
+  key). SSO runs the Google/Microsoft authorization-code flow with a
+  single-use state nonce. Sensitive profile fields are AES-GCM encrypted
+  via a Key Vault–backed key. No payment adapter exists here (free-mode).
+end note
+@enduml

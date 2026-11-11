@@ -1,0 +1,49 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam dpi 150
+skinparam maxMessageSize 240
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #2E4A7B
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #EAF1FB
+  ParticipantBorderColor #2E5496
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor #1A1A1A
+  ParticipantFontStyle bold
+  ActorBorderColor #2E5496
+  ActorBackgroundColor #DAE8FC
+  ActorFontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+  FontColor #1A1A1A
+}
+title Save Application Draft
+
+actor "Student" as ST
+participant "StudentApplicationDetail" as PAGE <<page>>
+participant "applicationsApi" as API <<api>>
+participant "ApplicationsController" as CTRL <<controller>>
+participant "SaveApplicationDraftCommand" as CMD <<command>>
+database "ApplicationTracker" as APP <<entity>>
+ST -> PAGE : edit form data / documents / notes
+PAGE -> API : applicationsApi.saveDraft(id, data)
+API -> CTRL : PUT /api/applications/{id}/draft
+CTRL -> CMD : SaveApplicationDraftCommand
+CMD -> APP : verify ownership + Draft status
+alt owned Draft
+  CMD -> APP : persist form data / documents / notes
+  APP --> CMD : saved
+  CMD --> CTRL : ok
+else not owner / not Draft
+  CMD --> CTRL : rejected
+end
+CTRL --> API : result
+API --> PAGE : saved state
+PAGE --> ST : draft saved
+
+@enduml

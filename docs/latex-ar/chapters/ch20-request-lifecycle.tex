@@ -1,0 +1,499 @@
+% ch20-request-lifecycle
+\section{رحلة الطلب الكاملة: من زرّ في الواجهة إلى صفّ في القاعدة}
+
+في الجزء الأوّل عرفنا الطبقات الأربع، ونمط \en{CQRS} مع \en{MediatR}،
+وفكرة \en{ports \& adapters}، وسلاسل المعالجة \en{(pipeline behaviors)}.
+لكنّنا رأينا كلّ قطعة على حِدَة. في هذا الفصل نُركّب القطع معًا ونتتبّع
+\emph{طلبًا واحدًا حقيقيًّا} من أوّله لآخره: مستخدم يفتح صفحة الإشعارات، تُرسِل
+الواجهة نداءً للـ \en{API}، يعبُر النداء عدّة محطّات، تُترجَم قراءة البيانات إلى
+جملة \en{SQL} مُبارَمة، ثمّ يعود الردّ ليُحدِّث الشاشة. هدفنا أن تعرف — بدقّة —
+مَن يفعل ماذا في كلّ محطّة، ولماذا وُضِع بهذا الترتيب.
+
+سنمشي «واحدة واحدة»: نبدأ من المتصفّح، ندخل الخادم، نمرّ بأنبوب الـ \en{middleware}،
+ندخل \en{MediatR} وسلاسله، نصل للمعالِج ثمّ \en{EF Core}، ونرى كيف يتحوّل الكيان إلى
+\en{DTO} فـ \en{JSON}. وفي الطريق نُجيب على سؤال يشغل كثيرين: لماذا يوجد أحيانًا
+\en{Service} في طبقة الـ \en{Infrastructure} بدل وضع كلّ شيء داخل المعالِج؟ ونختم
+بتمهيد للفرق بين مسار \en{HTTP} العاديّ ومسار الزمن الحقيقيّ \en{(SignalR)}.
+
+% ====================================================================
+\subsection{نظرة طائر: خريطة الرحلة كاملةً}
+
+قبل التفاصيل، لِنَرَ الصورة الكبيرة. أيّ طلب قراءة يمرّ بسلسلة محطّات ثابتة، ثمّ
+يرجع الردّ بنفس المسار عكسيًّا. الرسم التالي يلخّص الرحلة: الأسهم المتّصلة هي رحلة
+\emph{الذهاب} (الطلب)، والسهم المتقطّع هو رحلة \emph{العودة} (الردّ).
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.55cm and 0.7cm]
+  \node[actor,text width=1.7cm] (br) {Browser\\(React)};
+  \node[sbox,right=of br,text width=1.9cm] (mw) {Middleware\\pipeline};
+  \node[pbox,right=of mw,text width=1.9cm] (ctl) {Controller};
+  \node[gbox,right=of ctl,text width=1.7cm] (med) {MediatR};
+
+  \node[tbox,below=1.15cm of med,text width=1.9cm] (beh) {Behaviors};
+  \node[pbox,left=of beh,text width=1.7cm] (hnd) {Handler};
+  \node[sbox,left=of hnd,text width=1.7cm] (ef) {EF Core};
+  \node[dbbox,left=of ef,text width=1.7cm] (sql) {SQL\\Server};
+
+  \draw[arr] (br) -- (mw);
+  \draw[arr] (mw) -- (ctl);
+  \draw[arr] (ctl) -- (med);
+  \draw[arr] (med) -- (beh);
+  \draw[arr] (beh) -- (hnd);
+  \draw[arr] (hnd) -- (ef);
+  \draw[arr] (ef) -- (sql);
+
+  \draw[arrd] (sql.south) to[out=-90,in=-90]
+    node[lbl,below] {response: entity $\rightarrow$ DTO $\rightarrow$ JSON} (br.south);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+كلّ صندوق محطّة سنشرحها بالترتيب. الفكرة المحوريّة أنّ هذا المسار \emph{واحد ثابت}
+لكلّ الطلبات تقريبًا؛ ما يتغيّر هو المعالِج في النهاية فقط.
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: مسار موحّد لكلّ طلب]
+كلّ طلب في \en{ScholarPath} — قبول حجز، جلب إشعارات، نشر منشور — يمشي في
+\emph{نفس} الأنبوب: \en{middleware} ثمّ \en{controller} رفيع ثمّ \en{MediatR}
+ثمّ سلاسل المعالجة ثمّ معالِج واحد. إضافة ميزة جديدة تعني إضافة
+\en{command/query} ومعالِجًا لها فقط — \textbf{بلا لمس البنية ولا الأنبوب}.
+هذا الانتظام هو ما يجعل النظام قابلًا للنموّ دون فوضى، وهو أوّل ما تُبرِزه للجنة:
+«عندنا شكل واحد لكلّ عملية، ونضيف الميزات كوحدات صغيرة مستقلّة».
+\end{spotlight}
+
+% ====================================================================
+\subsection{المحطّة الأولى: الواجهة \en{(React)} تبني الطلب}
+
+الواجهة تطبيق صفحة-واحدة \en{(SPA — Single Page Application)}. معناها أنّ المتصفّح
+يُحمّل تطبيق \en{React} مرّة واحدة، وبعدها لا يُعيد تحميل الصفحة كاملةً؛ بل عند الحاجة
+لبيانات جديدة \emph{يُنادي} الخادم عبر الشبكة ويستقبل \en{JSON}، ثمّ يُحدِّث جزءًا من
+الشاشة. إذًا الواجهة والخادم برنامجان منفصلان يتكلّمان بلغة \en{HTTP}.
+
+مَن يُنظّم هذه النداءات في الواجهة؟ مكتبة \en{TanStack Query}. هي طبقة فوق نداءات
+الشبكة تتكفّل بثلاثة أشياء: تُطلِق النداء، وتُخزّن نتيجته في ذاكرة مؤقّتة
+\en{(cache)}، وتعرف متى تُعيد الجلب. الصفحة تقول «أريد الإشعارات» فتُعطيها المكتبة
+البيانات من الـ \en{cache} فورًا إن وُجدت، أو تُطلق نداءً جديدًا.
+
+النداء الفعليّ يمرّ عبر عميل \en{axios} مشترك اسمه \code{apiClient}. أهمّ ما فيه شيءٌ
+اسمه \en{interceptor}: قطعة تلتفّ حول كلّ نداء صادر وتتدخّل قبله. عندنا
+\en{interceptor} على الطلب يُلصِق رأس \en{Authorization} تلقائيًّا بكلّ نداء، فلا
+تحتاج كلّ صفحة أن تتذكّر ذلك.
+
+هنشوف إيه: الـ \en{request interceptor} الحقيقيّ في \code{client.ts} — يقرأ الرمز من
+مخزن الحالة ويُلصِقه كرأس \en{Bearer}.
+
+\begin{english}
+\begin{lstlisting}[language=Java]
+apiClient.interceptors.request.use((config) => {
+  const tokens = useAuthStore.getState().tokens;
+  if (tokens?.accessToken) {
+    config.headers["Authorization"] = `Bearer ${tokens.accessToken}`;
+  }
+  // send the active UI language so the server localises the response
+  config.headers["Accept-Language"] = i18n.language || "ar";
+  return config;
+});
+\end{lstlisting}
+\end{english}
+
+شرح الأسطر المهمّة:
+\begin{itemize}
+\item \code{interceptors.request.use(...)}: سجِّل دالة تُشغَّل قبل \emph{كلّ} نداء صادر.
+\item نقرأ \code{tokens.accessToken} من مخزن الحالة \en{(auth store)} — رمز الدخول الحاليّ.
+\item نُلصِقه في رأس \code{Authorization} بصيغة \code{Bearer <token>}؛ هذا ما يُثبِت
+  للخادم هُويّة المستخدم.
+\item نُرسِل أيضًا \code{Accept-Language} لتأتي الردود بلغة الواجهة (عربي أو إنجليزي).
+\end{itemize}
+
+\begin{keyp}[نقطة مهمة: الرمز يُلصَق مرّة واحدة في مكان واحد]
+لولا الـ \en{interceptor} لاضطرّت كلّ صفحة أن تكتب رأس \en{Authorization} يدويًّا،
+وهو تكرار خطير: نسيان واحد يعني نداءً بلا هُويّة. المركزة في مكان واحد تجعل الأمن
+افتراضيًّا لا اختياريًّا.
+\end{keyp}
+
+% ────────────────────────────────────────────────────────────────
+\subsubsection{ماذا لو انتهت صلاحيّة الرمز؟ الردّ \en{401} والتجديد}
+
+رمز الدخول قصير العمر. حين ينتهي، يردّ الخادم بحالة \code{401 Unauthorized}. هنا يعمل
+\en{interceptor} ثانٍ — على \emph{الردّ} هذه المرّة: إن رأى \code{401} يُحاول تجديد
+الرمز عبر \code{/api/auth/refresh}، ثمّ \emph{يُعيد} النداء الأصليّ كأنّ شيئًا لم يكن.
+المستخدم لا يشعر بشيء.
+
+هنشوف إيه: قلب الـ \en{response interceptor} — التقاط \code{401}، تجديد الرمز مرّة
+واحدة، ثمّ إعادة تشغيل الطلب الأصليّ.
+
+\begin{english}
+\begin{lstlisting}[language=Java]
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const status = error.response?.status;
+    const original = error.config;
+    if (status === 401 && original && !original._retry) {
+      original._retry = true;                       // guard: try refresh once
+      const pending = refreshing ?? (refreshing = refreshTokens());
+      const newToken = await pending;               // share ONE in-flight refresh
+      if (newToken) {
+        original.headers["Authorization"] = `Bearer ${newToken}`;
+        return apiClient(original);                 // replay the original request
+      }
+      useAuthStore.getState().clear();              // refresh failed -> log out
+    }
+    throw new ApiError(/* ... */);
+  },
+);
+\end{lstlisting}
+\end{english}
+
+الفكرة سطرًا بسطر:
+\begin{itemize}
+\item الدالة الأولى تمرّر أيّ ردّ ناجح كما هو؛ الثانية تُعالج الأخطاء.
+\item \code{status === 401} مع علامة \code{\_retry}: نتأكّد أن نُجرِّب التجديد
+  \emph{مرّة واحدة} فقط لا حلقة لا نهائيّة.
+\item \code{refreshing ?? (...)}: لو وصلت عدّة نداءات \code{401} معًا، نتشارك عمليّة
+  تجديد \emph{واحدة} بدل إطلاق عدّة عمليّات تتصادم.
+\item عند نجاح التجديد نُحدِّث الرأس ونُعيد \code{apiClient(original)} — أي نُعيد
+  إرسال النداء الأصليّ بالرمز الجديد.
+\item عند الفشل \code{clear()} — تسجيل خروج نظيف.
+\end{itemize}
+
+\begin{note}
+هذا التجديد الصامت هو سبب أنّ المستخدم يبقى داخل النظام ساعاتٍ دون أن يُطلَب منه
+تسجيل الدخول ثانيةً، رغم أنّ رمز الدخول نفسه ينتهي كلّ بضع دقائق. تفاصيل الهُويّة
+والرموز شرحناها في فصل التوثيق؛ هنا يهمّنا فقط كيف تتصرّف الواجهة تلقائيًّا.
+\end{note}
+
+% ====================================================================
+\subsection{المحطّة الثانية: الدخول للخادم والتوجيه \en{(Routing)}}
+
+وصل النداء الآن إلى الخادم. أوّل قرار: \emph{أيّ دالة} في أيّ \en{controller} تُعالج
+هذا المسار؟ هذا هو \en{Routing} — مطابقة عنوان \en{URL} والفعل \en{(GET/POST/...)}
+مع الدالة الصحيحة. في \en{ASP.NET Core} تتمّ المطابقة عبر سمات \en{(attributes)}
+مكتوبة فوق الصنف والدوال.
+
+هنشوف إيه: \code{NotificationController} — لاحظ السمات التي تُعرّف المسار، وأنّ الدالة
+سطرٌ واحد يستدعي \code{mediator.Send}.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+[ApiController]
+[Route("api/notifications")]
+[Authorize]
+public sealed class NotificationController(IMediator mediator) : ControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<NotificationsPageDto>> GetMine(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken ct = default)
+        => Ok(await mediator.Send(new GetNotificationsQuery(page, pageSize), ct));
+}
+\end{lstlisting}
+\end{english}
+
+كيف يقرأ الإطار هذه السمات؟
+\begin{itemize}
+\item \code{[ApiController]}: يقول «هذا \en{controller} لـ \en{API}»، ويُفعّل سلوكيّات
+  مريحة (ربط تلقائيّ للبيانات، ردود أخطاء موحّدة).
+\item \code{[Route("api/notifications")]}: البادئة المشتركة لكلّ مسارات هذا الصنف.
+\item \code{[HttpGet]} فوق \code{GetMine}: مع البادئة تعني «الفعل \en{GET} على
+  \code{/api/notifications} يُنفِّذ هذه الدالة».
+\item \code{[Authorize]}: لا يدخل أحد دون رمز صالح — وهنا يظهر أثر رأس \en{Bearer}
+  الذي ألصقته الواجهة.
+\item \code{[FromQuery]}: خُذ \code{page} و\code{pageSize} من نصّ الاستعلام في العنوان.
+\end{itemize}
+
+المهمّ أنّ الدالة \emph{رفيعة}: لا منطق عمل بداخلها. تبني كائن \code{GetNotificationsQuery}
+وتُسلِّمه لـ \en{MediatR} عبر \code{mediator.Send}، وتلفّ النتيجة في \code{Ok(...)}
+(أي حالة \code{200}). كلّ «كيف نجلب الإشعارات» يعيش في مكان آخر.
+
+\begin{why}
+لماذا \en{controller} رفيع لهذه الدرجة؟ لأنّ فصل «استقبال الطلب» عن «تنفيذ العمل»
+يجعل المنطق قابلًا للاختبار وحده دون تشغيل خادم \en{HTTP}، ويسمح بأنبوب موحّد يلفّ
+كلّ معالِج تلقائيًّا. الـ \en{controller} مجرّد بوّابة ترجمة: \en{HTTP} داخلًا، رسالة
+\en{MediatR} خارجًا.
+\end{why}
+
+% ====================================================================
+\subsection{المحطّة الثالثة: أنبوب الـ \en{Middleware}}
+
+قبل أن تصل الدالة أصلًا، يمرّ الطلب عبر سلسلة من الطبقات اسمها \en{middleware}.
+الـ \en{middleware} قطعة تلتفّ حول كلّ طلب: تتدخّل قبل أن يصل للـ \en{controller}،
+وقد تتدخّل بعد أن يعود الردّ. تخيّلها طبقات بصلة: الطلب يدخل من الخارج للداخل حتى
+المعالِج، ثمّ يخرج الردّ من الداخل للخارج عبر نفس الطبقات عكسيًّا.
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.24cm]
+  \node[wbox] (m1) {UseSerilogRequestLogging  —  time \& log every request};
+  \node[wbox,below=of m1] (m2) {SecurityHeadersMiddleware  —  add safe HTTP headers};
+  \node[wbox,below=of m2] (m3) {ExceptionHandlerMiddleware  —  errors into ProblemDetails};
+  \node[wbox,below=of m3] (m4) {MaintenanceMiddleware  —  short-circuit in maintenance mode};
+  \node[wbox,below=of m4] (m5) {UseAuthentication / UseAuthorization  —  who? allowed?};
+  \node[pbox,below=0.34cm of m5,text width=6.6cm] (core)
+    {Controller  $\rightarrow$  MediatR  $\rightarrow$  Handler};
+
+  \draw[arr] (m1) -- (m2);
+  \draw[arr] (m2) -- (m3);
+  \draw[arr] (m3) -- (m4);
+  \draw[arr] (m4) -- (m5);
+  \draw[arr] (m5) -- (core);
+  \draw[arrd] (core.east) to[out=0,in=0]
+    node[lbl,right] {response travels back up} (m1.east);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+الترتيب ليس عشوائيًّا. مثلًا \code{ExceptionHandlerMiddleware} موضوع \emph{مبكّرًا} حتى
+يلتقط أيّ خطأ يحدث في أيّ طبقة تحته ويحوّله لردّ موحّد نظيف
+\en{(ProblemDetails)}. والصيانة \code{MaintenanceMiddleware} تُقصِّر المسار إن كان
+النظام في وضع صيانة فلا يُتعِب القاعدة أصلًا. والتوثيق \code{UseAuthentication} يأتي
+قبل التخويل \code{UseAuthorization} لأنّه لا معنى للسؤال «هل يُسمح له؟» قبل معرفة
+«مَن هو؟». سنُفرِد الفصل التالي لتفصيل هذا الأنبوب والتحقّق؛ يكفينا الآن أنّه الطبقة
+التي تلفّ كلّ شيء.
+
+\begin{idea}[الفكرة: الترتيب هو السلوك]
+في أنبوب الـ \en{middleware} \emph{ترتيب} التسجيل هو نفسه ترتيب التنفيذ. تحريك سطر
+واحد لأعلى أو لأسفل يُغيّر السلوك: لو وضعت معالج الأخطاء \emph{بعد} التوثيق لَما
+التقط أخطاء التوثيق. القاعدة: ضَع ما يجب أن يلفّ الجميع في الخارج (مبكّرًا).
+\end{idea}
+
+% ====================================================================
+\subsection{المحطّة الرابعة: \en{MediatR} وسلاسل المعالجة \en{(Behaviors)}}
+
+سلّم الـ \en{controller} الرسالة لـ \en{MediatR}. مهمّتها إيجاد المعالِج المناسب
+\en{(handler)} وتشغيله. لكن قبل أن تصل للمعالِج، تمرّ الرسالة بسلسلة أخرى داخليّة اسمها
+\en{pipeline behaviors}. وهذه بالضبط فكرة \en{interceptor} لكن على مستوى الرسائل:
+كلّ \en{behavior} يلتفّ حول المعالِج، يتدخّل قبله وبعده.
+
+\begin{keyp}[نقطة مهمة: الـ \en{behavior} هو \en{interceptor} للرسائل]
+عندنا نوعان من الالتفاف في النظام: \en{middleware} يلفّ طلب \en{HTTP}،
+و\en{behavior} يلفّ رسالة \en{MediatR}. نفس النمط، مستوًى مختلف. الـ \en{behaviors}
+عندنا تفعل أربعة أشياء عرضيّة: \textbf{التسجيل} (كم استغرق الطلب)،
+\textbf{التحقّق} \en{(FluentValidation)}، \textbf{الأداء} (إنذار لو تجاوز حدًّا)،
+و\textbf{التدقيق} \en{(audit)} للأوامر المُزخرَفة بـ \code{[Auditable]}.
+\end{keyp}
+
+الجميل أنّ المعالِج \emph{لا يعرف} بوجود هذه السلاسل إطلاقًا. هو يكتب منطق العمل فقط،
+والتحقّق والتسجيل والتدقيق تُضاف حوله تلقائيًّا. لو أردت التحقّق من صحّة
+\code{GetNotificationsQuery} تكتب صنف \en{validator} مستقلًّا، وسلسلة التحقّق تلتقطه
+دون تعديل المعالِج. هذا الفصل بين «منطق العمل» و«الاهتمامات العرضيّة» هو جوهر قوّة
+النمط.
+
+% ====================================================================
+\subsection{المحطّة الخامسة: المعالِج ثمّ \en{EF Core}}
+
+وصلنا للقلب. المعالِج \en{(handler)} هو المكان الوحيد الذي يعرف \emph{كيف} تُنفَّذ هذه
+العمليّة تحديدًا. لكنّه لا يكتب \en{SQL} بيده؛ يكتب استعلامًا بلغة \en{C\#} باستخدام
+\en{LINQ}، و\en{EF Core} يترجمه إلى \en{SQL}. لفهم ذلك نحتاج مفهومين.
+
+\begin{idea}[الفكرة: \en{IQueryable} والتنفيذ المؤجَّل]
+\code{IQueryable} ليس بيانات؛ هو \emph{وصف} لاستعلام لم يُنفَّذ بعد. حين تكتب
+\code{.Where(...)} ثمّ \code{.OrderBy(...)} أنت تبني \emph{شجرة تعبير} تصف ما تريد،
+لا أكثر. لا يذهب شيء للقاعدة حتى تطلب النتيجة فعليًّا. هذا اسمه \en{deferred
+execution} — التنفيذ المؤجَّل. اللحظة الحاسمة هي نداء مثل \code{ToListAsync} أو
+\code{FirstOrDefaultAsync} أو \code{CountAsync}: عندها \emph{فقط} تُترجَم الشجرة
+لـ \en{SQL} وتُرسَل وتُنفَّذ.
+\end{idea}
+
+هنشوف إيه: معالِج \code{GetNotificationsQueryHandler} الحقيقيّ. راقب أين يُبنى الاستعلام
+وأين يُنفَّذ فعلًا.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public async Task<NotificationsPageDto> Handle(
+    GetNotificationsQuery request, CancellationToken ct)
+{
+    var userId = currentUser.UserId
+        ?? throw new ForbiddenAccessException("Not authenticated.");
+
+    // IQueryable: nothing has run yet, just a description of the query
+    var baseQuery = db.Notifications.Where(
+        n => n.RecipientUserId == userId && n.Channel == NotificationChannel.InApp);
+
+    var total = await baseQuery.CountAsync(ct);       // runs: SELECT COUNT(*)
+
+    var items = await baseQuery
+        .OrderByDescending(n => n.CreatedAt)
+        .Skip((request.Page - 1) * pageSize)
+        .Take(pageSize)
+        .Select(n => new NotificationDto(n.Id, n.TitleAr, n.IsRead, n.CreatedAt))
+        .ToListAsync(ct);                             // <-- SQL runs HERE
+
+    return new NotificationsPageDto(items, request.Page, pageSize, total, unread);
+}
+\end{lstlisting}
+\end{english}
+
+النقاط المفتاحيّة:
+\begin{itemize}
+\item \code{db.Notifications.Where(...)} يُنتِج \code{baseQuery} من نوع
+  \code{IQueryable} — \emph{لم يُنفَّذ بعد}، ولا استعلام ذهب للقاعدة.
+\item \code{.Where(n => n.RecipientUserId == userId ...)}: مرشّح — نُريد إشعارات هذا
+  المستخدم فقط، وقناة العرض داخل التطبيق فقط.
+\item \code{.OrderByDescending(...).Skip(...).Take(...)}: ترتيب وتقسيم صفحات — كلّها
+  ما زالت \emph{وصفًا} يُضاف للشجرة.
+\item \code{.Select(n => new NotificationDto(...))}: إسقاط \en{(projection)} —
+  نطلب من القاعدة الأعمدة التي نحتاجها فقط لا الصفّ كاملًا.
+\item \code{await ...ToListAsync(ct)}: \emph{هنا} تُترجَم الشجرة كلّها لجملة \en{SELECT}
+  واحدة، وتُرسَل، وتعود النتائج. سطر \code{CountAsync} قبله نفّذ \code{SELECT COUNT(*)}
+  منفصلًا.
+\end{itemize}
+
+كيف تبدو الترجمة؟ \en{EF Core} يمتلك «مزوِّدًا» \en{(provider)} لـ \en{SQL Server}
+يمشي في شجرة التعبير ويبني الجملة المقابلة. والأهمّ: أيّ قيمة متغيّرة (مثل
+\code{userId}) لا تُلصَق في نصّ الجملة، بل تُمرَّر كـ \emph{بارامتر} منفصل.
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.7cm]
+  \node[srcbox,text width=5.3cm,align=left,minimum height=1.6cm] (cs)
+    {\textbf{C\# / LINQ}\\[2pt]
+     db.Notifications\\
+     \ \ .Where(n => n.RecipientUserId == userId)\\
+     \ \ .OrderByDescending(n => n.CreatedAt)};
+  \node[dbbox,right=1.4cm of cs,text width=5.3cm,align=left,minimum height=1.6cm] (sql)
+    {\textbf{SQL (parameterized)}\\[2pt]
+     SELECT Id, TitleAr, IsRead, CreatedAt\\
+     FROM Notifications\\
+     WHERE RecipientUserId = @p0\\
+     ORDER BY CreatedAt DESC};
+  \draw[arr] (cs) -- node[lbl,above,align=center]
+    {EF Core provider\\translates} (sql);
+  \node[dbox,below=0.5cm of sql,text width=5.0cm]
+    {@p0 = userId  (a bound parameter, never string-concatenated)};
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+القيمة \code{userId} تُرسَل في خانة البارامتر \code{@p0} (اسمها الفعليّ عند
+\en{EF Core} أطول قليلًا، لكن الفكرة واحدة). النصّ لا يحوي القيمة أبدًا. لهذا أثرٌ أمنيّ
+كبير جدًّا.
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: الترجمة الآمنة \en{LINQ} إلى \en{SQL}]
+لأنّ \en{EF Core} يُمرِّر كلّ القيم كبارامترات منفصلة، فإنّ \textbf{حقن \en{SQL}
+\en{(SQL Injection)} يصبح مستحيلًا افتراضيًّا} — دون أن يكتب المطوّر سطرًا واحدًا
+للحماية. لو أدخل مستخدمٌ خبيثٌ نصًّا مثل \code{'; DROP TABLE ...} كقيمة، فإنّه يُعامَل
+\emph{بيانةً} في خانة البارامتر لا \emph{أمرًا}، فلا يُنفَّذ. هذه نقطة قويّة أمام
+اللجنة: «أماننا ضدّ الحقن ليس حِيلة أضفناها، بل خاصيّة بنيويّة نحصل عليها مجّانًا لأنّنا
+لا نبني \en{SQL} نصيًّا أبدًا».
+\end{spotlight}
+
+\begin{secnote}
+القاعدة الذهبيّة: لا تبنِ استعلامًا بدمج نصوص \en{(string concatenation)}. طالما بقيت
+داخل \en{LINQ}، فالبَرمَتة تلقائيّة. الخطر الوحيد يظهر لو لجأ أحدٌ لـ \en{SQL} خام
+مكتوب يدويًّا بدمج مدخلات المستخدم — وهذا ممنوع في مشروعنا.
+\end{secnote}
+
+% ====================================================================
+\subsection{المحطّة السادسة: الرجوع — كيان إلى \en{DTO} إلى \en{JSON}}
+
+عادت النتائج من القاعدة على شكل كائنات في الذاكرة. لكنّنا لا نُرسِل الكيان
+\en{(entity)} الداخليّ للواجهة مباشرةً؛ نُرسِل \en{DTO} — كائن نقل بيانات يحمل فقط ما
+تحتاجه الشاشة. في مثالنا رأينا الإسقاط \code{Select(n => new NotificationDto(...))}
+يبني الـ \en{DTO} مباشرةً داخل الاستعلام. في حالات أخرى نستخدم \en{AutoMapper} ليُحوِّل
+الكيان إلى \en{DTO} بقاعدة تحويل مُعرَّفة مسبقًا، فلا نكتب النسخ حقلًا حقلًا.
+
+بعدها يتولّى الإطار تسلسل الـ \en{DTO} إلى نصّ \en{JSON} ويضعه في جسم الردّ مع حالة
+\code{200}. يعود هذا الردّ صعودًا عبر أنبوب الـ \en{middleware} (مسجِّلًا زمنه في
+الطريق) حتى يخرج للشبكة.
+
+\begin{why}
+لماذا \en{DTO} وليس الكيان مباشرةً؟ لثلاثة أسباب: لا نُسرِّب حقولًا داخليّة أو حسّاسة
+للواجهة؛ ولا نربط شكل الـ \en{API} بشكل جداول القاعدة (نستطيع تغيير أحدهما دون كسر
+الآخر)؛ ونُرسِل بيانات أقلّ على الشبكة لأنّ الـ \en{DTO} يحمل ما يلزم فقط.
+\end{why}
+
+في الواجهة تستقبل \en{TanStack Query} الـ \en{JSON}، تحوّله لكائنات، وتُخزّنه في
+الـ \en{cache} تحت مفتاح الاستعلام. أيّ مكوّن يطلب نفس البيانات يحصل عليها فورًا من
+الذاكرة. وعند حدوث تغيير (مثل تعليم إشعار مقروءًا) نُبطِل \en{(invalidate)} المفتاح،
+فتُعيد المكتبة الجلب تلقائيًّا وتُحدِّث الشاشة. بهذا تُغلَق الدائرة: من زرٍّ في الواجهة،
+إلى صفٍّ في القاعدة، ورجوعًا إلى بكسل على الشاشة.
+
+% ====================================================================
+\subsection{سؤالك الصريح: لماذا يوجد \en{Service} في الـ \en{Infrastructure} ولا نضع كلّ شيء في المعالِج؟}
+
+سؤال ممتاز ويستحقّ إجابةً صريحة. رأينا أنّ المعالِج يقرأ من القاعدة عبر \en{EF Core}
+مباشرةً، فلماذا لا نفعل \emph{كلّ} شيء داخله؟ الجواب: قراءة القاعدة عمليّة نظيفة
+ومملوكة لنا، أمّا بعض الأعمال فتحتاج التعامل مع \emph{عالم خارجيّ} لا نتحكّم فيه —
+وهذه نعزلها في \en{Service} داخل الـ \en{Infrastructure} (وهو تنفيذ لـ \en{port}
+مُعرَّف في طبقة \en{Application}). أربعة أسباب:
+
+\begin{center}
+\begin{tabular}{L{4.2cm} L{8.6cm}}
+\toprule
+\textbf{\color{spPrimary}السبب} & \textbf{\color{spPrimary}الشرح} \\
+\midrule
+اتّصال \en{I/O} خارجيّ &
+  الدفع عبر \en{Stripe}، إرسال البريد، رفع ملفّ إلى \en{Blob}، غرفة \en{ACS} — كلّها
+  نداءات شبكة لطرف ثالث، بمنطق إعادة محاولة ومفاتيح سرّيّة. لا يليق حشوها في معالِج. \\
+إعادة الاستخدام &
+  \code{StripeService} أو \code{IEmailService} يُستدعى من معالِجات كثيرة. نكتب المنطق
+  مرّة ونحقنه حيث نشاء بدل تكراره. \\
+تبديل المزوّد بالإعداد &
+  المعالِج يعتمد على \en{port} (واجهة) لا على تنفيذ بعينه. نستبدل التنفيذ من الإعداد:
+  \code{StubMeetingService} محليًّا و\code{AzureCommunicationMeetingService} إنتاجيًّا،
+  دون لمس المعالِج. \\
+قابليّة الاختبار &
+  في الاختبار نحقن \en{stub} مزيّفًا للـ \en{port} فنختبر منطق المعالِج دون لمس
+  \en{Stripe} أو الشبكة إطلاقًا — سريع وحتميّ. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+القاعدة العمليّة: \textbf{القراءة/الكتابة البسيطة للقاعدة تبقى في المعالِج عبر
+\en{EF Core}؛ وأيّ تعامل مع نظام خارجيّ يُعزَل خلف \en{port} ويُنفَّذ كـ \en{Service}
+في الـ \en{Infrastructure}}. هكذا يبقى المعالِج مركّزًا على «قصّة العمل»، وتبقى
+تفاصيل الشبكة والمزوّدين قابلةً للتبديل والاختبار.
+
+\begin{qa}[سؤال متوقّع: أليس هذا طبقات زائدة بلا داعٍ؟]
+لا، لأنّ العزل يشتري لنا شيئين ملموسين: نُشغّل النظام محليًّا بلا حساب \en{Stripe}
+أو \en{Azure} (عبر تنفيذات \en{stub})، ونكتب اختبارات لا تلمس الشبكة فتكون سريعة
+وموثوقة. الكلفة سطر واجهة واحد؛ العائد استقلالٌ عن مزوّدين نتحكّم فيهم بالإعداد لا
+بالكود.
+\end{qa}
+
+% ====================================================================
+\subsection{تمهيد: مسار \en{HTTP} مقابل مسار الزمن الحقيقيّ \en{(SignalR)}}
+
+كلّ ما سبق كان مسار \en{HTTP}: العميل \emph{يسأل} والخادم \emph{يجيب}، ثمّ يُغلَق
+الاتّصال. هذا مثاليّ لطلبٍ صريح مثل «أعطني الإشعارات». لكن ماذا لو أردنا العكس: أن
+\emph{يدفع} الخادم خبرًا للعميل دون أن يسأل — رسالة دردشة وصلت الآن، أو إشعار جديد
+ظهر؟ في \en{HTTP} وحده لا يستطيع الخادم بدء الكلام.
+
+هنا يأتي \en{SignalR}: قناة \emph{مفتوحة ثنائيّة الاتّجاه} (عبر \en{WebSockets}) تبقى
+حيّةً بين العميل والخادم، فيستطيع أيّ طرف الإرسال في أيّ لحظة. الفرق الجوهريّ:
+
+\begin{center}
+\begin{tabular}{L{4.0cm} L{4.3cm} L{4.3cm}}
+\toprule
+ & \textbf{\color{spPrimary}\en{HTTP} (طلب/ردّ)} & \textbf{\color{spPrimary}\en{SignalR} (زمن حقيقيّ)} \\
+\midrule
+مَن يبدأ الكلام؟ & العميل دائمًا & أيّ طرف \\
+عمر الاتّصال & لحظيّ (يُغلَق بعد الردّ) & مفتوح ودائم \\
+الاتّجاه & باتّجاه واحد لكلّ نداء & ثنائيّ \\
+مناسب لِـ & جلب/حفظ بيانات & إشعارات ودردشة مباشرة \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+في \code{Program.cs} نربط الاثنين جنبًا إلى جنب: \code{app.MapControllers()} لمسارات
+\en{HTTP}، و\code{app.MapHub(...)} لقنوات \en{SignalR} مثل \code{/hubs/notifications}
+و\code{/hubs/chat}. نفس التطبيق يخدم المسارين. تفاصيل هذا المسار الحيّ — كيف يُبنى
+الاتّصال، وكيف يُبثّ الإشعار للمستخدم المعنيّ فقط — موضوع فصلٍ قادمٍ مستقلّ؛ هنا فقط
+غرسنا البذرة: طلبٌ يسأل، وقناةٌ تدفع.
+
+% ====================================================================
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item الواجهة \en{(React + TanStack Query)} تبني النداء، و\en{interceptor} على العميل
+  يُلصِق \en{Authorization: Bearer} تلقائيًّا، ويجدّد الرمز عند \code{401} ويُعيد الطلب.
+\item التوجيه \en{(routing)} عبر \code{[ApiController]} و\code{[HttpGet]} يوصّل المسار
+  للدالة الصحيحة؛ والـ \en{controller} رفيع: سطرٌ واحد \code{mediator.Send}.
+\item الـ \en{middleware} سلسلة تلفّ كلّ طلب (تسجيل، أمان، أخطاء، صيانة، توثيق)؛
+  ترتيبها هو سلوكها.
+\item الـ \en{MediatR pipeline behaviors} هي \en{interceptor} للرسائل: تحقّق وتسجيل
+  وأداء وتدقيق حول المعالِج دون أن يعلم.
+\item المعالِج يكتب \en{LINQ} على \code{IQueryable} (تنفيذ مؤجَّل)؛ لا شيء يُنفَّذ حتى
+  \code{ToListAsync}؛ و\en{EF Core} يترجم لـ \en{SQL} مُبارَم يمنع حقن \en{SQL}.
+\item الردّ: كيان إلى \en{DTO} إلى \en{JSON}، والواجهة تُحدِّث \en{cache}‎ها؛ فتُغلَق
+  الدائرة من الزرّ إلى الصفّ ورجوعًا.
+\item ما يتعامل مع عالم خارجيّ (دفع/بريد/تخزين) يُعزَل في \en{Service} خلف \en{port}
+  للإعادة والتبديل والاختبار.
+\item \en{HTTP} للطلب/الردّ، و\en{SignalR} للدفع الحيّ ثنائيّ الاتّجاه — وهو فصل قادم.
+\end{itemize}
+\end{summary}

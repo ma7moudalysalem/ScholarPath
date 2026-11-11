@@ -1,0 +1,86 @@
+' =====================================================================
+'  ScholarPath — MODULE 2: Scholarships, Applications & Documents
+'  ScholarshipController + ApplicationsController + DocumentsController +
+'  ScholarshipProviderReview(Request) controllers -> Scholarships /
+'  Applications / ScholarshipProviderReviewRequests / Documents CQRS
+'  -> Domain -> Infrastructure adapters.
+'  Documents (vault + onboarding evidence) live in Blob Storage, scanned
+'  by an optional ClamAV pass. Free-mode: provider review-fee fields are
+'  metadata only — no Stripe capture/refund/settlement adapter is drawn.
+' =====================================================================
+@startuml ScholarPath_Module2_ScholarshipsApplicationsDocuments
+title Module 2 — Scholarships, Applications & Documents (component view)
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam component {
+  BackgroundColor #F7F8FC
+  BorderColor #3F4A5A
+}
+
+node "Web API" as API {
+  [ScholarshipController] as SCTRL
+  [ApplicationsController] as ACTRL
+  [DocumentsController] as DCTRL
+  [ScholarshipProviderReviewRequestsController\nScholarshipProviderReviewsController] as RCTRL
+}
+
+node "Application (CQRS)" as APP {
+  [Scholarships\nCreate · Update · Archive · Reopen\nApprove · Reject · ToggleFeature\nBookmarkToggle · List/Search · GetById\nGetFeatured · GetSaved · Categories] as SCH
+  [Applications\nStart · SaveDraft · Submit · Withdraw\nReviewApplication · ExternalIntent\nUpdateExternalStatus · GetMy · GetTracker] as APPL
+  [Documents\nUploadDocument · DeleteDocument\nDownloadDocument · GetMyDocuments] as DOCS
+  [ProviderReview handlers\nrequest · submit · rating] as PRV
+  [EventHandlers] as EVT
+}
+
+node "Domain" as DOM {
+  [Scholarship · ScholarshipChild\nCategory · SavedScholarship] as SENT
+  [ApplicationTracker\nApplicationTrackerChild] as AENT
+  [Document] as DENT
+  [ScholarshipProviderReviewRequest\nScholarshipProviderReview] as RENT
+}
+
+node "Infrastructure (adapters)" as INF {
+  [EF Core DbContext\n(IApplicationDbContext)] as DB
+  [FileStorageService\n(IBlobStorageService)] as STORE
+  [ClamAvFileScanService\n«optional»] as CLAM #FFFDE0
+  [ScholarshipAutoCloseJob\nScholarshipProviderReviewTimeoutRefundJob\n«Hangfire · optional»] as JOB #FFFDE0
+  [NotificationDispatcher] as NOTIF
+}
+
+database "Azure SQL" as SQL
+database "Blob Storage" as BLOB
+
+SCTRL --> SCH  : MediatR
+ACTRL --> APPL : MediatR
+DCTRL --> DOCS : MediatR
+RCTRL --> PRV  : MediatR
+SCH   --> SENT
+APPL  --> AENT
+DOCS  --> DENT
+PRV   --> RENT
+SCH   --> STORE : logo / cover image
+DOCS  --> STORE : vault / onboarding files
+STORE --> CLAM  : scan on upload
+APPL  --> EVT
+PRV   --> EVT
+EVT   --> NOTIF
+SCH   --> NOTIF : approval / status events
+SCH   ..> DB
+APPL  ..> DB
+DOCS  ..> DB
+PRV   ..> DB
+JOB   --> DB    : auto-close · timeout sweep
+JOB   --> NOTIF
+DB    --> SQL
+STORE --> BLOB
+
+note bottom of INF
+  Deadline auto-close and provider-review timeout run as Hangfire jobs
+  (feature-flagged). Document bytes and scholarship images live in Blob
+  Storage; uploads pass through an optional ClamAV scan. Review-fee /
+  fee-snapshot columns are metadata only — no payment adapter is wired
+  in this module (free-mode); the timeout job just transitions state.
+end note
+@enduml

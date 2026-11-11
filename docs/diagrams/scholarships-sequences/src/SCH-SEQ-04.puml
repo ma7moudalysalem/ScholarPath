@@ -1,0 +1,55 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam dpi 150
+skinparam maxMessageSize 240
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #2E4A7B
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #EAF1FB
+  ParticipantBorderColor #2E5496
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor #1A1A1A
+  ParticipantFontStyle bold
+  ActorBorderColor #2E5496
+  ActorBackgroundColor #DAE8FC
+  ActorFontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+  FontColor #1A1A1A
+}
+title Apply Now — Start Local Draft Application
+
+actor "Student" as ST
+participant "ScholarshipDetail" as PAGE <<page>>
+participant "applicationsApi" as API <<api>>
+participant "ApplicationsController" as CTRL <<controller>>
+participant "StartApplicationCommand" as CMD <<command>>
+database "Scholarship" as SCH <<entity>>
+database "ApplicationTracker" as APP <<entity>>
+ST -> PAGE : click Apply Now (in-app scholarship)
+PAGE -> API : applicationsApi.start(scholarshipId)
+API -> CTRL : POST /api/applications
+CTRL -> CMD : StartApplicationCommand
+CMD -> SCH : load and validate
+note right of CMD : rejects ExternalUrl listings; requires Status = Open;\ndeadline not passed; checks profile academic level & field.
+alt existing non-terminal application
+  CMD -> APP : find resumable application (Draft/Pending/UnderReview/Shortlisted)
+  APP --> CMD : existing application
+  CMD --> CTRL : resume existing
+else eligible, none active
+  CMD -> APP : create ApplicationTracker(Status = Draft, Mode = InApp)
+  APP --> CMD : new Draft
+  CMD --> CTRL : created
+else not eligible / closed / past deadline
+  CMD --> CTRL : rejected (business rule)
+end
+CTRL --> API : result
+API --> PAGE : draft / error
+PAGE --> ST : open application form or show reason
+
+@enduml

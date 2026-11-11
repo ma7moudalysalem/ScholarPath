@@ -1,0 +1,525 @@
+% ch06-ai-build
+\section{الذكاء الاصطناعيّ (2): البناء والتشغيل}
+
+في الفصل السابق فهمنا \emph{المفاهيم}: كيف يحوّل \en{Embedding} أي نصّ إلى متّجه
+أرقام، وكيف يقيس \en{Cosine} قربَ متّجهين، وما معنى \en{RAG}، وكيف يوجّه النظام
+الأسئلةَ بين ميزاته الثلاث (الشات، التوصيات، الأهليّة). في هذا الفصل ننزل إلى
+\emph{المطبخ}: كيف بُنِي هذا كلّه فعليًّا في الكود، صفًّا صفًّا. هنمشي واحدة واحدة —
+من بناء قاعدة المعرفة، إلى تخزين المتّجهات، إلى خطّ الشات الكامل، ثمّ التوصيات
+والأهليّة الحسابيّتين، وأخيرًا شبكة الأمان والتكلفة.
+
+\begin{idea}[الفكرة: ثلاث ميزات، محرّكان]
+عندنا ثلاث ميزات ذكاء اصطناعيّ، لكن محرّكين فقط. \textbf{الشات} وحده يستخدم
+\en{RAG} حقيقيًّا مع \en{GPT-4o-mini}. أمّا \textbf{التوصيات} و\textbf{الأهليّة}
+فتعملان بخوارزميّة حسابيّة حتميّة (\en{deterministic}) بلا أيّ نداء شبكة ولا
+\en{GPT} إطلاقًا. تذكّر هذا التقسيم؛ سيفسّر لك كثيرًا ممّا يأتي.
+\end{idea}
+
+% ═══════════════════════════════════════════════════════════════════════════
+\subsection{قاعدة المعرفة: من خمسة مصادر إلى صفوف قابلة للبحث}
+
+قبل أن يجيب الشات عن أيّ سؤال، لازم يكون عنده «كتاب» يقرأ منه. هذا الكتاب اسمه
+\emph{قاعدة المعرفة} (\en{Knowledge Base})، ويبنيه صفٌّ واحد اسمه
+\code{KnowledgeBaseIndexer}. مهمّته: يجمع البيانات من خمسة مصادر مختلفة، ويحوّل كلّ
+عنصر إلى صفٍّ من نوع \code{KnowledgeDocument} في قاعدة \en{SQL Server}.
+
+\begin{center}
+\begin{tabular}{L{4.2cm} L{8.4cm}}
+\toprule
+\textbf{\color{spPrimary}المصدر} & \textbf{\color{spPrimary}ماذا يُفهرَس ومن أين} \\
+\midrule
+المنح المفتوحة & كلّ منحة حالتها \code{Open} — استعلام حيّ من القاعدة \\
+الأسئلة الشائعة (\en{FAQ}) & مجموعة بيانات ثابتة من \code{KnowledgeBodies.cs} \\
+الاستشاريّون الموثّقون & كلّ استشاريّ مُوثَّق وغير موقوف — استعلام حيّ \\
+الموارد المنشورة & كلّ مورد حالته \code{Published} وغير محذوف \\
+أفضل منشورات المجتمع & المواضيع التي صافي تقييمها 3 فأكثر (حتّى 200 موضوع) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{note}[ملاحظة: منشورات المجتمع مُطفأة افتراضيًّا]
+المصدر الخامس (منشورات المجتمع) \textbf{لا} يدخل القاعدة إلّا لو فُعِّل المفتاح
+\code{Ai:IncludeCommunityPostsInKb} صراحةً. السبب: هذه محتوى مستخدمين غير مُدقَّق،
+ولا نريد للمساعد أن يُقدّم كلامَ أشخاص عشوائيّين وكأنّه معلومة رسميّة موثّقة، قبل أن
+توجد آليّة مراجعة. لهذا عدد المستندات الفعليّ في الإنتاج يدور حول 692 مستندًا.
+\end{note}
+
+\subsubsection{الخوارزميّة: تحديث ذكيّ لا إعادة بناء كاملة}
+
+الدالة \code{RebuildAsync} لا تمسح كلّ شيء وتبدأ من الصفر. بدلًا من ذلك تمشي في
+أربع خطوات ذكيّة:
+
+\begin{enumerate}
+  \item \textbf{الإدراج والتحديث (\en{upsert})}: لكلّ مستند مطلوب، تحسب بصمة
+    \en{SHA-256} على محتواه (\en{ContentEn + ContentAr}). لو المستند جديد تُدرِجه؛
+    لو موجود تُحدّثه.
+  \item \textbf{إزالة الأيتام (\en{orphans})}: أيّ مستند في القاعدة اختفى مصدره
+    الأصليّ (مثلًا منحة أُغلقت) يُحذَف.
+  \item \textbf{إعادة تضمين انتقائيّة}: المستند يُعاد تضمينه \emph{فقط} لو تغيّرت
+    بصمته، أو كان تضمينه فارغًا، أو أُنشئ بنموذج مختلف. على قاعدة «دافئة» هذا صفرُ عمل.
+  \item \textbf{التضمين على دُفعات}: المستندات المُعلَّقة تُرسَل إلى \en{Azure} في
+    دُفعات من 16 مستندًا في المرّة.
+\end{enumerate}
+
+\begin{keyp}[نقطة مهمة: بصمة المحتوى هي مفتاح الرخص]
+البصمة \en{SHA-256} هي حجر الزاوية. لو غيّرت وصف منحة واحدة، بصمتها فقط هي التي
+تتغيّر، فيُعاد تضمين مستند واحد بتكلفة تكاد لا تُذكَر. أمّا الـ 691 مستندًا الباقون
+فبصماتهم كما هي، فيُتخطَّون تمامًا. لهذا تكون عمليّة إعادة البناء الليليّة شبه مجّانيّة.
+\end{keyp}
+
+الآن نشوف الكود الحقيقيّ. أوّل مقتطف: خطوة الـ \en{upsert} مع فحص البصمة. لاحظ كيف
+أنّ تغيّر البصمة \emph{يُفرِّغ} التضمين القديم حتّى يُعاد حسابه لاحقًا:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var hash = Sha256(d.EmbedText);              // SHA-256(ContentEn + ContentAr)
+if (byKey.TryGetValue((d.SourceType, d.SourceKey), out var doc))
+{
+    doc.ContentEn = d.ContentEn;
+    doc.ContentAr = d.ContentAr;
+    // ...
+    if (doc.ContentHash != hash)             // content actually changed?
+    {
+        doc.ContentHash = hash;
+        doc.Embedding = [];                  // drop the stale vector
+        doc.EmbeddingDimensions = 0;
+        doc.EmbeddingModel = null;           // -> flagged for re-embedding
+    }
+}
+\end{lstlisting}
+\end{english}
+
+شرح سطرًا بسطر: السطر الأوّل يحسب البصمة الجديدة. لو المستند موجود مسبقًا نُحدّث
+حقوله. الشرط \code{doc.ContentHash != hash} يعني «هل تغيّر المحتوى حقًّا؟» — لو نعم،
+نُفرِّغ حقل \code{Embedding} ونُصفّر النموذج، فيصير المستند «مُعلَّقًا» بانتظار إعادة
+التضمين. لو المحتوى لم يتغيّر، لا نلمس التضمين، فلا تكلفة.
+
+المقتطف الثاني: حلقة التضمين على دُفعات من 16. هنا يحدث الاتّصال الوحيد المدفوع مع
+\en{Azure}، ثمّ تُحزَم النتيجة عبر \code{VectorMath.Pack}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+private const int EmbedBatchSize = 16;
+// ...
+for (var i = 0; i < pending.Count; i += EmbedBatchSize)
+{
+    var batch = pending.Skip(i).Take(EmbedBatchSize).ToList();
+    var texts = batch.Select(EmbedText).ToList();
+
+    var vectors = await embeddings.EmbedBatchAsync(texts, ct);   // Azure REST
+
+    for (var j = 0; j < batch.Count && j < vectors.Count; j++)
+    {
+        batch[j].Embedding = VectorMath.Pack(vectors[j]);  // float[1536] -> byte[6144]
+        batch[j].EmbeddingModel = model;
+    }
+}
+\end{lstlisting}
+\end{english}
+
+الحلقة تتقدّم 16 عنصرًا في كلّ دورة (\code{i += EmbedBatchSize}). نأخذ دفعةً،
+نُجهّز نصوصها، ونرسلها مرّةً واحدة إلى \code{EmbedBatchAsync}. الردّ متّجهات
+\en{float}، ونحزم كلّ متّجه في عمود \en{VARBINARY} ونسجّل اسم النموذج الذي أنتجه.
+إرسال 16 معًا أوفر بكثير من 16 نداءً منفصلًا.
+
+\begin{secnote}[زاوية الأمان: بوّابة تمنع الصرف المزدوج]
+عمليّة إعادة البناء تقرأ كلّ المستندات وتُضمِّن المُعلَّق منها مقابل مزوّد
+\emph{مدفوع}. لو تشغّلت عمليّتان معًا (مثلًا تهيئة بدء التشغيل + طلب أدمن)، لضُمِّنت
+المستنداتُ مرّتين — أي صرفٌ مضاعف. لهذا يحرس الكودُ العمليّةَ بقُفل ثابت على مستوى
+العمليّة (\code{SemaphoreSlim RebuildGate}) يُسلسِل الطلبات فلا تتداخل أبدًا.
+\end{secnote}
+
+% ═══════════════════════════════════════════════════════════════════════════
+\subsection{تخزين المتّجهات في \en{SQL Server} لا في قاعدة متّجهات}
+
+قرارٌ معماريّ مهمّ: لم نستخدم قاعدة متّجهات متخصّصة (مثل \en{Pinecone} أو
+\en{Qdrant})، بل خزّنّا المتّجهات داخل \en{SQL Server} نفسها. لكن \en{SQL} لا يعرف
+نوع «متّجه»؛ يعرف \en{VARBINARY} فقط. فكيف نحوّل مصفوفة \en{float} إلى بايتات
+والعكس؟ هذه مهمّة الصفّ \code{VectorMath}.
+
+\begin{idea}[الفكرة: حسبة البايتات]
+كلّ متّجه فيه 1536 رقمًا من نوع \en{float}. كلّ \en{float} يحتلّ 4 بايتات. إذن كلّ
+مستند يحتاج $1536 \times 4 = 6144$ بايتًا فقط في عمود \en{VARBINARY}. رقمٌ صغير جدًّا،
+ولهذا لا نحتاج بنيةً خاصّة لتخزينه.
+\end{idea}
+
+المقتطف التالي يُظهر التحويل في الاتّجاهين. لاحظ \code{Buffer.BlockCopy} — نسخٌ خامّ
+للذاكرة بلا حلقات، سريعٌ للغاية:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public static byte[] Pack(float[] vector)
+{
+    if (vector.Length == 0) return [];
+    var bytes = new byte[vector.Length * sizeof(float)];   // 1536 * 4 = 6144
+    Buffer.BlockCopy(vector, 0, bytes, 0, bytes.Length);
+    return bytes;
+}
+
+public static float[] Unpack(byte[] bytes)
+{
+    if (bytes.Length == 0) return [];
+    var vector = new float[bytes.Length / sizeof(float)];
+    Buffer.BlockCopy(bytes, 0, vector, 0, vector.Length * sizeof(float));
+    return vector;
+}
+\end{lstlisting}
+\end{english}
+
+الدالة \code{Pack} تحجز مصفوفة بايتات بطول $\text{count} \times 4$، ثمّ تنسخ
+الذاكرة نسخًا مباشرًا. \code{Unpack} تفعل العكس تمامًا: تقسم عدد البايتات على 4 لتعرف
+عدد الأرقام، ثمّ تنسخها إلى مصفوفة \en{float} جاهزة لحساب \en{Cosine}.
+
+\begin{why}
+عند 692 مستندًا، مسحُ القاعدة كلّها في الذاكرة وحسابُ \en{Cosine} لكلّ مستند يكتمل في
+أقلّ من 10 مِلّي ثانية. أيّ قاعدة متّجهات خارجيّة كانت ستضيف خدمةً جديدة تُنشَر
+وتُدار، وقفزةَ شبكة إضافيّة، وتكلفةً تشغيليّة — كلّ ذلك لِيصير أبطأ لا أسرع عند هذا
+الحجم. عتبةُ الانتقال إلى قاعدة متّجهات حقيقيّة تبدأ عند عشرات الآلاف من المستندات.
+\end{why}
+
+% ═══════════════════════════════════════════════════════════════════════════
+\subsection{خطّ الشات الكامل: تسع خطوات}
+
+الآن الجزء الأهمّ: ماذا يحدث بالضبط عندما يكتب الطالب سؤالًا في الشات؟ الرحلة تمرّ
+بتسع خطوات مرتّبة. الجدول التالي يلخّصها، ثمّ نشرح المحطّات الحسّاسة:
+
+\begin{center}
+\begin{tabular}{C{0.7cm} L{4.4cm} L{7.2cm}}
+\toprule
+\textbf{\color{spPrimary}\#} & \textbf{\color{spPrimary}الخطوة} & \textbf{\color{spPrimary}ماذا يحدث} \\
+\midrule
+1 & استقبال الرسالة & الطالب يرسل سؤاله النصّيّ \\
+2 & كشف اللغة & \code{RagSupport.IsArabic()} يقرّر: عربيّ أم إنجليزيّ \\
+3 & فحص الإعداد & هل \en{Azure} مُهيّأ؟ لو لا $\rightarrow$ سقوط محلّيّ فورًا \\
+4 & تضمين السؤال & \code{EmbedAsync()} يحوّل السؤال إلى \en{float[1536]} \\
+5 & الاسترجاع & حساب \en{Cosine} على 692 مستندًا، وأخذ أعلى 5 \\
+6 & التصفية & إبقاء المستندات التي درجتها 0.6 فأكثر فقط \\
+7 & بناء السياق & \code{BuildContextBlock()} ينسّق المستندات المختارة \\
+8 & نداء \en{GPT} & إرسال: التعليمات + التاريخ + السياق + السؤال \\
+9 & بناء الاستجابة & نصّ الجواب + قائمة المصادر + التكلفة المقدّرة \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+الخطوات 4 و5 و6 هي قلب \en{RAG}. المقتطف التالي — من صفّ الاسترجاع
+\code{KnowledgeRetriever} — يُظهر كيف نحمّل المستندات المُضمَّنة \emph{بالنموذج
+النشِط فقط}، ثمّ نرتّبها بالدرجة ونأخذ أعلى \en{topK}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var docs = await db.KnowledgeDocuments.AsNoTracking()
+    .Where(d => d.EmbeddingModel == model && d.EmbeddingDimensions > 0)
+    .Select(d => new { d.Id, d.TitleEn, d.ContentEn, d.Embedding /* ... */ })
+    .ToListAsync(ct);
+
+var queryVector = await embeddings.EmbedAsync(query, ct);
+
+return [.. docs
+    .Select(d => new {
+        Doc = d,
+        Score = VectorMath.CosineSimilarity(queryVector, VectorMath.Unpack(d.Embedding)),
+    })
+    .OrderByDescending(x => x.Score)
+    .Take(topK)];                            // top-5 by default
+\end{lstlisting}
+\end{english}
+
+الشرط \code{EmbeddingModel == model} مهمّ: متّجهاتُ نموذجٍ مختلف تعيش في «فضاء» آخر
+ولا يصحّ مقارنتها، فنتجاهلها. نحسب \en{Cosine} بين متّجه السؤال وكلّ مستند بعد فكّ
+حزمته بـ \code{Unpack}، نرتّب تنازليًّا، ونأخذ الأعلى. القيمة الافتراضيّة لـ
+\code{Ai:RagTopK} هي 5، ولـ \code{Ai:RagMinScore} هي 0.6.
+
+\subsubsection{تصميم تعليمات النظام (\en{System Prompt})}
+
+قبل نداء \en{GPT}، نُرسِل «تعليمات نظام» تُشكّل شخصيّة المساعد (بنسختين: عربيّة
+وإنجليزيّة). أهمّها أن يُطلَب منه:
+
+\begin{itemize}
+  \item أن يذكر المنحَ والاستشاريّين والموارد \textbf{بالاسم} حين تَرِد في كتلة السياق.
+  \item أن يساعد في صياغة خطاب الغرض وخطابات التوصية والسيرة الذاتيّة عند الطلب.
+  \item ألّا \textbf{يخترع} أبدًا اسمَ منحةٍ أو موعدًا أو مبلغًا غير موجود في السياق.
+  \item ألّا \textbf{يرفض} طلبًا معقولًا من المستخدم.
+\end{itemize}
+
+\subsubsection{ذاكرة الجلسة (\en{Session Memory})}
+
+كيف «يتذكّر» الشات ما قيل قبل قليل بلا مخزنٍ على الخادم؟ ببساطة: قبل كلّ نداء نُضيف
+أدوار المحادثة السابقة (آخر ~20 دورًا) بين تعليمات النظام والسؤال الحاليّ:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var messages = new List<object>
+{
+    new { role = "system", content = system },
+};
+foreach (var turn in history)                     // prior turns this session
+    messages.Add(new { role = turn.Role, content = turn.Content });
+messages.Add(new { role = "user", content = user });   // current question
+\end{lstlisting}
+\end{english}
+
+القائمة تبدأ بتعليمات النظام، ثمّ نُضيف كلّ دورٍ سابق بدوره (\code{user} أو
+\code{assistant})، ثمّ نُلحِق السؤالَ الحاليّ. النموذج يقرأ السياق كاملًا فيبدو
+«متذكّرًا». نداء \en{GPT-4o-mini} يمرّ بـ \code{temperature=0.3} — قيمة منخفضة تجعل
+الإجابات ثابتةً ومنضبطة لا خياليّة.
+
+% ═══════════════════════════════════════════════════════════════════════════
+\subsection{التوصيات: درجاتٌ حسابيّة بلا \en{GPT}}
+
+هنا ننتقل إلى المحرّك الثاني. خلافًا لما قد يظنّه كثيرون، توليدُ التوصيات
+\textbf{ليس} فيه أيّ ذكاء اصطناعيّ توليديّ. إنّه صفٌّ حسابيّ اسمه
+\code{LocalAiService} يُعطي كلّ منحةٍ مفتوحة \emph{درجةً} من 100 بناءً على مطابقتها
+لملفّ الطالب.
+
+\begin{secnote}[زاوية الأمان: لا شبكة، لا \en{GPT}، لا مفاجآت]
+لا يوجد نداء \en{GPT}، ولا \en{RAG}، ولا أيّ طلب \en{HTTP} في خطّ التوصيات إطلاقًا.
+كلّه يعمل داخل الخادم بشكل حتميّ. النتيجة نفسها للمدخلات نفسها دائمًا — قابلة للاختبار
+ولا تكلّف شيئًا ولا تتعطّل بسبب مزوّد خارجيّ.
+\end{secnote}
+
+معادلة الدرجة تجمع أربعة مكوّنات بأوزان مختلفة:
+
+\[
+\text{Score} \;=\; \underbrace{S_{\text{level}}}_{\le 30}
+\;+\; \underbrace{S_{\text{field}}}_{\le 40}
+\;+\; \underbrace{S_{\text{country}}}_{\le 25}
+\;+\; \underbrace{B_{\text{funding}}}_{\le 5}
+\;\in\; [0,\,100]
+\]
+
+مجال الدراسة هو الوزن الأكبر (حتّى 40 نقطة) لأنّ توافق التخصّص أهمّ من الجغرافيا.
+المقتطف الحقيقيّ من دالة التوليد:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var score = 0;
+if (userLevel.HasValue && userLevel.Value == c.TargetLevel) score += 30;
+score += OverlapScore(preferredFields, fosFields, maxPoints: 40);
+// countries compared on a canonical ISO key ("Egypt"/"masr" -> "EG")
+score += OverlapScore(NormalizeCountries(preferredCountries),
+                      NormalizeCountries(countries), maxPoints: 25);
+if (c.FundingAmountUsd >= 10_000) score += 5;      // funding bonus
+scored.Add((c.Id, Math.Min(score, 100), c.TitleEn, c.TitleAr));
+\end{lstlisting}
+\end{english}
+
+المستوى الأكاديميّ: تطابقٌ تامّ يعطي 30. المجال والدولة: عبر دالّة
+\code{OverlapScore} التي تحسب نسبة التقاطع مضروبةً في السقف. مكافأةُ 5 نقاط لو كان
+التمويل 10000 دولار فأكثر. أخيرًا \code{Math.Min(score, 100)} تضمن ألّا تتجاوز
+الدرجةُ 100. ثمّ تُترجَم الدرجة إلى تسمية مفهومة للطالب:
+
+\begin{center}
+\begin{tabular}{C{2.6cm} L{3.0cm} L{6.6cm}}
+\toprule
+\textbf{\color{spPrimary}الدرجة} & \textbf{\color{spPrimary}التسمية} & \textbf{\color{spPrimary}ما يظهر للطالب} \\
+\midrule
+80--100 & توافق قويّ  & قريبة من اهتماماتك ومستواك الأكاديميّ \\
+50--79  & توافق جزئيّ & تتقاطع مع بعض تفضيلاتك \\
+20--49  & توافق محدود & تلمس مجالاتك، تستحقّ نظرةً سريعة \\
+0--19   & توافق ضعيف  & لا تتماشى حاليًّا مع ملفّك \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection{التخزين المؤقّت وإعادة الترطيب (\en{Re-hydration})}
+
+حسابُ الدرجات يجري مرّةً وتُخزَّن النتيجة \emph{مؤقّتًا} كـ \en{JSON} داخل الحقل
+\code{ResponseText} من كيان \code{AiInteraction}. لكن هنا حيلةٌ ذكيّة: الـ \en{JSON}
+المخزَّن يحفظ فقط الحقولَ التي أنتجها الذكاء (المعرّف، الدرجة، الشرح). أمّا
+\emph{الموعد النهائيّ} و\emph{مبلغ التمويل} فيُجلَبان \textbf{حيًّا} من القاعدة عند
+كلّ قراءة.
+
+\begin{keyp}[نقطة مهمة: لماذا نُعيد الترطيب؟]
+لو خزّنّا الموعد النهائيّ داخل الكاش، ثمّ غيّره الأدمن، لظهر للطالب موعدٌ قديمٌ خاطئ.
+بإعادة الترطيب من القاعدة حيًّا، الدرجة المحفوظة تبقى (فهي لا تتغيّر كثيرًا)، بينما
+البياناتُ الحسّاسة للوقت تكون دائمًا حديثة. الكاش صالح 24 ساعة؛ بعدها تُولَّد توصياتٌ
+جديدة.
+\end{keyp}
+
+% ═══════════════════════════════════════════════════════════════════════════
+\subsection{الأهليّة: مطابقة الملفّ الشخصيّ}
+
+المحرّك الحسابيّ نفسه يخدم الميزة الثالثة: فحص الأهليّة. هنا نقارن ملفّ الطالب
+بمتطلّبات منحةٍ واحدة عبر ثلاثة معايير:
+
+\begin{center}
+\begin{tabular}{L{3.2cm} L{4.4cm} L{4.6cm}}
+\toprule
+\textbf{\color{spPrimary}المعيار} & \textbf{\color{spPrimary}مصدر الطالب} & \textbf{\color{spPrimary}منطق المطابقة} \\
+\midrule
+المستوى الأكاديميّ & \code{AcademicLevel} & تطابق تامّ \\
+الدولة & الدول المفضّلة + الجنسيّة & عبر \code{CountryNormalizer} \\
+مجال الدراسة & \code{FieldOfStudy} & احتواء غير حسّاس للحالة \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+كلّ معيار يأخذ إحدى القيم: \code{yes} أو \code{partial} أو \code{no} أو
+\code{unknown} (حين يكون حقلُ الطالب فارغًا). ثمّ تُجمَع هذه القيم في حكمٍ واحد عبر
+دالّة \code{DeriveVerdict}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+internal static EligibilityVerdict DeriveVerdict(
+    IReadOnlyList<AiEligibilityCriterion> criteria)
+{
+    if (criteria.Count == 0) return EligibilityVerdict.NotEligible;
+
+    if (criteria.Any(c => c.Match == "no"))            // any hard fail
+        return EligibilityVerdict.NotEligible;
+
+    if (criteria.Any(c => c.Match == "partial" || c.Match == "unknown"))
+        return EligibilityVerdict.PartiallyEligible;   // any uncertainty
+
+    return EligibilityVerdict.Eligible;                // all clear
+}
+\end{lstlisting}
+\end{english}
+
+المنطق بسيطٌ ومتحفّظ: أيُّ معيار قيمته \code{no} كافٍ وحده ليكون الحكم
+\code{NotEligible}. لو لا يوجد رفضٌ صريح لكن يوجد \code{partial} أو \code{unknown}،
+فالحكم \code{PartiallyEligible}. ولا نقول \code{Eligible} إلّا لو كانت كلّ المعايير
+\code{yes}.
+
+\begin{note}[ملاحظة: تطبيع أسماء الدول ليس بديهيًّا]
+منحةٌ تكتب دولتها «\en{France}» يجب أن تطابق طالبًا كتب «\en{FR}» أو «\en{france}»
+أو «فرنسا». الدالّة \code{CountryNormalizer.Matches} تُرجِع كلّ الصيغ إلى مفتاحٍ
+معياريّ واحد قبل المقارنة. بدون هذا، لقرأ طالبٌ مصريّ يفضّل ألمانيا كلمة «\en{no}»
+على منحةٍ كتبت الدولة «\en{DE}».
+\end{note}
+
+% ═══════════════════════════════════════════════════════════════════════════
+\subsection{شبكة الأمان: السقوط الآمن (\en{Fallback}) ثلاثيّ المستوى}
+
+ماذا لو تعطّل \en{Azure} تمامًا؟ لا يجوز أن يرى المستخدمُ خطأً. لهذا كلّ نداء شات
+مُحاطٌ بسلسلة سقوطٍ من ثلاثة مستويات، أيُّ فشلٍ فيها يوجّه الطلبَ إلى
+\code{LocalAiService.AskAsync}:
+
+\begin{center}
+\begin{tabular}{C{0.7cm} L{5.4cm} L{6.2cm}}
+\toprule
+\textbf{\color{spPrimary}\#} & \textbf{\color{spPrimary}نقطة الفحص} & \textbf{\color{spPrimary}عند الفشل} \\
+\midrule
+1 & هل النقطة والمفتاح مُهيّآن؟ & سقوطٌ محلّيّ فوريّ \\
+2 & هل نجح نداء الاسترجاع؟ & سقوطٌ محلّيّ (خطأ \en{HTTP}) \\
+3 & هل نجح نداء \en{GPT}؟ & سقوطٌ محلّيّ (خطأ أو مهلة) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+والجميل أنّ المستوى المحلّيّ ليس ردًّا أخرقَ ثابتًا. \code{AskAsync} المحلّيّة تُجرِّب
+\emph{مسارين}: أوّلًا نفس استرجاع \en{RAG} (بنفس \code{KnowledgeRetriever}) لكن بجواب
+\emph{استخلاصيّ} — تعرض أقربَ مستند مفهرَس بدل توليد نصّ. ولو لم تجد شيئًا فوق العتبة
+0.6، تسقط إلى موجّهِ كلماتٍ مفتاحيّة (\en{keyword router}) يفهم نيّة السؤال (موعد،
+أهليّة، توصية...) ويردّ ردًّا مفيدًا. هكذا يبقى \en{RAG} قابلًا للعرض حتّى بلا أيّ
+مفتاح \en{API}.
+
+% ═══════════════════════════════════════════════════════════════════════════
+\subsection{التكلفة والضبط الدقيق وكيان \code{AiInteraction}}
+
+\subsubsection{نموذج التكلفة وسقف الإنفاق}
+
+نموذج \en{GPT-4o-mini} رخيصٌ جدًّا. التكلفة تُحسَب من عدد الرموز (\en{tokens}) داخلًا
+وخارجًا:
+
+\[
+\text{Cost} \;=\; N_{\text{prompt}} \times \frac{0.15}{10^6}
+\;+\; N_{\text{completion}} \times \frac{0.60}{10^6}
+\]
+
+(أي 0.15 دولار لكلّ مليون رمز دخْل، و0.60 دولار لكلّ مليون رمز خرْج). الجدول يوضّح
+حجم الأرقام العمليّ:
+
+\begin{center}
+\begin{tabular}{L{5.0cm} C{2.2cm} C{2.2cm} C{2.6cm}}
+\toprule
+\textbf{\color{spPrimary}السيناريو} & \textbf{الدخل} & \textbf{الخرج} & \textbf{التكلفة} \\
+\midrule
+دورة شات بسيطة & 300 & 150 & \$0.000135 \\
+سياق غنيّ (5 مستندات) & 600 & 300 & \$0.000270 \\
+1000 دورة يوميًّا & --- & --- & \$0.27 تقريبًا \\
+سقف \code{DailyCostLimitUsd} & \multicolumn{3}{L{7.0cm}}{\$5.00 --- حدّ يوميّ صارم في \code{AiOptions}} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{why}
+حتّى لو خرجت الأمور عن السيطرة، المفتاح \code{Ai:DailyCostLimitUsd} يضع سقفًا صلبًا
+عند خمسة دولارات في اليوم. عند بلوغه يتوقّف النظام عن نداء \en{Azure} ويسقط تلقائيًّا
+إلى المحرّك المحلّيّ المجّانيّ. هكذا لا يمكن لخطأٍ أو إساءة استخدام أن يُنتِج فاتورةً
+مفاجئة.
+\end{why}
+
+\subsubsection{مسار الضبط الدقيق (\en{Fine-Tuning}) داخل لوحة الأدمن}
+
+جُهِّزت مجموعةُ بياناتٍ للضبط الدقيق (نحو 332 مثالًا بصيغة محادثات \en{OpenAI}).
+والمسار كلّه يُدار من لوحة الأدمن في أربع خطوات: \emph{تصدير} الـ \en{JSONL}، ثمّ
+\emph{رفعه}، ثمّ \emph{تدريب} المهمّة على \en{Azure}، ثمّ \emph{تفعيل} النموذج
+الناتج. وأجمل ما فيه أنّ تفعيله لا يحتاج تغييرَ كود؛ يكفي أن يختار الكودُ اسمَ
+النشرِ بأولويّةٍ ثلاثيّة:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// Priority: DB platform setting -> appsettings override -> base model
+var deployment = !string.IsNullOrWhiteSpace(dbDeployment)
+    ? dbDeployment                       // e.g. "scholarpath-ft-001"
+    : !string.IsNullOrWhiteSpace(az.FineTunedDeploymentName)
+        ? az.FineTunedDeploymentName
+        : az.DeploymentName;             // "gpt-4o-mini"  (base)
+\end{lstlisting}
+\end{english}
+
+أوّلًا يُقرأ اسمُ النشر من إعدادات المنصّة في القاعدة؛ فإن كان فارغًا يُجرَّب إعداد
+الملفّ؛ وإلّا يُستخدَم النموذجُ الأساس \en{gpt-4o-mini}. الأدمن يستطيع «الرجوع للنموذج
+الأساس» بضغطة واحدة بلا إعادة تشغيل.
+
+\subsubsection{كيان \code{AiInteraction}: سجلٌّ وكاشٌ في جدولٍ واحد}
+
+كلّ عمليّات الذكاء الاصطناعيّ (شات، توصية، أهليّة) تُسجَّل في جدولٍ واحد هو
+\code{AiInteraction}. إنّه في آنٍ معًا \textbf{سجلّ تدقيق} و\textbf{طبقة تخزين مؤقّت}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public class AiInteraction : AuditableEntity
+{
+    public Guid UserId { get; set; }
+    public AiFeature Feature { get; set; }   // Recommendation | Chat | Eligibility
+    public AiProvider Provider { get; set; } // AzureOpenAi | Local
+    public string? SessionId { get; set; }   // groups chat turns into a session
+
+    public string PromptText { get; set; }   // what was asked
+    public string ResponseText { get; set; } // answer text OR cached JSON
+    public string? MetadataJson { get; set; }// eligibility breakdown, etc.
+
+    public int PromptTokens { get; set; }
+    public int CompletionTokens { get; set; }
+    public decimal CostUsd { get; set; }     // billing
+}
+\end{lstlisting}
+\end{english}
+
+المفتاح لفهم هذا الكيان أنّ معنى الحقل \code{ResponseText} \emph{يتغيّر} حسب
+\code{Feature}: في الشات هو نصّ الجواب؛ في التوصيات هو الـ \en{JSON} المخزَّن مؤقّتًا؛
+في الأهليّة هو الحكم، وتفاصيله في \code{MetadataJson}. جدولٌ واحد، ثلاثة استعمالات —
+بسيطٌ وأنيق.
+
+% ═══════════════════════════════════════════════════════════════════════════
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+  \item \textbf{قاعدة المعرفة} تُبنى من خمسة مصادر (منح، أسئلة شائعة، استشاريّون،
+    موارد، منشورات مجتمع) إلى صفوف \code{KnowledgeDocument}؛ بصمة \en{SHA-256} تجعل
+    إعادة البناء انتقائيّة ورخيصة، والتضمين يجري في دُفعاتٍ من 16.
+  \item \textbf{المتّجهات} تُخزَّن في \en{SQL Server} كـ \en{VARBINARY} بحجم
+    $1536 \times 4 = 6144$ بايتًا لكلّ مستند؛ كافٍ تمامًا عند 692 مستندًا، والمسح
+    يكتمل في أقلّ من 10 مِلّي ثانية بلا قاعدة متّجهات.
+  \item \textbf{خطّ الشات} تسع خطوات: كشف لغة، فحص إعداد، تضمين، استرجاع \en{Cosine}،
+    تصفية عند 0.6، بناء سياق، نداء \en{GPT-4o-mini} بـ \code{temperature=0.3}، ثمّ
+    بناء الجواب والمصادر؛ مع ذاكرة جلسةٍ من آخر ~20 دورًا.
+  \item \textbf{التوصيات والأهليّة} حسابيّتان بلا \en{GPT}: درجةٌ من
+    (مستوى 30 + مجال 40 + دولة 25 + مكافأة 5)، وحكمُ أهليّةٍ من ثلاثة معايير مع تطبيع
+    الدول؛ التوصيات تُخزَّن مؤقّتًا وتُعاد ترطيبُ موعدها وتمويلها حيًّا من القاعدة.
+  \item \textbf{شبكة الأمان} ثلاثيّة المستوى تسقط دائمًا إلى \code{LocalAiService}؛
+    وسقفُ \code{DailyCostLimitUsd} عند خمسة دولارات يمنع أيّ فاتورةٍ مفاجئة؛ وكلّ
+    عمليّة تُسجَّل في كيان \code{AiInteraction} الذي يجمع بين السجلّ والكاش.
+\end{itemize}
+\end{summary}

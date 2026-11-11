@@ -1,0 +1,314 @@
+% ch01-clean-architecture — المعماريّة النظيفة (Clean Architecture)
+\section{المعماريّة النظيفة (Clean Architecture)}
+
+في الفصل السابق اتّفقنا على المصطلحات الأساسية: الخلفية \en{(backend)}، والواجهة
+\en{(frontend)}، وقاعدة البيانات، والـ \en{API}، وفكرة «الطبقة» بشكل عام. في هذا
+الفصل نفتح صندوق الخلفية ونشوف كيف اتبنى من الداخل. الخلفية في \en{ScholarPath}
+مكتوبة بـ \en{.NET 10}، ومنظَّمة بأسلوب اسمه \en{Clean Architecture} — أو
+«المعماريّة النظيفة». وده أهم قرار هندسيّ في المشروع كلّه، فخلّينا نفهمه واحدة واحدة.
+
+الفكرة ببساطة: بدل ما نكتب الكود كلّه مكوَّمًا في مكان واحد، نقسّمه إلى \textbf{أربع
+طبقات متداخلة} زيّ حلقات دائرة. كل طبقة لها مسؤولية واحدة واضحة، والأهمّ: قاعدة صارمة
+واحدة تحكم الاعتماد بينهم.
+
+\begin{idea}[الفكرة: الاعتماد يروح للداخل فقط]
+تخيّل أربع دوائر متداخلة. في القلب توجد \textbf{قواعد العمل} (منطق المِنَح
+والحجوزات والدفع)، وفي الخارج توجد \textbf{التفاصيل التقنية} (قاعدة البيانات،
+\en{Azure}، \en{Stripe}). القاعدة الذهبية: \textbf{الاعتماد يتّجه للداخل دائمًا}.
+الطبقة الداخلية لا تعرف شيئًا عن الطبقة الخارجية. القلب (منطق العمل) لا يعرف أنّ
+قاعدة البيانات اسمها \en{SQL Server}، ولا أنّ مزوّد الذكاء الاصطناعي اسمه
+\en{Azure OpenAI}. هو يعرف \emph{ماذا} يحتاج، لا \emph{كيف} يُنفَّذ.
+\end{idea}
+
+\subsection{الطبقات الأربع ومسؤولية كل واحدة}
+
+النظام مبنيّ على أربعة مشاريع \en{(.csproj)} منفصلة، كل واحد منها طبقة. ترتيبها من
+الداخل للخارج هكذا: \en{Domain} ثم \en{Application} ثم \en{Infrastructure} ثم
+\en{API}. اتجاه الاعتماد يمشي في العكس — من الخارج للداخل:
+
+\begin{center}\begin{LTR}
+\en{API} $\longrightarrow$ \en{Infrastructure} $\longrightarrow$ \en{Application} $\longrightarrow$ \en{Domain}
+\end{LTR}\end{center}
+
+يعني \en{API} يعتمد على مَن تحته، و\en{Domain} في القلب لا يعتمد على أحد إطلاقًا.
+ده مضمون فعليًّا في الكود عن طريق مراجع المشاريع \en{(project references)}: مشروع
+\code{ScholarPath.Domain} لا يحمل أي مرجع لأي مشروع آخر، ومشروع
+\code{ScholarPath.Application} يشير إلى \code{ScholarPath.Domain} فقط. المُصرِّف
+\en{(compiler)} نفسه يرفض أي محاولة لكسر هذا الترتيب.
+
+\begin{center}
+\begin{tabular}{L{2.3cm} L{3.7cm} L{8.8cm}}
+\toprule
+\textbf{\color{spPrimary}الطبقة} & \textbf{\color{spPrimary}المشروع \en{(csproj)}} & \textbf{\color{spPrimary}المحتوى الأساسي} \\
+\midrule
+\en{Domain} & \code{ScholarPath.Domain} & الكيانات \en{(entities)} $\approx$55، والـ \en{enums}، وأحداث الدومين، والمنفذان \code{ICurrentUserService} و\code{IDateTimeService}. بلا أي اعتماد على \en{framework}. \\
+\en{Application} & \code{ScholarPath.Application} & حالات الاستخدام كأوامر واستعلامات \en{CQRS} عبر \en{MediatR}، والـ \en{validators}، وقوالب \en{AutoMapper}، و$\approx$33 \en{port} (واجهة) يجب على العالم الخارجي تنفيذها. \\
+\en{Infrastructure} & \code{ScholarPath.Infrastructure} & $\approx$46 \en{adapter} تنفّذ الـ \en{ports}: \en{EF Core}، \en{Stripe}، \en{Azure OpenAI}، \en{ACS}، \en{Blob}، \en{Key Vault}، \en{SignalR}، \en{Hangfire}. \\
+\en{API} & \code{ScholarPath.API} & الـ \en{controllers} الرفيعة، ومستقبِل \en{Stripe webhook}، والهُويّة \en{(ASP.NET Identity + JWT)}. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+خلّينا ندخل على كل طبقة بالتفصيل، من القلب للخارج.
+
+\subsection{طبقة \en{Domain} — القلب النقيّ}
+
+هذه أعمق طبقة، وأهم قاعدة فيها: \textbf{صفر اعتماد على أي \en{framework}}. لا تعرف
+\en{Entity Framework}، ولا \en{ASP.NET}، ولا \en{Azure}. هي مجرّد \en{C\#} خالص
+يصف عالم المشكلة: كيان الطالب، كيان المِنحة، كيان الحجز، حالات الدفع كـ \en{enum}،
+وأحداث الدومين \en{(domain events)} التي تُطلَق عند حدوث شيء مهمّ.
+
+الاستثناء الوحيد أنّ الدومين يُعرِّف \textbf{منفذين} \en{(ports)} فقط، لأنّهما مفهومان
+ينتميان لقلب العمل نفسه: مَن هو المستخدم الحاليّ؟ وكم الساعة الآن؟ خلّينا نشوفهما.
+
+هنشوف إيه: الملف الحقيقيّ الذي يُعرِّف المنفذين داخل الدومين.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+namespace ScholarPath.Domain.Interfaces;
+
+public interface ICurrentUserService
+{
+    Guid? UserId { get; }
+    string? Email { get; }
+    string? ActiveRole { get; }
+    IReadOnlyCollection<string> Roles { get; }
+    bool IsAuthenticated { get; }
+    string? IpAddress { get; }
+    // ...
+}
+
+public interface IDateTimeService
+{
+    DateTimeOffset UtcNow { get; }
+    DateOnly Today { get; }
+}
+\end{lstlisting}
+\end{english}
+
+الشرح سطرًا بسطر لأهم الأسطر:
+\begin{itemize}
+\item \code{ICurrentUserService}: منفذ يجيب على سؤال «مَن يُنفّذ هذا الطلب الآن؟» —
+  مُعرِّفه \code{UserId}، بريده، ودوره النشِط \code{ActiveRole}. الدومين يحتاج هذه
+  المعلومة لتطبيق قواعد الملكية (مثلًا: هل هذا الطالب يملك هذا الطلب؟)، لكنّه لا
+  يعرف \emph{من أين} تأتي — من \en{JWT}؟ من \en{cookie}؟ لا يهمّه.
+\item \code{IDateTimeService}: منفذ بسيط يعطي \code{UtcNow} و\code{Today}. لماذا لا
+  نستدعي \code{DateTime.Now} مباشرة؟ لأنّ تجميد الوقت خلف منفذ يجعل الكود
+  \textbf{قابلًا للاختبار}: في الاختبار نُثبّت «الآن» على لحظة معيّنة ونتأكّد أنّ
+  منطق المواعيد النهائية يتصرّف صحّ.
+\end{itemize}
+
+\begin{why}
+لماذا نُبقي الدومين نقيًّا بلا \en{framework}؟ لأنّ قواعد العمل هي أثمن ما نملك،
+وأطول ما يعيش. الأُطُر التقنية \en{(frameworks)} تتغيّر: قد نستبدل \en{SQL Server}
+بغيره، أو نُرقّي \en{.NET}. لو كانت قواعد العمل مشتبكة مع التفاصيل التقنية، فأي
+تغيير تقنيّ يهدّد المنطق. عزلُها يعني أنّ منطق المِنَح يبقى ثابتًا مهما تبدّل ما
+حوله — وده يجعله قابلًا للاختبار بلا قاعدة بيانات ولا شبكة.
+\end{why}
+
+\subsection{طبقة \en{Application} — حالات الاستخدام والمنافذ}
+
+فوق الدومين تأتي طبقة \en{Application}. مسؤوليتها: تنسيق \textbf{حالات الاستخدام}
+\en{(use cases)} — «الطالب يحجز جلسة»، «المستشار يقبل الحجز»، «أرشد لي منَحًا». كل
+حالة استخدام مكتوبة على نمط \en{CQRS}.
+
+\begin{keyp}[نقطة مهمة: \en{CQRS}]
+\en{CQRS} اختصار لـ \en{Command Query Responsibility Segregation}. الفكرة: نفصل كل
+عملية إلى نوعين. \textbf{أمر} \en{(Command)} يُغيّر الحالة (كتابة) مثل
+\code{AcceptBookingCommand}. و\textbf{استعلام} \en{(Query)} يقرأ فقط بلا أي أثر
+جانبيّ مثل \code{GetMyRecommendationsQuery}. كل أمر أو استعلام له مُعالِج
+\en{(handler)} واحد مسؤول عنه، فيصبح كل مِلفّ صغيرًا ومملوكًا لمطوّر واحد.
+\end{keyp}
+
+هذه الطبقة تحتوي أيضًا على الـ \en{validators} (تتحقّق من صحّة المُدخَلات قبل أي
+عمل) عبر \en{FluentValidation}، وقوالب \en{AutoMapper} (تحوّل الكيانات إلى
+\en{DTOs} للعرض). لكن الجزء الأهمّ معماريًّا: هنا تُعرَّف الـ \textbf{$\approx$33
+منفذًا} \en{(ports)}. المنفذ هو مجرّد \en{interface} — وعدٌ بخدمة يحتاجها المنطق دون
+أن يعرف تنفيذها. مثال حيّ: منفذ الذكاء الاصطناعي.
+
+هنشوف إيه: منفذ \code{IAiService} الحقيقيّ — عقد الذكاء الاصطناعي كما تراه طبقة العمل.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+namespace ScholarPath.Application.Common.Interfaces;
+
+public interface IAiService
+{
+    Task<AiRecommendationResult> GenerateRecommendationsAsync(
+        Guid userId, int topN, CancellationToken ct);
+
+    Task<AiEligibilityResult> CheckEligibilityAsync(
+        Guid userId, Guid scholarshipId, CancellationToken ct);
+
+    Task<AiChatResponse> AskAsync(
+        Guid userId, string sessionId, string message,
+        IReadOnlyList<AiChatHistoryTurn> history, CancellationToken ct);
+}
+\end{lstlisting}
+\end{english}
+
+الشرح: هذا الـ \en{interface} يصف \emph{ماذا} يقدّم الذكاء الاصطناعي في ثلاث
+عمليات فقط: \code{GenerateRecommendationsAsync} للترشيحات،
+و\code{CheckEligibilityAsync} لفحص الأهليّة، و\code{AskAsync} للمحادثة. لاحِظ أنّه
+\textbf{لا يوجد ذِكر لـ \en{Azure} ولا \en{OpenAI} ولا أي مِفتاح}. طبقة العمل تعرف
+أنّها تحتاج «خدمة ذكاء اصطناعي» بهذا الشكل، ولا تهتمّ من يقف خلفها. هذا هو معنى
+«المنفذ»: عقدٌ نظيف يعيش في الداخل.
+
+\subsection{طبقة \en{Infrastructure} — المحوّلات التي تُنفّذ الوعود}
+
+كل منفذ في طبقة \en{Application} لا بدّ أن يجد مَن يُنفّذه في الواقع. هنا يأتي دور
+طبقة \en{Infrastructure}: هي بيت الـ \textbf{$\approx$46 محوّلًا} \en{(adapters)}.
+المحوّل هو الصف \en{(class)} الذي يقول «أنا أُنفّذ هذا المنفذ باستخدام تقنية
+حقيقية». هنا يعيش \en{EF Core} (قاعدة البيانات)، و\en{Stripe} (الدفع)، و\en{Azure
+OpenAI} (الذكاء الاصطناعي)، و\en{ACS} (الفيديو)، و\en{Blob} (تخزين الملفات)،
+و\en{Key Vault} (المفاتيح السرّية)، و\en{SignalR} (الوقت الحقيقيّ)، و\en{Hangfire}
+(المهام الخلفية).
+
+هنشوف إيه: محوّل \code{AzureOpenAiService} الحقيقيّ الذي يُنفّذ منفذ \code{IAiService}
+الذي رأيناه للتوّ.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public sealed class AzureOpenAiService(
+    IHttpClientFactory httpFactory,
+    IOptions<AiOptions> opts,
+    IKnowledgeRetriever retriever,
+    LocalAiService local,
+    ILogger<AzureOpenAiService> logger) : IAiService
+{
+    // Recommendations & eligibility are deterministic -> delegate to the local engine
+    public Task<AiRecommendationResult> GenerateRecommendationsAsync(
+        Guid userId, int topN, CancellationToken ct)
+        => local.GenerateRecommendationsAsync(userId, topN, ct);
+
+    public async Task<AiChatResponse> AskAsync(...)
+    {
+        // If Azure endpoint/key are not set, answer with the local RAG router
+        if (!IsAzureChatConfigured(ai))
+            return await local.AskAsync(userId, sessionId, msg, history, ct);
+        // ... retrieve (RAG) -> augment -> call Azure OpenAI -> on failure fall back to local
+    }
+}
+\end{lstlisting}
+\end{english}
+
+الشرح لأهمّ الأسطر:
+\begin{itemize}
+\item السطر \code{... : IAiService}: إعلان صريح بأنّ هذا الصفّ \textbf{يُنفّذ}
+  المنفذ. المُصرِّف يُلزمه بتقديم العمليات الثلاث كلّها.
+\item السطر \code{=> local.GenerateRecommendationsAsync(...)}: الترشيحات ليست نداءً
+  لنموذج لغويّ، بل حساب حتميّ. لذلك يُفوّض المحوّل السحابيّ هذه العملية لمحوّل محلّي
+  \code{LocalAiService} — نفس المنفذ، تنفيذ مختلف حسب الحاجة.
+\item كتلة الـ \code{if} والتعليقات: لو لم يُضبَط مِفتاح \en{Azure}، أو فشل النداء
+  الشبكيّ، يتراجع المحوّل بأمان إلى المسار المحلّي بدل أن يُفشل الطلب بخطأ 500.
+  المستخدم يحصل على إجابة دائمًا.
+\end{itemize}
+
+\begin{note}
+لاحِظ اتجاه الاعتماد: محوّل \code{AzureOpenAiService} في الطبقة الخارجية يعرف
+المنفذ \code{IAiService} الموجود في الداخل ويُنفّذه. العكس مستحيل: طبقة
+\en{Application} لا تعرف اسم \code{AzureOpenAiService} أبدًا. هذا هو «قلب الاعتماد»
+\en{(Dependency Inversion)} في الممارسة.
+\end{note}
+
+\subsection{طبقة \en{API} — الواجهة الرفيعة}
+
+أعلى طبقة هي \en{API}. مهمّتها الوحيدة: استقبال طلب \en{HTTP}، ترجمته إلى أمر أو
+استعلام، وتمريره إلى \en{MediatR}، ثم إعادة النتيجة. الـ \en{controllers} هنا
+\textbf{رفيعة جدًّا} (سطر أو ثلاثة) — لا منطق عمل فيها إطلاقًا. تضمّ هذه الطبقة
+أيضًا مستقبِل \en{Stripe webhook} (الذي يتحقّق من توقيع \en{Stripe} ويطابق
+المدفوعات)، وإعداد الهُويّة \en{(ASP.NET Identity + JWT)}، وربط كل شيء معًا في
+\code{Program.cs}.
+
+\subsection{\en{Ports \& Adapters} — أهمّ قرار في النظام}
+
+وصلنا لجوهر الفصل. الفكرة التي تربط كل ما سبق اسمها \en{Ports \& Adapters}
+(المنافذ والمحوّلات): طبقة العمل تُعلن \textbf{منافذ} (واجهات نظيفة)، وطبقة
+\en{Infrastructure} تقدّم \textbf{محوّلات} تُنفّذها. اختيار أيّ محوّل يُستخدَم يحدث
+عند تشغيل التطبيق في مكان واحد اسمه \code{DependencyInjection.cs}، وبناءً على
+\textbf{الإعداد فقط}، بلا تغيير أي سطر كود.
+
+هنشوف إيه: مقتطف حقيقيّ من \code{DependencyInjection.cs} يختار المحوّل حسب الإعداد.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// Stripe: real client only with a genuine secret key; else the dev stub.
+var stripeSecretKey = config.GetValue<string>($"{StripeOptions.SectionName}:SecretKey");
+if (stripeSecretKey is not null && stripeSecretKey.StartsWith("sk_"))
+    services.AddSingleton<IStripeService, StripeService>();
+else
+    services.AddSingleton<IStripeService, StubStripeService>();
+
+// AI provider is config-driven (Ai:Provider): AzureOpenAi | OpenAi | Local
+var aiProvider = config.GetValue<string>($"{AiOptions.SectionName}:Provider") ?? "Stub";
+if (string.Equals(aiProvider, "AzureOpenAi", StringComparison.OrdinalIgnoreCase))
+    services.AddScoped<IAiService, AzureOpenAiService>();
+else
+    services.AddScoped<IAiService>(sp => sp.GetRequiredService<LocalAiService>());
+
+// Antivirus: real ClamAV only when FileScanning:Enabled = true.
+if (config.GetValue<bool>($"{FileScanningOptions.SectionName}:Enabled"))
+    services.AddSingleton<IFileScanService, ClamAvFileScanService>();
+else
+    services.AddSingleton<IFileScanService, NoOpFileScanService>();
+\end{lstlisting}
+\end{english}
+
+الشرح: كل كتلة \code{if/else} تختار محوّلًا حقيقيًّا أو بديلًا للتطوير
+\en{(stub)} بناءً على قيمة في الإعداد:
+\begin{itemize}
+\item مِفتاح \code{Stripe:SecretKey} يبدأ بـ \code{sk} حقيقيّ؟ استخدم
+  \code{StripeService}. وإلّا فالبديل \code{StubStripeService} لبيئة التطوير.
+\item مِفتاح \code{Ai:Provider} يساوي \code{AzureOpenAi}؟ استخدم محوّل \en{Azure}.
+  وإلّا فالمحوّل المحلّي \code{LocalAiService}.
+\item مِفتاح \code{FileScanning:Enabled} مفعَّل؟ استخدم فحص \en{ClamAV} الحقيقيّ.
+  وإلّا فمحوّل لا يفعل شيئًا.
+\end{itemize}
+
+\begin{why}
+لماذا هذا أهمّ قرار في النظام؟ لسببين عمليّين ضخمين. \textbf{أولًا: القابلية
+للاختبار.} نستطيع في الاختبارات استبدال \en{Stripe} و\en{Azure} و\en{ACS} ببدائل
+حتميّة، فنختبر منطق العمل كلّه بلا إنترنت ولا تكلفة ولا بطء. \textbf{ثانيًا:
+القابلية للتبديل.} نبدّل مزوّدًا كاملًا بتغيير سطر في الإعداد فقط — \code{Ai:Provider}،
+\code{Storage:Provider}، \code{Email:Provider}، \code{FileScanning:Enabled}،
+\code{Hangfire:Enabled} — بلا لمس كود المنطق. في التطوير كل شيء بدائل محلّية مجّانية،
+وفي الإنتاج تُبدَّل بمزوّدات حقيقية عبر الإعداد. نفس الكود، بيئتان.
+\end{why}
+
+\begin{secnote}
+هذا الفصل بين المنفذ والمحوّل هو أيضًا حصنٌ أمنيّ. المفاتيح السرّية والاتّصالات
+الخارجية كلّها محبوسة في طبقة \en{Infrastructure} وحدها. طبقة العمل — قلب النظام —
+لا تلمس مِفتاحًا سرّيًّا ولا تعرف عنوان خادم. لو أراد مُدقّق أمنيّ معرفة «أين تُستخدَم
+المفاتيح؟»، فالإجابة في مكان واحد محصور، لا منثورة في كل مِلفّ.
+\end{secnote}
+
+\begin{qa}
+«لماذا \en{Clean Architecture} بدل معماريّة طبقيّة بسيطة؟» — لأنّها تفرض قلب
+الاعتماد \en{(Dependency Inversion)}: الدومين لا يعرف شيئًا عن \en{EF Core} أو
+\en{Azure}، فنستطيع تبديل قاعدة البيانات أو أي خدمة دون لمس منطق العمل. أثبتنا هذا
+عمليًّا بحقن بدائل \en{(stubs)} لكل الخدمات الخارجية في الاختبارات، وبتبديل مزوّد
+الذكاء الاصطناعي عبر مِفتاح \code{Ai:Provider} وحده. في المعماريّة الطبقيّة
+التقليدية تعتمد الطبقة العليا على الدنيا مباشرةً، فيصبح المنطق مرهونًا بالتفاصيل
+التقنية — وهذا بالضبط ما نتجنّبه.
+\end{qa}
+
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item \en{ScholarPath} خلفيّتها مبنيّة على \en{Clean Architecture}: أربع طبقات
+  متداخلة، والاعتماد يتّجه \textbf{للداخل فقط}.
+\item الطبقات هي: \en{Domain} (القلب النقيّ) ثم \en{Application} (حالات الاستخدام)
+  ثم \en{Infrastructure} (التقنيات) ثم \en{API} (الواجهة الرفيعة). أربعة مشاريع
+  \en{.csproj} منفصلة، والترتيب مضمون بمراجع المشاريع.
+\item \en{Domain} يحوي $\approx$55 كيانًا والـ \en{enums} وأحداث الدومين ومنفذين
+  فقط \en{(}\code{ICurrentUserService}\en{, }\code{IDateTimeService}\en{)}، بلا أي
+  اعتماد على \en{framework}.
+\item \en{Application} يكتب حالات الاستخدام كـ \en{CQRS}، ومعها الـ \en{validators}
+  و\en{AutoMapper}، ويُعلن $\approx$33 منفذًا يصف \emph{ماذا} يحتاج النظام.
+\item \en{Infrastructure} يقدّم $\approx$46 محوّلًا تُنفّذ المنافذ بتقنيات حقيقية
+  \en{(EF Core, Stripe, Azure OpenAI, ACS, Blob, Key Vault, SignalR, Hangfire)}.
+\item القرار الأهمّ هو \en{Ports \& Adapters}: يجعل النظام \textbf{قابلًا للاختبار}
+  و\textbf{قابلًا لتبديل المزوّد بالإعداد وحده} — \code{Ai:Provider}،
+  \code{Storage:Provider}، \code{Email:Provider}، \code{FileScanning:Enabled}،
+  \code{Hangfire:Enabled} — دون تغيير أي كود.
+\end{itemize}
+\end{summary}

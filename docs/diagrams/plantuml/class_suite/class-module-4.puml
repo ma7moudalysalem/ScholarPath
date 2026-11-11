@@ -1,0 +1,139 @@
+' =====================================================================
+'  ScholarPath — Class diagram · Module 4 · Community & Chat  (PB-007)
+'  All classes : AuditableEntity unless a stereotype says otherwise.
+' =====================================================================
+
+@startuml Class_Module4_Community_Chat
+title Module 4 — Community & Chat  (all classes : AuditableEntity)
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+
+abstract class AuditableEntity {
+  -CreatedAt : DateTimeOffset
+  -CreatedByUserId : Guid?
+  -UpdatedAt : DateTimeOffset?
+  -UpdatedByUserId : Guid?
+  -RowVersion : byte[]?
+}
+interface ISoftDeletable {
+  +IsDeleted : bool
+  +DeletedAt : DateTimeOffset?
+  +DeletedByUserId : Guid?
+}
+class ApplicationUser <<Module 1 · actor>>
+
+class ForumCategory {
+  -NameEn : string
+  -NameAr : string
+  -Slug : string
+  -DisplayOrder : int
+  -IsActive : bool
+}
+class ForumPost <<+ ISoftDeletable>> {
+  -AuthorId : Guid
+  -CategoryId : Guid?
+  -ParentPostId : Guid?
+  -Title : string?
+  -BodyMarkdown : string
+  -TitleEn : string?
+  -TitleAr : string?
+  -BodyEn : string?
+  -BodyAr : string?
+  -ModerationStatus : PostModerationStatus
+  -UpvoteCount : int
+  -DownvoteCount : int
+  -FlagCount : int
+  -ReplyCount : int
+  -IsAutoHidden : bool
+  -AutoHiddenAt : DateTimeOffset?
+  -ModeratedByAdminId : Guid?
+}
+class ForumPostAttachment <<: BaseEntity>> {
+  -ForumPostId : Guid
+  -FileName : string
+  -BlobUrl : string
+  -ContentType : string
+  -SizeBytes : long
+}
+class ForumVote <<: BaseEntity>> {
+  -ForumPostId : Guid
+  -UserId : Guid
+  -VoteType : VoteType
+  -VotedAt : DateTimeOffset
+}
+class ForumFlag <<: BaseEntity>> {
+  -ForumPostId : Guid
+  -FlaggedByUserId : Guid
+  -Reason : string
+  -AdditionalDetails : string?
+  -IsValid : bool
+}
+class ForumBookmark <<: BaseEntity>> {
+  -ForumPostId : Guid
+  -UserId : Guid
+  -CreatedAt : DateTimeOffset
+}
+class ForumTag <<: BaseEntity>> {
+  -Name : string
+  -Slug : string
+  -CreatedAt : DateTimeOffset
+}
+class ForumPostTag <<join / composite PK (no base)>> {
+  -ForumPostId : Guid
+  -ForumTagId : Guid
+}
+class ChatConversation {
+  -ParticipantOneId : Guid
+  -ParticipantTwoId : Guid
+  -LastMessageAt : DateTimeOffset?
+  -LastMessageId : Guid?
+  -IsArchivedForParticipantOne : bool
+  -IsArchivedForParticipantTwo : bool
+}
+class ChatMessage <<+ ISoftDeletable>> {
+  -ConversationId : Guid
+  -SenderId : Guid
+  -Body : string
+  -SentAt : DateTimeOffset
+  -ReadAt : DateTimeOffset?
+}
+class UserBlock <<: BaseEntity>> {
+  -BlockerId : Guid
+  -BlockedUserId : Guid
+  -BlockedAt : DateTimeOffset
+  -Reason : string?
+}
+
+' Inheritance
+AuditableEntity <|-- ForumCategory
+AuditableEntity <|-- ForumPost
+AuditableEntity <|-- ChatConversation
+AuditableEntity <|-- ChatMessage
+ISoftDeletable <|.. ForumPost
+ISoftDeletable <|.. ChatMessage
+
+' Associations
+ForumCategory "0..1" -- "*" ForumPost : groups >
+ForumPost "0..1" -- "*" ForumPost : parent(reply) >
+ApplicationUser "1" -- "*" ForumPost : authors >
+ForumPost "1" *-- "*" ForumPostAttachment : attaches >
+ForumPost "1" -- "*" ForumVote : votes >
+ForumPost "1" -- "*" ForumFlag : flags >
+ForumPost "1" -- "*" ForumBookmark : bookmarks >
+ForumPost "1" *-- "*" ForumPostTag : postTags >
+ForumTag "1" *-- "*" ForumPostTag : tagLinks >
+ApplicationUser "1" -- "*" ChatConversation : participatesIn >
+ChatConversation "1" *-- "*" ChatMessage : messages >
+ApplicationUser "1" -- "*" ChatMessage : sends >
+ApplicationUser "1" -- "*" UserBlock : blocks >
+
+note bottom of ForumPost
+  ForumPost is self-referential: a root thread (Title set, bilingual
+  TitleEn/BodyEn) vs a reply (ParentPostId set, single-language body).
+  Bilingual columns added per FR — community posts are bilingual like
+  scholarships; legacy rows fall back to the English side.
+end note
+@enduml

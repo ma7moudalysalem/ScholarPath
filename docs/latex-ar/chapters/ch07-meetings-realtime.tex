@@ -1,0 +1,333 @@
+% ch07-meetings-realtime
+\section{الجلسات المرئيّة والزمن الحقيقيّ}
+
+في الفصول السابقة رأينا كيف يُقسَّم النظام إلى طبقات، وكيف يمرّ كل طلب عبر
+\en{CQRS}، وكيف تُنشِر العملياتُ أحداثًا دوميّة، وكيف نعزل العالَم الخارجيّ خلف
+منافذ ومحوّلات (\en{ports/adapters}). في هذا الفصل نطبّق كل ذلك على ميزتين
+«حيّتين» بطبيعتهما: \textbf{مكالمة الفيديو} بين الطالب والمستشار، و\textbf{الدفع
+اللحظيّ} للإشعارات والمحادثة عبر \en{SignalR}. الميزتان مختلفتان في التقنية لكنهما
+تتشاركان الفكرة نفسها: النظام لا «يستضيف» الوسائط بنفسه، بل ينسّق بين المستخدم
+وخدمة سحابية متخصّصة، ويحتفظ هو فقط بالحقائق المهمّة (مَن حضر؟ متى؟ أين التسجيل؟).
+
+\begin{idea}[الفكرة: النظام مُنسِّق لا خادم وسائط]
+مكالمة الفيديو تجري بين متصفّحَي المشاركَين وخدمة \en{Azure Communication Services}
+(نسمّيها اختصارًا \en{ACS}). خادمُنا \en{.NET} لا يمرّر بايتات الصوت أو الصورة أبدًا؛
+كل ما يفعله هو: إنشاء «غرفة»، إصدار رمز دخول قصير العمر لكل طرف، وطلب بدء التسجيل.
+هذا يجعل الحِمل على خادمنا خفيفًا جدًّا، ويترك أمور الترميز والشبكة لِمن يُتقِنها.
+\end{idea}
+
+\subsection{الغرفة التي بلا خادم: منفذ \en{IMeetingService}}
+
+كل تعامل مع \en{ACS} يمرّ عبر منفذ واحد اسمه \code{IMeetingService}. في الإنتاج
+يُختار المحوّل \code{AzureCommunicationMeetingService} تلقائيًّا حين يكون مفتاح
+الإعداد \code{Acs:ConnectionString} مضبوطًا؛ وفي التطوير — حيث لا نملك اشتراك
+\en{ACS} — يُحقَن بديل بسيط اسمه \code{StubMeetingService} يُرجِع قيمًا وهميّة حتى
+تعمل الشاشات بلا اتصال حقيقيّ. هذا هو نفس نمط المنافذ الذي رأيناه من قبل: تبديل
+المزوّد قرارُ \emph{إعداد} لا قرار \emph{كود}.
+
+النقطة المفاجئة أوّل مرّة: \textbf{«الغرفة» ليست كائنًا على الخادم}. الغرفة مجرّد
+مُعرِّف مكالمة جماعية في \en{ACS}، أي \en{group-call id} وهو ببساطة \en{GUID}. حين
+يقبل المستشار الحجز، نولّد هذا المُعرِّف ونحفظه على صفّ الحجز، ولا شيء غير ذلك:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// A booking's "room" is just an ACS group-call id (a GUID).
+public Task<MeetingRoom> CreateRoomAsync(Guid bookingId, CancellationToken ct)
+    => Task.FromResult(new MeetingRoom(Guid.NewGuid().ToString()));
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه في السطر ده: الدالة \code{CreateRoomAsync} لا تتّصل بأي خدمة إطلاقًا — إنّها
+فقط تُنشئ \en{GUID} جديدًا (\code{Guid.NewGuid}) وتغلّفه في كائن \code{MeetingRoom}
+وتُعيده فورًا. لا يوجد نداء شبكة، لا كائن غرفة يُحجَز، لا موارد تُستهلَك مسبقًا.
+الغرفة «توجد» بمجرّد أن يعرف الطرفان مُعرِّفها.
+
+\begin{why}
+لماذا غرفة بلا خادم؟ لأنّ إنشاء كائنات غرف مسبقًا لكل حجز يعني موارد محجوزة قد لا
+تُستخدَم أبدًا (المستشار قد يرفض، أو ينسى الطالب). المُعرِّف الكسول (\en{lazy}) يعني
+أنّنا لا ندفع شيئًا حتى لحظة الانضمام الفعليّ. وإن كان المُعرِّف مفقودًا لسبب ما
+(سجلّ قديم)، تُنشئ الواجهةُ الخلفية غرفةً جديدة عند الانضمام — بلا تدخّل يدويّ.
+\end{why}
+
+\subsection{الانضمام: رمز وصول لكل مشارك ونافذة \en{$\pm$15} دقيقة}
+
+معرفة مُعرِّف الغرفة وحدها لا تكفي للدخول. عند ضغط «انضمّ»، يتحقّق النظام أوّلًا من
+\textbf{نافذة الانضمام}: يُسمَح بالدخول فقط ضمن \en{$\pm$15} دقيقة حول موعد الجلسة
+المجدوَل (القيمتان \code{JoinOpensBefore} و\code{JoinClosesAfter} كلاهما 15 دقيقة).
+قبل ذلك تظهر رسالة «لم تُفتَح بعد»، وبعده «أُغلِقت الغرفة». ثمّ — والأهمّ — يُصدِر
+النظام \textbf{رمز وصول مؤقّتًا لكل مستخدم على حدة} من هويّة \en{ACS}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public async Task<MeetingAccessToken> IssueAccessTokenAsync(
+    string roomId, Guid userId, CancellationToken ct)
+{
+    var result = await _identityClient
+        .CreateUserAndTokenAsync(new[] { CommunicationTokenScope.VoIP }, ct)
+        .ConfigureAwait(false);
+
+    return new MeetingAccessToken(
+        RoomId: roomId,
+        Token: result.Value.AccessToken.Token,
+        AcsUserId: result.Value.User.Id,
+        ExpiresAt: result.Value.AccessToken.ExpiresOn);
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه هنا سطرًا-بسطر:
+\begin{itemize}
+\item \code{CreateUserAndTokenAsync} تُنشئ هويّة \en{ACS} مؤقّتة \emph{وتُصدِر لها رمزًا}
+  في نداء واحد. النطاق المطلوب هو \code{CommunicationTokenScope.VoIP} فقط — أي «صوت
+  وفيديو»، لا صلاحيّة أوسع.
+\item الرمز الناتج (\code{AccessToken.Token}) هو ما تأخذه الواجهةُ لتدخل به المكالمة،
+  ومعه \code{AcsUserId} الذي يميّز المشارك داخل \en{ACS}.
+\item \code{ExpiresOn} تحمل لحظة انتهاء الصلاحيّة: الرمز قصير العمر (مدّته نحو ساعتين)،
+  وهي أكثر من كافية لجلسة أقصاها 60 دقيقة.
+\end{itemize}
+
+\begin{secnote}
+\textbf{رمز الفيديو = بيانات اعتماد.} أي شخص يحمل الرمز يستطيع الدخول للمكالمة، ولهذا
+نُصدِر رمزًا \emph{لكل مشارك} مقصورًا على \en{VoIP} وينتهي سريعًا. النتيجة: لو تسرّب
+رمزٌ، فهو عديم الفائدة بعد انتهاء الجلسة، ولا يمكن «إعادة تشغيله» في مكالمة أخرى.
+لاحظ أيضًا أنّنا لا نسلّم المُعرِّف والرمز إلّا للطرفين المصرَّح لهما عبر نقطة
+الانضمام المحميّة — لا عبر أي رابط عامّ.
+\end{secnote}
+
+\begin{qa}
+\textbf{سؤال متوقّع:} «لماذا لا تُصدِرون رمزًا واحدًا للغرفة وتشاركونه؟» لأنّ الرمز
+المشترَك لا يمكن إبطاله لطرفٍ دون الآخر، ولا يميّز مَن دخل. الرمز لكل مستخدم يربط
+الدخول بهويّة، ويجعل تتبّع الحضور دقيقًا، ويقلّص أثر أي تسريب إلى مستخدم واحد ولمدّة
+قصيرة فقط.
+\end{qa}
+
+\subsection{التسجيل والحضور و«الغياب»}
+
+بمجرّد أن تتّصل المكالمة فعليًّا، تطلب الواجهةُ بدءَ التسجيل. التسجيل في \en{ACS}
+يتمّ عبر خدمة \en{Call Automation}، ونادينا لها بسيط:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public async Task<string> StartRecordingAsync(string serverCallId, CancellationToken ct)
+{
+    var result = await _callAutomationClient.GetCallRecording()
+        .StartAsync(new StartRecordingOptions(new ServerCallLocator(serverCallId)), ct)
+        .ConfigureAwait(false);
+    return result.Value.RecordingId;   // handle to the running recording
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه: نمرّر \code{serverCallId} — وهو مُعرِّف المكالمة الجارية كما يراه الخادم —
+إلى \code{StartAsync}، فيبدأ \en{ACS} بتسجيل الجلسة إلى تخزين \en{Blob}، ويُعيد لنا
+\code{RecordingId} وهو «مقبض» للتسجيل الجاري نحتفظ به. بعد انتهاء الجلسة، نحفظ صفّ
+\code{SessionRecording} يحمل مسار التخزين وحجم الملفّ، ونستطيع لاحقًا تنزيل التسجيل
+بثًّا عبر \code{DownloadRecordingAsync}، فيظهر للطالب زرّ تنزيل \en{MP4}.
+
+أمّا \textbf{الحضور}، فهو حقائق نحرص على تسجيلها على صفّ الحجز نفسه:
+\begin{itemize}
+\item \code{StudentJoinedAt} و\code{ConsultantJoinedAt}: لحظة أوّل دخول لكل طرف
+  (متطلَّب \en{FR-217}).
+\item \code{RecordingStartedAt}: لحظة بدء التسجيل (\en{PB-006}).
+\item \code{NoShowMarkedAt}: تُضبَط حين تكتشف مهمّةٌ خلفيّة أنّ طرفًا لم يحضر.
+\end{itemize}
+
+\begin{keyp}[نقطة مهمة: مَن يكتشف الغياب؟]
+مهمّة خلفيّة دوريّة اسمها \code{MeetingNoShowSweepJob} تمرّ على الحجوزات المنتهية،
+فتقارن أوقات الدخول: إن لم يحضر طرفٌ ضِمن النافذة، تُعلِّم الحجز بـ\en{no-show}
+(تضبط \code{NoShowMarkedAt}) وتُطلِق منطق الاسترداد المناسب. أي أنّ «الغياب» ليس
+حُكمًا يدويًّا بل نتيجة قياس آليّ على أوقات دخول مسجَّلة بدقّة.
+\end{keyp}
+
+\subsection{التدفّق الكامل في 12 خطوة}
+
+الجدول التالي يجمع كل ما سبق في رحلة واحدة، من لحظة قبول الحجز حتى تنزيل ملفّ
+\en{MP4}. المراحل ملوّنة ذهنيًّا: \textbf{القبول} (خطوات 1–3)، \textbf{التحقّق
+والرمز} (4–7)، \textbf{الواجهة و\en{SDK}} (8–10)، ثمّ \textbf{التسجيل والحفظ}
+(11–12).
+
+\begin{center}
+\begin{tabular}{C{0.9cm} L{13.0cm}}
+\toprule
+\textbf{\color{spPrimary}\#} & \textbf{\color{spPrimary}الخطوة} \\
+\midrule
+1 & المستشار يقبل الحجز، فيعمل الأمر \code{AcceptBookingCommand}. \\
+2 & المعالِج ينادي \code{IMeetingService.CreateRoomAsync} فيتولّد \code{roomId} من نوع \en{GUID}. \\
+3 & يُحفَظ \code{MeetingRoomId} في \en{SQL}، ويُنشَر \code{BookingConfirmedEvent} فيصل إشعار للطالب. \\
+4 & ضمن نافذة \en{$\pm$15} دقيقة من الموعد، يضغط الطالب أو المستشار «انضمّ». \\
+5 & الأمر \code{RecordMeetingJoinCommand} يتحقّق من النافذة، ثمّ ينادي \code{IssueAccessTokenAsync}. \\
+6 & \en{ACS} عبر \code{CreateUserAndTokenAsync} بنطاق \en{VoIP} يُصدِر رمزًا قصير العمر (نحو ساعتين). \\
+7 & الواجهةُ تستقبل \code{roomId} و\code{accessToken} و\code{acsUserId}. \\
+8 & \en{ACS Calling SDK}: إنشاء \code{CallClient} ثمّ \code{createCallAgent} ثمّ \code{agent.join} بـ\code{groupId}. \\
+9 & طلب أذونات الأجهزة، تعداد الكاميرات، إنشاء \code{LocalVideoStream} وعرضه. \\
+10 & عند \code{Connected}، تنادي الواجهةُ نقطةَ بدء التسجيل مرسِلةً \code{serverCallId}. \\
+11 & \code{StartRecordingAsync} يبدأ التسجيل إلى \en{Blob} ويُعيد \code{RecordingId}. \\
+12 & بعد الجلسة: يُحفَظ صفّ \code{SessionRecording}، ويستطيع الطالب تنزيل \en{MP4}. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{note}
+لاحظ أنّ التسجيل يبدأ من \emph{الواجهة} عند لحظة الاتصال، لا من الخادم مسبقًا. هذا
+مقصود: لا معنى لتسجيل غرفة فارغة، والبدء عند \code{Connected} يضمن أنّ هناك مكالمة
+حيّة فعلًا. والنداء مُصمَّم ليكون آمنًا للتكرار (\en{idempotent})، فلو أطلقه الطرفان
+معًا لا يبدأ تسجيلان.
+\end{note}
+
+\subsection{الواجهة: تكامل \en{ACS Calling SDK} في \en{Meeting.tsx}}
+
+الآن نرى الجانب الآخر من نقطة الانضمام: ملفّ \code{Meeting.tsx} في الواجهة. بعد أن
+يوافق المستخدم على إشعار التسجيل (بوّابة الموافقة \en{CONSENT-01})، يبدأ الكود
+الحقيقيّ التالي (مختصَر):
+
+\begin{english}
+\begin{lstlisting}[language=Java]
+const join = await meetingsApi.join(bookingId!);
+// When ACS isn't configured the server issues a stub token.
+if (join.provider === "Stub") {
+  throw new Error(t("bookings:meeting.errorNotConfigured"));
+}
+
+const callClient = new CallClient();
+const credential = new AzureCommunicationTokenCredential(join.accessToken);
+const agent = await callClient.createCallAgent(credential, { displayName });
+// ... ask device permissions, pick a camera, build localStream ...
+
+const call = agent.join(
+  { groupId: join.roomId },
+  { videoOptions: { localVideoStreams: localStream ? [localStream] : [] },
+    audioOptions: { muted: false } },
+);
+
+// Start the recording once the call is actually connected (idempotent).
+call.on("stateChanged", () => {
+  if (call.state === "Connected") void ensureRecording();
+});
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه في هذا المقتطف:
+\begin{itemize}
+\item \code{meetingsApi.join} يطلب من الخادم بيانات الدخول؛ لو كان المزوّد
+  \code{Stub} (بيئة تطوير) نرمي رسالة صريحة «الفيديو غير مُهيَّأ» بدل خطأ غامض من
+  الـ\en{SDK}.
+\item ننشئ \code{CallClient} ونغلّف الرمز في \code{AzureCommunicationTokenCredential}،
+  ثمّ نصنع «وكيلًا» (\code{createCallAgent}) هو مَن يجري المكالمات باسمنا.
+\item الانضمام هو \code{agent.join} مع \code{groupId: join.roomId} — هنا يظهر بوضوح
+  أنّ الغرفة مجرّد مُعرِّف مجموعة، ونمرّر خيارات الفيديو والصوت.
+\item نستمع لتغيّر الحالة، وعند \code{Connected} فقط نستدعي \code{ensureRecording}
+  التي تجلب \code{serverCallId} وتطلب بدء التسجيل من الخادم.
+\end{itemize}
+
+\begin{secnote}
+لاحظ بوّابة \en{CONSENT-01}: لا ينضمّ المستخدم — ومن ثمّ لا يبدأ أي تسجيل — قبل أن
+يوافق صراحةً على أنّ الجلسة مسجَّلة. المؤثّر (\en{effect}) الذي يشغّل الانضمام لا
+يعمل إلّا بعد قلب علامة الموافقة إلى «نعم»، فلا شيء يدخل الغرفة قبل الموافقة. هذه
+حماية للخصوصيّة مبنيّة في التصميم لا مضافة لاحقًا.
+\end{secnote}
+
+\subsection{الزمن الحقيقيّ: \en{SignalR} وثلاثة \en{hubs}}
+
+الجزء الثاني من الفصل يخصّ الدفع اللحظيّ للأحداث النصّية: رسالة محادثة جديدة، إشعار
+حجز، تفاعل مجتمعيّ. هنا نستخدم \en{SignalR} عبر ثلاثة \en{hubs}، كلّها ترث قاعدةً
+واحدة مُوثَّقة (\code{AuthenticatedHub} المعلَّمة بـ\code{[Authorize]})، فلا يتّصل
+بها إلّا مستخدم يحمل \en{JWT} صالحًا. الجدول يلخّص مَن يفعل ماذا:
+
+\begin{center}
+\begin{tabular}{L{3.0cm} L{6.6cm} L{4.0cm}}
+\toprule
+\textbf{\color{spPrimary}الـ\en{hub}} & \textbf{\color{spPrimary}الأحداث المدفوعة} & \textbf{\color{spPrimary}من يستخدمه} \\
+\midrule
+\code{ChatHub} & رسالة جديدة، مؤشّر الكتابة، الحضور (\en{online/offline}) & محادثات المجتمع الخاصّة \\
+\code{NotificationHub} & تأكيد حجز، دفعة معالَجة، تذكير موعد & كل الأدوار \\
+\code{CommunityHub} & ردود وتفاعلات جديدة، انضمام للأقسام والمواضيع & موجز المجتمع \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+كيف يصل الحدث إلى مستخدم بعينه؟ الفكرة أنّ كل اتّصال جديد يُضاف إلى «مجموعة» خاصّة
+بصاحبه. في \code{NotificationHub} مثلًا، عند الاتّصال نضيف الاتّصال إلى مجموعة اسمها
+\code{user:<userId>}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public override async Task OnConnectedAsync()
+{
+    // Await the group-add: a notification fired right after connect must not
+    // race past the join and miss the recipient.
+    if (Context.UserIdentifier is not null)
+    {
+        await Groups.AddToGroupAsync(
+            Context.ConnectionId, $"user:{Context.UserIdentifier}");
+    }
+    await base.OnConnectedAsync();
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه: \code{Context.UserIdentifier} هو مُعرِّف المستخدم المستخرَج من الـ\en{JWT}.
+نضيف اتّصاله الحاليّ إلى مجموعة \code{user:<id>}، \emph{وننتظر} إتمام الإضافة
+(\code{await}) لا نطلقها ونمضي؛ لأنّ إشعارًا يُدفَع بعد الاتّصال مباشرةً قد «يسبق»
+انضمام المجموعة فيضيع على صاحبه ثمّ يظهر لاحقًا كأنّه مكرَّر.
+
+بعد ذلك، الدفعُ نفسه سطرٌ واحد من أي خدمة تحمل \code{IHubContext}. هذا مثال حقيقيّ
+من موزّع الإشعارات، يدفع للمجموعة الخاصّة بالمستخدم المستهدَف:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+await hub.Clients.Group($"user:{row.RecipientUserId}")
+    .SendAsync("notification", new
+    {
+        id = row.Id,
+        type = row.Type.ToString(),
+        row.TitleEn,
+        row.TitleAr,
+        row.DeepLink,
+        createdAt = DateTimeOffset.UtcNow,
+    }, ct);
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه: نأخذ \code{hub} (من نوع \code{IHubContext<NotificationHub>})، نستهدف
+مجموعة المستخدم، ونرسل حدثًا باسم \code{notification} يحمل حمولة \en{JSON} بسيطة.
+على الواجهة، خطّاف \en{React} يستمع لهذا الاسم فيحدّث الحالة فورًا — فيظهر الإشعار
+دون أن يُحدِّث المستخدم الصفحة. لاحظ أنّنا نرسل العنوان بالعربية والإنجليزية معًا
+(\code{TitleAr} و\code{TitleEn})، فتختار الواجهةُ لغة العرض.
+
+\begin{why}
+لماذا مجموعة \code{user:<id>} بدل استهداف اتّصال بعينه؟ لأنّ للمستخدم الواحد قد تكون
+عدّة تبويبات أو أجهزة متّصلة في آنٍ. الدفع للمجموعة يصل إلى \emph{كل} جلساته الحيّة
+مرّة واحدة، وهو المكافئ العمليّ لِنمط \code{Clients.User(id).SendAsync}. وحين نحتاج
+دفعًا لطرفَي محادثة أو لمشتركي موضوع، نستخدم مجموعات أخرى مثل
+\code{conversation:<id>} و\code{forum-post:<id>}.
+\end{why}
+
+\begin{secnote}
+الاشتراك في المجموعات ليس مفتوحًا: قبل أن ينضمّ عميلٌ لمجموعة محادثة أو موضوع، يتحقّق
+الـ\en{hub} أنّ صاحب الـ\en{JWT} طرفٌ فعليّ فيها (بوّابة \en{SEC-02})، وإلّا يرمي
+\en{HubException}. بغير هذا التحقّق كان أي مستخدم مصادَق يستطيع الاشتراك في
+\code{conversation:<id>} والتنصّت على رسائل خاصّة — لذا الاشتراك نفسه محميٌّ لا الدفع
+فقط.
+\end{secnote}
+
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item مكالمة الفيديو تمرّ عبر منفذ \code{IMeetingService} (محوّل
+  \code{AzureCommunicationMeetingService} في الإنتاج، \code{StubMeetingService} في
+  التطوير)، ويُختار بالإعداد \code{Acs:ConnectionString}.
+\item «الغرفة» = \en{ACS group-call id} أي \en{GUID}، بلا كائن خادم؛ تُنشأ كسولًا
+  عند القبول.
+\item عند الانضمام: نافذة \en{$\pm$15} دقيقة، ورمز وصول \en{VoIP} قصير العمر (نحو ساعتين)
+  \emph{لكل مشارك} عبر \code{CreateUserAndTokenAsync} — لأنّ رمز الفيديو بيانات
+  اعتماد.
+\item التسجيل عبر \en{Call Automation} (\code{StartRecordingAsync} \en{$\rightarrow$}
+  \code{RecordingId}) يُحفَظ كـ\code{SessionRecording} + \en{Blob}؛ والحضور
+  (\code{StudentJoinedAt}/\code{ConsultantJoinedAt}) يقوده \code{MeetingNoShowSweepJob}
+  لاكتشاف \en{no-show}.
+\item الواجهة \code{Meeting.tsx} تنضمّ بـ\code{groupId}، تعرض الكاميرا، وتبدأ التسجيل
+  عند \code{Connected} خلف بوّابة موافقة \en{CONSENT-01}.
+\item الزمن الحقيقيّ عبر ثلاثة \en{hubs} (\code{ChatHub}/\code{NotificationHub}/%
+  \code{CommunityHub}) مصادَقة بـ\en{JWT}؛ الدفع سطرٌ واحد عبر \code{IHubContext}
+  إلى مجموعة \code{user:<id>}، والاشتراك في المجموعات محميّ (\en{SEC-02}).
+\end{itemize}
+\end{summary}

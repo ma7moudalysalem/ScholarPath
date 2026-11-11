@@ -1,0 +1,756 @@
+' =====================================================================
+'  ScholarPath — COMPLETE Conceptual EERD, single diagram (Chen / Elmasri notation)
+'  Follows Elmasri & Navathe Fig. 3.14:
+'     rectangle = entity type       diamond = relationship type
+'     oval      = attribute         underlined oval = key attribute
+'     double oval <<multi>>         = multivalued attribute
+'     dashed oval <<derived>>       = derived / computed attribute
+'     double line (=) = TOTAL participation     single line (-) = partial
+'     1 / N            = cardinality ratio on each relationship edge
+'  All entities are STRONG (own surrogate Guid Id); existence-dependence of
+'  detail/child rows is expressed through TOTAL participation, not weak-entity
+'  double-rectangles (same decision as the per-area Chen diagrams).
+'
+'  SCOPE — verified against the live EF Core model 2026-07-05
+'  (server/src/ScholarPath.Domain/Entities/*.cs + the EF Core migration
+'  snapshot). Covers every non-payment persistent entity in the system.
+'
+'  DELIBERATELY EXCLUDED (product decision — payments are hidden end-to-end
+'  while the platform runs in free mode; see docs/diagrams/01-EERD.md §6 for
+'  the full payment-area EERD kept for reference):
+'    - Entities: Payment, Payout, StripeWebhookEvent, ProfitShareConfig,
+'      FinancialConfigRule, ScholarshipProviderReviewPayment (legacy/dead).
+'    - Relationships/FKs into the above from Booking and from
+'      ScholarshipProviderReviewRequest (both had a nullable PaymentId FK).
+'    - Every monetary attribute that only exists to price/settle those
+'      payment flows: Booking.PriceUsd, Booking.StripePaymentIntentId,
+'      UserProfile.SessionFeeUsd, UserProfile.StripeConnect*,
+'      Scholarship.ReviewFeeUsd, ScholarshipProviderReviewRequest.
+'      ReviewFeeUsdSnapshot/Currency.
+'    - KEPT: Scholarship.FundingAmountUsd — this is the external award value
+'      the scholarship itself grants a student; it is descriptive scholarship
+'      data, not a figure ScholarPath charges or processes, so it stays.
+'
+'  ATTRIBUTE SCOPE: to stay legible at this size, every entity also carries
+'  (and this diagram omits) the framework columns CreatedAt, UpdatedAt,
+'  RowVersion and — where the entity is soft-deletable — IsDeleted/DeletedAt/
+'  DeletedByUserId. Only Id (the surrogate key) and business/domain
+'  attributes are drawn. Foreign keys are conveyed by the relationship
+'  diamonds, not repeated as attribute ovals (authentic Chen practice).
+' =====================================================================
+@startchen EERD_Complete
+
+' ---------------------------------------------------------------------
+' ZONE 1 — Identity, Access & Profile
+' ---------------------------------------------------------------------
+entity USER {
+  Id <<key>>
+  Email
+  FirstName
+  LastName
+  AccountStatus
+  ActiveRole
+  IsOnboardingComplete
+  PreferredLanguage
+  CountryOfResidence
+  LastLoginAt
+}
+entity ROLE {
+  Id <<key>>
+  Name
+  Description
+}
+entity USER_PROFILE {
+  Id <<key>>
+  Biography
+  DateOfBirth
+  Nationality
+  AcademicLevel
+  FieldOfStudy
+  Gpa
+  PreferredCountries <<multi>>
+  PreferredFields <<multi>>
+  BookingAccessStatus
+  BookingBlockReason
+  BookingBlockUntil
+  OrganizationLegalName
+  OrganizationVerificationStatus
+  ScholarshipProviderType
+  ScholarshipProviderAverageRating <<derived>>
+  ScholarshipProviderReviewCount <<derived>>
+  ProfessionalTitle
+  FieldOfExpertise
+  YearsOfExperience
+  ExpertiseTags <<multi>>
+  Languages <<multi>>
+  SessionDurationMinutes
+  ConsultantAverageRating <<derived>>
+  ConsultantReviewCount <<derived>>
+  ConsultantRatingPenaltyFactor <<derived>>
+  ProfileCompletenessPercent <<derived>>
+}
+entity EDUCATION_ENTRY {
+  Id <<key>>
+  InstitutionName
+  Degree
+  FieldOfStudy
+  StartDate
+  EndDate
+  Gpa
+}
+entity EXPERTISE_TAG {
+  Id <<key>>
+  Slug
+  NameEn
+  NameAr
+  Category
+}
+entity REFRESH_TOKEN {
+  Id <<key>>
+  TokenHash
+  ExpiresAt
+  IsRevoked
+  RevokedAt
+}
+entity PASSWORD_RESET_TOKEN {
+  Id <<key>>
+  TokenHash
+  ExpiresAt
+  UsedAt
+}
+entity LOGIN_ATTEMPT {
+  Id <<key>>
+  Email
+  Succeeded
+  FailureReason
+  OccurredAt
+}
+entity UPGRADE_REQUEST {
+  Id <<key>>
+  Target
+  Status
+  Reason
+  ReviewerNotes
+  ReviewedAt
+}
+entity UPGRADE_REQUEST_FILE {
+  Id <<key>>
+  FileName
+  BlobUrl
+}
+entity UPGRADE_REQUEST_LINK {
+  Id <<key>>
+  Label
+  Url
+}
+
+' ---------------------------------------------------------------------
+' ZONE 2 — Scholarships, Applications & Documents
+' ---------------------------------------------------------------------
+' NOTE ON THE 5 STUB BOXES BELOW (USER_SCH / USER_BK / USER_COM / USER_RES /
+' USER_AI): USER is a hub entity connected across every zone. Drawing all ~30
+' of its relationships into ONE box collapses the whole poster into a single
+' unreadable row (verified while laying this out). Instead the SAME physical
+' USER / Users table is repeated once per zone as an empty reference box —
+' full attributes are drawn only once, in Zone 1. This is a layout device
+' only; it does not add a table or change any relationship semantics.
+entity "USER" as USER_SCH {
+  Id <<key>>
+}
+entity CATEGORY {
+  Id <<key>>
+  Slug
+  NameEn
+  NameAr
+  DisplayOrder
+}
+entity SCHOLARSHIP {
+  Id <<key>>
+  Slug
+  TitleEn
+  TitleAr
+  Mode
+  Status
+  Deadline
+  FundingType
+  FundingAmountUsd
+  TargetLevel
+  IsFeatured
+}
+entity SCHOLARSHIP_CHILD {
+  Id <<key>>
+  ChildType
+  KeyEn
+  ValueEn
+  SortOrder
+}
+entity SAVED_SCHOLARSHIP {
+  Id <<key>>
+  SavedAt
+  Note
+}
+entity APPLICATION {
+  Id <<key>>
+  Status
+  Mode
+  SubmittedAt
+  DecisionAt
+  PersonalNotes
+  ExternalTitle
+  ExternalProvider
+}
+entity APPLICATION_CHILD {
+  Id <<key>>
+  ChildType
+  Title
+  Content
+  OccurredAt
+}
+entity DOCUMENT {
+  Id <<key>>
+  FileName
+  Category
+  StoragePath
+  UploadedAt
+}
+entity SCHOLARSHIP_PROVIDER_REVIEW {
+  Id <<key>>
+  Rating
+  Comment
+  IsHiddenByAdmin
+}
+entity SCHOLARSHIP_PROVIDER_REVIEW_REQUEST {
+  Id <<key>>
+  Status
+  SubmittedAt
+  CompletedAt
+}
+
+' ---------------------------------------------------------------------
+' ZONE 3 — Consultant Booking & Ratings
+' ---------------------------------------------------------------------
+entity "USER" as USER_BK {
+  Id <<key>>
+}
+entity AVAILABILITY {
+  Id <<key>>
+  DayOfWeek
+  StartTime
+  EndTime
+  Timezone
+  IsRecurring
+  IsActive
+}
+entity BOOKING {
+  Id <<key>>
+  ScheduledStartAt
+  ScheduledEndAt
+  DurationMinutes
+  MeetingRoomId
+  Status
+  CancellationReason
+  IsNoShowStudent
+  IsNoShowConsultant
+}
+entity NO_SHOW_REPORT {
+  Id <<key>>
+  AccusedRole
+  Status
+  ResolvedAt
+  AdminNote
+  ReporterNote
+}
+entity CONSULTANT_REVIEW {
+  Id <<key>>
+  Rating
+  Comment
+  IsHiddenByAdmin
+}
+entity SESSION_RECORDING {
+  Id <<key>>
+  RecordingId
+  StoragePath
+  ContentType
+  RecordedAt
+}
+
+' ---------------------------------------------------------------------
+' ZONE 4 — Community & Chat
+' ---------------------------------------------------------------------
+entity "USER" as USER_COM {
+  Id <<key>>
+}
+entity FORUM_CATEGORY {
+  Id <<key>>
+  Slug
+  NameEn
+  NameAr
+  DisplayOrder
+  IsActive
+}
+entity FORUM_POST {
+  Id <<key>>
+  BodyMarkdown
+  ModerationStatus
+  UpvoteCount <<derived>>
+  DownvoteCount <<derived>>
+  FlagCount <<derived>>
+  ReplyCount <<derived>>
+  IsAutoHidden
+}
+entity FORUM_POST_ATTACHMENT {
+  Id <<key>>
+  FileName
+  BlobUrl
+  ContentType
+}
+entity FORUM_VOTE {
+  Id <<key>>
+  VoteType
+  VotedAt
+}
+entity FORUM_FLAG {
+  Id <<key>>
+  Reason
+  FlaggedAt
+  IsValid
+}
+entity FORUM_BOOKMARK {
+  Id <<key>>
+  CreatedAt
+}
+entity FORUM_TAG {
+  Id <<key>>
+  Slug
+  Name
+}
+entity CONVERSATION {
+  Id <<key>>
+  LastMessageAt
+  IsArchivedForParticipantOne
+  IsArchivedForParticipantTwo
+}
+entity MESSAGE {
+  Id <<key>>
+  Body
+  SentAt
+  ReadAt
+}
+entity USER_BLOCK {
+  Id <<key>>
+  BlockedAt
+  Reason
+}
+
+' ---------------------------------------------------------------------
+' ZONE 5 — Resources Hub & Notifications
+' ---------------------------------------------------------------------
+entity "USER" as USER_RES {
+  Id <<key>>
+}
+entity RESOURCE {
+  Id <<key>>
+  Slug
+  TitleEn
+  TitleAr
+  Type
+  Status
+  AuthorRole
+  IsFeatured
+  PublishedAt
+}
+entity RESOURCE_CHAPTER {
+  Id <<key>>
+  TitleEn
+  SortOrder
+  EstimatedReadMinutes
+}
+entity RESOURCE_BOOKMARK {
+  Id <<key>>
+  BookmarkedAt
+}
+entity RESOURCE_PROGRESS {
+  Id <<key>>
+  ChaptersCompletedCount <<derived>>
+  LastAccessedAt
+}
+entity RESOURCE_PROGRESS_CHILD {
+  Id <<key>>
+  IsCompleted
+  CompletedAt
+}
+entity NOTIFICATION {
+  Id <<key>>
+  Type
+  Channel
+  IsRead
+  Priority
+  DispatchedAt
+}
+entity NOTIFICATION_PREFERENCE {
+  Id <<key>>
+  Type
+  Channel
+  IsEnabled
+}
+
+' ---------------------------------------------------------------------
+' ZONE 6 — AI, Knowledge Base & Platform / Cross-cutting
+' ---------------------------------------------------------------------
+entity "USER" as USER_AI {
+  Id <<key>>
+}
+entity AI_INTERACTION {
+  Id <<key>>
+  Feature
+  Provider
+  SessionId
+  PromptTokens
+  CompletionTokens
+  CostUsd <<derived>>
+}
+entity RECOMMENDATION_CLICK_EVENT {
+  Id <<key>>
+  ClickedAt
+  Source
+}
+entity AI_REDACTION_AUDIT_SAMPLE {
+  Id <<key>>
+  SampledAt
+  Verdict
+  ReviewedAt
+}
+entity KNOWLEDGE_DOCUMENT {
+  Id <<key>>
+  SourceType
+  SourceKey
+  TitleEn
+  ContentHash
+  EmbeddingDimensions
+}
+entity PLATFORM_SETTING {
+  Id <<key>>
+  SettingKey
+  Value
+  ValueType
+  Category
+}
+entity SUCCESS_STORY {
+  Id <<key>>
+  AuthorDisplayName
+  HeadlineEn
+  IsApproved
+  IsFeatured
+}
+entity USER_RISK_FLAG {
+  Id <<key>>
+  Score <<derived>>
+  IsAtRisk
+  Reason
+  ComputedAt
+}
+entity AUDIT_LOG {
+  Id <<key>>
+  Action
+  TargetType
+  OccurredAt
+  Summary
+}
+entity USER_DATA_REQUEST {
+  Id <<key>>
+  Type
+  Status
+  RequestedAt
+  CompletedAt
+}
+
+' =====================================================================
+' RELATIONSHIP TYPES (diamonds)
+' =====================================================================
+relationship HAS_PROFILE {
+}
+relationship HAS_ROLE {
+}
+relationship HAS_EDU {
+}
+relationship ISSUES {
+}
+relationship RESETS {
+}
+relationship ATTEMPTS {
+}
+relationship REQUESTS_UPG {
+}
+relationship HAS_FILE {
+}
+relationship HAS_LINK {
+}
+
+relationship CLASSIFIES {
+}
+relationship OWNS {
+}
+relationship HAS_DETAIL {
+}
+relationship SAVES {
+}
+relationship SAVES_SCH {
+}
+relationship SUBMITS {
+}
+relationship FOR_SCH {
+}
+relationship HAS_HISTORY {
+}
+relationship OWNS_DOC {
+}
+relationship SUPPORTS {
+}
+relationship RAISES {
+}
+relationship FULFILS {
+}
+relationship UNDER {
+}
+relationship RATED_BY {
+}
+relationship AUTHORS_REV {
+}
+relationship RECEIVES_REV {
+}
+
+relationship PUBLISHES {
+}
+relationship BOOKS {
+}
+relationship CONDUCTS {
+}
+relationship RESERVES {
+}
+relationship REPORTED_IN {
+}
+relationship FILES_REPORT {
+}
+relationship ACCUSED_IN {
+}
+relationship RATED_SESSION {
+}
+relationship REVIEWS_AS_STUDENT {
+}
+relationship REVIEWED_AS_CONSULTANT {
+}
+relationship RECORDED_AS {
+}
+
+relationship GROUPS {
+}
+relationship AUTHORS_POST {
+}
+relationship REPLIES {
+}
+relationship ATTACHES {
+}
+relationship RECEIVES_VOTE {
+}
+relationship RECEIVES_FLAG {
+}
+relationship SAVED_IN_FORUM {
+}
+relationship TAGS {
+}
+relationship PARTICIPATES {
+}
+relationship CONTAINS {
+}
+relationship BLOCKS {
+}
+relationship TARGETED_BY {
+}
+
+relationship AUTHORS_RES {
+}
+relationship SPLIT_INTO {
+}
+relationship SAVED_IN_RES {
+}
+relationship TRACKED_IN {
+}
+relationship PER_CHAPTER {
+}
+relationship RECEIVES_NOTIF {
+}
+relationship CONFIGURES {
+}
+
+relationship INVOKES {
+}
+relationship CLICKS {
+}
+relationship CLICKED {
+}
+relationship FROM_AI {
+}
+relationship SAMPLED {
+}
+relationship SUBJECT_OF {
+}
+relationship REVIEWS_SAMPLE {
+}
+relationship SCORED {
+}
+relationship ACTOR_OF {
+}
+relationship RAISES_DATA_REQ {
+}
+relationship STARS_IN {
+}
+
+' =====================================================================
+' EDGES — cardinality (1/N) + participation (=total / -partial)
+' =====================================================================
+
+' --- Zone 1: Identity ---
+USER -1- HAS_PROFILE
+HAS_PROFILE =1= USER_PROFILE
+USER -N- HAS_ROLE
+HAS_ROLE -N- ROLE
+USER_PROFILE -1- HAS_EDU
+HAS_EDU =N= EDUCATION_ENTRY
+USER -1- ISSUES
+ISSUES =N= REFRESH_TOKEN
+USER -1- RESETS
+RESETS =N= PASSWORD_RESET_TOKEN
+USER -1- ATTEMPTS
+ATTEMPTS -N- LOGIN_ATTEMPT
+USER -1- REQUESTS_UPG
+REQUESTS_UPG =N= UPGRADE_REQUEST
+UPGRADE_REQUEST -1- HAS_FILE
+HAS_FILE =N= UPGRADE_REQUEST_FILE
+UPGRADE_REQUEST -1- HAS_LINK
+HAS_LINK =N= UPGRADE_REQUEST_LINK
+
+' --- Zone 2: Scholarships / Applications ---
+CATEGORY -1- CLASSIFIES
+CLASSIFIES -N- SCHOLARSHIP
+USER_SCH -1- OWNS
+OWNS -N- SCHOLARSHIP
+SCHOLARSHIP -1- HAS_DETAIL
+HAS_DETAIL =N= SCHOLARSHIP_CHILD
+USER_SCH -1- SAVES
+SAVES -N- SAVED_SCHOLARSHIP
+SCHOLARSHIP -1- SAVES_SCH
+SAVES_SCH =N= SAVED_SCHOLARSHIP
+USER_SCH -1- SUBMITS
+SUBMITS =N= APPLICATION
+APPLICATION -N- FOR_SCH
+FOR_SCH -1- SCHOLARSHIP
+APPLICATION -1- HAS_HISTORY
+HAS_HISTORY =N= APPLICATION_CHILD
+USER_SCH -1- OWNS_DOC
+OWNS_DOC =N= DOCUMENT
+APPLICATION -1- SUPPORTS
+SUPPORTS -N- DOCUMENT
+USER_SCH -1- RAISES
+RAISES =N= SCHOLARSHIP_PROVIDER_REVIEW_REQUEST
+USER_SCH -1- FULFILS
+FULFILS =N= SCHOLARSHIP_PROVIDER_REVIEW_REQUEST
+SCHOLARSHIP -1- UNDER
+UNDER =N= SCHOLARSHIP_PROVIDER_REVIEW_REQUEST
+APPLICATION -1- RATED_BY
+RATED_BY =1= SCHOLARSHIP_PROVIDER_REVIEW
+USER_SCH -1- AUTHORS_REV
+AUTHORS_REV =N= SCHOLARSHIP_PROVIDER_REVIEW
+USER_SCH -1- RECEIVES_REV
+RECEIVES_REV =N= SCHOLARSHIP_PROVIDER_REVIEW
+
+' --- Zone 3: Booking / Consultant ---
+USER_BK -1- PUBLISHES
+PUBLISHES =N= AVAILABILITY
+USER_BK -1- BOOKS
+BOOKS =N= BOOKING
+USER_BK -1- CONDUCTS
+CONDUCTS =N= BOOKING
+AVAILABILITY -1- RESERVES
+RESERVES -N- BOOKING
+BOOKING -1- REPORTED_IN
+REPORTED_IN =N= NO_SHOW_REPORT
+USER_BK -1- FILES_REPORT
+FILES_REPORT =N= NO_SHOW_REPORT
+USER_BK -1- ACCUSED_IN
+ACCUSED_IN =N= NO_SHOW_REPORT
+BOOKING -1- RATED_SESSION
+RATED_SESSION =1= CONSULTANT_REVIEW
+USER_BK -1- REVIEWS_AS_STUDENT
+REVIEWS_AS_STUDENT =N= CONSULTANT_REVIEW
+USER_BK -1- REVIEWED_AS_CONSULTANT
+REVIEWED_AS_CONSULTANT =N= CONSULTANT_REVIEW
+BOOKING -1- RECORDED_AS
+RECORDED_AS =N= SESSION_RECORDING
+
+' --- Zone 4: Community / Chat ---
+FORUM_CATEGORY -1- GROUPS
+GROUPS -N- FORUM_POST
+USER_COM -1- AUTHORS_POST
+AUTHORS_POST =N= FORUM_POST
+FORUM_POST -1- REPLIES
+REPLIES -N- FORUM_POST
+FORUM_POST -1- ATTACHES
+ATTACHES =N= FORUM_POST_ATTACHMENT
+FORUM_POST -1- RECEIVES_VOTE
+RECEIVES_VOTE =N= FORUM_VOTE
+FORUM_POST -1- RECEIVES_FLAG
+RECEIVES_FLAG =N= FORUM_FLAG
+FORUM_POST -1- SAVED_IN_FORUM
+SAVED_IN_FORUM =N= FORUM_BOOKMARK
+FORUM_POST -N- TAGS
+TAGS -N- FORUM_TAG
+USER_COM -N- PARTICIPATES
+PARTICIPATES -N- CONVERSATION
+CONVERSATION -1- CONTAINS
+CONTAINS =N= MESSAGE
+USER_COM -1- BLOCKS
+BLOCKS -N- USER_BLOCK
+USER_COM -1- TARGETED_BY
+TARGETED_BY -N- USER_BLOCK
+
+' --- Zone 5: Resources / Notifications ---
+USER_RES -1- AUTHORS_RES
+AUTHORS_RES =N= RESOURCE
+RESOURCE -1- SPLIT_INTO
+SPLIT_INTO =N= RESOURCE_CHAPTER
+RESOURCE -1- SAVED_IN_RES
+SAVED_IN_RES =N= RESOURCE_BOOKMARK
+RESOURCE -1- TRACKED_IN
+TRACKED_IN =N= RESOURCE_PROGRESS
+RESOURCE_PROGRESS -1- PER_CHAPTER
+PER_CHAPTER =N= RESOURCE_PROGRESS_CHILD
+USER_RES -1- RECEIVES_NOTIF
+RECEIVES_NOTIF -N- NOTIFICATION
+USER_RES -1- CONFIGURES
+CONFIGURES -N- NOTIFICATION_PREFERENCE
+
+' --- Zone 6: AI / Knowledge / Platform ---
+USER_AI -1- INVOKES
+INVOKES -N- AI_INTERACTION
+USER_AI -1- CLICKS
+CLICKS =N= RECOMMENDATION_CLICK_EVENT
+SCHOLARSHIP -1- CLICKED
+CLICKED =N= RECOMMENDATION_CLICK_EVENT
+AI_INTERACTION -1- FROM_AI
+FROM_AI -N- RECOMMENDATION_CLICK_EVENT
+AI_INTERACTION -1- SAMPLED
+SAMPLED =1= AI_REDACTION_AUDIT_SAMPLE
+USER_AI -1- SUBJECT_OF
+SUBJECT_OF =N= AI_REDACTION_AUDIT_SAMPLE
+USER_AI -1- REVIEWS_SAMPLE
+REVIEWS_SAMPLE -N- AI_REDACTION_AUDIT_SAMPLE
+USER_AI -1- SCORED
+SCORED =1= USER_RISK_FLAG
+USER_AI -1- ACTOR_OF
+ACTOR_OF -N- AUDIT_LOG
+USER_AI -1- RAISES_DATA_REQ
+RAISES_DATA_REQ -N- USER_DATA_REQUEST
+USER_AI -1- STARS_IN
+STARS_IN -N- SUCCESS_STORY
+
+@endchen

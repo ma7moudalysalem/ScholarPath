@@ -1,0 +1,360 @@
+% ch00-primer
+\section{من الصفر: يعني إيه نظام برمجيّ؟}
+
+أهلًا بك في أوّل فصل من الكتاب. لو أنت لا تعرف أيّ شيء عن البرمجة، فأنت في المكان
+الصحيح تمامًا. هدفنا هنا بسيط: أن تُغلق هذا الفصل وأنت فاهم \emph{إيه هو} نظام
+\en{ScholarPath}، ومن أيّ قطع كبيرة يتكوّن، وكيف تتكلّم هذه القطع مع بعضها. مش هنغرق
+في تفاصيل تقنية عميقة دلوقتي؛ ده مجرّد تمهيد نبني عليه باقي الفصول. خُد نفَسًا، وتعال
+نمشي \emph{واحدة واحدة}.
+
+\subsection{إيه هو \en{ScholarPath} أصلًا؟}
+
+تخيّل طالبًا مصريًّا في سنته الأخيرة بالجامعة، عايز يكمّل دراسته بمنحة في الخارج. هو
+يعرف أنّ المنح موجودة، لكنّه \emph{تايه}: المنح متناثرة على عشرات المواقع بلغات
+مختلفة، ومواعيد التقديم متضاربة، والأوراق المطلوبة غامضة، ولا يوجد من يرشده هل هو
+مؤهَّل أصلًا لهذه المنحة أم لا. النتيجة المعتادة: يضيع الميعاد، أو يقدّم بشكل ناقص،
+أو ييأس ويستسلم.
+
+\begin{idea}[الفكرة: ما هو \en{ScholarPath}؟]
+\en{ScholarPath} هو \textbf{منصّة إلكترونية} (موقع ويب) تجمع رحلة المنحة الدراسية
+كلّها في مكان واحد. المنصّة \textbf{تكتشف} المنح المناسبة للطالب، و\textbf{تتابع} خطوات
+تقديمه عليها، وتتيح له \textbf{حجز جلسة فيديو} مع استشاريّ متخصّص (جلسة مدفوعة)، وفيها
+\textbf{مجتمع} يسأل فيه ويتناقش، و\textbf{مساعد ذكاء اصطناعيّ} يجاوب على أسئلته.
+والمنصّة \textbf{ثنائية اللغة}: تعمل بالعربية (من اليمين لليسار) وبالإنجليزية.
+\end{idea}
+
+المنصّة تخدم \textbf{أربعة أنواع من المستخدمين}، ونسمّي كلّ نوع \en{«role»} أي «دور».
+كلّ دور يرى شاشات مختلفة وله صلاحيّات مختلفة:
+
+\begin{center}
+\begin{tabular}{L{3.2cm} L{9cm}}
+\toprule
+\textbf{\color{spPrimary}الدور} & \textbf{\color{spPrimary}بيعمل إيه على المنصّة} \\
+\midrule
+الطالب \en{(Student)} & يبحث عن المنح، يتابع تقديماته، يحجز جلسات استشاريّ، يشارك في المجتمع، ويسأل المساعد الذكيّ. \\
+الاستشاريّ \en{(Consultant)} & خبير يعرض أوقاته المتاحة، يستقبل الحجوزات، ويقدّم جلسات فيديو مدفوعة للطلاب. \\
+الجهة المانحة \en{(Scholarship Provider)} & تنشر منحها على المنصّة، وتراجع طلبات الطلاب الخاصّة بها. \\
+الأدمن \en{(Admin)} & المشرف الذي يوافق على المحتوى، يدير المستخدمين، ويراقب سلامة المنصّة. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{keyp}[نقطة مهمة: حجم النظام]
+\en{ScholarPath} ليس تطبيقًا صغيرًا. هو مقسَّم إلى \textbf{18 وحدة كبرى} (نسمّيها
+\en{modules} أو \en{epics}) مرقّمة من \en{PB-001} إلى \en{PB-018}، تغطّي الرحلة كاملة
+من إنشاء الحساب حتى تحليلات البيانات. وبلغة الأرقام: 211 \textbf{متطلَّبًا وظيفيًّا}
+(\en{functional requirement})، و203 \textbf{حالة استخدام} (\en{use case})،
+و159 \textbf{قصّة مستخدم} (\en{user story}). لا تقلق من هذه المصطلحات الآن — هي مجرّد
+طرق منظَّمة لكتابة «النظام لازم يعمل كذا».
+\end{keyp}
+
+\subsection{يعني إيه برنامج ويب؟ الصالة والمطبخ والمخزن}
+
+أيّ موقع ويب تتعامل معه (فيسبوك، بنكك، \en{ScholarPath}) يتكوّن في الحقيقة من
+\textbf{ثلاث قطع كبيرة} تتعاون. أسهل طريقة لفهمها هي تشبيه \textbf{المطعم}:
+
+\begin{center}
+\begin{tabular}{L{3.4cm} L{4.3cm} L{4.6cm}}
+\toprule
+\textbf{\color{spPrimary}في المطعم} & \textbf{\color{spPrimary}في النظام} & \textbf{\color{spPrimary}وظيفته} \\
+\midrule
+الصالة والجرسون & الواجهة \en{(Frontend)} & ما تراه وتلمسه في المتصفّح: الأزرار، الشاشات، النماذج. \\
+المطبخ & الخلفية \en{(Backend)} & يستقبل «الطلبات»، ينفّذ قواعد العمل، ويجهّز النتيجة. \\
+المخزن والثلّاجة & قاعدة البيانات \en{(Database)} & تخزّن كلّ شيء بشكل دائم: المستخدمون، المنح، الحجوزات. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{idea}[الفكرة: كيف تتعاون القطع الثلاث؟]
+عندما تطلب أكلة، أنت لا تدخل المطبخ ولا المخزن بنفسك. تقول للجرسون (الواجهة) ما تريد،
+الجرسون ينقل الطلب للمطبخ (الخلفية)، المطبخ يأخذ المكوّنات من المخزن (قاعدة البيانات)،
+يطبخها، ثمّ يعيد الطبق للجرسون الذي يضعه أمامك. \textbf{الواجهة} تعيش داخل متصفّحك على
+جهازك، بينما \textbf{الخلفية} و\textbf{قاعدة البيانات} تعيشان على حاسوب بعيد قويّ اسمه
+\en{«server»} (الخادم).
+\end{idea}
+
+\begin{note}
+لماذا نفصل هذا الفصل؟ لأنّ لكلّ قطعة أدوات مختلفة. واجهة \en{ScholarPath} مكتوبة بلغة
+\en{React} وتعمل في المتصفّح، وخلفيّته مكتوبة بلغة \en{C\#} على منصّة \en{.NET}،
+وقاعدة بياناته هي \en{SQL Server}. سنشرح كلّ اسم من هذه بعد قليل.
+\end{note}
+
+\subsection{يعني إيه \en{API}؟ ورحلة ضغطة زرّ واحدة}
+
+طيب، بأيّ «لغة» يتكلّم الجرسون مع المطبخ؟ في عالم الويب، الواجهة والخلفية يتكلّمان
+عبر ما يُسمّى \en{API}.
+
+\begin{idea}[الفكرة: ما هو \en{API}؟]
+\en{API} اختصار لـ \en{Application Programming Interface}، أي \textbf{«واجهة برمجية»}.
+تخيّلها \textbf{قائمة الطعام} في المطعم: قائمة محدَّدة من الطلبات المسموح بها، ولكلّ طلب
+شكل معروف. الواجهة لا تكلّم قاعدة البيانات مباشرة أبدًا؛ هي فقط تطلب من الخلفية عبر هذه
+القائمة. مثلًا: «هات لي المنح صفحة رقم 1»، أو «احجز الجلسة الفلانية».
+\end{idea}
+
+وكلّ طلب-وردّ بينهما يمشي على بروتوكول اسمه \en{HTTP}. الطلب اسمه \en{request}،
+والردّ اسمه \en{response}. لِنتتبَّع معًا \textbf{رحلة ضغطة زرّ واحدة}: الطالب فتح صفحة
+المنح وضغط «بحث».
+
+\begin{enumerate}
+\item \textbf{المتصفّح (الواجهة)} يجهّز \en{request} ويرسله للخلفية: «\en{GET} المنح».
+\item \textbf{الخلفية} تستقبل الطلب، وتتأكّد أنّ المستخدم مسجَّل الدخول (صلاحيّات).
+\item الخلفية تسأل \textbf{قاعدة البيانات}: «هات المنح المنشورة، صفحة 1».
+\item قاعدة البيانات ترجع الصفوف، والخلفية تحوّلها إلى \en{response} بصيغة \en{JSON}.
+\item المتصفّح يستقبل الردّ ويرسم بطاقات المنح على الشاشة. كلّ ذلك في أقلّ من ثانية.
+\end{enumerate}
+
+\begin{note}[ما هو \en{JSON}؟]
+\en{JSON} هي طريقة قياسية لكتابة البيانات كنصّ منظَّم بين أقواس، يفهمها الطرفان بسهولة.
+هي «لغة التغليف» التي يسافر بها الردّ من الخلفية إلى الواجهة.
+\end{note}
+
+خلّينا نشوف الشكل التوضيحيّ للطلب والردّ. \textbf{المقتطف التالي توضيحيّ فقط} (مبسَّط
+لنفهم الشكل، وليس منسوخًا من ملفّ):
+
+\begin{english}
+\begin{lstlisting}[language={}]
+// Request — the browser asks the server for scholarships
+GET /api/scholarships?page=1&fundedOnly=true
+Accept-Language: ar
+
+// Response — the server replies (200 OK) with JSON
+{
+  "items": [
+    { "id": "a1b2-3c4d", "title": "Chevening", "fundingType": "FullyFunded" }
+  ],
+  "totalCount": 42
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه في المقتطف ده؟ السطر الأوّل \code{GET /api/scholarships} هو \emph{الطلب}: كلمة
+\en{GET} تعني «هات لي» (قراءة بيانات)، والباقي هو العنوان مع فلاتر البحث. السطر
+\code{Accept-Language: ar} يقول للخلفية «أنا عايز الردّ بالعربي». ثمّ يأتي \emph{الردّ}:
+الرقم \code{200} معناه «تمام، نجح الطلب»، وبعده كتلة \en{JSON} فيها قائمة \code{items}
+(المنح) وعددها الكلّي \code{totalCount}.
+
+الآن نرى \textbf{الكود الحقيقيّ} من المشروع الذي يقوم بهذا الطلب. أوّلًا من جهة
+\textbf{الواجهة}: هذا المقتطف من ملفّ الخدمة \code{client/src/services/api/scholarships.ts}
+الذي يرسل الطلب فعلًا:
+
+\begin{english}
+\begin{lstlisting}[language=Java]
+const { data } = await apiClient.get<PaginatedListWireDto<ScholarshipWireDto>>(
+  "/api/scholarships",
+  { params },
+);
+return {
+  items: data.items.map(toListItem),
+  total: data.totalCount,
+  totalPages: data.totalPages,
+};
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه هنا؟ الدالة \code{apiClient.get} هي «الجرسون» الذي يذهب للخلفية على العنوان
+\code{"/api/scholarships"} ومعه فلاتر البحث \code{params}. كلمة \code{await} معناها «استنّى
+الردّ يرجع». عندما يعود الردّ نأخذ منه \code{data.items} (قائمة المنح) ونجهّزها لعرضها.
+
+وفي \textbf{الجهة المقابلة} على الخلفية، هذا هو الجزء الذي \emph{يستقبل} الطلب، من ملفّ
+\code{ScholarshipsController.cs}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+[HttpGet]
+public async Task<ActionResult<PaginatedList<ScholarshipDto>>> Get(
+    [FromQuery] GetScholarshipsQuery query)
+{
+    // read the requested language from the Accept-Language header
+    var headerLang = Request.Headers["Accept-Language"].ToString()
+        .Split(',').FirstOrDefault() ?? "en";
+    var lang = headerLang.StartsWith("ar",
+        StringComparison.OrdinalIgnoreCase) ? "ar" : "en";
+
+    var updatedQuery = query with { Language = lang };
+    return await mediator.Send(updatedQuery);
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه هنا؟ السطر \code{[HttpGet]} يقول «هذه الدالة تردّ على طلبات \en{GET}». الدالة
+اسمها \code{Get} وتستقبل شروط البحث في \code{query}. السطرين في الوسط يقرآن ترويسة
+\code{Accept-Language} ليعرفا هل يردّ بالعربي أم الإنجليزي. أخيرًا \code{mediator.Send}
+يمرّر الطلب للطبقة الداخلية التي تجلب البيانات وترجعها. لاحظ التطابق الجميل: الواجهة
+نادت \code{"/api/scholarships"}، وهنا \code{[HttpGet]} على نفس العنوان يردّ عليها.
+
+\begin{secnote}
+لاحظ سطر \code{Request.Headers} وقبله التحقّق من تسجيل الدخول (الصفة \en{[Authorize]} على
+هذا المتحكِّم). في \en{ScholarPath} \emph{لا يُقدَّم أيّ شيء دون التأكّد من هوية المستخدم
+وصلاحيّته} — قاعدة أمان أساسية اسمها «البوّابة المغلقة» \en{(gated)}.
+\end{secnote}
+
+\subsection{يعني إيه «طبقة» \en{(layer)}؟ ولماذا نقسّم الكود؟}
+
+لاحظت في المقتطف السابق أنّ المتحكِّم لم يجلب البيانات بنفسه، بل «مرّرها للطبقة
+الداخلية». هذه فكرة محورية في \en{ScholarPath} اسمها \textbf{الطبقات} \en{(layers)}.
+
+\begin{idea}[الفكرة: لماذا طبقات؟]
+بدل أن نكتب كلّ شيء (شكل الشاشة + قواعد العمل + كلام قاعدة البيانات) في مكان واحد
+متشابك، نقسّم الكود إلى \textbf{طبقات} لكلٍّ منها مسؤولية واحدة واضحة. تخيّل المطعم مرة
+أخرى: الجرسون لا يطبخ، والطبّاخ لا يزرع الخضار. هذا الفصل يجعل الكود \textbf{أسهل في
+الفهم، والاختبار، والتعديل} دون كسر باقي أجزاء النظام.
+\end{idea}
+
+خلفيّة \en{ScholarPath} مقسَّمة إلى \textbf{أربع طبقات}، والقلب فيها هو طبقة \code{Domain}.
+هذا مقتطف حقيقيّ من قلب النظام، من ملفّ \code{ScholarPath.Domain/Entities/Scholarships.cs}،
+يمثّل «المنحة» ككائن أعمال خالص:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public class Scholarship : AuditableEntity, ISoftDeletable
+{
+    public string TitleEn { get; set; } = default!;
+    public string TitleAr { get; set; } = default!;   // bilingual title
+    public ScholarshipStatus Status { get; set; } = ScholarshipStatus.Draft;
+    public DateTimeOffset Deadline { get; set; }
+    public FundingType FundingType { get; set; }
+    public decimal? FundingAmountUsd { get; set; }
+    // ... more properties omitted
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه هنا؟ هذا الكائن \code{Scholarship} يصف «ما هي المنحة»: لها عنوان بالعربي
+\code{TitleAr} وبالإنجليزي \code{TitleEn}، وحالة \code{Status} (مسودّة، منشورة...)، وميعاد
+نهائيّ \code{Deadline}، ونوع تمويل \code{FundingType}. المهمّ: هذا الكائن \textbf{لا يعرف
+أيّ شيء} عن قاعدة البيانات ولا عن الشاشات — هو قواعد عمل خالصة. سنتعمّق في هذا التصميم
+(اسمه \en{Clean Architecture}) في الفصل التالي؛ يكفيك الآن أن تعرف \emph{أنّ} الكود
+مقسَّم لطبقات، وأنّ \code{Domain} هي القلب.
+
+\subsection{يعني إيه سحابة \en{(cloud)} و\en{Azure}؟}
+
+قلنا إنّ الخلفية وقاعدة البيانات تعيشان على «خادم بعيد». لكن مَن يملك هذا الخادم؟
+هنا تأتي فكرة \textbf{السحابة} \en{(cloud)}.
+
+\begin{idea}[الفكرة: ما هي السحابة؟]
+«السحابة» ببساطة تعني \textbf{حواسيب شركة كبيرة نستأجرها عبر الإنترنت}، بدل أن نشتري
+خوادم ونضعها في غرفة عندنا. ندفع مقابل ما نستخدمه فقط، وهم يتولّون الكهرباء والتبريد
+والصيانة. \en{ScholarPath} يعيش على سحابة \textbf{مايكروسوفت} اسمها \en{Azure}.
+\end{idea}
+
+نستخدم من \en{Azure} عدّة خدمات، كلمة واحدة لكلٍّ منها: \en{App Service} (يشغّل
+الخلفية)، \en{SQL Database} (قاعدة البيانات)، \en{Blob Storage} (تخزين الملفّات
+المرفوعة)، \en{Azure OpenAI} (محرّك الذكاء الاصطناعيّ)، و\en{Key Vault} (خزنة كلمات
+السرّ). لا داعي لحفظها الآن؛ ستقابلها تباعًا في فصول لاحقة.
+
+\subsection{مكوّنات المنصّة: مَن يعمل ماذا}
+
+جمعنا في الجدول التالي \textbf{أهمّ التقنيات} التي يقوم عليها \en{ScholarPath}، بسطر
+مبسَّط لكلّ واحدة. ستراها مرارًا في الكتاب، فلا بأس أن تعود لهذا الجدول كلّما نسيت:
+
+\begin{center}
+\begin{tabular}{L{3cm} L{9.2cm}}
+\toprule
+\textbf{\color{spPrimary}التقنية} & \textbf{\color{spPrimary}بتعمل إيه} \\
+\midrule
+\en{.NET 10} & المنصّة (بلغة \en{C\#}) التي تُبنى عليها الخلفية كلّها. \\
+\en{React 19} & المكتبة (بلغة \en{TypeScript}) التي تُبنى بها الواجهة في المتصفّح. \\
+\en{SQL Server} & قاعدة البيانات التي تخزّن كلّ شيء في جداول. \\
+\en{Azure OpenAI} & محرّك الذكاء الاصطناعيّ الذي يشغّل المساعد الذكيّ ويجاوب الأسئلة. \\
+\en{Stripe} & بوّابة الدفع الآمنة التي تُحصِّل ثمن جلسات الاستشاريّ بالبطاقة. \\
+\en{SignalR} & القناة الفورية للتحديثات اللحظية: الدردشة والإشعارات دون تحديث الصفحة. \\
+\en{Hangfire} & مدبّر المهام الخلفية المجدولة (تذكيرات، تنظيف، معالجة مؤجَّلة). \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{بنية المشروع على القرص}
+
+كفاية نظريّة، تعال نفتح المشروع فعلًا. الكود مقسَّم إلى جزأين كبيرين على القرص:
+مجلَّد \code{server/} للخلفية، ومجلَّد \code{client/} للواجهة. هذه هي شجرة \textbf{الخلفية}
+الحقيقية، وفيها الطبقات الأربع التي تكلّمنا عنها:
+
+\begin{english}
+\begin{lstlisting}[language={}]
+server/src/
+|-- ScholarPath.Domain/           # the core: entities + business rules
+|   |-- Entities/  Enums/  Events/  Interfaces/  Exceptions/
+|-- ScholarPath.Application/       # use cases: Commands / Queries
+|   |-- Scholarships/  Applications/  ConsultantBookings/  AI/  ...
+|-- ScholarPath.Infrastructure/    # database + external services
+|   |-- Persistence/  Migrations/  Services/  Hubs/  Jobs/
+`-- ScholarPath.API/               # entry point: Controllers + Middleware
+    |-- Controllers/  Middleware/  Program.cs  appsettings.json
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه هنا؟ القراءة من الداخل للخارج: \code{Domain} هي القلب (كائنات مثل
+\code{Scholarship} الذي رأيناه). \code{Application} فيها «حالات الاستخدام» مقسَّمة حسب
+الموديول (مجلَّد \code{Scholarships}، مجلَّد \code{ConsultantBookings}...). \code{Infrastructure}
+تتكلّم مع قاعدة البيانات والخدمات الخارجية. و\code{API} هي المدخل الذي تصل إليه طلبات
+الويب — وفيها مجلَّد \code{Controllers} حيث يعيش المتحكِّم الذي رأيناه.
+
+وهذه شجرة \textbf{الواجهة} (\code{client/src}) باختصار:
+
+\begin{english}
+\begin{lstlisting}[language={}]
+client/src/
+|-- pages/         # one folder per role: student/ consultant/ company/ admin/
+|-- components/    # reusable UI pieces (buttons, cards, forms)
+|-- services/      # api/ + signalR/  (these talk to the backend)
+|-- hooks/  stores/  routes/  locales/  theme/  types/
+`-- App.tsx  main.tsx
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه هنا؟ مجلَّد \code{pages} فيه مجلَّد لكلّ دور (\code{student}، \code{consultant}...).
+مجلَّد \code{components} فيه القطع القابلة لإعادة الاستخدام. والأهمّ لموضوعنا: مجلَّد
+\code{services} فيه \code{api} — ومنه جاء المقتطف \code{apiClient.get} الذي يكلّم الخلفية.
+مجلَّد \code{locales} يحمل ترجمات العربية والإنجليزية.
+
+\begin{qa}
+\textbf{سؤال متوقَّع:} ليه الواجهة والخلفية في مجلَّدين منفصلين وبلغتين مختلفتين؟
+\newline
+\textbf{الإجابة:} لأنّهما يعملان في بيئتين مختلفتين — الواجهة داخل متصفّح المستخدم
+والخلفية على الخادم — ولكلٍّ منهما أدواته المثلى. الفصل يسمح لفريق الواجهة وفريق
+الخلفية بالعمل بالتوازي، ويسمح باستبدال أيّ جهة دون كسر الأخرى، طالما بقيت لغة الحوار
+بينهما (\en{API}) ثابتة.
+\end{qa}
+
+\subsection{إزاي تقرأ الكتاب ده — خريطة الـ 3 ساعات}
+
+الكتاب 10 فصول، ومصمَّم بحيث تفهم النظام كاملًا في نحو \textbf{3 ساعات}. لست مضطرًّا
+لحفظ أيّ شيء؛ فقط اقرأ بالترتيب، وتوقّف عند الصناديق الملوّنة — فهي تلخّص أهمّ الأفكار.
+إليك خريطة تقريبية للوقت:
+
+\begin{center}
+\begin{tabular}{L{4.5cm} L{5cm} C{2.4cm}}
+\toprule
+\textbf{\color{spPrimary}المرحلة} & \textbf{\color{spPrimary}تتعلّم فيها} & \textbf{\color{spPrimary}وقت تقريبيّ} \\
+\midrule
+هذا الفصل (0) & الصورة الكبيرة والمصطلحات & 20 دقيقة \\
+البنية والطبقات & \en{Clean Architecture} والتدفّق & 40 دقيقة \\
+الموديولات الأساسية & المنح، التقديم، الحجز، الدفع & 70 دقيقة \\
+الميزات المتقدّمة & الذكاء الاصطناعيّ، الفوريّة، التحليلات & 40 دقيقة \\
+مراجعة وربط & الأمان والصورة النهائية & 10 دقائق \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{note}[كيف تستفيد من الصناديق]
+الصندوق \textbf{الأزرق} يشرح فكرة، و\textbf{الأخضر} يبرّر قرار تصميم، و\textbf{البنفسجيّ}
+نقطة أساسية أو سؤال مناقشة، و\textbf{البرتقاليّ} زاوية أمان. لو كنت مستعجلًا، اقرأ
+العناوين والصناديق فقط — تكفي لأخذ فكرة سريعة.
+\end{note}
+
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item \en{ScholarPath} منصّة ويب ثنائية اللغة تحلّ تِيه الطالب في عالم المنح: اكتشاف،
+متابعة تقديم، حجز جلسات استشاريّ بالفيديو (مدفوعة)، مجتمع، ومساعد ذكاء اصطناعيّ.
+\item أربعة أدوار: الطالب، الاستشاريّ، الجهة المانحة، والأدمن — كلٌّ يرى ما يخصّه.
+\item أيّ نظام ويب = \textbf{واجهة} في المتصفّح + \textbf{خلفية} على الخادم +
+\textbf{قاعدة بيانات} للتخزين (الصالة + المطبخ + المخزن).
+\item الواجهة والخلفية يتحاوران عبر \en{API} برسائل \en{HTTP}: \en{request} يخرج،
+و\en{response} بصيغة \en{JSON} يعود — كلّ ذلك في أقلّ من ثانية عند ضغطة زرّ.
+\item الكود مقسَّم إلى \textbf{طبقات}؛ قلب الخلفية هو طبقة \code{Domain} التي لا تعرف
+شيئًا عن الشاشات أو قاعدة البيانات. تفاصيل ذلك في الفصل التالي.
+\item يعيش النظام على سحابة \en{Azure}، ويقوم على \en{.NET 10} و\en{React 19}
+و\en{SQL Server}، بمساعدة \en{Stripe} و\en{SignalR} و\en{Hangfire} و\en{Azure OpenAI}.
+\item على القرص: \code{server/src} فيه الطبقات الأربع، و\code{client/src} فيه الواجهة.
+\end{itemize}
+\end{summary}

@@ -1,0 +1,112 @@
+@startchen erd_module_2
+skinparam DefaultFontName Segoe UI
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam titleFontSize 24
+skinparam titleFontStyle bold
+title ScholarPath ERD  —  Module 2: Scholarships, Applications & Documents
+entity CATEGORY {
+  Id <<key>>
+  Slug
+  Name
+}
+entity SCHOLARSHIP {
+  Id <<key>>
+  Slug
+  Title
+  Mode
+  Status
+  Deadline
+  TargetCountries <<multi>>
+  FieldsOfStudy <<multi>>
+}
+entity SCHOLARSHIP_CHILD <<weak>> {
+  ChildType <<key>>
+}
+entity APPLICATION {
+  Id <<key>>
+  Status
+  Mode
+}
+entity APPLICATION_CHILD <<weak>> {
+  ChildType <<key>>
+}
+entity DOCUMENT {
+  Id <<key>>
+  Category
+}
+entity SCHOLARSHIP_PROVIDER_REVIEW {
+  Id <<key>>
+  Rating
+}
+entity SCHOLARSHIP_PROVIDER_REVIEW_REQUEST {
+  Id <<key>>
+  Status
+}
+entity USER {
+  Id <<key>>
+}
+relationship CLASSIFIES {
+}
+relationship OWNS {
+}
+relationship DETAILS {
+}
+relationship SAVES {
+  SavedAt
+  Note
+}
+relationship SUBMITS {
+}
+relationship FOR {
+}
+relationship HISTORY {
+}
+relationship OWNS_DOC {
+}
+relationship SUPPORTS {
+}
+relationship RAISES {
+}
+relationship FULFILS {
+}
+relationship UNDER {
+}
+relationship RATED_BY {
+}
+relationship WRITES {
+}
+relationship ABOUT {
+}
+CATEGORY -1- CLASSIFIES
+CLASSIFIES -N- SCHOLARSHIP
+USER -1- OWNS
+OWNS -N- SCHOLARSHIP
+SCHOLARSHIP -1- DETAILS
+DETAILS =N= SCHOLARSHIP_CHILD
+USER -M- SAVES
+SAVES -N- SCHOLARSHIP
+USER -1- SUBMITS
+SUBMITS =N= APPLICATION
+APPLICATION -N- FOR
+FOR -1- SCHOLARSHIP
+APPLICATION -1- HISTORY
+HISTORY =N= APPLICATION_CHILD
+USER -1- OWNS_DOC
+OWNS_DOC =N= DOCUMENT
+APPLICATION -1- SUPPORTS
+SUPPORTS -N- DOCUMENT
+USER -1- RAISES
+RAISES =N= SCHOLARSHIP_PROVIDER_REVIEW_REQUEST
+USER -1- FULFILS
+FULFILS =N= SCHOLARSHIP_PROVIDER_REVIEW_REQUEST
+SCHOLARSHIP -1- UNDER
+UNDER =N= SCHOLARSHIP_PROVIDER_REVIEW_REQUEST
+APPLICATION -1- RATED_BY
+RATED_BY =1= SCHOLARSHIP_PROVIDER_REVIEW
+USER -1- WRITES
+WRITES =N= SCHOLARSHIP_PROVIDER_REVIEW
+USER -1- ABOUT
+ABOUT =N= SCHOLARSHIP_PROVIDER_REVIEW
+@endchen

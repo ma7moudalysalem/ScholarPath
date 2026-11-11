@@ -1,0 +1,57 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #333333
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #DAE8FC
+  ParticipantBorderColor #6C8EBF
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor black
+  ActorBorderColor #6C8EBF
+  ActorBackgroundColor #DAE8FC
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+}
+title Block User
+actor Student as ST
+participant "Chat" as PAGE
+participant "chatApi" as API
+participant "ChatController" as CTRL
+participant "BlockUserCommand" as CMD
+participant "UserBlock" as BLOCK
+ST -> PAGE ++ : block user
+PAGE -> API ++ : POST blocks
+API -> CTRL ++ : block(targetUserId)
+CTRL -> CMD ++ : execute()
+alt blocking self
+  CMD --> CTRL : throw ConflictException
+  CTRL --> API : 409 Conflict
+  API --> PAGE : error
+  PAGE --> ST : show block error
+else valid (new or already blocked)
+  opt not already blocked
+    CMD -> BLOCK ++ : create UserBlock (BlockerId, BlockedUserId)
+    BLOCK --> CMD -- : stored
+    CMD -> CMD : disable messaging both ways; enforce Community block
+  end
+  CMD --> CTRL : done (idempotent)
+  CTRL --> API : 204 No Content
+  API --> PAGE : blocked
+  PAGE --> ST : block applied
+end
+deactivate CMD
+deactivate PAGE
+note over CMD, BLOCK
+  A duplicate block is idempotent (no error, returns
+  true) - it is NOT rejected. Success returns 204
+  No Content. The block also applies in Community:
+  the two users cannot view or reply to each other's
+  posts.
+end note
+@enduml

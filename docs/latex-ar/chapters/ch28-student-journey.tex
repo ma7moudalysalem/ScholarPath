@@ -1,0 +1,486 @@
+% ch28-student-journey
+\section{يوم في حياة النظام: رحلة طالبة كاملة (وكيف يردّ الآخرون)}
+
+كل فصل سابق شرح جزءًا: الطبقات، و\en{CQRS}، والأمان، والأحداث، والدفع،
+والذكاء الاصطناعيّ، والزمن الحقيقيّ. هذا الفصل مختلف: لن نضيف مفهومًا جديدًا،
+بل نربط كل ما سبق في قصّة واحدة متّصلة. سنتابع طالبة اسمها «سارة» من
+لحظة إنشاء حسابها حتى تسأل مساعد الذكاء الاصطناعيّ سؤالًا، وعند كل خطوة نسأل
+ثلاثة أسئلة: أيّ \en{command} أو \en{query} يعمل؟ أيّ \en{handler} ينفّذه؟ وماذا
+يفعل الدور الآخر (أدمن، أو استشاريّ، أو جهة مانحة) ردًّا على فِعل سارة؟
+
+\begin{idea}[الفكرة: النظام سلسلة أفعال وردود]
+كل ما يحدث في \en{ScholarPath} هو أمرٌ يغيّر الحالة (\en{command})، أو استعلامٌ
+يقرأها (\en{query}). لكن الأمر لا يعيش وحده: كثيرٌ منه يُطلق حدثًا دوميًّا
+(\en{domain event}) بعد نجاحه، وهذا الحدث يوقظ دورًا آخر في الطرف المقابل. رحلة
+سارة إذًا ليست خطًّا مستقيمًا، بل حوارٌ متبادَل بين أربعة أدوار.
+\end{idea}
+
+\subsection{خريطة اليوم: الرحلة في لمحة}
+
+قبل التفاصيل، هذه خريطة الرحلة كلها. إحدى عشرة محطّة، ملوّنة حسب المرحلة: التسجيل،
+ثم الاكتشاف والذكاء الاصطناعيّ، ثم التقديم، ثم الحجز والدفع، ثم الجلسة، ثم المجتمع.
+اقرأيها من أعلى لأسفل — كل صندوق يذكر الأمر الذي يعمل والدور الذي يردّ.
+
+\begin{center}
+\begin{LTR}
+\begin{tikzpicture}[node distance=0.26cm]
+  \node[wbox,fill=spLightGreen,draw=spWhy!50] (a1)
+    {\small 1 — سارة تُنشئ حسابها وتؤكّد بريدها \en{(ASP.NET Identity)}};
+  \node[wbox,below=0.26cm of a1,fill=spLightGreen,draw=spWhy!50] (a2)
+    {\small 2 — تُكمل ملفها والـ \en{onboarding}: المستوى والمجالات والدول المفضّلة};
+  \node[wbox,below=0.26cm of a2,fill=spLightPurple,draw=spQA!45] (a3)
+    {\small 3 — الذكاء الاصطناعيّ يقترح منحًا ويفحص الأهليّة \en{(LocalAiService)}};
+  \node[wbox,below=0.26cm of a3,fill=spLightBlue,draw=spPrimary!45] (a4)
+    {\small 4 — تكتشف منحة وتقدّم طلبًا \en{(SubmitApplicationCommand)}};
+  \node[wbox,below=0.26cm of a4,fill=spLightBlue,draw=spPrimary!45] (a5)
+    {\small 5 — الجهة المانحة تراجع وتردّ (قبول أو رفض بسبب) والإشعار يصل للجرس};
+  \node[wbox,below=0.26cm of a5,fill=spLightOrange,draw=spSec!45] (a6)
+    {\small 6 — تحجز جلسة استشاريّ وتدفع بـ \en{Stripe}: الحجز يُجمِّد المبلغ};
+  \node[wbox,below=0.26cm of a6,fill=spLightOrange,draw=spSec!45] (a7)
+    {\small 7 — الاستشاريّ يقبل \en{(AcceptBookingCommand)}: القبض يأخذ المبلغ};
+  \node[wbox,below=0.26cm of a7,fill=spLightTeal,draw=spAccent!45] (a8)
+    {\small 8 — جلسة فيديو \en{ACS} داخل المتصفّح مع تسجيل تلقائيّ};
+  \node[wbox,below=0.26cm of a8,fill=spLightTeal,draw=spAccent!45] (a9)
+    {\small 9 — سارة تقيّم الجلسة \en{(SubmitConsultantRatingCommand)}};
+  \node[wbox,below=0.26cm of a9,fill=spLightYellow,draw=spYellow!70!black] (a10)
+    {\small 10 — تنشر سؤالًا في المجتمع ويصل الردّ لحظيًّا عبر \en{SignalR}};
+  \node[wbox,below=0.26cm of a10,fill=spLightYellow,draw=spYellow!70!black] (a11)
+    {\small 11 — تسأل مساعد الذكاء الاصطناعيّ فيردّ بإجابة مع مصادرها \en{(RAG)}};
+
+  \foreach \f/\t in {a1/a2,a2/a3,a3/a4,a4/a5,a5/a6,a6/a7,a7/a8,a8/a9,a9/a10,a10/a11}
+    \draw[arr] (\f) -- (\t);
+\end{tikzpicture}
+\end{LTR}
+\end{center}
+
+الأخضر مرحلة التسجيل، والبنفسجيّ مرحلة الذكاء الاصطناعيّ، والأزرق مرحلة التقديم،
+والبرتقاليّ مرحلة الحجز والدفع، والتركوازيّ مرحلة الجلسة، والأصفر مرحلة المجتمع.
+لاحظي أنّ خطوات مثل 5 و7 و10 يقوم بها دورٌ غير سارة — هذه هي الردود.
+
+\subsection{المحطّة الأولى: التسجيل وتأكيد البريد}
+
+تبدأ سارة بنموذج تسجيل بسيط: اسم، وبريد، وكلمة مرور. الواجهة ترسل طلبًا إلى
+\code{AuthController}، فيُنشئ \en{ASP.NET Identity} صفَّ مستخدم جديدًا بكلمة مرور
+مجزّأة (\en{hashed}) لا مخزّنة كنصّ. النظام «مبوَّب» (\en{gated}): لا شيء يعمل قبل
+تأكيد البريد. لذا يُرسَل بريد فيه رابط رمزيّ (\en{token})، وحين تضغط عليه سارة
+يتأكّد الحساب ويصبح دورها الافتراضيّ \en{Student}.
+
+\begin{why}
+لماذا نُبوِّب النظام خلف تأكيد البريد؟ لأنّ حسابات وهميّة تُلوّث التوصيات، وتُغرق
+الجهات المانحة بطلبات مزيّفة، وتستهلك ميزانيّة الذكاء الاصطناعيّ. تأكيد البريد
+بوّابةٌ رخيصة تُبقي مجتمع المنصّة حقيقيًّا منذ اللحظة الأولى.
+\end{why}
+
+\begin{note}
+هنا لا يوجد «دور آخر يردّ» بعد — سارة وحدها. لكنّ كل فِعل حسّاس من الآن فصاعدًا
+سيُسجَّل في سجلّ التدقيق (\en{audit log}) عبر سِمة \code{[Auditable]} كما رأينا سابقًا.
+\end{note}
+
+\subsection{المحطّة الثانية: استكمال الملف والـ onboarding}
+
+بعد الدخول تمرّ سارة بخطوات \en{onboarding} تجمع بيانات ملفها: مستواها الأكاديميّ
+(\en{AcademicLevel})، ومجالات دراستها المفضّلة (\en{PreferredFields})، والدول التي
+تريد الدراسة فيها (\en{PreferredCountries}). قد تبدو خطوة شكليّة، لكنّها في الحقيقة
+وقود الذكاء الاصطناعيّ: بدونها لا يملك المحرّك ما يطابق به المنح.
+
+\begin{keyp}[نقطة مهمة: الملف هو مُدخَل الخوارزميّة]
+كل حقل تملؤه سارة الآن سيُقرَأ حرفيًّا في المحطّة التالية: \code{AcademicLevel} يعطي
+٣٠ نقطة عند تطابق المستوى، و\code{PreferredFields} حتى ٤٠ نقطة، و\code{PreferredCountries}
+حتى ٢٥ نقطة. الملف الفارغ يعني توصيات بصفر — لذا نحثّ الطالب على إكماله.
+\end{keyp}
+
+\subsection{المحطّة الثالثة: الذكاء الاصطناعيّ يقترح ويفحص الأهليّة}
+
+الآن يتدخّل الذكاء الاصطناعيّ لأوّل مرّة. حين تفتح سارة لوحتها، ترسل الواجهة
+\code{GenerateRecommendationsCommand}. يستقبله \code{GenerateRecommendationsCommandHandler}
+الذي يمرّ أوّلًا ببوّابة التكلفة (\code{AiCostGate}) لئلّا يتجاوز حدّ اليوم، ثمّ
+ينادي منفذ \code{IAiService}. في بيئتنا الحاليّة يُحقَن المحوّل \code{LocalAiService}:
+محرّكٌ حسابيّ بحت بلا نداء لـ \en{GPT}، يعطي نتائج قابلة للتفسير والاختبار.
+
+هذه هي قلب الخوارزميّة — حلقة تحسب نقاط كل منحة مفتوحة مقابل ملف سارة:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+foreach (var c in candidates)
+{
+    var score = 0;
+    // level match = 30
+    if (userLevel.HasValue && userLevel.Value == c.TargetLevel) score += 30;
+    // field overlap = up to 40, country overlap = up to 25
+    score += OverlapScore(preferredFields, fosFields, maxPoints: 40);
+    score += OverlapScore(NormalizeCountries(preferredCountries),
+                          NormalizeCountries(countries), maxPoints: 25);
+    // funding bonus = 5 for large awards
+    if (c.FundingAmountUsd >= 10_000) score += 5;
+
+    scored.Add((c.Id, Math.Min(score, 100), c.TitleEn, c.TitleAr));
+}
+var top = scored.OrderByDescending(x => x.Score).Take(topN).ToList();
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه في الأسطر دي، واحدة واحدة:
+\begin{itemize}
+\item \code{if (userLevel == c.TargetLevel) score += 30}: تطابق المستوى الأكاديميّ
+يعطي ٣٠ نقطة ثابتة — أقوى إشارة مفردة.
+\item \code{OverlapScore(preferredFields, ...)}: التقاطع بين مجالات سارة ومجالات
+المنحة يعطي حتى ٤٠ نقطة، موزَّعة بحسب عدد المجالات المشتركة.
+\item \code{NormalizeCountries(...)}: نوحّد أسماء الدول («مصر» و\en{Egypt} و\en{EG})
+إلى مفتاح واحد قبل المقارنة، حتى لا يفشل التطابق بسبب اختلاف الكتابة.
+\item \code{Math.Min(score, 100)}: نسقُف النتيجة عند ١٠٠ لتبقى نسبةً مفهومة.
+\item \code{OrderByDescending(...).Take(topN)}: نرتّب تنازليًّا ونأخذ الأعلى فقط.
+\end{itemize}
+
+\begin{idea}[الفكرة: ذكاء حسابيّ يمكن الدفاع عنه]
+لأنّ الحساب صريح (٣٠ + ٤٠ + ٢٥ + ٥)، تستطيع سارة أن تفهم لماذا ظهرت لها منحة بعينها،
+وتستطيع اللجنة أن تتحقّق من النتيجة بالورقة والقلم. لا صندوق أسود، ولا هلوسة، ولا
+تكلفة استدعاء نموذج خارجيّ. النتيجة تُخزَّن في صفّ \code{AiInteraction} لتتبّع التكلفة
+والاستخدام.
+\end{idea}
+
+بجانب الترشيح، تضغط سارة على «افحص الأهليّة» في صفحة منحة، فيعمل
+\code{CheckEligibilityCommand} ويقارن \code{LocalAiService} ملفها بثلاثة معايير:
+المستوى، والدولة، والمجال. ثمّ تجمع الدالة \code{DeriveVerdict} هذه المعايير في حكم
+واحد بقاعدة بسيطة: أيّ «لا» صريحة تعني \en{NotEligible}، وأيّ «جزئيّ» أو «غير معروف»
+يعني \en{PartiallyEligible}، وكلّها «نعم» يعني \en{Eligible}.
+
+\begin{center}
+\begin{LTR}
+\begin{tikzpicture}[node distance=0.7cm and 1.0cm]
+  \node[sbox,text width=3.0cm] (in) {\small profile + listing criteria};
+  \node[dbox,right=1.0cm of in,text width=3.0cm] (d) {\small any criterion = ``no''?};
+  \node[fbox,right=1.1cm of d] (no) {\small NotEligible};
+  \node[dbox,below=0.7cm of d,text width=3.0cm] (d2) {\small any ``partial'' / ``unknown''?};
+  \node[tbox,right=1.1cm of d2] (part) {\small PartiallyEligible};
+  \node[srcbox,below=0.7cm of d2,text width=2.6cm] (yes) {\small Eligible};
+
+  \draw[arr] (in) -- (d);
+  \draw[arr] (d) -- node[lbl,above] {yes} (no);
+  \draw[arr] (d) -- node[lbl,right] {no} (d2);
+  \draw[arr] (d2) -- node[lbl,above] {yes} (part);
+  \draw[arr] (d2) -- node[lbl,right] {no} (yes);
+\end{tikzpicture}
+\end{LTR}
+\end{center}
+
+\begin{keyp}[نقطة مهمة: الحكم مُحافِظ عمدًا]
+لاحظي أنّ «غير المعروف» يُعامَل مثل «الجزئيّ» لا مثل «النعم». لو كان ملف سارة ناقصًا،
+لن يعِدَها النظام بأهليّة كاملة زورًا، بل يقول «جزئيّ» ويطلب منها إكمال الملف. هذا
+اختيار تصميميّ محافظ: نُفضّل تحفُّظًا صادقًا على تفاؤل كاذب.
+\end{keyp}
+
+\subsection{المحطّة الرابعة: اكتشاف منحة وتقديم طلب}
+
+تختار سارة منحة وتبدأ طلبًا. الطلب يعيش أوّلًا كمسوَّدة (\en{Draft})، تملأ فيها
+النموذج وترفع المستندات. حين تضغط «قدِّم»، ترسل الواجهة \code{SubmitApplicationCommand}
+فينفّذه \code{SubmitApplicationCommandHandler}. لا يكتفي المعالج بتغيير الحالة، بل
+يحرس عدّة قواعد: يتحقّق من ملكيّة الطلب، ويمنع التقديم بعد انتهاء الموعد النهائيّ،
+ويتأكّد أنّ كل مستند مرفق يعود فعلًا لملف رفعته سارة عبر خزنة المستندات المفحوصة.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// state machine: Draft -> Pending only if the transition is legal
+ApplicationStateMachine.EnsureTransition(oldStatus, ApplicationStatus.Pending);
+// deadline guard, even for a Draft that sat past the deadline
+if (application.Scholarship is { } sch && sch.Deadline < DateTimeOffset.UtcNow)
+    throw new ConflictException("This scholarship's deadline has passed.");
+
+application.Status = ApplicationStatus.Pending;
+application.SubmittedAt = DateTimeOffset.UtcNow;
+application.RaiseDomainEvent(new ApplicationSubmittedEvent(
+    application.Id, application.StudentId, application.ScholarshipId));
+await db.SaveChangesAsync(ct);
+\end{lstlisting}
+\end{english}
+
+الفكرة في الأسطر دي:
+\begin{itemize}
+\item \code{EnsureTransition}: آلة حالة صغيرة ترفض أيّ انتقال غير قانونيّ (مثلًا من
+مقبول إلى مسوَّدة) — القاعدة في مكان واحد لا مبعثرة.
+\item حارس الموعد النهائيّ: يمنع تقديم مسوَّدة قديمة بعد فوات الأوان.
+\item \code{RaiseDomainEvent(new ApplicationSubmittedEvent(...))}: يسجّل الحدث على
+الكيان، ثمّ يُنشَر بعد \code{SaveChangesAsync} فيوقظ الجهة المانحة.
+\end{itemize}
+
+\subsection{المحطّة الخامسة: الجهة المانحة تراجع وتردّ (أوّل ردّ فعل)}
+
+الآن يدخل دورٌ آخر للمرّة الأولى. حين قدّمت سارة طلبها، وصل إشعار للجهة المانحة
+صاحبة المنحة. تفتح الجهة الطلب وتقرّر: قبول، أو وضعه تحت المراجعة، أو رفض بسبب.
+القرار يمرّ عبر \code{ReviewApplicationCommand} الذي ينفّذه المعالج التالي —
+لاحظي حارس الملكيّة والإشعار الذي يُرسَل لسارة في نهايته:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// only the scholarship's owning provider may review its applications
+if (application.Scholarship.OwnerScholarshipProviderId != currentUser.UserId)
+    throw new ForbiddenAccessException();
+
+ApplicationStateMachine.EnsureTransition(oldStatus, request.Status);
+application.Status = request.Status;
+application.DecisionAt = DateTimeOffset.UtcNow;
+application.DecisionReason = request.DecisionReason;   // e.g. reject reason
+
+await db.SaveChangesAsync(ct);
+await notifications.DispatchAsync(
+    application.StudentId, NotificationType.ApplicationStatusChanged,
+    new NotificationParams { StatusText = request.Status.ToString(),
+                             Reason = request.DecisionReason }, null, null, ct);
+\end{lstlisting}
+\end{english}
+
+هنشوف الردّ ماشي إزّاي:
+\begin{itemize}
+\item \code{OwnerScholarshipProviderId != currentUser.UserId}: حارسٌ يمنع أيّ جهة من
+لمس طلبات منحة لا تملكها — عزلٌ صارم بين الجهات.
+\item \code{DecisionReason}: عند الرفض تُلزَم الجهة بسببٍ نصّيّ، فتراه سارة صراحةً بدل
+رفضٍ صامت — قاعدة عمل حقيقيّة في النظام.
+\item \code{notifications.DispatchAsync(application.StudentId, ...)}: يُوجَّه الإشعار
+إلى سارة تحديدًا، فيظهر في جرسها لحظيًّا عبر \en{SignalR} مع نصّ الحالة والسبب.
+\end{itemize}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: كل خطوة لها ردّ فعل من دورٍ آخر]
+هذه أوّل نقطة تُظهر فيها الرحلةُ جوهرَها: فِعلُ سارة (تقديم الطلب) أطلق حدثًا،
+والحدثُ أيقظ الجهة المانحة، وردُّ الجهة أطلق إشعارًا رجع إلى سارة. أربعة أدوار
+(طالب، وجهة، وأدمن، واستشاريّ) لا تتحدّث مباشرةً، بل تتحاور عبر أحداث وإشعارات
+مصمَّمة. أظهر للجنة هذا «التعاون غير المتزامن»: تكاملٌ بلا اقتران متين.
+\end{spotlight}
+
+\subsection{المحطّة السادسة: حجز استشاريّ ودفع Stripe (الحجز يُجمّد المبلغ)}
+
+تريد سارة مشورةً بشريّة، فتحجز جلسة مع استشاريّ. عند الحجز يعمل
+\code{RequestBookingCommand}. هنا تظهر لمسة الدفع الذكيّة: النظام لا يسحب المال فورًا،
+بل يُنشئ نيّة دفع \en{Stripe} بأسلوب القبض اليدويّ
+(\code{captureMethod: "manual"}). هذا يعني أنّ بطاقة سارة تُصرَّح (\en{authorized})
+والمبلغ يُجمَّد، لكنّه لا يُؤخَذ بعد. يبقى الحجز في حالة \en{Requested} وينتظر ردّ
+الاستشاريّ، ويصل إشعار للاستشاريّ بأنّ طلبًا ينتظره.
+
+\begin{why}
+لماذا نجمّد المبلغ بدل سحبه؟ لأنّ الاستشاريّ قد يرفض أو لا يردّ. لو سحبنا المال
+فورًا لاضطررنا لاستردادٍ لاحقٍ معقّد. التجميد (\en{authorize}) يحجز المبلغ دون أخذه،
+فإن قبل الاستشاريّ نقبض، وإن رفض نُفرِج عن التجميد بلا حركة ماليّة فعليّة. المال
+«في الضمان» (\en{escrow}) حتى تُحسَم الجلسة.
+\end{why}
+
+\subsection{المحطّة السابعة: الاستشاريّ يقبل — نتبّع الأمر من أوّله لآخره}
+
+هذه أهمّ محطّة تقنيًّا، فلنتتبّع أمرًا واحدًا كاملًا من الواجهة إلى الإشعار. حين يضغط
+الاستشاريّ «اقبل»، يعمل \code{AcceptBookingCommand}. أوّلًا تعريف الأمر نفسه — سطرٌ
+واحد يحمل مُعرِّف الحجز، ومزيّنٌ بسِمة التدقيق:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+[Auditable(AuditAction.BookingAccepted, "ConsultantBooking",
+    TargetIdProperty = nameof(BookingId),
+    SummaryTemplate = "Booking accepted: {TargetId}")]
+public sealed record AcceptBookingCommand(Guid BookingId) : IRequest;
+\end{lstlisting}
+\end{english}
+
+سِمة \code{[Auditable]} تجعل \en{MediatR} يكتب صفَّ تدقيق تلقائيًّا قبل تنفيذ المعالج،
+بلا سطر واحد داخل المنطق. الآن قلب المعالج \code{AcceptBookingCommandHandler}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// 1. authorization: only the owning consultant, only a Requested booking
+if (!_currentUser.IsInRole("Consultant")) throw new UnauthorizedAccessException(...);
+if (booking.ConsultantId != consultantId) throw new UnauthorizedAccessException(...);
+if (booking.Status != BookingStatus.Requested) throw new BookingDomainException(...);
+
+// 2. capture the money that was only held at request time
+var captureResult = await _stripeService.CapturePaymentIntentAsync(
+    booking.StripePaymentIntentId!, amountCents, idempotencyKey, ct);
+payment.Status = PaymentStatus.Captured;   // + platform / payee split
+
+// 3. flip state and provision the ACS video room
+booking.Status = BookingStatus.Confirmed;
+var room = await _meetingService.CreateRoomAsync(booking.Id, ct);
+booking.MeetingRoomId = room.RoomId;
+
+// 4. persist, THEN publish the domain event
+await _context.SaveChangesAsync(cancellationToken);
+await _publisher.Publish(
+    new BookingConfirmedEvent(booking.Id, booking.StudentId, booking.ConsultantId), ct);
+\end{lstlisting}
+\end{english}
+
+هنشوف المعالج ماشي إزّاي، مرحلة مرحلة:
+\begin{itemize}
+\item التصريح: ثلاث حراسات تتأكّد أنّ المُنادِي استشاريّ، وأنّه صاحب الحجز، وأنّ
+الحجز ما زال \en{Requested} — لا يُقبَل حجزٌ مرّتين.
+\item \code{CapturePaymentIntentAsync}: هنا يتحوّل التجميد إلى قبضٍ فعليّ. المبلغ
+الذي جُمِّد في المحطّة السابقة يُؤخَذ الآن، وتُحدَّث حصّة المنصّة وحصّة الاستشاريّ.
+\item \code{CreateRoomAsync}: تُهيَّأ غرفة \en{ACS} للجلسة ويُحفَظ \code{MeetingRoomId}
+على الحجز — نفس الغرفة الكسولة التي شرحناها سابقًا.
+\item \code{SaveChangesAsync} ثمّ \code{Publish}: أوّلًا نثبّت الحقائق في قاعدة البيانات،
+وبعد نجاح الحفظ فقط نُطلق \code{BookingConfirmedEvent}. الترتيب مقصود: لا نُشعِر أحدًا
+بشيء لم يُحفَظ.
+\end{itemize}
+
+هذا هو تدفّق الأمر الواحد مرسومًا — من الواجهة حتى الجرس:
+
+\begin{center}
+\begin{LTR}
+\begin{tikzpicture}[node distance=0.5cm and 0.55cm]
+  \node[actor,text width=2.2cm] (fe) {React\\frontend};
+  \node[pbox,right=0.55cm of fe,text width=2.7cm] (ctrl) {BookingsController\\.Accept};
+  \node[gbox,right=0.55cm of ctrl,text width=2.4cm] (med) {IMediator\\.Send};
+  \node[pbox,right=0.55cm of med,text width=2.7cm] (hdlr) {AcceptBooking\\Handler};
+
+  \node[tbox,below=0.75cm of hdlr,text width=2.7cm] (stripe) {Stripe capture\\+ ACS room};
+  \node[dbbox,left=0.6cm of stripe,text width=2.2cm] (db) {SQL Server\\SaveChanges};
+  \node[tbox,left=0.55cm of db,text width=2.6cm] (evt) {Publish\\BookingConfirmedEvent};
+  \node[sbox,left=0.55cm of evt,text width=2.5cm] (notif) {NotificationHub\\bell -> student};
+
+  \draw[arr] (fe) -- node[lbl,above]{POST} (ctrl);
+  \draw[arr] (ctrl) -- node[lbl,above]{1 line} (med);
+  \draw[arr] (med) -- (hdlr);
+  \draw[arr] (hdlr) -- (stripe);
+  \draw[arr] (stripe) -- (db);
+  \draw[arr] (db) -- node[lbl,above]{then} (evt);
+  \draw[arr] (evt) -- (notif);
+  \draw[arrd] (notif.south) to[out=270,in=270] node[lbl,below]{push} (fe.south);
+\end{tikzpicture}
+\end{LTR}
+\end{center}
+
+من يلتقط \code{BookingConfirmedEvent}؟ معالجُ حدثٍ منفصل تمامًا،
+\code{BookingConfirmedEventHandler}، لا يعرف شيئًا عن \en{Stripe} ولا عن الغرفة —
+مهمّته الوحيدة إشعار سارة أنّ حجزها تأكّد:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public async Task Handle(BookingConfirmedEvent notification, CancellationToken ct)
+{
+    var view = await BookingNotificationContext.LoadAsync(db, notification.BookingId, ct);
+    if (view is null) { /* log + return */ return; }
+
+    await notifications.DispatchAsync(
+        notification.StudentId,                       // recipient = the student
+        NotificationType.BookingConfirmed,
+        new NotificationParams { CounterpartyName = view.ConsultantName,
+            StartAtText = BookingNotificationContext.FormatStartAt(view.ScheduledStartAt) },
+        deepLink: $"/student/bookings/{notification.BookingId}",
+        idempotencyKey: $"booking-confirmed:{notification.BookingId:N}", ct);
+}
+\end{lstlisting}
+\end{english}
+
+النقاط المهمّة في ردّ الفعل ده:
+\begin{itemize}
+\item \code{DispatchAsync(notification.StudentId, ...)}: الإشعار يُوجَّه لسارة تحديدًا،
+فيصل جرسها لحظيًّا عبر \en{SignalR}.
+\item \code{deepLink}: رابطٌ عميق يفتح صفحة الحجز مباشرة عند الضغط — لا بحث يدويّ.
+\item \code{idempotencyKey}: مفتاحٌ فريد يمنع تكرار نفس الإشعار لو أُعيد إطلاق الحدث.
+\item فصلٌ نظيف: معالج القبول لا يعرف كيف يُشعِر أحدًا، ومعالج الإشعار لا يعرف شيئًا
+عن الدفع. كلٌّ منهما مسؤوليّة واحدة، والحدث هو الجسر بينهما.
+\end{itemize}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: رحلة واحدة تلمس كل أجزاء النظام]
+تتبّعنا أمرًا واحدًا لمس كلَّ طبقة وخدمة تقريبًا: الواجهة، والمتحكّم، و\en{MediatR}،
+والمعالج، و\en{Stripe} (دفع)، و\en{ACS} (فيديو)، وقاعدة البيانات، والحدث الدوميّ،
+و\en{SignalR} (إشعار)، وسجلّ التدقيق (\en{[Auditable]}). هذا هو التماسك المعماريّ:
+كل قطعة في مكانها، ومسارٌ واحد يشبك بينها جميعًا بلا فوضى. أظهر للجنة هذه اللقطة —
+إنّها ملخّص النظام كلّه في أمرٍ واحد.
+\end{spotlight}
+
+\subsection{المحطّتان الثامنة والتاسعة: الجلسة والتقييم}
+
+في موعد الجلسة يضغط الطرفان «انضمّ» ضمن نافذة \en{$\pm$15} دقيقة. يعمل
+\code{RecordMeetingJoinCommand} فيُصدِر رمز وصول \en{ACS} قصير العمر لكل مشارك،
+وتجري المكالمة بين المتصفّحَين مباشرةً بينما يبقى خادمنا مجرّد منسّق. عند الاتصال
+يبدأ التسجيل تلقائيًّا ويُخزَّن في \en{Blob Storage}. النظام يسجّل أيضًا وقت انضمام
+كل طرف، وهذه الإشارة يقرؤها لاحقًا مسحُ الغياب الآليّ (\en{no-show}) عبر \en{Hangfire}.
+
+بعد الجلسة تقيّم سارة الاستشاريّ عبر \code{SubmitConsultantRatingCommand}: نجوم من
+واحد إلى خمسة مع تعليق اختياريّ. التقييم يُغذّي متوسّط الاستشاريّ الظاهر لكل الطلاب
+مستقبلًا، وبذلك يردّ فعلُ سارة الصغير على تجربة طلابٍ لم تلتقِهم بعد.
+
+\subsection{المحطّة العاشرة: منشور في المجتمع وردّ حيّ}
+
+تطرح سارة سؤالًا في المجتمع، فيُنشَأ منشور ثنائيّ اللغة. طالبٌ آخر متّصلٌ الآن يرى
+الردّ يظهر لحظيًّا دون تحديث الصفحة، لأنّ \en{CommunityHub} يدفع التحديث عبر
+\en{WebSocket}. هنا يظهر دورٌ آخر من الأدوار: لو خالف منشورٌ القواعد، يستطيع الأدمن
+إخفاءه أو الردّ على بلاغ — نفس نمط الحدث والإشعار الذي رأيناه، لكن في سياق الإشراف.
+
+\begin{note}
+لاحظي أنّ الفكرة نفسها تتكرّر في كل محطّة: أمرٌ يغيّر الحالة، ثمّ حدثٌ يُنشَر، ثمّ
+دفعٌ لحظيّ عبر \en{SignalR} لمن يعنيه الأمر. تعلّمُ نمطٍ واحد يفتح لك النظام كلّه.
+\end{note}
+
+\subsection{المحطّة الحادية عشرة: سؤال لمساعد الذكاء الاصطناعيّ بمصادر}
+
+تختم سارة يومها بسؤال مساعد الشات: «ما الأوراق المطلوبة عادةً؟». يعمل أمر الشات،
+وينادي \code{LocalAiService.AskAsync}. هنا يتجلّى \en{RAG} (التوليد المُعزَّز
+بالاسترجاع): أوّلًا يسترجع المنفذ \code{IKnowledgeRetriever} أقرب الوثائق من قاعدة
+المعرفة، ثمّ يُبقي فقط ما تجاوزت درجتُه العتبة \code{RagMinScore}، ثمّ يبني الإجابة
+من أعلى وثيقة مطابقة — ويُرفِق مصادرها.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var docs = await retriever.RetrieveAsync(msg, opts.Value.RagTopK, ct);
+var relevant = docs.Where(d => d.Score >= opts.Value.RagMinScore).ToList();
+
+string reply = relevant.Count > 0
+    ? $"{lead}\n\n{(arabic ? relevant[0].ContentAr : relevant[0].ContentEn).Trim()}"
+    : RouteChat(msg);            // keyword fallback when nothing scores high enough
+
+return new AiChatResponse(Message: reply, /* tokens, cost */
+    Sources: RagSupport.ToSources(relevant, arabic));   // cited sources
+\end{lstlisting}
+\end{english}
+
+المهمّ في الأسطر دي:
+\begin{itemize}
+\item \code{RetrieveAsync}: يبحث في قاعدة المعرفة عن أقرب \code{RagTopK} وثيقة للسؤال.
+\item \code{d.Score >= RagMinScore}: عتبةُ ثقة — لو لم تتجاوز أيّ وثيقة العتبة، لا نخترع
+إجابة، بل نرجع لموجِّه كلماتٍ مفتاحيّة (\code{RouteChat}) يعطي نصيحة عامّة آمنة.
+\item \code{Sources: RagSupport.ToSources(...)}: تُرفَق المصادر مع الردّ، فترى سارة
+من أين جاءت الإجابة — لا صندوق أسود.
+\end{itemize}
+
+\begin{keyp}[نقطة مهمة: نفس التصميم يعمل بلا مفتاح خارجيّ]
+هذا المسار «المحلّيّ» يشغّل \en{RAG} كاملًا بلا استدعاء \en{GPT} إطلاقًا. لو ضُبِط
+مزوّد \en{Azure OpenAI}، يُحقَن محوّلٌ آخر يولّد إجابةً حرّة فوق نفس الوثائق المسترجَعة.
+تبديل المزوّد قرارُ إعداد لا قرار كود — نفس نمط المنافذ في كل النظام.
+\end{keyp}
+
+\subsection{من فعل ماذا: خريطة الأدوار في الرحلة}
+
+لنجمع الرحلة في جدول واحد يبيّن الأمر عند كل خطوة والدور الذي يردّ:
+
+\begin{center}
+\begin{tabular}{L{3.4cm} L{4.3cm} L{4.3cm}}
+\toprule
+المرحلة & الأمر / المعالج & الدور الذي يردّ \\
+\midrule
+التسجيل & \en{Identity} + تأكيد البريد & لا أحد (بوّابة دخول) \\
+التوصية والأهليّة & \en{GenerateRecommendations} & \en{LocalAiService} (حسابيّ) \\
+تقديم الطلب & \en{SubmitApplicationCommand} & الجهة المانحة تُشعَر \\
+مراجعة الطلب & \en{ReviewApplicationCommand} & سارة تُشعَر بالنتيجة والسبب \\
+حجز الجلسة & \en{RequestBookingCommand} & الاستشاريّ يُشعَر (المبلغ مُجمَّد) \\
+قبول الحجز & \en{AcceptBookingCommand} & سارة تُشعَر (القبض يتمّ) \\
+المجتمع والإشراف & منشور / بلاغ & طالب آخر أو أدمن يردّ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{qa}[سؤال متوقّع: هل الأدوار مقترنة اقترانًا متينًا؟]
+لا. لاحظ أنّ أيّ معالج لا ينادي دورًا آخر مباشرةً. معالج القبول يُطلق حدثًا فقط،
+ولا يعرف أنّ هناك معالج إشعار يستمع. لو حذفنا الإشعار غدًا، لن يتغيّر سطرٌ في منطق
+القبول. هذا اقتران رخو (\en{loose coupling}) عبر الأحداث: الأدوار تتعاون دون أن
+يعرف بعضُها تفاصيل بعض.
+\end{qa}
+
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item تابعنا سارة عبر إحدى عشرة محطّة، فلمسنا كل جزء من النظام في قصّة واحدة متّصلة.
+\item كل خطوة أمرٌ (\en{command}) يغيّر الحالة، وكثيرٌ منها يُطلق حدثًا دوميًّا بعد
+\code{SaveChangesAsync}، والحدثُ يوقظ دورًا آخر عبر إشعار لحظيّ.
+\item تتبّعنا \code{AcceptBookingCommand} كاملًا: واجهة، فمتحكّم، فمعالج، فقبضُ \en{Stripe}،
+فغرفة \en{ACS}، فحفظٌ، فحدثٌ، فإشعارٌ للجرس — رحلة أمرٍ واحدة تلخّص المعمار كلّه.
+\item الذكاء الاصطناعيّ ظهر ثلاث مرّات: توصيةٌ حسابيّة قابلة للتفسير (٣٠+٤٠+٢٥+٥)،
+وفحصُ أهليّة بحكمٍ محافظ، وشاتٌ يردّ بإجابةٍ مع مصادرها عبر \en{RAG}.
+\item الأدوار الأربعة (طالب، وجهة، وأدمن، واستشاريّ) تتحاور عبر أحداث وإشعارات لا عبر
+نداءات مباشرة — تكاملٌ مصمَّم باقترانٍ رخو، وهو سرّ تماسك النظام.
+\end{itemize}
+\end{summary}

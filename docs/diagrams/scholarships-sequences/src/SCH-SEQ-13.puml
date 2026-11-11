@@ -1,0 +1,58 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam dpi 150
+skinparam maxMessageSize 240
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #2E4A7B
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #EAF1FB
+  ParticipantBorderColor #2E5496
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor #1A1A1A
+  ParticipantFontStyle bold
+  ActorBorderColor #2E5496
+  ActorBackgroundColor #DAE8FC
+  ActorFontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+  FontColor #1A1A1A
+}
+title Student Rates Scholarship Provider
+
+actor "Student" as ST
+participant "StudentApplicationDetail" as PAGE <<page>>
+participant "applicationsApi" as API <<api>>
+participant "ScholarshipProviderReviewsController" as CTRL <<controller>>
+participant "SubmitScholarshipProviderRatingCommand" as CMD <<command>>
+database "ScholarshipProviderReview" as REV <<entity>>
+database "UserProfile" as UP <<entity>>
+participant "NotificationDispatcher" as NOT <<service>>
+ST -> PAGE : rate provider after final outcome (1-5, comment)
+PAGE -> API : applicationsApi.submitReview(applicationId, rating)
+API -> CTRL : POST /api/company-reviews
+CTRL -> CMD : SubmitScholarshipProviderRatingCommand
+CMD -> REV : check application owned & Accepted/Rejected & not yet rated
+alt eligible (one review per finalized application)
+  CMD -> REV : create ScholarshipProviderReview (provider resolved server-side)
+  CMD -> UP : update ScholarshipProviderAverageRating + ScholarshipProviderReviewCount
+  CMD -> NOT : NotificationType.ScholarshipProviderRatingReceived -> provider
+  NOT --> CMD : notified
+  CMD -> REV : average of latest 20 visible reviews (RatingWindowSize = 20)
+  opt average < 2.5 and >= 1 review in window (first flagging only)
+    CMD -> UP : set ScholarshipProviderLowRatingFlaggedAt
+    CMD -> NOT : NotificationType.ScholarshipProviderLowRatingFlagged -> Admins
+  end
+  CMD --> CTRL : rating saved
+else not owner / not final / already rated / rating out of 1-5
+  CMD --> CTRL : rejected
+end
+CTRL --> API : result
+API --> PAGE : outcome
+PAGE --> ST : rating submitted
+
+@enduml

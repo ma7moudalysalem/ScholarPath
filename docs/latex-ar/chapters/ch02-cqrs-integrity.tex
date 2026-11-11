@@ -1,0 +1,434 @@
+% ch02-cqrs-integrity
+\section{نمط CQRS وخطّ المعالجة وسلامة البيانات}
+
+في الفصل السابق عرفنا الطبقات الأربع، وكيف أنّ الطبقة الداخلية لا تعرف شيئًا عن
+الخارجية، وكيف تتكلّم الطبقات مع العالم الخارجيّ عبر \en{ports \& adapters}. في هذا
+الفصل ننزل درجة أعمق: كيف \emph{تسافر} أيّ عملية من لحظة وصولها للـ \en{API} حتى
+تُحفَظ في قاعدة البيانات؟ ومَن الذي يحرس هذه الرحلة حتى لا تُكتَب بيانات ناقصة أو
+مكرّرة أو متعارضة؟
+
+الإجابة مبنيّة على فكرتين متكاملتين. الأولى تنظيميّة: نمط \en{CQRS} الذي يفصل عمليّات
+\emph{الكتابة} عن عمليّات \emph{القراءة}، ويمرّر كلّ عملية عبر خطّ معالجة موحّد. والثانية
+دفاعيّة: مجموعة ضوابط في طبقة البيانات تضمن أنّ الصفّ الذي وصل للقاعدة صحيح ومتّسق. لو
+فهمت هذين المحورين تكون فهمت العمود الفقريّ للنظام كلّه.
+
+% ====================================================================
+\subsection{نمط CQRS: كل عملية إمّا أمر أو استعلام}
+
+\en{CQRS} اختصار لـ \en{Command Query Responsibility Segregation}، أي «فصل مسؤوليّات
+الأمر عن الاستعلام». الفكرة بسيطة جدًّا: أيّ شيء يفعله النظام يقع في واحدة من خانتين
+فقط، لا ثالث لهما.
+
+\begin{idea}[الفكرة: أمر أم استعلام؟]
+\textbf{الأمر (\en{Command})} يُغيّر حالة النظام — يكتب، يعدّل، أو يحذف. أمثلة:
+\code{AcceptBookingCommand} (قبول حجز)، \code{CreatePostCommand} (إنشاء منشور).
+عادةً يُرجِع لا شيء أو نتيجة صغيرة.\\[4pt]
+\textbf{الاستعلام (\en{Query})} يقرأ الحالة \emph{دون أيّ أثر جانبيّ} — لا يكتب حرفًا
+واحدًا. أمثلة: \code{GetMyRecommendationsQuery}، \code{GetBookingRecordingsQuery}.
+كل طرف من الطرفين له نوع طلب مستقلّ، ومعالِج (\en{handler}) مستقلّ، وقواعد تحقّق
+مستقلّة.
+\end{idea}
+
+كل هذه الطلبات — أوامر واستعلامات — تُرسَل عبر مكتبة واحدة اسمها \en{MediatR}. أنت
+تبني كائن الطلب وتناديه بسطر واحد \code{mediator.Send(request)}، وهي تتكفّل بالعثور على
+المعالِج الصحيح وتشغيله. النتيجة المباشرة لهذا التصميم أنّ الـ \en{controller} يصبح
+\emph{رفيعًا جدًّا}: لا منطق عمل بداخله، فقط يستقبل الطلب ويحوّله.
+
+\textbf{هنشوف إيه:} الـ \en{endpoint} المسؤول عن قبول الحجز في \code{BookingsController}.
+لاحظ أنّ كل عمله الحقيقيّ سطرٌ واحد.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+[HttpPost("{id:guid}/accept")]
+public async Task<IActionResult> AcceptBooking(
+    Guid id,
+    [FromBody] AcceptBookingCommand command,
+    CancellationToken cancellationToken)
+{
+    if (id != command.BookingId)
+        return BadRequest("Route booking id does not match body booking id.");
+
+    await _sender.Send(command, cancellationToken);   // one line
+    return NoContent();
+}
+\end{lstlisting}
+\end{english}
+
+شرح سريع سطرًا بسطر لأهمّ ما في المقتطف:
+\begin{itemize}
+\item السمة \code{[HttpPost(...)]} تربط المسار \en{/accept} بهذه الدالة.
+\item الطلب القادم من العميل يُربَط مباشرةً بكائن \code{AcceptBookingCommand} — أي أنّ
+  «شكل الطلب» و«الأمر» شيء واحد.
+\item السطر \code{await \_sender.Send(command, ...)} هو كل المنطق: أرسِل الأمر، و\en{MediatR}
+  ستجد المعالِج وتشغّله. الـ \en{controller} لا يعرف \emph{كيف} يُقبَل الحجز إطلاقًا.
+\item يتحقّق فقط من اتّساق بسيط (تطابق المُعرّف في المسار والجسد) ثم يُعيد \en{204 NoContent}.
+\end{itemize}
+
+\begin{why}
+لماذا نُبقي الـ \en{controller} رفيعًا؟ لأنّ كل منطق العمل يصير في صنف معالِج مستقلّ
+قابل للاختبار وحده دون تشغيل خادم \en{HTTP}. كل ميزة جديدة تعني إضافة \emph{معالِج جديد}،
+لا تعديل صنف خدمة ضخم قائم. وهذا يفتح الباب لخطّ معالجة موحّد يلفّ \emph{كل} معالِج
+تلقائيًّا — وهو موضوعنا التالي.
+\end{why}
+
+% ====================================================================
+\subsection{مثال حيّ: أمر قبول الحجز}
+
+لنتتبّع أمرًا حقيقيًّا كاملًا. عندما يقبل المستشار حجزًا مدفوعًا، يجب أن تحدث عدّة أشياء
+بترتيب دقيق: تحميل الحجز، سحب المبلغ المحجوز من بطاقة الطالب عبر \en{Stripe}، تجهيز غرفة
+اجتماع مرئيّ عبر \en{ACS}، حفظ كل ذلك، ثم إعلان أنّ الحجز تأكّد. كل هذا يعيش في معالِج
+واحد.
+
+أوّلًا، الأمر نفسه — لاحظ أنّه \code{record} صغير جدًّا يحمل مُعرّف الحجز فقط، ومُزخرَف
+بالسمة \code{[Auditable]}:
+
+\textbf{هنشوف إيه:} تعريف \code{AcceptBookingCommand} والسمة التي تجعله قابلًا للتدقيق.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+[Auditable(
+    AuditAction.BookingAccepted,
+    "ConsultantBooking",
+    TargetIdProperty = nameof(BookingId),
+    SummaryTemplate = "Booking accepted: {TargetId}")]
+public sealed record AcceptBookingCommand(Guid BookingId) : IRequest;
+\end{lstlisting}
+\end{english}
+
+الأمر مجرّد بيانات: مُعرّف حجز واحد. أمّا السمة \code{[Auditable]} فتقول للنظام «سجّل هذا
+الأمر تلقائيًّا في سجلّ التدقيق باسم الفعل \en{BookingAccepted}» — وسنرى آليّتها بعد قليل.
+الآن المعالِج (مختصَرًا مع الحفاظ على الخطوات الحقيقيّة):
+
+\textbf{هنشوف إيه:} قلب \code{AcceptBookingCommandHandler}: تحميل، سحب الدفع، تجهيز الغرفة،
+حفظ، ثم نشر الحدث.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public async Task Handle(AcceptBookingCommand request, CancellationToken ct)
+{
+    // 1. Load the aggregate (with its Payment)
+    var booking = await _context.Bookings
+        .Include(b => b.Payment)
+        .FirstOrDefaultAsync(b => b.Id == request.BookingId, ct);
+    // ... ownership + state guards omitted ...
+
+    // 2. Stripe capture - take the money that was only *held* at booking time
+    var capture = await _stripeService.CapturePaymentIntentAsync(
+        booking.StripePaymentIntentId!, amountCents, idempotencyKey, ct);
+
+    // 3. Provision the ACS video room for the confirmed session
+    var room = await _meetingService.CreateRoomAsync(booking.Id, ct);
+    booking.MeetingRoomId = room.RoomId;
+    booking.Status = BookingStatus.Confirmed;
+
+    // 4. Persist, THEN publish the domain event
+    await _context.SaveChangesAsync(ct);
+    await _publisher.Publish(
+        new BookingConfirmedEvent(
+            booking.Id, booking.StudentId, booking.ConsultantId), ct);
+}
+\end{lstlisting}
+\end{english}
+
+اقرأ الخطوات كقصّة قصيرة:
+\begin{itemize}
+\item \textbf{تحميل}: يجلب الحجز ومعه سجلّ الدفع \code{Payment} في استعلام واحد بفضل
+  \code{Include}. (حُذفت هنا فحوص الملكيّة والحالة لِقِصَر المساحة، وهي موجودة في الكود
+  الأصليّ.)
+\item \textbf{سحب الدفع}: عند الحجز كان المبلغ \emph{محجوزًا} فقط على البطاقة لا مسحوبًا.
+  الآن يُسحَب فعليًّا عبر \code{CapturePaymentIntentAsync} — سنشرح نموذج «احجز ثمّ اسحب»
+  في فصل المدفوعات.
+\item \textbf{تجهيز الغرفة}: يُنشئ غرفة اجتماع عبر خدمة \en{ACS} ويحفظ مُعرّفها على الحجز.
+\item \textbf{حفظ ثم نشر}: يُستدعى \code{SaveChangesAsync} أوّلًا، وبعد نجاح الحفظ فقط
+  يُنشَر \code{BookingConfirmedEvent}. هذا الترتيب مقصود تمامًا — نُوضّحه في قسم المعترِض.
+\end{itemize}
+
+\begin{keyp}[نقطة مهمة: المعالِج هو موطن منطق العمل]
+كل القرارات — مَن يملك الحجز، أهو في الحالة الصحيحة، متى نسحب، متى ننشر الحدث — تعيش
+هنا، في صنف واحد صغير قابل للاختبار. الـ \en{controller} لم يعرف شيئًا من ذلك. هذا هو
+جوهر \en{CQRS} عمليًّا.
+\end{keyp}
+
+% ====================================================================
+\subsection{خطّ المعالجة وترتيبه المقصود}
+
+ذكرنا أنّ \en{MediatR} تلفّ كل معالِج. الأداة التي تفعل ذلك تُسمّى \en{pipeline behavior}:
+حلقة تُغلِّف المعالِج فتنفّذ شيئًا \emph{قبله} و\emph{بعده}، تمامًا كطبقات البصلة. عندنا
+أربع حلقات، وترتيب تسجيلها = ترتيب تنفيذها (الأبعد أوّلًا، الأقرب للمعالِج أخيرًا).
+
+\textbf{هنشوف إيه:} تسجيل الحلقات الأربع في \code{DependencyInjection.cs} — الترتيب هنا هو
+عين الترتيب الفعليّ عند التنفيذ.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssembly(assembly);
+    cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));      // 1 outermost
+    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));   // 2
+    cfg.AddOpenBehavior(typeof(PerformanceBehavior<,>));  // 3
+    cfg.AddOpenBehavior(typeof(AuditBehavior<,>));        // 4 closest to handler
+});
+\end{lstlisting}
+\end{english}
+
+الجدول التالي يلخّص وظيفة كل حلقة وسبب موضعها:
+
+\begin{center}
+\begin{tabular}{L{3.2cm} L{4.4cm} L{5cm}}
+\toprule
+\textbf{\color{spPrimary}الحلقة} & \textbf{\color{spPrimary}ماذا تفعل} & \textbf{\color{spPrimary}لماذا هذا الموضع} \\
+\midrule
+\en{Logging} & تسجّل بداية ونهاية كل طلب مع مُعرّف المستخدم & الأبعد، لتلتقط \emph{كل} طلب حتى لو رُفِض لاحقًا \\
+\en{Validation} & تشغّل كل مُتحقّقات \en{FluentValidation} وتقصر الطلب بـ 400 عند الفشل & مبكّرة عمدًا: لا نُضيّع وقتًا ولا نُدقّق طلبًا معطوبًا \\
+\en{Performance} & تقيس زمن المعالِج وتُنبّه للبطيء & بعد التحقّق، لنقيس زمن العمل الحقيقيّ فقط \\
+\en{Audit} & تكتب صفًّا في \code{AuditLog} للأوامر المُزخرَفة & الأقرب للمعالِج، لِتُسجّل فقط ما نُفِّذ فعلًا \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{why}
+الترتيب ليس اعتباطيًّا. \en{Logging} يجب أن يرى \emph{كل} طلب، لذا هو الأبعد.
+\en{Validation} يجب أن يرفض المدخل السيّئ \emph{قبل} أن نصرف وقتًا في القياس أو نكتب صفوف
+تدقيق لطلب لن يُنفَّذ أصلًا. \en{Audit} يجب أن يجلس أقرب ما يكون للمعالِج، فلا يُسجّل إلّا
+فعلًا نُفِّذ حقًّا. اقلب الترتيب وستدقّق أفعالًا لم تحدث، أو تقيس زمن طلبات فاسدة.
+\end{why}
+
+ولنرَ حلقة التحقّق من الداخل — كيف «تقصر» الطلب:
+
+\textbf{هنشوف إيه:} قلب \code{ValidationBehavior}: يجمع الأخطاء، وإن وُجدت يرمي استثناءً
+قبل أن يصل الطلب للمعالِج.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var failures = validationResults
+    .Where(r => !r.IsValid)
+    .SelectMany(r => r.Errors)
+    .ToList();
+
+if (failures.Count > 0)
+    throw new ValidationException(failures);   // short-circuit -> 400
+
+return await next(cancellationToken);          // otherwise, continue inward
+\end{lstlisting}
+\end{english}
+
+الفكرة أنّ \code{next(...)} هي «الحلقة التالية إلى الداخل» وصولًا للمعالِج. إن وُجد خطأ
+واحد، نرمي \code{ValidationException} فورًا ولا نستدعي \code{next} أبدًا — فلا يعمل
+المعالِج، ولا تُقاس مدّة، ولا يُكتَب تدقيق. هذا معنى «القصر» (\en{short-circuit}).
+
+\begin{note}
+المُتحقّقات ومُلفّات \en{AutoMapper} تُكتَشَف تلقائيًّا من التجميعة (\en{assembly}) عند
+الإقلاع. أي أنّ إضافة ميزة جديدة بمُتحقّقها لا تحتاج أيّ ربط يدويّ في حاوية الاعتماديّات.
+\end{note}
+
+% ====================================================================
+\subsection{التدقيق بالسمة Auditable}
+
+الآن نفهم كيف يعمل التدقيق التلقائيّ. حلقة \en{Audit} — الأقرب للمعالِج — تنتظر انتهاء
+المعالِج بنجاح، ثم تسأل: هل نوع هذا الطلب مُزخرَف بالسمة \code{[Auditable]}؟ إن كان
+كذلك، تكتب صفًّا في جدول \code{AuditLog}. إن لم يكن، لا تفعل شيئًا.
+
+\textbf{هنشوف إيه:} قلب \code{AuditBehavior}: يشغّل المعالِج، يقرأ السمة، وإن وُجدت يكتب
+سجلّ التدقيق.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var response = await next(cancellationToken);   // run the handler first
+
+var attr = (AuditableAttribute?)Attribute.GetCustomAttribute(
+    typeof(TRequest), typeof(AuditableAttribute));
+if (attr is null)
+    return response;                            // no attribute -> no audit row
+
+var targetId = ResolveTargetId(response, request, attr.TargetIdProperty);
+var summary  = BuildSummary(attr.SummaryTemplate, targetId, response, request);
+
+await audit.WriteAsync(attr.Action, attr.TargetType, targetId,
+    beforeJson: null, afterJson: null, summary, cancellationToken);
+return response;
+\end{lstlisting}
+\end{english}
+
+نقاط جديرة بالانتباه:
+\begin{itemize}
+\item \code{await next(...)} أوّلًا — التدقيق يحدث \emph{بعد} نجاح المعالِج، فلا نُسجّل
+  فعلًا فشل.
+\item \code{GetCustomAttribute} يقرأ السمة عن نوع الطلب. لو غابت، يخرج فورًا — فالحلقة
+  «لا تفعل شيئًا» لكل الأوامر غير المُعلَّمة.
+\item \code{ResolveTargetId} و\code{BuildSummary} يستخرجان مُعرّف الهدف ونصًّا وصفيًّا من
+  السمة (تذكّر \code{TargetIdProperty = nameof(BookingId)} في أمر قبول الحجز).
+\item لو فشلت الكتابة في التدقيق، تُلتقَط ولا تُفشِل الأمر الأصليّ — فنجاح العمل لا يُلغى
+  بسبب سجلّ.
+\end{itemize}
+
+\begin{keyp}[نقطة مهمة: التدقيق بالتزيين لا بالتكرار]
+لتجعل أمرًا قابلًا للتدقيق تضع سطرًا واحدًا فوقه: \code{[Auditable(...)]}. لا كود مكرّر
+داخل كل معالِج. عشرات الأوامر الحسّاسة في النظام (قبول حجز، موافقة على منحة، تغيير دور
+مستخدم، ...) مُعلّمة هكذا، فتُسجَّل كلها بنفس الآليّة المركزيّة.
+\end{keyp}
+
+% ====================================================================
+\subsection{سلامة البيانات: الحذف الناعم}
+
+ننتقل الآن من «رحلة الطلب» إلى «حراسة البيانات». أوّل حارس هو \emph{الحذف الناعم}
+(\en{soft delete}). الصفوف الحسّاسة أو ذات القيمة التاريخيّة لا تُحذَف حذفًا صلبًا أبدًا.
+بدلًا من ذلك تُنفّذ الواجهة \code{ISoftDeletable} (تحمل \code{IsDeleted} و\code{DeletedAt}
+و\code{DeletedByUserId})، و«الحذف» ما هو إلّا قلب \code{IsDeleted} إلى \en{true}.
+
+لكن كيف نضمن أنّ الصفّ «المحذوف» يختفي من \emph{كل} استعلام دون أن يتذكّر كل مطوّر ذلك؟
+عبر \emph{مُرشِّح استعلام عموميّ} في \en{EF Core} على كل كيان من هذا النوع:
+
+\textbf{هنشوف إيه:} سطر المُرشِّح العموميّ — يُطبَّق على قرابة 15 كيانًا.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+b.HasQueryFilter(a => !a.IsDeleted);   // ~15 entities carry this
+\end{lstlisting}
+\end{english}
+
+\begin{idea}[الفكرة: الصفّ يختفي دون أن يُدمَّر]
+بمجرّد وضع هذا المُرشِّح على الكيان، \emph{كل} استعلام \en{LINQ} يولّده \en{EF} لهذا
+الكيان يُضاف إليه ضمنيًّا \code{WHERE IsDeleted = 0}. المطوّر لا يستطيع أن ينسى إضافته —
+فالصفوف المحذوفة ببساطة لا تظهر في أيّ استعلام أو ربط أو عدّ، إلّا إن اختار الكود صراحةً
+تجاوز المُرشِّح بـ \code{IgnoreQueryFilters()} (وهذا محصور في أدوات الإدارة و\en{GDPR}).
+\end{idea}
+
+\begin{why}
+لماذا نتجنّب الحذف الصلب؟ لأنّه يكسر التاريخ المترابط (مراجعات، مدفوعات، آثار تدقيق)،
+ويجعل سؤال «مَن حذف ماذا ومتى؟» مستحيلًا. الحذف الناعم يحفظ ترابط التاريخ، ويدعم مسار
+تراجع/استرجاع، ومع سجلّ التدقيق يعطي تتبّعًا كاملًا. وهو أيضًا الخيار الآمن الافتراضيّ
+لمنصّة ملزَمة بقواعد حفظ البيانات وحلّ النزاعات.
+\end{why}
+
+% ====================================================================
+\subsection{معترِض SaveChangesAsync: مكان واحد، ضمانات كثيرة}
+
+الحارس الثاني — والأقوى — هو تجاوُز الدالة \code{SaveChangesAsync} داخل \code{DbContext}.
+هذه الدالة هي «الاختناق» الوحيد الذي يمرّ منه كل حفظ للبيانات، فجعلناها تفرض عدّة قواعد
+عرضيّة (\en{cross-cutting}) دفعةً واحدة.
+
+\textbf{هنشوف إيه:} قلب \code{SaveChangesAsync}: ختم التواريخ، نشر الأحداث بعد الحفظ،
+وترجمة تعارض الفهرس الفريد.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+foreach (var entry in ChangeTracker.Entries<AuditableEntity>())
+{
+    if (entry.State == EntityState.Added && entry.Entity.CreatedAt == default)
+        entry.Entity.CreatedAt = auditNow;
+    else if (entry.State == EntityState.Modified)
+        entry.Entity.UpdatedAt = auditNow;
+}
+
+try
+{
+    var result = await base.SaveChangesAsync(cancellationToken);
+    await DispatchDomainEventsAsync(cancellationToken);   // only after commit
+    return result;
+}
+catch (DbUpdateException ex) when (ex.InnerException is SqlException sqlEx
+       && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+{
+    throw new ConflictException("This action conflicts with an existing record.");
+}
+\end{lstlisting}
+\end{english}
+
+هذا المقتطف الصغير يفرض ثلاث ضمانات (والرابعة نشرحها بعده نصًّا):
+\begin{itemize}
+\item \textbf{ختم التواريخ}: قبل الحفظ يمرّ على الكيانات المتغيّرة، فيضع \code{CreatedAt}
+  على الصفوف الجديدة (فقط إن لم تُضبَط، حتى تحتفظ بيانات البذر بتواريخها المقصودة)،
+  و\code{UpdatedAt} على كل تعديل. بدون هذا تُحفَظ صفوف بتاريخ صفريّ يكسر العرض والترتيب.
+\item \textbf{أحداث الدومين بعد الحفظ فقط}: يُستدعى \code{DispatchDomainEventsAsync}
+  \emph{بعد} أن ينجح \code{base.SaveChangesAsync}. لماذا؟ حتى لا يُطلَق أثر جانبيّ
+  (إشعار، بريد) لتغيير تراجَع ولم يُحفَظ أصلًا. (هذا يفسّر ترتيب «احفظ ثمّ انشر» في معالِج
+  قبول الحجز.)
+\item \textbf{ترجمة التعارض}: لو ضرب الحفظ فهرسًا فريدًا (رقما الخطأ \en{2601}/\en{2627}
+  في \en{SQL Server})، نلتقطه ونعيد رميه كـ \code{ConflictException} ودّيّ (مثل «هذا
+  الموعد حُجِز للتوّ») بدل خطأ 500 غامض.
+\end{itemize}
+
+\begin{idea}[الفكرة: تحويل كل FK نحو المستخدم إلى Restrict]
+الضمانة الرابعة تعيش في \code{OnModelCreating} لا في الحفظ، لكنّها من نفس فلسفة «قاعدة
+مركزيّة واحدة». يرفض \en{SQL Server} وجود أكثر من مسار \en{CASCADE} إلى الجدول نفسه —
+وهو ما يحدث لأيّ كيان له مفتاحان أجنبيّان أو أكثر نحو \code{ApplicationUser}. فبدل إضافة
+\code{Restrict} في كل إعداد على حدة، نمرّ على \emph{كل} مفتاح أجنبيّ يشير للمستخدم ونحوّله
+إلى \code{DeleteBehavior.Restrict} دفعةً واحدة — فنتجنّب الخطأ ونحمي تاريخ المستخدم.
+\end{idea}
+
+\begin{secnote}
+تجميع هذه القواعد في نقطة واحدة أمانٌ بحدّ ذاته: لا يمكن لمطوّر أن «ينسى» ختم تاريخ أو
+يترك تعارضًا يتسرّب كخطأ 500 يكشف تفاصيل داخليّة. القاعدة تُفرَض على الجميع لأنّها تعيش في
+الطريق الذي لا مفرّ منه.
+\end{secnote}
+
+% ====================================================================
+\subsection{ضوابط أخرى: التزامن والتكرار والفهارس الفريدة}
+
+يبقى ثلاثة حرّاس صغار لكن حاسمين:
+
+\subsubsection{التزامن المتفائل عبر RowVersion}
+الكيانات القابلة للتدقيق تحمل عمودًا \code{RowVersion} يتغيّر مع كل تعديل. لو حاول
+مستخدمان تعديل الصفّ نفسه في آنٍ، ينجح الأوّل ويفشل الثاني لأنّ نسخته صارت قديمة — فنتجنّب
+«التحديث الضائع» دون أقفال ثقيلة. يُعرَّف بسطر:
+\code{b.Property(p => p.RowVersion).IsRowVersion();}
+
+\subsubsection{مفاتيح عدم التكرار IdempotencyKey}
+المال والإشعارات يجب أن يحدثا \emph{مرّةً واحدة بالضبط} حتى مع إعادة المحاولة. لذلك يحمل
+\code{Payment} و\code{Notification} حقل \code{IdempotencyKey} فريدًا. لو أُعيد إرسال نفس
+الطلب، يصطدم بالمفتاح الموجود فلا يتكرّر خصمٌ ولا إشعار. (تذكّر \code{idempotencyKey} في
+مقتطف سحب الدفع سابقًا — نفس الفكرة تُرسَل إلى \en{Stripe} كذلك.)
+
+\subsubsection{الفهارس الفريدة المُصفّاة}
+هذه أذكاها. أحيانًا نريد قاعدة مثل «تطبيق \emph{فعّال} واحد لكل طالب لكل منحة» — لكن نسمح
+بعدّة تطبيقات مسحوبة أو مرفوضة. الفهرس الفريد العاديّ لا يكفي، فنستخدم \emph{فهرسًا فريدًا
+مُصفّى}: يُطبّق شرط التفرّد على صفوف بعينها فقط.
+
+\textbf{هنشوف إيه:} الفهرس الذي يفرض تطبيقًا فعّالًا واحدًا لكل طالب/منحة.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+b.HasIndex(a => new { a.StudentId, a.ScholarshipId })
+    .IsUnique()
+    .HasFilter(
+        "[ScholarshipId] IS NOT NULL " +
+        "AND [Status] <> 'Withdrawn' " +
+        "AND [Status] <> 'Rejected' " +
+        "AND [Status] <> 'Accepted'")
+    .HasDatabaseName("UX_Applications_Student_Scholarship_Active");
+\end{lstlisting}
+\end{english}
+
+الشرط في \code{HasFilter} يستثني الحالات المنتهية (مسحوب/مرفوض/مقبول) والتطبيقات الخارجيّة
+البحتة (بلا رابط منحة). فيبقى التفرّد مفروضًا على التطبيقات \emph{النشطة} فقط. النتيجة:
+قاعدة العمل صارت محفورةً في القاعدة نفسها، لا مجرّد فحص في الكود يمكن تجاوزه.
+
+\begin{qa}
+\textbf{سؤال متوقّع:} «لو الكود فيه فحص قبل الإدراج، فلماذا نحتاج الفهرس الفريد أيضًا؟»
+لأنّ الفحص في الكود عرضة لسباق التزامن (\en{race condition}): طلبان متزامنان قد يمرّان
+كلاهما من الفحص ثم يُدرِجان. الفهرس الفريد في القاعدة هو خطّ الدفاع الأخير الذي لا
+يُخترَق: أحد الطلبين يفشل حتمًا، ونحن نترجم فشله إلى \code{ConflictException} ودّيّ كما
+رأينا في المعترِض. الكود يعطي رسالة لطيفة، والقاعدة تعطي الضمان.
+\end{qa}
+
+% ====================================================================
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item \textbf{\en{CQRS}}: كل عملية إمّا \en{Command} (كتابة) أو \en{Query} (قراءة)،
+  تُرسَل عبر \en{MediatR}، والـ \en{controller} رفيع بسطر واحد \code{mediator.Send}.
+\item \textbf{المعالِج} هو موطن منطق العمل: رأينا \code{AcceptBookingCommand} يحمّل ثم
+  يسحب الدفع ثم يجهّز غرفة \en{ACS} ثم يحفظ ثم ينشر حدث الدومين.
+\item \textbf{خطّ المعالجة} أربع حلقات بترتيب مقصود: \en{Logging} ثم \en{Validation} ثم
+  \en{Performance} ثم \en{Audit} (الأقرب للمعالِج) — كلٌّ في موضعه لسبب.
+\item \textbf{التدقيق} تلقائيّ بسطر \code{[Auditable]} فوق الأمر؛ حلقة \en{Audit} تكتب صفّ
+  \code{AuditLog} بعد نجاح المعالِج فقط.
+\item \textbf{الحذف الناعم} عبر \code{ISoftDeletable} و\code{HasQueryFilter} على قرابة 15
+  كيانًا يجعل الصفوف المحذوفة تختفي من كل استعلام دون تدميرها.
+\item \textbf{معترِض \code{SaveChangesAsync}} يختم التواريخ، وينشر الأحداث بعد الحفظ فقط،
+  ويترجم تعارض الفهرس الفريد إلى \code{ConflictException}، ويحوّل مفاتيح المستخدم إلى
+  \code{Restrict}.
+\item \textbf{ضوابط أخرى}: \code{RowVersion} للتزامن، \code{IdempotencyKey} لعدم التكرار،
+  وفهارس فريدة مُصفّاة تحفر قواعد العمل داخل القاعدة نفسها.
+\end{itemize}
+\end{summary}

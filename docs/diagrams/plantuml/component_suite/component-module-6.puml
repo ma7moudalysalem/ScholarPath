@@ -1,0 +1,106 @@
+' =====================================================================
+'  ScholarPath — MODULE 6: AI, Knowledge Base & Platform
+'  AiController + AdminAiController -> AI/RAG CQRS; DataPrivacyController,
+'  AnalyticsController and the Admin platform surface (settings / audit /
+'  redaction / risk flags) -> Audit / Analytics / PlatformSettings CQRS
+'  -> Domain -> Infrastructure.
+'  Chatbot + embeddings run on Azure OpenAI (gpt-4o-mini + embeddings,
+'  OpenAI-direct as an alt provider); recommendations / eligibility are
+'  produced by the deterministic LocalAiService; a RAG knowledge base
+'  (KnowledgeDocument vectors) grounds the chatbot. Analytics events stream
+'  to Event Hub -> Power BI, which mints embed tokens back to the API.
+'  Free-mode: no payment components anywhere in this module.
+' =====================================================================
+@startuml ScholarPath_Module6_AiKnowledgePlatform
+title Module 6 — AI, Knowledge Base & Platform (component view)
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam component {
+  BackgroundColor #F7F8FC
+  BorderColor #3F4A5A
+}
+
+node "Web API" as API {
+  [AiController] as AICTRL
+  [AdminAiController] as ADMAI
+  [AnalyticsController] as ANCTRL
+  [DataPrivacyController] as DPCTRL
+  [AdminController\n(settings · audit · redaction · risk)] as ADMCTRL
+}
+
+node "Application (CQRS)" as APP {
+  [AI.Commands\nAskChatbot · GenerateRecommendations\nCheckEligibility · LogRecommendationClick\nRebuildKnowledgeBase · ImportExternalScholarships\nFineTuning (start/activate)] as AICMD
+  [AI.Queries\nGetMyRecommendations · GetMyInteractions\nGetMyAiSessions · GetAiSessionTurns\nGetKnowledgeBaseStatus · GetAiUsageSummary] as AIQRY
+  [Platform\nAudit: RequestDataExport/Delete · GetAuditLog\nAnalytics: GetPowerBiEmbedToken · KPIs\nSettings: Get/UpdatePlatformSetting\nRedaction verdict · At-risk users] as PLAT
+  [ports\nIAiService · IEmbeddingService\nIKnowledgeRetriever · IKnowledgeBaseIndexer\nIConsultantEligibilityService\nIEventPublisher · IPowerBiService] as PORT
+}
+
+node "Domain" as DOM {
+  [AiInteraction · RecommendationClickEvent\nAiRedactionAuditSample · KnowledgeDocument] as AENT
+  [AuditLog · UserDataRequest\nPlatformSetting · UserRiskFlag] as PENT
+}
+
+node "Infrastructure (adapters)" as INF {
+  [EF Core DbContext] as DB
+  [AzureOpenAiService\n(IAiService · chat)] as AOAISVC
+  [AzureOpenAiEmbeddingService\n(IEmbeddingService)] as EMBSVC
+  [LocalAiService\n(deterministic recos + eligibility)] as LOCAL
+  [KnowledgeBaseIndexer + KnowledgeRetriever\n(RAG · VectorMath)] as RAG
+  [EventHubPublisher\n(IEventPublisher)] as EHP
+  [PowerBiService\n(IPowerBiService)] as PBISVC
+  [DataExportJob · RedactionAuditSamplingJob\n«Hangfire · optional»] as JOB #FFFDE0
+}
+
+database "Azure SQL" as SQL
+cloud "Azure OpenAI\n(gpt-4o-mini + embeddings)" as AOAI
+[OpenAI direct\n«alt · Ai:Provider»] as OAI #FFFDE0
+[Event Hub] as EH
+cloud "Power BI\n(embed + reverse-ETL)" as PBI
+
+AICTRL  --> AICMD : MediatR
+AICTRL  --> AIQRY : MediatR
+ADMAI   --> AICMD : MediatR
+ADMAI   --> AIQRY : MediatR
+ANCTRL  --> PLAT  : MediatR
+DPCTRL  --> PLAT  : MediatR
+ADMCTRL --> PLAT  : MediatR
+AICMD   --> PORT
+AIQRY   --> PORT
+PLAT    --> PORT
+AICMD   --> AENT
+AIQRY   --> AENT
+PLAT    --> PENT
+PORT  ..> AOAISVC : implements
+PORT  ..> EMBSVC  : implements
+PORT  ..> LOCAL   : implements
+PORT  ..> RAG     : implements
+PORT  ..> EHP     : implements
+PORT  ..> PBISVC  : implements
+RAG    --> EMBSVC : embed docs / query
+RAG    --> DB     : KnowledgeDocument vectors
+AOAISVC --> AOAI  : chat completion
+EMBSVC  --> AOAI  : embeddings
+AOAISVC ..> OAI   : alt provider
+EMBSVC  ..> OAI   : alt provider
+EHP     --> EH    : analytics events
+EH      --> PBI
+PBISVC  --> PBI   : embed token
+PBI     ..> DB    : reverse-ETL → UserRiskFlag
+JOB     --> DB    : data export · redaction sampling
+AICMD   ..> DB
+AIQRY   ..> DB
+PLAT    ..> DB
+DB      --> SQL
+
+note bottom of INF
+  Recommendations and consultant eligibility come from the deterministic
+  LocalAiService (offline metadata scoring); Azure OpenAI (or OpenAI-direct
+  per Ai:Provider) powers the chatbot Q&A and embeddings only, grounded by
+  RAG over KnowledgeDocument vectors in SQL. Analytics events flow to Event
+  Hub → Power BI, which mints embed tokens and pushes churn-risk flags back
+  via reverse-ETL. Platform config, audit log and GDPR data requests round
+  out the module. No payment components exist here (free-mode).
+end note
+@enduml

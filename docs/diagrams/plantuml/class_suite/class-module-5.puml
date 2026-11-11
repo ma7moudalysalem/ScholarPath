@@ -1,0 +1,119 @@
+' =====================================================================
+'  ScholarPath — Class diagram · Module 5 · Resources & Notifications
+'  (PB-009 Resources Hub, PB-008 Notifications)
+'  All classes : AuditableEntity unless a stereotype says otherwise.
+' =====================================================================
+
+@startuml Class_Module5_Resources_Notifications
+title Module 5 — Resources Hub & Notifications  (all classes : AuditableEntity)
+skinparam dpi 150
+skinparam classAttributeIconSize 0
+skinparam nodesep 45
+skinparam ranksep 70
+hide circle
+
+abstract class AuditableEntity {
+  -CreatedAt : DateTimeOffset
+  -CreatedByUserId : Guid?
+  -UpdatedAt : DateTimeOffset?
+  -UpdatedByUserId : Guid?
+  -RowVersion : byte[]?
+}
+interface ISoftDeletable {
+  +IsDeleted : bool
+  +DeletedAt : DateTimeOffset?
+  +DeletedByUserId : Guid?
+}
+class ApplicationUser <<Module 1 · actor>>
+
+class Resource <<+ ISoftDeletable>> {
+  -TitleEn : string
+  -TitleAr : string
+  -Slug : string
+  -DescriptionEn : string?
+  -ContentMarkdownEn : string?
+  -ExternalLinkUrl : string?
+  -AuthorUserId : Guid
+  -AuthorRole : string
+  -Type : ResourceType
+  -Status : ResourceStatus
+  -CategorySlug : string?
+  -IsFeatured : bool
+  -PublishedAt : DateTimeOffset?
+  -ReviewedByAdminId : Guid?
+  -RejectionReason : string?
+}
+class ResourceChild <<: BaseEntity>> {
+  -ResourceId : Guid
+  -TitleEn : string
+  -TitleAr : string
+  -ContentMarkdownEn : string?
+  -SortOrder : int
+  -EstimatedReadMinutes : int
+}
+class ResourceBookmark <<: BaseEntity>> {
+  -UserId : Guid
+  -ResourceId : Guid
+  -BookmarkedAt : DateTimeOffset
+}
+class ResourceProgress {
+  -UserId : Guid
+  -ResourceId : Guid
+  -ChaptersCompletedCount : int
+  -LastAccessedAt : DateTimeOffset
+}
+class ResourceProgressChild <<: BaseEntity>> {
+  -ResourceProgressId : Guid
+  -ResourceChildId : Guid
+  -IsCompleted : bool
+  -CompletedAt : DateTimeOffset?
+}
+class Notification <<+ ISoftDeletable>> {
+  -RecipientUserId : Guid
+  -Type : NotificationType
+  -Channel : NotificationChannel
+  -TitleEn : string
+  -TitleAr : string
+  -BodyEn : string
+  -DeepLink : string?
+  -MetadataJson : string?
+  -IsRead : bool
+  -ReadAt : DateTimeOffset?
+  -Priority : int
+  -IdempotencyKey : string?
+  -DispatchedAt : DateTimeOffset?
+  -DispatchSucceeded : bool
+}
+class NotificationPreference {
+  -UserId : Guid
+  -Type : NotificationType
+  -Channel : NotificationChannel
+  -IsEnabled : bool
+}
+
+' Inheritance
+AuditableEntity <|-- Resource
+AuditableEntity <|-- ResourceProgress
+AuditableEntity <|-- Notification
+AuditableEntity <|-- NotificationPreference
+ISoftDeletable <|.. Resource
+ISoftDeletable <|.. Notification
+
+' Associations
+ApplicationUser "1" -- "*" Resource : authors >
+Resource "1" *-- "*" ResourceChild : chapters >
+Resource "1" -- "*" ResourceBookmark : savedBy >
+ApplicationUser "1" -- "*" ResourceBookmark : saves >
+Resource "1" -- "*" ResourceProgress : trackedIn >
+ApplicationUser "1" -- "*" ResourceProgress : progressesThrough >
+ResourceProgress "1" *-- "*" ResourceProgressChild : perChapter >
+ResourceChild "1" -- "*" ResourceProgressChild : completionOf >
+ApplicationUser "1" -- "*" Notification : receives >
+ApplicationUser "1" -- "*" NotificationPreference : prefers >
+
+note bottom of Notification
+  Multi-channel (InApp / Email / Push) with a per-(Type,Channel)
+  NotificationPreference opt-out and an IdempotencyKey so event replays
+  don't double-insert. Priority 0=info..3=urgent.
+end note
+@enduml

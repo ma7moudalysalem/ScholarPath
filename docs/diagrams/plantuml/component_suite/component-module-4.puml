@@ -1,0 +1,93 @@
+' =====================================================================
+'  ScholarPath — MODULE 4: Community & Chat
+'  CommunityController + ChatController -> Community / Chat CQRS handlers
+'  -> Domain -> Infrastructure. Real-time delivery via SignalR CommunityHub
+'  and ChatHub (WebSocket). Forum moderation (flag / dismiss / auto-hide)
+'  and user blocking are enforced application-side. Forum attachments use
+'  Blob Storage with an optional ClamAV scan.
+' =====================================================================
+@startuml ScholarPath_Module4_CommunityChat
+title Module 4 — Community & Chat (component view)
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam component {
+  BackgroundColor #F7F8FC
+  BorderColor #3F4A5A
+}
+
+node "React 19 SPA" as SPA {
+  [Forum & Chat UI] as UI
+}
+
+node "Web API" as API {
+  [CommunityController] as COCTRL
+  [ChatController] as CHCTRL
+}
+
+node "SignalR Hubs" as HUBS {
+  [CommunityHub] as COHUB
+  [ChatHub] as CHUB
+}
+
+node "Application (CQRS)" as APP {
+  [Community.Commands\nCreatePost · UpdatePost · DeletePost\nCreateReply · ToggleVote · ToggleBookmark\nFlagPost · DismissPostFlags · CreateCategory] as COCMD
+  [Chat.Commands\nSendMessage · BlockUser · UnblockUser] as CHCMD
+  [Queries\nposts · replies · categories · tags\nconversations · messages] as QRY
+  [EventHandlers +\nCommunityBlockFilter] as EVT
+}
+
+node "Domain" as DOM {
+  [ForumPost (posts & replies)\nForumCategory · ForumTag · ForumPostTag\nForumVote · ForumFlag · ForumBookmark\nForumPostAttachment] as COENT
+  [ChatConversation · ChatMessage · UserBlock] as CHENT
+}
+
+node "Infrastructure (adapters)" as INF {
+  [EF Core DbContext] as DB
+  [CommunityRealtimeNotifier\n(ICommunityRealtimeNotifier)] as CONOTIF
+  [ChatRealtimeNotifier\n(IChatRealtimeNotifier)] as CHNOTIF
+  [PresenceTracker\n(IPresenceTracker)] as PRES
+  [FileStorageService] as STORE
+  [ClamAvFileScanService\n«optional»] as CLAM #FFFDE0
+  [NotificationDispatcher] as NOTIF
+}
+
+database "Azure SQL" as SQL
+database "Blob Storage" as BLOB
+
+UI  --> COCTRL : REST
+UI  --> CHCTRL : REST
+UI  ..> COHUB  : WebSocket
+UI  ..> CHUB   : WebSocket
+COCTRL --> COCMD : MediatR
+COCTRL --> QRY   : MediatR
+CHCTRL --> CHCMD : MediatR
+CHCTRL --> QRY   : MediatR
+COCMD  --> COENT
+CHCMD  --> CHENT
+QRY    --> COENT
+QRY    --> CHENT
+COCMD  --> EVT
+CHCMD  --> EVT
+EVT    --> CONOTIF
+EVT    --> CHNOTIF
+EVT    --> NOTIF   : mention / reply alerts
+CONOTIF --> COHUB  : push post / reply / vote
+CHNOTIF --> CHUB   : push message
+CHUB   --> PRES    : online presence
+COCMD  --> STORE   : attachment upload
+STORE  --> CLAM    : scan
+COCMD  ..> DB
+CHCMD  ..> DB
+QRY    ..> DB
+DB     --> SQL
+STORE  --> BLOB
+
+note bottom of INF
+  Moderation (FlagPost / DismissPostFlags / auto-hide) and blocking are
+  enforced application-side: UserBlock + CommunityBlockFilter filter
+  blocked users out of chat contacts and forum feeds. Realtime notifiers
+  fan out over the SignalR hubs (WebSocket); ChatHub tracks live presence.
+end note
+@enduml

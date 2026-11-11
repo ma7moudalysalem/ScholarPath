@@ -2,23 +2,23 @@
 
 # 🎓 ScholarPath
 
-**A gated, bilingual scholarship platform that connects students with verified consultants, scholarship providers, and a peer-learning community — in one personalized, AI-assisted workspace.**
+**A gated, bilingual (English · Arabic) scholarship platform that takes a student from discovery to a decision, with verified providers and mentors and explainable AI advice.**
 
-[![Status](https://img.shields.io/badge/status-active%20development-0ea5e9?style=flat-square)](#)
-[![Frontend](https://img.shields.io/badge/Frontend-React_19-149eca?style=flat-square&logo=react)](#)
-[![Backend](https://img.shields.io/badge/Backend-.NET_10-512bd4?style=flat-square&logo=dotnet)](#)
-[![Database](https://img.shields.io/badge/Database-SQL_Server_2022-cc2927?style=flat-square&logo=microsoftsqlserver)](#)
-[![Payments](https://img.shields.io/badge/Payments-Stripe-635bff?style=flat-square&logo=stripe)](#)
-[![Realtime](https://img.shields.io/badge/Realtime-SignalR-512bd4?style=flat-square)](#)
-[![Style](https://img.shields.io/badge/UI-Tailwind_v4-06b6d4?style=flat-square&logo=tailwindcss)](#)
-[![i18n](https://img.shields.io/badge/i18n-EN_%7C_AR_RTL-10b981?style=flat-square)](#)
+[![Backend](https://img.shields.io/badge/Backend-.NET_10-512bd4?style=flat-square&logo=dotnet)](#-stack)
+[![Frontend](https://img.shields.io/badge/Frontend-React_19-149eca?style=flat-square&logo=react)](#-stack)
+[![Database](https://img.shields.io/badge/Database-SQL_Server-cc2927?style=flat-square&logo=microsoftsqlserver)](#-stack)
+[![Realtime](https://img.shields.io/badge/Realtime-SignalR-512bd4?style=flat-square)](#-stack)
+[![AI](https://img.shields.io/badge/AI-RAG_·_explainable_rules-0ea5e9?style=flat-square)](#-the-ai-features)
+[![i18n](https://img.shields.io/badge/i18n-EN_%7C_AR_RTL-10b981?style=flat-square)](#-stack)
+[![License](https://img.shields.io/badge/license-MIT-lightgrey?style=flat-square)](./LICENSE)
 
-[🚀 Quick start](#-quick-start) ·
-[🏛 Architecture](#-architecture) ·
-[👥 Team](#-team--module-ownership) ·
-[🗺 Roadmap](#-roadmap-srs-iterations) ·
-[🔒 Security](#-security-baseline) ·
-[📚 Docs](./docs)
+[What it does](#-what-it-does) ·
+[AI features](#-the-ai-features) ·
+[Evaluation](#-evaluation-and-research) ·
+[Quick start](#-quick-start) ·
+[Architecture](#-architecture) ·
+[Team](#-team) ·
+[Docs](#-documentation)
 
 </div>
 
@@ -26,17 +26,48 @@
 
 ## 📌 What it does
 
-ScholarPath is a **gated** platform (home page is the only public surface). Once registered, students can:
+Students look for scholarships across listing sites, provider pages, social media groups and their own spreadsheets, and none of these verifies who offers help or follows an application to a decision. ScholarPath puts the whole process in one **gated** environment: only the home, authentication and information pages are public, and every other route requires an account and a role.
 
-- **Discover** matching scholarships across 100K+ listings with AI-ranked match scores.
-- **Apply** in-app or track external applications on a unified kanban.
-- **Book** verified consultants with Stripe-held payments (capture-on-accept, auto-refund on expiry).
-- **Chat** 1:1 in real time, join a moderated community forum, or search a curated resources hub.
-- **Ask** an AI assistant about eligibility, essays, and study-abroad planning.
+- **Students** discover listings, check their eligibility, keep documents in a reusable vault, apply in-app or track external applications, book verified consultants and join a moderated community.
+- **Scholarship providers** publish listings and review applications; a rejection must carry a reason.
+- **Consultants** publish availability and run video sessions under published cancellation and no-show rules.
+- **Administrators** approve providers and consultants before they can publish or mentor, moderate content and adjudicate disputes.
 
-Scholarship providers publish listings and review applications; consultants publish availability and earn via Stripe Connect; admins oversee approvals, moderation, and financial configuration.
+The platform runs in **free-access mode**: the payment flows are implemented and tested but switched off by configuration, and every payment screen is hidden.
 
-Full functional spec in [`docs/SRS.md`](./docs/SRS.md) — 211 functional requirements, 203 use cases, 159 user stories.
+The full specification is in [`docs/SRS.md`](./docs/SRS.md) and [`docs/srs/ScholarPath-SRS.docx`](./docs/srs/ScholarPath-SRS.docx).
+
+---
+
+## 🤖 The AI features
+
+The AI advises; it never decides.
+
+| Feature | How it works |
+|---|---|
+| **Recommendations** | A content-based ranking by academic level, field and destination, gated by level and nationality. Deterministic: the same profile always gives the same ranking, and every match carries the criteria that produced it. |
+| **Eligibility check** | Compares the profile with each listing criterion (level, destination, nationality, field) and reports *met*, *partially met*, *not met* or *unknown*; a missing profile field gives *unknown*, never *not eligible*. |
+| **What would open more listings** | Counterfactual suggestions: the single change (a destination to add, a level to reach) that would make the most listings eligible. |
+| **Assistant (RAG)** | Answers from retrieved platform documents only. Retrieval fuses BM25 over English and Arabic text with embeddings by reciprocal rank; with no model configured it answers extractively, offline. |
+
+Recommendation scoring and eligibility contain no model, so they behave identically under every AI provider (offline, OpenAI or Azure OpenAI).
+
+---
+
+## 📊 Evaluation and research
+
+The evaluation harness ships with the code in [`server/tools/ScholarPath.Eval`](./server/tools/ScholarPath.Eval), and the figures in the accompanying paper are reproducible from tag [`paper-eval-v4`](https://github.com/ma7moudalysalem/ScholarPath/tree/paper-eval-v4).
+
+- **Data:** 1,712 student profiles calibrated to UNESCO UIS statistics for twelve Arab countries, and 528 real listings from official sources (DAAD, Erasmus Mundus and 29 government and university programmes).
+- **Recommendations:** measured for every student against an exhaustive ceiling, with bootstrap confidence intervals and Holm-adjusted tests ([`stats.py`](./server/tools/ScholarPath.Eval/stats.py)).
+- **External check:** the eligibility verdicts agree with DAAD's own published criteria on all 39,300 compared pairs ([`real/external_check.py`](./server/tools/ScholarPath.Eval/real/external_check.py)).
+- **Retrieval and answers:** known-item retrieval in English and Arabic, and assistant answers judged by two independent models.
+- **Benchmark:** a bilingual eligibility question set of 1,320 items in English and Arabic ([`benchmark/`](./server/tools/ScholarPath.Eval/benchmark)).
+
+```bash
+cd server/tools/ScholarPath.Eval
+dotnet run -- --mode recommendation --students 1712 --oracle 1712 --as-of 2026-10-27 --connection "<database>"
+```
 
 ---
 
@@ -44,192 +75,117 @@ Full functional spec in [`docs/SRS.md`](./docs/SRS.md) — 211 functional requir
 
 | Layer | Technology |
 |---|---|
-| **Backend** | .NET 10 · ASP.NET Core · EF Core 10 · MediatR 14 · FluentValidation 12 · AutoMapper 14 · Serilog · Scalar OpenAPI |
-| **Database** | SQL Server 2022 |
-| **Auth** | ASP.NET Core Identity · RS256 JWT · Refresh rotation · Google + Microsoft SSO |
-| **Real-time** | SignalR (ChatHub · NotificationHub · CommunityHub) with Redis backplane ready |
-| **Payments** | Stripe.net 51 (PaymentIntents · Connect · webhooks with signature verification) |
-| **Background** | Hangfire (feature-flagged; 5 scheduled jobs stubbed) |
-| **Frontend** | React 19 · Vite 8 · TypeScript 6 · Tailwind CSS v4 · shadcn/ui + Radix · Motion 12 · TanStack Query 5 · Zustand 5 · React Hook Form + Zod |
-| **i18n** | i18next 26 · Full EN + AR with RTL direction flip |
-| **DevX** | Docker Compose (SQL Server + Redis + MailHog) · GitHub Actions · Scalar API docs · Vitest + Playwright · xUnit + Testcontainers |
+| **Backend** | .NET 10 · ASP.NET Core · EF Core · MediatR (CQRS) · FluentValidation · Serilog · Scalar OpenAPI |
+| **Database** | SQL Server (Azure SQL in production) |
+| **Auth** | ASP.NET Core Identity · RS256 JWT with refresh rotation · Google and Microsoft SSO |
+| **Real-time** | SignalR (chat, notifications, community) with an optional Redis backplane |
+| **Background jobs** | Hangfire: booking expiry, session reminders, no-show detection, deadline closure |
+| **AI** | Offline BM25 + extractive answers · OpenAI · Azure OpenAI (chat and embeddings) |
+| **Frontend** | React 19 · Vite · TypeScript · Tailwind CSS v4 · Radix UI · TanStack Query · Zustand · React Hook Form + Zod |
+| **i18n** | i18next · English and Arabic with a right-to-left layout |
+| **Cloud** | Azure App Service · Azure SQL · Blob Storage · Key Vault · Communication Services (video) · Static Web Apps |
+| **DevX** | Docker Compose · GitHub Actions · xUnit · Vitest · Playwright |
 
 ---
 
 ## 🚀 Quick start
 
-> ≈ 10 minutes from `git clone` to login screen.
-
 ### Prerequisites
-- .NET SDK **10.0.6+**
-- Node.js **22+** (LTS)
-- Docker Desktop (for SQL Server + Redis + MailHog)
-
-### Boot the stack
+- .NET SDK 10
+- Node.js 22+
+- Docker Desktop (SQL Server, Redis, MailHog)
 
 ```bash
 git clone https://github.com/ma7moudalysalem/ScholarPath.git
 cd ScholarPath
-cp .env.example .env           # fill Stripe/OAuth test-mode keys when ready
+cp .env.example .env
 
-docker compose up -d           # sqlserver + redis + mailhog
+docker compose up -d           # SQL Server + Redis + MailHog
 
-# Backend (new terminal)
+# Backend
 cd server
-dotnet ef database update --project src/ScholarPath.Infrastructure \
-                          --startup-project src/ScholarPath.API
+dotnet ef database update --project src/ScholarPath.Infrastructure --startup-project src/ScholarPath.API
 dotnet run --project src/ScholarPath.API
-# → Scalar API docs: http://localhost:5000/scalar/v1
-# → Health:           http://localhost:5000/health
+# API docs: http://localhost:5000/scalar/v1 · Health: http://localhost:5000/health
 
-# Frontend (new terminal)
+# Frontend (second terminal)
 cd client
 npm ci
 npm run dev
-# → App: http://localhost:5173
+# App: http://localhost:5173
 ```
 
-### Seeded accounts (dev only)
-
-| Role        | Email                              | Password       |
-|-------------|------------------------------------|----------------|
-| Admin       | `admin@scholarpath.local`          | `Admin123!`    |
-| Student     | `student@scholarpath.local`        | `Student123!`  |
-| Company     | `company@scholarpath.local`        | `Company123!`  |
-| Consultant  | `consultant@scholarpath.local`     | `Consult123!`  |
-
-### MailHog (dev email inbox)
-Open http://localhost:8025 to see every email the app sends.
+The development database is seeded with one account per role (see `server/src/ScholarPath.Infrastructure/Persistence/Seed`). MailHog at http://localhost:8025 shows every email the app sends.
 
 ---
 
 ## 🏛 Architecture
 
-Clean Architecture — dependencies flow inward only.
+A modular monolith in four layers (Domain, Application, Infrastructure, API), with dependencies pointing inward only.
 
 ```
-┌───────────────────────────────────────────────────────────────────────┐
-│  client/    React 19 + Vite 8 + Tailwind v4 + shadcn/Radix + i18n    │
-│  (static SPA · routing · layouts · stores · API + SignalR clients)    │
-└──────────────────┬────────────────────────────────────────────────────┘
-                   │ HTTPS · JWT bearer · WebSocket for SignalR
-                   ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│  server/ScholarPath.API    ASP.NET Core 10 host                       │
-│  (controllers · middleware pipeline · hubs · webhooks · Scalar)       │
-└──────────────────┬────────────────────────────────────────────────────┘
-                   │ MediatR · IRequest → IRequestHandler
-                   ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│  ScholarPath.Application                                              │
-│  (Commands · Queries · Validators · DTOs · Pipeline Behaviors)        │
-│  14 module slices — one per backlog epic (PB-001 … PB-014)            │
-└───┬───────────────────────────────────────────────────────────────┬───┘
-    ▼                                                               ▼
-┌─────────────────────────┐                 ┌─────────────────────────────┐
-│  ScholarPath.Domain     │                 │  ScholarPath.Infrastructure │
-│  40 entities · enums ·  │◀────implements──│  EF DbContext · Identity    │
-│  events · interfaces    │                 │  Stripe · SignalR · Hangfire│
-│  (pure, no deps)        │                 │  Email · Blob · AI · Audit  │
-└─────────────────────────┘                 └──────────────┬──────────────┘
-                                                           ▼
-                                  ┌────────────────────────────────────────┐
-                                  │ SQL Server 2022 · Redis · MailHog      │
-                                  │ Stripe · OpenAI · Azure Blob / KeyVault│
-                                  └────────────────────────────────────────┘
+client/   React 19 SPA ─── HTTPS · JWT · WebSocket (SignalR)
+              │
+              ▼
+ScholarPath.API             controllers · middleware · hubs
+              │  MediatR
+              ▼
+ScholarPath.Application     commands · queries · validators · pipeline behaviours
+              │
+     ┌────────┴─────────┐
+     ▼                  ▼
+ScholarPath.Domain   ScholarPath.Infrastructure
+entities · events    EF Core · Identity · SignalR · Hangfire · AI · Blob · email
 ```
 
-Full deep dive in [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
-
-### Design system
-
-- **Apple-inspired rhythm** — binary light/dark surfaces (`#ffffff` / `#f5f5f7` / `#000000`), -0.02em letter-spacing on headlines, 1.08 hero leading, 980px pill CTAs.
-- **Typography** — Inter for Latin, IBM Plex Sans Arabic for Arabic, JetBrains Mono for code.
-- **Motion** — 120/200/320/500ms durations with Apple easing `cubic-bezier(0.22, 1, 0.36, 1)`.
-- **RTL-first** — `dir="rtl"` flows from i18n store; every layout uses logical CSS properties.
-- **Dark mode** — via `[data-theme="dark"]` + system preference sync.
-
-See [`docs/DESIGN.md`](./docs/DESIGN.md) for tokens, typography scale, shadow levels, and motion rules.
+Applications, bookings and listings change state only along the transitions the server enforces. See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
 
 ---
 
-## 👥 Team & module ownership
+## 👥 Team
 
-| Module | Epic | Owner | SRS range | Iteration |
-|---|---|---|---|---|
-| Authentication, Access, Onboarding | PB-001 | [@Madiha6776](https://github.com/Madiha6776) | US-001..US-014 | 1 |
-| Profile & Account Management | PB-002 | [@Madiha6776](https://github.com/Madiha6776) | US-015..US-019 | 1 |
-| Scholarship Discovery & Listing | PB-003 | [@norra-mmhamed](https://github.com/norra-mmhamed) | US-020..US-030 | 2 |
-| In-App Application & External Tracking | PB-004 | [@norra-mmhamed](https://github.com/norra-mmhamed) | US-031..US-044 | 2 |
-| Company Review, Payment, Rating | PB-005 | [@yousra-elnoby](https://github.com/yousra-elnoby) | US-045..US-050 | 3 |
-| Consultant Booking, Payment, Rating | PB-006 | [@TasneemShaaban](https://github.com/TasneemShaaban) | US-051..US-071 | 3 |
-| Community + Chat | PB-007 | [@yousra-elnoby](https://github.com/yousra-elnoby) | US-072..US-099 | 4 |
-| AI Features | PB-008 | [@ma7moudalysalem](https://github.com/ma7moudalysalem) | US-082..US-087 | 4 |
-| Resources Hub | PB-009 | [@yousra-elnoby](https://github.com/yousra-elnoby) | US-088..US-102 | 4 |
-| Notifications | PB-010 | [@Madiha6776](https://github.com/Madiha6776) | US-103..US-117 | 3 |
-| Admin Portal | PB-011 | [@ma7moudalysalem](https://github.com/ma7moudalysalem) | US-118..US-138 | 1 |
-| Audit & Compliance | PB-012 | [@ma7moudalysalem](https://github.com/ma7moudalysalem) | US-139..US-142 | 4 |
-| Payment Processing & Settlement | PB-013 | [@norra-mmhamed](https://github.com/norra-mmhamed) | US-143..US-152 | 2 |
-| Portal Profit Share | PB-014 | [@TasneemShaaban](https://github.com/TasneemShaaban) | US-153..US-159 | 3 |
+| Module | Epic | Owner |
+|---|---|---|
+| Authentication, Access, Onboarding | PB-001 | [@Madiha6776](https://github.com/Madiha6776) |
+| Profile & Account Management | PB-002 | [@Madiha6776](https://github.com/Madiha6776) |
+| Scholarship Discovery & Listing | PB-003 | [@norra-mmhamed](https://github.com/norra-mmhamed) |
+| In-App Application & External Tracking | PB-004 | [@norra-mmhamed](https://github.com/norra-mmhamed) |
+| Provider Review & Rating | PB-005 | [@yousra-elnoby](https://github.com/yousra-elnoby) |
+| Consultant Booking & Rating | PB-006 | [@TasneemShaaban](https://github.com/TasneemShaaban) |
+| Community + Chat | PB-007 | [@yousra-elnoby](https://github.com/yousra-elnoby) |
+| AI Features | PB-008 | [@ma7moudalysalem](https://github.com/ma7moudalysalem) |
+| Resources Hub | PB-009 | [@yousra-elnoby](https://github.com/yousra-elnoby) |
+| Notifications | PB-010 | [@Madiha6776](https://github.com/Madiha6776) |
+| Admin Portal | PB-011 | [@ma7moudalysalem](https://github.com/ma7moudalysalem) |
+| Audit & Compliance | PB-012 | [@ma7moudalysalem](https://github.com/ma7moudalysalem) |
+| Payment Processing & Settlement | PB-013 | [@norra-mmhamed](https://github.com/norra-mmhamed) |
+| Portal Profit Share | PB-014 | [@TasneemShaaban](https://github.com/TasneemShaaban) |
 
-**Team lead + architect + AI**: [@ma7moudalysalem](https://github.com/ma7moudalysalem) — owns shared infrastructure (`Program.cs`, `DbContext`, migrations, CI, design system) and reviews every PR.
+**Team lead and architect:** [@ma7moudalysalem](https://github.com/ma7moudalysalem), owner of the shared infrastructure, the AI features and the evaluation.
 
-CODEOWNERS auto-routes PRs to the right reviewer.
-
----
-
-## 🗺 Roadmap (SRS iterations)
-
-```
-┌ Iteration 1 ─────────────────┐   ┌ Iteration 2 ─────────────────┐
-│ PB-001 Auth + Onboarding     │   │ PB-003 Scholarships          │
-│ PB-002 Profile               │ → │ PB-004 Applications          │
-│ PB-011 Admin shell           │   │ PB-013 Payments              │
-└──────────────────────────────┘   └──────────────────────────────┘
-                                                │
-                                                ▼
-┌ Iteration 3 ─────────────────┐   ┌ Iteration 4 ─────────────────┐
-│ PB-005 Company Review        │   │ PB-007 Community + Chat      │
-│ PB-006 Consultant Booking    │ → │ PB-008 AI                    │
-│ PB-010 Notifications         │   │ PB-009 Resources             │
-│ PB-014 Profit Share          │   │ PB-012 Audit & Compliance    │
-└──────────────────────────────┘   └──────────────────────────────┘
-```
-
-Follow live progress in the [14 tracking issues](https://github.com/ma7moudalysalem/ScholarPath/issues).
+Supervised by Dr. Nadia Abd-Alsabour, Cairo University.
 
 ---
 
-## 🔒 Security baseline
+## 🔒 Security
 
-- **Passwords** hashed with PBKDF2-HMAC-SHA256 (ASP.NET Core Identity default).
-- **JWT** signed with RS256 asymmetric keys from Azure Key Vault in prod; HMAC fallback in dev.
-- **Lockout** after 5 consecutive failed logins in 15 min; refresh-token rotation with replacement chain prevents replay.
-- **TLS 1.2+** enforced; HSTS + COOP + CORP + Permissions-Policy headers on every response.
-- **Stripe webhooks** verified by signature + stored with unique `event.id` (idempotency).
-- **RFC 7807 Problem Details** on every error; no stack traces in production.
-- **Rate limiting** (10 req/min per-IP) on `/api/auth/*`.
-- **OWASP Top 10** mitigations documented in [`docs/AUTH.md`](./docs/AUTH.md).
-- **No secrets in code** — CI runs Gitleaks + Trivy on every push.
+- ASP.NET Core Identity password hashing, lockout, and refresh-token rotation with a replacement chain.
+- Role checks on every route, enforced by the server from the active-role claim.
+- RFC 9457 problem details on every error; no stack traces outside development.
+- Rate limits on the authentication and AI endpoints.
+- Secrets read from Azure Key Vault in production; nothing secret in the repository.
+- Personal data (emails, card and phone numbers) removed from questions before they reach a model.
 
 ---
 
 ## 🧪 Testing
 
-- **Backend**: xUnit + FluentAssertions + NSubstitute · integration via `WebApplicationFactory` + Testcontainers-MsSql.
-- **Frontend**: Vitest + Testing Library (happy-dom) · Playwright for Chromium + Firefox + mobile.
-- **Coverage target**: ≥70% across unit + integration.
-- **CI gates every PR**: backend build + test + format check; frontend lint + typecheck + test + build; Trivy + Gitleaks security scan.
-
 ```bash
-cd server && dotnet test               # 8/8 smoke tests passing
-cd client && npm run typecheck         # clean
-cd client && npm run lint              # clean
-cd client && npm run test              # Vitest unit green
-cd client && npm run test:e2e          # Playwright smoke green
+cd server && dotnet test        # unit and integration tests
+cd client && npm run typecheck && npm run lint && npm run test
 ```
 
-Patterns + examples in [`docs/TESTING.md`](./docs/TESTING.md).
+CI builds and tests the server and the client on every pull request. See [`docs/TESTING.md`](./docs/TESTING.md).
 
 ---
 
@@ -237,38 +193,24 @@ Patterns + examples in [`docs/TESTING.md`](./docs/TESTING.md).
 
 | Doc | What it covers |
 |---|---|
-| [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Layers · request lifecycle · event flow · state machines · data invariants |
-| [AUTH.md](./docs/AUTH.md) | Register · login · SSO · refresh · role switcher · onboarding |
-| [PAYMENTS.md](./docs/PAYMENTS.md) | Stripe lifecycle · refund matrix · webhook idempotency · Connect |
-| [RTL.md](./docs/RTL.md) | Arabic + logical CSS properties + testing parity |
-| [TESTING.md](./docs/TESTING.md) | Testing pyramid · examples · coverage |
-| [DESIGN.md](./docs/DESIGN.md) | Design system tokens + components |
-| [CHROME-DEVTOOLS-MCP.md](./docs/CHROME-DEVTOOLS-MCP.md) | Visual QA with a headless Chrome |
-| [HANDOFF.md](./docs/HANDOFF.md) | Onboarding guide for teammates joining a module |
-| [SRS.md](./docs/SRS.md) | Full Software Requirements Specification |
-
----
-
-## 🤝 Contributing
-
-See [`CONTRIBUTING.md`](./CONTRIBUTING.md). Every PR must:
-
-- Reference an **FR-xxx** or **US-xxx** from the SRS.
-- Pass **all CI gates** (build · test · typecheck · lint · format · security scan).
-- Include **EN + AR** translations for any user-facing strings.
-- Touch only files inside the module's **owner scope** (or request cross-owner review).
-
-Branch naming: `feat/PB-xxx-short-slug` · `fix/PB-xxx-bug-slug` · `chore/description`.
-Commit format: [Conventional Commits](https://www.conventionalcommits.org/).
+| [ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Layers, request lifecycle, events, state machines |
+| [AUTH.md](./docs/AUTH.md) | Registration, login, SSO, refresh, roles, onboarding |
+| [ERD.md](./docs/ERD.md) · [CLASS-DIAGRAMS.md](./docs/CLASS-DIAGRAMS.md) | Data model and class diagrams |
+| [PAYMENTS.md](./docs/PAYMENTS.md) | The payment design (disabled in free-access mode) |
+| [RTL.md](./docs/RTL.md) | Arabic and right-to-left layout |
+| [TESTING.md](./docs/TESTING.md) | Testing approach |
+| [DESIGN.md](./docs/DESIGN.md) | Design system |
+| [deployment.md](./docs/deployment.md) | Azure deployment |
+| [SRS.md](./docs/SRS.md) | Software Requirements Specification |
 
 ---
 
 ## 📜 License
 
-See [`LICENSE`](./LICENSE).
+[MIT](./LICENSE)
 
 <div align="center">
 
-*ScholarPath — graduation project, 2026.*
+*ScholarPath — graduation project, Cairo University, 2026.*
 
 </div>

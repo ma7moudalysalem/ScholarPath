@@ -1,0 +1,93 @@
+@startchen eerd_module_1
+skinparam DefaultFontName Segoe UI
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam titleFontSize 24
+skinparam titleFontStyle bold
+title ScholarPath EERD  —  Module 1: Identity, Access & Profile
+entity USER {
+  Id <<key>>
+  Email
+  Name
+  AccountStatus
+}
+entity USER_PROFILE {
+  Id <<key>>
+  Nationality
+  ProfileCompletenessPercent <<derived>>
+}
+entity ROLE {
+  Id <<key>>
+  Name
+}
+entity EDUCATION_ENTRY <<weak>> {
+  InstitutionName <<key>>
+  Degree
+}
+entity EXPERTISE_TAG {
+  Id <<key>>
+  Slug
+  Name
+}
+entity REFRESH_TOKEN {
+  Id <<key>>
+  ExpiresAt
+}
+entity PASSWORD_RESET_TOKEN {
+  Id <<key>>
+  ExpiresAt
+}
+entity LOGIN_ATTEMPT {
+  Id <<key>>
+  Succeeded
+}
+entity UPGRADE_REQUEST {
+  Id <<key>>
+  Target
+  Status
+}
+entity UPGRADE_REQUEST_FILE <<weak>> {
+  FileName <<key>>
+}
+entity UPGRADE_REQUEST_LINK <<weak>> {
+  Label <<key>>
+  Url
+}
+relationship HAS_PROFILE {
+}
+relationship HAS_ROLE {
+}
+relationship HAS {
+}
+relationship ISSUES {
+}
+relationship REQUESTS {
+}
+relationship LOGS {
+}
+relationship SUBMITS_UPG {
+}
+relationship ATTACHES_FILE {
+}
+relationship ATTACHES_LINK {
+}
+USER -1- HAS_PROFILE
+HAS_PROFILE =1= USER_PROFILE
+USER =M= HAS_ROLE
+HAS_ROLE -N- ROLE
+USER_PROFILE -1- HAS
+HAS =N= EDUCATION_ENTRY
+USER -1- ISSUES
+ISSUES =N= REFRESH_TOKEN
+USER -1- REQUESTS
+REQUESTS =N= PASSWORD_RESET_TOKEN
+USER -1- LOGS
+LOGS -N- LOGIN_ATTEMPT
+USER -1- SUBMITS_UPG
+SUBMITS_UPG =N= UPGRADE_REQUEST
+UPGRADE_REQUEST -1- ATTACHES_FILE
+ATTACHES_FILE =N= UPGRADE_REQUEST_FILE
+UPGRADE_REQUEST -1- ATTACHES_LINK
+ATTACHES_LINK =N= UPGRADE_REQUEST_LINK
+@endchen

@@ -1,0 +1,54 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam dpi 150
+skinparam maxMessageSize 240
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #2E4A7B
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #EAF1FB
+  ParticipantBorderColor #2E5496
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor #1A1A1A
+  ParticipantFontStyle bold
+  ActorBorderColor #2E5496
+  ActorBackgroundColor #DAE8FC
+  ActorFontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+  FontColor #1A1A1A
+}
+title Admin Rejects Scholarship
+
+actor "Admin" as AD
+participant "AdminScholarships" as PAGE <<page>>
+participant "scholarshipsApi" as API <<api>>
+participant "ScholarshipsController" as CTRL <<controller>>
+participant "RejectScholarshipCommand" as CMD <<command>>
+database "Scholarship" as DB <<entity>>
+participant "NotificationDispatcher" as NOT <<service>>
+AD -> PAGE : reject listing with reason
+PAGE -> API : scholarshipsApi.reject(id, reason)
+API -> CTRL : POST /api/scholarships/{id}/reject
+CTRL -> CTRL : RejectScholarshipCommandValidator (reason required)
+alt reason missing
+  CTRL --> API : 400 Validation Problem
+  API --> PAGE : error
+  PAGE --> AD : rejection reason is required
+else reason provided
+  CTRL -> CMD : RejectScholarshipCommand
+  CMD -> DB : require Status = UnderReview; set Status = Draft, RejectionReason, RejectedAt = now
+  DB --> CMD : rejected
+  CMD -> NOT : NotificationType.ScholarshipRejected (with reason) -> provider
+  NOT --> CMD : notified
+  CMD --> CTRL : done
+  CTRL --> API : 204 No Content
+  API --> PAGE : updated
+  PAGE --> AD : listing returned to Draft with reason
+end
+
+@enduml

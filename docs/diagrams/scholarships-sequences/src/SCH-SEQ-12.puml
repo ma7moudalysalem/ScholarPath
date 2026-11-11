@@ -1,0 +1,65 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam dpi 150
+skinparam maxMessageSize 240
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #2E4A7B
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #EAF1FB
+  ParticipantBorderColor #2E5496
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor #1A1A1A
+  ParticipantFontStyle bold
+  ActorBorderColor #2E5496
+  ActorBackgroundColor #DAE8FC
+  ActorFontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+  FontColor #1A1A1A
+}
+title Provider Reviews Student Application
+
+actor "Scholarship Provider" as SP
+participant "ApplicationsReview" as PAGE <<page>>
+participant "applicationsApi" as API <<api>>
+participant "ApplicationsController" as CTRL <<controller>>
+participant "GetScholarshipProviderApplicationsQuery" as Q <<query>>
+participant "ReviewApplicationCommand" as CMD <<command>>
+participant "ApplicationStateMachine" as SM <<service>>
+database "ApplicationTracker" as APP <<entity>>
+participant "NotificationDispatcher" as NOT <<service>>
+SP -> PAGE : open applications for own scholarships
+PAGE -> API : applicationsApi.getScholarshipProviderApplications()
+API -> CTRL : GET /api/applications/company
+CTRL -> Q : GetScholarshipProviderApplicationsQuery
+Q -> APP : load owned-scholarship applications
+APP --> Q : applications
+Q --> CTRL : list
+CTRL --> API : 200 OK
+API --> PAGE : applications
+SP -> PAGE : set decision (In Assessment / Shortlisted / Accepted / Rejected)
+PAGE -> API : applicationsApi.reviewApplication(id, decision)
+API -> CTRL : POST /api/applications/{id}/review
+CTRL -> CMD : ReviewApplicationCommand
+CMD -> APP : verify provider owns the scholarship & app not read-only
+CMD -> SM : EnsureTransition(current -> decision)
+alt transition allowed
+  SM --> CMD : allowed
+  CMD -> APP : set Status = UnderReview / Shortlisted / Accepted / Rejected
+  CMD -> NOT : NotificationType.ApplicationStatusChanged -> student
+  NOT --> CMD : notified (raises ApplicationStatusChangedEvent)
+  CMD --> CTRL : updated
+else not owner / invalid transition / final state
+  CMD --> CTRL : forbidden / conflict
+end
+CTRL --> API : result
+API --> PAGE : status
+PAGE --> SP : updated application status
+note over CMD : "In Assessment" = ScholarshipStatus/ApplicationStatus.UnderReview.\nAccepted / Rejected / Withdrawn are final, read-only.
+
+@enduml

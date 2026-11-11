@@ -1,0 +1,348 @@
+% ch23-hangfire-jobs.tex — الفصل: Hangfire والمهامّ الخلفيّة (Background Jobs)
+\section{\en{Hangfire} والمهامّ الخلفيّة (\en{Background Jobs})}
+
+في الفصل ده هنفهم حاجة بسيطة بس مهمّة جدًّا لأي نظام حقيقيّ: مش كل شغل لازم يتعمل
+«وإحنا ماسكين المستخدم منتظر». في شغل تقيل أو مؤجَّل الأحسن نعمله في الخلفيّة، بعيدًا عن
+الطلب اللي جاي من المتصفّح. هنعرف ليه نحتاج ده، وإيه هي أداة \en{Hangfire} اللي بنستعملها،
+وإيه المهامّ الحقيقيّة اللي شغّالة في \en{ScholarPath}، وإزاي المهمّة الواحدة بتمشي خطوة
+بخطوة من لحظة ما نطلبها لحد ما تخلص. القارئ يفترض إنه فاهم من قبل فكرة الطبقات
+(\en{layers})، والـ\en{ports}، والـ\en{idempotency} — وهنعتمد عليهم من غير ما نعيد شرحهم
+بعمق.
+
+% ═══════════════════════════════════════════════════════════════════════
+\subsection{ليه نحتاج مهامّ خلفيّة أصلًا؟}
+
+خلّينا نتخيّل إن طالب ضغط زرّ «قدِّم على المنحة». في الخلفيّة لازم يحصل: نحفظ الطلب،
+ونبعت له إيميل تأكيد، ويمكن نحدّث بعض الإحصاءات. لو عملنا كل ده جوّه الطلب الواحد،
+الطالب هيفضل يبصّ في شاشة بتلفّ لحد ما الإيميل يتبعت والإحصاء يتحسب. وده بطيء وبيتعطّل
+لو خدمة الإيميل زعلت.
+
+الفكرة إن الشغل نوعين. في شغل «متزامن» (\en{synchronous}) لازم يتعمل جوّه الطلب لأن الردّ
+يعتمد عليه — زي التحقّق من الصلاحيّة وحفظ الطلب نفسه. وفي شغل «خلفيّ» (\en{background})
+ممكن يتأجّل لأن المستخدم مش محتاج ينتظره — زي إرسال الإيميل، أو معالجة تسجيل فيديو
+الجلسة، أو تجهيز تقرير. النوع التاني بنرميه لطابور خلفيّ ونردّ على المستخدم فورًا.
+
+\begin{idea}[الفكرة: افصل الثقيل عن الطلب]
+القاعدة البسيطة: لو المستخدم مش محتاج نتيجة العمليّة عشان يكمّل، متخلّيهوش يستنّاها.
+احفظ اللي لازم يتحفظ فورًا، وارمي الباقي (الإيميل، الفيديو، التقرير) للخلفيّة، وردّ عليه
+بسرعة.
+\end{idea}
+
+وفي كمان نوع تالت مهمّ: شغل «مجدوَل» (\en{scheduled}) بيشتغل من نفسه على مواعيد، من غير
+ما حد يضغط أي زرّ. زي تذكيرات ليليّة باقتراب مواعيد المنح، أو كنس دوريّ للجلسات اللي حصل
+فيها غياب (\en{no-show}). ده شغل مالوش «طلب مستخدم» أصلًا — محتاج حاجة تصحّيه بنفسها كل
+فترة.
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.9cm and 1.3cm]
+  \node[actor] (user) {User};
+  \node[pbox, right=of user] (api) {API handler};
+  \node[tbox, right=of api] (resp) {fast 202 reply};
+  \node[sbox, below=1.2cm of api] (enq) {enqueue};
+  \node[dbbox, right=of enq] (store) {job storage};
+  \node[pbox, right=of store] (worker) {worker: email / video};
+
+  \draw[arr] (user) -- node[lbl,above]{request} (api);
+  \draw[arr] (api) -- node[lbl,above]{fast} (resp);
+  \draw[arr] (resp.south) to[bend left=25] node[lbl,right]{back} (user.east);
+  \draw[arrd] (api) -- node[lbl,right]{offload heavy} (enq);
+  \draw[arr] (enq) -- (store);
+  \draw[arr] (store) -- (worker);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+الرسمة فوق بتقول القصّة كلها: الطلب بيدخل، الـ\en{API} بيعمل اللازم بسرعة ويردّ (السهم
+العلويّ للمستخدم)، وفي نفس الوقت بيرمي الشغل التقيل لطابور خلفيّ (السهم المتقطّع لأسفل)،
+والعامل (\en{worker}) بيلتقطه ويشتغل عليه بعيدًا. المستخدم مستنّاش الجزء التقيل خالص.
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: ردّ سريع للمستخدم]
+أهمّ رسالة تقولها للّجنة: «إحنا بنردّ على المستخدم بسرعة لأن الشغل التقيل بيتأجّل
+للخلفيّة». تقديم طلب منحة بيرجع للطالب في أجزاء من الثانية، بينما إرسال الإيميل ومعالجة
+الفيديو وتجهيز التقارير بتحصل بعيدًا عن الطلب. النتيجة: واجهة سريعة لا تتعطّل لو خدمة
+خارجيّة (زي بريد أو \en{Stripe}) بطُؤت لحظيًّا.
+\end{spotlight}
+
+% ═══════════════════════════════════════════════════════════════════════
+\subsection{يعني إيه Hangfire؟}
+
+\en{Hangfire} مكتبة لإدارة المهامّ الخلفيّة في \en{.NET}. بدل ما نبني طابور بإيدينا، هي
+بتدّينا أربع حاجات جاهزة:
+
+\begin{itemize}
+  \item طابور مدعوم بتخزين دائم — المهامّ مش بتتخزّن في الذاكرة (اللي بتضيع لو
+  السيرفر وقع)، لكن في جداول جوّه قاعدة البيانات (\en{SQL Server} عندنا). يعني لو السيرفر
+  اتعمل له \en{restart}، المهامّ لسه موجودة وهتكمّل.
+  \item عمّال (\en{workers}) — خيوط بتفضل تسأل الطابور: «في شغل؟» وتلتقطه وتنفّذه.
+  \item جدولة — تقدر تجدول مهمّة تشتغل بعد شويّة، أو تتكرّر بجدول \en{cron}.
+  \item لوحة تحكّم (\en{dashboard}) — صفحة بتوريك المهامّ الشغّالة والفاشلة
+  والمعادة، ومحميّة عندنا بصلاحيّة \en{Admin} بس.
+\end{itemize}
+
+وفي تلات طرق أساسيّة نطلب بيها مهمّة:
+
+\begin{center}
+\begin{tabular}{L{3.4cm} L{11.2cm}}
+\toprule
+النوع & المعنى \\
+\midrule
+\en{enqueue} (\en{fire-and-forget}) & نفّذها دلوقتي في الخلفيّة، وانسَها — زي إرسال إيميل بعد حفظ الطلب. \\
+\en{schedule} & نفّذها مرّة واحدة بعد وقت محدّد (مثلًا بعد ساعة). \\
+\en{recurring} & كرّرها على جدول \en{cron} — زي كل 15 دقيقة أو كل ليلة. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+وأهمّ ميزة: لو المهمّة فشلت (استثناء)، \en{Hangfire} بيعيد محاولتها تلقائيًّا كذا مرّة
+بفواصل متزايدة. وده بيفتح سؤال مهمّ: لو المهمّة اتنفّذت نصّها وفشلت وأُعيدت، هتتعمل مرّتين؟
+عشان كده لازم كل مهمّة تكون \en{idempotent} — يعني تنفيذها مرّتين بنفس المدخلات يدّي نفس
+النتيجة من غير ضرر (لا إيميل مكرّر ولا دفعة مزدوجة). هنرجع للنقطة دي بالتفصيل في آخر الفصل.
+
+\begin{keyp}[نقطة مهمة: التخزين هو اللي بيخلّي الطابور ينجو من السقوط]
+لأن \en{Hangfire} بيكتب المهامّ في قاعدة البيانات مش في الذاكرة، أي مهمّة اتحطّت في الطابور
+بتفضل موجودة حتى لو السيرفر وقع أو اتعمل له \en{deploy}. ده الفرق بين طابور «هشّ» في
+الذاكرة وطابور «دائم» يعتمد عليه.
+\end{keyp}
+
+الكود ده بيبيّن إزاي بنركّب \en{Hangfire} على تخزين \en{SQL Server}. لاحظ إن كل ده متعلّق
+بمفتاح إعداد — لو الميزة مقفولة، مفيش تخزين ولا عمّال أصلًا.
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+builder.Services.AddHangfire(cfg =>
+{
+    cfg.UseSimpleAssemblyNameTypeSerializer()
+       .UseRecommendedSerializerSettings();
+
+    if (!string.IsNullOrWhiteSpace(connectionString))
+    {
+        cfg.UseSqlServerStorage(connectionString, new SqlServerStorageOptions
+        {
+            CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+            QueuePollInterval = TimeSpan.FromSeconds(30),
+        });
+    }
+    // ...
+});
+
+builder.Services.AddHangfireServer();   // start the workers
+\end{lstlisting}
+\end{english}
+
+شرح سريع لأهمّ الأسطر: \code{UseSqlServerStorage} بيقول لـ\en{Hangfire} يخزّن جداوله في
+نفس قاعدة البيانات (نفس \code{connectionString}). و\code{QueuePollInterval} هو كل قدّ إيه
+العامل يسأل الطابور عن شغل جديد (كل 30 ثانية). و\code{AddHangfireServer} هو اللي بيشغّل
+العمّال اللي بيلتقطوا المهامّ فعلًا. لو التخزين مش متاح، بيرجع لتخزين ذاكرة مؤقّت
+(\en{memory storage}) للتطوير.
+
+% ═══════════════════════════════════════════════════════════════════════
+\subsection{المهامّ الحقيقيّة في ScholarPath}
+
+كل المهامّ المتكرّرة متحكَّم فيها بمفتاح واحد: \code{Hangfire:Enabled}. لو \code{false}
+(القيمة الافتراضيّة في التطوير)، مفيش عمّال بيتشغّلوا ولا مهامّ بتتجدول خالص — ده بيخلّي
+التشغيل المحلّي خفيف. في الإنتاج بنشغّله. الجدول ده بيلخّص أهمّ المهامّ الفعليّة المسجَّلة،
+وجدولها، وبتعمل إيه:
+
+\begin{center}
+\begin{tabular}{L{3.7cm} L{2.7cm} L{7.6cm}}
+\toprule
+المهمّة & الجدول & بتعمل إيه \\
+\midrule
+\en{deadline-reminders} & يوميًّا 09:00 & تذكّر الطلاب باقتراب موعد المنح المحفوظة أو المتقدَّم لها. \\
+\en{draft-reminders} & يوميًّا 10:00 & تنكز مَن عنده مسودّة طلب لسه ما اتبعتتش. \\
+\en{scholarship-auto-close} & كل ساعة & تقفل المنح تلقائيًّا بعد ما موعدها يعدّي. \\
+\en{meeting-no-show-sweep} & كل 15 دقيقة & ترصد غياب أحد طرفَي الجلسة وتفتح \en{NoShowReport}. \\
+\en{booking-reminders} & كل 15 دقيقة & تبعت تذكير قبل الجلسة بـ 24 ساعة وبساعة. \\
+\en{stripe-payouts} & يوميًّا 02:00 & تصرف دفعات \en{Stripe} للمستشارين على دفعة مجمّعة. \\
+\en{data-export-sweep} & كل ساعة & تنفّذ طلبات تصدير بيانات \en{GDPR}. \\
+\en{data-delete-sweep} & يوميًّا 03:00 & تنفّذ طلبات حذف بيانات \en{GDPR}. \\
+\en{redaction-audit-sampling} & شهريًّا (اليوم 1، 02:00) & تسحب عيّنة تدقيق لتنقية بيانات \en{PII}. \\
+\en{integrity-check} & يوميًّا 04:00 & فحص سلامة يكشف الصفوف اليتيمة وغير المتّسقة. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{note}
+فيه شغل خلفيّ مش متكرّر بجدول، لكنه بيتحطّ في الطابور «عند الطلب» — أشهر مثال إعادة بناء
+قاعدة المعرفة للذكاء الاصطناعيّ (\en{RebuildKnowledgeBase}). ده بيتفعّل لمّا الأدمن يضغط
+الزرّ (أو مرّة عند إقلاع النظام) بدل ما يتكرّر كل ليلة، لأنه شغل تقيل مش محتاج يتعمل كل يوم.
+\end{note}
+
+الكود ده هو تسجيل المهامّ المتكرّرة نفسه. لاحظ إن كله جوّه شرط \code{Hangfire:Enabled}،
+وإن كل مهمّة ليها اسم ثابت وجدول \en{cron}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+if (hangfireOpts.Enabled)
+{
+    var recurring = app.Services.GetRequiredService<IRecurringJobManager>();
+
+    recurring.AddOrUpdate<IMeetingNoShowSweepJob>(
+        "meeting-no-show-sweep", j => j.RunAsync(CancellationToken.None), "*/15 * * * *");
+    recurring.AddOrUpdate<IStripePayoutJob>(
+        "stripe-payouts", j => j.RunAsync(CancellationToken.None), Cron.Daily(2));   // 02:00 UTC
+    recurring.AddOrUpdate<IScholarshipAutoCloseJob>(
+        "scholarship-auto-close", j => j.RunAsync(CancellationToken.None), Cron.Hourly);
+    recurring.AddOrUpdate<IDeadlineReminderJob>(
+        "deadline-reminders", j => j.RunAsync(CancellationToken.None), Cron.Daily(9));
+    // ... the rest of the jobs follow the same pattern
+}
+\end{lstlisting}
+\end{english}
+
+شرح: \code{AddOrUpdate} بيسجّل مهمّة متكرّرة باسم ثابت — لو موجودة بيحدّثها بدل ما يعمل
+نسخة تانية. الوسيط التالت هو الجدول: \code{"*/15 * * * *"} تعبير \en{cron} معناه «كل 15
+دقيقة»، و\code{Cron.Daily(2)} معناها الساعة 02:00 بتوقيت \en{UTC}. لاحظ إن كل مهمّة بتُسجَّل
+عبر \en{interface} زي \code{IStripePayoutJob} — وده مهمّ هنرجع له في آخر الفصل. الرسمة دي
+بتوزّع المهامّ على «خطّ زمنيّ» حسب تكرارها:
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.55cm and 0.5cm]
+  \node[gbox] (t1) {every 15 min};
+  \node[wbox, right=of t1] (r1) {no-show sweep, booking reminders, booking completion, session expiry};
+  \node[gbox, below=of t1] (t2) {hourly};
+  \node[wbox, right=of t2] (r2) {scholarship auto-close, GDPR export sweep};
+  \node[gbox, below=of t2] (t3) {nightly (02:00 - 10:00)};
+  \node[wbox, right=of t3] (r3) {Stripe payouts, GDPR delete, integrity check, deadline and draft reminders};
+  \node[gbox, below=of t3] (t4) {monthly (1st, 02:00)};
+  \node[wbox, right=of t4] (r4) {PII redaction audit sampling};
+
+  \draw[arr] (t1) -- (t2);
+  \draw[arr] (t2) -- (t3);
+  \draw[arr] (t3) -- (t4);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+الأعمدة اليسرى (بنفسجيّ) هي الإيقاع: من الأسرع (كل 15 دقيقة) للأبطأ (شهريًّا)، والسهم النازل
+بيمثّل مرور الزمن. الأشرطة الرماديّة الطويلة بتقول المهامّ اللي بتشتغل في كل إيقاع.
+
+% ═══════════════════════════════════════════════════════════════════════
+\subsection{كيف تشتغل مهمّة خطوة بخطوة}
+
+خلّينا نتتبّع رحلة مهمّة واحدة من أوّلها لآخرها. الرحلة بسيطة: حاجة بتحطّ المهمّة في الطابور
+(\en{enqueue})، التخزين بيسجّلها، عامل بيلتقطها، بينفّذها، وبعدين يا إمّا تنجح يا إمّا تفشل
+وتُعاد تلقائيًّا.
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.8cm and 1.05cm]
+  \node[sbox] (enq) {enqueue};
+  \node[dbbox, right=of enq] (q) {storage / queue};
+  \node[pbox, right=of q] (w) {worker executes};
+  \node[dbox, right=of w] (dec) {success?};
+  \node[tbox, right=of dec] (done) {done};
+  \node[fbox, below=1.1cm of dec] (retry) {retry (back-off)};
+
+  \draw[arr] (enq) -- (q);
+  \draw[arr] (q) -- (w);
+  \draw[arr] (w) -- (dec);
+  \draw[arr] (dec) -- node[lbl,above]{yes} (done);
+  \draw[arr] (dec) -- node[lbl,right]{no} (retry);
+  \draw[arrd] (retry) -| node[lbl,below]{re-queued} (q);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+المهمّ في الرسمة هو الفرع النازل: لو فشلت المهمّة، مبتضيعش — بترجع للطابور (السهم المتقطّع)
+عشان تتحاول تاني بعد فترة انتظار متزايدة. ودي بالظبط النقطة اللي بتخلّي الـ\en{idempotency}
+شرطًا مش رفاهيّة.
+
+الكود ده مقتطف من مهمّة تذكيرات المواعيد الحقيقيّة (\en{DeadlineReminderJob}). شوف إزاي
+بتبعت التذكير — وركّز في السطر بتاع \code{idempotencyKey}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+foreach (var recipientId in recipients)
+{
+    await notifications.DispatchAsync(
+        recipientId,
+        NotificationType.ApplicationDeadlineApproaching,
+        new NotificationParams
+        {
+            TitleEn = scholarship.TitleEn,
+            TitleAr = scholarship.TitleAr,
+            Count = daysLeft,
+        },
+        deepLink: $"/student/scholarships/{scholarship.Id}",
+        idempotencyKey: $"deadline-reminder:{scholarship.Id:N}:{recipientId:N}:{deadlineStamp}",
+        ct).ConfigureAwait(false);
+}
+\end{lstlisting}
+\end{english}
+
+شرح: المهمّة بتلفّ على كل مستلم وتبعت له تذكير عبر \code{DispatchAsync}. السطر الأهمّ هو
+\code{idempotencyKey}: مفتاح مبنيّ من رقم المنحة، ورقم المستلم، وتاريخ الموعد
+(\code{deadlineStamp}). يعني نفس التذكير لنفس الشخص لنفس الموعد ليه بصمة واحدة ثابتة. لو
+المهمّة اليوميّة اشتغلت مرّتين بالغلط، أو أُعيدت بعد فشل، طبقة الإشعارات هتشوف إن البصمة دي
+اتبعتت قبل كده فمش هتبعت تاني. تذكير واحد بالظبط لكل موعد — لا تكرار.
+
+% ═══════════════════════════════════════════════════════════════════════
+\subsection{Idempotency وإعادة المحاولة: لا صرف مزدوج}
+
+دلوقتي نجمع الخيطين: إعادة المحاولة التلقائيّة نعمة، لكنها بتفتح خطر التكرار. الحلّ إن كل
+مهمّة تتصمّم بحيث لو اتنفّذت مرّتين متعملش ضرر. في التذكيرات عملنا ده بمفتاح
+\code{idempotencyKey}. في صرف الفلوس الموضوع أخطر بكتير — لو صرفنا لمستشار مرّتين، دي فلوس
+حقيقيّة ضاعت.
+
+عشان كده مهمّة صرف \en{Stripe} بتتحمي بطبقتين. الأولى قفل بيمنع تشغيلين متوازيين لنفس
+المهمّة في نفس اللحظة. شوف إزاي القفل متحطّ على الـ\en{interface} نفسه:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public interface IStripePayoutJob
+{
+    // The lock must live HERE on the interface method — Hangfire reads
+    // job filters off the registered (interface) method, not the impl.
+    [DisableConcurrentExecution(timeoutInSeconds: 30 * 60)]
+    Task RunAsync(CancellationToken ct);
+}
+\end{lstlisting}
+\end{english}
+
+شرح: \code{DisableConcurrentExecution} بيقول لـ\en{Hangfire} «مسموح بتشغيل واحد بس لهذه
+المهمّة في المرّة». الطبقة التانية (في التنفيذ) هي إن كل دفعة بتتعلّم عليها علامة قبل الصرف
+باستخدام رمز تزامن (\en{RowVersion}) على صفّ الدفعة — يعني حتى لو اتنين خادمين حاولوا، واحد
+بس هينجح في «حجز» الدفعة والصرف. الاتنين مع بعض: لا صرف مزدوج مهما تكرّرت المهمّة.
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: \en{idempotency} + إعادة المحاولة = صفر تكرار]
+هنا بيت القصيد اللي بيفرّق نظام هاوي عن نظام جادّ. لأن المهامّ بتتعاد تلقائيًّا عند الفشل،
+صمّمنا كل مهمّة تكون \en{idempotent}: التذكيرات ببصمة \code{idempotencyKey} فمفيش إشعار
+مكرّر، والدفعات بقفل \code{DisableConcurrentExecution} + رمز التزامن على الصفّ فمفيش صرف
+مزدوج ولا فلوس ضايعة. الرسالة للّجنة: «إعادة المحاولة تحمينا من الفشل، والـ\en{idempotency}
+تحمينا من إعادة المحاولة نفسها».
+\end{spotlight}
+
+\begin{secnote}
+لوحة تحكّم \en{Hangfire} على المسار \code{/hangfire} مش مفتوحة للكل — محميّة بفلتر صلاحيّة
+يسمح لـ\en{Admin} بس، وبتتفعّل بمفتاح منفصل \code{DashboardEnabled}. يعني حتى الأداة اللي
+بتوريك قلب النظام الخلفيّ نفسها متقفلة خلف الصلاحيّات.
+\end{secnote}
+
+\begin{qa}[سؤال متوقّع: طب لو نفس المهمّة اليوميّة اشتغلت مرّتين؟]
+مفيش مشكلة. المهامّ عندنا مصمّمة على مبدأ «آمنة عند التكرار». التذكيرات هتتصفّى بالبصمة،
+والدفعات هيتصدّها القفل ورمز التزامن، والإغلاق التلقائيّ للمنح بيعتمد على الحالة الحاليّة
+(\en{Open} فقط) فتشغيله تاني على منحة اتقفلت خلاص مبيعملش حاجة. ده بالظبط تعريف الـ
+\en{idempotency}.
+\end{qa}
+
+\begin{why}
+ليه نتكبّد كل ده بدل ما نشغّل الشغل جوّه الطلب؟ لأن الفصل ده بيدّينا تلات مكاسب مع بعض:
+واجهة سريعة (المستخدم مستنّاش الثقيل)، وصمود (المهمّة في التخزين تنجو من سقوط السيرفر
+وتُعاد لو فشلت)، وأتمتة (شغل بيحصل من نفسه من غير تدخّل بشريّ زي إغلاق المنح والتذكيرات).
+\end{why}
+
+% ═══════════════════════════════════════════════════════════════════════
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+  \item الشغل التقيل أو المؤجَّل مايصحّش يعطّل ردّ المستخدم — بنرميه للخلفيّة ونردّ فورًا.
+  \item \en{Hangfire} بيدّينا طابورًا مدعومًا بتخزين دائم في \en{SQL Server}، وعمّالًا
+  يلتقطوا المهامّ، وجدولة، ولوحة تحكّم محميّة بـ\en{Admin}.
+  \item تلات طرق للطلب: \en{enqueue} فوري، و\en{schedule} مؤجَّل، و\en{recurring} بجدول
+  \en{cron}. وكله متحكَّم فيه بمفتاح \code{Hangfire:Enabled}.
+  \item عندنا مهامّ حقيقيّة: تذكيرات المواعيد والمسودّات، الإغلاق التلقائيّ للمنح، كنس
+  الـ\en{no-show}، صرف \en{Stripe}، تصدير وحذف \en{GDPR}، عيّنات تدقيق تنقية \en{PII}،
+  وفحوص السلامة.
+  \item دورة حياة المهمّة: \en{enqueue} $\rightarrow$ تخزين $\rightarrow$ عامل يلتقط
+  $\rightarrow$ تنفيذ $\rightarrow$ نجاح أو إعادة محاولة تلقائيّة.
+  \item لأن الفشل بيسبّب إعادة محاولة، كل مهمّة لازم تكون \en{idempotent}: بصمة
+  \code{idempotencyKey} للإشعارات، وقفل + رمز تزامن للدفعات — فلا إشعار مكرّر ولا صرف
+  مزدوج.
+\end{itemize}
+\end{summary}

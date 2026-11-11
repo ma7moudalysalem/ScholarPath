@@ -1,0 +1,394 @@
+% ch04-security
+\section{الأمان بعُمق (Defense in Depth)}
+
+في الفصل السابق شرحنا كيف يعرف النظام \emph{مَن أنت} (التوثيق والرموز). في هذا
+الفصل نجيب عن سؤال مختلف: ماذا يحدث \emph{بعد} أن نعرفك؟ كيف نحمي بياناتك وبيانات
+غيرك حتى لو نجح مهاجم في اختراق طبقة واحدة؟ الجواب هو فلسفة اسمها \en{Defense in
+Depth}، أو «الأمان بعُمق». وسنسير فيها \emph{واحدة واحدة}.
+
+\begin{idea}[الفكرة: طبقات مستقلّة لا حائط واحد]
+تخيّل قلعة قديمة: خندق، ثم سور، ثم بوابة، ثم حرّاس بالداخل. لو قفز أحدهم فوق
+الخندق، ما زال السور يوقفه. الأمان بعُمق نفس الفكرة في البرمجيات: بدلًا من الاعتماد
+على ضابط أمان \emph{واحد}، نضع عدّة ضوابط \textbf{مستقلّة}، كلٌّ منها يعمل وحده. فشل
+طبقة لا يعني سقوط النظام، لأن الطبقة التالية ما زالت قائمة. هذا يحوّل «ثغرة واحدة =
+كارثة» إلى «ثغرة واحدة = إزعاج محدود».
+\end{idea}
+
+\subsection{خريطة الطبقات كاملةً}
+
+قبل الغوص في التفاصيل، هذه صورة عامّة لكل طبقات الحماية في \en{ScholarPath}. كل صفّ
+في الجدول ضابط مستقلّ؛ وباقي الفصل يشرح الصفوف الحسّاسة منها بالتفصيل (التشفير،
+الرفع، الفحص، الخصوصيّة، والتدقيق).
+
+\begin{center}
+\begin{tabular}{L{3.4cm} L{9.4cm}}
+\toprule
+\textbf{\color{spPrimary}الطبقة} & \textbf{\color{spPrimary}الضابط} \\
+\midrule
+النقل \en{(Transport)} & \en{HTTPS} في كل مكان؛ رمز \en{JWT bearer} على الـ \en{API}؛ محاور \en{SignalR} موثَّقة \\
+الهويّة \en{(Identity)} & \en{ASP.NET Core Identity} — كلمات سرّ مُجزّأة \en{(hashed)}، قفل عند التخمين، تأكيد بريد \\
+الرموز \en{(Tokens)} & رمز وصول \en{JWT} قصير العمر + رموز تحديث \en{(refresh)} دوّارة تُخزَّن \emph{مُجزّأة} \\
+التخويل \en{(Authorization)} & أدوار (\en{Student}/\en{ScholarshipProvider}/\en{Consultant}/\en{Admin}) + ملكيّة لكلّ مورد \\
+الأسرار والمفاتيح & مزوّدات \en{Azure Key Vault} (مفتاح تشفير الحقول، مفتاح توقيع \en{JWT}) \\
+البيانات المخزَّنة & تشفير حقول \en{AES-256-GCM} على الأعمدة الحسّاسة \\
+الرفع \en{(Uploads)} & فحص-قبل-التخزين بـ \en{ClamAV}، بسياسة \en{fail-closed} \\
+الخصوصيّة/\en{PII} & تنقية النصّ قبل الذكاء الاصطناعي؛ مراجع فضفاضة؛ تصدير/حذف \en{GDPR} \\
+التكامل \en{(Integrity)} & مفاتيح \en{idempotency}، فهارس فريدة مُرشَّحة، \code{RowVersion} \\
+قابليّة التدقيق & سجلّ \code{AuditLog} إلحاقيّ فقط (قبل/بعد بصيغة \en{JSON}) \\
+الحذف الناعم & مُرشِّحات استعلام عامّة تُخفي الصفوف المحذوفة من كلّ استعلام \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{why}
+لاحظ أنّ الطبقات \emph{لا تتكلّم مع بعضها}. التشفير لا يعرف شيئًا عن فحص الفيروسات،
+والتدقيق لا يعرف شيئًا عن الأدوار. هذا الاستقلال مقصود: لو ارتبطت الطبقات ببعضها،
+لأصبح خطأ في واحدة قادرًا على تعطيل الباقي. الاستقلال هو ما يمنح «العُمق» معناه.
+\end{why}
+
+\subsection{التشفير عند التخزين: AES-256-GCM}
+
+بعض الأعمدة في قاعدة البيانات حسّاسة جدًّا — مثل نبذة المستخدم \code{Biography} أو
+الملاحظات الشخصيّة على الطلب \code{PersonalNotes}. لو تسرّبت نسخة احتياطيّة من قاعدة
+البيانات، لا نريد أن يقرأ أحدٌ هذه الحقول. الحلّ: نشفّرها \emph{قبل} أن تُكتَب، على
+مستوى التطبيق نفسه.
+
+\begin{idea}[الفكرة: تشفير مُصادَق (AEAD) بمغلّف ذاتيّ الوصف]
+نستخدم خوارزمية \en{AES-256-GCM}. كلمة \en{GCM} مهمّة: إنها خوارزمية
+\textbf{مُصادَقة} \en{(AEAD)} تعطيك \emph{السرّيّة والسلامة معًا} في خطوة واحدة.
+المفتاح 32 بايت (256 بت)، ولكلّ عمليّة تشفير \en{nonce} عشوائيّ طازج طوله 12 بايت،
+ووسم مُصادَقة \en{(tag)} طوله 16 بايت. القيمة المخزَّنة «مغلّف ذاتيّ الوصف»:
+البادئة الحرفيّة \code{enc:v1:} متبوعةً بـ \en{Base64} للسلسلة
+(\en{nonce} ثم \en{tag} ثم \en{ciphertext}). لأنّ الـ \en{nonce} عشوائيّ، فإنّ تشفير
+النصّ نفسه مرّتين يعطي ناتجًا مختلفًا في كلّ مرّة.
+\end{idea}
+
+المنفذ \code{IFieldEncryptionService} يُنفّذه الصنف \code{AesGcmFieldEncryptionService}.
+هنشوف إزاي بيبني المغلّف عند التشفير:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public const string EnvelopePrefix = "enc:v1:";
+private const int NonceSizeBytes = 12;  // AES-GCM standard nonce
+private const int TagSizeBytes   = 16;  // authentication tag
+
+public string? Encrypt(string? plaintext)
+{
+    if (plaintext is null) return null;                 // null -> null
+    var plaintextBytes = Encoding.UTF8.GetBytes(plaintext);
+
+    var nonce = new byte[NonceSizeBytes];
+    RandomNumberGenerator.Fill(nonce);                  // fresh random nonce
+
+    var tag = new byte[TagSizeBytes];
+    var ciphertext = new byte[plaintextBytes.Length];
+    using (var aes = new AesGcm(_key, TagSizeBytes))
+        aes.Encrypt(nonce, plaintextBytes, ciphertext, tag);
+
+    // Envelope payload: nonce (12) + tag (16) + ciphertext
+    var payload = new byte[NonceSizeBytes + TagSizeBytes + ciphertext.Length];
+    // ... copy nonce, then tag, then ciphertext into payload ...
+    return EnvelopePrefix + Convert.ToBase64String(payload);
+}
+\end{lstlisting}
+\end{english}
+
+نشرح أهمّ الأسطر:
+\begin{itemize}
+\item \code{if (plaintext is null) return null} — القيمة الفارغة تمرّ كما هي؛ عمود
+  فارغ يبقى فارغًا ولا نضيّع تشفيرًا عليه.
+\item \code{RandomNumberGenerator.Fill(nonce)} — هنا يُولَد الـ \en{nonce} العشوائيّ
+  الجديد. هذا السطر تحديدًا هو سرّ أنّ نفس النصّ لا يعطي أبدًا نفس التشفير.
+\item \code{aes.Encrypt(nonce, plaintextBytes, ciphertext, tag)} — خطوة واحدة تُنتج
+  النصّ المشفَّر \emph{و} وسم المُصادَقة معًا.
+\item السطر الأخير يجمّع (\en{nonce} + \en{tag} + \en{ciphertext}) ويضع أمامها
+  البادئة \code{enc:v1:} — فتصير القيمة تصف نفسها بنفسها.
+\end{itemize}
+
+وعلى الجانب الآخر، عند فكّ التشفير، يُتحقَّق من الوسم \en{(tag)} أوّلًا: أيّ عبثٍ
+ببِتّ واحد، أو اقتطاع للقيمة، أو مفتاح خاطئ — يجعل الدالّة \code{Decrypt}
+\textbf{ترمي استثناءً} بدلًا من أن تُرجع قمامة. هذا هو معنى «مُصادَق».
+
+\begin{keyp}[نقطة مهمة: versioned + طرح آمن]
+المقطع \code{v1} في البادئة ليس زينة — إنه \textbf{رقم إصدار}. لو دوّرنا المفتاح
+مستقبلًا، نُدخل \code{enc:v2:} للقيم الجديدة بينما نظلّ قادرين على فكّ القيم القديمة
+\code{v1}. وأهمّ من ذلك: أيّ قيمة \emph{لا} تبدأ بالبادئة (نصّ قديم كُتب قبل تفعيل
+الميزة) تُرجَع كما هي دون تعديل، ثم يُعاد تشفيرها تلقائيًّا عند أوّل كتابة لها. هذا
+«الطرح الآمن» يعني تفعيل التشفير على نظام حيّ \emph{بلا توقّف ولا هجرة بيانات}.
+\end{keyp}
+
+والأجمل أنّ بقيّة الكود لا تشعر بشيء من هذا. نربط التشفير بالعمود عبر \en{value
+converter} في \en{EF Core}، فيصير النصّ صريحًا في الذاكرة ومشفَّرًا في القاعدة:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public sealed class EncryptedStringConverter : ValueConverter<string?, string?>
+{
+    public EncryptedStringConverter(IFieldEncryptionService encryption)
+        : base(
+            plaintext => encryption.Encrypt(plaintext),  // to the database
+            stored    => encryption.Decrypt(stored))     // from the database
+    { }
+}
+\end{lstlisting}
+\end{english}
+
+بمجرّد إسناد هذا المحوّل لعمود، تظلّ معالِجات الأوامر والاستعلامات تقرأ وتكتب نصًّا
+عاديًّا، ولا تعلم أبدًا أنّ العمود مشفَّر عند التخزين. طبقة واحدة، ومسؤوليّة واحدة.
+
+\begin{secnote}
+لماذا \en{GCM} وليس تشفيرًا عاديًّا؟ التشفير العاديّ يحمي السرّيّة لكنه \emph{لا}
+يكشف العبث. \en{GCM} يعطيك الاثنين. وميزته على تشفير القاعدة الشفّاف \en{(TDE)} أنّ
+المفتاح لا يعيش أبدًا في الكود ولا في ملفّات الإعداد — بل يأتي من \en{Key Vault} —
+وحتى نسخة احتياطيّة مسروقة أو مدير قاعدة بيانات فضوليّ لن يرى إلّا نصًّا مشفَّرًا
+لهذه الأعمدة، وهو ما لا يضمنه تشفير القاعدة وحده بمجرّد أن يُرجِع استعلامٌ صفًّا.
+\end{secnote}
+
+\subsubsection{إدارة المفاتيح}
+
+المفتاح يأتي من المنفذ \code{IFieldEncryptionKeyProvider}، وله مُنفِّذان: واحد يقرأ
+من \en{Key Vault} في الإنتاج، وآخر محلّيّ للتطوير. وعند الإقلاع نتحقّق أنّ طوله
+\textbf{32 بايت بالضبط}، وإلّا يرفض النظام أن يبدأ أصلًا. وهناك منفذ مستقلّ آخر هو
+\code{IJwtKeyProvider} لمفتاح توقيع \en{JWT}. وضع كلّ مفتاح خلف منفذه الخاصّ هو ما
+يجعل \textbf{تدوير المفاتيح} عمليّة تشغيليّة بسيطة، لا إعادة نشرٍ للكود.
+
+\begin{qa}
+«ماذا لو تسرّب المفتاح نفسه؟» — عندها يفشل هذا الضابط، لكن تذكّر فلسفة العُمق:
+التشفير طبقة واحدة فقط. ما زالت هناك طبقات الهويّة والتخويل والتدقيق. ثم إنّ المفتاح
+لا يعيش في الكود ولا في \en{git}؛ يعيش في \en{Key Vault} بصلاحيّات محدودة، ويمكن
+تدويره فورًا إلى \code{enc:v2:} دون أن نفقد القيم القديمة.
+\end{qa}
+
+\subsection{رفع الملفات: مسار مُعتِم ومزوّدان}
+
+المستخدمون يرفعون مرفقات: مستندات الطلبات، ملفّات الترقية، مرفقات المنتدى،
+وتسجيلات الجلسات. المنفذ \code{IBlobStorageService} يُنفّذه \code{FileStorageService}،
+وله مزوّدان يُختاران من الإعداد \code{Storage:Provider}: \en{Local} (قرص، للتطوير)
+أو \en{AzureBlob} (تخزين \en{Azure}).
+
+هنشوف إزاي بيتخزّن الملفّ وبيرجّع مساره:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public async Task<string> UploadAsync(
+    Stream content, string fileName, string contentType,
+    string container, CancellationToken ct)
+{
+    // Unique key keeps two same-named uploads from colliding.
+    var key = $"{Guid.NewGuid():N}/{fileName}";
+
+    if (UseAzure)
+    {
+        var blob = ContainerClient(container).GetBlobClient(key);
+        await blob.UploadAsync(content, /* ...ContentType... */, ct);
+        return $"azure:{container}/{key}";     // opaque path
+    }
+    // ... Local provider writes under LocalRoot()/container/key ...
+    return $"local:{container}/{key}";
+}
+\end{lstlisting}
+\end{english}
+
+نشرح أهمّ الأسطر:
+\begin{itemize}
+\item \code{var key = \$"\{Guid.NewGuid():N\}/\{fileName\}"} — يُسبَق اسم الملفّ
+  بـ \en{GUID} عشوائيّ، فملفّان بنفس الاسم لن يتصادما أبدًا، ولا يستطيع مستخدم أن
+  يخمّن مسار ملفّ آخر.
+\item القيمة المُرجَعة \code{azure:container/key} أو \code{local:container/key} هي
+  \textbf{مسار مُعتِم} \en{(opaque)} يحمل اسم المزوّد بداخله — فيعمل التنزيل والحذف
+  للمزوّدَين معًا دون لبس.
+\end{itemize}
+
+وحين نُنشئ حاوية \en{Azure}، نُنشئها بـ \code{PublicAccessType.None} — أي \emph{غير
+عامّة أبدًا}. لا يوجد رابط عامّ للملفّ؛ كلّ تنزيل يمرّ عبر الـ \en{API} الموثَّق الذي
+يتحقّق من صلاحيّة الطالب أوّلًا.
+
+\begin{note}
+المسار المُعتِم فكرة صغيرة بأثر كبير: الكود الأعلى يتعامل مع «سلسلة» واحدة يخزّنها في
+عمود، ولا يهتمّ إن كان الملفّ على قرصٍ محلّيّ أو في \en{Azure}. تبديل المزوّد يصبح
+تغيير إعدادٍ واحد، لا تغيير كود.
+\end{note}
+
+\subsection{الفحص قبل التخزين: ClamAV بسياسة fail-closed}
+
+الملفّ المرفوع قد يكون خبيثًا. لذلك نفحصه \emph{قبل} أن نخزّنه، \textbf{وهو ما زال
+تيّارًا في الذاكرة}. المنفذ \code{IFileScanService} يُنفّذه \code{ClamAvFileScanService}،
+الذي يرسل البايتات إلى خادم \en{ClamAV} عبر بروتوكول \en{INSTREAM}. الأحكام ثلاثة:
+\textbf{Clean} (نظيف، نكمل)، و\textbf{Infected} (مُصاب، نرفض ونسجّل التوقيع)،
+و\textbf{ScanUnavailable} (تعذّر الفحص، نرفض).
+
+هنشوف قلب الدالّة: كيف يترجم ناتج الفاحص إلى حُكم، وكيف يتصرّف عند الفشل:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+switch (result.Result)
+{
+    case ClamScanResults.Clean:
+        return new FileScanResult(FileScanVerdict.Clean, null);
+
+    case ClamScanResults.VirusDetected:
+        var signature = result.InfectedFiles?.FirstOrDefault()?.VirusName
+                        ?? "unknown";
+        return new FileScanResult(FileScanVerdict.Infected, signature);
+
+    default: // Error / Unknown -> treat as unavailable
+        return new FileScanResult(FileScanVerdict.ScanUnavailable, ...);
+}
+// ... and if the daemon is unreachable:
+catch (Exception ex)   // socket timeout, protocol error, no daemon
+{
+    // Fail closed: an unscanned file is never stored.
+    return new FileScanResult(FileScanVerdict.ScanUnavailable, "...");
+}
+\end{lstlisting}
+\end{english}
+
+نشرح المنطق:
+\begin{itemize}
+\item \code{Clean} فقط هو الذي يمرّ ويُخزَّن؛ التيّار يُعاد لبدايته لتُكتَب نفس
+  البايتات المفحوصة.
+\item \code{VirusDetected} يُرجِع الحُكم \code{Infected} مع توقيع الفيروس ويُسجَّل
+  تحذيرًا؛ الملفّ يُرفَض.
+\item السطر \code{catch (Exception ex)} هو جوهرة الفصل: أيّ تعذّرٍ في الوصول للخادم
+  أو مهلة أو خطأ بروتوكول يُترجَم إلى \code{ScanUnavailable}، ومسار الرفع يرفض هذا
+  الحُكم.
+\end{itemize}
+
+\begin{secnote}
+هذه هي سياسة \en{fail-closed} (الفشل إلى الإغلاق). القاعدة: عند الشكّ، \emph{ارفض}.
+لو تعطّل الفاحص، لا نقول «لا بأس، خزّن الملفّ»؛ بل نرفضه. لأنّ البديل — تخزين ملفّ
+\emph{غير مفحوص} — يفتح نافذة زمنيّة قد يصبح فيها ملفّ خبيث في متناول اليد. الفحص
+أوّلًا على التيّار، والرفض عند العجز، يغلقان هذه النافذة تمامًا. (والميزة مُتحكَّم بها
+عبر \code{FileScanning:Enabled}، وفي التطوير يُستخدَم \code{NoOpFileScanService}.)
+\end{secnote}
+
+\subsection{بيانات الأشخاص (PII)}
+
+بيانات الأشخاص \en{(Personally Identifiable Information)} — الإيميل، رقم الكارت، رقم
+التليفون — نتعامل معها بحذر خاصّ، عبر عدّة طبقات في مسار الذكاء الاصطناعي وفي نموذج
+البيانات وفي دورة الحياة.
+
+\begin{idea}[الفكرة: تنقية قبل التخزين وقبل المزوّد]
+حين يكتب المستخدم رسالة للمساعد الذكيّ، تمرّ الرسالة أوّلًا على دالّة
+\code{RedactPii()} \textbf{قبل} أن نخزّنها \emph{وقبل} أن نرسلها لأيّ مزوّد خارجيّ.
+فالنصّ الخام لا يغادر العمليّة أبدًا؛ ما نخزّنه (\code{AiInteraction.PromptText})
+وما نرسله إلى \en{OpenAI} هو النسخة \emph{المُنقّاة}.
+\end{idea}
+
+هنشوف الدالّة الحقيقيّة وترتيب أنماطها:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+internal static string RedactPii(string input)
+{
+    if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+    // Order matters: email, then card, then the most permissive phone last.
+    var s = EmailRegex().Replace(input, "[redacted-email]");
+    s     = CreditCardRegex().Replace(s, "[redacted-card]");
+    s     = PhoneRegex().Replace(s, "[redacted-phone]");
+    return s;
+}
+
+[GeneratedRegex(@"[\w\.-]+@[\w\.-]+\.\w{2,}")]      // email
+private static partial Regex EmailRegex();
+[GeneratedRegex(@"\b(?:\d[ -]*?){13,19}\b")]        // 13-19 digit card
+private static partial Regex CreditCardRegex();
+[GeneratedRegex(@"(?:\+?\d[\d\s\-\.]{8,}\d)")]      // 10+ digit phone
+private static partial Regex PhoneRegex();
+\end{lstlisting}
+\end{english}
+
+لماذا هذا الترتيب بالذات؟
+\begin{itemize}
+\item الإيميلات أوّلًا لأنها تتمركز حول علامة \code{@}، فيسهل تمييزها.
+\item ثم الكروت: تسلسل من 13 إلى 19 رقمًا.
+\item ثم التليفونات \textbf{أخيرًا}، لأنّ نمطها هو \emph{الأوسع} (أيّ 10 أرقام أو
+  أكثر). لو جاء أوّلًا، لابتلع أرقام الكروت قبل أن يميّزها نمط الكارت. الترتيب هنا
+  ليس تفصيلًا تجميليًّا؛ إنه صحّة.
+\end{itemize}
+
+وهناك طبقات مكمّلة حول الـ \en{PII}:
+\begin{itemize}
+\item \textbf{تخصيص بلا بيانات تواصُل} — الكتلة التعريفيّة التي نحقنها في المحادثة
+  لتخصيص الإجابات تحمل حقائق أكاديميّة فقط (الجنسيّة، المستوى، المجال، المعدّل، الدول
+  المفضّلة)، ولا تحمل إيميلًا ولا تليفونًا أبدًا.
+\item \textbf{ذاكرة \en{AI} لكلّ مستخدم} — عند إعادة تشغيل تاريخ المحادثة نُرشّحه
+  للمستخدم صاحب الطلب فقط، فحتى لو تسرّب \code{SessionId} لا يمكن أن يتسرّب نصّ
+  محادثة مستخدمٍ آخر.
+\item \textbf{عيّنات تدقيق التنقية} — الكيان \code{AiRedactionAuditSample} يخزّن
+  عيّنات شهريّة من الرسائل المُنقّاة (حتى 50 عيّنة من الشهر المنصرم) لمراجعة بشريّة —
+  حتى نُثبت أنّ المُنقّي يعمل فعلًا.
+\item \textbf{مراجع فضفاضة \en{(loose FK)}} — الجداول عالية الحجم/التدقيق/التحليلات
+  (المدفوعات، الإشعارات، الأصوات، الدردشة، سجلّ التدقيق، تفاعلات \en{AI}) تحمل
+  \en{Guid} المستخدم \emph{بلا قيد مفتاح أجنبيّ}، فيمكن حذف مستخدم أو إخفاء هويّته
+  دون أن ينكسر التاريخ تتابعيًّا.
+\item \textbf{\en{GDPR}} — الكيان \code{UserDataRequest} يقود التصدير والحذف عبر
+  وظيفتَي \code{DataExportJob} و\code{DataDeleteJob}؛ والنصّ الحرّ الحسّاس مشفَّر عند
+  التخزين كما رأينا.
+\end{itemize}
+
+\begin{secnote}
+لاحظ الفلسفة المتكرّرة: نقلّل ما نحتفظ به من الأساس. التنقية تحذف الـ \en{PII} قبل
+أن يُكتَب، والمراجع الفضفاضة تجعل حذف المستخدم ممكنًا دون تدمير السجلّات المرتبطة.
+أقلّ بيانات حسّاسة مخزَّنة = سطح هجوم أصغر.
+\end{secnote}
+
+\subsection{سجلّ التدقيق (AuditLog): إلحاقيّ فقط}
+
+آخر طبقة نتناولها هي \textbf{قابليّة التدقيق}. كلّ فعل تجاريّ حسّاس يُسجَّل في جدول
+\code{AuditLog} بصورة \en{append-only} (إلحاقيّ فقط) — نضيف صفوفًا ولا نعدّل ولا نحذف.
+الخدمة \code{AuditService} تكتب الصفّ، وتحفظ الحالة \emph{قبل} و\emph{بعد} بصيغة
+\en{JSON}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var entry = new AuditLog
+{
+    ActorUserId  = currentUser.UserId, // null for system actions
+    Action       = action,
+    TargetType   = targetType,         // polymorphic: any entity kind
+    TargetId     = targetId,
+    BeforeJson   = beforeJson,          // state before the change
+    AfterJson    = afterJson,           // state after the change
+    IpAddress    = Trim(currentUser.IpAddress, 64),
+    CorrelationId= Trim(currentUser.CorrelationId, 128),
+    OccurredAt   = clock.UtcNow,
+};
+db.AuditLogs.Add(entry);
+\end{lstlisting}
+\end{english}
+
+نشرح الحقول المهمّة:
+\begin{itemize}
+\item \code{ActorUserId} — مَن فعلها؛ ويكون فارغًا \en{(null)} إذا كان الفاعل هو
+  النظام نفسه (وظيفة خلفيّة مثلًا).
+\item \code{TargetType} و\code{TargetId} — مرجع \en{polymorphic}: يستطيع الصفّ أن
+  يشير إلى \emph{أيّ} نوع كيان، فسجلٌّ واحد يخدم كلّ الكيانات.
+\item \code{BeforeJson} و\code{AfterJson} — لقطتا الحالة قبل التغيير وبعده، فنعرف
+  بالضبط \emph{ماذا} تغيّر، لا مجرّد أنّ شيئًا تغيّر.
+\end{itemize}
+
+\begin{keyp}[نقطة مهمة: لماذا «إلحاقيّ فقط»؟]
+سجلّ التدقيق لا قيمة له إن أمكن تزويره. جعله \en{append-only} يعني أنّ التاريخ لا
+يُعاد كتابته: مَن فعل ماذا، ومتى، وما القيمة قبل وبعد — كلّها محفوظة إلى الأبد. وحين
+يجتمع هذا مع الحذف الناعم (الصفوف لا تُدمَّر بل تُخفى)، تحصل على أثرٍ كامل قابل
+للتتبّع لأيّ نزاع أو تحقيق لاحق.
+\end{keyp}
+
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item \textbf{الأمان بعُمق} = طبقات ضوابط \emph{مستقلّة}؛ فشل طبقة لا يُسقط النظام،
+  لأنّ الطبقة التالية ما زالت قائمة.
+\item \textbf{التشفير عند التخزين} بـ \en{AES-256-GCM}: مفتاح 32 بايت، \en{nonce}
+  عشوائيّ 12 بايت، وسم 16 بايت، ومغلّف ذاتيّ الوصف \code{enc:v1:}؛ مُصادَق فأيّ عبثٍ
+  يُفشِل فكّ التشفير، ومُصدَّر \en{(versioned)} فالطرح آمن بلا توقّف.
+\item \textbf{رفع الملفّات} عبر منفذٍ بمزوّدَين ومسارٍ مُعتِم بادئته \en{GUID}،
+  والحاويات \code{PublicAccessType.None} — لا رابط عامّ أبدًا.
+\item \textbf{الفحص قبل التخزين} بـ \en{ClamAV} على التيّار، بسياسة \en{fail-closed}:
+  عند الشكّ ارفض؛ لا نُخزّن ملفًّا غير مفحوص.
+\item \textbf{الـ \en{PII}} تُنقَّى قبل التخزين وقبل المزوّد (بترتيب: إيميل ثم كارت
+  ثم تليفون)، مع تخصيصٍ بلا بيانات تواصُل، ومراجع فضفاضة، وتصدير/حذف \en{GDPR}.
+\item \textbf{سجلّ التدقيق} \code{AuditLog} إلحاقيّ فقط، يحفظ الحالة قبل/بعد
+  بـ \en{JSON} — أثرٌ لا يُزوَّر لكلّ فعلٍ حسّاس.
+\end{itemize}
+\end{summary}

@@ -1,0 +1,434 @@
+% ch25-events-notifications-audit
+\section{الأحداث الدوميّة، الإشعارات، والتدقيق (\en{Audit}) — وليه بنعمل كده؟}
+
+في الفصل ده هنجاوب على سؤال بسيط في ظاهره، عميق في باطنه: لمّا يحصل «شيء مهمّ» في
+النظام — اتأكّد حجز، وصلت رسالة، اتقدّم طالب على منحة — إزاي بنخلّي بقيّة النظام
+«يعرف» ويردّ، من غير ما نكدّس كل ردود الفعل دي جوّه المنطق الأساسيّ؟ الجواب اسمه
+\en{Domain Event} (الحدث الدوميّ). وهنكمّل بعدها على أخته التوأم في المساءلة:
+\en{Audit} (التدقيق) — إزاي بنسجّل «مين عمل إيه وامتى» على كل فعل حسّاس.
+
+القارئ هنا يُفترَض إنه عارف من قبل ثلاث حاجات، فمش هنعيد شرحها بعمق: \en{MediatR}
+كناقل رسائل داخليّ (شفناه في الجزء الأوّل)، والإشعارات على مستوى الاستخدام —
+يعني إزاي \code{INotificationDispatcher} بيوصّل الإشعار للجرس والبريد (فصل الإشعارات)،
+والمعترِض على \code{SaveChanges} اللي بيلفّ عمليّة الحفظ. اللي جديد النهارده هو
+الحلقة اللي بتربط دول ببعض: من لحظة وقوع الحدث لحدّ ظهور نتيجته.
+
+\begin{idea}[الفكرة: الحدث يعلن، والمشترِكون يردّون]
+بدل ما «معالِج الحجز» يعرف كل حاجة عن الإيميل و\en{SignalR} والتحليلات، هو بس
+بيعلن: «حصل حجز مؤكَّد». مين يهتمّ يشترك ويردّ. ده نفس مبدأ «افصل مَن يُعلِن
+عن مَن يتصرّف»، وهو اللي بيخلّي كل قطعة صغيرة، مستقلّة، وسهلة الاختبار.
+\end{idea}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{يعني إيه «حدث دوميّ» (\en{Domain Event})؟}
+
+الحدث الدوميّ هو مجرّد إعلان: «حاجة ذات معنى في مجال العمل حصلت خلاص». مش أمر
+(\en{command}) بيطلب تنفيذ، ولا استعلام (\en{query}) بيطلب بيانات — إعلان بحقيقة
+وقعت. في \en{ScholarPath} الأحداث دي \en{records} صغيرة ثابتة (\en{immutable})،
+كلّها بترث نوعًا واحدًا اسمه \code{DomainEvent}، واللي بدوره بيحقّق واجهة
+\code{INotification} بتاعة \en{MediatR} — يعني \en{MediatR} يعرف ينشره لكل مشترِك:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// every event inherits DomainEvent -> which is a MediatR.INotification
+public abstract record DomainEvent : MediatR.INotification;
+
+public record ChatMessageReceivedEvent(
+    Guid ConversationId,
+    Guid MessageId,
+    Guid SenderId,
+    Guid RecipientId,
+    string BodyPreview) : DomainEvent;
+
+public record BookingConfirmedEvent(
+    Guid BookingId, Guid StudentId, Guid ConsultantId) : DomainEvent;
+
+public record ApplicationSubmittedEvent(
+    Guid ApplicationId, Guid StudentId, Guid? ScholarshipId) : DomainEvent;
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه في المقتطف ده:
+\begin{itemize}
+\item \code{DomainEvent} نوع مجرّد (\en{abstract record}) بيرث \code{INotification}
+  — دي التذكرة اللي بتخلّي \en{MediatR} قادر ينشر أيّ حدث لكل مَن اشترك فيه.
+\item كل حدث بيحمل الحقائق بس، مش السلوك: \code{ChatMessageReceivedEvent}
+  فيه مُعرِّف المحادثة والرسالة والمُرسِل والمستقبِل ومعاينة نصّ — لا إيميل ولا
+  دفع ولا أيّ «ردّ فعل».
+\item الأسماء دايمًا بصيغة الماضي: \code{BookingConfirmed}،
+  \code{ApplicationSubmitted}، \code{ChatMessageReceived} — لأنها بتوصف حاجة
+  حصلت فعلًا، مش حاجة عايزين تحصل.
+\end{itemize}
+
+\begin{keyp}[نقطة مهمة: حدث بيحمل حقائق، مش سلوك]
+لو لقيت نفسك بتحطّ منطق إرسال بريد جوّه تعريف الحدث، فأنت خلطت الإعلان بالتصرّف.
+الحدث «رسالة في زجاجة» — بيقول ما حصل وخلاص. التصرّف مكانه المشترِك، وهنشوفه دلوقتي.
+\end{keyp}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{بعد الحفظ فقط: ليه ننشر الحدث بعد \code{SaveChanges} الناجح؟}
+
+في قاعدة ذهبيّة: الحدث ما يتنشرش إلّا بعد ما \code{SaveChangesAsync} ينجح
+ويثبّت التغيير في قاعدة البيانات. ليه؟ لأنّ ردّ الفعل بيبني على «حقيقة». لو نشرنا
+\code{ChatMessageReceivedEvent} قبل الحفظ، وبعدين الحفظ فشل أو اترجّع
+(\en{rollback})، هنكون بعتنا إشعار وبريد عن رسالة مش موجودة أصلًا. ده كذب
+على المستخدم، وخطأ يصعُب تتبّعه.
+
+عشان كده الترتيب في المعالِج ثابت: احفظ الأوّل، وبعد نجاح الحفظ ابعت الدفع الحيّ،
+وبعدها انشر الحدث. المقتطف التالي من \code{SendMessageCommandHandler} بيوضّح
+اللحظة دي بالضبط (مقتصّ):
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// 1) persist the truth first: the message row + conversation pointers
+await db.SaveChangesAsync(ct);
+
+// 2) live push to whoever has the conversation open now (SignalR group)
+await chatNotifier.NotifyNewMessageAsync(
+    conversation.Id, message.Id, message.SenderId, message.Body, message.SentAt, ct);
+
+// 3) THEN, and only then: publish the domain event (bell + email for the absent party)
+await publisher.Publish(
+    new ChatMessageReceivedEvent(
+        ConversationId: conversation.Id,
+        MessageId:      message.Id,
+        SenderId:       senderId,
+        RecipientId:    request.RecipientId,
+        BodyPreview:    sanitizedBody),
+    ct);
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه:
+\begin{itemize}
+\item السطر \code{publisher.Publish(new ChatMessageReceivedEvent(...))} هو النقطة
+  اللي بيتفرّع منها كل شيء. \code{publisher} هو \code{IPublisher} بتاع
+  \en{MediatR}؛ بمجرّد ما تناديه، \en{MediatR} بيروح يدوّر على كل مشترِك في
+  \code{ChatMessageReceivedEvent} ويناديه.
+\item لاحظ إنّ الحفظ (\code{SaveChangesAsync}) قبله بسطور. لو رمى استثناء، السطر
+  ده أصلًا ما بيتنفّذش — فمفيش إشعار عن رسالة اترجّعت.
+\end{itemize}
+
+\begin{why}
+ليه ننشر بعد الحفظ مش قبله؟ عشان «الاتّساق»: كل ردّ فعل (إشعار، بريد، تحليلات)
+لازم يعكس حالة حقيقيّة ثابتة في القاعدة. النشر بعد النجاح بيضمن إنّ أيّ ردّ
+فعل يشوف نفس الحقيقة اللي شافها العميل. لو عكسنا الترتيب، هنعيش في احتمال دائم إننا
+نبلّغ عن حاجة اتلغت — وده أسوأ من إشعار متأخّر بثوانٍ.
+\end{why}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{فين المشتركون؟ معالِجات الأحداث (\en{EventHandlers})}
+
+السؤال الطبيعيّ: طيب مين بيسمع الحدث ده؟ الإجابة في مكان واحد متوقَّع: تحت
+\code{Application/*/EventHandlers/*}. كل مشترِك كلاس بيحقّق \code{INotificationHandler}
+لنوع حدث معيّن، وبيحطّ ردّ فعله في دالة \code{Handle}. أمثلة حيّة في النظام:
+
+\begin{itemize}
+\item \code{ChatMessageNotificationEventHandler} — بيبعت جرس/بريد لرسالة جديدة.
+\item \code{BookingConfirmedEventHandler} — بيبلّغ الطالب إنّ حجزه اتقبل.
+\item \code{ApplicationSubmittedNotificationEventHandler} — بيبلّغ إنّ الطلب اتقدّم.
+\end{itemize}
+
+ده جسم المشترِك بتاع الشات، مقتصًّا للجوهر:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public sealed class ChatMessageNotificationEventHandler(
+    IApplicationDbContext db,
+    INotificationDispatcher notifications,
+    IChatPresenceQuery chatPresence,
+    ILogger<ChatMessageNotificationEventHandler> logger)
+    : INotificationHandler<ChatMessageReceivedEvent>          // subscribes to the event
+{
+    public async Task Handle(ChatMessageReceivedEvent notification, CancellationToken ct)
+    {
+        // recipient is watching chat now -> the live push already delivered it, skip the bell
+        if (chatPresence.IsOnline(notification.RecipientId))
+            return;
+        // ... look up sender name + build the role-based deep link ...
+        await notifications.DispatchAsync(
+            notification.RecipientId,
+            NotificationType.ChatMessageReceived,
+            new NotificationParams { /* CounterpartyName, Preview */ },
+            deepLink: deepLink,
+            idempotencyKey: $"chat-message:{notification.MessageId:N}",
+            ct);
+    }
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه سطرًا-بسطر:
+\begin{itemize}
+\item السطر \code{: INotificationHandler<ChatMessageReceivedEvent>} هو
+  الاشتراك نفسه. مجرّد ما الكلاس بيقول «أنا معالِج لهذا الحدث»، \en{MediatR}
+  بيسجّله تلقائيًّا وبيناديه لمّا الحدث ينُشَر.
+\item دالة \code{Handle} بتاخد الحدث و\code{CancellationToken}، وفيها ردّ الفعل
+  كامل. لاحظ إنّ المعالِج ده ما يعرفش مين نشر الحدث ولا ليه — بس بيتصرّف.
+\item الحارس \code{if (chatPresence.IsOnline(...)) return;} بيمنع الإزعاج
+  المزدوج: لو الطرف فاتح الشات، الرسالة وصلته حيّة، فمفيش داعي لجرس.
+\item آخر خطوة: \code{notifications.DispatchAsync(...)} — وهنا المشترِك بيسلّم
+  الراية لـ\code{INotificationDispatcher}، اللي شرحنا آليّته بالكامل في فصل
+  الإشعارات (منع تكرار \en{$\rightarrow$} نصّ باللغتين \en{$\rightarrow$} قنوات
+  \en{$\rightarrow$} حفظ \en{$\rightarrow$} تسليم). المشترِك بيقول «أبلِغ»،
+  والموزّع بيتكفّل بالباقي.
+\end{itemize}
+
+\begin{note}
+لاحظ التغليف بـ\code{try/catch} حوالين \code{DispatchAsync} في الكود الأصليّ:
+فشل قناة إشعار ما يصحّش يكسر خطّ الإرسال. لو الإيميل وقع، الرسالة اتخزّنت
+خلاص والدفع الحيّ اتبعت — فنسجّل تحذيرًا ونكمّل. ردّ الفعل «إضافيّ»، مش شرطًا
+لنجاح الفعل الأساسيّ.
+\end{note}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{ليه نعمل «حدث دوميّ» أصلًا؟}
+
+دلوقتي السؤال الصريح: ما دام «احجز» ممكن ببساطة ينادي «ابعت إشعار» على طول، ليه
+نلفّ الموضوع بحدث ومشترِك؟ الجواب في كلمة واحدة: الفصل — فصل الاهتمامات
+(\en{separation of concerns}). خلّينا نعدّد المكاسب:
+
+\begin{itemize}
+\item المعالِج الأساسيّ يفضل نظيفًا: معالِج «احجز» شغلته يعمل الحجز ويحفظه
+  وخلاص. ما يعرفش حاجة عن \en{SMTP} ولا \en{SignalR} ولا مقاييس التحليلات.
+\item حدث واحد يشغّل عدّة ردود: من نفس \code{BookingConfirmedEvent} ممكن
+  يتفرّع إشعار للطالب، وتسجيل مقياس تحليليّ، وبريد تذكير — كلٌّ في مشترِكه.
+\item إضافة ردّ جديد بلا لمس المنطق: عايز تضيف «حدّث لوحة التحكّم» بكرة؟
+  اكتب مشترِكًا جديدًا لنفس الحدث. مفيش سطر واحد بيتغيّر في معالِج الحجز.
+\item اختبار أسهل: تختبر معالِج الحجز إنه نشر الحدث وبس؛ وتختبر كل
+  مشترِك لوحده. مفيش تشابك يخلّي اختبارًا واحدًا يلمس نصف النظام.
+\end{itemize}
+
+الرسم التالي بيوضّح فكرة \en{fan-out}: نقطة نشر واحدة بتتفرّع لعدّة مشترِكين
+مستقلّين. المشترِك الأوّل (الإشعار) موجود فعلًا في النظام، والباقي أمثلة على ردود
+ممكن تضيفها لاحقًا بلا ما تلمس معالِج الأمر:
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.55cm and 1.25cm]
+  \node[sbox,text width=2.2cm] (save) {SaveChanges OK};
+  \node[gbox,right=1.1cm of save,text width=3.6cm,font=\scriptsize\bfseries] (evt)
+    {Publish event\\ChatMessageReceivedEvent};
+  \node[srcbox,right=1.4cm of evt,text width=3.0cm] (h1)
+    {Notify Handler\\bell + email};
+  \node[tbox,above=0.55cm of h1,text width=3.0cm] (h2)
+    {Analytics Handler\\usage metric};
+  \node[fbox,below=0.55cm of h1,text width=3.0cm] (h3)
+    {Digest Handler\\daily summary};
+  \draw[arr] (save) -- (evt);
+  \draw[arr] (evt.east) -- (h1.west);
+  \draw[arr] (evt.east) -- (h2.west);
+  \draw[arr] (evt.east) -- (h3.west);
+  \node[lbl,below=0.08cm of evt] {one publish};
+  \node[lbl,below=0.08cm of h3] {many reactions};
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+هنشوف إيه في الرسم: العقدة البنفسجيّة في النصّ هي نشر الحدث بعد نجاح الحفظ.
+منها بتخرج ثلاثة أسهم لثلاثة مشترِكين — الأخضر (الإشعار) حقيقيّ اليوم، والأزرق
+(التحليلات) والبرتقاليّ (الملخّص اليوميّ) أمثلة تُضاف بلا لمس معالِج الأمر. لاحظ:
+مصدر واحد، ردود كثيرة، بلا خيط يربط بينهم.
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: حدث واحد، ردود كثيرة، بلا تشابك]
+لو اللجنة سألت «إزاي بتضيفوا سلوكًا جديدًا من غير ما تكسروا القديم؟» — ده الجواب
+النموذجيّ. النظام مبنيّ بحيث تضيف مشترِكًا جديدًا لحدث قائم فيشتغل فورًا، من
+غير ما تفتح ملفّ معالِج الأمر الأصليّ أصلًا. ده تطبيق عمليّ لمبدأ «مفتوح للامتداد،
+مغلق للتعديل» (\en{Open/Closed}) — وبيتحوّل من شعار في كتاب لخاصّية تلمسها في الكود.
+\end{spotlight}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{ربط الدائرة: من الأمر إلى الجرس}
+
+يلّا نوصّل القطع كلّها في مسار واحد كامل. المستخدم يبعت رسالة \en{$\rightarrow$}
+معالِج الأمر يحفظ \en{$\rightarrow$} ينشر الحدث \en{$\rightarrow$} المشترِك يلتقطه
+\en{$\rightarrow$} المشترِك ينادي \code{DispatchAsync} \en{$\rightarrow$} يتخزّن صفّ
+إشعار ويومض الجرس. الرسم ده بيتتبّع الحلقة من أوّلها لآخرها:
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.7cm and 0.7cm]
+  \node[actor,text width=1.7cm] (u) {User};
+  \node[pbox,right=0.7cm of u,text width=2.5cm] (cmd) {SendMessage Handler};
+  \node[sbox,right=0.6cm of cmd,text width=1.9cm] (save) {SaveChanges};
+  \node[gbox,right=0.6cm of save,text width=2.2cm] (pub) {Publish Event};
+  \node[srcbox,below=0.85cm of pub,text width=2.6cm] (eh) {EventHandler};
+  \node[pbox,left=0.8cm of eh,text width=2.4cm] (disp) {DispatchAsync};
+  \node[dbbox,left=0.8cm of disp,text width=2.2cm] (row) {Bell row};
+  \draw[arr] (u) -- (cmd);
+  \draw[arr] (cmd) -- (save);
+  \draw[arr] (save) -- (pub);
+  \draw[arr] (pub) -- (eh) node[lbl,right=1pt,midway] {MediatR};
+  \draw[arr] (eh) -- (disp);
+  \draw[arr] (disp) -- (row);
+  \draw[arr] (row.west) to[out=180,in=270] node[lbl,left] {bell blinks} (u.south);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+هنشوف إيه: الصفّ العلويّ هو «الفعل» — المستخدم، المعالِج، الحفظ، ثمّ النشر. من عقدة
+النشر البنفسجيّة ينزل السهم لـ\en{MediatR} اللي يسلّم الحدث للمشترِك الأخضر
+(\code{EventHandler}). المشترِك ينادي \code{DispatchAsync} فيتخزّن صفّ الإشعار
+(العقدة ذات الحدّ المزدوج = قاعدة بيانات)، وأخيرًا يومض جرس المستخدم. لاحظ إنّ
+النصف السفليّ (الردّ) منفصل تمامًا عن النصف العلويّ (الفعل) — الرابط الوحيد بينهم
+هو الحدث.
+
+\begin{qa}[سؤال متوقّع: مش ده تعقيد زيادة؟]
+ممكن حدّ يقول: «كان ممكن معالِج الرسالة ينادي الإشعار على طول في سطر، وخلصنا».
+صح للحظة، لكن جرّب تضيف تاني وتالت ردّ فعل: كل ردّ هيدخل جوّه معالِج الرسالة، لحدّ
+ما يبقى المعالِج «يعرف» عن الإيميل والتحليلات والبريد والدفع — وده بالظبط التشابك
+اللي بنهرب منه. الحدث بيدفع تكلفة صغيرة مقدّمًا (نشر + اشتراك) عشان يوفّر تكلفة
+ضخمة لاحقًا (كل تعديل بيلمس ملفًّا واحدًا فقط).
+\end{qa}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{التدقيق (\en{Audit}): مين عمل إيه وامتى؟}
+
+لو الأحداث بتجاوب على «إيه اللي حصل وإزاي نردّ»، فالتدقيق بيجاوب على سؤال تانيّ
+تمامًا: «مين عمل الفعل الحسّاس ده، وامتى، ومن فين؟». استرداد دفعة، تغيير دور
+مستخدم، حذف مستند، تعديل إعداد ماليّ — كلّها أفعال محتاجة مساءلة كاملة. ولو
+حطّينا كود التسجيل ده جوّه كل معالِج، هيتكرّر وينتشر ويُنسى. الحلّ نفس فلسفة
+الأحداث: افصله في طبقة اعتراض واحدة.
+
+الآليّة مكوّنة من قطعتين متعاونتين. الأولى سِمة (\en{attribute}) اسمها
+\code{[Auditable]} بتوسم الأمر اللي عايزينه يتسجّل، والتانية سلوك في خطّ أنابيب
+\en{MediatR} اسمه \code{AuditBehavior} بيلفّ كل أمر: لو الأمر موسوم، يكتب صفّ تدقيق
+بعد نجاح المعالِج؛ ولو مش موسوم، يعدّي بلا عمل. ده جوهر السلوك:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public async Task<TResponse> Handle(
+    TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken ct)
+{
+    var response = await next(ct);          // run the real handler first
+
+    var attr = (AuditableAttribute?)Attribute.GetCustomAttribute(
+        typeof(TRequest), typeof(AuditableAttribute));
+    if (attr is null) return response;              // not marked -> no-op
+
+    var targetId = ResolveTargetId(response, request, attr.TargetIdProperty);
+    var summary  = BuildSummary(attr.SummaryTemplate, targetId, response, request);
+    await audit.WriteAsync(attr.Action, attr.TargetType, targetId,
+        beforeJson: null, afterJson: null, summary, ct);   // write the audit row
+
+    return response;
+}
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه:
+\begin{itemize}
+\item \code{await next(ct)} بينفّذ المعالِج الأصليّ الأوّل. التدقيق بيتكتب
+  بعد نجاح الفعل — نفس منطق «سجّل الحقيقة، مش النيّة».
+\item \code{Attribute.GetCustomAttribute(...)} بيفحص هل الأمر موسوم بـ
+  \code{[Auditable]}. لو \code{null}، السلوك بيرجّع فورًا بلا أيّ أثر — فمفيش
+  حمل زائد على الأوامر العاديّة.
+\item \code{ResolveTargetId} و\code{BuildSummary} بيستخرجوا «على مين» الفعل ووصفًا
+  مقروءًا (زيّ «\en{Refunded payment ...}») من ردّ المعالِج أو الأمر نفسه.
+\item \code{audit.WriteAsync(...)} بيكتب الصفّ. لاحظ إنّ الكتابة كلّها ملفوفة بـ
+  \code{try/catch} في الأصل: فشل التدقيق ما يصحّش يلغي فعلًا ناجحًا.
+\end{itemize}
+
+والوسم نفسه سطر واحد فوق تعريف الأمر. مثال حسّاس — استرداد دفعة:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+[Auditable(AuditAction.PaymentRefunded, "Payment",
+    TargetIdProperty = nameof(PaymentId),
+    SummaryTemplate = "Refunded payment {PaymentId} - amount={AmountCents}")]
+public sealed record RefundPaymentCommand(
+    Guid PaymentId, long? AmountCents, string? Reason = null) : IRequest<bool>;
+\end{lstlisting}
+\end{english}
+
+الوسم بيقول لـ\code{AuditBehavior} ثلاث حاجات: نوع الفعل (\code{PaymentRefunded})،
+نوع الكيان المستهدَف (\code{Payment})، وأيّ خاصيّة تُؤخَذ كمُعرِّف للهدف
+(\code{PaymentId})، وقالب وصف بشريّ. في النظام أكتر من ثمانين أمرًا موسومًا كده —
+كل فعل حسّاس تقريبًا: تسجيل الدخول والخروج، تغيير الأدوار، الموافقة والرفض، الحذف،
+والاستردادات — بلا سطر تدقيق واحد داخل أيّ معالِج منهم.
+
+طيب، الصفّ اللي بيتكتب بيحتوي إيه بالظبط؟ ده قلب \code{AuditService.WriteAsync}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var entry = new AuditLog
+{
+    ActorUserId   = currentUser.UserId,          // WHO   (the actor)
+    Action        = action,                      // WHAT  (the verb)
+    TargetType    = targetType,                  // on which entity type
+    TargetId      = targetId,                     // and which exact row
+    BeforeJson    = beforeJson,                   // state BEFORE
+    AfterJson     = afterJson,                    // state AFTER
+    IpAddress     = Trim(currentUser.IpAddress, 64),      // FROM WHERE
+    CorrelationId = Trim(currentUser.CorrelationId, 128), // which request
+    OccurredAt    = clock.UtcNow,                 // WHEN
+};
+db.AuditLogs.Add(entry);   // append-only: only ever Add, never Update or Delete
+await db.SaveChangesAsync(ct);
+\end{lstlisting}
+\end{english}
+
+هنشوف إيه: الصفّ بيجمع كل أبعاد المساءلة في مكان واحد — مَن (\code{ActorUserId})،
+ماذا (\code{Action} + \code{TargetType} + \code{TargetId})، متى
+(\code{OccurredAt})، من أين (\code{IpAddress} و\code{UserAgent})، وأيّ طلب
+ربط الأحداث ببعضها (\code{CorrelationId}). وفيه كمان عمودان \code{BeforeJson} و
+\code{AfterJson} لالتقاط لقطة الحالة قبل الفعل وبعده لمّا نحتاج التفصيل ده. الرسم
+التالي بيلخّص مسار الاعتراض:
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.7cm and 0.8cm]
+  \node[actor,text width=1.8cm] (adm) {Admin};
+  \node[pbox,right=0.75cm of adm,text width=2.6cm] (cmd)
+    {[Auditable]\\RefundPayment};
+  \node[sbox,right=0.7cm of cmd,text width=2.2cm] (hnd) {Handler runs\\refund};
+  \node[gbox,right=0.7cm of hnd,text width=2.4cm] (beh) {AuditBehavior\\after next()};
+  \node[dbbox,below=0.9cm of beh,text width=2.3cm] (log) {AuditLog\\append-only};
+  \node[sbox,left=1.0cm of log,text width=4.0cm,align=left,font=\scriptsize]
+    (fields) {who | what | when\\IpAddress | CorrelationId\\Before / After JSON};
+  \draw[arr] (adm) -- (cmd);
+  \draw[arr] (cmd) -- (hnd);
+  \draw[arr] (hnd) -- (beh);
+  \draw[arr] (beh) -- (log) node[lbl,right=1pt,midway] {write};
+  \draw[arr] (log) -- (fields) node[lbl,above,midway] {columns};
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+هنشوف إيه في الرسم: المدير يبعت أمر استرداد موسومًا بـ\code{[Auditable]}. المعالِج
+ينفّذ الاسترداد الحقيقيّ، وبعد نجاحه بيلتقط \code{AuditBehavior} الأمر ويكتب صفّ
+\code{AuditLog} (الحدّ المزدوج = قاعدة بيانات) بكل الأعمدة على اليسار. لاحظ إنّ
+الصفّ \en{append-only}: بنضيفه ومنلمسوش تاني.
+
+\begin{secnote}
+ليه \en{append-only} (إضافة فقط، لا تعديل ولا حذف)؟ لأنّ سجلّ التدقيق ما ينفعش
+يبقى قابلًا للتزوير — وإلّا مقصده كلّه يسقط. مسار الكود بيضيف صفوفًا بس؛ مفيش أمر
+واحد في النظام بيعدّل أو بيمسح صفّ \code{AuditLog}، وجانب القراءة (استعلام السجلّ)
+بيقرأ بس. النتيجة: أثر ثابت لا رجعة فيه — حتى المدير اللي عمل الفعل ما يقدرش
+يمسح دليله.
+\end{secnote}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: كل فعل حسّاس متتبَّع، وبلا رجعة]
+اللجنة بتحبّ سؤال «إزاي تعرفوا مين عمل إيه؟». الجواب: أيّ أمر حسّاس بيتوسم بسطر
+واحد \code{[Auditable]}، فيلتقطه اعتراض مركزيّ ويكتب صفًّا يحمل الفاعل والفعل
+والوقت و\en{IP} ومُعرِّف الطلب، وقابليّة لقطة قبل/بعد — كلّه \en{append-only}. يعني:
+مساءلة كاملة، من غير ما نبعثر كود تسجيل في ثمانين معالِجًا، ومن غير ما نثق في إنّ
+حدًّا فاكر يكتبه. ده الفرق بين «عندنا \en{logs}» و«عندنا نظام مساءلة».
+\end{spotlight}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{الخلاصة}
+
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item الحدث الدوميّ إعلانٌ بأنّ «شيئًا ذا معنى حصل» (\code{BookingConfirmed}،
+  \code{ChatMessageReceived}، \code{ApplicationSubmitted})؛ \en{record} ثابت يرث
+  \code{DomainEvent} وهو \code{INotification} في \en{MediatR}.
+\item يُنشَر بعد \code{SaveChanges} الناجح فقط — عشان مانبلّغش عن تغيير
+  اترجّع؛ السطر \code{publisher.Publish(new ...Event(...))} هو نقطة التفرّع.
+\item المشترِكون تحت \code{Application/*/EventHandlers/*}؛ كل واحد
+  \code{INotificationHandler} لحدث، بيحطّ ردّ فعله في \code{Handle} وبينادي
+  \code{DispatchAsync} — بلا معرفة بمَن نشر الحدث.
+\item ليه أحداث؟ فصل الاهتمامات: المعالِج الأساسيّ نظيف، حدث واحد يشغّل ردودًا
+  كثيرة، إضافة ردّ جديد بلا لمس المنطق، واختبار أبسط.
+\item التدقيق: سطر \code{[Auditable]} فوق الأمر + \code{AuditBehavior} يعترض
+  بعد النجاح ويكتب \code{AuditLog}: مَن/ماذا/متى/\en{IP}/\en{correlation}، مع
+  قابليّة قبل/بعد \en{JSON}، و\en{append-only} — لا تعديل ولا حذف.
+\item الفكرة الجامعة: افصل الإعلان عن التصرّف، وافصل المساءلة عن
+  المنطق — فيبقى كل شيء مستقلًّا، قابلًا للامتداد، وسهل الاختبار.
+\end{itemize}
+\end{summary}

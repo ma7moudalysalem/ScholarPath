@@ -1,0 +1,84 @@
+' =====================================================================
+'  ScholarPath — MODULE 5: Resources Hub & Notifications
+'  ResourcesController + NotificationController -> Resources / Notifications
+'  CQRS handlers -> Domain -> Infrastructure. Resource cover images live in
+'  Blob Storage. In-app notifications are persisted then fanned out in real
+'  time over the SignalR NotificationHub (WebSocket) and optionally emailed;
+'  a Hangfire job handles batched / retried dispatch.
+' =====================================================================
+@startuml ScholarPath_Module5_ResourcesNotifications
+title Module 5 — Resources Hub & Notifications (component view)
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam ranksep 55
+skinparam nodesep 35
+skinparam component {
+  BackgroundColor #F7F8FC
+  BorderColor #3F4A5A
+}
+
+node "React 19 SPA" as SPA {
+  [Resources Hub + Notification bell] as UI
+}
+
+node "Web API" as API {
+  [ResourcesController] as RCTRL
+  [NotificationController] as NCTRL
+}
+
+node "SignalR Hubs" as HUBS {
+  [NotificationHub] as NHUB
+}
+
+node "Application (CQRS)" as APP {
+  [Resources\nCreate · Update · SubmitForReview\nApprove · Reject · Feature · SetVisibility\nToggleBookmark · CompleteResourceChapter\nSearch · GetDetail · GetMyProgress] as RES
+  [Notifications\nMarkAsRead · MarkAllAsRead · GetNotifications\nGetUnreadCount · Get/UpdatePreferences\nNotificationCatalog (INotificationCatalog)] as NOT
+  [ports\nINotificationDispatcher · IEmailService] as PORT
+}
+
+node "Domain" as DOM {
+  [Resource · ResourceChild\nResourceBookmark · ResourceProgress\nResourceProgressChild] as RENT
+  [Notification\nNotificationPreference] as NENT
+}
+
+node "Infrastructure (adapters)" as INF {
+  [EF Core DbContext] as DB
+  [FileStorageService\n(IBlobStorageService)] as STORE
+  [NotificationDispatcher\n(persist + realtime + email)] as DISP
+  [MailKitEmailService\n(IEmailService)] as MAIL
+  [NotificationDispatcherJob\n«Hangfire · optional»] as JOB #FFFDE0
+}
+
+database "Azure SQL" as SQL
+database "Blob Storage" as BLOB
+[SMTP mail / dev stub] as SMTP
+
+UI  --> RCTRL : REST
+UI  --> NCTRL : REST
+UI  ..> NHUB  : WebSocket
+RCTRL --> RES : MediatR
+NCTRL --> NOT : MediatR
+RES   --> RENT
+NOT   --> NENT
+NOT   --> PORT
+PORT ..> DISP : implements
+PORT ..> MAIL : implements
+RES   --> STORE : cover image
+DISP  --> NHUB  : push notification
+DISP  --> MAIL  : email channel
+DISP  ..> DB
+RES   ..> DB
+NOT   ..> DB
+JOB   --> DISP  : batched / retried dispatch
+MAIL  --> SMTP
+DB    --> SQL
+STORE --> BLOB
+
+note bottom of INF
+  Resources move Draft → PendingReview → Published under admin moderation;
+  students bookmark and track per-chapter progress. Notifications are
+  persisted (idempotency key guards event replays) then fanned out over
+  NotificationHub (in-app) and optionally email, with a Hangfire job for
+  batched / retried delivery. Preferences gate each type × channel.
+end note
+@enduml

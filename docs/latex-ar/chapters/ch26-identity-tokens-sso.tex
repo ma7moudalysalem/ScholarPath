@@ -1,0 +1,453 @@
+% ch26-identity-tokens-sso
+\section{الهُوية (\en{Identity})، التوكنات، و\en{SSO} بعمق}
+
+في فصل التوثيق السابق عرفنا فكرة الرمزين على مستوى عالٍ: رمز وصول (\en{access
+JWT}) قصير العمر يُرفَق مع كل طلب، ورمز تحديث (\en{refresh token}) أطول عمرًا
+وظيفته استبدال الأول عند انتهائه. في هذا الفصل ننزل طبقةً أعمق ونجيب على أسئلة
+عملية دقيقة: أين تُخزَّن التوكنات وبأيّ شكل؟ كيف نُبطلها في منتصف الجلسة؟ لماذا يرث
+سياق قاعدة البيانات صنف \en{Identity} تحديدًا؟ وكيف يعمل الدخول عبر \en{Google}
+و\en{Microsoft} خطوةً بخطوة؟ كل ما هنا مقتبس من الكود الحيّ في \code{server/src}،
+بمُعرِّفات حقيقية.
+
+\begin{idea}[الفكرة: هوية واحدة، مصدرها نحن]
+\en{ScholarPath} يقبل عدّة طرق للدخول (كلمة مرور، \en{Google}، \en{Microsoft})،
+لكنه في النهاية يحوّلها جميعًا إلى هوية محلية واحدة يملكها هو ويصدر لها توكناته
+الخاصّة. أيًّا كان باب الدخول، بعد لحظة إثبات الهوية يصبح النظام هو المتحكّم الكامل
+في الجلسة: من يدخل، وكم يبقى، ومتى يُطرَد.
+\end{idea}
+
+% ====================================================================
+\subsection{ليه \code{ApplicationDbContext} يرث \code{IdentityDbContext} لا \code{DbContext}؟}
+
+هذا سؤال يتكرّر في المناقشات. الجواب المختصر: لأن \en{ASP.NET Core Identity}
+يحتاج مجموعة جداول جاهزة (المستخدمون، الأدوار، الـ\en{claims}، تسجيلات الدخول
+الخارجية، التوكنات، وربط المستخدم بالدور)، والوراثة من \code{IdentityDbContext}
+تُعرِّف هذه الجداول وتربط علاقاتها تلقائيًّا. هذا هو سطر إعلان الصنف الحقيقيّ:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public class ApplicationDbContext(
+    DbContextOptions<ApplicationDbContext> options,
+    IMediator? mediator = null,
+    IFieldEncryptionService? encryption = null)
+    : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>(options),
+      IApplicationDbContext
+{
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    // ... business DbSets: Scholarships, Applications, Reviews, ...
+}
+\end{lstlisting}
+\end{english}
+
+نقرأه سطرًا سطرًا:
+\begin{itemize}
+\item \code{: IdentityDbContext<ApplicationUser, ApplicationRole, Guid>} — هذه
+  الوراثة تُخبر \en{EF Core} بأن يبني جداول الهوية بأنواعنا نحن: المستخدم
+  \code{ApplicationUser}، والدور \code{ApplicationRole}، ومفتاح كلاهما من نوع
+  \code{Guid}.
+\item \code{IApplicationDbContext} — منفذ طبقة \en{Application}؛ يجعل المُعالِجات
+  ترى السياق كواجهة مجرّدة لا كصنف ملموس (اتّساقًا مع \en{Clean Architecture}).
+\item \code{DbSet<RefreshToken>} وبقيّة الجداول — هي جداول العمل التي نضيفها نحن
+  فوق جداول الهوية.
+\end{itemize}
+
+الفرق الجوهريّ يظهر داخل \code{OnModelCreating}. صنفنا يستدعي أولًا
+\code{base.OnModelCreating(builder)} فتُبنى جداول الهوية السبعة بعلاقاتها، ثم نضيف
+تهيئتنا فوقها:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+protected override void OnModelCreating(ModelBuilder builder)
+{
+    builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
+    base.OnModelCreating(builder);   // <-- builds ALL Identity tables + keys
+    // ... our own model tweaks after Identity is wired
+}
+\end{lstlisting}
+\end{english}
+
+\begin{why}
+لو ورثنا \code{DbContext} العاديّ لاضطُررنا لتعريف كل جدول هوية يدويًّا: جدول
+المستخدمين، وجدول الأدوار، وجدول ربط المستخدم بالدور، وجداول الـ\en{claims}
+وتسجيلات الدخول الخارجية والتوكنات — مع مفاتيحها الأجنبية وفهارسها الفريدة (مثل
+البريد المُطبَّع الفريد). هذا عمل طويل وسهل الخطأ. الوراثة من
+\code{IdentityDbContext} تعطينا كل ذلك مضبوطًا ومختبَرًا من مايكروسوفت، ونكتفي نحن
+بإضافة جداول العمل.
+\end{why}
+
+الجدول التالي يلخّص جداول الهوية التي تأتي مجّانًا مع الوراثة:
+
+\begin{center}
+\begin{tabular}{L{4.2cm} L{10.3cm}}
+\toprule
+{\bfseries\color{spPrimary}الجدول} & {\bfseries\color{spPrimary}ما يخزّنه} \\
+\midrule
+\en{AspNetUsers} & الحسابات: البريد، كلمة المرور المُجزَّأة، عدّاد المحاولات، القفل. \\
+\en{AspNetRoles} & الأدوار المتاحة في المنصّة. \\
+\en{AspNetUserRoles} & ربط كل مستخدم بأدواره (علاقة كثير-لكثير). \\
+\en{AspNetUserClaims} & \en{claims} إضافية مرتبطة بالمستخدم. \\
+\en{AspNetUserLogins} & تسجيلات الدخول الخارجية (\en{Google}/\en{Microsoft}) المربوطة بالحساب. \\
+\en{AspNetUserTokens} & توكنات تُخزّنها \en{Identity} لأغراض مثل إعادة التعيين. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+% ====================================================================
+\subsection{نموذج الأدوار والـ\en{claims}: إزاي أهندل الرولز}
+
+\en{ScholarPath} يعرّف خمسة أدوار: \code{SuperAdmin} و\code{Admin}
+و\code{Student} و\code{Consultant} و\code{ScholarshipProvider} (مزوّد المنح،
+وكان اسمه سابقًا \en{Company}). المهم أن نفهم كيف تنتقل هذه الأدوار من قاعدة
+البيانات إلى داخل الطلب.
+
+\begin{keyp}[نقطة مهمة: الدور يُحمَل داخل التوكن]
+لا يرجع النظام إلى قاعدة البيانات في كل طلب ليسأل «ما أدوار هذا المستخدم؟». بدلًا
+من ذلك، لحظة الإصدار تُوضَع الأدوار داخل الـ\en{JWT} على هيئة \en{claims} موقّعة.
+أي طلب لاحق يحمل التوكن يحمل معه أدواره، فيصبح فحص الصلاحية سريعًا وبلا استعلام.
+\end{keyp}
+
+هذا مقتطف حقيقيّ من \code{TokenService.CreateAccessToken} يبني قائمة الـ\en{claims}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var claims = new List<Claim>
+{
+    new(JwtRegisteredClaimNames.Sub,   user.Id.ToString()),
+    new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+    new("account_status", user.AccountStatus.ToString()),
+    new(ClaimTypes.Name, user.FullName),
+};
+if (!string.IsNullOrEmpty(activeRole))
+    claims.Add(new Claim("active_role", activeRole));   // the session's ACTIVE role
+foreach (var r in roles)
+    claims.Add(new Claim(ClaimTypes.Role, r));          // every role the user holds
+\end{lstlisting}
+\end{english}
+
+الشرح:
+\begin{itemize}
+\item \code{Sub} و\code{Email} و\code{Name} — هوية المستخدم الأساسية داخل التوكن.
+\item \code{active\_role} — نقطة ذكية: المستخدم قد يملك أكثر من دور (طالب ومستشار
+  مثلًا)، لكن جلسته الحالية تعمل بدور واحد فعّال. نضع هذا الدور في \en{claim}
+  مستقلّ.
+\item \code{foreach ... ClaimTypes.Role} — نضيف كل أدوار المستخدم كـ\en{claims}
+  من نوع الدور، فتُعرَف صلاحياته كاملة عند الحاجة.
+\end{itemize}
+
+الآن السؤال العمليّ: كيف تُحمى نقطة النهاية بهذا؟ نُهيّئ التحقّق ليعتبر \en{claim}
+اسمه \code{active\_role} هو «claim الدور»، ثم نضع سمة \code{[Authorize(Roles=...)]}
+فوق المتحكّم:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+opts.TokenValidationParameters = new TokenValidationParameters
+{
+    ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
+    RoleClaimType   = "active_role",   // [Authorize(Roles=...)] checks the ACTIVE role
+};
+
+[Authorize(Roles = "Admin,SuperAdmin")]   // e.g. AdminController
+public sealed class AdminController : ControllerBase { /* ... */ }
+\end{lstlisting}
+\end{english}
+
+الشرح:
+\begin{itemize}
+\item \code{RoleClaimType = "active\_role"} — يجعل \code{[Authorize(Roles=...)]}
+  يفحص الدور الفعّال للجلسة لا مجموعة الأدوار كلها. فمستخدم يملك دورَي طالب ومستشار،
+  ويعمل الآن كطالب، لا يستطيع فتح صفحات المستشار حتى يبدّل دوره.
+\item \code{[Authorize(Roles = "Admin,SuperAdmin")]} — هذه هي الحماية الفعلية على
+  \code{AdminController} في الكود: فقط من دوره الفعّال \en{Admin} أو
+  \en{SuperAdmin} يمرّ.
+\end{itemize}
+
+الرسم التالي يوضّح كيف «يتفرّع» التوكن الواحد إلى عدّة \en{claims}، وأيّها يستعمله
+التفويض:
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=0.55cm]
+  \node[pbox, text width=2.7cm, minimum height=1.1cm] (jwt) {Access JWT\\(RS256, 15 min)};
+  \node[sbox, text width=3.2cm] (c1) at (5.4,2.3)  {sub = user id};
+  \node[sbox, text width=3.2cm] (c2) at (5.4,1.35) {email};
+  \node[sbox, text width=3.2cm] (c3) at (5.4,0.4)  {account status};
+  \node[tbox, text width=3.2cm] (c4) at (5.4,-0.55){active-role};
+  \node[sbox, text width=3.2cm] (c5) at (5.4,-1.5) {role: Student};
+  \node[sbox, text width=3.2cm] (c6) at (5.4,-2.45){role: Consultant};
+  \foreach \c in {c1,c2,c3,c4,c5,c6} \draw[arr] (jwt.east) -- (\c.west);
+  \node[fbox, text width=3.0cm, right=0.5cm of c4] (use) {used by\\Authorize(Roles)};
+  \draw[arrd] (c4.east) -- (use.west);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+% ====================================================================
+\subsection{تخزين التوكنات: ليه الـ\en{refresh} مُجزَّأ بـ\en{SHA-256}؟}
+
+رمز الوصول لا يُخزَّن أصلًا في القاعدة — هو موقّع ويُفحَص بمفتاح، فلا حاجة لحفظه.
+أمّا رمز التحديث فيجب أن نتذكّره لنستطيع إبطاله لاحقًا. والنقطة الحسّاسة: لا نُخزّنه
+كما هو، بل نُخزّن تجزئته فقط في الحقل \code{RefreshToken.TokenHash}. هذا مقتطف
+حقيقيّ من \code{TokenService.IssueTokens} يوضّح لحظة الحفظ:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+var refreshToken = GenerateSecureRefreshToken();     // 64 crypto-random bytes
+var refreshHash  = HashRefreshToken(refreshToken);   // SHA-256(token) -> hex
+db.RefreshTokens.Add(new RefreshToken
+{
+    UserId    = user.Id,
+    TokenHash = refreshHash,        // the HASH is persisted, never the raw token
+    ExpiresAt = refreshExpires,
+    CreatedAt = now,
+});
+db.SaveChanges();
+return new TokenPair(accessToken, refreshToken, accessExpires, refreshExpires);
+\end{lstlisting}
+\end{english}
+
+الشرح:
+\begin{itemize}
+\item \code{GenerateSecureRefreshToken()} — يولّد 64 بايت عشوائيًّا تشفيريًّا، فالرمز
+  غير قابل للتخمين إطلاقًا.
+\item \code{TokenHash = refreshHash} — ما يدخل القاعدة هو تجزئة \en{SHA-256} فقط.
+\item \code{return new TokenPair(..., refreshToken, ...)} — الرمز الخام يُعاد للعميل
+  مرّة واحدة فقط في الاستجابة، ولا يُكتَب في القاعدة أبدًا.
+\end{itemize}
+
+عند التجديد، يأخذ النظام الرمز الخام القادم من العميل، يجزّئه بنفس الدالة، ثم يبحث
+عن تجزئة مطابقة. المقارنة إذن بين تجزئتين، لا بين نصّين.
+
+\begin{secnote}
+لماذا التجزئة؟ لنفس سبب تجزئة كلمات المرور: لو تسرّبت قاعدة البيانات كاملةً، لن يجد
+المهاجم إلا \en{SHA-256} لا يمكن عكسها إلى الرمز الأصلي. وبما أن النظام يقارن بتجزئة
+ما يُقدَّم إليه، فالتجزئة المسروقة عديمة الفائدة — لا تصلح لانتحال جلسة. هذا يجعل
+قاعدة البيانات هدفًا أقلّ جاذبية بكثير.
+\end{secnote}
+
+% ====================================================================
+\subsection{الإبطال والانتهاء: إزاي أبوّظها بعد مرحلة معيّنة}
+
+هذا لبّ الفصل. سؤال متكرّر: «طيّب لو عايز أبطّل جلسة في نصّها، أعمل إيه؟». الجواب
+يختلف بين الرمزين لأن طبيعتهما مختلفة تمامًا.
+
+رمز الوصول ينتهي ذاتيًّا. داخله \en{claim} اسمه \code{exp} يحمل لحظة الانتهاء (بعد
+15 دقيقة). عند كل طلب يفحص المتحقّق هذا الوقت دون الرجوع إلى قاعدة البيانات؛ فإذا
+مضى الوقت رُفِض الرمز. الثمن هو أننا لا نستطيع سحب رمز وصول قبل انتهائه — لكن نافذته
+15 دقيقة فقط، فالخطر محدود.
+
+رمز التحديث يُبطَل فورًا. لأنه محفوظ (مُجزَّأً) في القاعدة، يمكننا وضع علامة عليه في
+أي لحظة. وله ثلاثة نطاقات إبطال:
+
+\begin{center}
+\begin{tabular}{L{4.3cm} L{3.2cm} L{6.8cm}}
+\toprule
+{\bfseries\color{spPrimary}سبب الإبطال} & {\bfseries\color{spPrimary}النطاق} & {\bfseries\color{spPrimary}الأثر} \\
+\midrule
+تسجيل الخروج & الرمز الحالي & يُعلَّم \code{IsRevoked} على هذا الرمز فقط؛ بقيّة الأجهزة تبقى. \\
+كشف إعادة استخدام رمز مُبطَل & كل رموز المستخدم & اشتباه سرقة $\rightarrow$ إلغاء كل الجلسات فورًا. \\
+تغيير كلمة المرور & كل رموز المستخدم & كل الجلسات القديمة تسقط؛ يلزم دخول جديد. \\
+انتهاء المدّة & الرمز المعنيّ & \code{ExpiresAt} في الماضي $\rightarrow$ يُرفَض دون علامة. \\
+التدوير عند الاستخدام & الرمز القديم & يُبطَل القديم لحظة إصدار بديله (لا رمزان صالحان معًا). \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+الكود الذي ينفّذ الإبطال «الفرديّ» و«لكل العائلة». لاحظ منطق كشف إعادة الاستخدام:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// Reuse detection: a revoked token presented again means it was already
+// rotated -- a replay attack or a stale client. Revoke the whole family.
+if (stored.IsRevoked)
+{
+    await RevokeAllForUserAsync(stored.UserId, "Refresh token reuse detected", ct);
+    return null;
+}
+
+// Global revoke: mark every live token for this user as revoked.
+var tokens = await db.RefreshTokens
+    .Where(t => t.UserId == userId && !t.IsRevoked)
+    .ToListAsync(ct);
+foreach (var t in tokens)
+{
+    t.IsRevoked = true;
+    t.RevokedAt = clock.UtcNow;
+    t.RevokedReason = reason;
+}
+\end{lstlisting}
+\end{english}
+
+الشرح:
+\begin{itemize}
+\item \code{if (stored.IsRevoked)} — لو وصلنا رمزٌ مُبطَل سلفًا، فهذا يعني أنه دُوِّر
+  من قبل ثم عاد للظهور: إمّا هجوم إعادة تشغيل وإمّا عميل قديم. الأأمن أن نفترض السرقة.
+\item \code{RevokeAllForUserAsync(...)} — الإبطال «لكل العائلة»: يقطع كل جلسات
+  المستخدم دفعةً واحدة، فحتى لو كان المهاجم يملك رمزًا صالحًا آخر يسقط أيضًا.
+\item \code{t.RevokedReason = reason} — نسجّل سبب الإبطال، فيبقى أثر يمكن تدقيقه.
+\end{itemize}
+
+الرسم التالي هو آلة حالات رمز التحديث: من الإصدار، مرورًا بالتدوير، وصولًا إلى
+الحالتين النهائيتين (مُبطَل أو منتهٍ):
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}[node distance=1.3cm and 2.3cm]
+  \node[tbox, text width=2.6cm] (iss) {issued\\(valid)};
+  \node[sbox, text width=2.9cm, right=of iss] (rot) {rotated\\(old to revoked)};
+  \node[fbox, text width=2.6cm, below=of iss] (exp) {expired};
+  \node[fbox, text width=2.6cm, below=of rot] (rev) {revoked\\(terminal)};
+  \draw[arr] (iss) -- node[midway,above,lbl] {on use} (rot);
+  \draw[arrd] (rot) to[bend right=32] node[midway,below,lbl] {fresh pair issued} (iss);
+  \draw[arr] (iss) -- node[midway,left,lbl] {ExpiresAt passed} (exp);
+  \draw[arr] (iss) -- node[midway,right,lbl,align=left] {logout / reuse /\\pwd change} (rev);
+  \draw[arrd] (rot.south) -- node[midway,right,lbl] {old} (rev.north);
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: الـ\en{refresh} مُجزَّأ وقابل للإبطال فورًا]
+اجمع الصورتين معًا: رمز التحديث مُجزَّأ في القاعدة (تسريبها لا يفيد المهاجم)، وفي
+الوقت نفسه قابل للإبطال لحظيًّا بثلاثة نطاقات — فرديًّا (خروج من جهاز)، ولكل العائلة
+(اشتباه سرقة أو تغيير كلمة مرور)، وعالميًّا. هذا يجمع بين ميزتين نادرًا ما تجتمعان:
+أمان تحت التسريب، وتحكّم كامل في الجلسة. حين تُسأل «إزاي تطرد جلسة مسروقة؟» تكون
+الإجابة جاهزة: علامة واحدة على صفٍّ في القاعدة تُسقط الجلسة عند أول محاولة تجديد.
+\end{spotlight}
+
+% ====================================================================
+\subsection{الدخول الموحّد (\en{SSO}) عبر \en{OAuth 2.0}}
+
+الآن الباب الثاني للدخول: \en{Google} و\en{Microsoft}. المعيار المستخدَم هو
+\en{OAuth 2.0} بنمط «كود التفويض» (\en{authorization-code}). الفكرة العامّة أن
+المستخدم يثبت هويته عند المزوّد لا عندنا، فيعود متصفّحه إلينا حاملًا كودًا مؤقّتًا،
+ونحن نبادله في الخلفية بمعلومات المستخدم.
+
+\begin{idea}[الفكرة: الكود قناة آمنة]
+لماذا لا يعيد المزوّد التوكن مباشرةً للمتصفّح؟ لأن المتصفّح بيئة غير موثوقة (قد يقرأ
+المحتوى برنامج خبيث). بدل ذلك يعيد كودًا قصير العمر لا قيمة له وحده، ثم نبادله نحن
+من الخادم — حيث يكمن سرّ تطبيقنا (\en{client secret}) — للحصول على التوكن. هكذا لا
+يمرّ التوكن الحسّاس عبر المتصفّح.
+\end{idea}
+
+هذا الرسم هو التسلسل الكامل بين المتصفّح والمزوّد وواجهتنا (الأسهم مرقّمة بالترتيب):
+
+\begin{center}\begin{LTR}
+\begin{tikzpicture}
+  \node[actor] (B) at (0,0) {Browser};
+  \node[gbox]  (P) at (5,0) {Google /\\Microsoft};
+  \node[pbox]  (A) at (10,0) {our API};
+  \draw[arrd] (B.south) -- (0,-7.9);
+  \draw[arrd] (P.south) -- (5,-7.9);
+  \draw[arrd] (A.south) -- (10,-7.9);
+  \draw[arr] (0,-1.1) -- (10,-1.1) node[midway,above,lbl] {(1) start Google sign-in};
+  \draw[arr] (10,-2.0) -- (0,-2.0) node[midway,above,lbl] {(2) authorize URL + state};
+  \draw[arr] (0,-2.9) -- (5,-2.9) node[midway,above,lbl] {(3) authorize + state};
+  \draw[arr] (5,-3.8) -- (0,-3.8) node[midway,above,lbl] {(4) code + state};
+  \draw[arr] (0,-4.7) -- (10,-4.7) node[midway,above,lbl] {(5) code + state};
+  \draw[arr] (10,-5.6) -- (5,-5.6) node[midway,above,lbl] {(6) exchange code (state ok)};
+  \draw[arr] (5,-6.5) -- (10,-6.5) node[midway,above,lbl] {(7) provider token + userinfo};
+  \draw[arr] (10,-7.4) -- (0,-7.4) node[midway,above,lbl] {(8) OUR access + refresh};
+\end{tikzpicture}
+\end{LTR}\end{center}
+
+نلاحظ في الخطوة (6) أن الواجهة تتحقّق من الـ\en{state} قبل مبادلة الكود. هذا الـ
+\en{state} هو حارس مكافحة \en{CSRF}: قيمة نصدرها في الخطوة (2) ويجب أن تعود كما هي
+في الخطوة (5). ندير هذا عبر \code{DataProtectionSsoStateStore}:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+public string Issue()
+{
+    // payload = <expiry-unix-seconds>:<random-nonce>, protected (tamper-proof).
+    var expiresAt = DateTimeOffset.UtcNow.Add(Ttl).ToUnixTimeSeconds();
+    var payload   = $"{expiresAt}:{Guid.NewGuid():N}";
+    return _protector.Protect(payload);          // signed + encrypted
+}
+
+public bool Validate(string? state)
+{
+    var payload = _protector.Unprotect(state);   // throws if forged/tampered
+    var sep = payload.IndexOf(':');
+    return sep > 0 && long.TryParse(payload.AsSpan(0, sep), out var exp)
+        && DateTimeOffset.FromUnixTimeSeconds(exp) > DateTimeOffset.UtcNow;
+}
+\end{lstlisting}
+\end{english}
+
+الشرح:
+\begin{itemize}
+\item \code{Protect(payload)} — الـ\en{state} ليس رقمًا نحفظه في الخادم، بل حزمة
+  موقّعة ومُشفّرة تحمل تاريخ انتهائها بنفسها. لا نحتاج تخزينًا من طرف الخادم، فيبقى
+  التحقّق صالحًا حتى مع إعادة تشغيل التطبيق أو تعدّد نُسخه.
+\item \code{Unprotect(state)} — يفشل (يرمي استثناءً) إن كان الـ\en{state} مزوّرًا
+  أو معدَّلًا؛ فأيّ محاولة تزييف تسقط فورًا.
+\item فحص الوقت — نرفض أي \en{state} انتهت مدّته (30 دقيقة)، فلا يُعاد استعماله لاحقًا.
+\end{itemize}
+
+بعد نجاح المبادلة وجلب بيانات المستخدم (\en{userinfo})، يتولّى
+\code{SsoLoginCommandHandler} إيجاد المستخدم المحليّ أو إنشاءه، ثم — وهذه النقطة
+الأهمّ — يصدر توكناتنا نحن:
+
+\begin{english}
+\begin{lstlisting}[language={[Sharp]C}]
+// Resolve by the recorded external identity first, then by verified email.
+var linkedUserId = await userAdministration
+    .FindUserIdByExternalLoginAsync(info.Provider, info.ProviderUserId, ct);
+var user = linkedUserId is { } lid
+    ? await db.Users.FirstOrDefaultAsync(u => u.Id == lid, ct)
+    : await db.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, ct);
+
+if (user is null) { /* first SSO sign-in: provision an Unassigned account */ }
+
+// Link the external identity (idempotent), then issue OUR tokens.
+await userAdministration.AddExternalLoginAsync(user.Id, info.Provider, info.ProviderUserId, ct);
+var tokens = tokenService.IssueTokens(user, roles, user.ActiveRole, rememberMe: false);
+\end{lstlisting}
+\end{english}
+
+الشرح:
+\begin{itemize}
+\item \code{FindUserIdByExternalLoginAsync} — نبحث أولًا بالهوية الخارجية المسجّلة
+  (المزوّد $+$ معرّف المستخدم عنده)، لا بالبريد؛ فربط الحساب يصبح صريحًا ومستقرًّا
+  حتى لو غيّر المزوّد البريد لاحقًا.
+\item \code{if (user is null)} — أوّل دخول عبر \en{SSO} يُنشئ حسابًا محليًّا جديدًا
+  (بحالة \code{Unassigned}) لأن البريد موثَّق من المزوّد.
+\item \code{AddExternalLoginAsync} — نسجّل رابط الهوية الخارجية (عملية عديمة الأثر
+  عند التكرار)، فيُحَل الدخول التالي إلى نفس الحساب.
+\item \code{tokenService.IssueTokens(...)} — السطر الحاسم: بعد إثبات الهوية نصدر
+  زوجنا نحن (\en{access} $+$ \en{refresh})، ولا نستعمل توكن \en{Google} بعد ذلك أبدًا.
+\end{itemize}
+
+\begin{spotlight}[ركّز هنا لإبهار اللجنة: بعد \en{SSO} نُصدر توكناتنا نحن]
+توكن \en{Google} أو \en{Microsoft} يُستعمل مرّة واحدة فقط: لإثبات أن هذا البريد
+يخصّ صاحبه. بمجرّد أن نتأكّد، نرميه ونصدر توكناتنا الخاصّة. لماذا هذا مهمّ؟ لأنه
+يبقي التحكّم كاملًا في أيدينا: دورة حياة الجلسة، والإبطال بنطاقاته الثلاثة،
+والأدوار — كلها تعمل بنفس المسار سواء دخل المستخدم بكلمة مرور أو عبر \en{Google}.
+لا نعتمد على جلسة طرف ثالث ولا على انتهائها؛ نحن من يقرّر متى تنتهي الجلسة ومتى
+تُطرَد.
+\end{spotlight}
+
+\begin{qa}[سؤال متوقّع: لو حساب جوجل اتسرق؟]
+«لو حساب \en{Google} للمستخدم اتسرق، هل هيدخل عندنا؟» — الدخول عبر \en{Google} يثبت
+فقط ملكيّة البريد لحظتها. لو فقد المستخدم حساب \en{Google} فالمشكلة عند \en{Google}.
+أمّا عندنا فبمجرّد أن يغيّر كلمة مروره المحلية أو نُبطِل جلساته، تسقط كل التوكنات
+التي أصدرناها فورًا — لأننا لا نعتمد على جلسة \en{Google}، بل على رموزنا القابلة
+للإبطال.
+\end{qa}
+
+% ====================================================================
+\begin{summary}[الخلاصة في سطور]
+\begin{itemize}
+\item \code{ApplicationDbContext} يرث \code{IdentityDbContext<ApplicationUser,
+  ApplicationRole, Guid>}، فيحصل على جداول الهوية السبعة وعلاقاتها جاهزة عبر
+  \code{base.OnModelCreating}؛ الوراثة من \code{DbContext} كانت ستتطلّب تعريفها كلّها يدويًّا.
+\item الأدوار الخمسة (\en{SuperAdmin/Admin/Student/Consultant/ScholarshipProvider})
+  تُحمَل داخل الـ\en{JWT} كـ\en{claims}، والتفويض عبر \code{[Authorize(Roles=...)]}
+  مضبوط على \code{active\_role} — الدور الفعّال للجلسة.
+\item رمز التحديث لا يُخزَّن خامًا، بل تُخزَّن تجزئته \en{SHA-256} في
+  \code{RefreshToken.TokenHash}؛ تسريب القاعدة لا يعطي رمزًا صالحًا.
+\item رمز الوصول ينتهي ذاتيًّا عبر \code{exp} (15 دقيقة، بلا رجوع للقاعدة)؛ ورمز
+  التحديث يُدوَّر عند كل استخدام ويُبطَل فرديًّا/للعائلة/عالميًّا عند الخروج أو كشف
+  إعادة الاستخدام أو تغيير كلمة المرور.
+\item \en{SSO} يتبع \en{OAuth 2.0} (كود التفويض): كود $\rightarrow$ مبادلة
+  $\rightarrow$ \en{userinfo} $\rightarrow$ إيجاد/إنشاء مستخدم، مع \code{state}
+  موقّع (\code{DataProtectionSsoStateStore}) لمكافحة \en{CSRF}.
+\item بعد \en{SSO} نصدر توكناتنا نحن ولا نعتمد على توكن المزوّد — تحكّم كامل في
+  الجلسة والإبطال.
+\end{itemize}
+\end{summary}

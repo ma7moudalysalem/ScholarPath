@@ -1,0 +1,49 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam dpi 150
+skinparam maxMessageSize 240
+skinparam sequenceMessageAlign center
+skinparam sequence {
+  ArrowColor #2E4A7B
+  LifeLineBorderColor #6C8EBF
+  LifeLineBackgroundColor #EAF1FB
+  ParticipantBorderColor #2E5496
+  ParticipantBackgroundColor #DAE8FC
+  ParticipantFontColor #1A1A1A
+  ParticipantFontStyle bold
+  ActorBorderColor #2E5496
+  ActorBackgroundColor #DAE8FC
+  ActorFontColor #1A1A1A
+}
+skinparam note {
+  BackgroundColor #FFF9E6
+  BorderColor #D6B656
+  FontColor #1A1A1A
+}
+title Browse, Search and Filter Scholarships
+
+actor "Student" as ST
+participant "ScholarshipsPage" as PAGE <<page>>
+participant "scholarshipsApi" as API <<api>>
+participant "ScholarshipsController\n[Authorize]" as CTRL <<controller>>
+participant "GetScholarshipsQuery" as Q <<query>>
+database "Scholarship" as DB <<entity>>
+ST -> PAGE : open list, set search / filters
+PAGE -> API : scholarshipsApi.search(filters)
+API -> CTRL : GET /api/scholarships
+CTRL -> Q : GetScholarshipsQuery(filters)
+Q -> DB : query Status = Open + filters
+DB --> Q : matching page
+Q --> CTRL : paged result
+CTRL --> API : 200 OK
+API --> PAGE : scholarships
+alt results found
+  PAGE --> ST : display paginated list
+else no match
+  PAGE --> ST : show empty state
+end
+note over Q : Defaults to ScholarshipStatus.Open. Filters:\nterm, category, funding type, academic level,\ncountry, deadline range, field, funded-only, sort.
+
+@enduml
