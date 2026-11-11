@@ -140,6 +140,10 @@ if (mode == "verdicts")
     await File.WriteAllTextAsync(arg("out", "verdicts.tsv"), outTsv.ToString()).ConfigureAwait(false);
     Console.WriteLine($"verdicts: {vSample.Count} students x {daad.Count} DAAD listings");
 }
+else if (mode == "questions")
+{
+    await RunQuestionsAsync().ConfigureAwait(false);
+}
 else if (mode == "reindex")
 {
     // Rebuilds the knowledge documents of the target database with the platform's
@@ -168,6 +172,186 @@ else if (mode == "recommendation")
 else
 {
     await RunEligibilityAsync().ConfigureAwait(false);
+}
+
+// ==================================================================== questions
+// A bilingual benchmark of eligibility questions for verifying assistant answers.
+// Each question states the student's facts in words (nationality, level, major,
+// destination) and names one open listing; its answer is computed by the
+// platform's eligibility rule on exactly those facts, the rule that agrees with
+// DAAD's published criteria on every compared pair. Items are drawn per category,
+// so hard cases (a nationality that is also a destination, a missing fact, a
+// field adjacent to the accepted one) are not left to chance. Every item is
+// written in English and in Arabic with the same facts and the same answer.
+//   --mode questions --students <items per category> --out <file.jsonl>
+async Task RunQuestionsAsync()
+{
+    // Erasmus Mundus programmes whose fields could not be read from the title carry
+    // no field restriction by assumption, not by the source; they are left out so
+    // every answer rests on facts the source states.
+    var all = (await db.Scholarships.AsNoTracking()
+        .Where(s => s.Status == ScholarshipStatus.Open && s.Deadline > asOf).ToListAsync().ConfigureAwait(false))
+        .Where(s => !(s.Slug.StartsWith("em-", StringComparison.Ordinal) && Parse(s.FieldsOfStudyJson).Count == 0))
+        .ToList();
+    // The twelve nationalities of the study's students, plus a few others so that
+    // "not admitted" cases are not all the same country.
+    string[] nationalities = ["EG", "MA", "SA", "DZ", "JO", "TN", "LB", "PS", "OM", "MR", "QA", "BH",
+                              "DE", "FR", "US", "IN", "NG", "TR"];
+    (string En, string Ar)[] majors =
+    [
+        ("Computer Science", "علوم الحاسب"), ("Software Engineering", "هندسة البرمجيات"),
+        ("Data Science", "علم البيانات"), ("Electrical Engineering", "الهندسة الكهربائية"),
+        ("Civil Engineering", "الهندسة المدنية"), ("Mathematics", "الرياضيات"), ("Physics", "الفيزياء"),
+        ("Environmental Science", "العلوم البيئية"), ("Agriculture", "الزراعة"), ("Medicine", "الطب"),
+        ("Pharmacy", "الصيدلة"), ("Public Health", "الصحة العامة"), ("Business Administration", "إدارة الأعمال"),
+        ("Economics", "الاقتصاد"), ("Law", "القانون"), ("Education", "التربية والتعليم"),
+        ("Architecture", "العمارة"), ("Literature", "الأدب"), ("Psychology", "علم النفس"),
+        ("International Relations", "العلاقات الدولية"),
+    ];
+    AcademicLevel[] levels = [AcademicLevel.Undergrad, AcademicLevel.Masters, AcademicLevel.PhD, AcademicLevel.PostDoc];
+    var destinations = all.SelectMany(s => Parse(s.TargetCountriesJson)).Select(CountryNormalizer.ToKey)
+        .Where(k => k.Length == 2).Distinct().OrderBy(k => k, StringComparer.Ordinal).ToArray();
+
+    // The category a (facts, listing) pair falls in, read from the rule's own outcome.
+    static string CategoryOf(IReadOnlyList<AiEligibilityCriterion> c, string? nat, Scholarship s)
+    {
+        string M(string name) => c.FirstOrDefault(x => x.NameEn == name)?.Match ?? "absent";
+        var level = M("Academic level"); var country = M("Country"); var n = M("Nationality"); var field = M("Field of study");
+        var fails = new[] { level, country, n, field }.Count(m => m == "no");
+        if (fails >= 2) return "multiple_fail";
+        bool Ok(string m) => m is "yes" or "absent";
+        if (fails == 0 && Ok(level) && Ok(country) && Ok(n) && Ok(field)) return "eligible";
+        if (fails == 0 && n == "unknown" && Ok(level) && Ok(country) && Ok(field)) return "unknown_nationality";
+        if (fails == 0 && field == "partial" && Ok(level) && Ok(country) && Ok(n)) return "partial_field";
+        if (fails == 1 && level == "no") return "only_level";
+        if (fails == 1 && country == "no") return "only_destination";
+        if (fails == 1 && field == "no") return "only_field";
+        if (fails == 1 && n == "no")
+        {
+            var isDest = Parse(s.TargetCountriesJson).Any(d => CountryNormalizer.Matches(d, nat));
+            return isDest ? "nationality_is_destination" : "only_nationality";
+        }
+        return "other";
+    }
+
+    string LevelEn(AcademicLevel l) => l switch
+    {
+        AcademicLevel.Undergrad => "a bachelor's", AcademicLevel.Masters => "a master's",
+        AcademicLevel.PhD => "a PhD", AcademicLevel.PostDoc => "a postdoctoral", _ => l.ToString(),
+    };
+    string LevelAr(AcademicLevel l) => l switch
+    {
+        AcademicLevel.Undergrad => "البكالوريوس", AcademicLevel.Masters => "الماجستير",
+        AcademicLevel.PhD => "الدكتوراه", AcademicLevel.PostDoc => "ما بعد الدكتوراه", _ => l.ToString(),
+    };
+
+    string[] categories = ["eligible", "only_level", "only_destination", "only_nationality", "nationality_is_destination",
+                           "only_field", "partial_field", "unknown_nationality", "multiple_fail"];
+    var items = new List<object>();
+    var natDest = new Dictionary<string, int>(StringComparer.Ordinal);
+    // English country names that read with "the".
+    string The(string name) =>
+        name.StartsWith("United ", StringComparison.Ordinal) || name is "Netherlands" or "Czech Republic" or "Philippines"
+            ? "the " + name : name;
+    var seen = new HashSet<string>(StringComparer.Ordinal);
+    var counts = categories.ToDictionary(c => c, _ => 0);
+    var restricted = all.Where(s => Parse(s.EligibleNationalitiesJson).Count > 0).ToList();
+
+    foreach (var cat in categories)
+    {
+        // Three times as many eligible items, so "yes" is not a rare answer.
+        var perCategory = cat == "eligible" ? studentCount * 3 : studentCount;
+        // Nationality cases need a listing that restricts nationality.
+        var pool = cat is "only_nationality" or "nationality_is_destination" or "unknown_nationality" ? restricted : all;
+        for (var attempt = 0; attempt < 400_000 && counts[cat] < perCategory; attempt++)
+        {
+            var s = pool[rng.Next(pool.Count)];
+            var allowed = Parse(s.EligibleNationalitiesJson).Select(CountryNormalizer.ToKey).ToList();
+            var dests = Parse(s.TargetCountriesJson).Select(CountryNormalizer.ToKey).Where(k => k.Length == 2).ToList();
+            var fields = Parse(s.FieldsOfStudyJson);
+
+            // Draw the facts, steered towards the category so the search ends quickly.
+            var level = cat == "only_level" ? levels.Where(l => l != s.TargetLevel).ElementAt(rng.Next(3)) : s.TargetLevel;
+            // Nationalities come from the study's list (names known in both languages).
+            var allowedKnown = allowed.Where(a => nationalities.Contains(a)).ToList();
+            string? nat = cat switch
+            {
+                "unknown_nationality" => null,
+                "nationality_is_destination" => dests.Count > 0 ? dests[rng.Next(dests.Count)] : null,
+                "only_nationality" => nationalities[rng.Next(nationalities.Length)],
+                _ => allowedKnown.Count > 0 && rng.Next(4) > 0 ? allowedKnown[rng.Next(allowedKnown.Count)] : nationalities[rng.Next(nationalities.Length)],
+            };
+            if (cat == "nationality_is_destination" && nat is null) continue;
+            // No one destination may make up more than a third of this category.
+            if (cat == "nationality_is_destination" && natDest.GetValueOrDefault(nat!) >= Math.Max(1, perCategory / 3)) continue;
+            var dest = cat == "only_destination" || dests.Count == 0
+                ? destinations[rng.Next(destinations.Length)]
+                : dests[rng.Next(dests.Count)];
+            var major = majors[rng.Next(majors.Length)];
+            if (cat is "eligible" or "only_level" or "only_destination" or "only_nationality" or "nationality_is_destination"
+                    or "unknown_nationality" && fields.Count > 0)
+            {
+                var fitting = majors.Where(m => FieldTaxonomy.FieldsOf(m.En).Any(f => fields.Contains(f, StringComparer.OrdinalIgnoreCase))).ToArray();
+                if (fitting.Length > 0) major = fitting[rng.Next(fitting.Length)];
+            }
+
+            var profile = new UserProfile
+            {
+                AcademicLevel = level, Nationality = nat, FieldOfStudy = major.En,
+                PreferredCountriesJson = JsonSerializer.Serialize(new[] { dest }),
+            };
+            var criteria = LocalAiService.BuildCriteria(s, profile);
+            if (CategoryOf(criteria, nat, s) != cat) continue;
+            var key = $"{s.Id}|{level}|{nat}|{major.En}|{dest}";
+            if (!seen.Add(key)) continue;
+
+            var verdict = LocalAiService.DeriveVerdict(criteria);
+            var natEn = nat is null ? null : CountryNormalizer.DisplayName(nat, arabic: false);
+            var natAr = nat is null ? null : CountryNormalizer.DisplayName(nat, arabic: true);
+            if (cat == "nationality_is_destination") natDest[nat!] = natDest.GetValueOrDefault(nat!) + 1;
+            var destEn = The(CountryNormalizer.DisplayName(dest, arabic: false));
+            var destAr = CountryNormalizer.DisplayName(dest, arabic: true);
+            // The question names the four criteria the answer is judged on, so a
+            // requirement the platform does not hold (gender, age, experience) is
+            // outside what is asked.
+            var who = natEn is null ? "" : $"I am a citizen of {The(natEn)}. ";
+            var what = level == AcademicLevel.PostDoc
+                ? $"I am looking for a postdoctoral position in {major.En} in {destEn}."
+                : $"I want to study for {LevelEn(level)} degree in {major.En} in {destEn}.";
+            var award = System.Text.RegularExpressions.Regex.IsMatch(s.TitleEn, @"(Scholarships?|Fellowships?|Grants?|Awards?|Programmes?|Programs?)\W*$")
+                ? $"the \"{s.TitleEn}\"" : $"the \"{s.TitleEn}\" scholarship";
+            var qEn = $"{who}{what} Considering my academic level, field, study destination and nationality, am I eligible for {award}?";
+            var whoAr = natAr is null ? "" : $"أنا من {natAr}. ";
+            var whatAr = level == AcademicLevel.PostDoc
+                ? $"أبحث عن فرصة ما بعد الدكتوراه في تخصص {major.Ar} في {destAr}."
+                : $"أريد دراسة {LevelAr(level)} في تخصص {major.Ar} في {destAr}.";
+            var qAr = $"{whoAr}{whatAr} بالنظر إلى مستواي الدراسي وتخصصي ووجهة الدراسة وجنسيتي، هل أنا مؤهل لمنحة \"{s.TitleAr}\"؟";
+
+            var id = $"q{items.Count / 2 + 1:D5}";
+            var truth = new
+            {
+                verdict = verdict.ToString(),
+                criteria = criteria.Select(c => new { c.NameEn, c.StudentValue, c.ListingRequirement, c.Match }),
+            };
+            var facts = new { nationality = nat, level = level.ToString(), major = major.En, destination = dest };
+            var listing = new { id = s.Id, s.Slug, title_en = s.TitleEn, title_ar = s.TitleAr };
+            items.Add(new { id, lang = "en", category = cat, question = qEn, facts, listing, truth });
+            items.Add(new { id, lang = "ar", category = cat, question = qAr, facts, listing, truth });
+            counts[cat]++;
+        }
+    }
+
+    // Countries in the catalog or the study's list that have no Arabic name.
+    var noArabic = all.SelectMany(s => Parse(s.TargetCountriesJson).Concat(Parse(s.EligibleNationalitiesJson)))
+        .Concat(nationalities).Select(CountryNormalizer.ToKey).Where(k => k.Length == 2).Distinct()
+        .Where(k => CountryNormalizer.DisplayName(k, arabic: true) == k).OrderBy(k => k, StringComparer.Ordinal).ToList();
+    Console.WriteLine($"no Arabic name: {noArabic.Count} [{string.Join(",", noArabic)}]");
+
+    var outPath = arg("out", "eligibility-questions.jsonl");
+    var jsonOpts = new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    await File.WriteAllLinesAsync(outPath, items.Select(i => JsonSerializer.Serialize(i, jsonOpts)), new UTF8Encoding(false)).ConfigureAwait(false);
+    Console.WriteLine($"questions  : {items.Count / 2} items x 2 languages = {items.Count} questions -> {outPath}");
+    foreach (var c in categories) Console.WriteLine($"  {c,-28}{counts[c],6}");
 }
 
 // ==================================================================== recommendation
