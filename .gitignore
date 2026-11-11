@@ -138,3 +138,6 @@ docs/*-eval*.csv
 # Local-only files
 AGENTS.md
 verify-*.png
+
+# Local assistant configuration
+CLAUDE.md
