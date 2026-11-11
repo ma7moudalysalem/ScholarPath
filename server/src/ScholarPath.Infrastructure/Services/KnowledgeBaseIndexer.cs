@@ -264,6 +264,15 @@ public sealed class KnowledgeBaseIndexer(
             var countriesTextAr = countries.Count > 0
                 ? string.Join("، ", countries.Select(c => CountryNormalizer.DisplayName(c, arabic: true)))
                 : "أي دولة";
+            // Destinations (where the award is held) and nationalities (who may apply)
+            // are stated separately, so an answer cannot read one as the other.
+            var nationalities = ParseJsonArray(s.EligibleNationalitiesJson);
+            var nationalitiesText = nationalities.Count > 0
+                ? string.Join(", ", nationalities.Select(c => CountryNormalizer.DisplayName(c, arabic: false)))
+                : "any nationality";
+            var nationalitiesTextAr = nationalities.Count > 0
+                ? string.Join("، ", nationalities.Select(c => CountryNormalizer.DisplayName(c, arabic: true)))
+                : "جميع الجنسيات";
             var tagsText = tags.Count > 0 ? string.Join(", ", tags) : "any field";
             // The fields a listing accepts, in each language, so a question that
             // names a discipline meets the listings open to it.
@@ -278,7 +287,8 @@ public sealed class KnowledgeBaseIndexer(
                 $"Scholarship: {s.TitleEn}\n" +
                 $"{s.DescriptionEn}\n" +
                 $"Funding: {s.FundingType} ({amount}). Study level: {s.TargetLevel}.\n" +
-                $"Eligible countries: {countriesText}.\n" +
+                $"Study destinations (countries where the scholarship is held): {countriesText}.\n" +
+                $"Open to applicants of: {nationalitiesText}.\n" +
                 $"Eligibility: {s.EligibilityRequirementsEn ?? "See the official listing."}\n" +
                 $"Topics: {tagsText}.\n" +
                 $"Fields of study: {fieldsText}.\n" +
@@ -288,7 +298,8 @@ public sealed class KnowledgeBaseIndexer(
                 $"منحة دراسية: {s.TitleAr}\n" +
                 $"{s.DescriptionAr}\n" +
                 $"التمويل: {FundingAr(s.FundingType)} ({amount}). المستوى الدراسي: {LevelAr(s.TargetLevel)}.\n" +
-                $"الدول المؤهَّلة: {countriesTextAr}.\n" +
+                $"دول الدراسة (الدول التي تُقدَّم فيها المنحة): {countriesTextAr}.\n" +
+                $"متاحة لمتقدمين من: {nationalitiesTextAr}.\n" +
                 $"الأهلية: {s.EligibilityRequirementsAr ?? "راجع القائمة الرسمية."}\n" +
                 $"المجالات: {tagsText}.\n" +
                 $"مجالات الدراسة المقبولة: {fieldsTextAr}.\n" +

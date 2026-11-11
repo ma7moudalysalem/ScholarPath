@@ -284,7 +284,7 @@ public sealed class LocalAiService(
     }
 
     /// <summary>The per-criterion outcomes of a listing for a profile (see CheckEligibilityAsync).</summary>
-    internal static List<AiEligibilityCriterion> BuildCriteria(Scholarship scholarship, UserProfile? profile)
+    public static List<AiEligibilityCriterion> BuildCriteria(Scholarship scholarship, UserProfile? profile)
     {
         var criteria = new List<AiEligibilityCriterion>();
 
@@ -411,7 +411,7 @@ public sealed class LocalAiService(
     /// NotEligible; otherwise a "partial" (or an "unknown") leaves them
     /// PartiallyEligible; all-clear is Eligible.
     /// </summary>
-    internal static EligibilityVerdict DeriveVerdict(IReadOnlyList<AiEligibilityCriterion> criteria)
+    public static EligibilityVerdict DeriveVerdict(IReadOnlyList<AiEligibilityCriterion> criteria)
     {
         if (criteria.Count == 0) return EligibilityVerdict.NotEligible;
 
